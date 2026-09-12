@@ -1,0 +1,1563 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>WEB COCKPIT DATA MAP - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/architecture/WEB_COCKPIT_DATA_MAP.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/architecture/WEB_COCKPIT_DATA_MAP.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="web-cockpit-data-map">
+<h1>WEB COCKPIT DATA MAP<a class="headerlink" href="#web-cockpit-data-map" title="Link to this heading">¶</a></h1>
+<p>Status: CANONICAL — R1.3 (WEB-DOC-01)
+Basis: WEB COCKPIT DATA MAP R0.1 (accepted), revalidated against source at
+commit <code class="docutils literal notranslate"><span class="pre">1c36ad33c2f9d6263d786aae96f5269f0ded23a5</span></code> (original base of this
+document); corrected in R1.1, R1.2, and R1.3 per MASTER review. As of R1.3
+this branch has been synchronized (normal merge, no rebase) with certified
+main at <code class="docutils literal notranslate"><span class="pre">524a2f78d5de3a041105e8fc330c7f451e36f53c</span></code>, which merged REM-C R1
+(PR #139, its own R1/R1.1/R1.2/R1.3 rounds, certified HEAD
+<code class="docutils literal notranslate"><span class="pre">6e3fcc8e7441f434edca261cc60b298032c07989</span></code>).
+Scope: documentation only. This document changes no machine behavior.</p>
+<p><strong>REM-C R1 status (as of R1.3): MERGED / CERTIFIED ON MAIN.</strong> <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">#139</span></code> is
+closed and merged (merge commit <code class="docutils literal notranslate"><span class="pre">524a2f78d5de3a041105e8fc330c7f451e36f53c</span></code>).
+Its content (<code class="docutils literal notranslate"><span class="pre">ExecutionDomain</span></code> provenance, domain/account-safe
+<code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> semantics, the canonical <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> API
+correction, PAPER restart/recovery evidence honesty, the BootGate
+fail-closed fix, and R1.3’s provenance/certified-performance evidence
+semantics) is now canonical current-main behavior and is described as such
+throughout this document (§9, §20). REM-C R2/R3/R4 remain not started.</p>
+<hr class="docutils" />
+<section id="purpose">
+<h2>1. Purpose<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>This document is the translation map between <strong>machine facts</strong> (what the
+trading research system actually computes, decides, and records) and
+<strong>human visualization</strong> (what the Web cockpit shows an operator).</p>
+<p>It exists so that every number, badge, or status shown in the cockpit can be
+traced back, in a few seconds, to the component that produced it, and so
+that the cockpit’s design stays bounded by what the machine can honestly
+prove today.</p>
+<p>It is the single reference for:</p>
+<ol class="arabic simple">
+<li><p>What facts does the machine produce?</p></li>
+<li><p>Which component owns each fact?</p></li>
+<li><p>Is that fact scientifically trustworthy?</p></li>
+<li><p>Is it already Web-exposed?</p></li>
+<li><p>Which cockpit panel should display it?</p></li>
+<li><p>What future bounded mission is required if it is not ready?</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="architectural-principles">
+<h2>2. Architectural Principles<a class="headerlink" href="#architectural-principles" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>The machine owns scientific truth.</strong> All scientific and trading facts
+(regime, decisions, PnL, regret) are computed inside the Python research
+system, never inside the browser.</p></li>
+<li><p><strong>Snapshot/API transports truth.</strong> A governed snapshot, read through a
+read-only API, is the only channel that carries machine facts to the Web.</p></li>
+<li><p><strong>The frontend renders truth.</strong> React formats and displays what the API
+gives it; it does not compute, infer, or reinterpret scientific values.</p></li>
+<li><p><strong>UI does not redefine scientific semantics.</strong> A field’s meaning is fixed
+by the domain that produces it, not by the panel that shows it.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> must stay <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>.</strong> When a value is not yet reliably
+produced, the cockpit must show that honestly instead of inferring or
+guessing a number.</p></li>
+<li><p><strong>PAPER and REAL must remain visibly separate</strong> in every view that could
+show either, with no ambiguous merged state.</p></li>
+<li><p><strong>Observation is not execution authority.</strong> Nothing the Web cockpit shows
+or will show (including any future control surface) can itself authorize
+a trade; per ADR-0007, only the decision engine decides.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="evidence-vocabulary">
+<h2>3. Evidence Vocabulary<a class="headerlink" href="#evidence-vocabulary" title="Link to this heading">¶</a></h2>
+<p>Every factual claim in this document (and in any Web-facing contract that
+follows it) must be tagged with one of these evidence classes:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p>Directly read in the current source at the cited file:line; the call chain from producer to consumer was traced, not assumed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DOCUMENTATION_CONTRACT</span></code></p></td>
+<td><p>Stated as normative in an accepted contract/ADR; treated as binding even where the implementing code is elsewhere or partial.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DERIVED_BY_TRACE</span></code></p></td>
+<td><p>Inferred by following call sites, factories, or registries (e.g. a lazy-factory registration), not a single direct read.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code></p></td>
+<td><p>The code path exists, but there is no evidence (logs, deployment record, T-1 liveness) that it is actually executing on the live VPS.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FUTURE_WORK</span></code></p></td>
+<td><p>Not implemented; scoped for a later bounded mission.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LEGACY</span></code></p></td>
+<td><p>Superseded by a newer mechanism but still present in code, kept for observability/telemetry/back-compat, not for authority.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p></td>
+<td><p>A conflict or gap was found during revalidation and is not yet settled; see §22.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>A claim must never be upgraded silently — e.g. “a call site exists”
+(<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>/<code class="docutils literal notranslate"><span class="pre">DERIVED_BY_TRACE</span></code>) must never be written as “running in
+production” (<code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> unless T-1 liveness evidence says otherwise).
+Likewise “a snapshot field exists” must never be written as “Web ready”
+unless both source and transport readiness are confirmed (§6).</p>
+</section>
+<hr class="docutils" />
+<section id="readiness-vocabulary">
+<h2>4. Readiness Vocabulary<a class="headerlink" href="#readiness-vocabulary" title="Link to this heading">¶</a></h2>
+<p>Two axes are tracked <strong>independently</strong> for every fact. A fact can be fully
+ready on one axis and not the other; conflating them is the single most
+common documentation error this project has made historically.</p>
+<section id="scientific-source-readiness">
+<h3>Scientific Source Readiness<a class="headerlink" href="#scientific-source-readiness" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p>The producing component is implemented, wired into a real runtime call chain, and the value’s semantics are settled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code></p></td>
+<td><p>Implemented but with known gaps (e.g. not centralized, some paths untested, semantics still evolving).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_UNSAFE</span></code></p></td>
+<td><p>Not implemented, dormant, or too unreliable to expose even internally.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="web-transport-readiness">
+<h3>Web Transport Readiness<a class="headerlink" href="#web-transport-readiness" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code></p></td>
+<td><p>Already flows through snapshot → API → React today.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code></p></td>
+<td><p>Source exists but the canonical snapshot (O-02W-C) does not yet serialize it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_API_EXPOSURE</span></code></p></td>
+<td><p>Snapshot carries it, but no API route/field exposes it yet.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code></p></td>
+<td><p>The fact lives only in an append-only file (e.g. JSONL); a governed history-reader/projection is required before the Web can see it — the frontend/API must never read the raw file directly.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_BY_SCIENTIFIC_WORK</span></code></p></td>
+<td><p>Web transport is not the blocker; the underlying scientific/engineering work must land first.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Worked example:</strong> <code class="docutils literal notranslate"><span class="pre">paper_trades.jsonl</span></code> can be <code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (the paper
+trading engine reliably writes it) while simultaneously
+<code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code> for the Web axis. This must never be read as
+“React may read the JSONL file directly” — it may not, ever (§7, §23).</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="existing-web-foundation">
+<h2>5. Existing Web Foundation<a class="headerlink" href="#existing-web-foundation" title="Link to this heading">¶</a></h2>
+<p>The following are <strong>already delivered</strong>, not future work. They form the
+current, working Web foundation this document builds on.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>What it delivered</p></th>
+<th class="head"><p>Evidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>O-02W-B</strong></p></td>
+<td><p>The certified normative contract governing the whole canonical operator architecture: process boundary map, source-to-exposure matrix, common value contract, portfolio/trade API contracts.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-B_CANONICAL_OPERATOR_API_CONTRACT.md</span></code> (<code class="docutils literal notranslate"><span class="pre">DOCUMENTATION_CONTRACT</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>O-02W-C</strong></p></td>
+<td><p>The canonical snapshot <strong>producer</strong>: builds and writes the operator snapshot, runtime manifest, process identity, and source/deployment evidence. Wired into the live advisor loop (bootstrap + per-cycle write).</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code>; <code class="docutils literal notranslate"><span class="pre">observability/operator_runtime_manifest.py</span></code>; <code class="docutils literal notranslate"><span class="pre">observability/process_identity.py</span></code>; <code class="docutils literal notranslate"><span class="pre">observability/source_evidence.py</span></code>; <code class="docutils literal notranslate"><span class="pre">observability/operator_boot_coordinator.py</span></code>; called from <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> (bootstrap ~L5588-5621, per-cycle write ~L8052-8135) (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>O-02W-D1</strong></p></td>
+<td><p>The read-only operator API: <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/snapshot</span></code>, structured validation, no writes, no JSONL access, no direct import of the trading engine.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code>, <code class="docutils literal notranslate"><span class="pre">reader.py</span></code> (<code class="docutils literal notranslate"><span class="pre">SafeSnapshotReader</span></code>), <code class="docutils literal notranslate"><span class="pre">paths.py</span></code> (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>O-02W-D2</strong></p></td>
+<td><p>The React polling client: a single serialized snapshot-polling hook with monotonic sequencing, plus client-side structural validation mirroring the server.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/src/lib/snapshotClient.ts</span></code>, <code class="docutils literal notranslate"><span class="pre">snapshotValidation.ts</span></code>, <code class="docutils literal notranslate"><span class="pre">observedValue.ts</span></code>, <code class="docutils literal notranslate"><span class="pre">types.ts</span></code>; CI gate <code class="docutils literal notranslate"><span class="pre">.github/workflows/frontend-ci.yml</span></code> (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>O-02W-D3</strong></p></td>
+<td><p>Cross-stack compatibility verification: a CI gate proving the O-02W-C producer’s output travels unchanged through the real D1 API and is accepted by the real D2 client.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/workflows/cross-stack-compat.yml</span></code>; <code class="docutils literal notranslate"><span class="pre">tests/cross_stack/*</span></code> (<code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>O-02W-E1</strong></p></td>
+<td><p>Delivered as its own dedicated, ~2000-line contract — the Telegram observation-boundary review, covering per-identity analysis across multiple remediation rounds (R1/R1.1/R1.2). This is a standalone contract, not merely a pointer from the identity registry (that registry is one supporting citation among many inside it).</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-E_TELEGRAM_OBSERVATION_BOUNDARY.md</span></code> (mission header self-identifies as “O-02W-E1”; <code class="docutils literal notranslate"><span class="pre">DOCUMENTATION_CONTRACT</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="machine-web-architecture">
+<h2>6. Machine → Web Architecture<a class="headerlink" href="#machine-web-architecture" title="Link to this heading">¶</a></h2>
+<p>The approved pipeline, and the only one this document authorizes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>AUTHORITATIVE MACHINE SOURCE
+        │  (core/advisor_loop.py, decision_packet.py,
+        │   paper_trading/*, execution/*)
+        ▼
+CANONICAL SNAPSHOT / GOVERNED PROJECTION      ← O-02W-C
+        │  (observability/operator_snapshot_builder.py
+        │   + operator_runtime_manifest.py)
+        ▼
+READ-ONLY OPERATOR API                        ← O-02W-D1
+        │  (observability/operator_api/*,
+        │   GET /api/operator/v1/snapshot, never mutates)
+        ▼
+WEB COCKPIT                                   ← O-02W-D2 / D3
+           (frontend/src/lib/snapshotClient.ts + views)
+</pre></div>
+</div>
+<p>Not authorized, now or by implication of anything in this document:</p>
+<ul class="simple">
+<li><p>a competing/second API surface;</p></li>
+<li><p>direct frontend or API-layer reads of the database, the JSONL ledgers, or
+the exchange;</p></li>
+<li><p>frontend scientific recomputation of any value the machine already owns.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="authority-map">
+<h2>7. Authority Map<a class="headerlink" href="#authority-map" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Fact</p></th>
+<th class="head"><p>Authority owner</p></th>
+<th class="head"><p>Domain</p></th>
+<th class="head"><p>Evidence class</p></th>
+<th class="head"><p>Source readiness</p></th>
+<th class="head"><p>Web readiness</p></th>
+<th class="head"><p>Dependency</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Regime (label) — source</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py::_adaptive_regime</span></code> — a smoothed, N-cycle-consecutive-vote-filtered <code class="docutils literal notranslate"><span class="pre">AdvancedRegimeDetector</span></code> output; this is the actual technical source cited by the canonical operator metric dictionary. <code class="docutils literal notranslate"><span class="pre">anara_context/modules/*.json</span></code> files are static dashboard/documentation metadata (module_id, display_name, key_metrics, etc.) — not executable logic, not a runtime data path, and must never be described as runtime authority</p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">market_state.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">MarketStateSnapshot</span></code>/<code class="docutils literal notranslate"><span class="pre">compose_market_state_snapshot()</span></code> models this as a domain concept, but is not yet wired into the canonical snapshot — see next row for global-transport detail</p></td>
+</tr>
+<tr class="row-odd"><td><p>Regime (label) — global Web exposure</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code> has <strong>zero references</strong> to <code class="docutils literal notranslate"><span class="pre">market_state</span></code>, <code class="docutils literal notranslate"><span class="pre">MarketStateSnapshot</span></code>, or <code class="docutils literal notranslate"><span class="pre">compose_market_state_snapshot()</span></code> — the domain module is never invoked by the canonical snapshot builder; no <code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-D2_OPERATOR_WEB_COCKPIT.md</span></code> contract exists. A regime string does reach the frontend, but only <strong>nested per-record</strong> (not currently exposed as a global panel): <code class="docutils literal notranslate"><span class="pre">OpenPosition.regime</span></code> (<code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code>, portfolio domain) and <code class="docutils literal notranslate"><span class="pre">PerSymbolDecision.regime</span></code> (decision-pipeline domain), rendered per-row in <code class="docutils literal notranslate"><span class="pre">PortfolioView.tsx</span></code>/<code class="docutils literal notranslate"><span class="pre">DecisionsView.tsx</span></code></p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code></p></td>
+<td><p>Wire the global Market/Regime domain into the canonical snapshot; the narrower existing per-position/per-symbol regime transport remains separately <code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> and is <strong>not</strong> proof that a global REGIME panel/domain exists (§11, §19, §22)</p></td>
+</tr>
+<tr class="row-even"><td><p>Regime confidence</p></td>
+<td><p>Computed by <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/intelligence/market_regime_classifier.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">RegimeStateTracker</span></code> (class at line 56), wired through <code class="docutils literal notranslate"><span class="pre">core/advisor_runtime_adapters.py</span></code> into <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>: constructed at <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:5563-5565</span></code> (<code class="docutils literal notranslate"><span class="pre">_regime_tracker:</span> <span class="pre">Any</span> <span class="pre">=</span> <span class="pre">_profile_bootstrap_step(&quot;regime_state_tracker&quot;,</span> <span class="pre">runtime.RegimeStateTracker)</span></code>) and invoked in the main per-cycle loop at <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:6914-6919</span></code> (<code class="docutils literal notranslate"><span class="pre">_rpkt</span> <span class="pre">=</span> <span class="pre">_regime_tracker.update(_obs)</span></code>, “P6 — RegimeStateTracker” block) — a genuine construct-and-invoke production call chain, not merely an import or test-only reference. The canonical snapshot field <code class="docutils literal notranslate"><span class="pre">market_state.regime_confidence</span></code> (<code class="docutils literal notranslate"><span class="pre">observability/operator/domains/market_state.py</span></code>) is a separate object that is never populated from <code class="docutils literal notranslate"><span class="pre">RegimePacket.confidence</span></code> — the <code class="docutils literal notranslate"><span class="pre">market_state</span></code> domain module itself is not invoked by the snapshot builder at all (see row above)</p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (construction and invocation confirmed in the production call graph; VPS runtime execution itself remains <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> per §3)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code></p></td>
+<td><p>The computation is real and reachable from the main cycle; the gap is that neither <code class="docutils literal notranslate"><span class="pre">market_state</span></code> (the domain that would carry <code class="docutils literal notranslate"><span class="pre">regime_confidence</span></code>) nor <code class="docutils literal notranslate"><span class="pre">RegimePacket.confidence</span></code> specifically is wired into the snapshot builder’s output — do not describe the snapshot field itself as the producer, and do not describe the tracker as merely “referenced” — it is constructed and called</p></td>
+</tr>
+<tr class="row-odd"><td><p>Universe size</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">market_state.universe_size</span></code> domain field</p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (field), <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (population)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_UNSAFE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code></p></td>
+<td><p>No confirmed producer (field comment: “INCONCLUSIVE, no confirmed producer found”)</p></td>
+</tr>
+<tr class="row-even"><td><p>DecisionPacket actionability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DecisionPacket.is_actionable()</span></code></p></td>
+<td><p>Execution authority</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (as <code class="docutils literal notranslate"><span class="pre">decision_pipeline</span></code> telemetry)</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p>Blockers</p></td>
+<td><p>Legacy <code class="docutils literal notranslate"><span class="pre">trade_allowed</span></code> / blockers list</p></td>
+<td><p>Analysis/gating input (not authority)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LEGACY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code></p></td>
+<td><p>Superseded as authority by DecisionPacket; kept for observability and TYPE-A-DISAGREEMENT auditing</p></td>
+</tr>
+<tr class="row-even"><td><p>Scientific capital</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py::get_scientific_capital()</span></code> — the sole decisional-capital accessor (sizing/risk/EV), pure function independent of exchange mode/state, pinned per ADR-0007/ADR-0018</p></td>
+<td><p>Governance</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code></p></td>
+<td><p>Architecturally separate from real-account observation (see next row); never combined with it (ADR-0018)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Real-account balance</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/real_accounts.py::RealAccountsObserver</span></code> — passive, read-only (<code class="docutils literal notranslate"><span class="pre">fetch_balance</span></code>/<code class="docutils literal notranslate"><span class="pre">fetch_ticker</span></code> only, never places orders); flows into the canonical snapshot’s <code class="docutils literal notranslate"><span class="pre">portfolio_state.real_account_equity_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">real_account_free_usd</span></code>/<code class="docutils literal notranslate"><span class="pre">real_account_stale</span></code> when an observer instance is injected by the advisor process</p></td>
+<td><p>Execution (observation only)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (mechanism/wiring), <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (independent proof the VPS actually injects a live observer each cycle)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (as a display fact)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (snapshot fields exist)</p></td>
+<td><p>Display-only by design — architecturally forbidden from sizing/risk (ADR-0007, ADR-0018); never merged with scientific capital</p></td>
+</tr>
+<tr class="row-even"><td><p>Paper equity</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/wallet_sync.py::WalletSync.get_balance()</span></code> — WALLET_PAPER_CAPITAL-based paper/scientific-capital semantics, published to the snapshot only when <code class="docutils literal notranslate"><span class="pre">mode</span> <span class="pre">==</span> <span class="pre">&quot;PAPER&quot;</span></code></p></td>
+<td><p>Scientific (paper domain)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> is a separate component: durable append-only trade-event history, not the equity accessor</p></td>
+</tr>
+<tr class="row-odd"><td><p>Paper positions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper_trading.paper_portfolio_view.paper_portfolio_view()</span></code> reading <code class="docutils literal notranslate"><span class="pre">MexcSimulator._positions</span></code> — the snapshot builder’s docstring states this module never iterates <code class="docutils literal notranslate"><span class="pre">_positions</span></code> directly and that position inventory is governed exclusively by this view function</p></td>
+<td><p>Scientific (paper domain)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> is a distinct, frequently-empty internal store and is <strong>not</strong> the producer of <code class="docutils literal notranslate"><span class="pre">paper_open_positions_count</span></code>/<code class="docutils literal notranslate"><span class="pre">open_positions[]</span></code>/unrealized PnL — do not conflate the two</p></td>
+</tr>
+<tr class="row-even"><td><p>Paper restored-position provenance</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MexcSimulator._restore_positions()</span></code> (REM-C R1.3, merged): a restored position’s <code class="docutils literal notranslate"><span class="pre">personality</span></code> field always stays <code class="docutils literal notranslate"><span class="pre">&quot;restored&quot;</span></code> regardless of evidence completeness; <code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> carries completeness separately. The snapshot builder derives a three-tier <code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code> from that gap list: <code class="docutils literal notranslate"><span class="pre">&quot;original&quot;</span></code> (never restored), <code class="docutils literal notranslate"><span class="pre">&quot;restored_default&quot;</span></code> (reconstructed on incomplete evidence), <code class="docutils literal notranslate"><span class="pre">&quot;restored_original&quot;</span></code> (durably recovered, complete evidence)</p></td>
+<td><p>Scientific (paper domain)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code></p></td>
+<td><p><strong>RESTORED != EVIDENCE_COMPLETE</strong>: never present all restored positions as reconstructed defaults, and never infer “not restored” merely from an evidence-complete <code class="docutils literal notranslate"><span class="pre">personality</span></code> — check <code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code>/<code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code> explicitly</p></td>
+</tr>
+<tr class="row-odd"><td><p>Real positions observation</p></td>
+<td><p>Not yet a governed snapshot producer for actual position content; the execution-domain compatibility gate needed to safely compare PAPER vs REAL position stores is now merged (REM-C R1, <code class="docutils literal notranslate"><span class="pre">system/position_reconciler.py</span></code>’s domain-safe <code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code>), but this gates <em>reconciliation safety</em>, not the missing exchange-side <code class="docutils literal notranslate"><span class="pre">fetch_positions()</span></code> truth itself</p></td>
+<td><p>Execution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (real position content)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_UNSAFE</span></code> (real position content itself; the domain-safety gate is <code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_BY_SCIENTIFIC_WORK</span></code></p></td>
+<td><p>REM-C R1 (merged, current main) supplies the domain-safety gate; real-money order-observation/fill/position truth (REM-C R2/R3) remains not started — see §9, §20</p></td>
+</tr>
+<tr class="row-even"><td><p>Regret v2 — current state</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator/domains/regret_state.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">RegretStateSnapshot</span></code>/<code class="docutils literal notranslate"><span class="pre">compose_regret_state_snapshot()</span></code> (pending counts, horizon status, freshness) is consumed by <code class="docutils literal notranslate"><span class="pre">operator_summary.py</span></code>, but <code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code> has <strong>zero references</strong> to <code class="docutils literal notranslate"><span class="pre">regret_state</span></code>/<code class="docutils literal notranslate"><span class="pre">RegretStateSnapshot</span></code> — this current-state structure exists at the domain-composition layer but is not wired into the canonical snapshot</p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (domain structure exists and is composed)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code> (not wired to the transported snapshot)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code></p></td>
+<td><p>Distinct from historical events (next row); <code class="docutils literal notranslate"><span class="pre">frontend/src/views/NotExposedView.tsx</span></code> explicitly documents the regret endpoint as intentionally not exposed today</p></td>
+</tr>
+<tr class="row-odd"><td><p>Regret v2 — historical events</p></td>
+<td><p>Regret analysis pipeline, append-only (<code class="docutils literal notranslate"><span class="pre">regret_analysis.jsonl</span></code> or similar)</p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DOCUMENTATION_CONTRACT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code></p></td>
+<td><p>Event-level timeline/history; requires a governed history reader/projection, distinct from the current-state row above</p></td>
+</tr>
+<tr class="row-even"><td><p>Runtime SHA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/source_evidence.py</span></code></p></td>
+<td><p>System health</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (mechanism), <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (independent proof)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (as self-reported value)</p></td>
+<td><p>Independent (T-1) confirmation not yet available</p></td>
+</tr>
+<tr class="row-odd"><td><p>Deployment evidence — transport</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/source_evidence.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">DeploymentEvidence</span></code> (embedded in the evidence envelope) → validated in <code class="docutils literal notranslate"><span class="pre">observability/operator_api/reader.py</span></code> (<code class="docutils literal notranslate"><span class="pre">_validate_deployment_evidence</span></code>, checked against <code class="docutils literal notranslate"><span class="pre">snapshot.get(&quot;deployment_evidence&quot;)</span></code>) → typed in <code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code> (<code class="docutils literal notranslate"><span class="pre">DeploymentEvidenceStatus</span></code>, <code class="docutils literal notranslate"><span class="pre">DeploymentEvidence</span></code>, <code class="docutils literal notranslate"><span class="pre">deployment_evidence</span></code> field on the snapshot type)</p></td>
+<td><p>System health</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (full chain traced)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code> (self-reported; independent T-1 confirmation not yet available)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (schema/typed transport confirmed snapshot→API→client)</p></td>
+<td><p>Confirmed <strong>not yet rendered</strong>: no <code class="docutils literal notranslate"><span class="pre">frontend/src/views/*.tsx</span></code> file references <code class="docutils literal notranslate"><span class="pre">deployment_evidence</span></code> or “deployment” — transport-ready is not the same claim as visually presented; a UI gap, not a transport gap</p></td>
+</tr>
+<tr class="row-even"><td><p>Liveness (advisor process)</p></td>
+<td><p>T-1 (independent liveness publisher)</p></td>
+<td><p>System health</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FUTURE_WORK</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_UNSAFE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_BY_SCIENTIFIC_WORK</span></code></p></td>
+<td><p>T-1 not started; snapshot age must never be used as a liveness proxy. Distinct from the health score (see §15): a healthy composite score is not proof of process liveness</p></td>
+</tr>
+<tr class="row-odd"><td><p>Order intent — execution authorization</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DecisionPacket.is_actionable()</span></code> in the advisor loop’s G8 block — decides <em>whether</em> to call <code class="docutils literal notranslate"><span class="pre">exec_engine.create_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> at all</p></td>
+<td><p>Execution authority</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (as <code class="docutils literal notranslate"><span class="pre">decision_pipeline</span></code> telemetry)</p></td>
+<td><p>Distinct from order-intent identity (next row) — this row is the gate, not the durable record</p></td>
+</tr>
+<tr class="row-even"><td><p>Order intent — durable identity/journal (<strong>externally reachable execution only</strong>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/decision_identity.py::DecisionIdentityJournal</span></code> + <code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py::OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code>, wired inside <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>’s live-submission path (<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>) and inside <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> (testnet, always gated). <strong><code class="docutils literal notranslate"><span class="pre">create_order()</span></code>’s PAPER branch (<code class="docutils literal notranslate"><span class="pre">self._live</span></code> false or no exchange) does not traverse this protocol at all</strong> — it returns a plain simulated dict; passing a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> argument alone does not route paper mode through REM-B (confirmed by the method’s own docstring)</p></td>
+<td><p>Execution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> for the live/testnet call sites; explicitly <strong>not applicable</strong> to the <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> paper path</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_API_EXPOSURE</span></code></p></td>
+<td><p>Explicitly does NOT cover (by its own docstring): full decision/packet reconstruction, replay of strategy state, partial-fill lifecycle, automatic resubmission after restart — that is REM-C scope. Do not describe this journal as PAPER execution truth</p></td>
+</tr>
+<tr class="row-odd"><td><p>ACK (<strong>externally reachable execution only</strong>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py</span></code> state machine — <code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGED</span></code> is a distinct, non-terminal <code class="docutils literal notranslate"><span class="pre">IntentState</span></code>/<code class="docutils literal notranslate"><span class="pre">SubmissionOutcome</span></code>, produced only on the live/testnet submission path (<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>, <code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code>). <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>’s paper fill path never produces <code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGED</span></code> — grepping the simulator module for it returns zero hits. Never equated with FILLED in the reviewed source</p></td>
+<td><p>Execution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> (state exists and is distinct, live/testnet path), <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (real-exchange ACK on a live account)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_BY_SCIENTIFIC_WORK</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGED</span></code> is a REM-B externally-reachable-submission concept, <strong>not</strong> a PAPER-simulator order state. PAPER’s own execution state (simulated fill) is tracked separately by <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>/<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code>, not by this state machine. Further truth-ladder labels (PARTIALLY_FILLED, FILLED, POSITION_APPLIED, CLOSED, RESTART_RECONSTRUCTION) remain <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>/unimplemented on current main (§9)</p></td>
+</tr>
+<tr class="row-even"><td><p>Fills</p></td>
+<td><p>Execution engine / exchange</p></td>
+<td><p>Execution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_UNSAFE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_BY_SCIENTIFIC_WORK</span></code></p></td>
+<td><p>Partial-fill lifecycle/fill-quantity reconciliation, order-observation truth, and fill-based position reconstruction do not exist anywhere on current main (confirmed absent by direct search of <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/</span></code> and <code class="docutils literal notranslate"><span class="pre">system/</span></code>); REM-C R1 (merged, current main) does not implement any of these — its scope was execution-domain provenance for reconciliation, the <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> API fix, and PAPER-restart evidence honesty only; fill truth is REM-C R2/R3, not started (§9)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Realized PnL — historical (paper)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> (durable, append-only paper trade-event history in <code class="docutils literal notranslate"><span class="pre">paper_trades.jsonl</span></code>); R1.3 additionally separates the <strong>certified</strong> subset (<code class="docutils literal notranslate"><span class="pre">is_win</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">None</span></code>, not <code class="docutils literal notranslate"><span class="pre">pnl_fee_evidence_incomplete</span></code>) from the raw <code class="docutils literal notranslate"><span class="pre">total_closed</span></code> count in <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.summary()</span></code> — <code class="docutils literal notranslate"><span class="pre">win_rate</span></code>/<code class="docutils literal notranslate"><span class="pre">target_30_trades</span></code>/<code class="docutils literal notranslate"><span class="pre">go_live_ready</span></code> are computed only over the certified subset, with <code class="docutils literal notranslate"><span class="pre">certified_closed</span></code>/<code class="docutils literal notranslate"><span class="pre">excluded_unevidenced_count</span></code> reported alongside the raw total</p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code></p></td>
+<td><p>Schema/transport for this history exists; no governed history reader exists yet to serve it to the Web. Any future history reader/panel must surface the certified/excluded split, not just a raw win rate — an unknown-outcome or fee-evidence-incomplete trade must never be silently counted as a certified performance observation</p></td>
+</tr>
+<tr class="row-even"><td><p>Realized PnL — current canonical snapshot value</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py:673</span></code> explicitly sets <code class="docutils literal notranslate"><span class="pre">paper_realized_pnl_usd=unavailable()</span></code> — a bare, hardcoded non-value, not a computation gap awaiting wiring. The field/API/typed-client schema chain does exist (<code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code> carries <code class="docutils literal notranslate"><span class="pre">paper_realized_pnl_usd:</span> <span class="pre">ObservedValue&lt;number&gt;</span></code>), riding the same generic <code class="docutils literal notranslate"><span class="pre">ObservedValue</span></code> passthrough as other portfolio fields</p></td>
+<td><p>Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code> (schema/plumbing exists; the value itself is not currently materialized — not a stronger claim than that)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (snapshot → API → typed client all understand and carry the explicit <code class="docutils literal notranslate"><span class="pre">unavailable</span></code>/<code class="docutils literal notranslate"><span class="pre">ObservedValue</span></code> semantic; the <em>value</em> itself is not available)</p></td>
+<td><p><strong><code class="docutils literal notranslate"><span class="pre">SCHEMA_READY</span> <span class="pre">!=</span> <span class="pre">VALUE_AVAILABLE</span></code></strong>: do not describe current-snapshot paper realized PnL as unexposed/<code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code> — the transport is ready and correctly reports <code class="docutils literal notranslate"><span class="pre">unavailable</span></code>; equally, never describe the number itself as ready or display a fabricated figure</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="decision-authority-model">
+<h2>8. Decision Authority Model<a class="headerlink" href="#decision-authority-model" title="Link to this heading">¶</a></h2>
+<p>The corrected, current architecture — revalidated against source at the
+starting SHA — is:</p>
+<blockquote>
+<div><p><strong><code class="docutils literal notranslate"><span class="pre">DecisionPacket.is_actionable()</span></code> is the mandatory execution-authorization
+gate.</strong> (<code class="docutils literal notranslate"><span class="pre">core/decision_packet.py</span></code>, <code class="docutils literal notranslate"><span class="pre">is_actionable()</span></code>)</p>
+</div></blockquote>
+<p>It is consumed in the advisor loop’s G8 block as the local variable
+<code class="docutils literal notranslate"><span class="pre">_effective_trade_allowed</span></code>: when no packet is available, this is forced to
+<code class="docutils literal notranslate"><span class="pre">False</span></code> (fail-closed, the “G8-E guard”); otherwise it takes the value of
+<code class="docutils literal notranslate"><span class="pre">packet.is_actionable()</span></code>. Order submission is gated on this variable
+together with the raw signal’s actionability, safe-mode state, and
+protection blocks. This is enforced structurally by invariant <strong>A-15</strong>
+(<code class="docutils literal notranslate"><span class="pre">core/invariants.py</span></code>), which checks at the source-text level that the
+G8-E fail-closed guard has not been silently removed — a scoped guarantee
+against regression, not a runtime assertion.</p>
+<blockquote>
+<div><p><strong>Legacy <code class="docutils literal notranslate"><span class="pre">trade_allowed</span></code> / blockers are analysis and gating inputs, not
+execution authority.</strong> They remain in the result payload for
+observability and are compared against the packet’s verdict by a passive
+governance auditor (TYPE-A-DISAGREEMENT check) to detect drift between the
+legacy and authoritative paths.</p>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code> must never be described as a shadow-only authority — it is
+the real, load-bearing gate in the live advisor loop.</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">DecisionObservation</span></code></strong> (<code class="docutils literal notranslate"><span class="pre">observability/decision_observation.py</span></code>) is a
+separate, frozen, primitives-only telemetry record produced <em>after</em>
+<code class="docutils literal notranslate"><span class="pre">analyze_symbol()</span></code> and published to a <code class="docutils literal notranslate"><span class="pre">DecisionEventBus</span></code>. It references a
+packet’s ID as a plain string but is not the packet and carries no
+authorization method. It is consistent with ADR-0007: it observes and
+records, it never gates.</p>
+<p><strong>Execution authorization is not the same layer as order-intent identity.</strong>
+<code class="docutils literal notranslate"><span class="pre">DecisionPacket.is_actionable()</span></code>/G8 decides <em>whether</em> to call
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code>/<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> at all — that is
+authorization. Once that gate passes, a separate durable layer can take
+over inside <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>, but <strong>only on the externally reachable
+execution path</strong>: <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/decision_identity.py</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code> and <code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>
+/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code> persist the decision/intent identity before any
+network mutation and provide idempotent duplicate protection, on
+<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code> (real) and <code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code> (testnet, always
+gated). <strong><code class="docutils literal notranslate"><span class="pre">create_order()</span></code>’s PAPER branch does not call into this layer at
+all</strong> — confirmed by direct inspection of its control flow: when
+<code class="docutils literal notranslate"><span class="pre">self._live</span></code> is false or no exchange is configured, it returns a plain
+simulated-fill dict, never touching <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code>. Supplying a
+<code class="docutils literal notranslate"><span class="pre">decision_id</span></code> argument does not change this; the method’s own docstring
+states this explicitly. So: G8 asks “is this trade allowed to proceed” for
+both PAPER and REAL; the identity/journal layer asks “has this exact
+<em>externally reachable</em> intent already been durably recorded and can it be
+safely retried” — a question that only applies once execution actually
+reaches, or is capable of reaching, a real or testnet exchange. PAPER
+execution state (simulated fills) is tracked separately by <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>/
+<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code>, never by <code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGED</span></code>. Caller
+coverage for the identity/journal layer, on the paths where it does apply,
+is confirmed at the primary G8-driven live/testnet call sites; it has not
+been exhaustively audited across every other potential caller in
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, so it is classified <code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code> for full-file
+caller coverage, not because the mechanism itself is incomplete.</p>
+</section>
+<hr class="docutils" />
+<section id="execution-truth-map">
+<h2>9. Execution Truth Map<a class="headerlink" href="#execution-truth-map" title="Link to this heading">¶</a></h2>
+<p><strong>Two distinct efforts must not be conflated: REM-B (present on current
+main) and REM-C (R1 merged/certified on main; R2/R3/R4 not started).</strong>
+REM-B delivered durable decision identity (<code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>) and
+durable pre-network order-intent identity with idempotent duplicate
+protection (<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code>), wired inside
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> <strong>on the externally reachable execution path only</strong> (live
+and testnet submission) — this does not describe PAPER/<code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>
+behavior (§8). <strong>REM-C R1 is MERGED / CERTIFIED ON MAIN</strong> — merge commit
+<code class="docutils literal notranslate"><span class="pre">524a2f78d5de3a041105e8fc330c7f451e36f53c</span></code> (certified R1 implementation
+HEAD <code class="docutils literal notranslate"><span class="pre">6e3fcc8e7441f434edca261cc60b298032c07989</span></code>, from PR #139) — and is
+narrowly scoped to: <code class="docutils literal notranslate"><span class="pre">ExecutionDomain</span></code> provenance, domain/account-safe
+<code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code> behavior, the canonical <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> API
+correction (<code class="docutils literal notranslate"><span class="pre">get_open_positions()</span></code> → <code class="docutils literal notranslate"><span class="pre">get_open()</span></code>), PAPER restart/recovery
+evidence honesty (including the R1.3 provenance/certified-performance
+semantics, §7), and the associated BootGate fail-closed guard fix. <strong>R1
+does not implement order-observation truth, partial-fill truth, filled
+truth, real close truth, <code class="docutils literal notranslate"><span class="pre">REALIZED_PNL_FINAL</span></code>, exchange fill polling, or
+fill-based position reconstruction</strong> — <code class="docutils literal notranslate"><span class="pre">docs/adr/0021-execution-domain-provenance-and-paper-recovery-honesty.md</span></code>
+explicitly defers all of these to REM-C R2/R3/R4, and direct search of
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/</span></code> and <code class="docutils literal notranslate"><span class="pre">system/</span></code> on current main confirms
+none of these concepts exist yet anywhere in the codebase. Do not call R1
+“in progress” — it is merged; reserve “not started” for R2/R3/R4.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Stage</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DECISION</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code> + <code class="docutils literal notranslate"><span class="pre">is_actionable()</span></code>, live in the advisor loop, applies to both PAPER and REAL</p></td>
+</tr>
+<tr class="row-odd"><td><p>DURABLE EXTERNAL INTENT/SUBMISSION IDENTITY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code> (REM-B) for the live/testnet call sites only</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code>, wired inside <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>’s live/testnet path; <strong>does not apply to <code class="docutils literal notranslate"><span class="pre">create_order()</span></code>’s PAPER branch</strong> (§8); not exhaustively audited for every caller</p></td>
+</tr>
+<tr class="row-even"><td><p>AUTHORIZATION</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code></p></td>
+<td><p>Gate itself is the authorization step (§8)</p></td>
+</tr>
+<tr class="row-odd"><td><p>SUBMISSION — PAPER</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> simulated fill; entirely separate from the REM-B identity/journal protocol</p></td>
+</tr>
+<tr class="row-even"><td><p>SUBMISSION — REAL/TESTNET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code> for durable idempotent identity (REM-B) and for domain-safe reconciliation (REM-C R1, merged)</p></td>
+<td><p>ADR-0020 (REM-B) and ADR-0021 (REM-C R1) both present on current main</p></td>
+</tr>
+<tr class="row-odd"><td><p>ACKNOWLEDGED</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code> as a distinct state (REM-B, <code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py</span></code>), <strong>externally-reachable-submission only — never produced by <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>’s paper path</strong> (zero hits on direct search)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">!=</span> <span class="pre">FILLED</span></code>; <code class="docutils literal notranslate"><span class="pre">!=</span></code> any PAPER-simulator state</p></td>
+</tr>
+<tr class="row-even"><td><p>ORDER OBSERVATION</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>; <strong>not</strong> R1 scope</p></td>
+<td><p>REM-C R2/R4 dependency, not started — confirmed absent from current main, explicitly deferred by ADR-0021</p></td>
+</tr>
+<tr class="row-odd"><td><p>PARTIALLY_FILLED</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>; <strong>not</strong> R1 scope</p></td>
+<td><p>REM-C R2/R3 dependency, not started — confirmed absent from current main, explicitly deferred by ADR-0021</p></td>
+</tr>
+<tr class="row-even"><td><p>FILLED</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>; <strong>not</strong> R1 scope</p></td>
+<td><p>REM-C R2/R3 dependency, not started — confirmed absent from current main, explicitly deferred by ADR-0021</p></td>
+</tr>
+<tr class="row-odd"><td><p>POSITION FROM VERIFIED FILLS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>; <strong>not</strong> R1 scope</p></td>
+<td><p>REM-C R3 dependency, not started (real). Paper positions are <code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code> via <code class="docutils literal notranslate"><span class="pre">paper_portfolio_view()</span></code> reading <code class="docutils literal notranslate"><span class="pre">MexcSimulator._positions</span></code> — not <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>, §7 — and are unaffected by this row</p></td>
+</tr>
+<tr class="row-even"><td><p>REAL CLOSE / REALIZED_PNL_FINAL</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>; <strong>not</strong> R1 scope</p></td>
+<td><p>REM-C R3/R4 dependency, not started (real). Paper close/realized-PnL-history is <code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code> via <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> (with the R1.3 certified/excluded split, §7), though the <em>current-snapshot</em> paper realized-PnL value is <code class="docutils literal notranslate"><span class="pre">unavailable()</span></code> today (transport is <code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code>, §7)</p></td>
+</tr>
+<tr class="row-odd"><td><p>PAPER RESTART HONESTY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code></p></td>
+<td><p>Avoiding fabricated zero-PnL/TP-SL on restart, plus the R1.3 provenance (<code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code> three-tier) and certified-performance semantics — REM-C R1, merged/certified on main (§7)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Do not imply REM-C R1 implements the fill engine, order observation, or
+real close/PnL truth in any form — those rows stay <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> and
+are REM-C R2/R3/R4 scope. Do not imply REM-C R2/R3/R4-style completion
+anywhere: those remain fully unstarted (canonical <code class="docutils literal notranslate"><span class="pre">ExecutionEvidence</span></code>/
+<code class="docutils literal notranslate"><span class="pre">FillRecord</span></code>, cumulative exchange fill journal, partial-fill ingestion/
+deduplication, exchange fill polling, real-exchange fee accounting,
+exchange adapter certification, resubmission policy, TESTNET/real exchange
+reconciliation certification).</p>
+</section>
+<hr class="docutils" />
+<section id="paper-real-shadow-burn-in-map">
+<h2>10. Paper / Real / Shadow / Burn-in Map<a class="headerlink" href="#paper-real-shadow-burn-in-map" title="Link to this heading">¶</a></h2>
+<p><strong>Terminology note:</strong> none of the rows below use bare <code class="docutils literal notranslate"><span class="pre">ACTIVE</span></code>. Every
+component in this table has only source-level evidence (a real constructor
+or call site inside <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> or a sibling entrypoint) — no
+component here has independent T-1/liveness proof, a systemd unit tied to
+its specific class, or a cited VPS log excerpt. <code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>/<code class="docutils literal notranslate"><span class="pre">WIRED</span></code>
+means the call chain is real and traced; <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> means whether it
+actually executes on the deployed VPS is not provable from source alone.
+This distinction (source call chain != production runtime proof) is the
+project’s own stated evidence standard (§3) and is applied uniformly here.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Status</p></th>
+<th class="head"><p>Evidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> (<code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>/<code class="docutils literal notranslate"><span class="pre">WIRED</span></code> (init-time log statement in source, not an independent VPS log); <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> for VPS execution; also the authority for paper open positions/unrealized PnL via <code class="docutils literal notranslate"><span class="pre">paper_portfolio_view()</span></code>, and for restored-position provenance (<code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code>/<code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code>, REM-C R1.3) (§7)</p></td>
+<td><p>Instantiated directly in the advisor loop bootstrap, gated on advisor-only/<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> (<code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>/<code class="docutils literal notranslate"><span class="pre">WIRED</span></code>; <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> for VPS execution — only referenced in advisor-loop comments as “source de vérité entry/exit”, no independent proof artifact found; durable append-only paper trade-event history, now with the R1.3 certified/excluded split in <code class="docutils literal notranslate"><span class="pre">summary()</span></code> (§7); <strong>not</strong> the paper-equity accessor (that is <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code>, §7)</p></td>
+<td><p>Used as the entry/exit source of truth inside the advisor loop’s paper bookkeeping</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/position_manager.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code> (registered as a lazy factory in the advisor runtime registry); its <code class="docutils literal notranslate"><span class="pre">get_open()</span></code> API naming is now the canonical, merged name (REM-C R1 fixed the reconciler’s stale <code class="docutils literal notranslate"><span class="pre">get_open_positions()</span></code> call site); <strong>still not</strong> the producer of the snapshot’s paper position fields — those come from <code class="docutils literal notranslate"><span class="pre">paper_portfolio_view()</span></code> reading <code class="docutils literal notranslate"><span class="pre">MexcSimulator._positions</span></code> directly (§7). <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> is a separate, frequently-empty internal store noted as a forensic divergence risk</p></td>
+<td><p>Do not conflate with <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> as paper-position authority</p></td>
+</tr>
+<tr class="row-odd"><td><p>Runtime <code class="docutils literal notranslate"><span class="pre">PaperTradingEngine</span></code> (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/paper_trading_engine.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>/<code class="docutils literal notranslate"><span class="pre">WIRED</span></code> in the alternate <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_system.py</span></code> / <code class="docutils literal notranslate"><span class="pre">main_v91.py</span></code> entry points and <code class="docutils literal notranslate"><span class="pre">system/burn_in.py</span></code>; <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> for VPS execution — no systemd unit or log ties this specific class to the deployed process</p></td>
+<td><p>Not found instantiated inside <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>; treat as a separate runtime family (§20 dependency note)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BurninSimulationEngine</span></code> (<code class="docutils literal notranslate"><span class="pre">paper_trading/engine.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DORMANT</span> <span class="pre">/</span> <span class="pre">ACTIVATION_UNCONFIRMED</span></code></p></td>
+<td><p>Only found in module docstring usage examples; no production call site found in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> or elsewhere. Its own docstring explicitly distinguishes it from the live <code class="docutils literal notranslate"><span class="pre">PaperTradingEngine</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PaperLedger</span></code> (<code class="docutils literal notranslate"><span class="pre">paper_trading/ledger.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DORMANT</span> <span class="pre">/</span> <span class="pre">ACTIVATION_UNCONFIRMED</span></code></p></td>
+<td><p>Only known caller is <code class="docutils literal notranslate"><span class="pre">BurninSimulationEngine.__init__</span></code>, itself dormant</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ShadowTracker</span></code> (<code class="docutils literal notranslate"><span class="pre">scripts/shadow_execution.py</span></code>, “S3”)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>/<code class="docutils literal notranslate"><span class="pre">WIRED</span></code> — imported and instantiated at advisor-loop bootstrap (<code class="docutils literal notranslate"><span class="pre">_shadow_s3</span></code>), called from the gate/decision path via <code class="docutils literal notranslate"><span class="pre">_shadow_s3.log_refused(...)</span></code> when a gate refuses a trade. <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>: whether this path actually executes on the VPS (i.e. whether the availability guard is true there) is not provable from source alone — <strong>not</strong> a standalone/offline-only script as previously stated</p></td>
+<td><p>Distinct from <code class="docutils literal notranslate"><span class="pre">ShadowExecutionEngine</span></code> below — do not conflate the two</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ShadowExecutionEngine</span></code> (<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/shadow_engine.py</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>/<code class="docutils literal notranslate"><span class="pre">WIRED</span></code> — constructed at advisor-loop bootstrap via a lazy bootstrap-step factory registered alongside <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>. <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code>: whether this bootstrap step succeeds and executes meaningfully on the VPS is not provable from source alone</p></td>
+<td><p>Distinct from <code class="docutils literal notranslate"><span class="pre">ShadowTracker</span></code>/S3 above</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>None of these are described as active beyond what a traced runtime call
+chain supports; <code class="docutils literal notranslate"><span class="pre">BurninSimulationEngine</span></code>/<code class="docutils literal notranslate"><span class="pre">PaperLedger</span></code> stay conservatively
+<code class="docutils literal notranslate"><span class="pre">DORMANT</span> <span class="pre">/</span> <span class="pre">ACTIVATION_UNCONFIRMED</span></code>, and every other row is <code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>/
+<code class="docutils literal notranslate"><span class="pre">WIRED</span></code> with <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> VPS-execution proof — a real call site is not
+the same claim as independently proven production activity, for any
+component in this table.</p>
+</section>
+<hr class="docutils" />
+<section id="panel-catalog">
+<h2>11. Panel Catalog<a class="headerlink" href="#panel-catalog" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Panel</p></th>
+<th class="head"><p>Human question answered</p></th>
+<th class="head"><p>Source</p></th>
+<th class="head"><p>Current readiness</p></th>
+<th class="head"><p>Visualization</p></th>
+<th class="head"><p>Dependency</p></th>
+<th class="head"><p>Future mission</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SYSTEM</p></td>
+<td><p>Is the observable system healthy?</p></td>
+<td><p>O-02W-C manifest + source evidence, including <code class="docutils literal notranslate"><span class="pre">deployment_evidence</span></code> (transport <code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code>, §7)</p></td>
+<td><p>Partial (liveness unresolved; <code class="docutils literal notranslate"><span class="pre">deployment_evidence</span></code> is transport-ready but not yet rendered in any view — a UI gap, not a transport gap)</p></td>
+<td><p>Status tiles</p></td>
+<td><p>T-1; rendering <code class="docutils literal notranslate"><span class="pre">deployment_evidence</span></code> in a view</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p>MARKETS</p></td>
+<td><p>What markets is the machine watching?</p></td>
+<td><p>Market state domain</p></td>
+<td><p>Partial (universe_size missing)</p></td>
+<td><p>Table</p></td>
+<td><p>Universe-size producer</p></td>
+<td><p>WEB-MARKET-01</p></td>
+</tr>
+<tr class="row-even"><td><p>REGIMES</p></td>
+<td><p>What regime is detected globally, how confident?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">advisor_loop._adaptive_regime</span></code> (label, source-ready) / <code class="docutils literal notranslate"><span class="pre">RegimeStateTracker</span></code>→<code class="docutils literal notranslate"><span class="pre">RegimePacket.confidence</span></code> (confidence, constructed+invoked in production but not propagated to the snapshot)</p></td>
+<td><p><strong>Not currently exposed as a global panel</strong> — neither the label nor confidence is wired into the canonical snapshot via <code class="docutils literal notranslate"><span class="pre">market_state</span></code>; only a narrower per-position/per-symbol regime string already rides inside PORTFOLIO/DECISIONS</p></td>
+<td><p>Badge + trend (future)</p></td>
+<td><p>Wiring <code class="docutils literal notranslate"><span class="pre">market_state</span></code>/<code class="docutils literal notranslate"><span class="pre">RegimePacket.confidence</span></code> into the snapshot builder</p></td>
+<td><p>WEB-REGIME-01</p></td>
+</tr>
+<tr class="row-odd"><td><p>DECISIONS</p></td>
+<td><p>What did the machine decide, and why?</p></td>
+<td><p>DecisionPacket / decision_pipeline</p></td>
+<td><p>Web ready (current cycle)</p></td>
+<td><p>Timeline</p></td>
+<td><p>History reader for past decisions</p></td>
+<td><p>WEB-DECISION-01</p></td>
+</tr>
+<tr class="row-even"><td><p>PORTFOLIO</p></td>
+<td><p>What PAPER portfolio exists? What real-account balance is passively observed?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper_portfolio_view()</span></code>/<code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> (paper positions), <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code> (paper equity), <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> (paper trade history), <code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code> (real balance, display-only)</p></td>
+<td><p>Web ready (paper); real-account balance snapshot fields exist but VPS-live injection is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code></p></td>
+<td><p>Table + chart</p></td>
+<td><p>Real-position observation (not just balance) for a full REAL view</p></td>
+<td><p>WEB-PORTFOLIO-01</p></td>
+</tr>
+<tr class="row-odd"><td><p>PERFORMANCE</p></td>
+<td><p>How is paper performance trending?</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> history (durable, <code class="docutils literal notranslate"><span class="pre">SCHEMA_READY</span></code> but current-snapshot realized PnL is <code class="docutils literal notranslate"><span class="pre">unavailable()</span></code> — §7)</p></td>
+<td><p>Needs history reader</p></td>
+<td><p>Chart</p></td>
+<td><p>Governed JSONL projection</p></td>
+<td><p>WEB-PORTFOLIO-01</p></td>
+</tr>
+<tr class="row-even"><td><p>REGRET</p></td>
+<td><p>Was a good trade missed or refused? (current state); what happened historically? (events)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">regret_state.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">RegretStateSnapshot</span></code> (current state, not wired to snapshot) / Regret v2 pipeline JSONL (historical events)</p></td>
+<td><p>Current state needs snapshot exposure; historical events need a history reader — two distinct gaps, not one</p></td>
+<td><p>Table (current status tile + historical table)</p></td>
+<td><p>Snapshot exposure (current state) + governed projection (history)</p></td>
+<td><p>WEB-REGRET-01</p></td>
+</tr>
+<tr class="row-odd"><td><p>DATA</p></td>
+<td><p>What datasets/snapshots exist, how fresh?</p></td>
+<td><p>Snapshot manifests, data quality gates</p></td>
+<td><p>Partial</p></td>
+<td><p>Table</p></td>
+<td><p>Data explorer (§14)</p></td>
+<td><p>WEB-DATA-01</p></td>
+</tr>
+<tr class="row-even"><td><p>HUMAN LAB <em>(future)</em></p></td>
+<td><p>What would a human have chosen?</p></td>
+<td><p>Not yet built</p></td>
+<td><p>Not started</p></td>
+<td><p>—</p></td>
+<td><p>HumanDecisionEvent design</p></td>
+<td><p>WEB-HUMAN-LAB-01</p></td>
+</tr>
+<tr class="row-odd"><td><p>COMMAND AUTHORITY <em>(future)</em></p></td>
+<td><p>Can an operator safely act from the Web?</p></td>
+<td><p>Not yet built</p></td>
+<td><p>Not started</p></td>
+<td><p>—</p></td>
+<td><p>Authenticated command chain (§18)</p></td>
+<td><p>WEB-EXECUTION-01</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="pipeline-visualization">
+<h2>12. Pipeline Visualization<a class="headerlink" href="#pipeline-visualization" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>MARKET DATA → UNIVERSE → INDICATORS → STRATEGIES → SIGNALS → FILTERS
+    → RISK → PORTFOLIO → EXECUTION → ORDERS → FILLS → POSITIONS → P&amp;L
+</pre></div>
+</div>
+<p>Confirmed joins (paper path): SIGNALS → FILTERS → RISK → PORTFOLIO →
+EXECUTION (via <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>/G8 — PAPER does not traverse REM-B’s
+<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code>, §8) → ORDERS (paper, via
+<code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>) → POSITIONS (<code class="docutils literal notranslate"><span class="pre">paper_portfolio_view()</span></code> reading
+<code class="docutils literal notranslate"><span class="pre">MexcSimulator._positions</span></code> — not <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code>, §7) → P&amp;L (historical,
+via <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code>; the <em>current-snapshot</em> realized-PnL value is
+<code class="docutils literal notranslate"><span class="pre">unavailable()</span></code>, §7).</p>
+<p>Unconfirmed / not fabricated: UNIVERSE sizing is not confirmed wired
+end-to-end (§7); regime label/confidence are not exposed as a global panel
+— only a per-position/per-symbol regime string exists today (§7); FILLS
+and the real-money ORDERS/POSITIONS/P&amp;L joins are <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> and are
+REM-C R2/R3/R4 scope, not started (§9) — must not be shown as complete or
+as R1 deliverables (R1 is merged, but its scope was domain provenance and
+PAPER-restart honesty, not fill/order/close truth).</p>
+</section>
+<hr class="docutils" />
+<section id="decision-trace">
+<h2>13. Decision Trace<a class="headerlink" href="#decision-trace" title="Link to this heading">¶</a></h2>
+<p>The eventual per-decision trace an operator should see, and its current
+honesty status:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Status</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">trace_id</span></code></p></td>
+<td><p>Available (execution_trace.py)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">decision_id</span></code></p></td>
+<td><p>Available</p></td>
+</tr>
+<tr class="row-even"><td><p>signal</p></td>
+<td><p>Available</p></td>
+</tr>
+<tr class="row-odd"><td><p>regime</p></td>
+<td><p>Label source-ready; global panel not currently exposed — only a per-position/per-symbol regime string exists; confidence computed (constructed+invoked in production) but not propagated to the snapshot (§7)</p></td>
+</tr>
+<tr class="row-even"><td><p>blockers</p></td>
+<td><p>Available (legacy, telemetry)</p></td>
+</tr>
+<tr class="row-odd"><td><p>actionability</p></td>
+<td><p>Available (<code class="docutils literal notranslate"><span class="pre">is_actionable()</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>order intent — PAPER</p></td>
+<td><p>Available: <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> simulated order, no REM-B journal involved (§8)</p></td>
+</tr>
+<tr class="row-odd"><td><p>order intent — durable external identity</p></td>
+<td><p>Available only on the live/testnet call sites (REM-B: <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>); does not apply to PAPER</p></td>
+</tr>
+<tr class="row-even"><td><p>submission</p></td>
+<td><p>Available (paper, via <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>); domain-safe real submission reconciliation now <code class="docutils literal notranslate"><span class="pre">CANONICAL_NOW</span></code> (REM-C R1, merged) — fill/ACK-to-filled truth itself remains <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (REM-C R2/R3, not started)</p></td>
+</tr>
+<tr class="row-odd"><td><p>ACK</p></td>
+<td><p>Available as a distinct state on the live/testnet path only (<code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py</span></code>); never produced by <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>; <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> for a real-exchange outcome</p></td>
+</tr>
+<tr class="row-even"><td><p>fill</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> — not confirmed implemented on current main; not REM-C R1 scope</p></td>
+</tr>
+<tr class="row-odd"><td><p>position</p></td>
+<td><p>Available (paper, via <code class="docutils literal notranslate"><span class="pre">paper_portfolio_view()</span></code>, with restored-provenance tiers §7); <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (real, from verified fills) — REM-C R3 scope, not started</p></td>
+</tr>
+<tr class="row-even"><td><p>close</p></td>
+<td><p>Available (paper); <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (real) — REM-C R3/R4 scope, not started</p></td>
+</tr>
+<tr class="row-odd"><td><p>PnL — historical</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> (paper, <code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code>, certified/excluded split, needs history reader); <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> (real)</p></td>
+</tr>
+<tr class="row-even"><td><p>PnL — current snapshot value</p></td>
+<td><p>Transport <code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (typed field, explicit <code class="docutils literal notranslate"><span class="pre">unavailable</span></code> semantic); value itself <code class="docutils literal notranslate"><span class="pre">unavailable()</span></code> today (paper) — never show a fabricated number (§7)</p></td>
+</tr>
+<tr class="row-odd"><td><p>regret — current state</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code> — <code class="docutils literal notranslate"><span class="pre">RegretStateSnapshot</span></code> exists but is not wired to the canonical snapshot (§7)</p></td>
+</tr>
+<tr class="row-even"><td><p>regret — historical events</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Any future decision-trace panel must mark the fields not yet proven on
+current main as unavailable rather than approximating them.</p>
+</section>
+<hr class="docutils" />
+<section id="data-explorer">
+<h2>14. Data Explorer<a class="headerlink" href="#data-explorer" title="Link to this heading">¶</a></h2>
+<p>Future read-only access, planned for:</p>
+<ul class="simple">
+<li><p>snapshot families (current + rolling history);</p></li>
+<li><p>manifests;</p></li>
+<li><p>decision evidence;</p></li>
+<li><p>rejections;</p></li>
+<li><p>paper trades (historical);</p></li>
+<li><p>regret v2 (historical);</p></li>
+<li><p>integrity/data-quality evidence;</p></li>
+<li><p>dataset time range, count, and freshness.</p></li>
+</ul>
+<p><strong>The frontend never reads raw files directly, under any circumstance.</strong>
+Historical JSONL exposure (paper trades, regret, decision history) requires
+a governed history-reader/projection component sitting between the raw
+files and the API — this component does not exist yet (§4, <code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code>).</p>
+</section>
+<hr class="docutils" />
+<section id="system-health">
+<h2>15. System Health<a class="headerlink" href="#system-health" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Fact</p></th>
+<th class="head"><p>Owner</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>API readiness</p></td>
+<td><p>O-02W-D1 (<code class="docutils literal notranslate"><span class="pre">operator_api/app.py</span></code>)</p></td>
+<td><p>Self-reporting only</p></td>
+</tr>
+<tr class="row-odd"><td><p>Advisor-process liveness</p></td>
+<td><p><strong>T-1</strong> (independent)</p></td>
+<td><p>Not started; must never be inferred from snapshot age</p></td>
+</tr>
+<tr class="row-even"><td><p>Runtime SHA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">source_evidence.py</span></code> (O-02W-C)</p></td>
+<td><p>Self-reported; independent confirmation is T-1 scope</p></td>
+</tr>
+<tr class="row-odd"><td><p>Deployment evidence</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">source_evidence.py</span></code> + deploy tags</p></td>
+<td><p>Self-reported; full schema/typed transport confirmed (<code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code>, §7), but not currently rendered in any React view — a UI gap, not a transport gap; T-1 owns the independent (non-self-reported) version</p></td>
+</tr>
+<tr class="row-even"><td><p>Snapshot freshness</p></td>
+<td><p>O-02W-C timestamp</p></td>
+<td><p>Available</p></td>
+</tr>
+<tr class="row-odd"><td><p>Process instance</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">process_identity.py</span></code></p></td>
+<td><p>Available</p></td>
+</tr>
+<tr class="row-even"><td><p>Data freshness</p></td>
+<td><p>Snapshot manifest</p></td>
+<td><p>Available</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health score</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/health_score.py::HealthScore.compute()</span></code> — a documented, implemented composite (0-100): Memory 25pts, Reliability 25pts, Exchange 20pts, Trading 20pts, Performance 10pts, with CRITICAL/DEGRADED/HEALTHY/PERFECT thresholds. Wired into the canonical snapshot as <code class="docutils literal notranslate"><span class="pre">system_health.health_score</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>, <code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Exchange connectivity</p></td>
+<td><p>Execution engine</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>T-1 owns independent advisor-process liveness evidence and has not
+started.</strong> Snapshot age must never be used as a substitute for boot/process
+liveness — a stale snapshot and a dead process are not the same signal,
+and conflating them was a known documentation risk in prior drafts.
+<strong>The health score is not a liveness proof either</strong> — it is a composite of
+memory/reliability/exchange/trading/performance metrics that can be
+computed from a stale or cached <code class="docutils literal notranslate"><span class="pre">MetricsSnapshot</span></code>; a healthy score is a
+different fact from an independently proven live process, and the two must
+never be conflated.</p>
+</section>
+<hr class="docutils" />
+<section id="telegram-web-relationship">
+<h2>16. Telegram → Web Relationship<a class="headerlink" href="#telegram-web-relationship" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Telegram</strong>: mobile observation and alerts. Retains permanent value for
+critical alerts regardless of Web cockpit maturity.</p></li>
+<li><p><strong>Web</strong>: rich investigation and visualization, for deeper analysis than a
+chat interface supports.</p></li>
+</ul>
+<p>This document does not authorize retiring Telegram in any form; the two
+channels serve different operator needs and both remain useful
+indefinitely.</p>
+</section>
+<hr class="docutils" />
+<section id="future-human-research-lab-architecture-only">
+<h2>17. Future Human Research Lab (architecture only)<a class="headerlink" href="#future-human-research-lab-architecture-only" title="Link to this heading">¶</a></h2>
+<p>Conceptual flow, no implementation authorized by this document:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>SNAPSHOT → EXPERIMENT PRESENTATION → HUMAN CHOICE
+   → HumanDecisionEvent → durable receipt → outcome comparison
+</pre></div>
+</div>
+<p>Two modes to design for, later:</p>
+<ul class="simple">
+<li><p><strong>BLIND</strong> — the human chooses without seeing the machine’s decision.</p></li>
+<li><p><strong>ASSISTED</strong> — the human sees the machine’s decision and reasoning before
+choosing.</p></li>
+</ul>
+<p>This is exploratory architecture for a future bounded mission
+(WEB-HUMAN-LAB-01); no HumanDecisionEvent schema, storage, or UI exists
+today.</p>
+</section>
+<hr class="docutils" />
+<section id="future-web-command-authority-architecture-only">
+<h2>18. Future Web Command Authority (architecture only)<a class="headerlink" href="#future-web-command-authority-architecture-only" title="Link to this heading">¶</a></h2>
+<p><strong>A UI button is never execution authority.</strong> Any future control surface
+must route through an explicit authorization chain, never directly to the
+trading engine:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>HUMAN CLICK → REQUEST → AUTHENTICATED SESSION → COMMAND INTENT
+   → AUTHORIZATION → MACHINE ACTION → RESULT → AUDIT EVIDENCE
+</pre></div>
+</div>
+<p>This document authorizes no trading-control capability of any kind. Any
+future implementation must still satisfy ADR-0007: only the decision engine
+decides; a Web command can at most request, never directly cause, an
+action, and only after passing the same authorization gates as any other
+trigger.</p>
+</section>
+<hr class="docutils" />
+<section id="future-mission-map">
+<h2>19. Future Mission Map<a class="headerlink" href="#future-mission-map" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mission</p></th>
+<th class="head"><p>Scope</p></th>
+<th class="head"><p>Source readiness</p></th>
+<th class="head"><p>Web readiness</p></th>
+<th class="head"><p>Dependency</p></th>
+<th class="head"><p>Blocker</p></th>
+<th class="head"><p>Risk</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>WEB-DECISION-01</p></td>
+<td><p>Historical decision trace panel</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code></p></td>
+<td><p>History reader</p></td>
+<td><p>None known</p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-odd"><td><p>WEB-REGIME-01</p></td>
+<td><p>Global regime + confidence panel (label and confidence are both currently only per-position/per-symbol, never a global domain)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (label, <code class="docutils literal notranslate"><span class="pre">_adaptive_regime</span></code>), <code class="docutils literal notranslate"><span class="pre">SOURCE_PROVEN</span></code>/construct-and-invoke-confirmed (confidence, <code class="docutils literal notranslate"><span class="pre">RegimeStateTracker</span></code>, not propagated)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code> for both — <code class="docutils literal notranslate"><span class="pre">market_state</span></code> domain is not wired into the snapshot builder at all</p></td>
+<td><p>Wiring <code class="docutils literal notranslate"><span class="pre">market_state</span></code>/<code class="docutils literal notranslate"><span class="pre">compose_market_state_snapshot()</span></code> and <code class="docutils literal notranslate"><span class="pre">RegimePacket.confidence</span></code> into the snapshot builder</p></td>
+<td><p>Neither label nor confidence reaches the Web as a global fact today; only nested per-record strings do</p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-even"><td><p>WEB-DATA-01</p></td>
+<td><p>Data explorer, snapshot/dataset browsing</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (manifests)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_API_EXPOSURE</span></code></p></td>
+<td><p>Manifest API routes</p></td>
+<td><p>None known</p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-odd"><td><p>WEB-REGRET-01</p></td>
+<td><p>Regret v2 panel — current state AND historical events (two distinct gaps)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (current-state domain structure, <code class="docutils literal notranslate"><span class="pre">RegretStateSnapshot</span></code>), <code class="docutils literal notranslate"><span class="pre">SOURCE_PARTIAL</span></code> (historical pipeline)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code> (current state — not wired to the canonical snapshot), <code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code> (historical events)</p></td>
+<td><p>Snapshot exposure for current state; governed history reader for events</p></td>
+<td><p>N thresholds (see CLAUDE.md) still unmet for historical statistical validity; current-state exposure has no statistical blocker, only wiring</p></td>
+<td><p>Medium (statistical validity for history); Low (current state)</p></td>
+</tr>
+<tr class="row-even"><td><p>WEB-MARKET-01</p></td>
+<td><p>Market/universe panel</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_UNSAFE</span></code> (universe_size)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code></p></td>
+<td><p>Universe-size producer</p></td>
+<td><p>No confirmed producer</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-odd"><td><p>WEB-PORTFOLIO-01</p></td>
+<td><p>Paper portfolio + performance panels, plus passive real-account balance display</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (paper positions/equity, real-account balance display)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> (current paper + real-balance snapshot fields), <code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code> (trend)</p></td>
+<td><p>History reader for trend view</p></td>
+<td><p>None known for paper; real-account balance display already has snapshot fields but VPS-live injection is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code></p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-even"><td><p>WEB-EXECUTION-01</p></td>
+<td><p>Execution truth map panel (paper first)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> (REM-B: durable external intent/submission identity, ACK state; REM-C R1: domain provenance/reconciliation/PAPER-restart recovery honesty — both merged/certified on current main); <code class="docutils literal notranslate"><span class="pre">SOURCE_UNSAFE</span></code> (REM-C R2/R3/R4: order-observation/fill/position/real-PnL truth — not started, unscoped)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEEDS_API_EXPOSURE</span></code> for what’s merged (REM-B + REM-C R1); <code class="docutils literal notranslate"><span class="pre">BLOCKED_BY_SCIENTIFIC_WORK</span></code> for fills/order-observation/real-close truth</p></td>
+<td><p>REM-C R2/R3/R4 (fully unscoped, not started) for fills/order-observation/real-close truth</p></td>
+<td><p>Real fills/order-observation truth not implemented and not yet scoped by any mission</p></td>
+<td><p>High if real-money fill/PnL scope is added prematurely — remains fully blocked on REM-C R2/R3/R4, none of which exist</p></td>
+</tr>
+<tr class="row-odd"><td><p>WEB-HUMAN-LAB-01</p></td>
+<td><p>Human research lab (§17)</p></td>
+<td><p>Not started</p></td>
+<td><p>Not started</p></td>
+<td><p>Full schema/design</p></td>
+<td><p>Entirely future</p></td>
+<td><p>Medium (scope creep risk)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">WEB-DECISION-02</span> <span class="pre">—</span> <span class="pre">Promote</span> <span class="pre">DecisionPacket</span></code> is explicitly <strong>not</strong> included:
+DecisionPacket is already the mandatory execution-authority gate (§8); no
+promotion mission is needed or valid.</p>
+</section>
+<hr class="docutils" />
+<section id="dependency-map">
+<h2>20. Dependency Map<a class="headerlink" href="#dependency-map" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dependency</p></th>
+<th class="head"><p>What it gates</p></th>
+<th class="head"><p>Status</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>REM-B</strong></p></td>
+<td><p>Durable decision identity, durable pre-network order-intent identity, idempotent duplicate protection</p></td>
+<td><p><strong>Present on current main</strong>, wired inside <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> (<code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal</span></code>, <code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code>); caller coverage confirmed at the primary G8 execution call sites, not exhaustively audited elsewhere</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>REM-C</strong></p></td>
+<td><p>Execution-domain provenance for reconciliation, PAPER-restart evidence honesty, restored-provenance/certified-performance semantics (R1); fill-quantity truth, partial-fill lifecycle, crash-window recovery, order-observation/real-close/real-PnL truth (R2+)</p></td>
+<td><p>R0 forensic audit: complete. R0.1 correction: complete. <strong>R1: MERGED / CERTIFIED ON MAIN</strong> — merge commit <code class="docutils literal notranslate"><span class="pre">524a2f78d5de3a041105e8fc330c7f451e36f53c</span></code> (certified implementation HEAD <code class="docutils literal notranslate"><span class="pre">6e3fcc8e7441f434edca261cc60b298032c07989</span></code>, PR #139, its own R1/R1.1/R1.2/R1.3 rounds). R2/R3/R4: not started</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>T-1</strong></p></td>
+<td><p>Independent advisor-process liveness, independent deployment/SHA confirmation</p></td>
+<td><p>Not started (explicitly, per O-02W-E and O-02W-B contracts)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Runtime observation</strong></p></td>
+<td><p>Any claim that a component is “active” in production, beyond a traced call chain</p></td>
+<td><p>Confirmed only where a real runtime call site was found (§10, §12); otherwise <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>F-00</strong></p></td>
+<td><p>A separate, later scientific measurement pass, gated on its own criteria</p></td>
+<td><p><strong>DEFINED / REFERENCED IN GOVERNANCE — NOT STARTED.</strong> Explicitly not O-02W-B, C, D, or E, and not any cockpit-implementation mission.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="simple-cockpit-mvp">
+<h2>21. Simple Cockpit MVP<a class="headerlink" href="#simple-cockpit-mvp" title="Link to this heading">¶</a></h2>
+<p>The smallest useful cockpit, using only currently trustworthy facts:</p>
+<ol class="arabic simple">
+<li><p><strong>Is the observable system healthy?</strong> — API readiness, snapshot
+freshness, self-reported runtime SHA (with the caveat that independent
+T-1 liveness is not yet available).</p></li>
+<li><p><strong>What markets/regimes are visible?</strong> — only the per-position/
+per-symbol regime string already riding inside PORTFOLIO/DECISIONS
+(sourced from <code class="docutils literal notranslate"><span class="pre">advisor_loop._adaptive_regime</span></code>); a global regime/confidence
+panel is not currently exposed (no <code class="docutils literal notranslate"><span class="pre">market_state</span></code> wiring into the
+snapshot) and must not be presented as if it existed.</p></li>
+<li><p><strong>What did the machine decide?</strong> — current-cycle <code class="docutils literal notranslate"><span class="pre">DecisionPacket</span></code>
+actionability and its inputs, from the live snapshot.</p></li>
+<li><p><strong>Why was it accepted/refused?</strong> — blockers/legacy <code class="docutils literal notranslate"><span class="pre">trade_allowed</span></code> shown
+as gating-input telemetry, alongside the authoritative packet verdict.</p></li>
+<li><p><strong>What PAPER portfolio exists?</strong> — current positions from
+<code class="docutils literal notranslate"><span class="pre">paper_portfolio_view()</span></code> (reading <code class="docutils literal notranslate"><span class="pre">MexcSimulator._positions</span></code>) and equity
+from <code class="docutils literal notranslate"><span class="pre">WalletSync.get_balance()</span></code>, clearly labeled PAPER; a passive,
+display-only real-account balance from <code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code> may be
+shown alongside it, never combined with it.</p></li>
+<li><p><strong>What evidence supports the display?</strong> — every value tagged with its
+evidence class per §3, visible on hover or in a details view.</p></li>
+</ol>
+<p>Do not overload the MVP with historical trends, regret analysis, or any
+real-money view — those require the history reader and REM-C respectively.</p>
+</section>
+<hr class="docutils" />
+<section id="known-data-gaps">
+<h2>22. Known Data Gaps<a class="headerlink" href="#known-data-gaps" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">universe_size</span></code> producer</strong>: modeled in the domain schema, no confirmed
+wiring to a live value (§7).</p></li>
+<li><p><strong>Global regime/confidence not exposed</strong>: <code class="docutils literal notranslate"><span class="pre">market_state</span></code>/
+<code class="docutils literal notranslate"><span class="pre">compose_market_state_snapshot()</span></code> is never invoked by
+<code class="docutils literal notranslate"><span class="pre">operator_snapshot_builder.py</span></code> — neither the regime label nor
+<code class="docutils literal notranslate"><span class="pre">RegimeStateTracker</span></code>’s confidence (constructed and invoked in the
+production call graph at <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py:5563-5565</span></code>/<code class="docutils literal notranslate"><span class="pre">:6914-6919</span></code>)
+reaches the canonical snapshot as a global fact. Only a narrower
+per-position/per-symbol regime string, riding inside the
+PORTFOLIO/DECISIONS domains, is currently transported. Do not treat that
+narrower fact as proof that a global REGIME panel/domain exists (§7,
+§11, §19).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">paper_realized_pnl_usd</span></code> current value vs transport</strong>: the snapshot
+field/API/typed-client schema chain fully exists (<code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code> for
+transport) and correctly reports <code class="docutils literal notranslate"><span class="pre">unavailable()</span></code> — this is not a
+transport gap. The <em>value itself</em> is not materialized
+(<code class="docutils literal notranslate"><span class="pre">operator_snapshot_builder.py:673</span></code>). Historical realized PnL exists
+durably in <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code>/<code class="docutils literal notranslate"><span class="pre">paper_trades.jsonl</span></code> (<code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code>,
+now with a certified/excluded split per R1.3) but needs a governed
+history reader. <code class="docutils literal notranslate"><span class="pre">SCHEMA_READY</span> <span class="pre">!=</span> <span class="pre">VALUE_AVAILABLE</span></code> (§7).</p></li>
+<li><p><strong>Historical paper-trade reader</strong>: no governed projection over
+<code class="docutils literal notranslate"><span class="pre">paper_trades.jsonl</span></code> exists yet; the API must not read it directly (§14).</p></li>
+<li><p><strong>Fill truth</strong>: real-money fills, order-observation truth, ACK-to-filled
+progression, and partial-fill lifecycle are not implemented on current
+main. REM-C R1 (merged, certified on main) addressed domain-safe
+reconciliation, the <code class="docutils literal notranslate"><span class="pre">PositionManager</span></code> API fix, and PAPER-restart
+evidence honesty only — it did not implement or propose the fill engine;
+that is REM-C R2/R3/R4, not started (§9).</p></li>
+<li><p><strong>Real-position reconciliation</strong>: the domain-compatibility gate (PAPER
+vs REAL) needed for safe reconciliation is now merged (REM-C R1,
+<code class="docutils literal notranslate"><span class="pre">PositionReconciler</span></code>), but actual real-money position <em>content</em> (from
+verified fills) is still not implemented — that is REM-C R3, not started
+(§7, §9, §20). Real-account <strong>balance</strong> (display-only, via
+<code class="docutils literal notranslate"><span class="pre">RealAccountsObserver</span></code>) remains a separate, already-wired fact — do not
+conflate balance observation with position reconciliation.</p></li>
+<li><p><strong>Independent liveness</strong>: T-1 not started; snapshot age must not be used
+as a substitute, and neither must the system health score (§15). REM-C
+R1 merging does not itself mean T-1 has started — no runtime/VPS
+certification is implied by a merge.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">BurninSimulationEngine</span></code> / <code class="docutils literal notranslate"><span class="pre">PaperLedger</span></code> activation status</strong>: both
+conservatively classified <code class="docutils literal notranslate"><span class="pre">DORMANT</span> <span class="pre">/</span> <span class="pre">ACTIVATION_UNCONFIRMED</span></code>; no
+production call site found. Any future claim of activation needs fresh
+evidence, not inference from the presence of the class (§10).</p></li>
+<li><p><strong>Shadow component VPS-runtime proof</strong>: <code class="docutils literal notranslate"><span class="pre">ShadowTracker</span></code>/S3 and
+<code class="docutils literal notranslate"><span class="pre">ShadowExecutionEngine</span></code> both have real bootstrap/call-site evidence
+(<code class="docutils literal notranslate"><span class="pre">SOURCE_REACHABLE</span></code>), but whether they actually execute on the live VPS
+is <code class="docutils literal notranslate"><span class="pre">RUNTIME_UNKNOWN</span></code> — a source-reachable call site is not proof of
+production activity (§10).</p></li>
+<li><p><strong>REM-B/PAPER conflation risk</strong>: REM-B’s durable order-intent identity
+and <code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGED</span></code> state apply only to <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code>’s externally
+reachable (live/testnet) submission path. <code class="docutils literal notranslate"><span class="pre">create_order()</span></code>’s PAPER branch
+never calls into this protocol, regardless of whether a <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> is
+supplied. Any future panel or contract must keep PAPER’s simulated
+execution state (<code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>/<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code>) and REM-B’s
+external-submission identity/ACK protocol as two separate facts (§8, §9).</p></li>
+<li><p><strong>Deployment evidence rendering</strong>: full schema/typed transport is
+confirmed (<code class="docutils literal notranslate"><span class="pre">WEB_READY_NOW</span></code>), but no current React view renders
+<code class="docutils literal notranslate"><span class="pre">deployment_evidence</span></code> — a UI gap only, not a scientific or transport gap
+(§7, §15).</p></li>
+<li><p><strong>Regret current state vs historical events</strong>: a current-state structure
+(<code class="docutils literal notranslate"><span class="pre">RegretStateSnapshot</span></code>) exists at the domain-composition layer but is not
+wired into the canonical snapshot (<code class="docutils literal notranslate"><span class="pre">NEEDS_SNAPSHOT_EXPOSURE</span></code>); historical
+event-level regret data is separately gated on a governed history reader
+(<code class="docutils literal notranslate"><span class="pre">NEEDS_HISTORY_READER</span></code>). These are two distinct gaps and must not be
+collapsed into one readiness state (§7, §11, §19).</p></li>
+<li><p><strong>Restored-position provenance and certified-performance semantics</strong>:
+since REM-C R1.3, a restored paper position’s <code class="docutils literal notranslate"><span class="pre">personality</span></code> always stays
+<code class="docutils literal notranslate"><span class="pre">&quot;restored&quot;</span></code> (evidence completeness is carried separately via
+<code class="docutils literal notranslate"><span class="pre">restored_evidence_gaps</span></code>/<code class="docutils literal notranslate"><span class="pre">tp_sl_source</span></code>’s three tiers), and
+<code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder.summary()</span></code> separates a certified performance subset
+from the raw closed-trade count. Any future panel/history reader must
+preserve these distinctions — never present all restored TP/SL as
+reconstructed defaults, and never count an unknown-outcome or
+fee-evidence-incomplete trade as a certified performance observation
+(§7, §9, §10).</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="governance-rules-for-future-web-prs">
+<h2>23. Governance Rules for Future Web PRs<a class="headerlink" href="#governance-rules-for-future-web-prs" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>One panel = one bounded mission, where practical.</p></li>
+<li><p>No scientific logic in React — formatting and display only.</p></li>
+<li><p>No direct JSONL access, from the frontend or from the API layer.</p></li>
+<li><p>No exchange access from the frontend or from the API reader.</p></li>
+<li><p>No mutation capability until separately, explicitly authorized (see §18).</p></li>
+<li><p>Every displayed value needs provenance (source owner + evidence class).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> is always preferable to invented certainty.</p></li>
+</ul>
+<hr class="docutils" />
+<p><em>This document supersedes prior informal cockpit-mapping notes. It does not
+introduce, remove, or modify any runtime behavior, API route, snapshot
+field, or frontend component. Governance context (ADR-0007 observer
+passivity, the Scientific Debt Rule, and the active Stabilization Window)
+in <code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code> remains authoritative over any development this document’s
+future-mission map may eventually motivate.</em></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">WEB COCKPIT DATA MAP</a><ul>
+<li><a class="reference internal" href="#purpose">1. Purpose</a></li>
+<li><a class="reference internal" href="#architectural-principles">2. Architectural Principles</a></li>
+<li><a class="reference internal" href="#evidence-vocabulary">3. Evidence Vocabulary</a></li>
+<li><a class="reference internal" href="#readiness-vocabulary">4. Readiness Vocabulary</a><ul>
+<li><a class="reference internal" href="#scientific-source-readiness">Scientific Source Readiness</a></li>
+<li><a class="reference internal" href="#web-transport-readiness">Web Transport Readiness</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#existing-web-foundation">5. Existing Web Foundation</a></li>
+<li><a class="reference internal" href="#machine-web-architecture">6. Machine → Web Architecture</a></li>
+<li><a class="reference internal" href="#authority-map">7. Authority Map</a></li>
+<li><a class="reference internal" href="#decision-authority-model">8. Decision Authority Model</a></li>
+<li><a class="reference internal" href="#execution-truth-map">9. Execution Truth Map</a></li>
+<li><a class="reference internal" href="#paper-real-shadow-burn-in-map">10. Paper / Real / Shadow / Burn-in Map</a></li>
+<li><a class="reference internal" href="#panel-catalog">11. Panel Catalog</a></li>
+<li><a class="reference internal" href="#pipeline-visualization">12. Pipeline Visualization</a></li>
+<li><a class="reference internal" href="#decision-trace">13. Decision Trace</a></li>
+<li><a class="reference internal" href="#data-explorer">14. Data Explorer</a></li>
+<li><a class="reference internal" href="#system-health">15. System Health</a></li>
+<li><a class="reference internal" href="#telegram-web-relationship">16. Telegram → Web Relationship</a></li>
+<li><a class="reference internal" href="#future-human-research-lab-architecture-only">17. Future Human Research Lab (architecture only)</a></li>
+<li><a class="reference internal" href="#future-web-command-authority-architecture-only">18. Future Web Command Authority (architecture only)</a></li>
+<li><a class="reference internal" href="#future-mission-map">19. Future Mission Map</a></li>
+<li><a class="reference internal" href="#dependency-map">20. Dependency Map</a></li>
+<li><a class="reference internal" href="#simple-cockpit-mvp">21. Simple Cockpit MVP</a></li>
+<li><a class="reference internal" href="#known-data-gaps">22. Known Data Gaps</a></li>
+<li><a class="reference internal" href="#governance-rules-for-future-web-prs">23. Governance Rules for Future Web PRs</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
