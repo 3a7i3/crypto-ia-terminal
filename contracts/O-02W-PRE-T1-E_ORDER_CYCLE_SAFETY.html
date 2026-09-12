@@ -2414,7 +2414,396 @@ T-1 remains <strong>NOT STARTED</strong>. F-00 remains <strong>NOT STARTED</stro
 no exchange mutation (real, testnet, or otherwise), no deployment occurred
 in this correction round. <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>/
 <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> unchanged throughout.</p>
+<p>This §24V verdict is preserved unedited above as historical scientific
+evidence of the state BEFORE C1 remediation (per project rule: failed
+audit history is never retroactively rewritten as passing). The
+remediation itself is recorded separately below.</p>
 </section>
+</section>
+<hr class="docutils" />
+<section id="pre-t1-e-c1-remediation-production-fix-this-mission-only">
+<h2>§25 — PRE-T1-E C1 REMEDIATION (production fix, this mission only)<a class="headerlink" href="#pre-t1-e-c1-remediation-production-fix-this-mission-only" title="Link to this heading">¶</a></h2>
+<p><strong>Scope: C1 remediation ONLY.</strong> Not T-1, not PRE-T1-E final
+recertification, not the PAPER Portfolio Ledger, not recovery/replay, not
+REM-C R2/R3/R4, not testnet/live activation, not VPS deployment.</p>
+<section id="a-starting-state">
+<h3>25a. Starting state<a class="headerlink" href="#a-starting-state" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Starting <code class="docutils literal notranslate"><span class="pre">main</span></code> SHA: <code class="docutils literal notranslate"><span class="pre">ab6d2739ff1153682717cf88d2976654d547b079</span></code>
+(merge of PR #141, canonical verdict
+<code class="docutils literal notranslate"><span class="pre">PRE_T1_E_PAPER_CERTIFICATION_REMEDIATION_REQUIRED</span></code>, blocker C1).</p></li>
+<li><p>Branch: <code class="docutils literal notranslate"><span class="pre">claude/pre-t1-e-c1-remediation</span></code>.</p></li>
+</ul>
+</section>
+<section id="b-exact-defect-fail-before">
+<h3>25b. Exact defect (fail-before)<a class="headerlink" href="#b-exact-defect-fail-before" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_futures_order()</span></code> (<code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code>) called
+<code class="docutils literal notranslate"><span class="pre">self._exchange_futures.set_leverage(leverage,</span> <span class="pre">ccxt_symbol)</span></code> (when
+<code class="docutils literal notranslate"><span class="pre">leverage</span> <span class="pre">!=</span> <span class="pre">1</span></code>), then <code class="docutils literal notranslate"><span class="pre">fetch_ticker</span></code>/<code class="docutils literal notranslate"><span class="pre">load_markets</span></code>, then
+<code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code>, then the REM-B decision-identity/order-intent
+pipeline — with <strong>no inline PAPER_TRADING_ENABLED / <code class="docutils literal notranslate"><span class="pre">self._live</span></code> /
+LIVE_TRADING_CONFIRMED check of its own</strong> ahead of any of those calls.
+Its only safety was that <code class="docutils literal notranslate"><span class="pre">self._exchange_futures</span></code> happened to be <code class="docutils literal notranslate"><span class="pre">None</span></code>
+on every construction path this repository exercised — caller-inherited
+safety, not a gate on the function itself. Fail-before evidence: the
+strict-XFAIL test <code class="docutils literal notranslate"><span class="pre">test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL</span></code>
+in <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code> (removed/replaced
+by this remediation, see §25e) proved a foreign/stale/tripwire futures
+handle force-attached in memory with PAPER=true/LIVE=false/leverage=3
+reached <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code>.</p>
+</section>
+<section id="c-production-remediation">
+<h3>25c. Production remediation<a class="headerlink" href="#c-production-remediation" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py</span></code>:</p>
+<ul class="simple">
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">ExecutionEngine._live_trading_confirmed()</span></code> (static helper,
+extracted from the parsing previously inlined in <code class="docutils literal notranslate"><span class="pre">from_env()</span></code>, same
+truthy vocabulary <code class="docutils literal notranslate"><span class="pre">{1,</span> <span class="pre">true,</span> <span class="pre">yes,</span> <span class="pre">on}</span></code>) — <code class="docutils literal notranslate"><span class="pre">from_env()</span></code> now calls it
+instead of duplicating the parse.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">ExecutionEngine._futures_mutation_authorized(self)</span></code>: returns
+<code class="docutils literal notranslate"><span class="pre">True</span></code> only if <code class="docutils literal notranslate"><span class="pre">not</span> <span class="pre">self._paper_trading_enabled()</span> <span class="pre">and</span> <span class="pre">self._live</span> <span class="pre">and</span> <span class="pre">self._live_trading_confirmed()</span></code> — i.e. fails closed if ANY of
+PAPER_TRADING_ENABLED is true, <code class="docutils literal notranslate"><span class="pre">self._live</span></code> is False, or
+LIVE_TRADING_CONFIRMED is not truthy.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code>: immediately after the pre-existing
+<code class="docutils literal notranslate"><span class="pre">self._exchange_futures</span> <span class="pre">is</span> <span class="pre">None</span></code> short-circuit (<code class="docutils literal notranslate"><span class="pre">mode=futures_unavailable</span></code>,
+unchanged — not itself a mutation or an authority bypass), added a call
+to <code class="docutils literal notranslate"><span class="pre">_futures_mutation_authorized()</span></code>. If unauthorized, the function
+returns <code class="docutils literal notranslate"><span class="pre">{&quot;mode&quot;:</span> <span class="pre">&quot;rejected&quot;,</span> <span class="pre">&quot;denial_reason&quot;:</span> <span class="pre">&quot;AUTHORITY_DENIED&quot;,</span> <span class="pre">...}</span></code> <strong>before</strong> symbol conversion, <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fetch_ticker</span></code>, <code class="docutils literal notranslate"><span class="pre">load_markets</span></code>, <code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code>, or any REM-B call —
+zero exchange interaction of any kind, not just zero mutation.</p></li>
+<li><p><strong>(R1 correction, then superseded by R2 — see §27)</strong> R1 moved
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> into a <code class="docutils literal notranslate"><span class="pre">futures_mutate</span></code> closure wrapping the coordinator
+mutation callback, so it ran alongside <code class="docutils literal notranslate"><span class="pre">create_order</span></code> after REM-A/REM-B.
+MASTER’s R2 review found this violated ADR-0020’s single-mutation
+contract (<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code> must call the exchange
+EXACTLY ONCE). <strong>R2 removes <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> from the order-submission
+path entirely</strong> — see the temporary leverage safety policy below and
+§27.</p></li>
+<li><p><strong>(R2)</strong> Added a temporary leverage safety policy: <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code>
+now rejects <code class="docutils literal notranslate"><span class="pre">leverage</span> <span class="pre">!=</span> <span class="pre">1</span></code> immediately after the C1 gate, before any
+exchange interaction of any kind (<code class="docutils literal notranslate"><span class="pre">fetch_ticker</span></code>, <code class="docutils literal notranslate"><span class="pre">load_markets</span></code>,
+<code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code>, <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code>, <code class="docutils literal notranslate"><span class="pre">create_order</span></code>) — returning
+<code class="docutils literal notranslate"><span class="pre">{&quot;mode&quot;:</span> <span class="pre">&quot;rejected&quot;,</span> <span class="pre">&quot;denial_reason&quot;:</span> <span class="pre">&quot;UNSUPPORTED_MARKET_SEMANTICS&quot;}</span></code>.
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> is an independent external mutation whose durable,
+at-most-once semantics REM-B’s single-mutation OrderIntent protocol
+does not model; rather than smuggle a second mutation into the
+coordinator’s one-mutation callback (R1’s now-corrected approach), any
+externally-authorized leverage change fails closed until an explicit
+leverage-configuration protocol exists (deferred TESTNET work). The
+reason is <code class="docutils literal notranslate"><span class="pre">UNSUPPORTED_MARKET_SEMANTICS</span></code>, not <code class="docutils literal notranslate"><span class="pre">AUTHORITY_DENIED</span></code>,
+because the caller may hold entirely valid trading authority — the
+unsupported element is the multi-mutation leverage semantics, not the
+caller’s authority. The coordinator’s <code class="docutils literal notranslate"><span class="pre">mutate=</span></code> callback for
+<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> is once again a plain single physical mutation
+(<code class="docutils literal notranslate"><span class="pre">create_order</span></code> only), identical in shape to the pre-C1 callback.</p></li>
+</ul>
+<p>Return shape (§5 of the mission, corrected by R1 §3): reuses the existing
+<code class="docutils literal notranslate"><span class="pre">mode=&quot;rejected&quot;</span></code> vocabulary already used elsewhere in this function
+(session guard, pre-network authorization, REM-B denials) so downstream
+consumers that already branch on <code class="docutils literal notranslate"><span class="pre">mode</span></code> are unaffected. The
+<code class="docutils literal notranslate"><span class="pre">denial_reason</span></code> uses the existing canonical closed
+<code class="docutils literal notranslate"><span class="pre">order_authorization.DenialReason</span></code> enum’s <code class="docutils literal notranslate"><span class="pre">AUTHORITY_DENIED</span></code> value —
+<strong>not</strong> a new enum member — since it is exactly the same “trading
+authority denied” concept <code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code> itself already reports
+under that name (see <code class="docutils literal notranslate"><span class="pre">order_authorization.py</span></code>’s own
+<code class="docutils literal notranslate"><span class="pre">DenialReason.AUTHORITY_DENIED</span></code> usage for REM-A’s own authority check).
+No new <code class="docutils literal notranslate"><span class="pre">mode</span></code> value and no new <code class="docutils literal notranslate"><span class="pre">denial_reason</span></code> value were introduced.
+A C1-specific human-readable explanation remains in the <code class="docutils literal notranslate"><span class="pre">error</span></code> field and
+the warning log line.</p>
+</section>
+<section id="d-final-authority-mutation-ordering-source-re-trace-top-to-bottom-post-r2">
+<h3>25d. Final authority + mutation ordering (source re-trace, top to bottom, post-R2)<a class="headerlink" href="#d-final-authority-mutation-ordering-source-re-trace-top-to-bottom-post-r2" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>1. size clamp (narrowing-only, unchanged)
+2. self._exchange_futures is None?  → mode=futures_unavailable (unchanged, no exchange interaction)
+3. C1 external-mutation authority gate: _futures_mutation_authorized()?
+     → if False: mode=rejected, denial_reason=AUTHORITY_DENIED, ZERO exchange calls
+4. temporary leverage safety policy: leverage != 1?
+     → if True: mode=rejected, denial_reason=UNSUPPORTED_MARKET_SEMANTICS, ZERO exchange calls
+5. symbol conversion (_to_futures_symbol)
+6. fetch_ticker / load_markets (READ-ONLY exchange calls)
+7. authorize_order() (REM-A)
+8. REM-B decision execution eligibility (_decision_execution_denial_reason)
+9. build_order_intent() — deterministic OrderIntent
+10. _bind_decision_to_intent() — decision -&gt; intent binding (REM-B)
+11. OrderIntentCoordinator.submit(..., mutate=mutate) — durable protocol:
+      a. persist INTENT_RECORDED
+      b. persist SUBMISSION_STARTED
+      c. call mutate(intent, client_order_id) — the ONLY physical exchange mutation: create_order(...)
+      d. classify the single mutation result (e.g. persist ACKNOWLEDGED)
+</pre></div>
+</div>
+<p>Mutation inventory: <code class="docutils literal notranslate"><span class="pre">create_order</span></code> is the ONLY mutating exchange call
+anywhere in or around this method — <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> does not appear at
+all (§27, R2). This corrects both the R0 table (which placed
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> before REM-A/REM-B) and the R1 table (which hid a SECOND
+mutation inside the single coordinator callback, violating ADR-0020).
+The coordinator’s <code class="docutils literal notranslate"><span class="pre">mutate=</span></code> callback is once again exactly what
+<code class="docutils literal notranslate"><span class="pre">_mutate_via_coordinator(...)</span></code> returns unwrapped — one logical order
+intent, one coordinator mutation callback, one physical exchange
+mutation, matching every other coordinator-submitted mutation in this
+module (e.g. the spot path in <code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>).</p>
+</section>
+<section id="e-c1-test-before-after">
+<h3>25e. C1 test — before/after<a class="headerlink" href="#e-c1-test-before-after" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Before (R0): <code class="docutils literal notranslate"><span class="pre">test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL</span></code>
+— <code class="docutils literal notranslate"><span class="pre">xfail(strict=True)</span></code>, asserted zero tripwire mutation calls, which
+failed on the pre-remediation HEAD (i.e. it XFAILed as expected,
+proving the defect).</p></li>
+<li><p>After (R0, then R1’s denial_reason correction): renamed to
+<code class="docutils literal notranslate"><span class="pre">test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED</span></code>,
+XFAIL marker removed, same adversarial setup (foreign/stale tripwire
+futures handle, <code class="docutils literal notranslate"><span class="pre">leverage=3</span></code>, PAPER=true/LIVE=false) — an ordinary
+<strong>PASS</strong>: <code class="docutils literal notranslate"><span class="pre">fut.mutation_calls</span> <span class="pre">==</span> <span class="pre">[]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">result[&quot;denial_reason&quot;]</span> <span class="pre">==</span> <span class="pre">&quot;AUTHORITY_DENIED&quot;</span></code> (updated from the R0
+draft’s non-canonical <code class="docutils literal notranslate"><span class="pre">&quot;FUTURES_MUTATION_NOT_AUTHORIZED&quot;</span></code> per MASTER R1
+§3).</p></li>
+</ul>
+</section>
+<section id="f-authority-matrix-tests-added-tests-test-pre-t1-e-final-paper-certification-py">
+<h3>25f. Authority-matrix tests added (<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code>)<a class="headerlink" href="#f-authority-matrix-tests-added-tests-test-pre-t1-e-final-paper-certification-py" title="Link to this heading">¶</a></h3>
+<p>All hermetic, no network, no real credentials:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_c1_a_paper_gate_zero_mutation</span></code> (C1-A) — PASS.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_c1_b_stale_handle_with_paper_zero_mutation</span></code> (C1-B, foreign handle
+swapped in after construction) — PASS.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_c1_c_live_object_not_armed_by_environment</span></code> (C1-C, <code class="docutils literal notranslate"><span class="pre">self._live=True</span></code>
+constructed but LIVE_TRADING_CONFIRMED=false) — PASS.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_c1_d_live_false_remains_fail_closed</span></code> (C1-D,
+LIVE_TRADING_CONFIRMED=true but <code class="docutils literal notranslate"><span class="pre">self._live=False</span></code>) — PASS.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_c1_e_authorized_path_remains_reachable</span></code> (C1-E, R2-updated:
+PAPER=false, <code class="docutils literal notranslate"><span class="pre">self._live=True</span></code>, LIVE_TRADING_CONFIRMED=true,
+<strong><code class="docutils literal notranslate"><span class="pre">leverage=1</span></code></strong>, fully in-memory fake exchange, adapter capability
+certified for the test only) — PASS; proves the C1 gate does not
+permanently disable the legitimate future TESTNET/LIVE path, and that
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> is never called (<code class="docutils literal notranslate"><span class="pre">fake.leverage_calls</span> <span class="pre">==</span> <span class="pre">[]</span></code>), without
+claiming live trading — or leverage — is safe/supported.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_c1_mutation_ordering_zero_calls_when_unauthorized</span></code> — asserts
+<code class="docutils literal notranslate"><span class="pre">tripwire.calls</span> <span class="pre">==</span> <span class="pre">[]</span></code> (not merely mutation calls) across
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code>, <code class="docutils literal notranslate"><span class="pre">fetch_ticker</span></code>, <code class="docutils literal notranslate"><span class="pre">load_markets</span></code>, <code class="docutils literal notranslate"><span class="pre">create_order</span></code> — PASS
+(negative proof: unauthorized ⇒ zero calls of any kind).</p></li>
+<li><p><strong>(R2 addition)</strong> <code class="docutils literal notranslate"><span class="pre">test_c1_leverage_gt_1_authorized_fail_closed</span></code> — full
+authority (PAPER=false, <code class="docutils literal notranslate"><span class="pre">self._live=True</span></code>, LIVE_TRADING_CONFIRMED=true)
+PLUS a futures handle present PLUS <code class="docutils literal notranslate"><span class="pre">leverage=3</span></code> still produces ZERO
+exchange calls of any kind, <code class="docutils literal notranslate"><span class="pre">mode=&quot;rejected&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">denial_reason=&quot;UNSUPPORTED_MARKET_SEMANTICS&quot;</span></code> — PASS. Proves the
+temporary leverage policy is fail-closed independently of authority.</p></li>
+<li><p><strong>(R1 addition, rewritten for R2)</strong> <code class="docutils literal notranslate"><span class="pre">test_c1_authorized_ordering_proof_full_pipeline</span></code>
+— the positive/authorized-path companion to the negative proof above,
+using <code class="docutils literal notranslate"><span class="pre">leverage=1</span></code>. Builds a real <code class="docutils literal notranslate"><span class="pre">ExecutionEngine</span></code> wired to a REAL
+<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code> (tmp-path-backed, exactly
+like the REM-B test helpers), and wraps
+<code class="docutils literal notranslate"><span class="pre">ExecutionEngine._futures_mutation_authorized</span></code>, the module-level
+<code class="docutils literal notranslate"><span class="pre">authorize_order</span></code> (REM-A), <code class="docutils literal notranslate"><span class="pre">ExecutionEngine._bind_decision_to_intent</span></code>
+(REM-B), and — critically — the REAL
+<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal.append_transition</span></code> (not a fake label) to append to
+a shared <code class="docutils literal notranslate"><span class="pre">events</span></code> list only on each function’s actual success path.
+Asserts the event prefix is exactly <code class="docutils literal notranslate"><span class="pre">[&quot;C1_AUTHORITY&quot;,</span> <span class="pre">&quot;REM_A_AUTHORIZE&quot;,</span> <span class="pre">&quot;REM_B_BIND&quot;,</span> <span class="pre">&quot;INTENT_RECORDED&quot;,</span> <span class="pre">&quot;SUBMISSION_STARTED&quot;,</span> <span class="pre">&quot;create_order&quot;]</span></code>
+— PASS. The strongest part of this proof: the fake exchange’s
+<code class="docutils literal notranslate"><span class="pre">create_order</span></code> reads the REAL journal at call time and asserts the
+durable record for this intent’s digest is already
+<code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> — i.e. the durable state precedes the network
+mutation, not merely “happens to be recorded first” in a label list.
+Also asserts <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> call_count == 0 and <code class="docutils literal notranslate"><span class="pre">create_order</span></code> call_count
+== 1 (ADR-0020 single-mutation contract).</p></li>
+</ul>
+</section>
+<section id="g-rem-a-rem-b-preservation">
+<h3>25g. REM-A / REM-B preservation<a class="headerlink" href="#g-rem-a-rem-b-preservation" title="Link to this heading">¶</a></h3>
+<p>Not bypassed, not replaced, not reordered relative to each other —
+<code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code> (REM-A) and the decision-identity/order-intent
+binding + <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code> submission (REM-B) still run, in the
+same relative order, for every authorized call. Post-R2, the
+<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code> <code class="docutils literal notranslate"><span class="pre">mutate=</span></code> callback for
+<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> is a plain single-mutation callback
+(<code class="docutils literal notranslate"><span class="pre">create_order</span></code> only) — REM-B’s ADR-0020 single-mutation contract is
+restored, not merely “enclosed around two mutations” as R1 briefly did.
+The C1 gate (and the temporary leverage policy) sit strictly upstream of
+both REM-A and REM-B, per §9 of the mission. Confirmed by
+<code class="docutils literal notranslate"><span class="pre">test_c1_e_authorized_path_remains_reachable</span></code> and (post-R2)
+<code class="docutils literal notranslate"><span class="pre">test_c1_authorized_ordering_proof_full_pipeline</span></code> reaching a real
+<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code> call with the correct ordering and
+exactly one mutation, and by the full
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span></code> /
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code> suites (see §25h)
+still passing, with no <code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py</span></code> or ADR-0020 change.</p>
+</section>
+<section id="h-test-results-exact-commands-not-aggregated">
+<h3>25h. Test results (exact commands, not aggregated)<a class="headerlink" href="#h-test-results-exact-commands-not-aggregated" title="Link to this heading">¶</a></h3>
+<p><strong>R0 round</strong> (before MASTER’s R1 review) found 5 failures in
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code>. These were
+<strong>existing REM-B tests requiring fixture adaptation after C1 authority
+became explicit</strong> — not pre-existing/environmental failures — confirmed
+genuine by the real CI run (<code class="docutils literal notranslate"><span class="pre">TEST</span> <span class="pre">REGRESSION</span> <span class="pre">GATE</span></code>: 5648 passed / 5
+failed, all 5 in this file). Per MASTER R1 §4, each was corrected by
+arming the C1 authority gate explicitly
+(<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=false</span></code>, <code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=true</span></code>,
+<code class="docutils literal notranslate"><span class="pre">e._live=True</span></code>) in the two affected test bodies
+(<code class="docutils literal notranslate"><span class="pre">TestGroupM_AdapterCapabilityMatrix::test_execution_engine_uses_shared_capability_table_for_futures</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TestGroupP_R12_AdapterFailClosed::test_mexc_futures_submission_via_execution_engine_denied_zero_mutation</span></code>)
+and both (textually duplicated) <code class="docutils literal notranslate"><span class="pre">_build_futures_engine</span></code> helpers (used by
+<code class="docutils literal notranslate"><span class="pre">TestGroupR_R13_LegacyExecutionIneligibility::test_legacy_v1_record_rejected_before_futures_mutation</span></code>,
+<code class="docutils literal notranslate"><span class="pre">::test_corrupted_v2_record_rejected_before_futures_mutation</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">TestGroupS_R14_PersistIdempotence::test_e2e_futures_duplicate_persist_cannot_produce_second_mutation</span></code>)
+— arming authority only, with <strong>no change to what any of the five tests
+actually assert</strong> about REM-A/REM-B behavior. All five, and the file as a
+whole, now PASS.</p>
+<p><strong>Final (post-R2) results:</strong></p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span> <span class="pre">-q</span></code>
+→ <strong>22 passed, 0 xfailed, 0 xpassed, 0 failed</strong> (20 from R0 + the R1
+ordering-proof test, rewritten for R2’s durable-journal proof, + 1 new
+R2 test <code class="docutils literal notranslate"><span class="pre">test_c1_leverage_gt_1_authorized_fail_closed</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span> <span class="pre">-q</span></code>
+→ <strong>161 passed, 0 failed</strong> (unchanged by R2 — none of these tests use
+<code class="docutils literal notranslate"><span class="pre">leverage</span> <span class="pre">!=</span> <span class="pre">1</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_pre_t1_e_order_cycle_safety.py</span> <span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span> <span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span> <span class="pre">tests/test_rem_c_r1_execution_domain.py</span> <span class="pre">tests/test_restart_safety.py</span> <span class="pre">tests/test_pre_t1_d_real_capital_boundary.py</span> <span class="pre">-q</span></code>
+→ <strong>505 passed, 0 failed.</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span> <span class="pre">quant_hedge_ai/agents/execution/test_execution_engine.py</span> <span class="pre">-q</span></code>
+→ <strong>54 passed, 1 failed.</strong> Two tests in
+<code class="docutils literal notranslate"><span class="pre">test_execution_engine_futures.py</span></code> that asserted the (now-removed)
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> mutation path were renamed and rewritten for R2:
+<code class="docutils literal notranslate"><span class="pre">test_leverage_3_calls_set_leverage</span></code> →
+<code class="docutils literal notranslate"><span class="pre">test_leverage_gt_1_rejected_fail_closed</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">test_leverage_exception_order_still_placed</span></code> →
+<code class="docutils literal notranslate"><span class="pre">test_leverage_gt_1_rejected_regardless_of_exchange_behavior</span></code> — both
+now assert <code class="docutils literal notranslate"><span class="pre">mode=&quot;rejected&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">denial_reason=&quot;UNSUPPORTED_MARKET_SEMANTICS&quot;</span></code>, and zero exchange
+calls. The 1 remaining failure
+(<code class="docutils literal notranslate"><span class="pre">TestFromEnv::test_from_env_live_when_keys_present_and_confirmed</span></code>) is
+the same sandbox-local <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> dependency gap noted in R1, confirmed
+present on unmodified <code class="docutils literal notranslate"><span class="pre">main</span></code> and PASSING on real CI.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">scripts/ci/ruff_baseline_gate.py</span> <span class="pre">check</span></code>
+→ <strong>957 baseline == 957 current, 0 new. Gate passes.</strong></p></li>
+</ol>
+</section>
+<section id="i-explicit-confirmations">
+<h3>25i. Explicit confirmations<a class="headerlink" href="#i-explicit-confirmations" title="Link to this heading">¶</a></h3>
+<p>T-1 NOT STARTED. F-00 NOT STARTED. No VPS access. No deployment. No
+real/testnet exchange calls were made (all tests are hermetic, in-memory
+fakes/tripwires only). PAPER Portfolio Ledger NOT started. REM-C
+R2/R3/R4 NOT started. <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>/
+<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> remain the default throughout.</p>
+</section>
+<section id="j-residual-risks-findings-for-master">
+<h3>25j. Residual risks / findings for MASTER<a class="headerlink" href="#j-residual-risks-findings-for-master" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code> scope
+expansion (arming authority in 2 test bodies + 2 duplicated
+<code class="docutils literal notranslate"><span class="pre">_build_futures_engine</span></code> helpers, §25h) is now explicitly authorized by
+MASTER R1 §4/§8 (added to the allowed-tests list) — no longer merely a
+residual flag, closed.</p></li>
+<li><p>This remediation does not address the PAPER-mode semantics roadmap item
+(a dedicated PAPER Portfolio Ledger) — <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> under
+PAPER continues to return a fail-closed rejection rather than a
+simulated fill, per §4 of the mission (explicitly out of scope here).</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="master-r1-correction-this-round">
+<h2>§26 — MASTER R1 CORRECTION (this round)<a class="headerlink" href="#master-r1-correction-this-round" title="Link to this heading">¶</a></h2>
+<p>MASTER reviewed R0 (commit <code class="docutils literal notranslate"><span class="pre">1ab7880782fa183526748e0fdf0ed01a675b9c13</span></code>) and
+returned <code class="docutils literal notranslate"><span class="pre">PRE_T1_E_C1_MASTER_REVIEWED_R1_CORRECTION_REQUIRED</span></code> with three
+findings, all corrected in this round:</p>
+<ol class="arabic simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">set_leverage()</span></code> still an external mutation before REM-A/REM-B.</strong>
+Fixed per §25c/§25d above: <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> now runs only inside the
+<code class="docutils literal notranslate"><span class="pre">futures_mutate</span></code> closure passed to <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code>,
+strictly after REM-A (<code class="docutils literal notranslate"><span class="pre">authorize_order()</span></code>) and REM-B (decision→intent
+binding), immediately before <code class="docutils literal notranslate"><span class="pre">create_order</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">FUTURES_MUTATION_NOT_AUTHORIZED</span></code> was a new denial_reason outside the
+canonical closed vocabulary.</strong> Fixed: the C1 gate now returns
+<code class="docutils literal notranslate"><span class="pre">DenialReason.AUTHORITY_DENIED.value</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;AUTHORITY_DENIED&quot;</span></code>) — the same
+enum member <code class="docutils literal notranslate"><span class="pre">order_authorization.py</span></code>’s own authority check already
+uses — imported from <code class="docutils literal notranslate"><span class="pre">order_authorization</span></code> rather than re-declared.
+All C1 tests updated to assert <code class="docutils literal notranslate"><span class="pre">&quot;AUTHORITY_DENIED&quot;</span></code>.</p></li>
+<li><p><strong>Five REM-B tests failing under the new C1 gate.</strong> MASTER authorized
+(§4/§8) a test-only scope expansion to
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code>, limited to
+arming the C1 authority gate explicitly in the five named tests/helpers
+— no REM-A/REM-B assertion was weakened or removed. All five, and the
+161-test file as a whole, PASS.</p></li>
+</ol>
+<p>Additionally, per MASTER R1 §5, added
+<code class="docutils literal notranslate"><span class="pre">test_c1_authorized_ordering_proof_full_pipeline</span></code> (§25f) — a positive,
+event-recording proof that the authorized-path ordering is exactly C1 →
+REM-A → REM-B → <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> → <code class="docutils literal notranslate"><span class="pre">create_order</span></code>, complementing the
+existing negative (unauthorized ⇒ zero calls) proof. The C1-A…E matrix
+and the former-XFAIL test remain green (§25e/§25f, updated only for the
+canonical <code class="docutils literal notranslate"><span class="pre">denial_reason</span></code> value).</p>
+<p>No production file other than
+<code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py</span></code> was modified. No
+architecture redesign, no new execution domain router, no
+PaperPortfolioLedger/VirtualExecutionEngine/recovery-replay work — same
+narrow scope as R0.</p>
+</section>
+<hr class="docutils" />
+<section id="master-r2-correction-this-round-restore-rem-b-single-mutation-contract">
+<h2>§27 — MASTER R2 CORRECTION (this round) — RESTORE REM-B SINGLE-MUTATION CONTRACT<a class="headerlink" href="#master-r2-correction-this-round-restore-rem-b-single-mutation-contract" title="Link to this heading">¶</a></h2>
+<p>MASTER reviewed R1 (commit <code class="docutils literal notranslate"><span class="pre">0eb62fc5446462b1db8087104fb3b4372cf925b0</span></code>) and
+returned <code class="docutils literal notranslate"><span class="pre">PRE_T1_E_C1_R1_MASTER_REVIEWED_R2_SINGLE_MUTATION_CONTRACT_REQUIRED</span></code>.</p>
+<p>R1 correctly fixed C1 authority, the canonical <code class="docutils literal notranslate"><span class="pre">AUTHORITY_DENIED</span></code>
+vocabulary, and the REM-B test fixtures, but introduced a deeper
+violation: <code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator.submit()</span></code> is defined by ADR-0020 as
+persist <code class="docutils literal notranslate"><span class="pre">INTENT_RECORDED</span></code> → persist <code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> → call the
+exchange EXACTLY ONCE → classify that single mutation result. R1’s
+<code class="docutils literal notranslate"><span class="pre">futures_mutate</span></code> callback performed TWO physical exchange mutations
+(<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> then <code class="docutils literal notranslate"><span class="pre">create_order</span></code>), violating this single-mutation
+model — an unrepresented side effect/crash window between two mutations
+neither the coordinator nor its journal accounts for individually.</p>
+<p><strong>Fix:</strong> removed <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> from the order-submission path entirely.
+Added a temporary leverage safety policy (§25c/§25d): <code class="docutils literal notranslate"><span class="pre">leverage</span> <span class="pre">!=</span> <span class="pre">1</span></code>
+fails closed — <code class="docutils literal notranslate"><span class="pre">mode=&quot;rejected&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">denial_reason=&quot;UNSUPPORTED_MARKET_SEMANTICS&quot;</span></code> — immediately after the C1
+gate, before any exchange interaction. The coordinator’s <code class="docutils literal notranslate"><span class="pre">mutate=</span></code>
+callback for <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> is once again the plain,
+unwrapped, single-mutation callback <code class="docutils literal notranslate"><span class="pre">_mutate_via_coordinator(...)</span></code>
+returns — identical in shape to every other coordinator-submitted
+mutation in this module. <code class="docutils literal notranslate"><span class="pre">order_intent_protocol.py</span></code> and ADR-0020 were
+<strong>not modified</strong> — C1 was corrected to conform to the existing REM-B
+contract, not the other way around.</p>
+<p><strong>Tests corrected per MASTER R2 §4-§6:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_c1_e_authorized_path_remains_reachable</span></code> (C1-E) now uses
+<code class="docutils literal notranslate"><span class="pre">leverage=1</span></code> and asserts <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> is never called.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">test_c1_leverage_gt_1_authorized_fail_closed</span></code>: full authority +
+futures handle + <code class="docutils literal notranslate"><span class="pre">leverage=3</span></code> → zero exchange calls,
+<code class="docutils literal notranslate"><span class="pre">denial_reason=&quot;UNSUPPORTED_MARKET_SEMANTICS&quot;</span></code>.</p></li>
+<li><p>Rewrote <code class="docutils literal notranslate"><span class="pre">test_c1_authorized_ordering_proof_full_pipeline</span></code> to derive
+<code class="docutils literal notranslate"><span class="pre">INTENT_RECORDED</span></code>/<code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> from the REAL
+<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal.append_transition</span></code> (not appended labels), using a
+real <code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code>/<code class="docutils literal notranslate"><span class="pre">OrderIntentCoordinator</span></code> pair — the fake
+exchange’s <code class="docutils literal notranslate"><span class="pre">create_order</span></code> reads the durable journal at call time and
+asserts <code class="docutils literal notranslate"><span class="pre">SUBMISSION_STARTED</span></code> is already persisted for this intent’s
+digest before the mutation runs. Also asserts <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> call_count
+== 0 and <code class="docutils literal notranslate"><span class="pre">create_order</span></code> call_count == 1.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code>,
+renamed/rewrote the two tests that asserted the (now-removed)
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> mutation path
+(<code class="docutils literal notranslate"><span class="pre">test_leverage_3_calls_set_leverage</span></code> →
+<code class="docutils literal notranslate"><span class="pre">test_leverage_gt_1_rejected_fail_closed</span></code>;
+<code class="docutils literal notranslate"><span class="pre">test_leverage_exception_order_still_placed</span></code> →
+<code class="docutils literal notranslate"><span class="pre">test_leverage_gt_1_rejected_regardless_of_exchange_behavior</span></code>) to
+assert the fail-closed policy instead.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code>’s R1 fixture
+corrections (arming C1 authority) were left untouched — all 161 tests
+remain green, unaffected by the leverage policy since none of them use
+<code class="docutils literal notranslate"><span class="pre">leverage</span> <span class="pre">!=</span> <span class="pre">1</span></code>.</p></li>
+</ul>
+<p><strong>Effective PR diff after R2 — five files</strong> (per MASTER R2 §11):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/execution_engine.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span></code></p></li>
+</ul>
+<p>No production file other than <code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code> was modified. No new
+leverage journal/protocol was invented (explicitly deferred, per MASTER
+R2 §3, to future TESTNET work). No architecture redesign, no new
+execution domain router, no PaperPortfolioLedger/VirtualExecutionEngine/
+recovery-replay work — same narrow scope as R0/R1.</p>
 </section>
 </section>
 
@@ -2539,6 +2928,21 @@ in this correction round. <code class="docutils literal notranslate"><span class
 <li><a class="reference internal" href="#v-h-corrected-final-verdict">24V(h). Corrected final verdict</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#pre-t1-e-c1-remediation-production-fix-this-mission-only">§25 — PRE-T1-E C1 REMEDIATION (production fix, this mission only)</a><ul>
+<li><a class="reference internal" href="#a-starting-state">25a. Starting state</a></li>
+<li><a class="reference internal" href="#b-exact-defect-fail-before">25b. Exact defect (fail-before)</a></li>
+<li><a class="reference internal" href="#c-production-remediation">25c. Production remediation</a></li>
+<li><a class="reference internal" href="#d-final-authority-mutation-ordering-source-re-trace-top-to-bottom-post-r2">25d. Final authority + mutation ordering (source re-trace, top to bottom, post-R2)</a></li>
+<li><a class="reference internal" href="#e-c1-test-before-after">25e. C1 test — before/after</a></li>
+<li><a class="reference internal" href="#f-authority-matrix-tests-added-tests-test-pre-t1-e-final-paper-certification-py">25f. Authority-matrix tests added (<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code>)</a></li>
+<li><a class="reference internal" href="#g-rem-a-rem-b-preservation">25g. REM-A / REM-B preservation</a></li>
+<li><a class="reference internal" href="#h-test-results-exact-commands-not-aggregated">25h. Test results (exact commands, not aggregated)</a></li>
+<li><a class="reference internal" href="#i-explicit-confirmations">25i. Explicit confirmations</a></li>
+<li><a class="reference internal" href="#j-residual-risks-findings-for-master">25j. Residual risks / findings for MASTER</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#master-r1-correction-this-round">§26 — MASTER R1 CORRECTION (this round)</a></li>
+<li><a class="reference internal" href="#master-r2-correction-this-round-restore-rem-b-single-mutation-contract">§27 — MASTER R2 CORRECTION (this round) — RESTORE REM-B SINGLE-MUTATION CONTRACT</a></li>
 </ul>
 </li>
 </ul>

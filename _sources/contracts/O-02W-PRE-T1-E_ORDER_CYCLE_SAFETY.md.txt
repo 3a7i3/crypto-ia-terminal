@@ -1682,3 +1682,403 @@ T-1 remains **NOT STARTED**. F-00 remains **NOT STARTED**. No VPS access,
 no exchange mutation (real, testnet, or otherwise), no deployment occurred
 in this correction round. `PAPER_TRADING_ENABLED=true`/
 `LIVE_TRADING_CONFIRMED=false` unchanged throughout.
+
+This §24V verdict is preserved unedited above as historical scientific
+evidence of the state BEFORE C1 remediation (per project rule: failed
+audit history is never retroactively rewritten as passing). The
+remediation itself is recorded separately below.
+
+---
+
+## §25 — PRE-T1-E C1 REMEDIATION (production fix, this mission only)
+
+**Scope: C1 remediation ONLY.** Not T-1, not PRE-T1-E final
+recertification, not the PAPER Portfolio Ledger, not recovery/replay, not
+REM-C R2/R3/R4, not testnet/live activation, not VPS deployment.
+
+### 25a. Starting state
+
+- Starting `main` SHA: `ab6d2739ff1153682717cf88d2976654d547b079`
+  (merge of PR #141, canonical verdict
+  `PRE_T1_E_PAPER_CERTIFICATION_REMEDIATION_REQUIRED`, blocker C1).
+- Branch: `claude/pre-t1-e-c1-remediation`.
+
+### 25b. Exact defect (fail-before)
+
+`ExecutionEngine.create_futures_order()` (`execution_engine.py`) called
+`self._exchange_futures.set_leverage(leverage, ccxt_symbol)` (when
+`leverage != 1`), then `fetch_ticker`/`load_markets`, then
+`authorize_order()`, then the REM-B decision-identity/order-intent
+pipeline — with **no inline PAPER_TRADING_ENABLED / `self._live` /
+LIVE_TRADING_CONFIRMED check of its own** ahead of any of those calls.
+Its only safety was that `self._exchange_futures` happened to be `None`
+on every construction path this repository exercised — caller-inherited
+safety, not a gate on the function itself. Fail-before evidence: the
+strict-XFAIL test `test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`
+in `tests/test_pre_t1_e_final_paper_certification.py` (removed/replaced
+by this remediation, see §25e) proved a foreign/stale/tripwire futures
+handle force-attached in memory with PAPER=true/LIVE=false/leverage=3
+reached `set_leverage`.
+
+### 25c. Production remediation
+
+`quant_hedge_ai/agents/execution/execution_engine.py`:
+
+- Added `ExecutionEngine._live_trading_confirmed()` (static helper,
+  extracted from the parsing previously inlined in `from_env()`, same
+  truthy vocabulary `{1, true, yes, on}`) — `from_env()` now calls it
+  instead of duplicating the parse.
+- Added `ExecutionEngine._futures_mutation_authorized(self)`: returns
+  `True` only if `not self._paper_trading_enabled() and self._live and
+  self._live_trading_confirmed()` — i.e. fails closed if ANY of
+  PAPER_TRADING_ENABLED is true, `self._live` is False, or
+  LIVE_TRADING_CONFIRMED is not truthy.
+- `create_futures_order()`: immediately after the pre-existing
+  `self._exchange_futures is None` short-circuit (`mode=futures_unavailable`,
+  unchanged — not itself a mutation or an authority bypass), added a call
+  to `_futures_mutation_authorized()`. If unauthorized, the function
+  returns `{"mode": "rejected", "denial_reason":
+  "AUTHORITY_DENIED", ...}` **before** symbol conversion, `set_leverage`,
+  `fetch_ticker`, `load_markets`, `authorize_order()`, or any REM-B call —
+  zero exchange interaction of any kind, not just zero mutation.
+- **(R1 correction, then superseded by R2 — see §27)** R1 moved
+  `set_leverage` into a `futures_mutate` closure wrapping the coordinator
+  mutation callback, so it ran alongside `create_order` after REM-A/REM-B.
+  MASTER's R2 review found this violated ADR-0020's single-mutation
+  contract (`OrderIntentCoordinator.submit()` must call the exchange
+  EXACTLY ONCE). **R2 removes `set_leverage` from the order-submission
+  path entirely** — see the temporary leverage safety policy below and
+  §27.
+- **(R2)** Added a temporary leverage safety policy: `create_futures_order()`
+  now rejects `leverage != 1` immediately after the C1 gate, before any
+  exchange interaction of any kind (`fetch_ticker`, `load_markets`,
+  `authorize_order()`, `set_leverage`, `create_order`) — returning
+  `{"mode": "rejected", "denial_reason": "UNSUPPORTED_MARKET_SEMANTICS"}`.
+  `set_leverage` is an independent external mutation whose durable,
+  at-most-once semantics REM-B's single-mutation OrderIntent protocol
+  does not model; rather than smuggle a second mutation into the
+  coordinator's one-mutation callback (R1's now-corrected approach), any
+  externally-authorized leverage change fails closed until an explicit
+  leverage-configuration protocol exists (deferred TESTNET work). The
+  reason is `UNSUPPORTED_MARKET_SEMANTICS`, not `AUTHORITY_DENIED`,
+  because the caller may hold entirely valid trading authority — the
+  unsupported element is the multi-mutation leverage semantics, not the
+  caller's authority. The coordinator's `mutate=` callback for
+  `create_futures_order()` is once again a plain single physical mutation
+  (`create_order` only), identical in shape to the pre-C1 callback.
+
+Return shape (§5 of the mission, corrected by R1 §3): reuses the existing
+`mode="rejected"` vocabulary already used elsewhere in this function
+(session guard, pre-network authorization, REM-B denials) so downstream
+consumers that already branch on `mode` are unaffected. The
+`denial_reason` uses the existing canonical closed
+`order_authorization.DenialReason` enum's `AUTHORITY_DENIED` value —
+**not** a new enum member — since it is exactly the same "trading
+authority denied" concept `authorize_order()` itself already reports
+under that name (see `order_authorization.py`'s own
+`DenialReason.AUTHORITY_DENIED` usage for REM-A's own authority check).
+No new `mode` value and no new `denial_reason` value were introduced.
+A C1-specific human-readable explanation remains in the `error` field and
+the warning log line.
+
+### 25d. Final authority + mutation ordering (source re-trace, top to bottom, post-R2)
+
+```
+1. size clamp (narrowing-only, unchanged)
+2. self._exchange_futures is None?  → mode=futures_unavailable (unchanged, no exchange interaction)
+3. C1 external-mutation authority gate: _futures_mutation_authorized()?
+     → if False: mode=rejected, denial_reason=AUTHORITY_DENIED, ZERO exchange calls
+4. temporary leverage safety policy: leverage != 1?
+     → if True: mode=rejected, denial_reason=UNSUPPORTED_MARKET_SEMANTICS, ZERO exchange calls
+5. symbol conversion (_to_futures_symbol)
+6. fetch_ticker / load_markets (READ-ONLY exchange calls)
+7. authorize_order() (REM-A)
+8. REM-B decision execution eligibility (_decision_execution_denial_reason)
+9. build_order_intent() — deterministic OrderIntent
+10. _bind_decision_to_intent() — decision -> intent binding (REM-B)
+11. OrderIntentCoordinator.submit(..., mutate=mutate) — durable protocol:
+      a. persist INTENT_RECORDED
+      b. persist SUBMISSION_STARTED
+      c. call mutate(intent, client_order_id) — the ONLY physical exchange mutation: create_order(...)
+      d. classify the single mutation result (e.g. persist ACKNOWLEDGED)
+```
+
+Mutation inventory: `create_order` is the ONLY mutating exchange call
+anywhere in or around this method — `set_leverage` does not appear at
+all (§27, R2). This corrects both the R0 table (which placed
+`set_leverage` before REM-A/REM-B) and the R1 table (which hid a SECOND
+mutation inside the single coordinator callback, violating ADR-0020).
+The coordinator's `mutate=` callback is once again exactly what
+`_mutate_via_coordinator(...)` returns unwrapped — one logical order
+intent, one coordinator mutation callback, one physical exchange
+mutation, matching every other coordinator-submitted mutation in this
+module (e.g. the spot path in `_place_live_order`).
+
+### 25e. C1 test — before/after
+
+- Before (R0): `test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`
+  — `xfail(strict=True)`, asserted zero tripwire mutation calls, which
+  failed on the pre-remediation HEAD (i.e. it XFAILed as expected,
+  proving the defect).
+- After (R0, then R1's denial_reason correction): renamed to
+  `test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED`,
+  XFAIL marker removed, same adversarial setup (foreign/stale tripwire
+  futures handle, `leverage=3`, PAPER=true/LIVE=false) — an ordinary
+  **PASS**: `fut.mutation_calls == []` and
+  `result["denial_reason"] == "AUTHORITY_DENIED"` (updated from the R0
+  draft's non-canonical `"FUTURES_MUTATION_NOT_AUTHORIZED"` per MASTER R1
+  §3).
+
+### 25f. Authority-matrix tests added (`tests/test_pre_t1_e_final_paper_certification.py`)
+
+All hermetic, no network, no real credentials:
+
+- `test_c1_a_paper_gate_zero_mutation` (C1-A) — PASS.
+- `test_c1_b_stale_handle_with_paper_zero_mutation` (C1-B, foreign handle
+  swapped in after construction) — PASS.
+- `test_c1_c_live_object_not_armed_by_environment` (C1-C, `self._live=True`
+  constructed but LIVE_TRADING_CONFIRMED=false) — PASS.
+- `test_c1_d_live_false_remains_fail_closed` (C1-D,
+  LIVE_TRADING_CONFIRMED=true but `self._live=False`) — PASS.
+- `test_c1_e_authorized_path_remains_reachable` (C1-E, R2-updated:
+  PAPER=false, `self._live=True`, LIVE_TRADING_CONFIRMED=true,
+  **`leverage=1`**, fully in-memory fake exchange, adapter capability
+  certified for the test only) — PASS; proves the C1 gate does not
+  permanently disable the legitimate future TESTNET/LIVE path, and that
+  `set_leverage` is never called (`fake.leverage_calls == []`), without
+  claiming live trading — or leverage — is safe/supported.
+- `test_c1_mutation_ordering_zero_calls_when_unauthorized` — asserts
+  `tripwire.calls == []` (not merely mutation calls) across
+  `set_leverage`, `fetch_ticker`, `load_markets`, `create_order` — PASS
+  (negative proof: unauthorized ⇒ zero calls of any kind).
+- **(R2 addition)** `test_c1_leverage_gt_1_authorized_fail_closed` — full
+  authority (PAPER=false, `self._live=True`, LIVE_TRADING_CONFIRMED=true)
+  PLUS a futures handle present PLUS `leverage=3` still produces ZERO
+  exchange calls of any kind, `mode="rejected"`,
+  `denial_reason="UNSUPPORTED_MARKET_SEMANTICS"` — PASS. Proves the
+  temporary leverage policy is fail-closed independently of authority.
+- **(R1 addition, rewritten for R2)** `test_c1_authorized_ordering_proof_full_pipeline`
+  — the positive/authorized-path companion to the negative proof above,
+  using `leverage=1`. Builds a real `ExecutionEngine` wired to a REAL
+  `OrderIntentJournal`/`OrderIntentCoordinator` (tmp-path-backed, exactly
+  like the REM-B test helpers), and wraps
+  `ExecutionEngine._futures_mutation_authorized`, the module-level
+  `authorize_order` (REM-A), `ExecutionEngine._bind_decision_to_intent`
+  (REM-B), and — critically — the REAL
+  `OrderIntentJournal.append_transition` (not a fake label) to append to
+  a shared `events` list only on each function's actual success path.
+  Asserts the event prefix is exactly `["C1_AUTHORITY", "REM_A_AUTHORIZE",
+  "REM_B_BIND", "INTENT_RECORDED", "SUBMISSION_STARTED", "create_order"]`
+  — PASS. The strongest part of this proof: the fake exchange's
+  `create_order` reads the REAL journal at call time and asserts the
+  durable record for this intent's digest is already
+  `SUBMISSION_STARTED` — i.e. the durable state precedes the network
+  mutation, not merely "happens to be recorded first" in a label list.
+  Also asserts `set_leverage` call_count == 0 and `create_order` call_count
+  == 1 (ADR-0020 single-mutation contract).
+
+### 25g. REM-A / REM-B preservation
+
+Not bypassed, not replaced, not reordered relative to each other —
+`authorize_order()` (REM-A) and the decision-identity/order-intent
+binding + `OrderIntentCoordinator` submission (REM-B) still run, in the
+same relative order, for every authorized call. Post-R2, the
+`OrderIntentCoordinator.submit()` `mutate=` callback for
+`create_futures_order()` is a plain single-mutation callback
+(`create_order` only) — REM-B's ADR-0020 single-mutation contract is
+restored, not merely "enclosed around two mutations" as R1 briefly did.
+The C1 gate (and the temporary leverage policy) sit strictly upstream of
+both REM-A and REM-B, per §9 of the mission. Confirmed by
+`test_c1_e_authorized_path_remains_reachable` and (post-R2)
+`test_c1_authorized_ordering_proof_full_pipeline` reaching a real
+`OrderIntentCoordinator.submit()` call with the correct ordering and
+exactly one mutation, and by the full
+`tests/test_pre_t1_e_rem_a_order_authorization.py` /
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` suites (see §25h)
+still passing, with no `order_intent_protocol.py` or ADR-0020 change.
+
+### 25h. Test results (exact commands, not aggregated)
+
+**R0 round** (before MASTER's R1 review) found 5 failures in
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`. These were
+**existing REM-B tests requiring fixture adaptation after C1 authority
+became explicit** — not pre-existing/environmental failures — confirmed
+genuine by the real CI run (`TEST REGRESSION GATE`: 5648 passed / 5
+failed, all 5 in this file). Per MASTER R1 §4, each was corrected by
+arming the C1 authority gate explicitly
+(`PAPER_TRADING_ENABLED=false`, `LIVE_TRADING_CONFIRMED=true`,
+`e._live=True`) in the two affected test bodies
+(`TestGroupM_AdapterCapabilityMatrix::test_execution_engine_uses_shared_capability_table_for_futures`,
+`TestGroupP_R12_AdapterFailClosed::test_mexc_futures_submission_via_execution_engine_denied_zero_mutation`)
+and both (textually duplicated) `_build_futures_engine` helpers (used by
+`TestGroupR_R13_LegacyExecutionIneligibility::test_legacy_v1_record_rejected_before_futures_mutation`,
+`::test_corrupted_v2_record_rejected_before_futures_mutation`, and
+`TestGroupS_R14_PersistIdempotence::test_e2e_futures_duplicate_persist_cannot_produce_second_mutation`)
+— arming authority only, with **no change to what any of the five tests
+actually assert** about REM-A/REM-B behavior. All five, and the file as a
+whole, now PASS.
+
+**Final (post-R2) results:**
+
+1. `python3 -m pytest tests/test_pre_t1_e_final_paper_certification.py -q`
+   → **22 passed, 0 xfailed, 0 xpassed, 0 failed** (20 from R0 + the R1
+   ordering-proof test, rewritten for R2's durable-journal proof, + 1 new
+   R2 test `test_c1_leverage_gt_1_authorized_fail_closed`).
+2. `python3 -m pytest tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py -q`
+   → **161 passed, 0 failed** (unchanged by R2 — none of these tests use
+   `leverage != 1`).
+3. `python3 -m pytest tests/test_pre_t1_e_order_cycle_safety.py
+   tests/test_pre_t1_e_rem_a_order_authorization.py
+   tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py
+   tests/test_rem_c_r1_execution_domain.py
+   tests/test_restart_safety.py
+   tests/test_pre_t1_d_real_capital_boundary.py -q`
+   → **505 passed, 0 failed.**
+4. `python3 -m pytest quant_hedge_ai/agents/execution/test_execution_engine_futures.py
+   quant_hedge_ai/agents/execution/test_execution_engine.py -q`
+   → **54 passed, 1 failed.** Two tests in
+   `test_execution_engine_futures.py` that asserted the (now-removed)
+   `set_leverage` mutation path were renamed and rewritten for R2:
+   `test_leverage_3_calls_set_leverage` →
+   `test_leverage_gt_1_rejected_fail_closed`, and
+   `test_leverage_exception_order_still_placed` →
+   `test_leverage_gt_1_rejected_regardless_of_exchange_behavior` — both
+   now assert `mode="rejected"`,
+   `denial_reason="UNSUPPORTED_MARKET_SEMANTICS"`, and zero exchange
+   calls. The 1 remaining failure
+   (`TestFromEnv::test_from_env_live_when_keys_present_and_confirmed`) is
+   the same sandbox-local `ccxt` dependency gap noted in R1, confirmed
+   present on unmodified `main` and PASSING on real CI.
+5. `python3 scripts/ci/ruff_baseline_gate.py check`
+   → **957 baseline == 957 current, 0 new. Gate passes.**
+
+### 25i. Explicit confirmations
+
+T-1 NOT STARTED. F-00 NOT STARTED. No VPS access. No deployment. No
+real/testnet exchange calls were made (all tests are hermetic, in-memory
+fakes/tripwires only). PAPER Portfolio Ledger NOT started. REM-C
+R2/R3/R4 NOT started. `PAPER_TRADING_ENABLED=true`/
+`LIVE_TRADING_CONFIRMED=false` remain the default throughout.
+
+### 25j. Residual risks / findings for MASTER
+
+- The `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` scope
+  expansion (arming authority in 2 test bodies + 2 duplicated
+  `_build_futures_engine` helpers, §25h) is now explicitly authorized by
+  MASTER R1 §4/§8 (added to the allowed-tests list) — no longer merely a
+  residual flag, closed.
+- This remediation does not address the PAPER-mode semantics roadmap item
+  (a dedicated PAPER Portfolio Ledger) — `create_futures_order()` under
+  PAPER continues to return a fail-closed rejection rather than a
+  simulated fill, per §4 of the mission (explicitly out of scope here).
+
+---
+
+## §26 — MASTER R1 CORRECTION (this round)
+
+MASTER reviewed R0 (commit `1ab7880782fa183526748e0fdf0ed01a675b9c13`) and
+returned `PRE_T1_E_C1_MASTER_REVIEWED_R1_CORRECTION_REQUIRED` with three
+findings, all corrected in this round:
+
+1. **`set_leverage()` still an external mutation before REM-A/REM-B.**
+   Fixed per §25c/§25d above: `set_leverage` now runs only inside the
+   `futures_mutate` closure passed to `OrderIntentCoordinator.submit()`,
+   strictly after REM-A (`authorize_order()`) and REM-B (decision→intent
+   binding), immediately before `create_order`.
+2. **`FUTURES_MUTATION_NOT_AUTHORIZED` was a new denial_reason outside the
+   canonical closed vocabulary.** Fixed: the C1 gate now returns
+   `DenialReason.AUTHORITY_DENIED.value` (`"AUTHORITY_DENIED"`) — the same
+   enum member `order_authorization.py`'s own authority check already
+   uses — imported from `order_authorization` rather than re-declared.
+   All C1 tests updated to assert `"AUTHORITY_DENIED"`.
+3. **Five REM-B tests failing under the new C1 gate.** MASTER authorized
+   (§4/§8) a test-only scope expansion to
+   `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`, limited to
+   arming the C1 authority gate explicitly in the five named tests/helpers
+   — no REM-A/REM-B assertion was weakened or removed. All five, and the
+   161-test file as a whole, PASS.
+
+Additionally, per MASTER R1 §5, added
+`test_c1_authorized_ordering_proof_full_pipeline` (§25f) — a positive,
+event-recording proof that the authorized-path ordering is exactly C1 →
+REM-A → REM-B → `set_leverage` → `create_order`, complementing the
+existing negative (unauthorized ⇒ zero calls) proof. The C1-A..E matrix
+and the former-XFAIL test remain green (§25e/§25f, updated only for the
+canonical `denial_reason` value).
+
+No production file other than
+`quant_hedge_ai/agents/execution/execution_engine.py` was modified. No
+architecture redesign, no new execution domain router, no
+PaperPortfolioLedger/VirtualExecutionEngine/recovery-replay work — same
+narrow scope as R0.
+
+---
+
+## §27 — MASTER R2 CORRECTION (this round) — RESTORE REM-B SINGLE-MUTATION CONTRACT
+
+MASTER reviewed R1 (commit `0eb62fc5446462b1db8087104fb3b4372cf925b0`) and
+returned `PRE_T1_E_C1_R1_MASTER_REVIEWED_R2_SINGLE_MUTATION_CONTRACT_REQUIRED`.
+
+R1 correctly fixed C1 authority, the canonical `AUTHORITY_DENIED`
+vocabulary, and the REM-B test fixtures, but introduced a deeper
+violation: `OrderIntentCoordinator.submit()` is defined by ADR-0020 as
+persist `INTENT_RECORDED` → persist `SUBMISSION_STARTED` → call the
+exchange EXACTLY ONCE → classify that single mutation result. R1's
+`futures_mutate` callback performed TWO physical exchange mutations
+(`set_leverage` then `create_order`), violating this single-mutation
+model — an unrepresented side effect/crash window between two mutations
+neither the coordinator nor its journal accounts for individually.
+
+**Fix:** removed `set_leverage` from the order-submission path entirely.
+Added a temporary leverage safety policy (§25c/§25d): `leverage != 1`
+fails closed — `mode="rejected"`,
+`denial_reason="UNSUPPORTED_MARKET_SEMANTICS"` — immediately after the C1
+gate, before any exchange interaction. The coordinator's `mutate=`
+callback for `create_futures_order()` is once again the plain,
+unwrapped, single-mutation callback `_mutate_via_coordinator(...)`
+returns — identical in shape to every other coordinator-submitted
+mutation in this module. `order_intent_protocol.py` and ADR-0020 were
+**not modified** — C1 was corrected to conform to the existing REM-B
+contract, not the other way around.
+
+**Tests corrected per MASTER R2 §4-§6:**
+
+- `test_c1_e_authorized_path_remains_reachable` (C1-E) now uses
+  `leverage=1` and asserts `set_leverage` is never called.
+- Added `test_c1_leverage_gt_1_authorized_fail_closed`: full authority +
+  futures handle + `leverage=3` → zero exchange calls,
+  `denial_reason="UNSUPPORTED_MARKET_SEMANTICS"`.
+- Rewrote `test_c1_authorized_ordering_proof_full_pipeline` to derive
+  `INTENT_RECORDED`/`SUBMISSION_STARTED` from the REAL
+  `OrderIntentJournal.append_transition` (not appended labels), using a
+  real `OrderIntentJournal`/`OrderIntentCoordinator` pair — the fake
+  exchange's `create_order` reads the durable journal at call time and
+  asserts `SUBMISSION_STARTED` is already persisted for this intent's
+  digest before the mutation runs. Also asserts `set_leverage` call_count
+  == 0 and `create_order` call_count == 1.
+- In `quant_hedge_ai/agents/execution/test_execution_engine_futures.py`,
+  renamed/rewrote the two tests that asserted the (now-removed)
+  `set_leverage` mutation path
+  (`test_leverage_3_calls_set_leverage` →
+  `test_leverage_gt_1_rejected_fail_closed`;
+  `test_leverage_exception_order_still_placed` →
+  `test_leverage_gt_1_rejected_regardless_of_exchange_behavior`) to
+  assert the fail-closed policy instead.
+- `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`'s R1 fixture
+  corrections (arming C1 authority) were left untouched — all 161 tests
+  remain green, unaffected by the leverage policy since none of them use
+  `leverage != 1`.
+
+**Effective PR diff after R2 — five files** (per MASTER R2 §11):
+
+- `docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md`
+- `quant_hedge_ai/agents/execution/execution_engine.py`
+- `quant_hedge_ai/agents/execution/test_execution_engine_futures.py`
+- `tests/test_pre_t1_e_final_paper_certification.py`
+- `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`
+
+No production file other than `execution_engine.py` was modified. No new
+leverage journal/protocol was invented (explicitly deferred, per MASTER
+R2 §3, to future TESTNET work). No architecture redesign, no new
+execution domain router, no PaperPortfolioLedger/VirtualExecutionEngine/
+recovery-replay work — same narrow scope as R0/R1.
