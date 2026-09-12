@@ -6,7 +6,10 @@ import time
 from typing import Optional
 
 from observability.json_logger import get_logger
-from quant_hedge_ai.agents.execution.order_authorization import authorize_order
+from quant_hedge_ai.agents.execution.order_authorization import (
+    DenialReason,
+    authorize_order,
+)
 from quant_hedge_ai.agents.execution.order_deduplicator import OrderDeduplicator
 from quant_hedge_ai.agents.execution.decision_identity import (
     DecisionIdentityError,
@@ -501,20 +504,13 @@ class ExecutionEngine:
                 "size": size_usd,
                 "mode": "rejected",
                 "error": reason,
-                "denial_reason": "FUTURES_MUTATION_NOT_AUTHORIZED",
+                "denial_reason": DenialReason.AUTHORITY_DENIED.value,
             }
 
         side = "buy" if action.upper() == "BUY" else "sell"
         ccxt_symbol = self._to_futures_symbol(symbol)
 
         try:
-            # Définir le levier
-            if leverage != 1:
-                try:
-                    self._exchange_futures.set_leverage(leverage, ccxt_symbol)
-                except Exception:
-                    pass
-
             ticker = self._with_retry(self._exchange_futures.fetch_ticker, ccxt_symbol)
             price = float(ticker["last"])
 
@@ -600,14 +596,30 @@ class ExecutionEngine:
                         "order_intent_outcome": None,
                         "client_order_id": None,
                     }
-                mutate = self._mutate_via_coordinator(
+                order_mutate = self._mutate_via_coordinator(
                     self._exchange_futures.create_order, ccxt_symbol, side, qty
                 )
+
+                def futures_mutate(intent, client_order_id, _order_mutate=order_mutate):
+                    # O-02W-PRE-T1-E C1 R1 correction: `set_leverage` is
+                    # itself an external exchange mutation — it must not run
+                    # before REM-A/REM-B, only inside the
+                    # OrderIntentCoordinator-controlled mutation callback,
+                    # after durable intent persistence, immediately before
+                    # `create_order`. Best-effort (bare except), unchanged
+                    # from the prior behavior.
+                    if leverage != 1:
+                        try:
+                            self._exchange_futures.set_leverage(leverage, ccxt_symbol)
+                        except Exception:
+                            pass
+                    return _order_mutate(intent, client_order_id)
+
                 sub = self._get_order_intent_coordinator().submit(
                     intent,
                     authorized=True,
                     authorization_ref=auth.detail,
-                    mutate=mutate,
+                    mutate=futures_mutate,
                 )
                 if sub.outcome != SubmissionOutcome.ACKNOWLEDGED:
                     _log.warning(

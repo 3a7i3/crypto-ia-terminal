@@ -1738,52 +1738,84 @@ reached `set_leverage`.
   unchanged — not itself a mutation or an authority bypass), added a call
   to `_futures_mutation_authorized()`. If unauthorized, the function
   returns `{"mode": "rejected", "denial_reason":
-  "FUTURES_MUTATION_NOT_AUTHORIZED", ...}` **before** symbol conversion,
-  `set_leverage`, `fetch_ticker`, `load_markets`, `authorize_order()`, or
-  any REM-B call — zero exchange interaction of any kind, not just zero
-  mutation.
+  "AUTHORITY_DENIED", ...}` **before** symbol conversion, `set_leverage`,
+  `fetch_ticker`, `load_markets`, `authorize_order()`, or any REM-B call —
+  zero exchange interaction of any kind, not just zero mutation.
+- **(R1 correction)** `set_leverage(leverage, ccxt_symbol)` — itself an
+  external exchange mutation, no different from `create_order` — was
+  moved out of its pre-REM-A/REM-B location into a small
+  `futures_mutate(intent, client_order_id)` closure that wraps the
+  existing `order_mutate` returned by `_mutate_via_coordinator(...)`:
+  it calls `self._exchange_futures.set_leverage(...)` (best-effort,
+  unchanged bare-except behavior) and then delegates to `order_mutate`,
+  which calls `create_order`. This closure is passed as `mutate=` to
+  `OrderIntentCoordinator.submit(...)` — the SAME coordinator call that
+  previously received the bare `order_mutate` — so `set_leverage` now
+  only runs if/when the coordinator actually invokes the mutation
+  callback, i.e. strictly after durable intent persistence, exactly
+  alongside `create_order`, never before REM-A or REM-B.
 
-Return shape (§5 of the mission): reuses the existing `mode="rejected"`
-vocabulary already used elsewhere in this function (session guard,
-pre-network authorization, REM-B denials) so downstream consumers that
-already branch on `mode` are unaffected; adds a new
-`denial_reason="FUTURES_MUTATION_NOT_AUTHORIZED"` value (following the
-existing `denial_reason` convention used by `authorize_order()` denials)
-so an observer can distinguish "authority gate blocked it" from "the
-exchange rejected an order" or any other rejection path. No new `mode`
-value was introduced.
+Return shape (§5 of the mission, corrected by R1 §3): reuses the existing
+`mode="rejected"` vocabulary already used elsewhere in this function
+(session guard, pre-network authorization, REM-B denials) so downstream
+consumers that already branch on `mode` are unaffected. The
+`denial_reason` uses the existing canonical closed
+`order_authorization.DenialReason` enum's `AUTHORITY_DENIED` value —
+**not** a new enum member — since it is exactly the same "trading
+authority denied" concept `authorize_order()` itself already reports
+under that name (see `order_authorization.py`'s own
+`DenialReason.AUTHORITY_DENIED` usage for REM-A's own authority check).
+No new `mode` value and no new `denial_reason` value were introduced.
+A C1-specific human-readable explanation remains in the `error` field and
+the warning log line.
 
-### 25d. New authority ordering (source re-trace, top to bottom)
+### 25d. Final authority + mutation ordering (source re-trace, top to bottom, post-R1)
 
 ```
 1. size clamp (narrowing-only, unchanged)
 2. self._exchange_futures is None?  → mode=futures_unavailable (unchanged, no exchange interaction)
-3. NEW: _futures_mutation_authorized()?  → if False: mode=rejected, denial_reason=FUTURES_MUTATION_NOT_AUTHORIZED, ZERO exchange calls
+3. C1 external-mutation authority gate: _futures_mutation_authorized()?
+     → if False: mode=rejected, denial_reason=AUTHORITY_DENIED (DenialReason.AUTHORITY_DENIED), ZERO exchange calls
 4. symbol conversion (_to_futures_symbol)
-5. set_leverage (only if leverage != 1)
-6. fetch_ticker / load_markets (reads)
-7. authorize_order() (REM-A)
-8. decision-identity / order-intent binding (REM-B)
-9. set_leverage / create_order external mutation
+5. fetch_ticker / load_markets (READ-ONLY exchange calls)
+6. authorize_order() (REM-A)
+7. REM-B decision execution eligibility (_decision_execution_denial_reason)
+8. build_order_intent() — deterministic OrderIntent
+9. _bind_decision_to_intent() — decision -> intent binding (REM-B)
+10. OrderIntentCoordinator.submit(..., mutate=futures_mutate) — durable submission protocol
+11. ONLY inside the coordinator-invoked futures_mutate callback:
+      a. set_leverage(leverage, ccxt_symbol)   (only if leverage != 1, best-effort)
+      b. create_order(...)                      (via the wrapped order_mutate)
 ```
 
 Mutation inventory: the only two mutating exchange calls anywhere in or
-around this method (`set_leverage`, `self._exchange_futures.create_order`
-via `_mutate_via_coordinator`) are both strictly downstream of step 3; no
-alternative or earlier mutation call was introduced.
+around this method (`set_leverage`, `self._exchange_futures.create_order`)
+are now BOTH inside the single `futures_mutate` callback at step 11,
+strictly downstream of the C1 gate (step 3), REM-A (step 6), and REM-B
+(steps 7-9). No alternative or earlier mutation call exists. This
+corrects the R0 version of this table, which incorrectly placed
+`set_leverage` at step 5 (before REM-A/REM-B) — `set_leverage` was
+already gated by C1 (never reachable when unauthorized), but was not yet
+gated by REM-A/REM-B; R1 closes that gap by moving it inside the REM-B
+submission boundary. REM-A/REM-B do not themselves "protect" the first
+mutation by virtue of running earlier in the function text — they protect
+it because `set_leverage` now textually and causally lives inside the
+callback they gate.
 
 ### 25e. C1 test — before/after
 
-- Before: `test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`
+- Before (R0): `test_scenario_c1_leverage_change_mutates_before_paper_gate_XFAIL`
   — `xfail(strict=True)`, asserted zero tripwire mutation calls, which
   failed on the pre-remediation HEAD (i.e. it XFAILed as expected,
   proving the defect).
-- After: renamed to
+- After (R0, then R1's denial_reason correction): renamed to
   `test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED`,
   XFAIL marker removed, same adversarial setup (foreign/stale tripwire
-  futures handle, `leverage=3`, PAPER=true/LIVE=false) — now an ordinary
+  futures handle, `leverage=3`, PAPER=true/LIVE=false) — an ordinary
   **PASS**: `fut.mutation_calls == []` and
-  `result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"`.
+  `result["denial_reason"] == "AUTHORITY_DENIED"` (updated from the R0
+  draft's non-canonical `"FUTURES_MUTATION_NOT_AUTHORIZED"` per MASTER R1
+  §3).
 
 ### 25f. Authority-matrix tests added (`tests/test_pre_t1_e_final_paper_certification.py`)
 
@@ -1803,78 +1835,92 @@ All hermetic, no network, no real credentials:
   TESTNET/LIVE path, without claiming live trading is safe.
 - `test_c1_mutation_ordering_zero_calls_when_unauthorized` — asserts
   `tripwire.calls == []` (not merely mutation calls) across
-  `set_leverage`, `fetch_ticker`, `load_markets`, `create_order` — PASS.
+  `set_leverage`, `fetch_ticker`, `load_markets`, `create_order` — PASS
+  (negative proof: unauthorized ⇒ zero calls of any kind).
+- **(R1 addition)** `test_c1_authorized_ordering_proof_full_pipeline` —
+  the positive/authorized-path companion to the test above. Monkeypatches
+  `ExecutionEngine._futures_mutation_authorized`, the module-level
+  `authorize_order` (REM-A), and `ExecutionEngine._bind_decision_to_intent`
+  (REM-B) to each append a marker to a shared `events` list only on their
+  success path, and uses an event-recording fake futures exchange whose
+  `set_leverage`/`create_order` also append to the same list. Asserts the
+  full authorized-path event sequence is exactly `["C1_AUTHORITY",
+  "REM_A_AUTHORIZE", "REM_B_BIND", "set_leverage", "create_order"]` — PASS.
+  This test fails if `set_leverage` (or `create_order`) ever moves back
+  above the C1 gate, REM-A, or REM-B.
 
 ### 25g. REM-A / REM-B preservation
 
 Not bypassed, not replaced, not reordered relative to each other —
 `authorize_order()` (REM-A) and the decision-identity/order-intent
 binding + `OrderIntentCoordinator` submission (REM-B) still run, in the
-same relative order, for every authorized call. The new C1 gate sits
-strictly upstream of both, per §9 of the mission. Confirmed by
-`test_c1_e_authorized_path_remains_reachable` reaching a real
-`OrderIntentCoordinator.submit()` call, and by the full
-`tests/test_pre_t1_e_rem_a_order_authorization.py` /
+same relative order, for every authorized call, and (post-R1) now
+strictly enclose BOTH mutating exchange calls (`set_leverage` and
+`create_order`), not just `create_order`. The C1 gate sits strictly
+upstream of both, per §9 of the mission. Confirmed by
+`test_c1_e_authorized_path_remains_reachable` and (post-R1)
+`test_c1_authorized_ordering_proof_full_pipeline` reaching a real
+`OrderIntentCoordinator.submit()` call with the correct ordering, and by
+the full `tests/test_pre_t1_e_rem_a_order_authorization.py` /
 `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` suites (see §25h)
 still passing for every scenario that constructs an authorized engine.
 
 ### 25h. Test results (exact commands, not aggregated)
 
+**R0 round** (before MASTER's R1 review) found 5 failures in
+`tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`. These were
+**existing REM-B tests requiring fixture adaptation after C1 authority
+became explicit** — not pre-existing/environmental failures — confirmed
+genuine by the real CI run (`TEST REGRESSION GATE`: 5648 passed / 5
+failed, all 5 in this file). Per MASTER R1 §4, each was corrected by
+arming the C1 authority gate explicitly
+(`PAPER_TRADING_ENABLED=false`, `LIVE_TRADING_CONFIRMED=true`,
+`e._live=True`) in the two affected test bodies
+(`TestGroupM_AdapterCapabilityMatrix::test_execution_engine_uses_shared_capability_table_for_futures`,
+`TestGroupP_R12_AdapterFailClosed::test_mexc_futures_submission_via_execution_engine_denied_zero_mutation`)
+and both (textually duplicated) `_build_futures_engine` helpers (used by
+`TestGroupR_R13_LegacyExecutionIneligibility::test_legacy_v1_record_rejected_before_futures_mutation`,
+`::test_corrupted_v2_record_rejected_before_futures_mutation`, and
+`TestGroupS_R14_PersistIdempotence::test_e2e_futures_duplicate_persist_cannot_produce_second_mutation`)
+— arming authority only, with **no change to what any of the five tests
+actually assert** about REM-A/REM-B behavior. All five, and the file as a
+whole, now PASS.
+
+**Final (post-R1) results:**
+
 1. `python3 -m pytest tests/test_pre_t1_e_final_paper_certification.py -q`
-   → **20 passed, 0 xfailed, 0 xpassed, 0 failed.**
-2. `python3 -m pytest tests/test_pre_t1_e_order_cycle_safety.py
+   → **21 passed, 0 xfailed, 0 xpassed, 0 failed** (20 from R0 + 1 new
+   ordering-proof test, `test_c1_authorized_ordering_proof_full_pipeline`,
+   added in R1 per §5 of the mission).
+2. `python3 -m pytest tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py -q`
+   → **161 passed, 0 failed.**
+3. `python3 -m pytest tests/test_pre_t1_e_order_cycle_safety.py
    tests/test_pre_t1_e_rem_a_order_authorization.py
    tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py
    tests/test_rem_c_r1_execution_domain.py
    tests/test_restart_safety.py
    tests/test_pre_t1_d_real_capital_boundary.py -q`
-   → **491 passed, 14 failed.**
-   - 8 failures in `tests/test_restart_safety.py`
-     (`TestB3AuditRecovery::*`) are a pre-existing sandbox environment gap
-     (`ModuleNotFoundError: No module named '_cffi_backend'` inside the
-     `cryptography` package's Rust bindings), unrelated to C1 — not
-     triggered by this diff.
-   - 5 failures (later fixed, see below) in
-     `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`
-     (`TestGroupM_AdapterCapabilityMatrix::test_execution_engine_uses_shared_capability_table_for_futures`,
-     `TestGroupP_R12_AdapterFailClosed::test_mexc_futures_submission_via_execution_engine_denied_zero_mutation`,
-     `TestGroupR_R13_LegacyExecutionIneligibility::test_legacy_v1_record_rejected_before_futures_mutation`,
-     `TestGroupR_R13_LegacyExecutionIneligibility::test_corrupted_v2_record_rejected_before_futures_mutation`,
-     `TestGroupS_R14_PersistIdempotence::test_e2e_futures_duplicate_persist_cannot_produce_second_mutation`).
-     Each constructed `ExecutionEngine(live=False)` with default env
-     (`PAPER_TRADING_ENABLED` unset → `true`, `LIVE_TRADING_CONFIRMED`
-     unset → `false`) and asserted that `create_futures_order()` reaches a
-     mutating exchange call (real `create_order`) or a deeper REM-A/REM-B
-     denial reason — i.e. they encoded, as their expected behavior, exactly
-     the construction state (`PAPER=true`/`self._live=False`) that C1's
-     target invariant (§2) requires to produce **zero** external exchange
-     mutation. The real CI run (`TEST REGRESSION GATE`) confirmed these are
-     genuine, not sandbox artifacts — 5648 passed / 5 failed, all 5 in this
-     file. Since this is CI red in code the C1 diff directly touches
-     (`create_futures_order()`), these tests/helpers
-     (`_build_futures_engine`, and the two individual test bodies) were
-     updated to explicitly arm the C1 authority gate
-     (`PAPER_TRADING_ENABLED=false`, `LIVE_TRADING_CONFIRMED=true`,
-     `e._live = True`) — the same minimal pattern already used for
-     `test_execution_engine_futures.py`'s `eng` fixture — since each of
-     these 5 tests targets REM-A/REM-B behavior strictly downstream of C1,
-     not the C1 gate itself (which has its own dedicated, exhaustive
-     coverage in §25f). Re-run after the fix:
-     `python3 -m pytest tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py -q`
-     → **161 passed, 0 failed.**
-3. `python3 -m pytest quant_hedge_ai/agents/execution/test_execution_engine_futures.py
+   → **505 passed, 0 failed.** (The R0 round's 8
+   `tests/test_restart_safety.py::TestB3AuditRecovery::*` failures — a
+   sandbox-local `ModuleNotFoundError: No module named '_cffi_backend'`
+   inside the `cryptography` package's Rust bindings — no longer reproduce
+   in this environment; they were never a C1/REM-A/REM-B behavioral
+   failure.)
+4. `python3 -m pytest quant_hedge_ai/agents/execution/test_execution_engine_futures.py
    quant_hedge_ai/agents/execution/test_execution_engine.py -q`
    → **54 passed, 1 failed.** The `eng` fixture in
-   `test_execution_engine_futures.py` (in-scope, editable) was updated to
-   explicitly arm authority (`PAPER_TRADING_ENABLED=false`,
+   `test_execution_engine_futures.py` (in-scope, editable) was updated
+   (R0) to explicitly arm authority (`PAPER_TRADING_ENABLED=false`,
    `LIVE_TRADING_CONFIRMED=true`, `e._live = True`) since that suite
    targets symbol-conversion/leverage/error-handling behavior, not the C1
    gate itself (which has its own dedicated coverage in §25f). The 1
    remaining failure (`TestFromEnv::test_from_env_live_when_keys_present_and_confirmed`)
-   is a pre-existing sandbox gap (`ModuleNotFoundError: No module named
-   'ccxt'`), confirmed present on unmodified `main` before this
-   remediation, unrelated to C1.
-4. `python3 scripts/ci/ruff_baseline_gate.py check`
+   is a sandbox-local dependency gap (`ModuleNotFoundError: No module
+   named 'ccxt'`), confirmed present on unmodified `main` before this
+   remediation and confirmed PASSING on real CI (which has `ccxt`
+   installed) — a sandbox/environment difference, not a C1 behavioral
+   failure, and unrelated to this diff.
+5. `python3 scripts/ci/ruff_baseline_gate.py check`
    → **957 baseline == 957 current, 0 new. Gate passes.**
 
 ### 25i. Explicit confirmations
@@ -1887,19 +1933,52 @@ R2/R3/R4 NOT started. `PAPER_TRADING_ENABLED=true`/
 
 ### 25j. Residual risks / findings for MASTER
 
-- The 5 `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` fixtures/
-  tests identified in §25h(2) encoded the pre-C1 assumption that
-  futures-demo mutation is reachable under `self._live=False` — the exact
-  shape of the C1 defect this mission closes. They were updated (arming
-  authority explicitly, not changing their actual REM-A/REM-B assertions)
-  once the real CI run (`TEST REGRESSION GATE`) confirmed the failure was
-  genuine and in code this diff touches. MASTER should note this file was
-  touched beyond the §11 list (`test_pre_t1_e_final_paper_certification.py`
-  + the two `test_execution_engine*.py` files) — narrowly, to arm authority
-  in 2 test bodies and 2 (textually duplicated) `_build_futures_engine`
-  helpers, with no change to what each test actually asserts about REM-A/
-  REM-B behavior.
+- The `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py` scope
+  expansion (arming authority in 2 test bodies + 2 duplicated
+  `_build_futures_engine` helpers, §25h) is now explicitly authorized by
+  MASTER R1 §4/§8 (added to the allowed-tests list) — no longer merely a
+  residual flag, closed.
 - This remediation does not address the PAPER-mode semantics roadmap item
   (a dedicated PAPER Portfolio Ledger) — `create_futures_order()` under
   PAPER continues to return a fail-closed rejection rather than a
   simulated fill, per §4 of the mission (explicitly out of scope here).
+
+---
+
+## §26 — MASTER R1 CORRECTION (this round)
+
+MASTER reviewed R0 (commit `1ab7880782fa183526748e0fdf0ed01a675b9c13`) and
+returned `PRE_T1_E_C1_MASTER_REVIEWED_R1_CORRECTION_REQUIRED` with three
+findings, all corrected in this round:
+
+1. **`set_leverage()` still an external mutation before REM-A/REM-B.**
+   Fixed per §25c/§25d above: `set_leverage` now runs only inside the
+   `futures_mutate` closure passed to `OrderIntentCoordinator.submit()`,
+   strictly after REM-A (`authorize_order()`) and REM-B (decision→intent
+   binding), immediately before `create_order`.
+2. **`FUTURES_MUTATION_NOT_AUTHORIZED` was a new denial_reason outside the
+   canonical closed vocabulary.** Fixed: the C1 gate now returns
+   `DenialReason.AUTHORITY_DENIED.value` (`"AUTHORITY_DENIED"`) — the same
+   enum member `order_authorization.py`'s own authority check already
+   uses — imported from `order_authorization` rather than re-declared.
+   All C1 tests updated to assert `"AUTHORITY_DENIED"`.
+3. **Five REM-B tests failing under the new C1 gate.** MASTER authorized
+   (§4/§8) a test-only scope expansion to
+   `tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py`, limited to
+   arming the C1 authority gate explicitly in the five named tests/helpers
+   — no REM-A/REM-B assertion was weakened or removed. All five, and the
+   161-test file as a whole, PASS.
+
+Additionally, per MASTER R1 §5, added
+`test_c1_authorized_ordering_proof_full_pipeline` (§25f) — a positive,
+event-recording proof that the authorized-path ordering is exactly C1 →
+REM-A → REM-B → `set_leverage` → `create_order`, complementing the
+existing negative (unauthorized ⇒ zero calls) proof. The C1-A..E matrix
+and the former-XFAIL test remain green (§25e/§25f, updated only for the
+canonical `denial_reason` value).
+
+No production file other than
+`quant_hedge_ai/agents/execution/execution_engine.py` was modified. No
+architecture redesign, no new execution domain router, no
+PaperPortfolioLedger/VirtualExecutionEngine/recovery-replay work — same
+narrow scope as R0.

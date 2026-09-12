@@ -219,7 +219,7 @@ def test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED(engine_fac
 
     assert fut.mutation_calls == []
     assert result.get("mode") != "live"
-    assert result.get("denial_reason") == "FUTURES_MUTATION_NOT_AUTHORIZED"
+    assert result.get("denial_reason") == "AUTHORITY_DENIED"
 
 
 # ── C1 authority matrix (O-02W-PRE-T1-E C1 remediation) ─────────────────────
@@ -239,7 +239,7 @@ def test_c1_a_paper_gate_zero_mutation(engine_factory, monkeypatch):
 
     assert fut.mutation_calls == []
     assert result["mode"] == "rejected"
-    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+    assert result["denial_reason"] == "AUTHORITY_DENIED"
 
 
 def test_c1_b_stale_handle_with_paper_zero_mutation(engine_factory, monkeypatch):
@@ -258,7 +258,7 @@ def test_c1_b_stale_handle_with_paper_zero_mutation(engine_factory, monkeypatch)
 
     assert eng._exchange_futures.mutation_calls == []
     assert result["mode"] == "rejected"
-    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+    assert result["denial_reason"] == "AUTHORITY_DENIED"
 
 
 def test_c1_c_live_object_not_armed_by_environment(engine_factory, monkeypatch):
@@ -277,7 +277,7 @@ def test_c1_c_live_object_not_armed_by_environment(engine_factory, monkeypatch):
 
     assert fut.mutation_calls == []
     assert result["mode"] == "rejected"
-    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+    assert result["denial_reason"] == "AUTHORITY_DENIED"
 
 
 def test_c1_d_live_false_remains_fail_closed(engine_factory, monkeypatch):
@@ -294,7 +294,7 @@ def test_c1_d_live_false_remains_fail_closed(engine_factory, monkeypatch):
 
     assert fut.mutation_calls == []
     assert result["mode"] == "rejected"
-    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+    assert result["denial_reason"] == "AUTHORITY_DENIED"
 
 
 def test_c1_e_authorized_path_remains_reachable(engine_factory, monkeypatch):
@@ -396,7 +396,104 @@ def test_c1_mutation_ordering_zero_calls_when_unauthorized(engine_factory, monke
 
     assert tripwire.calls == []
     assert result["mode"] == "rejected"
-    assert result["denial_reason"] == "FUTURES_MUTATION_NOT_AUTHORIZED"
+    assert result["denial_reason"] == "AUTHORITY_DENIED"
+
+
+def test_c1_authorized_ordering_proof_full_pipeline(engine_factory, monkeypatch):
+    """O-02W-PRE-T1-E C1 R1 correction — authorized-path ordering proof.
+
+    Complements `test_c1_mutation_ordering_zero_calls_when_unauthorized`
+    (the negative proof) with the positive one: under a fully authorized
+    state, the recorded event sequence must be exactly
+
+        C1_AUTHORITY -> REM_A_AUTHORIZE -> REM_B_BIND -> set_leverage -> create_order
+
+    i.e. `set_leverage` (an external exchange mutation, exactly like
+    `create_order`) may not run before the C1 authority gate, REM-A
+    (`authorize_order()`), or REM-B (decision->intent binding). This test
+    fails if `set_leverage` ever moves back above REM-A/REM-B."""
+    from quant_hedge_ai.agents.execution import execution_engine as ee_module
+    from quant_hedge_ai.agents.execution.execution_engine import ExecutionEngine
+
+    events: list[str] = []
+
+    real_authorized = ExecutionEngine._futures_mutation_authorized
+
+    def recording_authorized(self):
+        result = real_authorized(self)
+        if result:
+            events.append("C1_AUTHORITY")
+        return result
+
+    real_authorize_order = ee_module.authorize_order
+
+    def recording_authorize_order(*args, **kwargs):
+        auth = real_authorize_order(*args, **kwargs)
+        if auth.authorized:
+            events.append("REM_A_AUTHORIZE")
+        return auth
+
+    real_bind = ExecutionEngine._bind_decision_to_intent
+
+    def recording_bind(self, decision_id, intent):
+        denial = real_bind(self, decision_id, intent)
+        if denial is None:
+            events.append("REM_B_BIND")
+        return denial
+
+    monkeypatch.setattr(ExecutionEngine, "_futures_mutation_authorized", recording_authorized)
+    monkeypatch.setattr(ee_module, "authorize_order", recording_authorize_order)
+    monkeypatch.setattr(ExecutionEngine, "_bind_decision_to_intent", recording_bind)
+
+    monkeypatch.setenv("PAPER_TRADING_ENABLED", "false")
+    monkeypatch.setenv("LIVE_TRADING_CONFIRMED", "true")
+    monkeypatch.setenv("EXCHANGE_ID", "mexc")
+    from quant_hedge_ai.agents.execution import order_intent_protocol as oip
+
+    monkeypatch.setitem(
+        oip._ADAPTER_CAPABILITIES_BY_EXCHANGE,
+        "mexc",
+        oip.AdapterCapabilities(
+            verdict=oip.AdapterCapabilityVerdict.SUBMIT_AND_RECONCILE_VERIFIED,
+            client_order_id_param="clientOrderId",
+            supports_open_order_search=True,
+            supports_closed_order_search=True,
+            evidence="test fixture — certified for hermetic testing only",
+        ),
+    )
+    eng, _, _ = engine_factory(with_futures_handle=False)
+    eng._live = True
+
+    class _EventRecordingFuturesExchange:
+        id = "krakenfutures"
+
+        def set_leverage(self, leverage, symbol):
+            events.append("set_leverage")
+
+        def fetch_ticker(self, symbol):
+            return {"last": 100.0}
+
+        def load_markets(self):
+            return {}
+
+        def create_order(self, symbol, order_type, side, qty, params=None):
+            events.append("create_order")
+            return {"id": "fake-order-2", "status": "closed", "avgPrice": 100.0}
+
+    eng._exchange_futures = _EventRecordingFuturesExchange()
+
+    result = eng.create_futures_order(
+        "BTC/USDT", "BUY", 100.0, leverage=3, decision_id="c1-ordering-authorized"
+    )
+
+    assert result["mode"] != "rejected"
+    assert events == [
+        "C1_AUTHORITY",
+        "REM_A_AUTHORIZE",
+        "REM_B_BIND",
+        "set_leverage",
+        "create_order",
+    ]
 
 
 def test_scenario_c_construction_never_attaches_futures_handle_in_paper(
