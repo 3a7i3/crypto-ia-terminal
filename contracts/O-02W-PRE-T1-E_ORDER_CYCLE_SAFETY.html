@@ -2805,6 +2805,392 @@ R2 §3, to future TESTNET work). No architecture redesign, no new
 execution domain router, no PaperPortfolioLedger/VirtualExecutionEngine/
 recovery-replay work — same narrow scope as R0/R1.</p>
 </section>
+<hr class="docutils" />
+<section id="final-pre-t1-e-paper-re-certification-post-c1-2026-09-12">
+<h2>§28 — FINAL PRE-T1-E PAPER RE-CERTIFICATION, POST-C1 (2026-09-12)<a class="headerlink" href="#final-pre-t1-e-paper-re-certification-post-c1-2026-09-12" title="Link to this heading">¶</a></h2>
+<p>Canonical post-merge MASTER verdict entering this mission:
+<code class="docutils literal notranslate"><span class="pre">PRE_T1_E_C1_POST_MERGE_MASTER_CERTIFIED_CLOSED_ON_MAIN</span></code>. This is a
+<strong>re-certification only</strong> — inspection, hermetic testing, and
+certification documentation. No production source file was modified in
+this round.</p>
+<section id="a-preflight">
+<h3>28a. Preflight<a class="headerlink" href="#a-preflight" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Expected starting <code class="docutils literal notranslate"><span class="pre">main</span></code> SHA: <code class="docutils literal notranslate"><span class="pre">b2e720029e7903ccc0a8b367c9860672be69a636</span></code>.</p></li>
+<li><p>Verified via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span> <span class="pre">origin</span> <span class="pre">main</span> <span class="pre">&amp;&amp;</span> <span class="pre">git</span> <span class="pre">rev-parse</span> <span class="pre">origin/main</span></code> →
+exact match. Working tree clean at that SHA.</p></li>
+<li><p>PR #142 merge commit confirmed as <code class="docutils literal notranslate"><span class="pre">origin/main</span></code> HEAD (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span> <span class="pre">--oneline</span> <span class="pre">origin/main</span> <span class="pre">-3</span></code> shows <code class="docutils literal notranslate"><span class="pre">b2e7200</span> <span class="pre">Merge</span> <span class="pre">PR</span> <span class="pre">#142:</span> <span class="pre">PRE-T1-E</span> <span class="pre">C1</span> <span class="pre">remediation</span> <span class="pre">(R0→R1→R2</span> <span class="pre">MASTER-certified)</span></code> immediately atop <code class="docutils literal notranslate"><span class="pre">bfdc5b0</span></code>/<code class="docutils literal notranslate"><span class="pre">0eb62fc</span></code>, the
+R2/R1 commits documented in §25-§27 above).</p></li>
+<li><p>Branch created from this exact <code class="docutils literal notranslate"><span class="pre">main</span></code>:
+<code class="docutils literal notranslate"><span class="pre">claude/pre-t1-e-final-paper-recertification</span></code>.</p></li>
+</ul>
+</section>
+<section id="b-c1-re-certification-source-re-inspection">
+<h3>28b. C1 re-certification — source re-inspection<a class="headerlink" href="#b-c1-re-certification-source-re-inspection" title="Link to this heading">¶</a></h3>
+<p>Re-read <code class="docutils literal notranslate"><span class="pre">execution_engine.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> end to end on
+this HEAD. Confirmed the R2 state described in §27 still holds: the
+<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">leverage</span> <span class="pre">!=</span> <span class="pre">1:</span></code> fail-closed check
+(<code class="docutils literal notranslate"><span class="pre">denial_reason=&quot;UNSUPPORTED_MARKET_SEMANTICS&quot;</span></code>) runs immediately after
+the C1 authority gate and strictly before any exchange interaction;
+<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> was removed from the order-submission path entirely (not
+merely reordered) and does not appear anywhere in
+<code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code>’s body. <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code>
+contains no active <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.xfail</span></code> marker in the PRE-T1-E
+certification suite (grep confirms zero) — the C1-A…E matrix,
+the leverage&gt;1 fail-closed test, the zero-mutation-when-unauthorized
+test, and the full-pipeline durable-ordering proof
+(<code class="docutils literal notranslate"><span class="pre">test_c1_authorized_ordering_proof_full_pipeline</span></code>, which reads the real
+<code class="docutils literal notranslate"><span class="pre">OrderIntentJournal</span></code> at call time rather than trusting appended labels)
+are all present and all green on this HEAD — unchanged from the R2 state
+MASTER certified. C1 status: <strong>CONFIRMED CLOSED</strong>, no regression.</p>
+</section>
+<section id="c-spot-path-re-trace">
+<h3>28c. Spot path re-trace<a class="headerlink" href="#c-spot-path-re-trace" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ExecutionEngine.create_order()</span></code> → <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code> re-read
+end-to-end. The construction-time <code class="docutils literal notranslate"><span class="pre">_exchange</span> <span class="pre">is</span> <span class="pre">None</span></code> check is not the
+only gate: <code class="docutils literal notranslate"><span class="pre">_place_live_order()</span></code> re-evaluates
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code>/<code class="docutils literal notranslate"><span class="pre">self._live</span></code> via
+<code class="docutils literal notranslate"><span class="pre">evaluate_trading_authority(...)</span></code> immediately before any exchange call,
+independent of whether <code class="docutils literal notranslate"><span class="pre">self._exchange</span></code> holds a live, foreign, or stale
+handle. <code class="docutils literal notranslate"><span class="pre">test_scenario_a_paper_buy_zero_mutation</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_scenario_b_paper_sell_zero_mutation</span></code> attach a real
+<code class="docutils literal notranslate"><span class="pre">TripwireSpotExchange</span></code> object (not <code class="docutils literal notranslate"><span class="pre">None</span></code>) as <code class="docutils literal notranslate"><span class="pre">eng._exchange</span></code> and prove
+zero <code class="docutils literal notranslate"><span class="pre">create_order</span></code>/<code class="docutils literal notranslate"><span class="pre">create_market_order</span></code>/<code class="docutils literal notranslate"><span class="pre">create_limit_order</span></code> calls for
+both BUY and SELL under PAPER=true/LIVE=false. Result: <strong>PASS</strong>, no
+regression.</p>
+</section>
+<section id="d-futures-path-re-trace">
+<h3>28d. Futures path re-trace<a class="headerlink" href="#d-futures-path-re-trace" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">create_futures_order()</span></code> re-traced per §28b. Four sub-claims verified by
+dedicated hermetic tests, all green on this HEAD:
+<code class="docutils literal notranslate"><span class="pre">test_c1_a_paper_gate_zero_mutation</span></code> (PAPER=true, <code class="docutils literal notranslate"><span class="pre">self._live=false</span></code>,
+LIVE_TRADING_CONFIRMED=false → zero mutation),
+<code class="docutils literal notranslate"><span class="pre">test_c1_c_live_object_not_armed_by_environment</span></code> (PAPER=false,
+<code class="docutils literal notranslate"><span class="pre">self._live=true</span></code> in memory, LIVE_TRADING_CONFIRMED=false →
+<code class="docutils literal notranslate"><span class="pre">AUTHORITY_DENIED</span></code>; merely constructing/corrupting an object with
+<code class="docutils literal notranslate"><span class="pre">live=True</span></code> does not bypass the explicit operator confirmation),
+<code class="docutils literal notranslate"><span class="pre">test_c1_d_live_false_remains_fail_closed</span></code> (PAPER=false,
+<code class="docutils literal notranslate"><span class="pre">self._live=false</span></code>, LIVE_TRADING_CONFIRMED=true → <code class="docutils literal notranslate"><span class="pre">AUTHORITY_DENIED</span></code>;
+an armed environment alone, with the in-memory object still
+<code class="docutils literal notranslate"><span class="pre">live=False</span></code>, still fails closed), and
+<code class="docutils literal notranslate"><span class="pre">test_c1_leverage_gt_1_authorized_fail_closed</span></code>
+(full authority + leverage≠1 → <code class="docutils literal notranslate"><span class="pre">UNSUPPORTED_MARKET_SEMANTICS</span></code>, zero
+exchange interaction, <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code> call count 0). Result: <strong>PASS</strong>, no
+regression.</p>
+</section>
+<section id="e-position-close-path-re-certification">
+<h3>28e. Position-close path re-certification<a class="headerlink" href="#e-position-close-path-re-certification" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PositionManager._send_close_order</span></code> re-read (source excerpt: the
+<code class="docutils literal notranslate"><span class="pre">self._paper</span> <span class="pre">or</span> <span class="pre">self._exchange</span> <span class="pre">is</span> <span class="pre">None</span></code> short-circuit returns
+<code class="docutils literal notranslate"><span class="pre">mode=&quot;paper&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">mutation_attempted=False</span></code> before any authority check even
+runs; when that short-circuit is bypassed by a live-looking exchange
+object, a second, independent <code class="docutils literal notranslate"><span class="pre">evaluate_trading_authority(...)</span></code> call
+re-checks <code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED</span></code> immediately
+before the network call and returns <code class="docutils literal notranslate"><span class="pre">denial_reason=&quot;AUTHORITY_DENIED&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mutation_attempted=False</span></code>, on failure). All production callers of
+<code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code> were located (<code class="docutils literal notranslate"><span class="pre">position_manager.py</span></code> lines ~572 and
+~675) — both are internal close-flow callers, no external caller
+bypasses this boundary. <code class="docutils literal notranslate"><span class="pre">test_scenario_f_paper_manager_with_foreign_real_handle_cannot_submit</span></code>
+and <code class="docutils literal notranslate"><span class="pre">test_scenario_l_real_account_observation_confers_no_authority</span></code>
+(existing REM-A-derived hermetic tests in
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code>) both attach a
+foreign/real-looking handle and prove zero external close mutation.
+Result: <strong>PASS</strong>, no regression.</p>
+</section>
+<section id="f-decisionpacket-g8-re-check">
+<h3>28f. DecisionPacket / G8 re-check<a class="headerlink" href="#f-decisionpacket-g8-re-check" title="Link to this heading">¶</a></h3>
+<p>Re-read <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> around the G8 gate (<code class="docutils literal notranslate"><span class="pre">_dp_r</span> <span class="pre">=</span> <span class="pre">r.get(&quot;decision_packet&quot;)</span></code>): <code class="docutils literal notranslate"><span class="pre">_dp_r</span> <span class="pre">is</span> <span class="pre">None</span></code> → <code class="docutils literal notranslate"><span class="pre">_effective_trade_allowed</span> <span class="pre">=</span> <span class="pre">False</span></code> with a <code class="docutils literal notranslate"><span class="pre">[G8-E]</span></code> log marker; else <code class="docutils literal notranslate"><span class="pre">_effective_trade_allowed</span> <span class="pre">=</span> <span class="pre">_dp_r.is_actionable()</span></code>. This exactly matches the model documented in
+§24V(b) — fail-closed on a missing packet, packet-authoritative
+otherwise. <code class="docutils literal notranslate"><span class="pre">core/invariants.py::_check_g8e_guard_present</span></code> (A-15) still
+greps <code class="docutils literal notranslate"><span class="pre">advisor_loop.py</span></code> for both the <code class="docutils literal notranslate"><span class="pre">_effective_trade_allowed</span> <span class="pre">=</span> <span class="pre">False</span></code>
+assignment and the <code class="docutils literal notranslate"><span class="pre">[G8-E]</span></code> log marker and would raise
+<code class="docutils literal notranslate"><span class="pre">InvariantViolation</span></code> if either were removed; both are present on this
+HEAD. Per the mission’s explicit instruction (§7), DecisionPacket
+authorization (<code class="docutils literal notranslate"><span class="pre">is_actionable()</span></code>) and REM-B’s decision_id causal-identity
+binding (<code class="docutils literal notranslate"><span class="pre">_bind_decision_to_intent</span></code>) remain two independent gates — this
+re-certification does not conflate them, consistent with §24V(b)/©.
+Result: <strong>PASS (source-proven, consistent with prior G8 certification)</strong>,
+no regression.</p>
+</section>
+<section id="g-rem-a-re-certification">
+<h3>28g. REM-A re-certification<a class="headerlink" href="#g-rem-a-re-certification" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span> <span class="pre">-q</span></code>
+→ included in the six-file run below (69 test functions, some
+parametrized). No behavioral failure. Result: <strong>PASS</strong>, no regression.</p>
+</section>
+<section id="h-rem-b-re-certification">
+<h3>28h. REM-B re-certification<a class="headerlink" href="#h-rem-b-re-certification" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span> <span class="pre">-q</span></code>
+→ included in the six-file run below (149 test functions, some
+parametrized, expanding to the 161 total MASTER R1/R2 recorded). No
+behavioral failure. Result: <strong>PASS</strong>, no regression.</p>
+</section>
+<section id="i-paper-execution-domain-re-check">
+<h3>28i. PAPER execution domain re-check<a class="headerlink" href="#i-paper-execution-domain-re-check" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_rem_c_r1_execution_domain.py</span> <span class="pre">-q</span></code> → included
+in the six-file run below. Domain-separation invariants (MexcSimulator =
+PAPER execution authority; real exchange APIs = observation-only;
+TESTNET != PAPER; REAL != PAPER) confirmed unchanged. This round did not
+attempt REM-C R2/R3/R4 (not in scope). Result: <strong>PASS</strong>, no regression.</p>
+</section>
+<section id="j-restart-recovery-re-check">
+<h3>28j. Restart / recovery re-check<a class="headerlink" href="#j-restart-recovery-re-check" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_restart_safety.py</span> <span class="pre">-q</span></code> → included in the
+six-file run below. <code class="docutils literal notranslate"><span class="pre">test_scenario_i_restart_incomplete_evidence_no_fabrication</span></code>
+(in <code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code>) independently
+confirms <code class="docutils literal notranslate"><span class="pre">paper_trading/recorder.py</span></code> never fabricates a missing price/PnL
+value as <code class="docutils literal notranslate"><span class="pre">0.0</span></code> on incomplete restart evidence — it persists the gap
+honestly instead (source comments at <code class="docutils literal notranslate"><span class="pre">recorder.py</span></code> lines ~183/~219/~257/
+~357 explicitly document this “never fabricated” contract). No defect
+found. Result: <strong>PASS</strong>, no regression.</p>
+</section>
+<section id="k-adversarial-matrix-mission-13-ak-plus-retained-historical-scenario-l">
+<h3>28k. Adversarial matrix (mission §13, A–K, plus retained historical Scenario L)<a class="headerlink" href="#k-adversarial-matrix-mission-13-ak-plus-retained-historical-scenario-l" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Scenario</p></th>
+<th class="head"><p>Test(s)</p></th>
+<th class="head"><p>Mutation count</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A</p></td>
+<td><p>PAPER=true/LIVE=false/no handle</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_c1_a_paper_gate_zero_mutation</span></code> + spot equivalents</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p>PAPER=true/LIVE=false/stale spot handle</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_scenario_a_paper_buy_zero_mutation</span></code>, <code class="docutils literal notranslate"><span class="pre">test_scenario_b_paper_sell_zero_mutation</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>C</p></td>
+<td><p>PAPER=true/LIVE=false/stale futures handle</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_scenario_c1_leverage_change_gated_before_mutation_REMEDIATED</span></code>, <code class="docutils literal notranslate"><span class="pre">test_c1_b_stale_handle_with_paper_zero_mutation</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>D</p></td>
+<td><p>PAPER=false/self._live=true/LIVE confirmation=false</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_c1_c_live_object_not_armed_by_environment</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>E</p></td>
+<td><p>PAPER=false/self._live=false/LIVE confirmation=true</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_c1_d_live_false_remains_fail_closed</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>F</p></td>
+<td><p>PAPER=true/decision_id present</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_scenario_g_direct_paper_hold_zero_external_mutation</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>G</p></td>
+<td><p>PAPER=true/decision_id absent</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_scenario_h_direct_paper_missing_decision_id_zero_external_mutation</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>H</p></td>
+<td><p>PAPER=true/BUY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_scenario_a_paper_buy_zero_mutation</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>I</p></td>
+<td><p>PAPER=true/SELL</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_scenario_b_paper_sell_zero_mutation</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>J</p></td>
+<td><p>authorized hermetic futures leverage=1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_c1_e_authorized_path_remains_reachable</span></code>, <code class="docutils literal notranslate"><span class="pre">test_c1_authorized_ordering_proof_full_pipeline</span></code></p></td>
+<td><p>exactly 1 (<code class="docutils literal notranslate"><span class="pre">create_order</span></code>), <code class="docutils literal notranslate"><span class="pre">set_leverage</span></code>=0</p></td>
+</tr>
+<tr class="row-even"><td><p>K</p></td>
+<td><p>authorized hermetic futures leverage&gt;1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_c1_leverage_gt_1_authorized_fail_closed</span></code></p></td>
+<td><p>0 (fail-closed, <code class="docutils literal notranslate"><span class="pre">UNSUPPORTED_MARKET_SEMANTICS</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>L (historical, retained, NOT one of the mission’s required A-K scenarios)</p></td>
+<td><p>read-only real-account observation confers no execution/sizing authority</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">test_scenario_l_real_account_observation_confers_no_authority</span></code></p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Every PAPER/LIVE-false row: external mutation count = 0, confirmed by
+tripwire exchange objects that raise <code class="docutils literal notranslate"><span class="pre">MutationTripwire</span></code> on the first
+mutating call reached.</p>
+</section>
+<section id="l-exact-test-commands-and-results-this-round-this-head">
+<h3>28l. Exact test commands and results (this round, this HEAD)<a class="headerlink" href="#l-exact-test-commands-and-results-this-round-this-head" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span> <span class="pre">-q</span></code>
+→ <strong>22 passed, 0 failed</strong> (0 xfail/xpass — the R2 leverage remediation
+removed the strict-xfail test entirely; see §28b).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/test_pre_t1_e_order_cycle_safety.py</span> <span class="pre">tests/test_pre_t1_e_rem_a_order_authorization.py</span> <span class="pre">tests/test_pre_t1_e_rem_b_idempotent_order_protocol.py</span> <span class="pre">tests/test_rem_c_r1_execution_domain.py</span> <span class="pre">tests/test_restart_safety.py</span> <span class="pre">tests/test_pre_t1_d_real_capital_boundary.py</span> <span class="pre">-q</span></code>
+→ <strong>505 passed, 0 failed</strong> (505 items collected from these six files).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">quant_hedge_ai/agents/execution/test_execution_engine.py</span> <span class="pre">quant_hedge_ai/agents/execution/test_execution_engine_futures.py</span> <span class="pre">tests/test_position_manager.py</span> <span class="pre">-q</span></code>
+→ <strong>75 passed, 0 failed</strong> (the sandbox-local <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> import gap noted
+in R1/R2, §25h item 4, is not present this round — <code class="docutils literal notranslate"><span class="pre">ccxt</span></code> is
+installed in this session’s certification virtualenv, so
+<code class="docutils literal notranslate"><span class="pre">TestFromEnv::test_from_env_live_when_keys_present_and_confirmed</span></code>
+passes rather than being a pre-existing environmental failure).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">scripts/ci/ruff_baseline_gate.py</span> <span class="pre">check</span></code> → <strong>baseline findings
+957, current findings 957, 0 new findings beyond baseline. Gate
+PASSES.</strong></p></li>
+<li><p>Broadest regression sweep: <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">-q</span></code> (whole repository,
+6712 tests collected) was attempted twice — once with the default
+591s timeout (killed, exit 143, no summary produced) and once with
+<code class="docutils literal notranslate"><span class="pre">pytest-timeout</span></code> (<code class="docutils literal notranslate"><span class="pre">--timeout=25</span> <span class="pre">--timeout-method=thread</span></code>) to surface
+any individual hang. The second run progressed cleanly through
+PAPER/LIVE certification-relevant modules (all of §28l items 1-3 are
+subsets of this collection and passed identically when run alone) but
+stalled, past the 53% mark, inside two pre-existing,
+non-certification test-infrastructure paths unrelated to the PAPER
+execution-mutation boundary this mission certifies:
+<code class="docutils literal notranslate"><span class="pre">tests/test_long_run.py::test_tracemalloc_growth_bounded_10k</span></code> (a slow
+<code class="docutils literal notranslate"><span class="pre">tracemalloc</span></code> memory-growth profiling test) and a background thread
+named <code class="docutils literal notranslate"><span class="pre">MEXC-SIM</span></code> inside <code class="docutils literal notranslate"><span class="pre">paper_trading/mexc_simulator.py</span></code> that
+attempts a real, observation-only <code class="docutils literal notranslate"><span class="pre">load_markets()</span></code> HTTP call via
+<code class="docutils literal notranslate"><span class="pre">ccxt</span></code> (consistent with REM-C R1’s “real exchange APIs = observation
+only” domain rule, §10/§23.1) which this hermetic sandbox has no
+network egress to complete, hanging in DNS resolution rather than
+erroring cleanly. Neither stack trace shows any exchange <strong>mutation</strong>
+call (<code class="docutils literal notranslate"><span class="pre">create_order</span></code>/<code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code>/<code class="docutils literal notranslate"><span class="pre">set_leverage</span></code>/
+<code class="docutils literal notranslate"><span class="pre">cancel_order</span></code>/etc.) — the hang is in a read-only <code class="docutils literal notranslate"><span class="pre">fetch_markets</span></code>
+path. This is recorded as a <strong>DEFERRED NON-BLOCKING</strong> test-hygiene
+finding (§28n) — not a PAPER-safety defect — because a full
+whole-repo sweep is infeasible in this network-isolated certification
+sandbox, not because any certification-relevant test failed. The
+“closest available” broad regression is therefore items 1-4 above
+(602 certification-relevant test functions across the six required
+files plus the ExecutionEngine/PositionManager/PositionManager
+suites, all passing) plus this documented, explicitly-scoped full-repo
+collection count (6712 tests collected with zero collection errors).</p></li>
+</ol>
+<p>No <code class="docutils literal notranslate"><span class="pre">||</span> <span class="pre">true</span></code> was used anywhere in this sequence. No result was
+aggregated across commands — each command’s count is reported
+separately above, exactly as run.</p>
+</section>
+<section id="m-files-changed-this-round">
+<h3>28m. Files changed this round<a class="headerlink" href="#m-files-changed-this-round" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">docs/contracts/O-02W-PRE-T1-E_ORDER_CYCLE_SAFETY.md</span></code> (this section,
+§28) — certification documentation only.</p></li>
+</ul>
+<p>No test file required a behavioral change:
+<code class="docutils literal notranslate"><span class="pre">tests/test_pre_t1_e_final_paper_certification.py</span></code> already existed,
+already covered the mission’s adversarial matrix A-K plus retained
+historical Scenario L (real-account observation confers no execution
+authority) and the C1 authority/remediation matrix, and
+required no edits to pass on this HEAD. No production source file was
+touched. No <code class="docutils literal notranslate"><span class="pre">.env</span></code>, <code class="docutils literal notranslate"><span class="pre">runtime_config.json</span></code>, or deploy script was touched.</p>
+</section>
+<section id="n-residual-risks-deferred-findings">
+<h3>28n. Residual risks / deferred findings<a class="headerlink" href="#n-residual-risks-deferred-findings" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>DEFERRED NON-BLOCKING</strong> — <code class="docutils literal notranslate"><span class="pre">tests/test_long_run.py::test_tracemalloc_growth_bounded_10k</span></code>
+and the <code class="docutils literal notranslate"><span class="pre">MEXC-SIM</span></code> background thread’s <code class="docutils literal notranslate"><span class="pre">load_markets()</span></code> observation
+call make a full unmodified <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">-q</span></code> sweep impractical in
+a network-isolated sandbox (one is slow, the other blocks on DNS with
+no egress). Neither touches the PAPER/LIVE execution-mutation boundary
+this mission certifies. Recommend (future, non-blocking, outside this
+mission’s scope to fix): gate the <code class="docutils literal notranslate"><span class="pre">MEXC-SIM</span></code> background refresh thread
+behind a test fixture that mocks <code class="docutils literal notranslate"><span class="pre">load_markets()</span></code> in the default test
+run, and/or mark <code class="docutils literal notranslate"><span class="pre">test_tracemalloc_growth_bounded_10k</span></code> <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.slow</span></code>
+so <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">&quot;not</span> <span class="pre">slow&quot;</span></code> gives a fast complete sweep. Not a new finding this
+round — same class of test-infrastructure gap implicitly present in
+every prior round’s “broadest regression sweep” section (§25h item 3
+reports the equivalent six-file subset rather than a literal
+whole-repo run for the same practical reason).</p></li>
+<li><p>No new production defect was discovered in this round. C1 remains
+CONFIRMED CLOSED (§28b). No blocker reopened.</p></li>
+</ul>
+</section>
+<section id="o-final-decision-matrix-mission-14">
+<h3>28o. Final decision matrix (mission §14)<a class="headerlink" href="#o-final-decision-matrix-mission-14" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Classification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>C1 (futures leverage pre-authority mutation)</p></td>
+<td><p>PASS — CONFIRMED CLOSED, no regression</p></td>
+</tr>
+<tr class="row-odd"><td><p>Spot path (<code class="docutils literal notranslate"><span class="pre">create_order</span></code>/<code class="docutils literal notranslate"><span class="pre">_place_live_order</span></code>)</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>Futures path (<code class="docutils literal notranslate"><span class="pre">create_futures_order</span></code>)</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>Position-close path (<code class="docutils literal notranslate"><span class="pre">_send_close_order</span></code>)</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>DecisionPacket / G8 fail-closed gate</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>REM-A (order authorization)</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>REM-B (idempotent order protocol)</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>PAPER execution domain (REM-C R1)</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>Restart/recovery evidence-honesty</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>Adversarial matrix A-K, plus retained historical Scenario L</p></td>
+<td><p>PASS (0 mutation on every PAPER/LIVE-false row)</p></td>
+</tr>
+<tr class="row-even"><td><p>Whole-repo <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">-q</span></code> literal sweep</p></td>
+<td><p>NOT APPLICABLE TO PAPER SAFETY — infeasible in this sandbox for reasons unrelated to execution-mutation certification (§28l item 5, §28n)</p></td>
+</tr>
+<tr class="row-odd"><td><p>REM-C R2/R3/R4</p></td>
+<td><p>NOT APPLICABLE — out of scope, not started</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>No PAPER safety defect was demonstrated and classified as deferred; the
+only deferred item (§28n) is explicitly test-infrastructure, not a
+PAPER-safety finding.</p>
+</section>
+<section id="p-t-1-decision">
+<h3>28p. T-1 decision<a class="headerlink" href="#p-t-1-decision" title="Link to this heading">¶</a></h3>
+<p><strong>PASS.</strong> No known PRE-T1-E PAPER blocker remains on this HEAD. This
+verdict does not itself start T-1; MASTER must independently review and
+merge this draft PR first, per mission §16.</p>
+</section>
+<section id="q-explicit-confirmations">
+<h3>28q. Explicit confirmations<a class="headerlink" href="#q-explicit-confirmations" title="Link to this heading">¶</a></h3>
+<p>T-1 NOT STARTED. F-00 NOT STARTED. Paper Portfolio Ledger NOT STARTED.
+REM-C R2/R3/R4 NOT STARTED. No VPS access. No deployment. No
+real/testnet external exchange call was made by this mission’s own
+certification work (all certification tests are hermetic, in-memory
+fakes/tripwires; the one incidental real-network attempt observed,
+§28l item 5, originates from pre-existing repository test
+infrastructure — <code class="docutils literal notranslate"><span class="pre">MEXC-SIM</span></code>’s background refresh thread — not from any
+action taken by this mission, was read-only (<code class="docutils literal notranslate"><span class="pre">load_markets</span></code>), and never
+completed due to this sandbox’s lack of network egress).
+<code class="docutils literal notranslate"><span class="pre">PAPER_TRADING_ENABLED=true</span></code>/<code class="docutils literal notranslate"><span class="pre">LIVE_TRADING_CONFIRMED=false</span></code> remained the
+default throughout. No production execution/strategy/signal/sizing/
+portfolio/Telegram/frontend logic was modified.</p>
+</section>
+<section id="r-commit-pr-record">
+<h3>28r. Commit / PR record<a class="headerlink" href="#r-commit-pr-record" title="Link to this heading">¶</a></h3>
+<p>Branch: <code class="docutils literal notranslate"><span class="pre">claude/pre-t1-e-final-paper-recertification</span></code>, based on <code class="docutils literal notranslate"><span class="pre">main</span></code>
+at <code class="docutils literal notranslate"><span class="pre">b2e720029e7903ccc0a8b367c9860672be69a636</span></code>. Draft PR: “PRE-T1-E: final
+PAPER re-certification after C1 remediation” — see repository PR list for
+the assigned number and URL at merge time of this document.</p>
+</section>
+</section>
 </section>
 
         </article>
@@ -2943,6 +3329,27 @@ recovery-replay work — same narrow scope as R0/R1.</p>
 </li>
 <li><a class="reference internal" href="#master-r1-correction-this-round">§26 — MASTER R1 CORRECTION (this round)</a></li>
 <li><a class="reference internal" href="#master-r2-correction-this-round-restore-rem-b-single-mutation-contract">§27 — MASTER R2 CORRECTION (this round) — RESTORE REM-B SINGLE-MUTATION CONTRACT</a></li>
+<li><a class="reference internal" href="#final-pre-t1-e-paper-re-certification-post-c1-2026-09-12">§28 — FINAL PRE-T1-E PAPER RE-CERTIFICATION, POST-C1 (2026-09-12)</a><ul>
+<li><a class="reference internal" href="#a-preflight">28a. Preflight</a></li>
+<li><a class="reference internal" href="#b-c1-re-certification-source-re-inspection">28b. C1 re-certification — source re-inspection</a></li>
+<li><a class="reference internal" href="#c-spot-path-re-trace">28c. Spot path re-trace</a></li>
+<li><a class="reference internal" href="#d-futures-path-re-trace">28d. Futures path re-trace</a></li>
+<li><a class="reference internal" href="#e-position-close-path-re-certification">28e. Position-close path re-certification</a></li>
+<li><a class="reference internal" href="#f-decisionpacket-g8-re-check">28f. DecisionPacket / G8 re-check</a></li>
+<li><a class="reference internal" href="#g-rem-a-re-certification">28g. REM-A re-certification</a></li>
+<li><a class="reference internal" href="#h-rem-b-re-certification">28h. REM-B re-certification</a></li>
+<li><a class="reference internal" href="#i-paper-execution-domain-re-check">28i. PAPER execution domain re-check</a></li>
+<li><a class="reference internal" href="#j-restart-recovery-re-check">28j. Restart / recovery re-check</a></li>
+<li><a class="reference internal" href="#k-adversarial-matrix-mission-13-ak-plus-retained-historical-scenario-l">28k. Adversarial matrix (mission §13, A–K, plus retained historical Scenario L)</a></li>
+<li><a class="reference internal" href="#l-exact-test-commands-and-results-this-round-this-head">28l. Exact test commands and results (this round, this HEAD)</a></li>
+<li><a class="reference internal" href="#m-files-changed-this-round">28m. Files changed this round</a></li>
+<li><a class="reference internal" href="#n-residual-risks-deferred-findings">28n. Residual risks / deferred findings</a></li>
+<li><a class="reference internal" href="#o-final-decision-matrix-mission-14">28o. Final decision matrix (mission §14)</a></li>
+<li><a class="reference internal" href="#p-t-1-decision">28p. T-1 decision</a></li>
+<li><a class="reference internal" href="#q-explicit-confirmations">28q. Explicit confirmations</a></li>
+<li><a class="reference internal" href="#r-commit-pr-record">28r. Commit / PR record</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
