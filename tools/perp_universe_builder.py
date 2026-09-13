@@ -99,12 +99,15 @@ class PerpUniverseBuilder:
         "reliability": 0.10,
     }
 
-    def __init__(self, exchange_id: Optional[str] = None) -> None:
+    def __init__(
+        self, exchange_id: Optional[str] = None, exchange: Optional[object] = None
+    ) -> None:
         self._exchange_id = (
             exchange_id or os.getenv("PERP_BUILDER_EXCHANGE", "mexc")
         ).lower()
         self._use_swap = os.getenv("PERP_BUILDER_USE_SWAP", "false").lower() == "true"
-        self._exchange = None
+        # Injection pour les tests (faux exchange CCXT-like) — bypass ccxt.
+        self._exchange = exchange
         # Quotes acceptées — peut être écrasé par PerpUniverseService
         self._allowed_quotes: frozenset[str] = self._DEFAULT_QUOTES
 
@@ -184,6 +187,26 @@ class PerpUniverseBuilder:
         """Retourne la liste des symboles qualifiés (format CCXT BTC/USDT)."""
         return [c.symbol for c in self.discover(top_n=top_n, **kwargs)]
 
+    def fetch_raw_evidence(self) -> tuple[dict, dict]:
+        """Évidence brute non filtrée — OPS-C universe certification.
+
+        Aucun filtrage de candidats, aucun ranking, aucun seuil de volume ou
+        de spread : cette méthode retourne exactement ``load_markets()`` et
+        ``fetch_tickers()``. Contrairement à ``discover()``, interroge
+        toujours le domaine dérivé (swap/perp) attendu par l'exécution PAPER
+        futures, indépendamment du réglage ``PERP_BUILDER_USE_SWAP`` (qui ne
+        concerne que la découverte scorée) — la certification ne doit jamais
+        inspecter le catalogue spot.
+        """
+        exchange = (
+            self._exchange
+            if self._exchange is not None
+            else self._build_exchange(use_swap=True)
+        )
+        markets = exchange.load_markets()
+        tickers = exchange.fetch_tickers()
+        return markets, tickers
+
     def save(self, candidates: list[PerpCandidate], path: str) -> None:
         """Sérialise les candidats en JSON."""
         data = {
@@ -241,21 +264,24 @@ class PerpUniverseBuilder:
 
     # ── Internals ─────────────────────────────────────────────────────────────
 
+    def _build_exchange(self, *, use_swap: bool):
+        try:
+            import ccxt
+        except ImportError as exc:
+            raise ImportError("ccxt requis : pip install ccxt") from exc
+
+        cls = getattr(ccxt, self._exchange_id, None)
+        if cls is None:
+            raise ValueError(f"Exchange inconnu : {self._exchange_id}")
+
+        config: dict = {"enableRateLimit": True}
+        if use_swap:
+            config["options"] = {"defaultType": "swap"}
+        return cls(config)
+
     def _get_exchange(self):
         if self._exchange is None:
-            try:
-                import ccxt
-            except ImportError as exc:
-                raise ImportError("ccxt requis : pip install ccxt") from exc
-
-            cls = getattr(ccxt, self._exchange_id, None)
-            if cls is None:
-                raise ValueError(f"Exchange inconnu : {self._exchange_id}")
-
-            config: dict = {"enableRateLimit": True}
-            if self._use_swap:
-                config["options"] = {"defaultType": "swap"}
-            self._exchange = cls(config)
+            self._exchange = self._build_exchange(use_swap=self._use_swap)
         return self._exchange
 
     def _is_eligible_symbol(self, sym: str) -> bool:

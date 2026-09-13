@@ -604,6 +604,71 @@ def _universe_pinned_symbols() -> list[str]:
     return raw.split() if raw else []
 
 
+class _CertificationEvidenceUnavailable(Exception):
+    """Évidence exchange (markets/tickers) inobtenable — distinct d'un
+    symbole invalide. Boot d'un univers épinglé toujours refusé dans ce cas."""
+
+
+# Dernier résultat de certification d'univers épinglé, pour le snapshot
+# scientifique (n_symbols_configured/validated) — None si univers dynamique.
+_UNIVERSE_CERTIFICATION_SNAPSHOT: dict[str, int] | None = None
+
+_UNIVERSE_CERTIFICATION_ARTIFACT_PATH = "databases/universe_certification.json"
+
+
+def _persist_universe_certification_artifact(
+    cert: Any,
+    *,
+    source: str,
+    path: str | None = None,
+) -> None:
+    """Persiste l'évidence de certification (PASS ou FAIL) — artefact
+    observationnel non financier. evidence_sha256 du core reste intact."""
+    path = path or _UNIVERSE_CERTIFICATION_ARTIFACT_PATH
+    payload = cert.to_dict()
+    payload["generated_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    payload["source"] = source
+    try:
+        directory = os.path.dirname(os.path.abspath(path))
+        os.makedirs(directory, exist_ok=True)
+        tmp_path = f"{path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, indent=2, ensure_ascii=True)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_path, path)
+    except Exception as exc:
+        log.warning("[Universe] Artefact de certification non écrit: %s", exc)
+
+
+def _certify_pinned_universe(pinned_symbols: list[str]) -> Any:
+    """Certifie un univers épinglé (OPS-C) contre l'évidence exchange brute.
+
+    Boot boundary fail-closed : lève ``_CertificationEvidenceUnavailable`` si
+    l'évidence (markets/tickers) est inobtenable — jamais interprété comme
+    "symbole invalide". Persiste l'artefact PASS ou FAIL puis retourne le
+    ``UniverseCertification`` (voir core.universe_certification, seule
+    autorité scientifique sur le contrat de certification).
+    """
+    from core.universe_certification import certify_universe
+    from tools.perp_universe_builder import PerpUniverseBuilder
+
+    builder = PerpUniverseBuilder()
+    try:
+        markets, tickers = builder.fetch_raw_evidence()
+    except Exception as exc:
+        raise _CertificationEvidenceUnavailable(str(exc)) from exc
+
+    cert = certify_universe(
+        pinned_symbols,
+        markets=markets,
+        tickers=tickers,
+        exchange=builder._exchange_id,
+    )
+    _persist_universe_certification_artifact(cert, source="pinned_universe_boot")
+    return cert
+
+
 def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
     """Utilitaire testable générique (seuil 66 par défaut, indépendant du seuil
     effectif ATE/RECOVERY). Non utilisé sur le chemin live — voir les appels de
@@ -7476,7 +7541,13 @@ def main(
                                 if _market_ok
                                 else PipelineStageStatus.FAILED
                             ),
-                            f"{len(results)}/{len(symbols)}",
+                            (
+                                f"configured={_UNIVERSE_CERTIFICATION_SNAPSHOT['n_symbols_configured']} "
+                                f"validated={_UNIVERSE_CERTIFICATION_SNAPSHOT['n_symbols_validated']} "
+                                f"scan_successful={len(results)}"
+                                if _UNIVERSE_CERTIFICATION_SNAPSHOT
+                                else f"{len(results)}/{len(symbols)}"
+                            ),
                         ),
                         _stage(
                             "Feature Engine", PipelineStageStatus.OK, "features_ready"
@@ -7905,6 +7976,17 @@ def main(
                     "safe_mode": _runtime_safe_mode_active(),
                     "cycle_duration_ms": _cycle_elapsed_ms,
                     "n_symbols": len(results),
+                    "n_symbols_configured": (
+                        _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_configured"]
+                        if _UNIVERSE_CERTIFICATION_SNAPSHOT
+                        else None
+                    ),
+                    "n_symbols_validated": (
+                        _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_validated"]
+                        if _UNIVERSE_CERTIFICATION_SNAPSHOT
+                        else None
+                    ),
+                    "n_symbols_scan_successful": len(results),
                     "n_actionable": _n_actionable,
                     "n_traded": _n_traded,
                     "n_refused": _n_actionable - _n_traded,
@@ -8438,11 +8520,47 @@ if __name__ == "__main__":
     # burn-in de fait (13-14/07 : 26h+ sans trade, N figé à 36).
     _universe_pin = _universe_pinned_symbols()
     if _universe_pin:
-        _symbols_from_env = _universe_pin
+        try:
+            _cert = _certify_pinned_universe(_universe_pin)
+        except _CertificationEvidenceUnavailable as _ceu:
+            log.critical(
+                "[Universe] CERTIFICATION_EVIDENCE_UNAVAILABLE — univers épinglé "
+                "(%d symboles configurés) refusé avant le premier scan: %s",
+                len(_universe_pin),
+                _ceu,
+            )
+            sys.exit(1)
+
+        if not _cert.is_certified:
+            log.critical(
+                "[Universe] CERTIFICATION_FAILED configured=%d validated=%d "
+                "rejected=%d rejected_symbols=%s issue_codes=%s — boot refusé "
+                "avant le premier scan (fail-closed, aucun fallback silencieux)",
+                _cert.configured_count,
+                _cert.validated_count,
+                _cert.rejected_count,
+                [r.configured_symbol for r in _cert.symbol_results if not r.valid],
+                sorted(
+                    {
+                        issue.value
+                        for r in _cert.symbol_results
+                        if not r.valid
+                        for issue in r.issues
+                    }
+                ),
+            )
+            sys.exit(1)
+
+        _symbols_from_env = list(_cert.validated_symbols)
+        _UNIVERSE_CERTIFICATION_SNAPSHOT = {
+            "n_symbols_configured": _cert.configured_count,
+            "n_symbols_validated": _cert.validated_count,
+        }
         log.info(
-            "[Universe] ÉPINGLÉ (ADR-0015): %d symboles fixes — "
-            "ranker et découverte dynamique ignorés",
-            len(_universe_pin),
+            "[Universe] ÉPINGLÉ (ADR-0015) CERTIFIÉ (OPS-C): configured=%d "
+            "validated=%d — ranker et découverte dynamique ignorés",
+            _cert.configured_count,
+            _cert.validated_count,
         )
 
     # ── MarketUniverseRanker — sélection dynamique des symboles ──────────────
