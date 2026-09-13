@@ -77,9 +77,14 @@ class LiveStateStore:
             self.path = Path(self.path)
 
     def update(self, pf: PressureField) -> None:
-        # Après une rotation de watchlist, une task annulée peut encore rendre la
-        # main une fois. Ne jamais réintroduire un symbole hors population active.
-        if self.watchlist and pf.symbol not in self.watchlist:
+        # Après une rotation/revalidation, une task annulée peut encore rendre la
+        # main une fois. Dès que la population streamable a été initialisée,
+        # seule cette population peut alimenter l'état courant. ``None`` garde
+        # la compatibilité des tests/dev qui injectent des états avant watchlist.
+        if (
+            self.stream_watchlist is not None
+            and pf.symbol not in self.stream_watchlist
+        ):
             return
         self._states[pf.symbol] = pf.as_dict()
         self._event_count += 1
@@ -99,9 +104,9 @@ class LiveStateStore:
 
         # Le sidecar est un état du présent, pas un historique implicite.
         # L'historique durable reste le ledger gzip du Recorder.
-        wanted = set(self.watchlist)
+        streamable = set(self.stream_watchlist)
         self._states = {
-            sym: state for sym, state in self._states.items() if sym in wanted
+            sym: state for sym, state in self._states.items() if sym in streamable
         }
 
     def set_contract_meta(self, meta: dict) -> None:
@@ -115,10 +120,10 @@ class LiveStateStore:
         # Compatibilité des usages de test/dev où aucune watchlist n'a encore
         # été posée : dans ce cas on conserve les états explicitement injectés.
         state_items = self._states.items()
-        if self.watchlist:
+        if self.stream_watchlist is not None:
             state_items = (
                 (sym, self._states[sym])
-                for sym in self.watchlist
+                for sym in self.stream_watchlist
                 if sym in self._states
             )
 
@@ -316,7 +321,7 @@ class Observatory:
         """Relance les tasks terminées pour les symboles encore dans la watchlist.
 
         Invoquée à chaque flush_interval_s — bien plus fréquemment que
-        _reconcile() (reselect_interval_s).  Ne recalcule pas la watchlist
+        _reconcile() (reselect_interval_s). Ne recalcule pas la watchlist
         et ne touche pas aux symboles sortants : seule la détection et la
         relance des tasks done()/cancelled() est effectuée ici.
         """
