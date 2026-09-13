@@ -20,6 +20,11 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Use canonical Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Apply reviewed R1 patches
         run: |
           git apply --check .ops-c/advisor.patch
@@ -73,13 +78,20 @@ jobs:
           col = f823[0]["location"]["column"]
           baseline_path = Path(".ci/ruff_baseline.json")
           baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+          baseline_findings = baseline.get("findings")
+          if not isinstance(baseline_findings, list):
+              raise SystemExit("Ruff baseline schema missing findings list")
           matches = [
-              i for i, value in enumerate(baseline)
+              i for i, value in enumerate(baseline_findings)
               if re.fullmatch(r"core/advisor_loop\.py:\d+:\d+:F823", value)
           ]
           if len(matches) != 1:
               raise SystemExit(f"Expected exactly one baseline advisor F823 entry, got {len(matches)}")
-          baseline[matches[0]] = f"core/advisor_loop.py:{row}:{col}:F823"
+          baseline_findings[matches[0]] = f"core/advisor_loop.py:{row}:{col}:F823"
+          if baseline.get("count") != len(baseline_findings):
+              raise SystemExit(
+                  f"Ruff baseline count mismatch before write: metadata={baseline.get('count')} actual={len(baseline_findings)}"
+              )
           baseline_path.write_text(
               json.dumps(baseline, indent=2, ensure_ascii=False) + "\n",
               encoding="utf-8",
