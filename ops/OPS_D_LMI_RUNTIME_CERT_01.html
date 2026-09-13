@@ -1,0 +1,475 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>OPS-D / LMI-RUNTIME-CERT-01 - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/ops/OPS_D_LMI_RUNTIME_CERT_01.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/ops/OPS_D_LMI_RUNTIME_CERT_01.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="ops-d-lmi-runtime-cert-01">
+<h1>OPS-D / LMI-RUNTIME-CERT-01<a class="headerlink" href="#ops-d-lmi-runtime-cert-01" title="Link to this heading">¶</a></h1>
+<section id="statut">
+<h2>Statut<a class="headerlink" href="#statut" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Mission: <code class="docutils literal notranslate"><span class="pre">OPS-D</span> <span class="pre">/</span> <span class="pre">LMI-RUNTIME-CERT-01</span></code></p></li>
+<li><p>Référence source initiale: <code class="docutils literal notranslate"><span class="pre">ddd34b4ae325b9852475f043f9b1f6cd1e4c6e23</span></code></p></li>
+<li><p>F-00: <strong>NON DÉMARRÉ</strong></p></li>
+<li><p>Burn-in: <strong>NON AUTORISÉ</strong></p></li>
+<li><p>Trading réel: <strong>HORS SCOPE</strong></p></li>
+</ul>
+<p>Principe directeur:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">SOURCE</span> <span class="pre">PROOF</span> <span class="pre">!=</span> <span class="pre">RUNTIME</span> <span class="pre">PROOF</span></code></p>
+</div></blockquote>
+<p>Cette mission répond à la question:</p>
+<blockquote>
+<div><p><strong>La machine observe-t-elle correctement le marché aujourd’hui ?</strong></p>
+</div></blockquote>
+</section>
+<section id="capture-runtime-1-2026-09-13">
+<h2>Capture runtime #1 — 2026-09-13<a class="headerlink" href="#capture-runtime-1-2026-09-13" title="Link to this heading">¶</a></h2>
+<p>VPS observé: <code class="docutils literal notranslate"><span class="pre">crypto-advisor-2</span></code>.</p>
+<section id="identite">
+<h3>Identité<a class="headerlink" href="#identite" title="Link to this heading">¶</a></h3>
+<p>Le runtime observé ne correspondait pas au SHA <code class="docutils literal notranslate"><span class="pre">main</span></code> attendu:</p>
+<ul class="simple">
+<li><p>expected main: <code class="docutils literal notranslate"><span class="pre">ddd34b4ae325b9852475f043f9b1f6cd1e4c6e23</span></code></p></li>
+<li><p>VPS HEAD observé: <code class="docutils literal notranslate"><span class="pre">dd0d8a5ac034c3a31edb6bafed07e0e52fe4ad36</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span></code> contre le SHA attendu impossible localement car l’objet n’était pas encore présent dans le clone VPS.</p></li>
+</ul>
+<p>Conséquence: cette capture ne peut pas certifier l’identité du futur runtime OPS-D.</p>
+</section>
+<section id="sante-processus">
+<h3>Santé processus<a class="headerlink" href="#sante-processus" title="Link to this heading">¶</a></h3>
+<p>Évidence observée:</p>
+<ul class="simple">
+<li><p>service <code class="docutils literal notranslate"><span class="pre">crypto-lmi-observatory.service</span></code>: <code class="docutils literal notranslate"><span class="pre">active/running</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NRestarts=0</span></code></p></li>
+<li><p>démarrage: <code class="docutils literal notranslate"><span class="pre">2026-09-12</span> <span class="pre">06:35:38</span> <span class="pre">UTC</span></code></p></li>
+<li><p>RSS: environ <code class="docutils literal notranslate"><span class="pre">97</span> <span class="pre">MiB</span></code></p></li>
+<li><p>threads: <code class="docutils literal notranslate"><span class="pre">7</span></code></p></li>
+<li><p>FD: <code class="docutils literal notranslate"><span class="pre">48</span></code></p></li>
+<li><p>sockets: <code class="docutils literal notranslate"><span class="pre">44</span></code></p></li>
+<li><p>disque <code class="docutils literal notranslate"><span class="pre">/</span></code>: environ <code class="docutils literal notranslate"><span class="pre">49</span> <span class="pre">GiB</span></code> libres</p></li>
+</ul>
+<p>Verdict: santé processus <strong>PASS provisoire</strong>, à revalider après déploiement du SHA OPS-D.</p>
+</section>
+<section id="fraicheur-couverture">
+<h3>Fraîcheur / couverture<a class="headerlink" href="#fraicheur-couverture" title="Link to this heading">¶</a></h3>
+<p>Fenêtre observée: 60 secondes.</p>
+<p>Début:</p>
+<ul class="simple">
+<li><p>requested/watchlist: <code class="docutils literal notranslate"><span class="pre">20</span></code></p></li>
+<li><p>objets sidecar: <code class="docutils literal notranslate"><span class="pre">26</span></code></p></li>
+<li><p>fresh: <code class="docutils literal notranslate"><span class="pre">18</span></code></p></li>
+<li><p>stale: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+<li><p>unavailable: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+<p>Fin:</p>
+<ul class="simple">
+<li><p>requested/watchlist: <code class="docutils literal notranslate"><span class="pre">20</span></code></p></li>
+<li><p>fresh: <code class="docutils literal notranslate"><span class="pre">19</span></code></p></li>
+<li><p>stale: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+<li><p>unavailable: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+<p>Le compteur <code class="docutils literal notranslate"><span class="pre">stats.events</span></code> a progressé de <code class="docutils literal notranslate"><span class="pre">319401</span></code> à <code class="docutils literal notranslate"><span class="pre">319579</span></code>, soit <code class="docutils literal notranslate"><span class="pre">+178</span></code> PressureFields sur 60 s (~<code class="docutils literal notranslate"><span class="pre">2.97</span> <span class="pre">PressureFields/s</span></code>). Ce compteur est une sortie LMI, <strong>pas</strong> un débit brut WebSocket MEXC.</p>
+</section>
+<section id="defaut-demontre-a-etats-hors-watchlist">
+<h3>Défaut démontré A — états hors watchlist<a class="headerlink" href="#defaut-demontre-a-etats-hors-watchlist" title="Link to this heading">¶</a></h3>
+<p>Sept symboles historiques étaient encore présents dans <code class="docutils literal notranslate"><span class="pre">symbols</span></code> alors qu’ils n’étaient plus dans la watchlist courante:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DOGEUSDT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FARTCOINUSDT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">INJUSDT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LITUSDT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SOLUSDC</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">XRPUSDC</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ZECUSDT</span></code></p></li>
+</ul>
+<p>Cause source: <code class="docutils literal notranslate"><span class="pre">LiveStateStore.set_watchlist()</span></code> remplaçait la watchlist sans élaguer <code class="docutils literal notranslate"><span class="pre">_states</span></code>.</p>
+<p>Impact: <code class="docutils literal notranslate"><span class="pre">symbols_active</span></code> pouvait représenter des états historiques et non la population courante.</p>
+</section>
+<section id="defaut-demontre-b-usd1usdt">
+<h3>Défaut démontré B — USD1USDT<a class="headerlink" href="#defaut-demontre-b-usd1usdt" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">USD1USDT</span></code> était demandé par le LMI mais sans état courant.</p>
+<p>Le journal montrait des <code class="docutils literal notranslate"><span class="pre">queue</span> <span class="pre">stall</span></code> continus dépassant 45 minutes.</p>
+<p>La capture publique MEXC a ensuite montré:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">contract/detail</span></code>: <code class="docutils literal notranslate"><span class="pre">1192</span></code> contrats renvoyés</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">USD1_USDT_found</span> <span class="pre">=</span> <span class="pre">False</span></code></p></li>
+<li><p>REST deals <code class="docutils literal notranslate"><span class="pre">USD1_USDT</span></code>: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+<p>Conclusion: le runtime tentait de souscrire un instrument absent du catalogue MEXC Futures courant.</p>
+</section>
+<section id="derive-systemd-observee">
+<h3>Dérive systemd observée<a class="headerlink" href="#derive-systemd-observee" title="Link to this heading">¶</a></h3>
+<p>L’unité réellement déployée ne chargeait pas <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>, alors que la source de référence initiale le chargeait malgré son propre contrat « zéro clé ».</p>
+<p>La remédiation OPS-D conserve le comportement runtime le plus sûr : le service LMI ne reçoit que <code class="docutils literal notranslate"><span class="pre">.env</span></code>, qui contient ses variables de configuration non secrètes. <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> n’est plus injecté dans ce processus d’observation publique.</p>
+</section>
+</section>
+<section id="remediation-source-de-cette-branche">
+<h2>Remédiation source de cette branche<a class="headerlink" href="#remediation-source-de-cette-branche" title="Link to this heading">¶</a></h2>
+<p>La branche OPS-D apporte uniquement des changements d’observation/runtime LMI:</p>
+<ol class="arabic simple">
+<li><p>le sidecar distingue maintenant:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">watchlist</span></code> = symboles demandés,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stream_watchlist</span></code> = symboles effectivement souscrits,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coverage[symbol].status</span></code> = <code class="docutils literal notranslate"><span class="pre">LIVE</span> <span class="pre">|</span> <span class="pre">STALE</span> <span class="pre">|</span> <span class="pre">UNAVAILABLE</span></code>,</p></li>
+<li><p>raison explicite d’indisponibilité;</p></li>
+</ul>
+</li>
+<li><p>les états qui ne font plus partie de la population streamable validée sont supprimés du sidecar courant;</p></li>
+<li><p>une mise à jour tardive d’une task annulée ne peut pas réintroduire un symbole hors population streamable;</p></li>
+<li><p>MEXC expose un contrôle public frais du catalogue Futures via <code class="docutils literal notranslate"><span class="pre">contract/detail</span></code>;</p></li>
+<li><p>l’Observatory valide l’existence des instruments MEXC avant d’ouvrir les WebSockets;</p></li>
+<li><p>un catalogue MEXC indisponible est fail-closed pour l’itération de reconcile;</p></li>
+<li><p>le dashboard adapter filtre les états hors watchlist et expose les compteurs de couverture explicites;</p></li>
+<li><p>le service systemd LMI n’injecte plus <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> et reste conforme à sa frontière « données publiques / zéro clé ».</p></li>
+</ol>
+<p>Aucun changement stratégie, signal, risk, sizing, portfolio, ordre, capital ou autorité d’exécution.</p>
+</section>
+<section id="criteres-source-avant-merge">
+<h2>Critères SOURCE avant merge<a class="headerlink" href="#criteres-source-avant-merge" title="Link to this heading">¶</a></h2>
+<p>La PR n’est mergeable scientifiquement que si:</p>
+<ul class="simple">
+<li><p>tests OPS-D ciblés: PASS;</p></li>
+<li><p>tests Observatory/MEXC/stream concernés: PASS;</p></li>
+<li><p>CI canonique pertinente: PASS ou échecs préexistants explicitement attribués;</p></li>
+<li><p>aucune dérive hors scope dans le diff;</p></li>
+<li><p>SHA de tête exact documenté.</p></li>
+</ul>
+</section>
+<section id="criteres-runtime-apres-merge-deploiement">
+<h2>Critères RUNTIME après merge/déploiement<a class="headerlink" href="#criteres-runtime-apres-merge-deploiement" title="Link to this heading">¶</a></h2>
+<p>Le merge ne vaut pas certification runtime.</p>
+<p>Le verdict final exige un runtime déployé correspondant au SHA certifié et une nouvelle fenêtre d’observation démontrant au minimum:</p>
+<ol class="arabic simple">
+<li><p>provenance Git exacte;</p></li>
+<li><p>service actif et ressources bornées;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">symbols_active</span> <span class="pre">&lt;=</span> <span class="pre">symbols_watched</span></code> sans états fantômes;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stream_watchlist</span></code> cohérente avec le catalogue MEXC courant;</p></li>
+<li><p>instrument absent classé <code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code> sans socket/stall permanent;</p></li>
+<li><p>fraîcheur par symbole fondée sur timestamp marché;</p></li>
+<li><p>progression des PressureFields sur fenêtre bornée;</p></li>
+<li><p>échec/restart/recovery attribuable par symbole si un incident naturel est disponible;</p></li>
+<li><p>artefacts et logs reconstruisibles;</p></li>
+<li><p>aucune confusion entre PressureFields/s et événements WebSocket/s;</p></li>
+<li><p>aucune clé privée injectée dans le processus LMI.</p></li>
+</ol>
+<p>Verdict final autorisé, exactement l’un des deux:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">OPS_D_RUNTIME_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OPS_D_REMEDIATION_REQUIRED</span></code></p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">OPS-D / LMI-RUNTIME-CERT-01</a><ul>
+<li><a class="reference internal" href="#statut">Statut</a></li>
+<li><a class="reference internal" href="#capture-runtime-1-2026-09-13">Capture runtime #1 — 2026-09-13</a><ul>
+<li><a class="reference internal" href="#identite">Identité</a></li>
+<li><a class="reference internal" href="#sante-processus">Santé processus</a></li>
+<li><a class="reference internal" href="#fraicheur-couverture">Fraîcheur / couverture</a></li>
+<li><a class="reference internal" href="#defaut-demontre-a-etats-hors-watchlist">Défaut démontré A — états hors watchlist</a></li>
+<li><a class="reference internal" href="#defaut-demontre-b-usd1usdt">Défaut démontré B — USD1USDT</a></li>
+<li><a class="reference internal" href="#derive-systemd-observee">Dérive systemd observée</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#remediation-source-de-cette-branche">Remédiation source de cette branche</a></li>
+<li><a class="reference internal" href="#criteres-source-avant-merge">Critères SOURCE avant merge</a></li>
+<li><a class="reference internal" href="#criteres-runtime-apres-merge-deploiement">Critères RUNTIME après merge/déploiement</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
