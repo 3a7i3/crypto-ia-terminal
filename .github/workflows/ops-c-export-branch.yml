@@ -1,0 +1,34 @@
+name: OPS-C Export Branch
+
+on:
+  push:
+    branches:
+      - master/ops-c-market-universe-01
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Record exact SHA
+        run: git rev-parse HEAD > OPS_C_EXPORT_SHA.txt
+
+      - name: Package repository snapshot
+        run: |
+          tar --exclude=.git -czf ops-c-branch-snapshot.tgz .
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-c-branch-snapshot-${{ github.sha }}
+          path: ops-c-branch-snapshot.tgz
+          if-no-files-found: error
+          retention-days: 1
