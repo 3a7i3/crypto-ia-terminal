@@ -28,9 +28,86 @@ jobs:
           git apply .ops-c/pre-t1-c.patch
           git apply --check .ops-c/builder-eof.patch
           git apply .ops-c/builder-eof.patch
-          python -m py_compile core/advisor_loop.py
 
-      - name: Diagnose Ruff delta with pinned version
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/perp_universe_builder.py")
+          source = path.read_text(encoding="utf-8")
+          old = '        print(f"  V=Volume  S=Spread  V2=Volatilité  R=Fiabilité")'
+          new = '        print("  V=Volume  S=Spread  V2=Volatilité  R=Fiabilité")'
+          if source.count(old) != 1:
+              raise SystemExit("OPS-C F541 target not found exactly once")
+          path.write_text(source.replace(old, new), encoding="utf-8")
+          PY
+
+          python -m py_compile core/advisor_loop.py tools/perp_universe_builder.py
+
+      - name: Install targeted test dependencies
         run: |
-          python -m pip install --quiet ruff==0.15.8
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+          pip install ruff==0.15.8
+
+      - name: Refresh only shifted historical F823 baseline location
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+
+          proc = subprocess.run(
+              ["ruff", "check", "core/advisor_loop.py", "--output-format=json"],
+              text=True,
+              capture_output=True,
+              check=False,
+          )
+          findings = json.loads(proc.stdout or "[]")
+          f823 = [item for item in findings if item.get("code") == "F823"]
+          if len(f823) != 1:
+              raise SystemExit(f"Expected exactly one historical F823 in advisor_loop.py, got {len(f823)}")
+
+          row = f823[0]["location"]["row"]
+          col = f823[0]["location"]["column"]
+          baseline_path = Path(".ci/ruff_baseline.json")
+          baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+          matches = [
+              i for i, value in enumerate(baseline)
+              if re.fullmatch(r"core/advisor_loop\.py:\d+:\d+:F823", value)
+          ]
+          if len(matches) != 1:
+              raise SystemExit(f"Expected exactly one baseline advisor F823 entry, got {len(matches)}")
+          baseline[matches[0]] = f"core/advisor_loop.py:{row}:{col}:F823"
+          baseline_path.write_text(
+              json.dumps(baseline, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          print(f"Historical F823 baseline relocated to {row}:{col}")
+          PY
+
+      - name: Targeted OPS-C regression suite
+        run: |
+          pytest -q \
+            tests/test_advisor_loop_universe_certification_wiring.py \
+            tests/test_perp_universe_builder_raw_evidence.py \
+            tests/test_pre_t1_c_portfolio_provider_read_only.py \
+            tests/test_universe_certification.py
+
+      - name: Ruff regression gate
+        run: |
           python scripts/ci/ruff_baseline_gate.py check
+
+      - name: Commit reviewed R1 fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            core/advisor_loop.py \
+            tools/perp_universe_builder.py \
+            tests/test_pre_t1_c_portfolio_provider_read_only.py \
+            .ci/ruff_baseline.json
+          git diff --cached --check
+          git diff --cached --exit-code && { echo "No R1 changes to commit"; exit 1; } || true
+          git commit -m "fix(ops-c): complete dual-domain R1 hardening"
+          git push origin HEAD:master/ops-c-market-universe-01
