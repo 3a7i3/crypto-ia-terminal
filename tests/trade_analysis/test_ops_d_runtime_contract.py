@@ -73,11 +73,14 @@ def test_snapshot_separates_requested_streamable_and_unavailable(tmp_path):
         unavailable={"USD1USDT": "not_in_mexc_futures_catalog"},
     )
     store.update(_DummyPF("BTCUSDT"))
+    # Une update tardive du stream USD1 annulé ne doit jamais le réintroduire.
+    store.update(_DummyPF("USD1USDT"))
 
     snap = store.snapshot()
 
     assert snap["watchlist"] == ["BTCUSDT", "USD1USDT"]
     assert snap["stream_watchlist"] == ["BTCUSDT"]
+    assert set(snap["symbols"]) == {"BTCUSDT"}
     assert snap["coverage"]["BTCUSDT"]["status"] == "LIVE"
     assert snap["coverage"]["USD1USDT"] == {
         "status": "UNAVAILABLE",
@@ -100,11 +103,16 @@ def test_explicit_empty_stream_watchlist_stays_zero(tmp_path):
         stream_symbols=[],
         unavailable={"BTCUSDT": "market_catalog_unavailable:RuntimeError"},
     )
+    # Même si une ancienne task livre un dernier événement après cancel, aucune
+    # observation n'est acceptée lorsque la population streamable vaut zéro.
+    store.update(_DummyPF("BTCUSDT"))
 
     snap = store.snapshot()
 
     assert snap["stream_watchlist"] == []
+    assert snap["symbols"] == {}
     assert snap["stats"]["symbols_streamable"] == 0
+    assert snap["stats"]["symbols_active"] == 0
     assert snap["coverage"]["BTCUSDT"]["stream_requested"] is False
     assert snap["coverage"]["BTCUSDT"]["status"] == "UNAVAILABLE"
 
