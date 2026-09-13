@@ -35,7 +35,7 @@ import math
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Literal, Optional
 
 
 @dataclass
@@ -187,28 +187,29 @@ class PerpUniverseBuilder:
         """Retourne la liste des symboles qualifiés (format CCXT BTC/USDT)."""
         return [c.symbol for c in self.discover(top_n=top_n, **kwargs)]
 
-    def fetch_raw_evidence(self, *, use_swap: bool = True) -> tuple[dict, dict]:
-        """Évidence brute non filtrée — OPS-C universe certification.
+    def fetch_raw_evidence(
+        self, *, market_type: Literal["spot", "swap"]
+    ) -> tuple[dict, dict]:
+        """Évidence brute non filtrée pour la certification OPS-C.
 
-        Aucun filtrage de candidats, aucun ranking, aucun seuil de volume ou
-        de spread : cette méthode retourne exactement ``load_markets()`` et
-        ``fetch_tickers()``. Contrairement à ``discover()``, le domaine
-        interrogé (``use_swap``) est explicite et indépendant du réglage
-        ``PERP_BUILDER_USE_SWAP`` (qui ne concerne que la découverte
-        scorée) — la certification ne doit jamais deviner un domaine.
+        Le domaine est explicite et fermé : ``market_type`` vaut uniquement
+        ``"spot"`` (scan/données) ou ``"swap"`` (éligibilité d'exécution
+        dérivée). Aucun filtrage, ranking, seuil de volume ou de spread n'est
+        appliqué : la méthode retourne exactement ``load_markets()`` puis
+        ``fetch_tickers()``.
 
-        ``use_swap=True`` (défaut) — domaine dérivé (swap/perp) attendu par
-        l'exécution PAPER futures. ``use_swap=False`` — domaine spot, celui
-        que ``quant_hedge_ai.agents.market.market_scanner.MarketScanner``
-        interroge réellement (``defaultType="spot"`` y est câblé en dur) :
-        un symbole certifié uniquement côté dérivé peut être absent du
-        catalogue que le scanner utilise pour les données — OPS-C R1 certifie
-        les deux domaines séparément pour éliminer cette contamination.
+        Cette API est indépendante de ``PERP_BUILDER_USE_SWAP`` ; ce réglage
+        historique reste réservé à ``discover()`` afin que la certification
+        ne déduise jamais implicitement son domaine d'observation.
         """
+        if market_type not in {"spot", "swap"}:
+            raise ValueError(
+                f"market_type invalide: {market_type!r} (attendu: 'spot' ou 'swap')"
+            )
         exchange = (
             self._exchange
             if self._exchange is not None
-            else self._build_exchange(use_swap=use_swap)
+            else self._build_evidence_exchange(market_type=market_type)
         )
         markets = exchange.load_markets()
         tickers = exchange.fetch_tickers()
@@ -272,6 +273,7 @@ class PerpUniverseBuilder:
     # ── Internals ─────────────────────────────────────────────────────────────
 
     def _build_exchange(self, *, use_swap: bool):
+        """Construction historique utilisée par discover(); sémantique inchangée."""
         try:
             import ccxt
         except ImportError as exc:
@@ -285,6 +287,30 @@ class PerpUniverseBuilder:
         if use_swap:
             config["options"] = {"defaultType": "swap"}
         return cls(config)
+
+    def _build_evidence_exchange(
+        self, *, market_type: Literal["spot", "swap"]
+    ):
+        """Construit un exchange de preuve avec defaultType toujours explicite."""
+        if market_type not in {"spot", "swap"}:
+            raise ValueError(
+                f"market_type invalide: {market_type!r} (attendu: 'spot' ou 'swap')"
+            )
+        try:
+            import ccxt
+        except ImportError as exc:
+            raise ImportError("ccxt requis : pip install ccxt") from exc
+
+        cls = getattr(ccxt, self._exchange_id, None)
+        if cls is None:
+            raise ValueError(f"Exchange inconnu : {self._exchange_id}")
+
+        return cls(
+            {
+                "enableRateLimit": True,
+                "options": {"defaultType": market_type},
+            }
+        )
 
     def _get_exchange(self):
         if self._exchange is None:
