@@ -26,8 +26,6 @@ jobs:
           git apply .ops-c/advisor.patch
           git apply --check .ops-c/pre-t1-c.patch
           git apply .ops-c/pre-t1-c.patch
-          git apply --check .ops-c/builder-eof.patch
-          git apply .ops-c/builder-eof.patch
 
           python - <<'PY'
           from pathlib import Path
@@ -38,7 +36,10 @@ jobs:
           new = '        print("  V=Volume  S=Spread  V2=Volatilité  R=Fiabilité")'
           if source.count(old) != 1:
               raise SystemExit("OPS-C F541 target not found exactly once")
-          path.write_text(source.replace(old, new), encoding="utf-8")
+          source = source.replace(old, new)
+          if not source.endswith("\n"):
+              source += "\n"
+          path.write_text(source, encoding="utf-8")
           PY
 
           python -m py_compile core/advisor_loop.py tools/perp_universe_builder.py
@@ -108,6 +109,6 @@ jobs:
             tests/test_pre_t1_c_portfolio_provider_read_only.py \
             .ci/ruff_baseline.json
           git diff --cached --check
-          git diff --cached --exit-code && { echo "No R1 changes to commit"; exit 1; } || true
+          git diff --cached --quiet && { echo "No R1 changes to commit"; exit 1; }
           git commit -m "fix(ops-c): complete dual-domain R1 hardening"
           git push origin HEAD:master/ops-c-market-universe-01
