@@ -23,12 +23,12 @@ jobs:
 
       - name: Package repository snapshot
         run: |
-          tar --exclude=.git -czf ops-c-branch-snapshot.tgz .
+          tar --exclude=.git -czf "$RUNNER_TEMP/ops-c-branch-snapshot.tgz" .
 
       - name: Upload snapshot
         uses: actions/upload-artifact@v4
         with:
           name: ops-c-branch-snapshot-${{ github.sha }}
-          path: ops-c-branch-snapshot.tgz
+          path: ${{ runner.temp }}/ops-c-branch-snapshot.tgz
           if-no-files-found: error
           retention-days: 1
