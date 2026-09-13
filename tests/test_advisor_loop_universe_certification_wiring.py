@@ -1,18 +1,15 @@
-"""OPS-C / MARKET-UNIVERSE-01 — runtime wiring: pinned universe boot must be
-fail-closed and use raw derivative + scan evidence, never the ranked/filtered
-discover() path. See core/universe_certification.py for the pure contract.
+"""OPS-C — dual-domain pinned-universe runtime wiring.
 
-R1 (MASTER review): certification must cover BOTH exchange domains —
-execution (swap/perp, what PAPER futures actually trades) AND scan/données
-(spot, what MarketScanner actually queries — defaultType="spot" is hardcoded
-there). A symbol certified on only one domain could still be absent from the
-other, reintroducing exactly the denominator contamination OPS-C exists to
-eliminate. Boot must fail closed if either domain is not fully certified.
+The configured experimental population must be measurable by the current
+MarketScanner (spot) AND eligible in the PAPER futures derivative domain
+(swap/future).  Neither domain alone authorizes boot.
 """
 
 from __future__ import annotations
 
+import inspect
 import json
+from pathlib import Path
 
 import pytest
 
@@ -28,43 +25,7 @@ def _mk_ticker(symbol: str, last: float) -> dict:
     return {"symbol": symbol, "last": last}
 
 
-def _patch_evidence(monkeypatch, *, execution: tuple[dict, dict], scan: tuple[dict, dict]):
-    """Return distinct evidence depending on the requested domain, mirroring
-    fetch_raw_evidence(use_swap=...)'s real contract."""
-
-    def _fake_fetch_raw_evidence(self, *, use_swap: bool = True):
-        return execution if use_swap else scan
-
-    monkeypatch.setattr(
-        PerpUniverseBuilder, "fetch_raw_evidence", _fake_fetch_raw_evidence
-    )
-
-
-def _patch_same_evidence(monkeypatch, markets: dict, tickers: dict) -> None:
-    """Same catalogue on both domains — market `type` decides which domain
-    call actually certifies it (swap for execution, spot for scan)."""
-    _patch_evidence(monkeypatch, execution=(markets, tickers), scan=(markets, tickers))
-
-
-@pytest.fixture(autouse=True)
-def _reset_certification_snapshot():
-    advisor_loop._UNIVERSE_CERTIFICATION_SNAPSHOT = None
-    yield
-    advisor_loop._UNIVERSE_CERTIFICATION_SNAPSHOT = None
-
-
-@pytest.fixture()
-def _artifact_path(tmp_path, monkeypatch):
-    path = str(tmp_path / "universe_certification.json")
-    monkeypatch.setattr(
-        advisor_loop, "_UNIVERSE_CERTIFICATION_ARTIFACT_PATH", path, raising=False
-    )
-    return path
-
-
 def _dual_domain_markets_tickers(symbol_deriv: str, symbol_spot: str, last: float):
-    """A minimal fixture where the SAME pinned symbol has both a swap market
-    (execution domain) and a spot market (scan domain) available."""
     markets = {
         symbol_deriv: _mk_market(symbol_deriv, market_type="swap"),
         symbol_spot: _mk_market(symbol_spot, market_type="spot"),
@@ -76,9 +37,52 @@ def _dual_domain_markets_tickers(symbol_deriv: str, symbol_spot: str, last: floa
     return markets, tickers
 
 
-# A. valid pinned universe: configured 2, validated 2, boot allowed (both
-# domains certified).
-def test_valid_pinned_universe_boot_allowed(monkeypatch, _artifact_path):
+def _patch_evidence(
+    monkeypatch,
+    *,
+    execution: tuple[dict, dict],
+    scan: tuple[dict, dict],
+) -> None:
+    calls: list[str] = []
+
+    def _fake_fetch_raw_evidence(self, *, market_type: str):
+        calls.append(market_type)
+        if market_type == "spot":
+            return scan
+        if market_type == "swap":
+            return execution
+        raise AssertionError(f"unexpected market_type={market_type!r}")
+
+    monkeypatch.setattr(
+        PerpUniverseBuilder, "fetch_raw_evidence", _fake_fetch_raw_evidence
+    )
+    monkeypatch.setattr(advisor_loop, "_OPS_C_TEST_EVIDENCE_CALLS", calls, raising=False)
+
+
+def _patch_same_evidence(monkeypatch, markets: dict, tickers: dict) -> None:
+    _patch_evidence(monkeypatch, execution=(markets, tickers), scan=(markets, tickers))
+
+
+@pytest.fixture(autouse=True)
+def _reset_certification_snapshot():
+    advisor_loop._UNIVERSE_CERTIFICATION_SNAPSHOT = None
+    yield
+    advisor_loop._UNIVERSE_CERTIFICATION_SNAPSHOT = None
+
+
+@pytest.fixture()
+def _artifact_path(tmp_path, monkeypatch) -> Path:
+    path = tmp_path / "universe_certification.json"
+    monkeypatch.setattr(
+        advisor_loop,
+        "_UNIVERSE_CERTIFICATION_ARTIFACT_PATH",
+        str(path),
+        raising=False,
+    )
+    return path
+
+
+def test_both_domains_pass_boot_allowed(monkeypatch, _artifact_path):
     markets, tickers = {}, {}
     for base, price in (("BTC", 65000.0), ("ETH", 3500.0)):
         m, t = _dual_domain_markets_tickers(
@@ -88,202 +92,132 @@ def test_valid_pinned_universe_boot_allowed(monkeypatch, _artifact_path):
         tickers.update(t)
     _patch_same_evidence(monkeypatch, markets, tickers)
 
-    execution_cert, scan_cert = advisor_loop._certify_pinned_universe(
+    symbols, snapshot = advisor_loop._resolve_pinned_universe_boot(
         ["BTC/USDT", "ETH/USDT"]
     )
 
-    assert execution_cert.is_certified
-    assert scan_cert.is_certified
-    assert execution_cert.configured_count == 2
-    assert execution_cert.validated_count == 2
-    assert scan_cert.validated_count == 2
+    assert symbols == ["BTC/USDT", "ETH/USDT"]
+    assert snapshot == {"n_symbols_configured": 2, "n_symbols_validated": 2}
+    assert advisor_loop._OPS_C_TEST_EVIDENCE_CALLS == ["spot", "swap"]
 
 
-# B. one nonexistent pinned symbol: configured 2, validated 1, boot refused.
-def test_one_nonexistent_symbol_boot_refused(monkeypatch, _artifact_path):
-    markets, tickers = _dual_domain_markets_tickers(
-        "BTC/USDT:USDT", "BTC/USDT", 65000.0
-    )
-    _patch_same_evidence(monkeypatch, markets, tickers)
-
-    execution_cert, scan_cert = advisor_loop._certify_pinned_universe(
-        ["BTC/USDT", "NOPE/USDT"]
-    )
-
-    assert not execution_cert.is_certified
-    assert execution_cert.configured_count == 2
-    assert execution_cert.validated_count == 1
-    assert execution_cert.rejected_count == 1
-    assert not scan_cert.is_certified
-
-
-# C. zero-price ticker: boot refused.
-def test_zero_price_ticker_boot_refused(monkeypatch, _artifact_path):
-    markets, tickers = _dual_domain_markets_tickers("BTC/USDT:USDT", "BTC/USDT", 0.0)
-    _patch_same_evidence(monkeypatch, markets, tickers)
-
-    execution_cert, scan_cert = advisor_loop._certify_pinned_universe(["BTC/USDT"])
-
-    assert not execution_cert.is_certified
-    assert execution_cert.validated_count == 0
-    assert not scan_cert.is_certified
-
-
-# D. spot-only market (no swap market at all): execution domain refused, boot
-# refused — even though the scan/spot domain alone would certify.
-def test_spot_only_market_boot_refused(monkeypatch, _artifact_path):
+def test_spot_only_is_insufficient_and_boot_refused(monkeypatch, _artifact_path):
     markets = {"BTC/USDT": _mk_market("BTC/USDT", market_type="spot")}
     tickers = {"BTC/USDT": _mk_ticker("BTC/USDT", 65000.0)}
     _patch_same_evidence(monkeypatch, markets, tickers)
 
     execution_cert, scan_cert = advisor_loop._certify_pinned_universe(["BTC/USDT"])
-
+    assert scan_cert.is_certified
     assert not execution_cert.is_certified
-    assert execution_cert.validated_count == 0
-    assert scan_cert.is_certified  # spot domain alone is not sufficient
-
-
-# D2. swap-only market (no spot market at all): scan/données domain refused,
-# boot refused — the new R1 case: execution certifies but the scanner's own
-# domain does not.
-def test_swap_only_market_scan_domain_refused(monkeypatch, _artifact_path):
-    markets = {"BTC/USDT:USDT": _mk_market("BTC/USDT:USDT", market_type="swap")}
-    tickers = {"BTC/USDT:USDT": _mk_ticker("BTC/USDT:USDT", 65000.0)}
-    _patch_same_evidence(monkeypatch, markets, tickers)
-
-    execution_cert, scan_cert = advisor_loop._certify_pinned_universe(["BTC/USDT"])
-
-    assert execution_cert.is_certified
-    assert not scan_cert.is_certified
-    assert scan_cert.validated_count == 0
 
     with pytest.raises(SystemExit) as exc_info:
         advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
     assert exc_info.value.code == 1
 
 
-# E. exchange evidence exception: boot refused, classified as evidence
-# unavailable — never as a symbol-level rejection.
-def test_exchange_evidence_exception_classified_as_unavailable(monkeypatch):
-    def _boom(self, *, use_swap: bool = True):
-        raise ConnectionError("mexc unreachable")
-
-    monkeypatch.setattr(PerpUniverseBuilder, "fetch_raw_evidence", _boom)
-
-    with pytest.raises(advisor_loop._CertificationEvidenceUnavailable):
-        advisor_loop._certify_pinned_universe(["BTC/USDT"])
-
-
-# F. empty pin: historical dynamic behavior unchanged (module still importable,
-# _universe_pinned_symbols() returns [] and certification is never invoked).
-def test_empty_pin_returns_empty_list(monkeypatch):
-    monkeypatch.delenv("UNIVERSE_PINNED_SYMBOLS", raising=False)
-    assert advisor_loop._universe_pinned_symbols() == []
-
-
-# F2. dynamic path: the pinned-only snapshot counters stay None (contract),
-# so the snapshot/pipeline-display code must show the historical format.
-def test_dynamic_path_leaves_certification_snapshot_none():
-    assert advisor_loop._UNIVERSE_CERTIFICATION_SNAPSHOT is None
-
-
-# G. certification does NOT call ranking/spread filter/volume filter/discover().
-def test_certification_never_calls_discover(monkeypatch, _artifact_path):
-    markets, tickers = _dual_domain_markets_tickers(
-        "BTC/USDT:USDT", "BTC/USDT", 65000.0
-    )
-
-    def _fake_fetch_raw_evidence(self, *, use_swap: bool = True):
-        return markets, tickers
-
-    def _discover_forbidden(self, *_a, **_kw):
-        raise AssertionError("certification must never call discover()")
-
-    monkeypatch.setattr(
-        PerpUniverseBuilder, "fetch_raw_evidence", _fake_fetch_raw_evidence
-    )
-    monkeypatch.setattr(PerpUniverseBuilder, "discover", _discover_forbidden)
+def test_swap_only_is_insufficient_and_boot_refused(monkeypatch, _artifact_path):
+    markets = {"BTC/USDT:USDT": _mk_market("BTC/USDT:USDT", market_type="swap")}
+    tickers = {"BTC/USDT:USDT": _mk_ticker("BTC/USDT:USDT", 65000.0)}
+    _patch_same_evidence(monkeypatch, markets, tickers)
 
     execution_cert, scan_cert = advisor_loop._certify_pinned_universe(["BTC/USDT"])
     assert execution_cert.is_certified
-    assert scan_cert.is_certified
+    assert not scan_cert.is_certified
+
+    with pytest.raises(SystemExit) as exc_info:
+        advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
+    assert exc_info.value.code == 1
 
 
-# H. raw evidence method: load_markets + fetch_tickers only.
-def test_raw_evidence_method_uses_only_load_markets_and_fetch_tickers():
-    calls = []
+def test_zero_price_in_spot_refuses_boot_even_if_swap_valid(monkeypatch, _artifact_path):
+    execution = (
+        {"BTC/USDT:USDT": _mk_market("BTC/USDT:USDT", market_type="swap")},
+        {"BTC/USDT:USDT": _mk_ticker("BTC/USDT:USDT", 65000.0)},
+    )
+    scan = (
+        {"BTC/USDT": _mk_market("BTC/USDT", market_type="spot")},
+        {"BTC/USDT": _mk_ticker("BTC/USDT", 0.0)},
+    )
+    _patch_evidence(monkeypatch, execution=execution, scan=scan)
 
-    class _Fake:
-        def load_markets(self):
-            calls.append("load_markets")
-            return {"BTC/USDT:USDT": _mk_market("BTC/USDT:USDT")}
-
-        def fetch_tickers(self):
-            calls.append("fetch_tickers")
-            return {"BTC/USDT:USDT": _mk_ticker("BTC/USDT:USDT", 65000.0)}
-
-    builder = PerpUniverseBuilder(exchange_id="mexc", exchange=_Fake())
-    builder.fetch_raw_evidence()
-    assert calls == ["load_markets", "fetch_tickers"]
+    with pytest.raises(SystemExit) as exc_info:
+        advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
+    assert exc_info.value.code == 1
 
 
-# H2. use_swap toggles the requested domain when no exchange is injected —
-# proven via _build_exchange's config, without a real network call.
-def test_fetch_raw_evidence_use_swap_selects_domain(monkeypatch):
-    seen: list[bool] = []
+def test_zero_price_in_swap_refuses_boot_even_if_spot_valid(monkeypatch, _artifact_path):
+    execution = (
+        {"BTC/USDT:USDT": _mk_market("BTC/USDT:USDT", market_type="swap")},
+        {"BTC/USDT:USDT": _mk_ticker("BTC/USDT:USDT", 0.0)},
+    )
+    scan = (
+        {"BTC/USDT": _mk_market("BTC/USDT", market_type="spot")},
+        {"BTC/USDT": _mk_ticker("BTC/USDT", 65000.0)},
+    )
+    _patch_evidence(monkeypatch, execution=execution, scan=scan)
 
-    class _Fake:
-        def load_markets(self):
-            return {}
-
-        def fetch_tickers(self):
-            return {}
-
-    def _fake_build_exchange(self, *, use_swap: bool):
-        seen.append(use_swap)
-        return _Fake()
-
-    monkeypatch.setattr(PerpUniverseBuilder, "_build_exchange", _fake_build_exchange)
-    builder = PerpUniverseBuilder(exchange_id="mexc")
-
-    builder.fetch_raw_evidence(use_swap=True)
-    builder.fetch_raw_evidence(use_swap=False)
-
-    assert seen == [True, False]
+    with pytest.raises(SystemExit) as exc_info:
+        advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
+    assert exc_info.value.code == 1
 
 
-# I. configured/validated/scan-successful counters have distinct semantics.
-def test_counters_have_distinct_semantics(monkeypatch, _artifact_path):
+def test_spot_evidence_exception_is_classified_unavailable(monkeypatch):
+    def _fetch(self, *, market_type: str):
+        if market_type == "spot":
+            raise ConnectionError("spot evidence unavailable")
+        return {}, {}
+
+    monkeypatch.setattr(PerpUniverseBuilder, "fetch_raw_evidence", _fetch)
+
+    with pytest.raises(
+        advisor_loop._CertificationEvidenceUnavailable, match="scan domain"
+    ):
+        advisor_loop._certify_pinned_universe(["BTC/USDT"])
+    with pytest.raises(SystemExit) as exc_info:
+        advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
+    assert exc_info.value.code == 1
+
+
+def test_swap_evidence_exception_is_classified_unavailable(monkeypatch):
+    spot = (
+        {"BTC/USDT": _mk_market("BTC/USDT", market_type="spot")},
+        {"BTC/USDT": _mk_ticker("BTC/USDT", 65000.0)},
+    )
+
+    def _fetch(self, *, market_type: str):
+        if market_type == "spot":
+            return spot
+        if market_type == "swap":
+            raise ConnectionError("swap evidence unavailable")
+        raise AssertionError(market_type)
+
+    monkeypatch.setattr(PerpUniverseBuilder, "fetch_raw_evidence", _fetch)
+
+    with pytest.raises(
+        advisor_loop._CertificationEvidenceUnavailable, match="execution domain"
+    ):
+        advisor_loop._certify_pinned_universe(["BTC/USDT"])
+    with pytest.raises(SystemExit) as exc_info:
+        advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
+    assert exc_info.value.code == 1
+
+
+def test_certification_never_calls_discover(monkeypatch, _artifact_path):
     markets, tickers = _dual_domain_markets_tickers(
         "BTC/USDT:USDT", "BTC/USDT", 65000.0
     )
     _patch_same_evidence(monkeypatch, markets, tickers)
 
-    execution_cert, _scan_cert = advisor_loop._certify_pinned_universe(
-        ["BTC/USDT", "MISSING/USDT"]
-    )
-    assert execution_cert.configured_count == 2
-    assert execution_cert.validated_count == 1
-    # scan_successful is a downstream runtime concept (len(results)),
-    # deliberately not produced by certification itself.
-    assert not hasattr(execution_cert, "scan_successful")
+    def _forbidden(self, *_args, **_kwargs):
+        raise AssertionError("certification must never call discover()")
+
+    monkeypatch.setattr(PerpUniverseBuilder, "discover", _forbidden)
+    execution_cert, scan_cert = advisor_loop._certify_pinned_universe(["BTC/USDT"])
+    assert execution_cert.is_certified
+    assert scan_cert.is_certified
 
 
-# J. existing n_symbols remains backward compatible (still present alongside
-# the new explicit fields in the quantitative snapshot payload built in main()).
-def test_n_symbols_field_still_referenced_in_source():
-    import inspect
-
-    src = inspect.getsource(advisor_loop)
-    assert '"n_symbols": len(results),' in src
-    assert '"n_symbols_configured"' in src
-    assert '"n_symbols_validated"' in src
-    assert '"n_symbols_scan_successful"' in src
-
-
-# Symbol-format boundary: MEXC/CCXT derivative "BTC/USDT:USDT" market vs the
-# operator pin "BTC/USDT" — normalization from the MASTER core must resolve.
-def test_pinned_symbol_without_settle_suffix_matches_derivative_market(
+def test_symbol_without_settle_suffix_matches_derivative_market(
     monkeypatch, _artifact_path
 ):
     markets, tickers = _dual_domain_markets_tickers(
@@ -292,35 +226,42 @@ def test_pinned_symbol_without_settle_suffix_matches_derivative_market(
     _patch_same_evidence(monkeypatch, markets, tickers)
 
     execution_cert, scan_cert = advisor_loop._certify_pinned_universe(["BTC/USDT"])
-
-    assert execution_cert.is_certified
     assert execution_cert.validated_symbols == ("BTC/USDT",)
-    assert scan_cert.is_certified
     assert scan_cert.validated_symbols == ("BTC/USDT",)
 
 
-def test_certification_artifact_persisted_on_pass(monkeypatch, _artifact_path):
+def test_single_nested_artifact_preserves_both_hashes(monkeypatch, _artifact_path):
     markets, tickers = _dual_domain_markets_tickers(
         "BTC/USDT:USDT", "BTC/USDT", 65000.0
     )
     _patch_same_evidence(monkeypatch, markets, tickers)
 
-    advisor_loop._certify_pinned_universe(["BTC/USDT"])
+    execution_cert, scan_cert = advisor_loop._certify_pinned_universe(["BTC/USDT"])
 
-    with open(_artifact_path, encoding="utf-8") as fh:
-        payload = json.load(fh)
+    payload = json.loads(_artifact_path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "ops-c-dual-domain-v1"
+    assert payload["source"] == "pinned_universe_boot"
     assert payload["is_certified"] is True
-    assert payload["source"] == "pinned_universe_boot_execution"
-    assert "evidence_sha256" in payload
+    assert payload["configured_count"] == 1
+    assert payload["validated_count"] == 1
+    assert payload["domains"]["scan_data"] == {
+        "exchange": "mexc",
+        "market_type": "spot",
+    }
+    assert payload["domains"]["execution_derivative"] == {
+        "exchange": "mexc",
+        "market_type": "swap/future",
+    }
+    assert payload["scan_data"]["evidence_sha256"] == scan_cert.evidence_sha256
+    assert (
+        payload["execution_derivative"]["evidence_sha256"]
+        == execution_cert.evidence_sha256
+    )
+    second_path = Path(str(_artifact_path).replace(".json", "_scan_domain.json"))
+    assert not second_path.exists()
 
-    scan_path = _artifact_path.replace(".json", "_scan_domain.json")
-    with open(scan_path, encoding="utf-8") as fh:
-        scan_payload = json.load(fh)
-    assert scan_payload["is_certified"] is True
-    assert scan_payload["source"] == "pinned_universe_boot_scan"
 
-
-def test_certification_artifact_persisted_on_fail(monkeypatch, _artifact_path):
+def test_single_nested_artifact_records_fail(monkeypatch, _artifact_path):
     markets, tickers = _dual_domain_markets_tickers(
         "BTC/USDT:USDT", "BTC/USDT", 65000.0
     )
@@ -328,50 +269,40 @@ def test_certification_artifact_persisted_on_fail(monkeypatch, _artifact_path):
 
     advisor_loop._certify_pinned_universe(["BTC/USDT", "NOPE/USDT"])
 
-    with open(_artifact_path, encoding="utf-8") as fh:
-        payload = json.load(fh)
+    payload = json.loads(_artifact_path.read_text(encoding="utf-8"))
     assert payload["is_certified"] is False
-    assert payload["rejected_count"] == 1
+    assert payload["configured_count"] == 2
+    assert payload["validated_count"] == 1
+    assert payload["scan_data"]["is_certified"] is False
+    assert payload["execution_derivative"]["is_certified"] is False
 
 
-# ── Direct fail-closed boot-boundary regression (R1) ────────────────────────
+def test_empty_pin_keeps_historical_dynamic_path(monkeypatch):
+    monkeypatch.delenv("UNIVERSE_PINNED_SYMBOLS", raising=False)
+    assert advisor_loop._universe_pinned_symbols() == []
+    assert advisor_loop._UNIVERSE_CERTIFICATION_SNAPSHOT is None
 
 
-def test_resolve_pinned_universe_boot_allowed_returns_symbols_and_snapshot(
-    monkeypatch, _artifact_path
-):
-    markets, tickers = _dual_domain_markets_tickers(
-        "BTC/USDT:USDT", "BTC/USDT", 65000.0
-    )
+def test_dynamic_counter_contract_and_legacy_n_symbols_are_preserved():
+    src = inspect.getsource(advisor_loop)
+    assert '"n_symbols": len(results),' in src
+    assert '"n_symbols_configured"' in src
+    assert '"n_symbols_validated"' in src
+    assert '"n_symbols_scan_successful": (' in src
+    assert "len(results) if _UNIVERSE_CERTIFICATION_SNAPSHOT else None" in src
+
+
+def test_fail_closed_boundary_prevents_downstream_scan(monkeypatch, _artifact_path):
+    markets = {"BTC/USDT": _mk_market("BTC/USDT", market_type="spot")}
+    tickers = {"BTC/USDT": _mk_ticker("BTC/USDT", 65000.0)}
     _patch_same_evidence(monkeypatch, markets, tickers)
+    downstream_calls: list[str] = []
 
-    symbols, snapshot = advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
-
-    assert symbols == ["BTC/USDT"]
-    assert snapshot == {"n_symbols_configured": 1, "n_symbols_validated": 1}
-
-
-def test_resolve_pinned_universe_boot_raises_systemexit_on_symbol_rejection(
-    monkeypatch, _artifact_path
-):
-    markets, tickers = _dual_domain_markets_tickers(
-        "BTC/USDT:USDT", "BTC/USDT", 65000.0
-    )
-    _patch_same_evidence(monkeypatch, markets, tickers)
-
-    with pytest.raises(SystemExit) as exc_info:
-        advisor_loop._resolve_pinned_universe_boot(["BTC/USDT", "NOPE/USDT"])
-    assert exc_info.value.code == 1
-
-
-def test_resolve_pinned_universe_boot_raises_systemexit_on_evidence_unavailable(
-    monkeypatch,
-):
-    def _boom(self, *, use_swap: bool = True):
-        raise ConnectionError("mexc unreachable")
-
-    monkeypatch.setattr(PerpUniverseBuilder, "fetch_raw_evidence", _boom)
-
-    with pytest.raises(SystemExit) as exc_info:
+    def _boot_then_scan() -> None:
         advisor_loop._resolve_pinned_universe_boot(["BTC/USDT"])
+        downstream_calls.append("scan")
+
+    with pytest.raises(SystemExit) as exc_info:
+        _boot_then_scan()
     assert exc_info.value.code == 1
+    assert downstream_calls == []
