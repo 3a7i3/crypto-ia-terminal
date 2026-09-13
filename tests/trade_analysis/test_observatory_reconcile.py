@@ -1,5 +1,4 @@
-"""
-Tests ciblés — Observatory._reconcile() et _restart_dead_tasks().
+"""Tests ciblés — Observatory._reconcile() et _restart_dead_tasks().
 
 Couvre :
   1. task morte (avec exception) pour symbole toujours voulu → recréée
@@ -7,7 +6,8 @@ Couvre :
   3. symbole sorti de watchlist → cancel() + retiré
   4. task morte relancée AVANT reselect_interval_s (détection fréquente)
 
-Aucun accès réseau réel. _run_symbol est toujours patché.
+Aucun accès réseau réel. _run_symbol est toujours patché et la validation
+catalogue OPS-D est injectée dans le helper.
 """
 
 from __future__ import annotations
@@ -27,7 +27,12 @@ from trade_analysis.selection import SymbolSelector
 # ---------------------------------------------------------------------------
 
 
-def _make_obs(watchlist: list[str], *, flush_interval_s: float = 2.0, reselect_interval_s: float = 300.0) -> Observatory:
+def _make_obs(
+    watchlist: list[str],
+    *,
+    flush_interval_s: float = 2.0,
+    reselect_interval_s: float = 300.0,
+) -> Observatory:
     """Crée un Observatory minimal sans vrai connecteur ni store fichier."""
     obs = Observatory.__new__(Observatory)
     obs._tasks = {}
@@ -41,6 +46,10 @@ def _make_obs(watchlist: list[str], *, flush_interval_s: float = 2.0, reselect_i
 
     obs.selector = MagicMock(spec=SymbolSelector)
     obs.selector.select_symbols.return_value = watchlist
+
+    # Les tests de reconcile vérifient le lifecycle des tasks, pas le catalogue
+    # MEXC. Injecter une validation déterministe évite tout accès réseau CI.
+    obs._validate_watchlist = AsyncMock(return_value=(list(watchlist), {}))
 
     obs.store = MagicMock()
     obs.store.set_watchlist = MagicMock()
@@ -77,7 +86,9 @@ async def test_reconcile_recreates_task_after_it_dies_while_still_watched():
     obs = _make_obs(["BTCUSDT"])
 
     # Task terminée avec exception
-    exc_task = asyncio.create_task(_done_task_with_exception(RuntimeError("StreamPipelineError: trade dead")))
+    exc_task = asyncio.create_task(
+        _done_task_with_exception(RuntimeError("StreamPipelineError: trade dead"))
+    )
     try:
         await exc_task
     except RuntimeError:
@@ -175,7 +186,9 @@ async def test_reconcile_does_not_recreate_task_still_running():
         await obs._reconcile()
         await obs._restart_dead_tasks()
 
-    assert obs._tasks["BTCUSDT"] is alive_task, "La task vivante ne doit pas être remplacée"
+    assert obs._tasks["BTCUSDT"] is alive_task, (
+        "La task vivante ne doit pas être remplacée"
+    )
     mock_run.assert_not_called()
 
     alive_event.set()
@@ -219,7 +232,9 @@ async def test_reconcile_cancels_and_removes_task_no_longer_watched():
     assert "ETHUSDT" not in obs._tasks, "ETHUSDT doit être retiré de _tasks"
     assert "ETHUSDT" not in obs._engines, "ETHUSDT doit être retiré de _engines"
     # La task est soit cancelled, soit done (selon la vitesse de propagation)
-    assert eth_task.cancelled() or eth_task.done(), "La task ETHUSDT doit avoir été annulée"
+    assert eth_task.cancelled() or eth_task.done(), (
+        "La task ETHUSDT doit avoir été annulée"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +251,9 @@ async def test_dead_task_restart_does_not_wait_for_reselect_interval():
     Ce test vérifie que _restart_dead_tasks() est appelé à chaque flush,
     pas uniquement lors du _reconcile() périodique.
     """
-    obs = _make_obs(["BTCUSDT"], flush_interval_s=0.05, reselect_interval_s=300.0)
+    obs = _make_obs(
+        ["BTCUSDT"], flush_interval_s=0.05, reselect_interval_s=300.0
+    )
 
     # Injecter une task déjà terminée
     done_task = asyncio.create_task(_done_task_cleanly())
@@ -275,5 +292,7 @@ async def test_dead_task_restart_does_not_wait_for_reselect_interval():
 
     elapsed = time.monotonic() - start
     assert restart_event.is_set(), "La task morte doit avoir été relancée"
-    assert elapsed < 5.0, f"Relance trop lente : {elapsed:.2f}s (attendu < 5s, reselect=300s)"
+    assert elapsed < 5.0, (
+        f"Relance trop lente : {elapsed:.2f}s (attendu < 5s, reselect=300s)"
+    )
     assert "BTCUSDT" in run_calls, "_run_symbol doit avoir été appelé pour BTCUSDT"
