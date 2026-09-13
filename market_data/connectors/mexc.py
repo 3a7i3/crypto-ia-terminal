@@ -229,6 +229,26 @@ class MEXCFuturesConnector(BaseConnector):
             ),
         }
 
+    def fetch_supported_symbols(self) -> set[str]:
+        """Retourne le catalogue Futures MEXC public courant, normalisé.
+
+        Cette lecture est volontairement fraîche et indépendante du cache
+        ``_CONTRACT_SPECS`` : le cache sert à la conversion d'unités, tandis
+        que cette méthode sert à prouver qu'un instrument existe *maintenant*
+        avant d'ouvrir ses WebSockets. Aucun fallback statique ne peut prouver
+        l'existence d'un marché.
+        """
+        resp = self._get_json(f"{_BASE}/detail")
+        data = resp.get("data", []) if isinstance(resp, dict) else []
+        symbols = {
+            self._normalize_symbol(str(contract.get("symbol")))
+            for contract in data
+            if contract.get("symbol")
+        }
+        if not symbols:
+            raise RuntimeError("MEXC contract/detail returned no symbols")
+        return symbols
+
     # ------------------------------------------------------------------
     # REST
     # ------------------------------------------------------------------
