@@ -26,6 +26,8 @@ jobs:
           git apply .ops-c/advisor.patch
           git apply --check .ops-c/pre-t1-c.patch
           git apply .ops-c/pre-t1-c.patch
+          git apply --check .ops-c/builder-eof.patch
+          git apply .ops-c/builder-eof.patch
           python -m py_compile core/advisor_loop.py
 
       - name: Diagnose Ruff delta with pinned version
