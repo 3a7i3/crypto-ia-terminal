@@ -64,7 +64,7 @@ class LiveStateStore:
     path: Path | None = None
     exchange: str = DEFAULT_EXCHANGE
     watchlist: list[str] = field(default_factory=list)
-    stream_watchlist: list[str] = field(default_factory=list)
+    stream_watchlist: list[str] | None = None
     unavailable: dict[str, str] = field(default_factory=dict)
     contract_meta: dict = field(default_factory=dict)
     _states: dict[str, dict] = field(default_factory=dict)
@@ -127,7 +127,12 @@ class LiveStateStore:
             symbols[sym] = {**st, "age_ms": age_ms}
 
         requested = self.watchlist or list(symbols)
-        streamable = set(self.stream_watchlist or requested)
+        stream_list = (
+            list(requested)
+            if self.stream_watchlist is None
+            else list(self.stream_watchlist)
+        )
+        streamable = set(stream_list)
         coverage: dict[str, dict] = {}
         n_fresh = 0
         n_stale = 0
@@ -165,7 +170,7 @@ class LiveStateStore:
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "exchange": self.exchange,
             "watchlist": requested,
-            "stream_watchlist": list(self.stream_watchlist or requested),
+            "stream_watchlist": stream_list,
             "coverage": coverage,
             # Provenance scientifique : avec quelle source de contractSize
             # ces observations ont-elles ete calculees (api|fallback|mixed).
