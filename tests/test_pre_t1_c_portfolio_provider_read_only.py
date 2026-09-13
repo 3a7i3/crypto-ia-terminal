@@ -543,21 +543,23 @@ def test_source_confirms_route_and_report_loop_at_cited_lines():
 
 def test_source_confirms_portfolio_bot_construction_at_cited_lines():
     # O-02W-PRE-T1-E REM-C-R1.1: these line citations shift whenever
-    # core/advisor_loop.py gains/loses lines above them — REM-C-R1.1 added
-    # a 33-line `_futures_position_domain()` helper (line ~166) plus a
-    # 1-line net insertion at the PositionManager construction site
-    # (line ~4119, before this citation), shifting this location by +33.
-    # Updated to the current, source-confirmed location (grep-verified,
-    # not guessed).
+    # core/advisor_loop.py gains/loses lines above them. OPS-C-RUNTIME-WIRING
+    # (initial wiring + later dual-domain hardening) added
+    # a pinned-universe certification helper block above this citation
+    # (before `_decision_engine_summary`). Updated to the current,
+    # source-confirmed location (grep-verified, not guessed).
     lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    window = "\n".join(lines[4089:4091])
+    window = "\n".join(lines[4262:4264])
     assert "CommandCenterBot.from_env(" in window
     assert "_portfolio_bot.start()" in window
 
 
 def test_source_confirms_resume_negation_lines_contain_resume_string():
     lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    for line_no in (3970, 3982, 5677):
+    # Shifted by OPS-C-RUNTIME-WIRING's certification helper
+    # block — see comment on
+    # test_source_confirms_portfolio_bot_construction_at_cited_lines above.
+    for line_no in (4143, 4155, 5850):
         assert "/RESUME" in lines[line_no - 1]
 
 
@@ -583,11 +585,11 @@ def test_section_6_cites_current_telegramkillswitch_construction_line():
 
 
 def test_source_confirms_telegramkillswitch_construction_at_cited_line():
-    # Shifted +33 by REM-C-R1.1's `_futures_position_domain()` insertion —
-    # see comment on test_source_confirms_portfolio_bot_construction_at_cited_lines
-    # above.
+    # Shifted by OPS-C-RUNTIME-WIRING's certification helper
+    # block — see comment on
+    # test_source_confirms_portfolio_bot_construction_at_cited_lines above.
     lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    window = "\n".join(lines[3676:3680])
+    window = "\n".join(lines[3850:3854])
     assert "runtime.TelegramKillSwitch(" in window
 
 

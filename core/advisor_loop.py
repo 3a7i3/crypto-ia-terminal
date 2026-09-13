@@ -604,6 +604,179 @@ def _universe_pinned_symbols() -> list[str]:
     return raw.split() if raw else []
 
 
+class _CertificationEvidenceUnavailable(Exception):
+    """Évidence exchange (markets/tickers) inobtenable — distinct d'un
+    symbole invalide. Boot d'un univers épinglé toujours refusé dans ce cas."""
+
+
+# Dernier résultat de certification d'univers épinglé, pour le snapshot
+# scientifique (n_symbols_configured/validated) — None si univers dynamique.
+_UNIVERSE_CERTIFICATION_SNAPSHOT: dict[str, int] | None = None
+
+_UNIVERSE_CERTIFICATION_ARTIFACT_PATH = "databases/universe_certification.json"
+_UNIVERSE_CERTIFICATION_ENVELOPE_SCHEMA = "ops-c-dual-domain-v1"
+
+
+def _validated_in_both_domains(execution_cert: Any, scan_cert: Any) -> list[str]:
+    """Intersection canonique ordonnée des symboles validés dans les deux domaines."""
+    execution_valid = list(execution_cert.validated_symbols)
+    scan_valid = set(scan_cert.validated_symbols)
+    return [
+        symbol
+        for symbol in execution_valid
+        if symbol in scan_valid
+    ]
+
+
+def _persist_universe_certification_artifact(
+    execution_cert: Any,
+    scan_cert: Any,
+    *,
+    path: str | None = None,
+) -> None:
+    """Persiste UNE enveloppe OPS-C atomique contenant les deux domaines.
+
+    L'artefact est observationnel/non financier. Les ``evidence_sha256``
+    calculés par le core restent dans chaque sous-payload sans modification.
+    """
+    path = path or _UNIVERSE_CERTIFICATION_ARTIFACT_PATH
+    validated_both = _validated_in_both_domains(execution_cert, scan_cert)
+    payload = {
+        "schema_version": _UNIVERSE_CERTIFICATION_ENVELOPE_SCHEMA,
+        "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "source": "pinned_universe_boot",
+        "is_certified": bool(
+            execution_cert.is_certified and scan_cert.is_certified
+        ),
+        "configured_count": execution_cert.configured_count,
+        "validated_count": len(validated_both),
+        "validated_symbols": validated_both,
+        "domains": {
+            "scan_data": {
+                "exchange": scan_cert.exchange,
+                "market_type": "spot",
+            },
+            "execution_derivative": {
+                "exchange": execution_cert.exchange,
+                "market_type": "swap/future",
+            },
+        },
+        "scan_data": scan_cert.to_dict(),
+        "execution_derivative": execution_cert.to_dict(),
+    }
+    try:
+        directory = os.path.dirname(os.path.abspath(path))
+        os.makedirs(directory, exist_ok=True)
+        tmp_path = f"{path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, indent=2, ensure_ascii=True)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_path, path)
+    except Exception as exc:
+        log.warning("[Universe] Artefact de certification non écrit: %s", exc)
+
+
+def _certify_pinned_universe(pinned_symbols: list[str]) -> tuple[Any, Any]:
+    """Certifie l'univers épinglé sur les deux frontières nécessaires.
+
+    * scan/data : catalogue MEXC spot réellement utilisé par MarketScanner ;
+    * execution eligibility : catalogue MEXC swap/future PAPER futures.
+
+    Les preuves sont brutes (load_markets + fetch_tickers), sans ranking,
+    volume, spread ou ``discover()``. Une indisponibilité réseau/exchange est
+    classée séparément et le boot fail-closed dans
+    ``_resolve_pinned_universe_boot``.
+    """
+    from core.universe_certification import certify_universe
+    from tools.perp_universe_builder import PerpUniverseBuilder
+
+    builder = PerpUniverseBuilder()
+
+    try:
+        scan_markets, scan_tickers = builder.fetch_raw_evidence(market_type="spot")
+    except Exception as exc:
+        raise _CertificationEvidenceUnavailable(f"scan domain: {exc}") from exc
+
+    try:
+        deriv_markets, deriv_tickers = builder.fetch_raw_evidence(market_type="swap")
+    except Exception as exc:
+        raise _CertificationEvidenceUnavailable(f"execution domain: {exc}") from exc
+
+    scan_cert = certify_universe(
+        pinned_symbols,
+        markets=scan_markets,
+        tickers=scan_tickers,
+        exchange=builder._exchange_id,
+        allowed_market_types=("spot",),
+    )
+    execution_cert = certify_universe(
+        pinned_symbols,
+        markets=deriv_markets,
+        tickers=deriv_tickers,
+        exchange=builder._exchange_id,
+        allowed_market_types=("swap", "future"),
+    )
+
+    # PASS ou FAIL : dès que les deux domaines ont fourni de l'évidence, une
+    # seule enveloppe reproductible est écrite. Aucun second artefact caché.
+    _persist_universe_certification_artifact(execution_cert, scan_cert)
+    return execution_cert, scan_cert
+
+
+def _resolve_pinned_universe_boot(
+    pinned_symbols: list[str],
+) -> tuple[list[str], dict[str, int]]:
+    """Boot boundary OPS-C : les DEUX domaines doivent être certifiés.
+
+    Aucun symbole partiel, aucun fallback vers SYMBOLS_DEFAULT/ranker. Une
+    erreur d'évidence ou un rejet dans l'un des domaines arrête le processus
+    avant le premier scan via ``SystemExit(1)``.
+    """
+    try:
+        execution_cert, scan_cert = _certify_pinned_universe(pinned_symbols)
+    except _CertificationEvidenceUnavailable as exc:
+        log.critical(
+            "[Universe] CERTIFICATION_EVIDENCE_UNAVAILABLE — univers épinglé "
+            "(%d symboles configurés) refusé avant le premier scan: %s",
+            len(pinned_symbols),
+            exc,
+        )
+        raise SystemExit(1) from exc
+
+    for domain_name, cert in (
+        ("execution (swap/perp)", execution_cert),
+        ("scan/données (spot)", scan_cert),
+    ):
+        if not cert.is_certified:
+            log.critical(
+                "[Universe] CERTIFICATION_FAILED domain=%s configured=%d "
+                "validated=%d rejected=%d rejected_symbols=%s issue_codes=%s "
+                "— boot refusé avant le premier scan (fail-closed, aucun "
+                "fallback silencieux)",
+                domain_name,
+                cert.configured_count,
+                cert.validated_count,
+                cert.rejected_count,
+                [r.configured_symbol for r in cert.symbol_results if not r.valid],
+                sorted(
+                    {
+                        issue.value
+                        for r in cert.symbol_results
+                        if not r.valid
+                        for issue in r.issues
+                    }
+                ),
+            )
+            raise SystemExit(1)
+
+    validated_both = _validated_in_both_domains(execution_cert, scan_cert)
+    snapshot = {
+        "n_symbols_configured": execution_cert.configured_count,
+        "n_symbols_validated": len(validated_both),
+    }
+    return validated_both, snapshot
+
 def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
     """Utilitaire testable générique (seuil 66 par défaut, indépendant du seuil
     effectif ATE/RECOVERY). Non utilisé sur le chemin live — voir les appels de
@@ -7476,7 +7649,13 @@ def main(
                                 if _market_ok
                                 else PipelineStageStatus.FAILED
                             ),
-                            f"{len(results)}/{len(symbols)}",
+                            (
+                                f"configured={_UNIVERSE_CERTIFICATION_SNAPSHOT['n_symbols_configured']} "
+                                f"validated={_UNIVERSE_CERTIFICATION_SNAPSHOT['n_symbols_validated']} "
+                                f"scan_successful={len(results)}"
+                                if _UNIVERSE_CERTIFICATION_SNAPSHOT
+                                else f"{len(results)}/{len(symbols)}"
+                            ),
                         ),
                         _stage(
                             "Feature Engine", PipelineStageStatus.OK, "features_ready"
@@ -7905,6 +8084,19 @@ def main(
                     "safe_mode": _runtime_safe_mode_active(),
                     "cycle_duration_ms": _cycle_elapsed_ms,
                     "n_symbols": len(results),
+                    "n_symbols_configured": (
+                        _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_configured"]
+                        if _UNIVERSE_CERTIFICATION_SNAPSHOT
+                        else None
+                    ),
+                    "n_symbols_validated": (
+                        _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_validated"]
+                        if _UNIVERSE_CERTIFICATION_SNAPSHOT
+                        else None
+                    ),
+                    "n_symbols_scan_successful": (
+                        len(results) if _UNIVERSE_CERTIFICATION_SNAPSHOT else None
+                    ),
                     "n_actionable": _n_actionable,
                     "n_traded": _n_traded,
                     "n_refused": _n_actionable - _n_traded,
@@ -8438,11 +8630,17 @@ if __name__ == "__main__":
     # burn-in de fait (13-14/07 : 26h+ sans trade, N figé à 36).
     _universe_pin = _universe_pinned_symbols()
     if _universe_pin:
-        _symbols_from_env = _universe_pin
+        # _resolve_pinned_universe_boot() raises SystemExit(1) fail-closed if
+        # either the execution (swap/perp) or scan/données (spot) domain is
+        # not fully certified — no silent fallback, no partial universe.
+        _symbols_from_env, _UNIVERSE_CERTIFICATION_SNAPSHOT = (
+            _resolve_pinned_universe_boot(_universe_pin)
+        )
         log.info(
-            "[Universe] ÉPINGLÉ (ADR-0015): %d symboles fixes — "
-            "ranker et découverte dynamique ignorés",
-            len(_universe_pin),
+            "[Universe] ÉPINGLÉ (ADR-0015) CERTIFIÉ (OPS-C, exécution + scan): "
+            "configured=%d validated=%d — ranker et découverte dynamique ignorés",
+            _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_configured"],
+            _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_validated"],
         )
 
     # ── MarketUniverseRanker — sélection dynamique des symboles ──────────────

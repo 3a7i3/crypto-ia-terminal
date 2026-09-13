@@ -35,7 +35,7 @@ import math
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Literal, Optional
 
 
 @dataclass
@@ -99,12 +99,15 @@ class PerpUniverseBuilder:
         "reliability": 0.10,
     }
 
-    def __init__(self, exchange_id: Optional[str] = None) -> None:
+    def __init__(
+        self, exchange_id: Optional[str] = None, exchange: Optional[object] = None
+    ) -> None:
         self._exchange_id = (
             exchange_id or os.getenv("PERP_BUILDER_EXCHANGE", "mexc")
         ).lower()
         self._use_swap = os.getenv("PERP_BUILDER_USE_SWAP", "false").lower() == "true"
-        self._exchange = None
+        # Injection pour les tests (faux exchange CCXT-like) — bypass ccxt.
+        self._exchange = exchange
         # Quotes acceptées — peut être écrasé par PerpUniverseService
         self._allowed_quotes: frozenset[str] = self._DEFAULT_QUOTES
 
@@ -184,6 +187,34 @@ class PerpUniverseBuilder:
         """Retourne la liste des symboles qualifiés (format CCXT BTC/USDT)."""
         return [c.symbol for c in self.discover(top_n=top_n, **kwargs)]
 
+    def fetch_raw_evidence(
+        self, *, market_type: Literal["spot", "swap"]
+    ) -> tuple[dict, dict]:
+        """Évidence brute non filtrée pour la certification OPS-C.
+
+        Le domaine est explicite et fermé : ``market_type`` vaut uniquement
+        ``"spot"`` (scan/données) ou ``"swap"`` (éligibilité d'exécution
+        dérivée). Aucun filtrage, ranking, seuil de volume ou de spread n'est
+        appliqué : la méthode retourne exactement ``load_markets()`` puis
+        ``fetch_tickers()``.
+
+        Cette API est indépendante de ``PERP_BUILDER_USE_SWAP`` ; ce réglage
+        historique reste réservé à ``discover()`` afin que la certification
+        ne déduise jamais implicitement son domaine d'observation.
+        """
+        if market_type not in {"spot", "swap"}:
+            raise ValueError(
+                f"market_type invalide: {market_type!r} (attendu: 'spot' ou 'swap')"
+            )
+        exchange = (
+            self._exchange
+            if self._exchange is not None
+            else self._build_evidence_exchange(market_type=market_type)
+        )
+        markets = exchange.load_markets()
+        tickers = exchange.fetch_tickers()
+        return markets, tickers
+
     def save(self, candidates: list[PerpCandidate], path: str) -> None:
         """Sérialise les candidats en JSON."""
         data = {
@@ -234,28 +265,56 @@ class PerpUniverseBuilder:
                 f"{d.get('reliability_score', 0):>5.0f}"
             )
         print(f"{'═'*w}")
-        print(f"  V=Volume  S=Spread  V2=Volatilité  R=Fiabilité")
+        print("  V=Volume  S=Spread  V2=Volatilité  R=Fiabilité")
         print(
             f"  Min vol: ${self.MIN_VOL_USD/1e6:.1f}M  Max spread: {self.MAX_SPREAD_PCT}%\n"  # noqa: E501
         )
 
     # ── Internals ─────────────────────────────────────────────────────────────
 
+    def _build_exchange(self, *, use_swap: bool):
+        """Construction historique utilisée par discover(); sémantique inchangée."""
+        try:
+            import ccxt
+        except ImportError as exc:
+            raise ImportError("ccxt requis : pip install ccxt") from exc
+
+        cls = getattr(ccxt, self._exchange_id, None)
+        if cls is None:
+            raise ValueError(f"Exchange inconnu : {self._exchange_id}")
+
+        config: dict = {"enableRateLimit": True}
+        if use_swap:
+            config["options"] = {"defaultType": "swap"}
+        return cls(config)
+
+    def _build_evidence_exchange(
+        self, *, market_type: Literal["spot", "swap"]
+    ):
+        """Construit un exchange de preuve avec defaultType toujours explicite."""
+        if market_type not in {"spot", "swap"}:
+            raise ValueError(
+                f"market_type invalide: {market_type!r} (attendu: 'spot' ou 'swap')"
+            )
+        try:
+            import ccxt
+        except ImportError as exc:
+            raise ImportError("ccxt requis : pip install ccxt") from exc
+
+        cls = getattr(ccxt, self._exchange_id, None)
+        if cls is None:
+            raise ValueError(f"Exchange inconnu : {self._exchange_id}")
+
+        return cls(
+            {
+                "enableRateLimit": True,
+                "options": {"defaultType": market_type},
+            }
+        )
+
     def _get_exchange(self):
         if self._exchange is None:
-            try:
-                import ccxt
-            except ImportError as exc:
-                raise ImportError("ccxt requis : pip install ccxt") from exc
-
-            cls = getattr(ccxt, self._exchange_id, None)
-            if cls is None:
-                raise ValueError(f"Exchange inconnu : {self._exchange_id}")
-
-            config: dict = {"enableRateLimit": True}
-            if self._use_swap:
-                config["options"] = {"defaultType": "swap"}
-            self._exchange = cls(config)
+            self._exchange = self._build_exchange(use_swap=self._use_swap)
         return self._exchange
 
     def _is_eligible_symbol(self, sym: str) -> bool:
