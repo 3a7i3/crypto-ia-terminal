@@ -46,7 +46,7 @@ from typing import Any, Optional
 
 _log = logging.getLogger(__name__)
 
-_TRADES_LOG = Path(os.getenv("PAPER_TRADE_LOG", "databases/paper_trades.jsonl"))
+_DEFAULT_TRADES_LOG = "databases/paper_trades.jsonl"
 _PAPER_CAPITAL = float(os.getenv("WALLET_PAPER_CAPITAL", "100"))
 _CACHE_TTL_S = float(os.getenv("WALLET_CACHE_TTL_S", "30"))
 
@@ -54,13 +54,25 @@ _CACHE_TTL_S = float(os.getenv("WALLET_CACHE_TTL_S", "30"))
 MIN_CAPITAL_X = 1.0
 
 
-def _read_ledger_pnl() -> float:
+def _resolve_trades_log(log_path: str | Path | None = None) -> Path:
+    """Résout le chemin du ledger paper AU MOMENT DE L'APPEL (DS-001/ADR-0008).
+
+    Priorité : argument explicite > PAPER_TRADE_LOG (lu ici, jamais à
+    l'import) > défaut _DEFAULT_TRADES_LOG. Aucun Path dérivé de l'env n'est
+    figé en constante de module — un monkeypatch/setenv("PAPER_TRADE_LOG", …)
+    fait après l'import de ce module doit rester effectif pour tout appelant.
+    """
+    return Path(log_path or os.getenv("PAPER_TRADE_LOG", _DEFAULT_TRADES_LOG))
+
+
+def _read_ledger_pnl(log_path: str | Path | None = None) -> float:
     """Somme des pnl_usd de tous les trades CLOSE du ledger paper."""
-    if not _TRADES_LOG.exists():
+    trades_log = _resolve_trades_log(log_path)
+    if not trades_log.exists():
         return 0.0
     total = 0.0
     try:
-        for line in _TRADES_LOG.read_text(encoding="utf-8").splitlines():
+        for line in trades_log.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line:
                 continue

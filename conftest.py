@@ -59,6 +59,22 @@ _SCIENTIFIC_DATA_GUARD_BASELINE_PATH = (
 # d'exécution (CI, VPS...).
 os.environ.setdefault("OBS_LOG_ROOT", tempfile.mkdtemp(prefix="pytest_obs_logs_"))
 
+# T1-HERM-01-R1 : affectation INCONDITIONNELLE (pas de setdefault()).
+# infra/wallet_sync.py et paper_trading/dataset_validator.py lisent
+# PAPER_TRADE_LOG À L'APPEL (plus de constante de module figée à l'import)
+# — mais poser cette valeur ici, avant toute collection de test, protège
+# aussi tout lecteur passif résiduel qui lirait PAPER_TRADE_LOG à l'import
+# (collection), avant même que la fixture autouse _isolate_paper_recorder
+# ci-dessous ne s'exécute. setdefault() serait insuffisant : si l'environnement
+# de lancement de pytest définit déjà PAPER_TRADE_LOG (CI, VPS, shell de
+# l'opérateur...), setdefault() la préserverait telle quelle, et un lecteur
+# résolvant ce chemin à l'import se lierait alors au ledger réel/runtime —
+# exactement le défaut DS-001 que T1-HERM-01 corrige. L'affectation directe
+# écrase systématiquement toute valeur ambiante avant la collection.
+os.environ["PAPER_TRADE_LOG"] = os.path.join(
+    tempfile.mkdtemp(prefix="pytest_paper_trade_log_"), "paper_trades.jsonl"
+)
+
 _pytest_data_dir = tempfile.mkdtemp(prefix="pytest_data_")
 os.environ.setdefault(
     "REJECTION_STORE_DIR", os.path.join(_pytest_data_dir, "rejections")
