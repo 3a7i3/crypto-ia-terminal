@@ -11,12 +11,15 @@ invariants démontrés par la capture VPS OPS-D du 2026-09-13 :
 
 from __future__ import annotations
 
+import asyncio
+import json
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from market_data.connectors.mexc import MEXCFuturesConnector
+from trade_analysis.integrations import dashboard_adapter as da
 from trade_analysis.observatory import LiveStateStore, Observatory
 
 
@@ -90,6 +93,22 @@ def test_snapshot_separates_requested_streamable_and_unavailable(tmp_path):
     assert snap["stats"]["symbols_unavailable"] == 1
 
 
+def test_explicit_empty_stream_watchlist_stays_zero(tmp_path):
+    store = LiveStateStore(path=tmp_path / "state.json", exchange="mexc")
+    store.set_watchlist(
+        ["BTCUSDT"],
+        stream_symbols=[],
+        unavailable={"BTCUSDT": "market_catalog_unavailable:RuntimeError"},
+    )
+
+    snap = store.snapshot()
+
+    assert snap["stream_watchlist"] == []
+    assert snap["stats"]["symbols_streamable"] == 0
+    assert snap["coverage"]["BTCUSDT"]["stream_requested"] is False
+    assert snap["coverage"]["BTCUSDT"]["status"] == "UNAVAILABLE"
+
+
 def test_snapshot_marks_old_market_timestamp_stale(tmp_path):
     store = LiveStateStore(path=tmp_path / "state.json", exchange="mexc")
     store.set_watchlist(["BTCUSDT"])
@@ -100,6 +119,47 @@ def test_snapshot_marks_old_market_timestamp_stale(tmp_path):
     assert snap["coverage"]["BTCUSDT"]["status"] == "STALE"
     assert snap["stats"]["symbols_fresh"] == 0
     assert snap["stats"]["symbols_stale"] == 1
+
+
+def test_dashboard_status_exposes_partial_coverage(tmp_path):
+    path = tmp_path / "state.json"
+    store = LiveStateStore(path=path, exchange="mexc")
+    store.set_watchlist(
+        ["BTCUSDT", "USD1USDT"],
+        stream_symbols=["BTCUSDT"],
+        unavailable={"USD1USDT": "not_in_mexc_futures_catalog"},
+    )
+    store.update(_DummyPF("BTCUSDT"))
+    store.flush()
+
+    status = da.lmi_status(path)
+
+    assert status["coverage_status"] == "PARTIAL"
+    assert status["symbols_watched"] == 2
+    assert status["symbols_streamable"] == 1
+    assert status["symbols_fresh"] == 1
+    assert status["symbols_unavailable"] == 1
+
+
+def test_dashboard_adapter_ignores_legacy_ghost_states(tmp_path):
+    path = tmp_path / "state.json"
+    payload = {
+        "updated_at": "2026-09-13T00:00:00+00:00",
+        "exchange": "mexc",
+        "watchlist": ["BTCUSDT"],
+        "symbols": {
+            "BTCUSDT": {"age_ms": 1000, "state": "quiet"},
+            "OLDUSDT": {"age_ms": 1000, "state": "quiet"},
+        },
+        "stats": {"symbols_watched": 1, "symbols_active": 2},
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    table = da.lmi_table(path)
+
+    assert table["count"] == 1
+    assert table["data"][0]["symbol"] == "BTCUSDT"
+    assert da.lmi_symbol("OLDUSDT", path) is None
 
 
 def test_mexc_public_catalog_normalizes_symbols(monkeypatch):
@@ -178,14 +238,14 @@ async def test_reconcile_starts_only_streamable_symbols():
         )
     )
 
-    blocker = __import__("asyncio").Event()
+    blocker = asyncio.Event()
 
     async def _run_symbol(_symbol: str) -> None:
         await blocker.wait()
 
     with patch.object(obs, "_run_symbol", side_effect=_run_symbol):
         await obs._reconcile()
-        await __import__("asyncio").sleep(0)
+        await asyncio.sleep(0)
 
     try:
         assert set(obs._tasks) == {"BTCUSDT"}
