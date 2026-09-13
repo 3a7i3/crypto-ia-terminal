@@ -187,21 +187,28 @@ class PerpUniverseBuilder:
         """Retourne la liste des symboles qualifiés (format CCXT BTC/USDT)."""
         return [c.symbol for c in self.discover(top_n=top_n, **kwargs)]
 
-    def fetch_raw_evidence(self) -> tuple[dict, dict]:
+    def fetch_raw_evidence(self, *, use_swap: bool = True) -> tuple[dict, dict]:
         """Évidence brute non filtrée — OPS-C universe certification.
 
         Aucun filtrage de candidats, aucun ranking, aucun seuil de volume ou
         de spread : cette méthode retourne exactement ``load_markets()`` et
-        ``fetch_tickers()``. Contrairement à ``discover()``, interroge
-        toujours le domaine dérivé (swap/perp) attendu par l'exécution PAPER
-        futures, indépendamment du réglage ``PERP_BUILDER_USE_SWAP`` (qui ne
-        concerne que la découverte scorée) — la certification ne doit jamais
-        inspecter le catalogue spot.
+        ``fetch_tickers()``. Contrairement à ``discover()``, le domaine
+        interrogé (``use_swap``) est explicite et indépendant du réglage
+        ``PERP_BUILDER_USE_SWAP`` (qui ne concerne que la découverte
+        scorée) — la certification ne doit jamais deviner un domaine.
+
+        ``use_swap=True`` (défaut) — domaine dérivé (swap/perp) attendu par
+        l'exécution PAPER futures. ``use_swap=False`` — domaine spot, celui
+        que ``quant_hedge_ai.agents.market.market_scanner.MarketScanner``
+        interroge réellement (``defaultType="spot"`` y est câblé en dur) :
+        un symbole certifié uniquement côté dérivé peut être absent du
+        catalogue que le scanner utilise pour les données — OPS-C R1 certifie
+        les deux domaines séparément pour éliminer cette contamination.
         """
         exchange = (
             self._exchange
             if self._exchange is not None
-            else self._build_exchange(use_swap=True)
+            else self._build_exchange(use_swap=use_swap)
         )
         markets = exchange.load_markets()
         tickers = exchange.fetch_tickers()

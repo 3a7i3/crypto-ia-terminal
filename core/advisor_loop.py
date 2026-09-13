@@ -641,32 +641,127 @@ def _persist_universe_certification_artifact(
         log.warning("[Universe] Artefact de certification non écrit: %s", exc)
 
 
-def _certify_pinned_universe(pinned_symbols: list[str]) -> Any:
-    """Certifie un univers épinglé (OPS-C) contre l'évidence exchange brute.
+def _certify_pinned_universe(pinned_symbols: list[str]) -> tuple[Any, Any]:
+    """Certifie un univers épinglé (OPS-C) sur les DEUX domaines exchange.
+
+    R1 (revue MASTER) : la certification initiale ne validait que le domaine
+    dérivé (swap/perp), attendu par l'exécution PAPER futures. Mais
+    ``quant_hedge_ai.agents.market.market_scanner.MarketScanner`` — le
+    scanner qui alimente réellement les données de scan — construit sa
+    session CCXT avec ``defaultType="spot"`` codé en dur. Un symbole certifié
+    uniquement côté dérivé pouvait donc être absent du catalogue spot que le
+    scanner interroge, réintroduisant la contamination de dénominateur
+    qu'OPS-C doit éliminer. Les deux domaines sont donc certifiés séparément
+    et retournés séparément ; le boot exige que les deux soient certifiés
+    (voir ``_resolve_pinned_universe_boot``).
 
     Boot boundary fail-closed : lève ``_CertificationEvidenceUnavailable`` si
-    l'évidence (markets/tickers) est inobtenable — jamais interprété comme
-    "symbole invalide". Persiste l'artefact PASS ou FAIL puis retourne le
-    ``UniverseCertification`` (voir core.universe_certification, seule
-    autorité scientifique sur le contrat de certification).
+    l'évidence (markets/tickers) d'un domaine est inobtenable — jamais
+    interprété comme "symbole invalide". Persiste un artefact PASS ou FAIL
+    par domaine. La sémantique de certification elle-même reste entièrement
+    définie par core.universe_certification (seule autorité scientifique).
     """
     from core.universe_certification import certify_universe
     from tools.perp_universe_builder import PerpUniverseBuilder
 
     builder = PerpUniverseBuilder()
-    try:
-        markets, tickers = builder.fetch_raw_evidence()
-    except Exception as exc:
-        raise _CertificationEvidenceUnavailable(str(exc)) from exc
 
-    cert = certify_universe(
+    # Domaine 1 — exécution dérivée (swap/perp), attendu par PAPER futures.
+    try:
+        deriv_markets, deriv_tickers = builder.fetch_raw_evidence(use_swap=True)
+    except Exception as exc:
+        raise _CertificationEvidenceUnavailable(f"execution domain: {exc}") from exc
+
+    execution_cert = certify_universe(
         pinned_symbols,
-        markets=markets,
-        tickers=tickers,
+        markets=deriv_markets,
+        tickers=deriv_tickers,
         exchange=builder._exchange_id,
     )
-    _persist_universe_certification_artifact(cert, source="pinned_universe_boot")
-    return cert
+    _persist_universe_certification_artifact(
+        execution_cert,
+        source="pinned_universe_boot_execution",
+        path=_UNIVERSE_CERTIFICATION_ARTIFACT_PATH,
+    )
+
+    # Domaine 2 — scan/données, le domaine réellement interrogé par
+    # MarketScanner (spot codé en dur) : mêmes checks de certification,
+    # simplement contre le catalogue spot plutôt que dérivé.
+    try:
+        scan_markets, scan_tickers = builder.fetch_raw_evidence(use_swap=False)
+    except Exception as exc:
+        raise _CertificationEvidenceUnavailable(f"scan domain: {exc}") from exc
+
+    scan_cert = certify_universe(
+        pinned_symbols,
+        markets=scan_markets,
+        tickers=scan_tickers,
+        exchange=builder._exchange_id,
+        allowed_market_types=("spot",),
+    )
+    _persist_universe_certification_artifact(
+        scan_cert,
+        source="pinned_universe_boot_scan",
+        path=_UNIVERSE_CERTIFICATION_ARTIFACT_PATH.replace(
+            ".json", "_scan_domain.json"
+        ),
+    )
+
+    return execution_cert, scan_cert
+
+
+def _resolve_pinned_universe_boot(
+    pinned_symbols: list[str],
+) -> tuple[list[str], dict[str, int]]:
+    """Boot boundary (OPS-C) : résout un univers épinglé, fail-closed.
+
+    Retourne ``(validated_symbols, snapshot)`` seulement si LES DEUX domaines
+    (exécution dérivée + scan/données) sont certifiés. Sinon lève
+    ``SystemExit(1)`` après un log CRITICAL — jamais de fallback silencieux
+    vers SYMBOLS_DEFAULT ou le ranker dynamique, jamais d'univers partiel.
+    """
+    try:
+        execution_cert, scan_cert = _certify_pinned_universe(pinned_symbols)
+    except _CertificationEvidenceUnavailable as exc:
+        log.critical(
+            "[Universe] CERTIFICATION_EVIDENCE_UNAVAILABLE — univers épinglé "
+            "(%d symboles configurés) refusé avant le premier scan: %s",
+            len(pinned_symbols),
+            exc,
+        )
+        raise SystemExit(1) from exc
+
+    for domain_name, cert in (
+        ("execution (swap/perp)", execution_cert),
+        ("scan/données (spot)", scan_cert),
+    ):
+        if not cert.is_certified:
+            log.critical(
+                "[Universe] CERTIFICATION_FAILED domain=%s configured=%d "
+                "validated=%d rejected=%d rejected_symbols=%s issue_codes=%s "
+                "— boot refusé avant le premier scan (fail-closed, aucun "
+                "fallback silencieux)",
+                domain_name,
+                cert.configured_count,
+                cert.validated_count,
+                cert.rejected_count,
+                [r.configured_symbol for r in cert.symbol_results if not r.valid],
+                sorted(
+                    {
+                        issue.value
+                        for r in cert.symbol_results
+                        if not r.valid
+                        for issue in r.issues
+                    }
+                ),
+            )
+            raise SystemExit(1)
+
+    snapshot = {
+        "n_symbols_configured": execution_cert.configured_count,
+        "n_symbols_validated": execution_cert.validated_count,
+    }
+    return list(execution_cert.validated_symbols), snapshot
 
 
 def _decision_engine_summary(results: list[Any]) -> tuple[str, str]:
@@ -8520,47 +8615,17 @@ if __name__ == "__main__":
     # burn-in de fait (13-14/07 : 26h+ sans trade, N figé à 36).
     _universe_pin = _universe_pinned_symbols()
     if _universe_pin:
-        try:
-            _cert = _certify_pinned_universe(_universe_pin)
-        except _CertificationEvidenceUnavailable as _ceu:
-            log.critical(
-                "[Universe] CERTIFICATION_EVIDENCE_UNAVAILABLE — univers épinglé "
-                "(%d symboles configurés) refusé avant le premier scan: %s",
-                len(_universe_pin),
-                _ceu,
-            )
-            sys.exit(1)
-
-        if not _cert.is_certified:
-            log.critical(
-                "[Universe] CERTIFICATION_FAILED configured=%d validated=%d "
-                "rejected=%d rejected_symbols=%s issue_codes=%s — boot refusé "
-                "avant le premier scan (fail-closed, aucun fallback silencieux)",
-                _cert.configured_count,
-                _cert.validated_count,
-                _cert.rejected_count,
-                [r.configured_symbol for r in _cert.symbol_results if not r.valid],
-                sorted(
-                    {
-                        issue.value
-                        for r in _cert.symbol_results
-                        if not r.valid
-                        for issue in r.issues
-                    }
-                ),
-            )
-            sys.exit(1)
-
-        _symbols_from_env = list(_cert.validated_symbols)
-        _UNIVERSE_CERTIFICATION_SNAPSHOT = {
-            "n_symbols_configured": _cert.configured_count,
-            "n_symbols_validated": _cert.validated_count,
-        }
+        # _resolve_pinned_universe_boot() raises SystemExit(1) fail-closed if
+        # either the execution (swap/perp) or scan/données (spot) domain is
+        # not fully certified — no silent fallback, no partial universe.
+        _symbols_from_env, _UNIVERSE_CERTIFICATION_SNAPSHOT = (
+            _resolve_pinned_universe_boot(_universe_pin)
+        )
         log.info(
-            "[Universe] ÉPINGLÉ (ADR-0015) CERTIFIÉ (OPS-C): configured=%d "
-            "validated=%d — ranker et découverte dynamique ignorés",
-            _cert.configured_count,
-            _cert.validated_count,
+            "[Universe] ÉPINGLÉ (ADR-0015) CERTIFIÉ (OPS-C, exécution + scan): "
+            "configured=%d validated=%d — ranker et découverte dynamique ignorés",
+            _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_configured"],
+            _UNIVERSE_CERTIFICATION_SNAPSHOT["n_symbols_validated"],
         )
 
     # ── MarketUniverseRanker — sélection dynamique des symboles ──────────────
