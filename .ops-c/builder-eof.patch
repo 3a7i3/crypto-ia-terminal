@@ -1,9 +1,0 @@
-diff --git a/tools/perp_universe_builder.py b/tools/perp_universe_builder.py
---- a/tools/perp_universe_builder.py
-+++ b/tools/perp_universe_builder.py
-@@ -421,4 +421,4 @@
-     if args.save:
-         builder.save(candidates, args.save)
--        print(f"Sauvegardé → {args.save}")
-\ No newline at end of file
-+        print(f"Sauvegardé → {args.save}")
