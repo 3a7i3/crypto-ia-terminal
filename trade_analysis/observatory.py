@@ -37,6 +37,7 @@ from trade_analysis.recorder import LMIRecorder
 from trade_analysis.selection import SymbolSelector
 
 DEFAULT_EXCHANGE = os.getenv("LMI_EXCHANGE", "mexc")
+STALE_MS = 15_000
 
 
 def _resolve_live_state_file() -> Path:
@@ -54,11 +55,17 @@ class LiveStateStore:
     """
     Maintient le dernier PressureField par symbole et le persiste en JSON
     de facon atomique (ecriture temp + rename).
+
+    ``watchlist`` représente les symboles demandés par le sélecteur.
+    ``stream_watchlist`` représente le sous-ensemble réellement souscrit.
+    ``unavailable`` documente explicitement les symboles refusés avant stream.
     """
 
     path: Path | None = None
     exchange: str = DEFAULT_EXCHANGE
     watchlist: list[str] = field(default_factory=list)
+    stream_watchlist: list[str] = field(default_factory=list)
+    unavailable: dict[str, str] = field(default_factory=dict)
     contract_meta: dict = field(default_factory=dict)
     _states: dict[str, dict] = field(default_factory=dict)
     _event_count: int = 0
@@ -70,11 +77,32 @@ class LiveStateStore:
             self.path = Path(self.path)
 
     def update(self, pf: PressureField) -> None:
+        # Après une rotation de watchlist, une task annulée peut encore rendre la
+        # main une fois. Ne jamais réintroduire un symbole hors population active.
+        if self.watchlist and pf.symbol not in self.watchlist:
+            return
         self._states[pf.symbol] = pf.as_dict()
         self._event_count += 1
 
-    def set_watchlist(self, symbols: list[str]) -> None:
-        self.watchlist = list(symbols)
+    def set_watchlist(
+        self,
+        symbols: list[str],
+        *,
+        stream_symbols: list[str] | None = None,
+        unavailable: dict[str, str] | None = None,
+    ) -> None:
+        self.watchlist = list(dict.fromkeys(symbols))
+        self.stream_watchlist = list(
+            dict.fromkeys(self.watchlist if stream_symbols is None else stream_symbols)
+        )
+        self.unavailable = dict(unavailable or {})
+
+        # Le sidecar est un état du présent, pas un historique implicite.
+        # L'historique durable reste le ledger gzip du Recorder.
+        wanted = set(self.watchlist)
+        self._states = {
+            sym: state for sym, state in self._states.items() if sym in wanted
+        }
 
     def set_contract_meta(self, meta: dict) -> None:
         """Provenance des contractSize (source api|fallback|mixed) — audit."""
@@ -82,22 +110,76 @@ class LiveStateStore:
 
     def snapshot(self) -> dict:
         now_ms = int(time.time() * 1000)
-        symbols = {}
-        for sym, st in self._states.items():
-            age_ms = now_ms - int(st.get("timestamp_ms", now_ms))
+        symbols: dict[str, dict] = {}
+
+        # Compatibilité des usages de test/dev où aucune watchlist n'a encore
+        # été posée : dans ce cas on conserve les états explicitement injectés.
+        state_items = self._states.items()
+        if self.watchlist:
+            state_items = (
+                (sym, self._states[sym])
+                for sym in self.watchlist
+                if sym in self._states
+            )
+
+        for sym, st in state_items:
+            age_ms = max(0, now_ms - int(st.get("timestamp_ms", now_ms)))
             symbols[sym] = {**st, "age_ms": age_ms}
+
+        requested = self.watchlist or list(symbols)
+        streamable = set(self.stream_watchlist or requested)
+        coverage: dict[str, dict] = {}
+        n_fresh = 0
+        n_stale = 0
+        n_unavailable = 0
+
+        for sym in requested:
+            reason = self.unavailable.get(sym)
+            st = symbols.get(sym)
+            if reason:
+                status = "UNAVAILABLE"
+                age_ms = None
+                n_unavailable += 1
+            elif st is None:
+                status = "UNAVAILABLE"
+                reason = "no_pressure_field"
+                age_ms = None
+                n_unavailable += 1
+            else:
+                age_ms = int(st.get("age_ms", STALE_MS + 1))
+                if age_ms <= STALE_MS:
+                    status = "LIVE"
+                    n_fresh += 1
+                else:
+                    status = "STALE"
+                    n_stale += 1
+
+            coverage[sym] = {
+                "status": status,
+                "age_ms": age_ms,
+                "stream_requested": sym in streamable,
+                "reason": reason,
+            }
+
         return {
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "exchange": self.exchange,
-            "watchlist": self.watchlist,
+            "watchlist": requested,
+            "stream_watchlist": list(self.stream_watchlist or requested),
+            "coverage": coverage,
             # Provenance scientifique : avec quelle source de contractSize
             # ces observations ont-elles ete calculees (api|fallback|mixed).
             "contract_meta": self.contract_meta,
             "symbols": symbols,
             "stats": {
+                # Compteur de sortie LMI (PressureField), pas événements WS bruts.
                 "events": self._event_count,
-                "symbols_active": len(self._states),
-                "symbols_watched": len(self.watchlist),
+                "symbols_active": len(symbols),
+                "symbols_watched": len(requested),
+                "symbols_streamable": len(streamable),
+                "symbols_fresh": n_fresh,
+                "symbols_stale": n_stale,
+                "symbols_unavailable": n_unavailable,
             },
         }
 
@@ -168,6 +250,37 @@ class Observatory:
             return HyperliquidConnector()
         raise ValueError(f"Exchange non supporte: {self.exchange}")
 
+    async def _validate_watchlist(
+        self, symbols: list[str]
+    ) -> tuple[list[str], dict[str, str]]:
+        """Valide l'existence des instruments avant d'ouvrir les WebSockets.
+
+        Pour MEXC, la preuve est le catalogue Futures public ``contract/detail``.
+        Une indisponibilité du catalogue est fail-closed pour cette itération :
+        le service reste vivant et réessaiera au prochain reconcile, mais aucun
+        symbole n'est présenté comme streamable sans preuve d'existence.
+        """
+        if self.exchange != "mexc":
+            return list(symbols), {}
+
+        connector = self._make_connector()
+        loop = asyncio.get_running_loop()
+        try:
+            supported = await loop.run_in_executor(
+                None, connector.fetch_supported_symbols
+            )
+        except Exception as exc:
+            reason = f"market_catalog_unavailable:{type(exc).__name__}"
+            return [], {sym: reason for sym in symbols}
+
+        streamable = [sym for sym in symbols if sym in supported]
+        unavailable = {
+            sym: "not_in_mexc_futures_catalog"
+            for sym in symbols
+            if sym not in supported
+        }
+        return streamable, unavailable
+
     def _contract_provenance(self) -> dict:
         """Provenance des contractSize du connecteur actif (pour le sidecar)."""
         if self.exchange == "mexc":
@@ -217,24 +330,34 @@ class Observatory:
     async def _reconcile(self) -> None:
         """Aligne les taches actives sur la watchlist courante.
 
-        Recalcule la watchlist, arrête les symboles sortants et démarre
-        les nouveaux.  Appelée au démarrage puis tous les reselect_interval_s.
-        La détection des tasks mortes est déléguée à _restart_dead_tasks(),
-        qui tourne à chaque flush_interval_s.
+        Recalcule la watchlist, valide l'existence des instruments MEXC,
+        arrête les symboles sortants/non supportés et démarre les nouveaux.
+        La détection des tasks mortes reste déléguée à _restart_dead_tasks().
         """
         watchlist = self.compute_watchlist()
-        self.store.set_watchlist(watchlist)
-        wanted = set(watchlist)
+        stream_watchlist, unavailable = await self._validate_watchlist(watchlist)
+        self.store.set_watchlist(
+            watchlist,
+            stream_symbols=stream_watchlist,
+            unavailable=unavailable,
+        )
+        wanted = set(stream_watchlist)
+
+        if unavailable:
+            summary = ", ".join(
+                f"{sym}={reason}" for sym, reason in sorted(unavailable.items())
+            )
+            print(f"[Observatory] symbols unavailable: {summary}")
 
         for sym in list(self._tasks):
             task = self._tasks[sym]
             if sym not in wanted:
-                # Symbole sorti de la watchlist : annuler et retirer
+                # Symbole sorti de la watchlist ou non supporté : annuler/retirer.
                 task.cancel()
                 self._tasks.pop(sym, None)
                 self._engines.pop(sym, None)
 
-        for sym in watchlist:
+        for sym in stream_watchlist:
             if sym not in self._tasks:
                 self._tasks[sym] = asyncio.create_task(self._run_symbol(sym))
 
@@ -274,8 +397,10 @@ def _cmd_once(args: argparse.Namespace) -> None:
     candidates = selector.select(limit=args.max_symbols)
     store.set_watchlist([c.symbol for c in candidates])
     store.flush()
-    print(f"[Observatory] watchlist ({len(candidates)}): "
-          f"{', '.join(c.symbol for c in candidates) or '(vide)'}")
+    print(
+        f"[Observatory] watchlist ({len(candidates)}): "
+        f"{', '.join(c.symbol for c in candidates) or '(vide)'}"
+    )
     print(f"[Observatory] sidecar -> {store.path}")
 
 
@@ -306,7 +431,7 @@ def _load_env(path: str | Path = ".env") -> None:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             if line.startswith("export "):
-                line = line[len("export "):]
+                line = line[len("export ") :]
             key, _, value = line.partition("=")
             key = key.strip()
             value = value.strip().strip('"').strip("'")
