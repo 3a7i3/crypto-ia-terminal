@@ -1,15 +1,17 @@
-name: OPS-C Export Branch
+name: OPS-C Finalize R1
 
 on:
   push:
     branches:
       - master/ops-c-market-universe-01
+    paths:
+      - .ops-c-finalize-trigger
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  export:
+  finalize:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -18,17 +20,54 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Record exact SHA
-        run: git rev-parse HEAD > OPS_C_EXPORT_SHA.txt
-
-      - name: Package repository snapshot
+      - name: Apply reviewed R1 patches
         run: |
-          tar --exclude=.git -czf "$RUNNER_TEMP/ops-c-branch-snapshot.tgz" .
+          git apply --check .ops-c/advisor.patch
+          git apply .ops-c/advisor.patch
+          git apply --check .ops-c/pre-t1-c.patch
+          git apply .ops-c/pre-t1-c.patch
+          python -m py_compile core/advisor_loop.py
 
-      - name: Upload snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: ops-c-branch-snapshot-${{ github.sha }}
-          path: ${{ runner.temp }}/ops-c-branch-snapshot.tgz
-          if-no-files-found: error
-          retention-days: 1
+      - name: Regenerate Ruff baseline with pinned version
+        run: |
+          cp .ci/ruff_baseline.json "$RUNNER_TEMP/ruff-old.json"
+          python -m pip install --quiet ruff==0.15.8
+          python scripts/ci/ruff_baseline_gate.py generate
+          python - <<'PY'
+          import collections
+          import json
+          import os
+
+          old = json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 'ruff-old.json'), encoding='utf-8'))
+          new = json.load(open('.ci/ruff_baseline.json', encoding='utf-8'))
+          assert old['count'] == 957, old['count']
+          assert new['count'] == 957, new['count']
+
+          def signature(items):
+              out = []
+              for item in items:
+                  path, _line, _col, code = item.rsplit(':', 3)
+                  out.append((path, code))
+              return collections.Counter(out)
+
+          assert signature(old['findings']) == signature(new['findings']), (
+              'Ruff debt changed semantically; refusing automatic baseline update'
+          )
+          PY
+          python scripts/ci/ruff_baseline_gate.py check
+
+      - name: Remove temporary finalization machinery
+        run: |
+          rm -rf .ops-c
+          rm -f .ops-c-finalize-trigger
+          rm -f .github/workflows/ops-c-export-branch.yml
+
+      - name: Commit finalized R1
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m "fix(ops-c): finalize dual-domain universe certification"
+          git push origin HEAD:master/ops-c-market-universe-01
