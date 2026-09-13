@@ -98,15 +98,9 @@ Conclusion: le runtime tentait de souscrire un instrument absent du catalogue ME
 
 ### Dérive systemd observée
 
-L'unité réellement déployée ne contenait pas:
+L'unité réellement déployée ne chargeait pas `.env.secrets`, alors que la source de référence initiale le chargeait malgré son propre contrat « zéro clé ».
 
-```text
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
-```
-
-alors que l'unité source de référence la contient.
-
-Cette dérive doit être réconciliée lors du déploiement contrôlé; elle ne doit pas être masquée comme preuve source.
+La remédiation OPS-D conserve le comportement runtime le plus sûr : le service LMI ne reçoit que `.env`, qui contient ses variables de configuration non secrètes. `.env.secrets` n'est plus injecté dans ce processus d'observation publique.
 
 ## Remédiation source de cette branche
 
@@ -117,12 +111,13 @@ La branche OPS-D apporte uniquement des changements d'observation/runtime LMI:
    - `stream_watchlist` = symboles effectivement souscrits,
    - `coverage[symbol].status` = `LIVE | STALE | UNAVAILABLE`,
    - raison explicite d'indisponibilité;
-2. les états sortis de la watchlist sont supprimés du sidecar courant;
-3. une mise à jour tardive d'une task annulée ne peut pas réintroduire un symbole hors population;
+2. les états qui ne font plus partie de la population streamable validée sont supprimés du sidecar courant;
+3. une mise à jour tardive d'une task annulée ne peut pas réintroduire un symbole hors population streamable;
 4. MEXC expose un contrôle public frais du catalogue Futures via `contract/detail`;
 5. l'Observatory valide l'existence des instruments MEXC avant d'ouvrir les WebSockets;
 6. un catalogue MEXC indisponible est fail-closed pour l'itération de reconcile;
-7. le dashboard adapter filtre les états hors watchlist et expose les compteurs de couverture explicites.
+7. le dashboard adapter filtre les états hors watchlist et expose les compteurs de couverture explicites;
+8. le service systemd LMI n'injecte plus `.env.secrets` et reste conforme à sa frontière « données publiques / zéro clé ».
 
 Aucun changement stratégie, signal, risk, sizing, portfolio, ordre, capital ou autorité d'exécution.
 
@@ -151,7 +146,8 @@ Le verdict final exige un runtime déployé correspondant au SHA certifié et un
 7. progression des PressureFields sur fenêtre bornée;
 8. échec/restart/recovery attribuable par symbole si un incident naturel est disponible;
 9. artefacts et logs reconstruisibles;
-10. aucune confusion entre PressureFields/s et événements WebSocket/s.
+10. aucune confusion entre PressureFields/s et événements WebSocket/s;
+11. aucune clé privée injectée dans le processus LMI.
 
 Verdict final autorisé, exactement l'un des deux:
 
