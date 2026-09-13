@@ -22,14 +22,24 @@ TOKEN = os.getenv("RADAR_BOT_TOKEN", "").strip()
 CHAT_ID = os.getenv("RADAR_CHAT_ID", "").strip()
 ALLOWED_CHATS = {CHAT_ID} if CHAT_ID else set()
 
-def tg_request(method, payload=None):
+# Telegram getUpdates uses a server-side long poll.  The HTTP client timeout must
+# remain strictly longer than that server-side timeout, otherwise urllib can abort
+# a healthy idle poll before Telegram is allowed to return it.
+TELEGRAM_HTTP_TIMEOUT_S = 15
+TELEGRAM_LONG_POLL_TIMEOUT_S = 30
+TELEGRAM_LONG_POLL_GRACE_S = 10
+TELEGRAM_LONG_POLL_HTTP_TIMEOUT_S = (
+    TELEGRAM_LONG_POLL_TIMEOUT_S + TELEGRAM_LONG_POLL_GRACE_S
+)
+
+def tg_request(method, payload=None, *, http_timeout_s=TELEGRAM_HTTP_TIMEOUT_S):
     url = f"https://api.telegram.org/bot{TOKEN}/{method}"
     if payload:
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     else:
         req = urllib.request.Request(url)
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, timeout=http_timeout_s) as resp:
         return json.loads(resp.read().decode())
 
 def send_message(chat_id, text):
@@ -283,7 +293,11 @@ def poll_loop():
     offset = 0
     while True:
         try:
-            result = tg_request("getUpdates", {"timeout": 30, "offset": offset})
+            result = tg_request(
+                "getUpdates",
+                {"timeout": TELEGRAM_LONG_POLL_TIMEOUT_S, "offset": offset},
+                http_timeout_s=TELEGRAM_LONG_POLL_HTTP_TIMEOUT_S,
+            )
             updates = result.get("result", [])
             for upd in updates:
                 offset = upd["update_id"] + 1
