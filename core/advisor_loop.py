@@ -618,13 +618,13 @@ _UNIVERSE_CERTIFICATION_ENVELOPE_SCHEMA = "ops-c-dual-domain-v1"
 
 
 def _validated_in_both_domains(execution_cert: Any, scan_cert: Any) -> list[str]:
-    """Intersection ordonnée des symboles validés par les deux domaines."""
-    execution_valid = set(execution_cert.validated_symbols)
+    """Intersection canonique ordonnée des symboles validés dans les deux domaines."""
+    execution_valid = list(execution_cert.validated_symbols)
     scan_valid = set(scan_cert.validated_symbols)
     return [
         symbol
-        for symbol in execution_cert.configured_symbols
-        if symbol in execution_valid and symbol in scan_valid
+        for symbol in execution_valid
+        if symbol in scan_valid
     ]
 
 

@@ -199,7 +199,7 @@ def _find_ticker(
     market_key: str,
     market_symbol: str,
 ) -> Mapping[str, Any] | None:
-    """Find only the ticker belonging to the selected derivative market."""
+    """Find only the ticker belonging to the selected certified market."""
     for key in (market_key, market_symbol):
         ticker = tickers.get(key)
         if isinstance(ticker, Mapping):
@@ -227,7 +227,7 @@ def certify_universe(
 
     The function is intentionally pure.  The caller owns exchange I/O and any
     later artifact persistence.  A symbol is valid only when an eligible
-    derivative market exists, is not explicitly inactive, and has a finite
+    allowed market exists, is not explicitly inactive, and has a finite
     strictly-positive ``last`` price.
     """
     configured = tuple(str(symbol) for symbol in configured_symbols)

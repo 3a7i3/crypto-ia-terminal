@@ -306,3 +306,22 @@ def test_fail_closed_boundary_prevents_downstream_scan(monkeypatch, _artifact_pa
         _boot_then_scan()
     assert exc_info.value.code == 1
     assert downstream_calls == []
+
+
+
+def test_settle_suffixed_pin_normalizes_dual_domain_intersection(
+    monkeypatch, _artifact_path
+):
+    markets, tickers = _dual_domain_markets_tickers(
+        "BTC/USDT:USDT", "BTC/USDT", 65000.0
+    )
+    _patch_same_evidence(monkeypatch, markets, tickers)
+
+    symbols, snapshot = advisor_loop._resolve_pinned_universe_boot(
+        ["BTC/USDT:USDT"]
+    )
+
+    assert symbols == ["BTC/USDT"]
+    assert snapshot == {"n_symbols_configured": 1, "n_symbols_validated": 1}
+    payload = json.loads(_artifact_path.read_text(encoding="utf-8"))
+    assert payload["validated_symbols"] == ["BTC/USDT"]
