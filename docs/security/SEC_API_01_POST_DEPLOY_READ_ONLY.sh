@@ -120,13 +120,16 @@ for service in services:
         else:
             state = "EMPTY"
         print(f"{name}={state}")
-    foreign_nonempty = sorted(
-        name for name in (all_identity_vars - expected) if env.get(name)
-    )
-    print(
-        "foreign_identity_nonempty="
-        + (",".join(foreign_nonempty) if foreign_nonempty else "NONE")
-    )
+    if service in identity_vars:
+        foreign_nonempty = sorted(
+            name for name in (all_identity_vars - expected) if env.get(name)
+        )
+        print(
+            "foreign_identity_nonempty="
+            + (",".join(foreign_nonempty) if foreign_nonempty else "NONE")
+        )
+    else:
+        print("foreign_identity_nonempty=NOT_APPLICABLE")
 PY
 
 echo
