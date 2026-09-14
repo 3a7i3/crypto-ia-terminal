@@ -1,7 +1,12 @@
 """
-StreamBus — couche de streaming découplée pour Annalise
-Ingère les WebSockets CCXT en tâche asyncio permanente.
-Expose un LatestSnapshot lu par le cycle ML sans blocage.
+StreamBus — couche de streaming découplée pour Annalise.
+
+Ingère les WebSockets CCXT en tâche asyncio permanente et expose un
+LatestSnapshot lu par le cycle ML sans blocage.
+
+SEC-API-01 : ce composant appartient à la frontière PUBLIC_MARKET_DATA.
+Order books, trades et tickers utilisés ici sont publics ; aucune clé privée
+d'exchange ne doit être lue depuis l'environnement ni transmise à CCXT.
 """
 
 from __future__ import annotations
@@ -17,6 +22,39 @@ import ccxt.pro as ccxtpro
 from observability.json_logger import get_logger
 
 _log = get_logger("StreamBus")
+
+# CCXT credential-shaped fields forbidden on the PUBLIC_MARKET_DATA boundary.
+# The list deliberately covers common exchange auth fields even when a caller
+# passes an explicit config dictionary. Public collectors must remain public
+# independently of what secrets exist in the parent process environment.
+_PRIVATE_CCXT_FIELDS = frozenset(
+    {
+        "apiKey",
+        "secret",
+        "password",
+        "uid",
+        "login",
+        "privateKey",
+        "walletAddress",
+        "token",
+    }
+)
+
+
+def _public_exchange_config(config: dict | None) -> dict:
+    """Return a CCXT config stripped of private authentication material."""
+    public = dict(config or {"enableRateLimit": True})
+    removed = sorted(k for k in _PRIVATE_CCXT_FIELDS if k in public)
+    for key in removed:
+        public.pop(key, None)
+    if removed:
+        _log.warning(
+            "StreamBus: private CCXT fields stripped on public-data boundary: %s",
+            ",".join(removed),
+        )
+    return public
+
+
 # ------------------------------------------------------------------
 # Structures de données
 # ------------------------------------------------------------------
@@ -89,36 +127,25 @@ class StreamBus:
         snap = bus.snapshot
         btc_price = snap.get_mid_price("BTC/USDT")
         imbalance = snap.get_orderbook_imbalance("BTC/USDT")
+
+    ``exchange_config`` peut contenir des options publiques CCXT (options,
+    rate-limit, type de marché, etc.). Toute donnée d'authentification est
+    supprimée avant construction du client, conformément à SEC-API-01.
     """
 
     def __init__(
         self,
         symbols: list[str],
         exchange_id: str = "mexc",
-        exchange_config: dict = None,
+        exchange_config: dict | None = None,
         whale_threshold_usd: float = 500_000,
         queue_maxsize: int = 5000,
         trade_history_size: int = 200,
         on_whale: Optional[Callable] = None,
     ):
-        import os
-
         self.symbols = symbols
         self.exchange_id = exchange_id
-
-        if exchange_config is None:
-            exchange_config = {"enableRateLimit": True}
-            prefix = self.exchange_id.upper()
-            api_key = os.getenv(f"{prefix}_API_KEY")
-            api_secret = os.getenv(f"{prefix}_API_SECRET")
-            if api_key and api_secret:
-                exchange_config["apiKey"] = api_key
-                exchange_config["secret"] = api_secret
-                _log.info(
-                    "StreamBus: clés API %s chargées depuis l'environnement",
-                    self.exchange_id,
-                )
-        self.exchange_config = exchange_config
+        self.exchange_config = _public_exchange_config(exchange_config)
         self.whale_threshold_usd = whale_threshold_usd
         self.queue_maxsize = queue_maxsize
         self.trade_history_size = trade_history_size
