@@ -7,8 +7,11 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=/home/mathieu/crypto_ai_terminal/.env
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
-ExecStart=/usr/bin/python3 scripts/dashboard_api.py
+# SEC-API-01: dashboard auth is isolated from exchange and Telegram secrets.
+# Mandatory fragment: missing provisioning fails service startup instead of
+# silently running without DASHBOARD_PASSWORD.
+EnvironmentFile=/etc/crypto-ai/secrets/dashboard.env
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python scripts/dashboard_api.py
 Restart=always
 RestartSec=10
 

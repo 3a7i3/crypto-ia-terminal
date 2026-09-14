@@ -7,9 +7,9 @@ Usage rapide :
     candles = fetcher.fetch("BTC/USDT", timeframe="1h", years=2)
     print(f"{len(candles)} bougies récupérées")
 
-Variables d'env :
-    BINANCE_API_KEY / BINANCE_API_SECRET  — optionnels (données publiques sans clé)
-    BINANCE_TESTNET                        — true pour testnet
+SEC-API-01 : les OHLCV utilisées ici sont des données de marché publiques.
+Ce collecteur ne lit ni n'injecte jamais de clé API privée d'exchange, même
+si de telles variables existent dans l'environnement du processus.
 """
 
 from __future__ import annotations
@@ -47,6 +47,9 @@ class HistoricalDataFetcher:
         3. Valide chaque page (filtre OHLCV corrompus)
         4. Sauvegarde en SQLite via MarketDatabase (optionnel)
         5. Respecte le rate limit de l'exchange
+
+    Frontière de sécurité : PUBLIC_MARKET_DATA uniquement. Les credentials
+    d'exchange ne sont pas consultés par cette classe.
     """
 
     def __init__(self, exchange_id: str | None = None) -> None:
@@ -64,27 +67,17 @@ class HistoricalDataFetcher:
         try:
             import ccxt
 
+            # Public market-data client only. Do not opportunistically attach
+            # API credentials from the parent environment (SEC-API-01).
             config: dict = {"enableRateLimit": True}
             eid = self._exchange_id.lower()
 
-            if eid == "gateio":
-                api_key = os.getenv("GATEIO_API_KEY")
-                api_secret = os.getenv("GATEIO_API_SECRET")
-                if api_key and api_secret:
-                    config["apiKey"] = api_key
-                    config["secret"] = api_secret
-                if os.getenv("GATEIO_TESTNET", "false").lower() == "true":
-                    config["options"] = {"defaultType": "swap"}
-            else:
-                prefix = eid.upper()
-                api_key = os.getenv(f"{prefix}_API_KEY")
-                api_secret = os.getenv(f"{prefix}_API_SECRET")
-                if api_key and api_secret:
-                    config["apiKey"] = api_key
-                    config["secret"] = api_secret
+            # Preserve the existing non-secret Gate.io market-type selector.
+            if eid == "gateio" and os.getenv("GATEIO_TESTNET", "false").lower() == "true":
+                config["options"] = {"defaultType": "swap"}
 
             self._exchange = getattr(ccxt, eid)(config)
-            _log.info("[HistoricalFetcher] Exchange %s initialisé", eid)
+            _log.info("[HistoricalFetcher] Exchange public %s initialisé", eid)
         except Exception as exc:
             _log.error("[HistoricalFetcher] Impossible d'initialiser ccxt: %s", exc)
         return self._exchange
@@ -152,12 +145,12 @@ class HistoricalDataFetcher:
                     ).isoformat(),
                     "open": float(o),
                     "high": float(h),
-                    "low": float(l),
+                    "low": float(low),
                     "close": float(c),
                     "volume": float(v),
                     "source": "ccxt_live",
                 }
-                for ts, o, h, l, c, v in batch_raw
+                for ts, o, h, low, c, v in batch_raw
             ]
 
             clean, report = validate_candles(batch_dicts, symbol=symbol)
@@ -219,7 +212,7 @@ class HistoricalDataFetcher:
     ) -> dict[str, int]:
         """
         Fetch + sauvegarde en SQLite pour chaque symbole.
-        Retourne {symbol: nb_bougies_sauvegardées}.
+        Retourne {symbol: nb_bougies sauvegardées}.
         """
         from quant_hedge_ai.strategy_lab.market_db import MarketDatabase
 

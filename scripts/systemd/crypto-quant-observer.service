@@ -1,24 +1,18 @@
 # @QuantCrypto_bot — SDOS Visualization Client (bot Telegram passif, ADR-0007).
-# Repond aux commandes /snapshot /health /pipeline /portfolio et rafraichit
-# un message epingle toutes les PINNED_UPDATE_S secondes (defaut 600 = 10 min).
+# SEC-API-01 — least-privilege service identity.
 #
-# Prerequis dans .env (deja presents pour le token, a completer pour l'ID pin) :
-#   QUANT_CRYPTO_BOT_TOKEN=<token bot @QuantCrypto_bot>
-#   QUANT_CRYPTO_CHAT_ID=<id chat cible>
-#   QC_PINNED_MSG_ID=<id du message epingle a rafraichir>  # cree via bootstrap
-#   QC_POLL_INTERVAL=2       # (optionnel) intervalle polling commandes en s
-#   QC_PINNED_UPDATE=600     # (optionnel) intervalle refresh pin en s
+# Public/non-secret configuration:
+#   /home/mathieu/crypto_ai_terminal/.env
 #
-# Le message epingle est cree une fois via :
-#   .venv/bin/python scripts/quant_observer_pin_bootstrap.py
-# qui envoie un placeholder, l'epingle (si le bot est admin), et affiche le
-# message_id a mettre dans QC_PINNED_MSG_ID.
+# Required runtime-only secret fragment (HUMAN_ONLY, never committed):
+#   /etc/crypto-ai/secrets/quant-observer.env
+# containing only:
+#   QUANT_CRYPTO_BOT_TOKEN
+#   QUANT_CRYPTO_CHAT_ID
+#   QC_PINNED_MSG_ID
 #
-# Installation (VPS, geste operateur) :
-#   sudo cp scripts/systemd/crypto-quant-observer.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now crypto-quant-observer.service
-#   sudo systemctl status crypto-quant-observer.service
+# Mandatory EnvironmentFile: deployment must provision the fragment before
+# restarting this service. No fallback to the global .env.secrets store.
 [Unit]
 Description=Crypto AI Terminal — @QuantCrypto_bot (SDOS observer passif, ADR-0007)
 After=network-online.target crypto-advisor.service
@@ -31,7 +25,7 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
+EnvironmentFile=/etc/crypto-ai/secrets/quant-observer.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=TZ=UTC

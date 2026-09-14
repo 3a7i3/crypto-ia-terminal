@@ -1,5 +1,7 @@
 # ADR-0016 phase R1 — radar de marché global : shortlist quotidienne passive
 # calculée sur la fenêtre 24h du pouls. Oneshot déclenché par le timer.
+# SEC-API-01 : le calcul radar reste dans PUBLIC_MARKET_DATA ; aucun secret
+# exchange n'est injecté dans ce collecteur.
 # Installation (VPS, geste opérateur) :
 #   sudo cp scripts/systemd/crypto-market-radar.{service,timer} /etc/systemd/system/
 #   sudo systemctl daemon-reload
@@ -14,7 +16,6 @@ Type=oneshot
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
 ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python observation/market_radar.py --run
 Nice=10
 TimeoutStartSec=300

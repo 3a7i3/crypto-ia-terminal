@@ -1,5 +1,14 @@
-# Copie de reference de l'unite VPS (watchdog, alerte seule) - capturee le 2026-07-16
-# pour le runbook de restauration (docs/runbook-restauration-vps.md).
+# Crypto AI Terminal — Watchdog (surveillance moteur, alerte seule).
+# SEC-API-01 — least-privilege alert identity.
+#
+# Public/non-secret configuration:
+#   /home/mathieu/crypto_ai_terminal/.env
+#
+# Required runtime-only secret fragment (HUMAN_ONLY, never committed):
+#   /etc/crypto-ai/secrets/watchdog.env
+# containing only:
+#   TELEGRAM_BOT_TOKEN
+#   TELEGRAM_CHAT_ID
 [Unit]
 Description=Crypto AI Terminal — Watchdog (surveillance moteur, alerte seule)
 After=network-online.target crypto-advisor.service
@@ -10,7 +19,7 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
+EnvironmentFile=/etc/crypto-ai/secrets/watchdog.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=TZ=UTC

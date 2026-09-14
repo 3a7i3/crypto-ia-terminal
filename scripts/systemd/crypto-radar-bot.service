@@ -1,21 +1,17 @@
 # CryptoRadar — bot Telegram interactif, LECTURE SEULE sur les decisions (ADR-0007).
-# Polling long getUpdates, repond aux commandes /scan /top50 /longs /shorts /symbol /lmi.
+# SEC-API-01 — least-privilege service identity.
 #
-# Isolation du token (constitution Telegram — docs/TELEGRAM_CONSTITUTION.md,
-# Principe 3 : "No Cross-Identity Token Fallback") :
-#   RADAR_BOT_TOKEN + RADAR_CHAT_ID sont OBLIGATOIRES et n'ont plus de fallback
-#   vers TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID. Le script quitte avec le code 1
-#   si RADAR_BOT_TOKEN est absent — voir scripts/radar_bot.py.
+# Public/non-secret configuration:
+#   /home/mathieu/crypto_ai_terminal/.env
 #
-# Prerequis dans .env :
-#   RADAR_BOT_TOKEN=<token bot CryptoRadar dédié, créé via @BotFather>
-#   RADAR_CHAT_ID=<id chat autorisé>
+# Required runtime-only secret fragment (HUMAN_ONLY, never committed):
+#   /etc/crypto-ai/secrets/radar-bot.env
+# containing only:
+#   RADAR_BOT_TOKEN
+#   RADAR_CHAT_ID
 #
-# Installation (VPS, geste operateur) :
-#   sudo cp scripts/systemd/crypto-radar-bot.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now crypto-radar-bot.service
-#   sudo systemctl status crypto-radar-bot.service
+# Mandatory EnvironmentFile: the service must never inherit Quant, dashboard
+# or exchange credentials from the global .env.secrets store.
 [Unit]
 Description=CryptoRadar — bot Telegram interactif (lecture seule, ADR-0007)
 After=network-online.target crypto-advisor.service
@@ -28,7 +24,7 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
+EnvironmentFile=/etc/crypto-ai/secrets/radar-bot.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=TZ=UTC
