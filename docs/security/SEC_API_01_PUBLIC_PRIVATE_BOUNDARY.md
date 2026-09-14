@@ -4,204 +4,167 @@ Status: SOURCE REMEDIATION IN PROGRESS
 Reference base: `101359db3993801f2290a0e0fefa3226fb939574`  
 Mission branch: `master/sec-api-01-public-private-boundary`
 
-## 1. Scientific question
+## 1. Scope and invariant
 
-Can the Crypto AI Terminal observe public market data without private exchange
-credentials being present in, or opportunistically consumed by, passive
-collector/observer processes?
+SEC-API-01 establishes that public/passive processes receive only the authority required by their domain.
 
-The target invariant is:
+Target invariant:
 
-> **PUBLIC_MARKET_DATA must work with zero exchange API credentials. Private
-> exchange credentials may exist only inside explicitly private account,
-> treasury, reconciliation or execution boundaries.**
+> PUBLIC_MARKET_DATA receives zero exchange private credentials. Passive service identities receive only their own dedicated secret fragment. PRIVATE_ACCOUNT_READ and explicitly governed execution boundaries retain private credentials where required.
 
-This mission does not revoke keys, rotate keys, enable live trading, change
-strategy logic, change risk logic or start F-00.
+Out of scope: F-00, burn-in, Cross-Venue Observatory implementation, strategy, signal, risk, sizing, order logic, credential rotation/revocation and `crypto-advisor.service` runtime changes.
 
 ## 2. Boundary classes
 
-### PUBLIC_MARKET_DATA
+- **PUBLIC_MARKET_DATA** — LMI, market observer, market radar, horizons, StreamBus, public historical OHLCV.
+- **PASSIVE_SERVICE_IDENTITY** — Quant Telegram, Radar Telegram, dashboard authentication.
+- **PRIVATE_ACCOUNT_READ** — balances, positions, private trades and account observation.
+- **EXECUTION / TREASURY / RECONCILIATION** — explicitly private authority.
 
-Examples:
+## 3. SOURCE PROOF
 
-- `trade_analysis.observatory` / LMI public MEXC stream
-- `observation/market_observer.py`
-- `observation/market_radar.py`
-- `observation/horizon_evaluator.py`
-- `infra/stream_bus.py`
-- `HistoricalDataFetcher` OHLCV downloads
-- future Cross-Venue passive collectors
+At reference base `101359db3993801f2290a0e0fefa3226fb939574`:
 
-These components MUST NOT require or opportunistically attach exchange private
-credentials.
+- StreamBus opportunistically read exchange credentials from its environment for public streams.
+- HistoricalDataFetcher opportunistically attached exchange credentials to public OHLCV clients.
+- tracked market observer/radar/horizon units loaded the global `.env.secrets` store.
+- Quant Observer and Radar Bot loaded the global `.env.secrets` store.
+- dashboard source loaded `.env.secrets`, while the audited VPS copy had already removed it.
 
-### PASSIVE_SERVICE_IDENTITY
+The mission branch makes StreamBus/HistoricalDataFetcher public-only and aligns public market units to `.env` only.
 
-Examples:
+## 4. RUNTIME PROOF — pre-remediation, VPS 2026-09-14 UTC
 
-- Quant Observer Telegram bot
-- Radar Telegram bot
-- Paper Trade notifier
-- watchdog alert transport
-- read-only dashboard authentication
+Runtime provenance:
 
-These services may require their own identity secret (Telegram token,
-`DASHBOARD_PASSWORD`, etc.), but MUST NOT inherit exchange credentials simply
-because the credentials share the same secret store.
+- branch: `main`
+- HEAD: `101359db3993801f2290a0e0fefa3226fb939574`
 
-### PRIVATE_ACCOUNT_READ
+Direct `/proc/<PID>/environ` inspection reported states only, never secret values.
 
-Examples:
+### Healthy public boundary
 
-- `infra/mexc_reader.py` when reading balances/positions
-- `observability/real_accounts.py`
-- `src/telegram/exchange_sync.py`
-- explicit account-balance observation paths
+`crypto-lmi-observatory.service` received none of the inspected exchange credential names.
 
-Private exchange credentials are legitimate here because the operation targets
-private account state.
+Deployed market observer, market radar and market horizons units already loaded `.env` only. This was a healthy runtime drift relative to source and is preserved by SEC-API-01.
 
-### EXECUTION / TREASURY / RECONCILIATION
+### Proven Quant/Radar overexposure
 
-Examples:
+Both `crypto-quant-observer.service` and `crypto-radar-bot.service` received non-empty:
 
-- `ExchangeFactory` / `ExecutionEngine` private construction paths
-- TESTNET/REAL execution paths
-- future Treasury / Reconciliation authority
+- `MEXC_API_KEY`
+- `MEXC_API_SECRET`
+- `BINANCE_API_KEY`
+- `BINANCE_API_SECRET`
 
-These domains are explicitly private and are not stripped by SEC-API-01.
+They also received each other's Telegram identity and `DASHBOARD_PASSWORD` because both loaded the shared global `.env.secrets` store.
 
-## 3. Pre-remediation evidence
+### Dashboard fail-open observation
 
-### Runtime baseline — VPS, 2026-09-14 UTC
+The running dashboard loaded only `.env`; `DASHBOARD_PASSWORD` was absent from its process environment even though that variable name exists in `.env.secrets`.
 
-Runtime source identity:
+Source code bypasses authentication when `DASHBOARD_PASSWORD` is empty. Therefore the audited runtime shape disables dashboard authentication.
 
-- `HEAD = 101359db3993801f2290a0e0fefa3226fb939574`
+## 5. Defects
 
-Already clean in runtime:
-
-- `crypto-lmi-observatory.service`: `.env` only
-- `crypto-market-observer.service`: `.env` only
-- `crypto-market-radar.service`: `.env` only
-- `crypto-market-horizons.service`: `.env` only
-
-Proven runtime leakage:
-
-- `crypto-quant-observer.service` had non-empty `MEXC_API_KEY`,
-  `MEXC_API_SECRET`, `BINANCE_API_KEY`, `BINANCE_API_SECRET` in its process
-  environment while also carrying its Telegram identity.
-- `crypto-radar-bot.service` had the same exchange credentials in its process
-  environment while also carrying its Telegram identity.
-
-No values were printed during the audit; only variable names and
-`NONEMPTY/ABSENT` states were inspected.
-
-`crypto-feed.service` was not installed on the audited VPS and therefore has no
-runtime claim in this mission.
-
-### Source findings
-
-`infra/stream_bus.py` automatically read `{EXCHANGE}_API_KEY` and
-`{EXCHANGE}_API_SECRET` from the parent environment and injected them into a
-CCXT Pro client whose observed operations are public order books, trades and
-tickers.
-
-`HistoricalDataFetcher` similarly attached exchange API credentials to public
-OHLCV clients whenever credentials happened to exist.
-
-Source copies of the market observer/radar/horizon systemd units still loaded
-`.env.secrets`, despite the audited VPS copies already having removed that
-line. This was a dormant regression risk: a future unit-file redeploy could
-reintroduce private keys into public collectors.
-
-## 4. Defects
-
-- **SEC-API-DEF-001** — Quant Observer inherits exchange private credentials.
-- **SEC-API-DEF-002** — Radar Bot inherits exchange private credentials.
+- **SEC-API-DEF-001** — Quant inherits private exchange credentials.
+- **SEC-API-DEF-002** — Radar inherits private exchange credentials.
 - **SEC-API-DEF-003** — StreamBus opportunistically authenticates public data.
-- **SEC-API-DEF-004** — HistoricalDataFetcher opportunistically authenticates
-  public OHLCV.
-- **SEC-API-DEF-005** — tracked public-data systemd units can regress runtime by
-  reloading the global secret store.
-- **SEC-API-DEF-006** — other passive secret-bearing services use the global
-  secret store without an exchange-credential deny boundary.
+- **SEC-API-DEF-004** — HistoricalDataFetcher opportunistically authenticates public OHLCV.
+- **SEC-API-DEF-005** — tracked public-data units could reintroduce the global secret store.
+- **SEC-API-DEF-006** — Quant/Radar share unrelated service identities through the global secret store.
+- **SEC-API-DEF-007** — dashboard runtime does not receive its configured password and source fails open when it is absent.
 
-The dashboard baseline additionally showed `DASHBOARD_PASSWORD=ABSENT` in the
-running process because the runtime unit did not load `.env.secrets`. That is a
-separate interface-authentication observation. SEC-API-01 fixes the source
-least-privilege shape (dashboard password allowed, exchange credentials
-stripped) but does not make a broader dashboard-security certification claim.
+## 6. Remediation design
 
-## 5. Remediation design
+### Public collectors
 
-### Code boundary
+LMI, market observer, market radar and horizons load non-secret `.env` only. StreamBus and HistoricalDataFetcher remain zero-key by construction.
 
-- StreamBus constructs a public CCXT Pro configuration and strips common CCXT
-  private-auth fields even when supplied explicitly.
-- HistoricalDataFetcher constructs public CCXT clients and does not read API
-  key/secret variables.
+### Dedicated service identity fragments
 
-### systemd boundary
+The shared `.env.secrets` store is removed from Quant, Radar and Dashboard units. Each receives a mandatory runtime-only fragment:
 
-Public-data units that need no secret at all load `.env` only.
+- `/etc/crypto-ai/secrets/quant-observer.env`
+- `/etc/crypto-ai/secrets/radar-bot.env`
+- `/etc/crypto-ai/secrets/dashboard.env`
 
-Passive services that legitimately need a service-specific secret may still
-load `.env.secrets`, but `UnsetEnvironment=` removes known exchange credential
-names before `ExecStart`.
+Intended variable allow-list:
 
-The private `crypto-advisor.service` boundary is intentionally unchanged.
+- Quant: `QUANT_CRYPTO_BOT_TOKEN`, `QUANT_CRYPTO_CHAT_ID`, `QC_PINNED_MSG_ID`.
+- Radar: `RADAR_BOT_TOKEN`, `RADAR_CHAT_ID`.
+- Dashboard: `DASHBOARD_PASSWORD`.
 
-## 6. Source certification gates
+These files are HUMAN_ONLY runtime artifacts. Their values MUST NOT be stored in GitHub or printed in audit output.
 
-SEC-API-01 is source-certifiable only if all are true:
+The fragments are mandatory, not optional. Missing provisioning therefore fails at service startup rather than silently falling back to a shared store or an unauthenticated dashboard.
+
+### Private boundary
+
+`crypto-advisor.service` and legitimate private account/execution consumers are intentionally unchanged.
+
+## 7. Source certification gates
 
 1. `tests/test_sec_api_01_public_private_boundary.py` passes.
-2. Existing relevant market/Telegram tests remain green.
+2. Relevant existing market/Telegram/dashboard tests remain green.
 3. Public-data units do not load `.env.secrets`.
-4. Passive secret-bearing units carry an explicit exchange-secret deny list.
-5. `crypto-advisor.service` keeps its private credential access.
-6. No strategy, signal, risk, sizing or order logic is changed.
+4. Quant, Radar and Dashboard do not load `.env.secrets`.
+5. Each of those three units references only its dedicated mandatory fragment.
+6. Private advisor credential access remains unchanged.
+7. No real secret value appears in source/tests/docs.
+8. No strategy, signal, risk, sizing or order logic changes.
 
-## 7. Runtime certification gates
+## 8. Controlled deployment — NOT AUTOMATIC
 
-After merge and controlled deployment:
+Before any service restart:
 
-1. VPS `HEAD == origin/main == merged SEC-API-01 SHA`.
-2. Deployed unit files match tracked source for the units changed by this
-   mission.
-3. LMI / market observer / radar / horizons continue to operate without
-   exchange credentials.
-4. Quant Observer and Radar Bot retain their required Telegram identity but
-   expose no exchange credential names with non-empty values.
-5. Paper notifier and watchdog, if running, retain their required notification
-   identity but expose no exchange credential values.
-6. Dashboard, if restarted from the tracked unit, may receive
-   `DASHBOARD_PASSWORD` but must not receive exchange credentials.
-7. Private account/execution processes are not accidentally deprived of the
-   credentials they are explicitly authorized to use.
-8. No new service restart loop, traceback or loss of passive observation is
-   introduced.
+1. merge an approved SEC-API-01 PR;
+2. fast-forward VPS deliberately;
+3. backup every affected deployed unit;
+4. create `/etc/crypto-ai/secrets` as an operator-controlled directory;
+5. create each required fragment from existing runtime secret values without printing those values or committing them;
+6. restrict fragment permissions appropriately;
+7. install only the affected tracked units;
+8. run `systemctl daemon-reload`;
+9. restart only directly affected passive services;
+10. never restart `crypto-advisor.service` for SEC-API-01.
 
-Runtime inspection MUST report only variable names/states — never values.
+The exact value-transfer operation remains HUMAN_ONLY.
 
-## 8. Rollback
+## 9. Rollback
 
-Before replacing a deployed unit, copy the current `/etc/systemd/system/<unit>`
-to a timestamped operator backup. If a passive service fails after deployment:
+For every changed unit, retain its timestamped pre-deployment copy.
 
-1. restore the previous unit file;
-2. `systemctl daemon-reload`;
-3. restart only the affected passive service;
-4. record the failure as SEC-API remediation evidence;
-5. do not touch `crypto-advisor.service` or exchange keys as a workaround.
+If a passive service fails:
 
-## 9. Verdict vocabulary
+1. restore its previous unit;
+2. restore the previous EnvironmentFile wiring;
+3. run `systemctl daemon-reload`;
+4. restart only that service;
+5. record the failure;
+6. do not revoke, print or move exchange credentials as an improvised fix.
 
-Final runtime verdict must be exactly one of:
+## 10. Runtime certification gates
 
-- `SEC_API_01_RUNTIME_CERTIFIED`
+After deployment:
+
+- VPS `HEAD == origin/main == merged SEC-API-01 SHA`.
+- deployed affected units match source.
+- public data functionality remains healthy.
+- public/passive processes expose zero exchange private credential names.
+- Quant receives its Quant identity and not Radar/Dashboard identity.
+- Radar receives its Radar identity and not Quant/Dashboard identity.
+- Dashboard receives `DASHBOARD_PASSWORD`, receives no exchange/Telegram credentials, and authenticated behavior is confirmed.
+- authorized private account/execution paths retain required credentials.
+- no restart loop or new critical traceback appears.
+
+Runtime probes report only `NONEMPTY`, `EMPTY`, or `ABSENT`; never values.
+
+## 11. Verdict vocabulary
+
+Final mission verdict must be exactly one of:
+
+- `SEC_API_01_CERTIFIED`
 - `SEC_API_01_REMEDIATION_REQUIRED`
 
-Source review/CI alone is never sufficient for the runtime verdict.
+SOURCE PROOF alone can never produce `SEC_API_01_CERTIFIED`.
