@@ -32,7 +32,11 @@ def _verify_token(token):
 _LOGIN_HTML = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1117;color:#e0e0e0;font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh}.c{background:#1a1d27;padding:2rem;border-radius:12px;width:min(90vw,360px)}h2{margin-bottom:1rem;color:#3987e5}input{width:100%;padding:12px;border:1px solid #333;border-radius:8px;background:#0f1117;color:#fff;font-size:1rem;margin-bottom:1rem}button{width:100%;padding:12px;border:none;border-radius:8px;background:#2a78d6;color:#fff;font-size:1rem;cursor:pointer}.e{color:#e34948;font-size:.85rem;display:none}</style></head><body><div class="c"><h2>CryptoRadar</h2><p class="e" id="e">Mot de passe incorrect</p><form onsubmit="return d(event)"><input type="password" id="p" placeholder="Mot de passe" autofocus><button>Connexion</button></form></div><script>async function d(e){e.preventDefault();const r=await fetch("/login",{method:"POST",body:new URLSearchParams({password:document.getElementById("p").value})});if(r.ok)location.reload();else document.getElementById("e").style.display="block"}</script></body></html>'
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        if not DASHBOARD_PASSWORD: return await call_next(request)
+        if not DASHBOARD_PASSWORD:
+            return JSONResponse(
+                {"detail": "dashboard authentication not configured"},
+                status_code=503,
+            )
         token = request.cookies.get("radar_session")
         if token and _verify_token(token): return await call_next(request)
         if request.url.path == "/login" and request.method == "POST":
@@ -41,8 +45,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 resp = JSONResponse({"ok": True})
                 resp.set_cookie("radar_session", _make_token(), max_age=604800, httponly=True, samesite="lax")
                 return resp
-            raise HTTPException(401)
-        if request.url.path.startswith("/api/"): raise HTTPException(401)
+            return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+        if request.url.path.startswith("/api/"):
+            return JSONResponse({"detail": "Unauthorized"}, status_code=401)
         return HTMLResponse(_LOGIN_HTML)
 
 app.add_middleware(AuthMiddleware)
