@@ -48,12 +48,9 @@ DEDICATED_SECRET_UNITS = {
     "crypto-quant-observer.service": "/etc/crypto-ai/secrets/quant-observer.env",
     "crypto-radar-bot.service": "/etc/crypto-ai/secrets/radar-bot.env",
     "crypto-dashboard.service": "/etc/crypto-ai/secrets/dashboard.env",
+    "paper-arena.service": "/etc/crypto-ai/secrets/paper-arena.env",
+    "crypto-watchdog.service": "/etc/crypto-ai/secrets/watchdog.env",
 }
-
-LEGACY_PASSIVE_DENYLIST_UNITS = (
-    "paper-arena.service",
-    "crypto-watchdog.service",
-)
 
 
 def _unit(name: str) -> str:
@@ -165,18 +162,6 @@ def test_service_identity_fragments_are_domain_specific():
 
     assert "/etc/crypto-ai/secrets/quant-observer.env" not in dashboard
     assert "/etc/crypto-ai/secrets/radar-bot.env" not in dashboard
-
-
-def test_remaining_legacy_passive_units_strip_exchange_credentials():
-    for name in LEGACY_PASSIVE_DENYLIST_UNITS:
-        text = _unit(name)
-        assert "EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets" in text, name
-        unset_lines = [
-            line for line in text.splitlines() if line.startswith("UnsetEnvironment=")
-        ]
-        assert unset_lines, name
-        unset = set(unset_lines[-1].split("=", 1)[1].split())
-        assert EXCHANGE_SECRET_NAMES <= unset, name
 
 
 def test_private_advisor_keeps_exchange_secret_access():
