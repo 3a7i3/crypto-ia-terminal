@@ -74,6 +74,7 @@ identity_vars = {
     "paper-arena.service": {"PAPER_ARENA_BOT_TOKEN", "PAPER_ARENA_CHAT_ID"},
     "crypto-watchdog.service": {"TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"},
 }
+all_identity_vars = set().union(*identity_vars.values())
 services = [
     "crypto-lmi-observatory.service",
     "crypto-quant-observer.service",
@@ -110,7 +111,8 @@ for service in services:
         env[k.decode(errors="replace")] = v
     present_private = sorted(k for k in exchange_vars if env.get(k))
     print("exchange_private_nonempty=" + (",".join(present_private) if present_private else "NONE"))
-    for name in sorted(identity_vars.get(service, set())):
+    expected = identity_vars.get(service, set())
+    for name in sorted(expected):
         if name not in env:
             state = "ABSENT"
         elif env[name]:
@@ -118,6 +120,13 @@ for service in services:
         else:
             state = "EMPTY"
         print(f"{name}={state}")
+    foreign_nonempty = sorted(
+        name for name in (all_identity_vars - expected) if env.get(name)
+    )
+    print(
+        "foreign_identity_nonempty="
+        + (",".join(foreign_nonempty) if foreign_nonempty else "NONE")
+    )
 PY
 
 echo
