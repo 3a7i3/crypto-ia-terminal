@@ -112,8 +112,8 @@ The fragments are mandatory, not optional. Missing provisioning therefore fails 
 1. `tests/test_sec_api_01_public_private_boundary.py` passes.
 2. Relevant existing market/Telegram/dashboard tests remain green.
 3. Public-data units do not load `.env.secrets`.
-4. Quant, Radar and Dashboard do not load `.env.secrets`.
-5. Each of those three units references only its dedicated mandatory fragment.
+4. Quant, Radar, Dashboard, Paper Arena and Watchdog do not load `.env.secrets`.
+5. Each passive identity unit references only its dedicated mandatory fragment.
 6. Private advisor credential access remains unchanged.
 7. No real secret value appears in source/tests/docs.
 8. No strategy, signal, risk, sizing or order logic changes.
