@@ -54,6 +54,13 @@ _PAYLOAD_FIELDS = {
         {"restored_count", "unresolved_count"}
     ),
 }
+_TRADE_SCOPED_EVENT_TYPES = frozenset(
+    {
+        LedgerEventType.POSITION_OPENED,
+        LedgerEventType.POSITION_CLOSED,
+        LedgerEventType.POSITION_UNRESOLVED,
+    }
+)
 _EPOCH_FILENAME_RE = re.compile(r"^[0-9a-f]{64}\.jsonl$")
 
 
@@ -261,6 +268,19 @@ def _event_to_record(event: LedgerEvent) -> dict[str, Any]:
         raise EventSerializationError("trade_id must be a string or null")
     if event.decision_id is not None and not isinstance(event.decision_id, str):
         raise EventSerializationError("decision_id must be a string or null")
+    if event.event_type in _TRADE_SCOPED_EVENT_TYPES:
+        if not event.trade_id:
+            raise EventSerializationError(
+                f"{event.event_type.value} requires a non-empty trade_id"
+            )
+        if event.event_id == event.trade_id:
+            raise EventSerializationError("event_id must not equal trade_id")
+    if event.event_type is LedgerEventType.EPOCH_CREATED and event.trade_id:
+        raise EventSerializationError("EPOCH_CREATED must not carry a trade_id")
+    if not isinstance(event.schema_version, int) or isinstance(
+        event.schema_version, bool
+    ):
+        raise EventSerializationError("schema_version must be an integer")
     if event.schema_version != _SCHEMA_VERSION:
         raise UnsupportedSchemaVersionError(
             f"unsupported schema_version={event.schema_version!r}; "

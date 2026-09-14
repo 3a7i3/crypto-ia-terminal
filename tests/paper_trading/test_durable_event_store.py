@@ -17,6 +17,7 @@ from paper_trading.durable_event_store import (
     EpochNotFoundError,
     EventDeserializationError,
     EventIdentityCollisionError,
+    EventSerializationError,
     EventStoreError,
     StoreCorruptionError,
     StoreEpochMismatchError,
@@ -289,6 +290,23 @@ def test_t13_unsupported_schema_version_fails_closed(tmp_path):
 
     with pytest.raises(UnsupportedSchemaVersionError):
         DurableEventStore(root).load_epoch(EPOCH_A)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("schema_version", True), ("trade_id", None), ("event_id", "trade-1")],
+)
+def test_t13_append_rejects_forged_event_that_violates_domain_schema(
+    tmp_path, field, value
+):
+    root = tmp_path / "ppl"
+    event = opened()
+    object.__setattr__(event, field, value)
+
+    with pytest.raises(EventSerializationError):
+        DurableEventStore(root).append(EPOCH_A, event)
+
+    assert not root.exists()
 
 
 def test_t14_reload_preserves_strict_sequence_order(tmp_path):

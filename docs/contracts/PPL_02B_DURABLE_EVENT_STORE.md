@@ -145,6 +145,8 @@ Serialization rejects:
 - non-string mapping keys;
 - arbitrary Python objects or `default=str` coercion;
 - unsupported event types or schema versions;
+- violations of the existing trade-scoped identity requirements, even if a
+  frozen event object was deliberately altered after construction;
 - missing or extra top-level fields;
 - missing or extra payload fields for schema version 1.
 
@@ -381,9 +383,9 @@ Final-source local tests on Python 3.12.14 / Linux:
 
 | Proof set | Result |
 |---|---:|
-| PPL-02B durable-store tests | 54 passed |
-| Existing PPL model/projector + PPL-02B | 157 passed |
-| Complete `tests/paper_trading` regression set | 271 passed |
+| PPL-02B durable-store tests | 57 passed |
+| Existing PPL model/projector + PPL-02B | 160 passed |
+| Complete `tests/paper_trading` regression set | 274 passed |
 | Ruff format check | passed |
 | Ruff lint check | passed |
 
@@ -396,8 +398,8 @@ failed file or initial-directory sync are separately proven.
 A full-repository run collected 6,992 tests before the final isolated
 directory-durability hardening: 6,941 passed, 21 failed, 9 errored, 19 were
 skipped, and 3 were xfailed. All then-existing 52 PPL-02B tests passed in
-that run. The final hardening was subsequently covered by the 54-test store
-set and the complete 271-test PAPER regression set above.
+that run. The final hardening was subsequently covered by the 57-test store
+set and the complete 274-test PAPER regression set above.
 
 The 30 failing/error node IDs from that repository-wide run were executed
 unchanged against a detached clean baseline at
