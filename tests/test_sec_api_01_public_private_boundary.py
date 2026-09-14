@@ -1,7 +1,7 @@
 """SEC-API-01 — PUBLIC DATA / PRIVATE KEY SEPARATION.
 
-These tests protect the least-privilege boundary at source level. They never
-read real secret values and perform no network calls.
+Source-level least-privilege tests. They never read real secret values and
+perform no network calls.
 """
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ import importlib.util
 import sys
 import types
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -45,10 +44,13 @@ ZERO_KEY_UNITS = (
     "crypto-market-horizons.service",
 )
 
-PASSIVE_SECRET_UNITS = (
-    "crypto-quant-observer.service",
-    "crypto-radar-bot.service",
-    "crypto-dashboard.service",
+DEDICATED_SECRET_UNITS = {
+    "crypto-quant-observer.service": "/etc/crypto-ai/secrets/quant-observer.env",
+    "crypto-radar-bot.service": "/etc/crypto-ai/secrets/radar-bot.env",
+    "crypto-dashboard.service": "/etc/crypto-ai/secrets/dashboard.env",
+}
+
+LEGACY_PASSIVE_DENYLIST_UNITS = (
     "paper-arena.service",
     "crypto-watchdog.service",
 )
@@ -59,7 +61,6 @@ def _unit(name: str) -> str:
 
 
 def _load_stream_bus(monkeypatch):
-    """Import StreamBus with a fake ccxt.pro module; no ccxt/network required."""
     fake_ccxt = types.ModuleType("ccxt")
     fake_pro = types.ModuleType("ccxt.pro")
     fake_pro.Exchange = object
@@ -77,8 +78,8 @@ def _load_stream_bus(monkeypatch):
 
 
 def test_stream_bus_ignores_environment_exchange_credentials(monkeypatch):
-    monkeypatch.setenv("MEXC_API_KEY", "should-never-be-read")
-    monkeypatch.setenv("MEXC_API_SECRET", "should-never-be-read")
+    monkeypatch.setenv("MEXC_API_KEY", "synthetic-test-value")
+    monkeypatch.setenv("MEXC_API_SECRET", "synthetic-test-value")
     module = _load_stream_bus(monkeypatch)
 
     bus = module.StreamBus(symbols=["BTC/USDT"], exchange_id="mexc")
@@ -96,9 +97,9 @@ def test_stream_bus_strips_explicit_private_ccxt_fields(monkeypatch):
         exchange_id="binance",
         exchange_config={
             "enableRateLimit": True,
-            "apiKey": "explicit-key",
-            "secret": "explicit-secret",
-            "password": "explicit-password",
+            "apiKey": "synthetic-test-value",
+            "secret": "synthetic-test-value",
+            "password": "synthetic-test-value",
             "options": {"defaultType": "future"},
         },
     )
@@ -123,8 +124,8 @@ def test_historical_fetcher_builds_public_ccxt_client(monkeypatch):
 
     fake_ccxt.mexc = mexc
     monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
-    monkeypatch.setenv("MEXC_API_KEY", "must-not-be-used")
-    monkeypatch.setenv("MEXC_API_SECRET", "must-not-be-used")
+    monkeypatch.setenv("MEXC_API_KEY", "synthetic-test-value")
+    monkeypatch.setenv("MEXC_API_SECRET", "synthetic-test-value")
 
     from quant_hedge_ai.agents.market.historical_fetcher import HistoricalDataFetcher
 
@@ -133,14 +134,37 @@ def test_historical_fetcher_builds_public_ccxt_client(monkeypatch):
     assert captured == {"enableRateLimit": True}
 
 
-def test_zero_key_public_units_do_not_load_secret_store():
+def test_zero_key_public_units_do_not_load_global_secret_store():
     for name in ZERO_KEY_UNITS:
         text = _unit(name)
         assert ".env.secrets" not in text, name
 
 
-def test_passive_secret_units_strip_exchange_credentials():
-    for name in PASSIVE_SECRET_UNITS:
+def test_dedicated_secret_units_use_only_their_fragment():
+    for name, fragment in DEDICATED_SECRET_UNITS.items():
+        text = _unit(name)
+        assert ".env.secrets" not in text, name
+        assert f"EnvironmentFile={fragment}" in text, name
+        assert f"EnvironmentFile=-{fragment}" not in text, name
+
+
+def test_service_identity_fragments_are_domain_specific():
+    quant = _unit("crypto-quant-observer.service")
+    radar = _unit("crypto-radar-bot.service")
+    dashboard = _unit("crypto-dashboard.service")
+
+    assert "/etc/crypto-ai/secrets/radar-bot.env" not in quant
+    assert "/etc/crypto-ai/secrets/dashboard.env" not in quant
+
+    assert "/etc/crypto-ai/secrets/quant-observer.env" not in radar
+    assert "/etc/crypto-ai/secrets/dashboard.env" not in radar
+
+    assert "/etc/crypto-ai/secrets/quant-observer.env" not in dashboard
+    assert "/etc/crypto-ai/secrets/radar-bot.env" not in dashboard
+
+
+def test_remaining_legacy_passive_units_strip_exchange_credentials():
+    for name in LEGACY_PASSIVE_DENYLIST_UNITS:
         text = _unit(name)
         assert "EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets" in text, name
         unset_lines = [
@@ -152,7 +176,6 @@ def test_passive_secret_units_strip_exchange_credentials():
 
 
 def test_private_advisor_keeps_exchange_secret_access():
-    """SEC-API-01 must not break the explicitly private execution boundary."""
     text = _unit("crypto-advisor.service")
     assert "EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets" in text
     unset_lines = [line for line in text.splitlines() if line.startswith("UnsetEnvironment=")]
