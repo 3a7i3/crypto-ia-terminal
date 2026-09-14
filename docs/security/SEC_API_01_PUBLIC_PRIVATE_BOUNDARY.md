@@ -83,17 +83,17 @@ LMI, market observer, market radar and horizons load non-secret `.env` only. Str
 
 ### Dedicated service identity fragments
 
-The shared `.env.secrets` store is removed from Quant, Radar and Dashboard units. Each receives a mandatory runtime-only fragment:
+The shared `.env.secrets` store is removed from all passive identity services in this mission. Each receives a mandatory runtime-only fragment:
 
 - `/etc/crypto-ai/secrets/quant-observer.env`
 - `/etc/crypto-ai/secrets/radar-bot.env`
-- `/etc/crypto-ai/secrets/dashboard.env`
+- `/etc/crypto-ai/secrets/dashboard.env`\n- `/etc/crypto-ai/secrets/paper-arena.env`\n- `/etc/crypto-ai/secrets/watchdog.env`
 
 Intended variable allow-list:
 
 - Quant: `QUANT_CRYPTO_BOT_TOKEN`, `QUANT_CRYPTO_CHAT_ID`, `QC_PINNED_MSG_ID`.
 - Radar: `RADAR_BOT_TOKEN`, `RADAR_CHAT_ID`.
-- Dashboard: `DASHBOARD_PASSWORD`.
+- Dashboard: `DASHBOARD_PASSWORD`.\n- Paper Arena: `PAPER_ARENA_BOT_TOKEN`, `PAPER_ARENA_CHAT_ID`.\n- Watchdog: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
 
 These files are HUMAN_ONLY runtime artifacts. Their values MUST NOT be stored in GitHub or printed in audit output.
 
