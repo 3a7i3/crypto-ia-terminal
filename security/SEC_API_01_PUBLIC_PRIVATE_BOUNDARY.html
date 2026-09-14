@@ -1,0 +1,503 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>SEC-API-01 — PUBLIC DATA / PRIVATE KEY SEPARATION - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/security/SEC_API_01_PUBLIC_PRIVATE_BOUNDARY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/security/SEC_API_01_PUBLIC_PRIVATE_BOUNDARY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="sec-api-01-public-data-private-key-separation">
+<h1>SEC-API-01 — PUBLIC DATA / PRIVATE KEY SEPARATION<a class="headerlink" href="#sec-api-01-public-data-private-key-separation" title="Link to this heading">¶</a></h1>
+<p>Status: SOURCE REMEDIATION IN PROGRESS<br />
+Reference base: <code class="docutils literal notranslate"><span class="pre">101359db3993801f2290a0e0fefa3226fb939574</span></code><br />
+Mission branch: <code class="docutils literal notranslate"><span class="pre">master/sec-api-01-public-private-boundary</span></code></p>
+<section id="scope-and-invariant">
+<h2>1. Scope and invariant<a class="headerlink" href="#scope-and-invariant" title="Link to this heading">¶</a></h2>
+<p>SEC-API-01 establishes that public/passive processes receive only the authority required by their domain.</p>
+<p>Target invariant:</p>
+<blockquote>
+<div><p>PUBLIC_MARKET_DATA receives zero exchange private credentials. Passive service identities receive only their own dedicated secret fragment. PRIVATE_ACCOUNT_READ and explicitly governed execution boundaries retain private credentials where required.</p>
+</div></blockquote>
+<p>Out of scope: F-00, burn-in, Cross-Venue Observatory implementation, strategy, signal, risk, sizing, order logic, credential rotation/revocation and <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> runtime changes.</p>
+</section>
+<section id="boundary-classes">
+<h2>2. Boundary classes<a class="headerlink" href="#boundary-classes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>PUBLIC_MARKET_DATA</strong> — LMI, market observer, market radar, horizons, StreamBus, public historical OHLCV.</p></li>
+<li><p><strong>PASSIVE_SERVICE_IDENTITY</strong> — Quant Telegram, Radar Telegram, dashboard authentication.</p></li>
+<li><p><strong>PRIVATE_ACCOUNT_READ</strong> — balances, positions, private trades and account observation.</p></li>
+<li><p><strong>EXECUTION / TREASURY / RECONCILIATION</strong> — explicitly private authority.</p></li>
+</ul>
+</section>
+<section id="source-proof">
+<h2>3. SOURCE PROOF<a class="headerlink" href="#source-proof" title="Link to this heading">¶</a></h2>
+<p>At reference base <code class="docutils literal notranslate"><span class="pre">101359db3993801f2290a0e0fefa3226fb939574</span></code>:</p>
+<ul class="simple">
+<li><p>StreamBus opportunistically read exchange credentials from its environment for public streams.</p></li>
+<li><p>HistoricalDataFetcher opportunistically attached exchange credentials to public OHLCV clients.</p></li>
+<li><p>tracked market observer/radar/horizon units loaded the global <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> store.</p></li>
+<li><p>Quant Observer and Radar Bot loaded the global <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> store.</p></li>
+<li><p>dashboard source loaded <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>, while the audited VPS copy had already removed it.</p></li>
+</ul>
+<p>The mission branch makes StreamBus/HistoricalDataFetcher public-only and aligns public market units to <code class="docutils literal notranslate"><span class="pre">.env</span></code> only.</p>
+</section>
+<section id="runtime-proof-pre-remediation-vps-2026-09-14-utc">
+<h2>4. RUNTIME PROOF — pre-remediation, VPS 2026-09-14 UTC<a class="headerlink" href="#runtime-proof-pre-remediation-vps-2026-09-14-utc" title="Link to this heading">¶</a></h2>
+<p>Runtime provenance:</p>
+<ul class="simple">
+<li><p>branch: <code class="docutils literal notranslate"><span class="pre">main</span></code></p></li>
+<li><p>HEAD: <code class="docutils literal notranslate"><span class="pre">101359db3993801f2290a0e0fefa3226fb939574</span></code></p></li>
+</ul>
+<p>Direct <code class="docutils literal notranslate"><span class="pre">/proc/&lt;PID&gt;/environ</span></code> inspection reported states only, never secret values.</p>
+<section id="healthy-public-boundary">
+<h3>Healthy public boundary<a class="headerlink" href="#healthy-public-boundary" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">crypto-lmi-observatory.service</span></code> received none of the inspected exchange credential names.</p>
+<p>Deployed market observer, market radar and market horizons units already loaded <code class="docutils literal notranslate"><span class="pre">.env</span></code> only. This was a healthy runtime drift relative to source and is preserved by SEC-API-01.</p>
+</section>
+<section id="proven-quant-radar-overexposure">
+<h3>Proven Quant/Radar overexposure<a class="headerlink" href="#proven-quant-radar-overexposure" title="Link to this heading">¶</a></h3>
+<p>Both <code class="docutils literal notranslate"><span class="pre">crypto-quant-observer.service</span></code> and <code class="docutils literal notranslate"><span class="pre">crypto-radar-bot.service</span></code> received non-empty:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_API_KEY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_API_SECRET</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BINANCE_API_KEY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BINANCE_API_SECRET</span></code></p></li>
+</ul>
+<p>They also received each other’s Telegram identity and <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PASSWORD</span></code> because both loaded the shared global <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> store.</p>
+</section>
+<section id="dashboard-fail-open-observation">
+<h3>Dashboard fail-open observation<a class="headerlink" href="#dashboard-fail-open-observation" title="Link to this heading">¶</a></h3>
+<p>The running dashboard loaded only <code class="docutils literal notranslate"><span class="pre">.env</span></code>; <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PASSWORD</span></code> was absent from its process environment even though that variable name exists in <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>.</p>
+<p>Source code bypasses authentication when <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PASSWORD</span></code> is empty. Therefore the audited runtime shape disables dashboard authentication.</p>
+</section>
+</section>
+<section id="defects">
+<h2>5. Defects<a class="headerlink" href="#defects" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>SEC-API-DEF-001</strong> — Quant inherits private exchange credentials.</p></li>
+<li><p><strong>SEC-API-DEF-002</strong> — Radar inherits private exchange credentials.</p></li>
+<li><p><strong>SEC-API-DEF-003</strong> — StreamBus opportunistically authenticates public data.</p></li>
+<li><p><strong>SEC-API-DEF-004</strong> — HistoricalDataFetcher opportunistically authenticates public OHLCV.</p></li>
+<li><p><strong>SEC-API-DEF-005</strong> — tracked public-data units could reintroduce the global secret store.</p></li>
+<li><p><strong>SEC-API-DEF-006</strong> — Quant/Radar share unrelated service identities through the global secret store.</p></li>
+<li><p><strong>SEC-API-DEF-007</strong> — dashboard runtime does not receive its configured password and source fails open when it is absent.</p></li>
+</ul>
+</section>
+<section id="remediation-design">
+<h2>6. Remediation design<a class="headerlink" href="#remediation-design" title="Link to this heading">¶</a></h2>
+<section id="public-collectors">
+<h3>Public collectors<a class="headerlink" href="#public-collectors" title="Link to this heading">¶</a></h3>
+<p>LMI, market observer, market radar and horizons load non-secret <code class="docutils literal notranslate"><span class="pre">.env</span></code> only. StreamBus and HistoricalDataFetcher remain zero-key by construction.</p>
+</section>
+<section id="dedicated-service-identity-fragments">
+<h3>Dedicated service identity fragments<a class="headerlink" href="#dedicated-service-identity-fragments" title="Link to this heading">¶</a></h3>
+<p>The shared <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> store is removed from all passive identity services in this mission. Each receives a mandatory runtime-only fragment:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/etc/crypto-ai/secrets/quant-observer.env</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/etc/crypto-ai/secrets/radar-bot.env</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/etc/crypto-ai/secrets/dashboard.env</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/etc/crypto-ai/secrets/paper-arena.env</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/etc/crypto-ai/secrets/watchdog.env</span></code></p></li>
+</ul>
+<p>Intended variable allow-list:</p>
+<ul class="simple">
+<li><p>Quant: <code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">QUANT_CRYPTO_CHAT_ID</span></code>, <code class="docutils literal notranslate"><span class="pre">QC_PINNED_MSG_ID</span></code>.</p></li>
+<li><p>Radar: <code class="docutils literal notranslate"><span class="pre">RADAR_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">RADAR_CHAT_ID</span></code>.</p></li>
+<li><p>Dashboard: <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PASSWORD</span></code>.</p></li>
+<li><p>Paper Arena: <code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_ARENA_CHAT_ID</span></code>.</p></li>
+<li><p>Watchdog: <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_TOKEN</span></code>, <code class="docutils literal notranslate"><span class="pre">TELEGRAM_CHAT_ID</span></code>.</p></li>
+</ul>
+<p>These files are HUMAN_ONLY runtime artifacts. Their values MUST NOT be stored in GitHub or printed in audit output.</p>
+<p>The fragments are mandatory, not optional. Missing provisioning therefore fails at service startup rather than silently falling back to a shared store or an unauthenticated dashboard.</p>
+</section>
+<section id="private-boundary">
+<h3>Private boundary<a class="headerlink" href="#private-boundary" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> and legitimate private account/execution consumers are intentionally unchanged.</p>
+</section>
+</section>
+<section id="source-certification-gates">
+<h2>7. Source certification gates<a class="headerlink" href="#source-certification-gates" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/test_sec_api_01_public_private_boundary.py</span></code> passes.</p></li>
+<li><p>Relevant existing market/Telegram/dashboard tests remain green.</p></li>
+<li><p>Public-data units do not load <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>.</p></li>
+<li><p>Quant, Radar, Dashboard, Paper Arena and Watchdog do not load <code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code>.</p></li>
+<li><p>Each passive identity unit references only its dedicated mandatory fragment.</p></li>
+<li><p>Private advisor credential access remains unchanged.</p></li>
+<li><p>No real secret value appears in source/tests/docs.</p></li>
+<li><p>No strategy, signal, risk, sizing or order logic changes.</p></li>
+</ol>
+</section>
+<section id="controlled-deployment-not-automatic">
+<h2>8. Controlled deployment — NOT AUTOMATIC<a class="headerlink" href="#controlled-deployment-not-automatic" title="Link to this heading">¶</a></h2>
+<p>Before any service restart:</p>
+<ol class="arabic simple">
+<li><p>merge an approved SEC-API-01 PR;</p></li>
+<li><p>fast-forward VPS deliberately;</p></li>
+<li><p>backup every affected deployed unit;</p></li>
+<li><p>create <code class="docutils literal notranslate"><span class="pre">/etc/crypto-ai/secrets</span></code> as an operator-controlled directory;</p></li>
+<li><p>create each required fragment from existing runtime secret values without printing those values or committing them;</p></li>
+<li><p>restrict fragment permissions appropriately;</p></li>
+<li><p>install only the affected tracked units;</p></li>
+<li><p>run <code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">daemon-reload</span></code>;</p></li>
+<li><p>restart only directly affected passive services;</p></li>
+<li><p>never restart <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> for SEC-API-01.</p></li>
+</ol>
+<p>The exact value-transfer operation remains HUMAN_ONLY.</p>
+</section>
+<section id="rollback">
+<h2>9. Rollback<a class="headerlink" href="#rollback" title="Link to this heading">¶</a></h2>
+<p>For every changed unit, retain its timestamped pre-deployment copy.</p>
+<p>If a passive service fails:</p>
+<ol class="arabic simple">
+<li><p>restore its previous unit;</p></li>
+<li><p>restore the previous EnvironmentFile wiring;</p></li>
+<li><p>run <code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">daemon-reload</span></code>;</p></li>
+<li><p>restart only that service;</p></li>
+<li><p>record the failure;</p></li>
+<li><p>do not revoke, print or move exchange credentials as an improvised fix.</p></li>
+</ol>
+</section>
+<section id="runtime-certification-gates">
+<h2>10. Runtime certification gates<a class="headerlink" href="#runtime-certification-gates" title="Link to this heading">¶</a></h2>
+<p>After deployment:</p>
+<ul class="simple">
+<li><p>VPS <code class="docutils literal notranslate"><span class="pre">HEAD</span> <span class="pre">==</span> <span class="pre">origin/main</span> <span class="pre">==</span> <span class="pre">merged</span> <span class="pre">SEC-API-01</span> <span class="pre">SHA</span></code>.</p></li>
+<li><p>deployed affected units match source.</p></li>
+<li><p>public data functionality remains healthy.</p></li>
+<li><p>public/passive processes expose zero exchange private credential names.</p></li>
+<li><p>Quant receives its Quant identity and not Radar/Dashboard identity.</p></li>
+<li><p>Radar receives its Radar identity and not Quant/Dashboard identity.</p></li>
+<li><p>Dashboard receives <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PASSWORD</span></code>, receives no exchange/Telegram credentials, and authenticated behavior is confirmed.</p></li>
+<li><p>authorized private account/execution paths retain required credentials.</p></li>
+<li><p>no restart loop or new critical traceback appears.</p></li>
+</ul>
+<p>Runtime probes report only <code class="docutils literal notranslate"><span class="pre">NONEMPTY</span></code>, <code class="docutils literal notranslate"><span class="pre">EMPTY</span></code>, or <code class="docutils literal notranslate"><span class="pre">ABSENT</span></code>; never values.</p>
+</section>
+<section id="verdict-vocabulary">
+<h2>11. Verdict vocabulary<a class="headerlink" href="#verdict-vocabulary" title="Link to this heading">¶</a></h2>
+<p>Final mission verdict must be exactly one of:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SEC_API_01_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SEC_API_01_REMEDIATION_REQUIRED</span></code></p></li>
+</ul>
+<p>SOURCE PROOF alone can never produce <code class="docutils literal notranslate"><span class="pre">SEC_API_01_CERTIFIED</span></code>.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">SEC-API-01 — PUBLIC DATA / PRIVATE KEY SEPARATION</a><ul>
+<li><a class="reference internal" href="#scope-and-invariant">1. Scope and invariant</a></li>
+<li><a class="reference internal" href="#boundary-classes">2. Boundary classes</a></li>
+<li><a class="reference internal" href="#source-proof">3. SOURCE PROOF</a></li>
+<li><a class="reference internal" href="#runtime-proof-pre-remediation-vps-2026-09-14-utc">4. RUNTIME PROOF — pre-remediation, VPS 2026-09-14 UTC</a><ul>
+<li><a class="reference internal" href="#healthy-public-boundary">Healthy public boundary</a></li>
+<li><a class="reference internal" href="#proven-quant-radar-overexposure">Proven Quant/Radar overexposure</a></li>
+<li><a class="reference internal" href="#dashboard-fail-open-observation">Dashboard fail-open observation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#defects">5. Defects</a></li>
+<li><a class="reference internal" href="#remediation-design">6. Remediation design</a><ul>
+<li><a class="reference internal" href="#public-collectors">Public collectors</a></li>
+<li><a class="reference internal" href="#dedicated-service-identity-fragments">Dedicated service identity fragments</a></li>
+<li><a class="reference internal" href="#private-boundary">Private boundary</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#source-certification-gates">7. Source certification gates</a></li>
+<li><a class="reference internal" href="#controlled-deployment-not-automatic">8. Controlled deployment — NOT AUTOMATIC</a></li>
+<li><a class="reference internal" href="#rollback">9. Rollback</a></li>
+<li><a class="reference internal" href="#runtime-certification-gates">10. Runtime certification gates</a></li>
+<li><a class="reference internal" href="#verdict-vocabulary">11. Verdict vocabulary</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
