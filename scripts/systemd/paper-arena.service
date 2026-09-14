@@ -6,9 +6,12 @@
 # aucune position, et une panne d'envoi Telegram n'a aucun effet sur le
 # moteur de decision (ADR-0007, passivite des observers).
 #
-# Prerequis dans .env/.env.secrets :
+# Prerequis dans .env.secrets :
 #   PAPER_ARENA_BOT_TOKEN=<token bot @PaperArena_bot>
 #   PAPER_ARENA_CHAT_ID=<chat id destinataire>
+#
+# SEC-API-01 : le notifier conserve uniquement son identite Telegram utile ;
+# les credentials d'exchange sont supprimees de l'environnement final.
 #
 # Installation (VPS, geste operateur) :
 #   sudo cp scripts/systemd/paper-arena.service /etc/systemd/system/
@@ -28,6 +31,7 @@ User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
+UnsetEnvironment=MEXC_API_KEY MEXC_API_SECRET MEXC_SECRET_KEY BINANCE_API_KEY BINANCE_API_SECRET BINANCE_LIVE_API_KEY BINANCE_LIVE_API_SECRET BINANCE_FUTURES_DEMO_KEY BINANCE_FUTURES_DEMO_SECRET BINANCE_SECRET KRAKEN_API_KEY KRAKEN_API_SECRET GATEIO_API_KEY GATEIO_API_SECRET BYBIT_API_KEY BYBIT_API_SECRET OKX_API_KEY OKX_API_SECRET OKX_PASSWORD LIVE_READER_API_KEY LIVE_READER_API_SECRET
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=TZ=UTC
