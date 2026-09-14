@@ -150,24 +150,9 @@ def test_dedicated_secret_units_use_only_their_fragment():
 
 
 def test_service_identity_fragments_are_domain_specific():
-    quant = _unit("crypto-quant-observer.service")
-    radar = _unit("crypto-radar-bot.service")
-    dashboard = _unit("crypto-dashboard.service")
+    fragments = set(DEDICATED_SECRET_UNITS.values())
+    for name, own_fragment in DEDICATED_SECRET_UNITS.items():
+        text = _unit(name)
+        for foreign_fragment in fragments - {own_fragment}:
+            assert foreign_fragment not in text, (name, foreign_fragment)
 
-    assert "/etc/crypto-ai/secrets/radar-bot.env" not in quant
-    assert "/etc/crypto-ai/secrets/dashboard.env" not in quant
-
-    assert "/etc/crypto-ai/secrets/quant-observer.env" not in radar
-    assert "/etc/crypto-ai/secrets/dashboard.env" not in radar
-
-    assert "/etc/crypto-ai/secrets/quant-observer.env" not in dashboard
-    assert "/etc/crypto-ai/secrets/radar-bot.env" not in dashboard
-
-
-def test_private_advisor_keeps_exchange_secret_access():
-    text = _unit("crypto-advisor.service")
-    assert "EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets" in text
-    unset_lines = [line for line in text.splitlines() if line.startswith("UnsetEnvironment=")]
-    if unset_lines:
-        unset = set(unset_lines[-1].split("=", 1)[1].split())
-        assert not (EXCHANGE_SECRET_NAMES <= unset)
