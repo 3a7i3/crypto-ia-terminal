@@ -7,10 +7,10 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=/home/mathieu/crypto_ai_terminal/.env
-# DASHBOARD_PASSWORD reste un secret de service ; SEC-API-01 retire ensuite
-# toutes les credentials d'exchange avant ExecStart.
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
-UnsetEnvironment=MEXC_API_KEY MEXC_API_SECRET MEXC_SECRET_KEY BINANCE_API_KEY BINANCE_API_SECRET BINANCE_LIVE_API_KEY BINANCE_LIVE_API_SECRET BINANCE_FUTURES_DEMO_KEY BINANCE_FUTURES_DEMO_SECRET BINANCE_SECRET KRAKEN_API_KEY KRAKEN_API_SECRET GATEIO_API_KEY GATEIO_API_SECRET BYBIT_API_KEY BYBIT_API_SECRET OKX_API_KEY OKX_API_SECRET OKX_PASSWORD LIVE_READER_API_KEY LIVE_READER_API_SECRET
+# SEC-API-01: dashboard auth is isolated from exchange and Telegram secrets.
+# Mandatory fragment: missing provisioning fails service startup instead of
+# silently running without DASHBOARD_PASSWORD.
+EnvironmentFile=/etc/crypto-ai/secrets/dashboard.env
 ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python scripts/dashboard_api.py
 Restart=always
 RestartSec=10
