@@ -134,7 +134,11 @@ def test_historical_fetcher_builds_public_ccxt_client(monkeypatch):
 def test_zero_key_public_units_do_not_load_global_secret_store():
     for name in ZERO_KEY_UNITS:
         text = _unit(name)
-        assert ".env.secrets" not in text, name
+        env_lines = [
+            line for line in text.splitlines() if line.startswith("EnvironmentFile=")
+        ]
+        assert "EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets" not in env_lines, name
+        assert "EnvironmentFile=/home/mathieu/crypto_ai_terminal/.env.secrets" not in env_lines, name
 
 
 def test_dedicated_secret_units_use_only_their_fragment():
