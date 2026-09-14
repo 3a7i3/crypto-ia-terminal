@@ -1,15 +1,19 @@
 # SEC-API-01 — Controlled deployment plan
 
-This document is operational guidance only. It does not authorize a deploy by
-itself.
+This document is operational guidance only. It does not authorize a deploy by itself.
 
 ## Pre-deploy
 
-1. Verify branch merged to `main` and record merged SHA.
-2. On VPS verify tracked working tree clean and `HEAD` fast-forwardable.
-3. Back up only the affected installed unit files to a timestamped operator
-   directory.
-4. Do not modify `.env.secrets` or rotate keys during this mission.
+1. Verify the approved SEC-API-01 PR is merged to `main`; record merged SHA.
+2. Verify VPS working tree is clean and fast-forwardable.
+3. Back up affected installed unit files to a timestamped operator directory.
+4. Do not rotate, revoke or print exchange credentials.
+5. Before restarting Quant, Radar or Dashboard, provision their dedicated runtime-only fragments:
+   - `/etc/crypto-ai/secrets/quant-observer.env`
+   - `/etc/crypto-ai/secrets/radar-bot.env`
+   - `/etc/crypto-ai/secrets/dashboard.env`
+6. Populate fragments HUMAN_ONLY from existing authorized values; never commit or echo values.
+7. Restrict fragment permissions appropriately.
 
 ## Deploy source
 
@@ -28,20 +32,15 @@ Candidate tracked units:
 - `paper-arena.service`
 - `crypto-watchdog.service`
 
-Only copy a unit if it is installed or intentionally managed on this VPS.
-Never install a previously absent service merely to satisfy SEC-API-01.
+Only copy a unit if installed or intentionally managed on this VPS. Never install an absent service solely to satisfy SEC-API-01.
 
-Run `systemd-analyze verify` on the candidate unit files before replacing
-runtime copies. Then `daemon-reload`.
+Run `systemd-analyze verify` before replacing runtime copies, then `systemctl daemon-reload`.
 
 ## Restart policy
 
-Restart only persistent passive services whose unit definition changed and
-that were already running before deployment. Do not restart
-`crypto-advisor.service` as part of SEC-API-01.
+Restart only persistent passive services whose unit definition changed and that were already running. Do not restart `crypto-advisor.service`.
 
-Oneshot market services are timer-driven; do not force a market run solely for
-credential-boundary certification unless separately authorized.
+Oneshot market services remain timer-driven unless separately authorized.
 
 ## Runtime evidence
 
@@ -51,19 +50,24 @@ Run:
 bash docs/security/SEC_API_01_POST_DEPLOY_READ_ONLY.sh
 ```
 
-The collector prints names/states only, never secret values.
+Expected persistent passive result:
 
-Expected passive persistent result:
+- exchange private credential names: `ABSENT` or otherwise non-usable according to probe contract;
+- Quant identity present only in Quant;
+- Radar identity present only in Radar;
+- `DASHBOARD_PASSWORD` present only in Dashboard;
+- no cross-service identities;
+- no restart loop or new authentication failure.
 
-- `exchange_private_nonempty=NONE`
-- required service identity (`QUANT_CRYPTO_BOT_TOKEN`, `RADAR_BOT_TOKEN`, etc.)
-  remains `NONEMPTY` when that service is configured/running
-- no restart loop or new authentication failure
-
-Private execution/account boundaries remain outside the stripping rule.
+Private execution/account boundaries remain outside this stripping rule.
 
 ## Rollback
 
-If a passive service loses its legitimate identity or enters a restart loop:
-restore its backed-up unit file, run `daemon-reload`, restart only that passive
-service and record `SEC_API_01_REMEDIATION_REQUIRED` until investigated.
+If a passive service loses legitimate identity or enters a restart loop:
+
+1. restore its backed-up unit;
+2. restore its previous EnvironmentFile wiring;
+3. `systemctl daemon-reload`;
+4. restart only that passive service;
+5. record `SEC_API_01_REMEDIATION_REQUIRED`;
+6. do not restart `crypto-advisor.service` or alter exchange keys as a workaround.
