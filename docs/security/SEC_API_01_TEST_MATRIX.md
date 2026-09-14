@@ -9,8 +9,8 @@
 | Quant unit | dedicated mandatory Quant fragment only |
 | Radar Bot unit | dedicated mandatory Radar fragment only |
 | Dashboard unit | dedicated mandatory Dashboard fragment only |
-| Quant/Radar/Dashboard | no global `.env.secrets` |
-| Paper/Watchdog current branch boundary | exchange credential deny-list retained |
+| Quant/Radar/Dashboard/Paper/Watchdog | no global `.env.secrets` |
+| Paper Arena unit | dedicated mandatory Paper fragment only |\n| Watchdog unit | dedicated mandatory Watchdog fragment only |
 | `crypto-advisor.service` | private secret access preserved |
 | Runtime public/passive processes | exchange private credentials absent |
 | Runtime Quant identity | present only in Quant |
