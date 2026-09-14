@@ -1,27 +1,18 @@
 # @QuantCrypto_bot — SDOS Visualization Client (bot Telegram passif, ADR-0007).
-# Repond aux commandes /snapshot /health /pipeline /portfolio et rafraichit
-# un message epingle toutes les PINNED_UPDATE_S secondes (defaut 600 = 10 min).
+# SEC-API-01 — least-privilege service identity.
 #
-# Prerequis dans .env.secrets pour l'identite Telegram :
-#   QUANT_CRYPTO_BOT_TOKEN=<token bot @QuantCrypto_bot>
-#   QUANT_CRYPTO_CHAT_ID=<id chat cible>
-#   QC_PINNED_MSG_ID=<id du message epingle a rafraichir>  # cree via bootstrap
-# Les cadences QC_POLL_INTERVAL / QC_PINNED_UPDATE restent dans .env.
+# Public/non-secret configuration:
+#   /home/mathieu/crypto_ai_terminal/.env
 #
-# SEC-API-01 : .env.secrets est conserve pour l'identite Telegram, mais toutes
-# les credentials d'exchange connues sont retirees de l'environnement final du
-# processus via UnsetEnvironment. Le bot est un observer, pas un client prive.
+# Required runtime-only secret fragment (HUMAN_ONLY, never committed):
+#   /etc/crypto-ai/secrets/quant-observer.env
+# containing only:
+#   QUANT_CRYPTO_BOT_TOKEN
+#   QUANT_CRYPTO_CHAT_ID
+#   QC_PINNED_MSG_ID
 #
-# Le message epingle est cree une fois via :
-#   .venv/bin/python scripts/quant_observer_pin_bootstrap.py
-# qui envoie un placeholder, l'epingle (si le bot est admin), et affiche le
-# message_id a mettre dans QC_PINNED_MSG_ID.
-#
-# Installation (VPS, geste operateur) :
-#   sudo cp scripts/systemd/crypto-quant-observer.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now crypto-quant-observer.service
-#   sudo systemctl status crypto-quant-observer.service
+# Mandatory EnvironmentFile: deployment must provision the fragment before
+# restarting this service. No fallback to the global .env.secrets store.
 [Unit]
 Description=Crypto AI Terminal — @QuantCrypto_bot (SDOS observer passif, ADR-0007)
 After=network-online.target crypto-advisor.service
@@ -34,8 +25,7 @@ Type=simple
 User=mathieu
 WorkingDirectory=/home/mathieu/crypto_ai_terminal
 EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env
-EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets
-UnsetEnvironment=MEXC_API_KEY MEXC_API_SECRET MEXC_SECRET_KEY BINANCE_API_KEY BINANCE_API_SECRET BINANCE_LIVE_API_KEY BINANCE_LIVE_API_SECRET BINANCE_FUTURES_DEMO_KEY BINANCE_FUTURES_DEMO_SECRET BINANCE_SECRET KRAKEN_API_KEY KRAKEN_API_SECRET GATEIO_API_KEY GATEIO_API_SECRET BYBIT_API_KEY BYBIT_API_SECRET OKX_API_KEY OKX_API_SECRET OKX_PASSWORD LIVE_READER_API_KEY LIVE_READER_API_SECRET
+EnvironmentFile=/etc/crypto-ai/secrets/quant-observer.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONIOENCODING=utf-8
 Environment=TZ=UTC
