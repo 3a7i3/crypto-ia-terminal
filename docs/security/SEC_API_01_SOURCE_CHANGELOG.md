@@ -10,7 +10,7 @@ Base: `101359db3993801f2290a0e0fefa3226fb939574`
 - Quant Observer: global `.env.secrets` removed; mandatory `/etc/crypto-ai/secrets/quant-observer.env`.
 - Radar Bot: global `.env.secrets` removed; mandatory `/etc/crypto-ai/secrets/radar-bot.env`.
 - Dashboard: global `.env.secrets` removed; mandatory `/etc/crypto-ai/secrets/dashboard.env`; virtualenv ExecStart retained.
-- Paper Arena / watchdog: existing exchange-secret deny-boundary changes remain in this mission branch; their broader secret-fragment migration is not asserted as completed by SEC-API-01.
+- Paper Arena: global `.env.secrets` removed; mandatory `/etc/crypto-ai/secrets/paper-arena.env`.\n- Watchdog: global `.env.secrets` removed; mandatory `/etc/crypto-ai/secrets/watchdog.env`.
 - Source-boundary tests and post-deploy READ-ONLY evidence tooling are included.
 - Verdict vocabulary corrected to `SEC_API_01_CERTIFIED` / `SEC_API_01_REMEDIATION_REQUIRED`.
 
