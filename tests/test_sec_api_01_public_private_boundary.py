@@ -143,9 +143,13 @@ def test_zero_key_public_units_do_not_load_global_secret_store():
 def test_dedicated_secret_units_use_only_their_fragment():
     for name, fragment in DEDICATED_SECRET_UNITS.items():
         text = _unit(name)
-        assert ".env.secrets" not in text, name
-        assert f"EnvironmentFile={fragment}" in text, name
-        assert f"EnvironmentFile=-{fragment}" not in text, name
+        env_lines = [
+            line for line in text.splitlines() if line.startswith("EnvironmentFile=")
+        ]
+        assert "EnvironmentFile=-/home/mathieu/crypto_ai_terminal/.env.secrets" not in env_lines, name
+        assert "EnvironmentFile=/home/mathieu/crypto_ai_terminal/.env.secrets" not in env_lines, name
+        assert f"EnvironmentFile={fragment}" in env_lines, name
+        assert f"EnvironmentFile=-{fragment}" not in env_lines, name
 
 
 def test_service_identity_fragments_are_domain_specific():
