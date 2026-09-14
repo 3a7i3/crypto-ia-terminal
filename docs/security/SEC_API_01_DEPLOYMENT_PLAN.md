@@ -8,10 +8,10 @@ This document is operational guidance only. It does not authorize a deploy by it
 2. Verify VPS working tree is clean and fast-forwardable.
 3. Back up affected installed unit files to a timestamped operator directory.
 4. Do not rotate, revoke or print exchange credentials.
-5. Before restarting Quant, Radar or Dashboard, provision their dedicated runtime-only fragments:
+5. Before restarting any affected passive identity service, provision its dedicated runtime-only fragment:
    - `/etc/crypto-ai/secrets/quant-observer.env`
    - `/etc/crypto-ai/secrets/radar-bot.env`
-   - `/etc/crypto-ai/secrets/dashboard.env`
+   - `/etc/crypto-ai/secrets/dashboard.env`\n   - `/etc/crypto-ai/secrets/paper-arena.env`\n   - `/etc/crypto-ai/secrets/watchdog.env`
 6. Populate fragments HUMAN_ONLY from existing authorized values; never commit or echo values.
 7. Restrict fragment permissions appropriately.
 
@@ -55,7 +55,7 @@ Expected persistent passive result:
 - exchange private credential names: `ABSENT` or otherwise non-usable according to probe contract;
 - Quant identity present only in Quant;
 - Radar identity present only in Radar;
-- `DASHBOARD_PASSWORD` present only in Dashboard;
+- `DASHBOARD_PASSWORD` present only in Dashboard;\n- Paper Arena identity present only in Paper Arena;\n- Watchdog identity present only in Watchdog;
 - no cross-service identities;
 - no restart loop or new authentication failure.
 
