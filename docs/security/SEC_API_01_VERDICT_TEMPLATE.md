@@ -1,6 +1,6 @@
 # SEC-API-01 — Verdict template
 
-Source verdict and runtime verdict are separate.
+SOURCE PROOF and RUNTIME PROOF remain separate.
 
 ## Source
 
@@ -9,22 +9,30 @@ Source verdict and runtime verdict are separate.
 - tests:
 - CI:
 - diff scope:
-- source verdict: `MERGEABLE` or `REMEDIATION_REQUIRED`
+- public-data boundary:
+- service-identity boundary:
+- private-boundary regression check:
+- source assessment: `MERGEABLE` or `REMEDIATION_REQUIRED`
 
 ## Runtime
 
 - deployed SHA:
-- unit identity:
-- passive process exchange-private state:
-- required service-identity state:
+- deployed unit identity:
+- public/passive exchange-private state:
+- Quant-only identity state:
+- Radar-only identity state:
+- Dashboard-only password state:
+- dashboard authentication behavior:
 - service health/restarts:
 - public market observation health:
 - private boundary regression check:
 
-Final runtime verdict must be exactly one of:
+Final mission verdict must be exactly one of:
 
-`SEC_API_01_RUNTIME_CERTIFIED`
+`SEC_API_01_CERTIFIED`
 
 or
 
 `SEC_API_01_REMEDIATION_REQUIRED`
+
+A source-only review can never produce `SEC_API_01_CERTIFIED`.
