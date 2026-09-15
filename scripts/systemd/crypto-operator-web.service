@@ -1,0 +1,30 @@
+# WEB-01G — durable local Operator Web App frontend.
+# Serves only the built React assets and proxies GET/HEAD API requests to the
+# existing loopback Operator API. No secret file, token, exchange credential,
+# runtime artifact path, public listener, or trading authority is present.
+[Unit]
+Description=Crypto AI Terminal — WEB-01 Operator Web App (local read-only)
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal/frontend
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node /home/mathieu/crypto_ai_terminal/frontend/scripts/web01_local_frontend_server.mjs
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_operator_web
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

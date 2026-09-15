@@ -83,12 +83,14 @@ const App: React.FC = () => {
       <SnapshotStatusBanner state={snapshotState} />
 
       <main className="operator-main">
-        {!activeSnapshot ? (
+        {tab === "market" ? (
+          <MarketView />
+        ) : !activeSnapshot ? (
           <div
             className="market-loading"
             data-testid="no-snapshot"
           >
-            No successful snapshot available yet — panels render only from a validated canonical snapshot.
+            Canonical snapshot unavailable — this domain is UNRESOLVED until a validated snapshot is available.
           </div>
         ) : (
           <>
@@ -96,7 +98,6 @@ const App: React.FC = () => {
             {tab === "portfolio" && <PortfolioView snapshot={activeSnapshot} />}
             {tab === "decisions" && <DecisionsView snapshot={activeSnapshot} />}
             {tab === "system" && <SystemView snapshot={activeSnapshot} />}
-            {tab === "market" && <MarketView />}
             {tab === "scores" && <NotExposedView title="Scores" />}
           </>
         )}
