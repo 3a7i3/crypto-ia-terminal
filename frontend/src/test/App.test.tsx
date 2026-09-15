@@ -93,6 +93,23 @@ describe("App", () => {
     expect(text).not.toMatch(/expectancy|equity_curve/i);
   });
 
+  it("keeps MARKET reachable when the canonical snapshot is explicitly missing", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/operator/v1/market") return Promise.resolve(jsonResponse(baseMarketSnapshot()));
+      return Promise.resolve(jsonResponse({ error_code: "SNAPSHOT_MISSING", error_message: "canonical artifact absent" }, 503));
+    });
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
+
+    fireEvent.click(screen.getByTestId("tab-market"));
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
+    expect(screen.getByTestId("market-view")).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
+    expect(screen.queryByTestId("overview-view")).toBeNull();
+  });
+
   it("renders the canonical portfolio mode without a PAPER fallback for UNKNOWN", async () => {
     fetchMock.mockResolvedValue(jsonResponse(baseSnapshot({ portfolio: { ...baseSnapshot().portfolio, mode: "UNKNOWN" } })));
     render(<App />);
