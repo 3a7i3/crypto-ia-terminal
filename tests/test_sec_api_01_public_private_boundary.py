@@ -43,6 +43,7 @@ ZERO_KEY_UNITS = (
     "crypto-market-radar.service",
     "crypto-market-horizons.service",
     "crypto-market-snapshot.service",
+    "crypto-operator-api.service",
 )
 
 DEDICATED_SECRET_UNITS = {

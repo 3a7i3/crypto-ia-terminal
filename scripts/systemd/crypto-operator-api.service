@@ -1,0 +1,42 @@
+# WEB-01F — durable local Operator API.
+# Read-only presentation transport. The process reads governed snapshot artifacts
+# only and is intentionally bound to loopback. No Telegram token, exchange key,
+# global secret store, public listener, or trading-authority dependency.
+#
+# Installation (VPS, explicit operator gesture after merged-SHA certification):
+#   sudo install -m 0644 scripts/systemd/crypto-operator-api.service /etc/systemd/system/crypto-operator-api.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-operator-api.service
+[Unit]
+Description=Crypto AI Terminal — WEB-01 Operator API (local read-only)
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=TZ=UTC
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal
+Environment=OPERATOR_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/operator_snapshot.json
+Environment=OPERATOR_RUNTIME_MANIFEST_PATH=/home/mathieu/crypto_ai_terminal/databases/operator_runtime_manifest.json
+Environment=RADAR_MARKET_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/cryptoradar_market_snapshot.json
+Environment=RADAR_MARKET_STALE_AFTER_S=90
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python -m uvicorn observability.operator_api.app:app --host 127.0.0.1 --port 8090 --no-access-log
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_operator_api
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
