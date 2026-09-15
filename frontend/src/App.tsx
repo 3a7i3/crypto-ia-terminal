@@ -1,4 +1,7 @@
-// ── App.tsx — read-only operator cockpit, single coherent snapshot source ──
+// ── App.tsx — read-only operator cockpit ───────────────────────────────────
+// Overview/Portfolio/Decisions/System share one coherent canonical advisor
+// snapshot. WEB-01-MARKET is the explicit O-02W-B §12 cross-process exception:
+// MarketView consumes only the separate read-only CryptoRadar MARKET artifact.
 
 import React, { useState } from "react";
 import "./tokens.css";
@@ -9,6 +12,7 @@ import { OverviewView } from "./views/OverviewView";
 import { PortfolioView } from "./views/PortfolioView";
 import { DecisionsView } from "./views/DecisionsView";
 import { SystemView } from "./views/SystemView";
+import { MarketView } from "./views/MarketView";
 import { NotExposedView } from "./views/NotExposedView";
 
 type Tab = "overview" | "portfolio" | "decisions" | "system" | "market" | "scores";
@@ -98,7 +102,7 @@ const App: React.FC = () => {
             {tab === "portfolio" && <PortfolioView snapshot={activeSnapshot} />}
             {tab === "decisions" && <DecisionsView snapshot={activeSnapshot} />}
             {tab === "system" && <SystemView snapshot={activeSnapshot} />}
-            {tab === "market" && <NotExposedView title="Market" />}
+            {tab === "market" && <MarketView />}
             {tab === "scores" && <NotExposedView title="Scores" />}
           </>
         )}
