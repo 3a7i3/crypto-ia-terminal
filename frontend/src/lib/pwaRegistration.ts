@@ -18,6 +18,23 @@ export function registerOperatorPwa(): void {
   if (!canRegisterOperatorPwa()) return;
 
   const register = async () => {
+    // Reload only when an already-controlled page receives a replacement
+    // worker. First installation remains non-disruptive; later deployments
+    // deterministically activate the new shell after skipWaiting()/claim().
+    const hadController = navigator.serviceWorker.controller !== null;
+    let reloadingForUpdate = false;
+    if (hadController) {
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        () => {
+          if (reloadingForUpdate) return;
+          reloadingForUpdate = true;
+          window.location.reload();
+        },
+        { once: true },
+      );
+    }
+
     try {
       const registration = await navigator.serviceWorker.register(PWA_SERVICE_WORKER_PATH, { scope: "/" });
 
