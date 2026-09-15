@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 UNIT = ROOT / "scripts" / "systemd" / "crypto-market-snapshot.service"
+SERVICE_MATRIX = ROOT / "scripts" / "claude-service-matrix.py"
 
 
 def _text() -> str:
@@ -80,3 +81,12 @@ def test_market_snapshot_unit_has_controlled_lifecycle_and_hardening() -> None:
     assert "StandardOutput=journal" in text
     assert "StandardError=journal" in text
     assert "WantedBy=multi-user.target" in text
+
+
+def test_market_snapshot_unit_is_registered_in_read_only_service_matrix() -> None:
+    text = SERVICE_MATRIX.read_text(encoding="utf-8")
+    assert (
+        'ServiceSpec("crypto-market-snapshot.service", '
+        '"market_snapshot_publisher", "observation")'
+        in text
+    )
