@@ -1,7 +1,7 @@
 # WEB-01B — Private PWA & controlled private access
 
-Status: source implementation / runtime not yet certified  
-Mission: GitHub Issue #164  
+Status: source implementation / runtime not yet certified
+Mission: GitHub Issue #164
 Baseline: `main@16e8b17b6275612baa9a57367906cb68b2e1c5bb`
 
 ## 1. Scope
