@@ -25,6 +25,7 @@ test("serves frontend routes but never applies SPA fallback to API paths", async
   await writeFile(path.join(distRoot, "asset.js"), "console.log('asset')");
   const api = http.createServer((req, res) => {
     if (req.url === "/api/operator/v1/market") return res.end('{"market":true}');
+    if (req.url === "/healthz") return res.end('{"ready":true}');
     res.writeHead(404, { "content-type": "application/json" }); res.end('{"error_code":"API_NOT_FOUND"}');
   });
   const apiPort = await listen(api);
@@ -37,8 +38,12 @@ test("serves frontend routes but never applies SPA fallback to API paths", async
   assert.equal((await request(appPort, "/asset.js")).text, "console.log('asset')");
   const proxied = await request(appPort, "/api/operator/v1/market");
   assert.equal(proxied.status, 200); assert.equal(proxied.text, '{"market":true}');
+  assert.equal(proxied.cacheControl, "no-store", "runtime API responses must be non-cacheable at the browser boundary");
+  const health = await request(appPort, "/healthz");
+  assert.equal(health.status, 200); assert.equal(health.cacheControl, "no-store");
   const missingApi = await request(appPort, "/api/missing");
   assert.equal(missingApi.status, 404); assert.match(missingApi.text, /API_NOT_FOUND/); assert.doesNotMatch(missingApi.text, /operator/);
+  assert.equal(missingApi.cacheControl, "no-store");
 });
 
 test("rejects mutation methods and makes API transport failures explicit", async (t) => {
@@ -51,8 +56,10 @@ test("rejects mutation methods and makes API transport failures explicit", async
 
   const mutation = await request(appPort, "/api/operator/v1/market", "POST");
   assert.equal(mutation.status, 405); assert.match(mutation.text, /METHOD_NOT_ALLOWED/);
+  assert.equal(mutation.cacheControl, "no-store");
   const unavailable = await request(appPort, "/api/operator/v1/market");
   assert.equal(unavailable.status, 502); assert.match(unavailable.text, /OPERATOR_API_UNAVAILABLE/);
+  assert.equal(unavailable.cacheControl, "no-store");
 });
 
 test("serves WEB-01B PWA assets with explicit safe MIME and update headers", async (t) => {
