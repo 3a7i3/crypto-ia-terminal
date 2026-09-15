@@ -11,7 +11,12 @@ function listen(server) { return new Promise((resolve) => server.listen(0, "127.
 function close(server) { return new Promise((resolve) => server.close(resolve)); }
 async function request(port, pathname, method = "GET") {
   const response = await fetch(`http://127.0.0.1:${port}${pathname}`, { method });
-  return { status: response.status, text: await response.text(), contentType: response.headers.get("content-type") };
+  return {
+    status: response.status,
+    text: await response.text(),
+    contentType: response.headers.get("content-type"),
+    cacheControl: response.headers.get("cache-control"),
+  };
 }
 
 test("serves frontend routes but never applies SPA fallback to API paths", async (t) => {
@@ -48,4 +53,33 @@ test("rejects mutation methods and makes API transport failures explicit", async
   assert.equal(mutation.status, 405); assert.match(mutation.text, /METHOD_NOT_ALLOWED/);
   const unavailable = await request(appPort, "/api/operator/v1/market");
   assert.equal(unavailable.status, 502); assert.match(unavailable.text, /OPERATOR_API_UNAVAILABLE/);
+});
+
+test("serves WEB-01B PWA assets with explicit safe MIME and update headers", async (t) => {
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01b-dist-"));
+  await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
+  await writeFile(path.join(distRoot, "manifest.webmanifest"), "{}");
+  await writeFile(path.join(distRoot, "sw.js"), "self.addEventListener('fetch',()=>{});");
+  await writeFile(path.join(distRoot, "pwa-policy.js"), "self.WEB01B_PWA_POLICY={};");
+  await writeFile(path.join(distRoot, "icon.png"), Buffer.from([137, 80, 78, 71]));
+  const app = createServer({ port: 0, distRoot, apiTarget: "http://127.0.0.1:1" });
+  await new Promise((resolve) => app.once("listening", resolve));
+  const appPort = app.address().port;
+  t.after(() => close(app));
+
+  const manifest = await request(appPort, "/manifest.webmanifest");
+  assert.equal(manifest.status, 200);
+  assert.equal(manifest.contentType, "application/manifest+json; charset=utf-8");
+  assert.equal(manifest.cacheControl, "no-cache");
+
+  const sw = await request(appPort, "/sw.js");
+  assert.equal(sw.status, 200);
+  assert.equal(sw.contentType, "text/javascript; charset=utf-8");
+  assert.equal(sw.cacheControl, "no-cache");
+
+  const policy = await request(appPort, "/pwa-policy.js");
+  assert.equal(policy.cacheControl, "no-cache");
+
+  const icon = await request(appPort, "/icon.png");
+  assert.equal(icon.contentType, "image/png");
 });
