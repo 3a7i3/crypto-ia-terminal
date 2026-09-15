@@ -42,6 +42,7 @@ ZERO_KEY_UNITS = (
     "crypto-market-observer.service",
     "crypto-market-radar.service",
     "crypto-market-horizons.service",
+    "crypto-market-snapshot.service",
 )
 
 DEDICATED_SECRET_UNITS = {
@@ -159,4 +160,3 @@ def test_service_identity_fragments_are_domain_specific():
         text = _unit(name)
         for foreign_fragment in fragments - {own_fragment}:
             assert foreign_fragment not in text, (name, foreign_fragment)
-
