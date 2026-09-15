@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = path.join(ROOT, "public");
+const SRC = path.join(ROOT, "src");
 
 function pngDimensions(buffer) {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -69,7 +70,7 @@ test("manifest is installable and carries the required Chromium icon sizes", asy
   }
 });
 
-test("cache policy excludes every Operator API and health request", async () => {
+test("cache policy excludes runtime truth and only allow-lists known shell resources", async () => {
   const { self } = await loadWorkerHarness();
   const policy = self.WEB01B_PWA_POLICY;
   const origin = self.location.origin;
@@ -82,23 +83,41 @@ test("cache policy excludes every Operator API and health request", async () => 
     "/healthz/ready",
   ]) {
     assert.equal(
-      policy.shouldHandleRequest({ method: "GET", url: `${origin}${pathname}` }, origin),
+      policy.shouldHandleRequest({ method: "GET", url: `${origin}${pathname}`, mode: "cors" }, origin),
       false,
       `${pathname} must remain network-only`,
     );
   }
 
-  assert.equal(policy.shouldHandleRequest({ method: "POST", url: `${origin}/asset.js` }, origin), false);
-  assert.equal(policy.shouldHandleRequest({ method: "GET", url: "https://example.com/asset.js" }, origin), false);
-  assert.equal(policy.shouldHandleRequest({ method: "GET", url: `${origin}/assets/app.js` }, origin), true);
+  // Fail-closed future boundary: an unknown same-origin GET must not become
+  // cacheable merely because it does not currently live below /api/*.
+  for (const pathname of ["/future-financial-state.json", "/runtime/telemetry", "/snapshot.json"]) {
+    assert.equal(
+      policy.shouldHandleRequest({ method: "GET", url: `${origin}${pathname}`, mode: "cors" }, origin),
+      false,
+      `${pathname} must not be implicitly cacheable`,
+    );
+  }
+
+  assert.equal(policy.shouldHandleRequest({ method: "POST", url: `${origin}/assets/app.js`, mode: "cors" }, origin), false);
+  assert.equal(policy.shouldHandleRequest({ method: "GET", url: "https://example.com/assets/app.js", mode: "cors" }, origin), false);
+  assert.equal(policy.shouldHandleRequest({ method: "GET", url: `${origin}/assets/app.js`, mode: "cors" }, origin), true);
+  assert.equal(policy.shouldHandleRequest({ method: "GET", url: `${origin}/icons/operator-192.png`, mode: "cors" }, origin), true);
+  assert.equal(policy.shouldHandleRequest({ method: "GET", url: `${origin}/manifest.webmanifest`, mode: "cors" }, origin), true);
+  assert.equal(policy.shouldHandleRequest({ method: "GET", url: `${origin}/operator/market`, mode: "navigate" }, origin), true);
 });
 
-test("actual service worker fetch listener never calls respondWith for runtime truth", async () => {
+test("actual service worker fetch listener never calls respondWith for runtime or unknown data paths", async () => {
   const { self, listeners } = await loadWorkerHarness();
   const fetchListener = listeners.get("fetch");
   assert.equal(typeof fetchListener, "function");
 
-  for (const pathname of ["/api/operator/v1/snapshot", "/api/operator/v1/market", "/healthz"]) {
+  for (const pathname of [
+    "/api/operator/v1/snapshot",
+    "/api/operator/v1/market",
+    "/healthz",
+    "/future-financial-state.json",
+  ]) {
     let intercepted = false;
     fetchListener({
       request: { method: "GET", url: `${self.location.origin}${pathname}`, mode: "cors" },
@@ -117,4 +136,13 @@ test("actual service worker fetch listener never calls respondWith for runtime t
     },
   });
   assert.equal(staticIntercepted, true, "same-origin static assets should be shell-cache eligible");
+});
+
+test("service-worker registration defines deterministic update activation without first-install reload", async () => {
+  const source = await readFile(path.join(SRC, "lib", "pwaRegistration.ts"), "utf8");
+  assert.match(source, /navigator\.serviceWorker\.controller !== null/);
+  assert.match(source, /"controllerchange"/);
+  assert.match(source, /window\.location\.reload\(\)/);
+  assert.match(source, /\{ once: true \}/);
+  assert.match(source, /registration\.update\(\)/);
 });
