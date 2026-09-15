@@ -25,12 +25,14 @@ Ce guide décrit les étapes sûres pour mettre à jour, déployer et vérifier 
 ## 3. Mise à jour du code
 - Récupérez la dernière version :
   ```bash
-  git pull origin main
-  ```
-- Si besoin, changez de branche/tag :
-  ```bash
+  git fetch origin
   git checkout <branch|tag>
+  git pull --ff-only origin <branch>
   ```
+- **Important (VPS Linux)** : exécutez ces commandes depuis le vrai dossier du dépôt,
+  par exemple `~/crypto_ai_terminal` après `git clone`, et utilisez le nom de branche
+  réel existant dans le dépôt. N'utilisez ni chemin fictif (`/chemin/vers/...`) ni
+  nom de branche obsolète.
 
 ## 4. Mise à jour des dépendances
 - Installez/actualisez les dépendances :
@@ -57,7 +59,23 @@ Ce guide décrit les étapes sûres pour mettre à jour, déployer et vérifier 
 - Lancez les dashboards ou scripts nécessaires (voir DASHBOARD_USAGE_TEMPLATES.md).
 
 ## 7. Déploiement en production/serveur
-- Utilisez les scripts batch ou .sh fournis (voir launch_*.bat, launch_*.sh)
+- Utilisez les scripts fournis et le runbook adapté à votre cible.
+- **VPS Linux (mise à jour + redémarrage sûrs)** :
+  ```bash
+  cd ~/crypto_ai_terminal
+  git fetch origin
+  git checkout <branch-existante>
+  git pull --ff-only origin <branch-existante>
+  source .venv/bin/activate
+  sudo systemctl restart crypto-advisor.service
+  sudo systemctl status --no-pager crypto-advisor.service
+  ```
+- Pour un déploiement distant délibéré depuis un poste opérateur, utilisez :
+  ```bash
+  bash scripts/deploy_vps.sh --confirm --restart core
+  ```
+- Évitez `pkill -f advisor_loop.py` et `nohup python advisor_loop.py` sur le VPS :
+  le redémarrage supporté du moteur passe par `crypto-advisor.service`.
 - Pour Docker :
   ```bash
   docker-compose up -d
