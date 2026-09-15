@@ -21,7 +21,9 @@ const MIME_TYPES = new Map([
   [".js", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
   [".map", "application/json; charset=utf-8"],
+  [".png", "image/png"],
   [".svg", "image/svg+xml"],
+  [".webmanifest", "application/manifest+json; charset=utf-8"],
   [".woff2", "font/woff2"],
 ]);
 
@@ -56,7 +58,12 @@ function proxyToOperatorApi(request, response, target) {
     path: request.url,
     headers: { host: target.host },
   }, (upstreamResponse) => {
-    response.writeHead(upstreamResponse.statusCode ?? 502, copyProxyHeaders(upstreamResponse.headers));
+    const headers = copyProxyHeaders(upstreamResponse.headers);
+    // WEB-01B runtime truth must remain network-only from the browser/PWA
+    // perspective even when an upstream route omits explicit cache metadata.
+    // Override any upstream cache directive at the presentation boundary.
+    headers["cache-control"] = "no-store";
+    response.writeHead(upstreamResponse.statusCode ?? 502, headers);
     if (request.method === "HEAD") response.end();
     else upstreamResponse.pipe(response);
   });
@@ -78,11 +85,17 @@ async function resolveStaticPath(distRoot, pathname) {
 
 async function serveFile(response, filename, method) {
   const info = await stat(filename);
-  response.writeHead(200, {
-    "content-type": MIME_TYPES.get(path.extname(filename)) ?? "application/octet-stream",
+  const basename = path.basename(filename);
+  const ext = path.extname(filename);
+  const headers = {
+    "content-type": MIME_TYPES.get(ext) ?? "application/octet-stream",
     "content-length": info.size,
     "x-content-type-options": "nosniff",
-  });
+  };
+  if (basename === "sw.js" || basename === "pwa-policy.js" || ext === ".webmanifest") {
+    headers["cache-control"] = "no-cache";
+  }
+  response.writeHead(200, headers);
   if (method === "HEAD") response.end();
   else createReadStream(filename).pipe(response);
 }

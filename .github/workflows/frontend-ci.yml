@@ -31,6 +31,8 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -41,5 +43,15 @@ jobs:
         run: npm ci
       - name: Run frontend tests
         run: npm test -- --run
+      - name: Run frontend runtime contracts
+        run: npm run test:runtime
       - name: Production build
         run: npm run build
+      - name: Diff hygiene (pull request)
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ github.workspace }}
+        run: git diff --check "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+      - name: Diff hygiene (push)
+        if: github.event_name == 'push'
+        working-directory: ${{ github.workspace }}
+        run: git diff --check "${{ github.event.before }}...${{ github.sha }}"

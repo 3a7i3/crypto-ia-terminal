@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Crypto AI Terminal — Operator",
+  "short_name": "Crypto AI",
+  "description": "Private read-only operator cockpit for Crypto AI Terminal.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070c16",
+  "theme_color": "#0f172a",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/operator-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/operator-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

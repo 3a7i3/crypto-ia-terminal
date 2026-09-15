@@ -7,7 +7,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:runtime": "node --test scripts/web01_local_frontend_server.node-test.mjs"
+    "test:runtime": "node --test scripts/web01_local_frontend_server.node-test.mjs scripts/web01b_pwa_contract.node-test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
