@@ -49,8 +49,9 @@ class TestServiceMatrixAuditPack(unittest.TestCase):
     def test_catalog_is_fixed_and_sensitive_properties_are_excluded(self):
         units = [item.unit for item in service_matrix.SERVICE_CATALOG]
 
-        self.assertEqual(len(units), 11)
+        self.assertEqual(len(units), 12)
         self.assertIn("crypto-market-snapshot.service", units)
+        self.assertIn("crypto-operator-api.service", units)
         self.assertEqual(len(units), len(set(units)))
         self.assertTrue(all(unit.endswith(".service") for unit in units))
 
@@ -74,7 +75,7 @@ class TestServiceMatrixAuditPack(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(payload["collection_status"], "complete")
-        self.assertEqual(payload["summary"]["active_count"], 11)
+        self.assertEqual(payload["summary"]["active_count"], 12)
         self.assertEqual(payload["summary"]["query_error_count"], 0)
         self.assertNotIn("must-not-leak", rendered)
         self.assertNotIn("secret stderr", rendered)
