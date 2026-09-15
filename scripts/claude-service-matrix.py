@@ -59,6 +59,7 @@ SERVICE_CATALOG = (
     ServiceSpec("crypto-market-horizons.service", "market_horizons", "observation"),
     ServiceSpec("crypto-market-observer.service", "market_observer", "observation"),
     ServiceSpec("crypto-market-radar.service", "market_radar", "observation"),
+    ServiceSpec("crypto-market-snapshot.service", "market_snapshot_publisher", "observation"),
     ServiceSpec("crypto-quant-observer.service", "telegram_quant_observer", "interface"),
     ServiceSpec("crypto-radar-bot.service", "telegram_radar", "interface"),
     ServiceSpec("paper-arena.service", "paper_execution_interface", "interface"),
