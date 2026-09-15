@@ -36,9 +36,21 @@ Explicit network-only runtime truth:
 - `/healthz`
 - `/healthz/*`
 
-The service worker returns without `respondWith()` for these paths. Therefore a
-canonical snapshot, MARKET snapshot, portfolio state, decision state, system state,
-or health response can never be replayed from Cache Storage as if it were current.
+The service worker returns without `respondWith()` for these paths. Cache eligibility
+is **fail-closed**: non-navigation requests are cacheable only when they match the
+known shell allow-list (`/assets/*`, `/icons/*`, `manifest.webmanifest`,
+`pwa-policy.js`). An unknown same-origin GET is therefore not promoted into Cache
+Storage merely because a future runtime route is introduced outside `/api/*`.
+
+The local frontend proxy also overrides proxied runtime responses with:
+
+```text
+Cache-Control: no-store
+```
+
+This is a browser/PWA presentation-boundary guarantee. It does not modify Operator API
+business semantics; it prevents an upstream route that omits cache metadata from
+becoming browser-cacheable.
 
 When the private transport is unavailable, the static shell may still launch. Live
 clients must then report transport/unavailable state. A cached shell is not evidence
@@ -47,7 +59,7 @@ that the Operator API or market telemetry is live.
 No API key, exchange credential, Telegram token, Tailscale auth key, dashboard
 password, or other secret is compiled into the frontend.
 
-## 3. Installability contract
+## 3. Installability and update contract
 
 The source provides:
 
@@ -57,6 +69,9 @@ The source provides:
 - root `start_url` and scope;
 - production-only Service Worker registration;
 - periodic Service Worker update checks;
+- `skipWaiting()` + `clients.claim()` activation;
+- deterministic `controllerchange` reload for an already-controlled page;
+- no forced reload on first installation;
 - old-shell cache cleanup on worker activation;
 - native WEB-01 server MIME support for the manifest and PNG assets.
 
@@ -126,13 +141,16 @@ npm test -- --run
 npm run test:runtime
 ```
 
-The WEB-01B runtime contract additionally proves:
+The WEB-01B runtime/source contract additionally proves:
 
 - manifest carries 192 and 512 icons;
 - icon bytes have exact expected PNG dimensions;
 - cache policy rejects `/api`, `/api/*`, `/healthz`, `/healthz/*`;
-- actual Service Worker fetch listener does not intercept those runtime paths;
+- unknown same-origin data paths are fail-closed and not implicitly cacheable;
+- actual Service Worker fetch listener does not intercept runtime/unknown data paths;
+- controlled-page Service Worker replacement has deterministic reload behavior;
 - WEB-01G server continues to proxy API paths without SPA fallback;
+- proxied runtime responses carry `Cache-Control: no-store`;
 - mutation methods remain HTTP 405.
 
 Existing Python cross-stack and Operator API/MARKET gates remain required before
@@ -152,7 +170,9 @@ After source certification and governed deployment:
 8. Canonical snapshot 503 remains honest if still missing.
 9. Browser offline/private-link-loss test shows disconnected/unavailable semantics.
 10. DevTools/Cache Storage proof shows no `/api/*` or `/healthz` response stored.
-11. POST to the WEB-01 API path remains HTTP 405.
+11. Browser network proof shows runtime responses carry `Cache-Control: no-store`.
+12. POST to the WEB-01 API path remains HTTP 405.
+13. A frontend deployment activates the replacement Service Worker and reloads a previously controlled page without indefinite stale-shell operation.
 
 Only after all source and runtime gates pass may the mission receive:
 
@@ -165,7 +185,7 @@ Until then, WEB-01B remains active and uncertified.
 
 ## 8. Rollback
 
-PWA source rollback is a normal Git revert of the WEB-01B source commit.
+PWA source rollback is a normal Git revert of the WEB-01B source commits.
 
 Private transport rollback:
 
