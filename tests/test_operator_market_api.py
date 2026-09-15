@@ -55,7 +55,7 @@ def test_market_route_returns_validated_observational_payload(tmp_path):
     path = tmp_path / "market.json"
     _write(path, _valid_market())
     # 2026-09-14T20:00:30Z
-    client = _client(path, 1_757_883_630.0)
+    client = _client(path, 1_789_416_030.0)
 
     resp = client.get("/api/operator/v1/market")
     assert resp.status_code == 200
@@ -70,7 +70,8 @@ def test_market_route_returns_validated_observational_payload(tmp_path):
 def test_market_route_preserves_stale_evidence_instead_of_fabricating_current(tmp_path):
     path = tmp_path / "market.json"
     _write(path, _valid_market())
-    client = _client(path, 1_757_883_800.0, stale_after_s=90.0)
+    # 2026-09-14T20:03:00Z => age 180 s > 90 s threshold.
+    client = _client(path, 1_789_416_180.0, stale_after_s=90.0)
 
     resp = client.get("/api/operator/v1/market")
     assert resp.status_code == 200
@@ -81,7 +82,7 @@ def test_market_route_preserves_stale_evidence_instead_of_fabricating_current(tm
 
 def test_market_route_missing_is_explicit_503(tmp_path):
     path = tmp_path / "missing.json"
-    client = _client(path, 1_757_883_630.0)
+    client = _client(path, 1_789_416_030.0)
 
     resp = client.get("/api/operator/v1/market")
     assert resp.status_code == 503
@@ -91,7 +92,7 @@ def test_market_route_missing_is_explicit_503(tmp_path):
 def test_market_route_malformed_is_explicit_503(tmp_path):
     path = tmp_path / "market.json"
     path.write_text("{bad", encoding="utf-8")
-    client = _client(path, 1_757_883_630.0)
+    client = _client(path, 1_789_416_030.0)
 
     resp = client.get("/api/operator/v1/market")
     assert resp.status_code == 503
@@ -103,7 +104,7 @@ def test_market_route_rejects_wrong_authority_and_execution_shaped_rows(tmp_path
     bad = _valid_market()
     bad["authority"] = "EXECUTION_AUTHORITY"
     _write(path, bad)
-    client = _client(path, 1_757_883_630.0)
+    client = _client(path, 1_789_416_030.0)
 
     resp = client.get("/api/operator/v1/market")
     assert resp.status_code == 503
@@ -120,7 +121,7 @@ def test_market_route_rejects_wrong_authority_and_execution_shaped_rows(tmp_path
 def test_market_route_has_no_mutating_methods(tmp_path):
     path = tmp_path / "market.json"
     _write(path, _valid_market())
-    client = _client(path, 1_757_883_630.0)
+    client = _client(path, 1_789_416_030.0)
 
     for method in ("post", "put", "patch", "delete"):
         resp = getattr(client, method)("/api/operator/v1/market")
