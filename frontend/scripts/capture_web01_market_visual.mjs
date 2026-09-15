@@ -23,6 +23,11 @@ try {
   await page.getByTestId("overview-view").waitFor({ state: "visible" });
   await page.getByTestId("tab-market").click();
   await page.getByTestId("market-view").waitFor({ state: "visible" });
+  // "market-view" is shared by the loading, error, and loaded states, so waiting
+  // on it alone races the fetch. Wait for a loaded-state-only marker (a rendered
+  // opportunity row) before reading the panel text, so we never sample the
+  // "Loading…" placeholder.
+  await page.getByTestId("market-opportunity-row").first().waitFor({ state: "visible" });
 
   const marketText = await page.getByTestId("market-view").innerText();
   assert(marketText.includes("CryptoRadar"), "CryptoRadar label missing from MarketView");
