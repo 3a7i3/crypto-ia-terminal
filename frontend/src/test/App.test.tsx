@@ -7,11 +7,47 @@ function jsonResponse(body: unknown, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
 }
 
+function baseMarketSnapshot() {
+  return {
+    schema_version: "1.0.0",
+    product: "CryptoRadar",
+    domain: "market",
+    authority: "OBSERVATIONAL_TELEMETRY",
+    mode: "OBSERVATION",
+    generated_at_utc: "2026-09-14T20:00:00Z",
+    source_updated_at_utc: "2026-09-14T19:59:30Z",
+    window_hours: 24,
+    min_confidence: 65,
+    packets_observed: 12,
+    market_regime: "bull_trend",
+    universe_size: 3,
+    actionable_count: 1,
+    watchlist_count: 1,
+    top_opportunities: [
+      {
+        symbol: "BTC/USDT",
+        avg_confidence: 75,
+        max_confidence: 80,
+        n_signals: 2,
+        dominant_side: "LONG",
+        dominance_pct: 100,
+        regime: "bull_trend",
+      },
+    ],
+    snapshot_age_s: 20,
+    freshness_classification: "FRESH",
+  };
+}
+
 describe("App", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(jsonResponse(baseSnapshot()));
+    fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/operator/v1/market") return Promise.resolve(jsonResponse(baseMarketSnapshot()));
+      return Promise.resolve(jsonResponse(baseSnapshot()));
+    });
     vi.stubGlobal("fetch", fetchMock);
   });
 
@@ -19,7 +55,7 @@ describe("App", () => {
     vi.unstubAllGlobals();
   });
 
-  it("feeds every panel from a single canonical snapshot fetch", async () => {
+  it("feeds the canonical advisor panels from a single snapshot fetch", async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
@@ -32,17 +68,23 @@ describe("App", () => {
     fireEvent.click(screen.getByTestId("tab-system"));
     expect(screen.getByTestId("system-view")).toBeInTheDocument();
 
-    // Only one fetch was ever made — switching tabs never triggers a
-    // second, per-panel request.
+    // WEB-01-MARKET is the only explicit cross-process exception. None of
+    // these canonical advisor panels triggers any second per-panel request.
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("presents Market and Scores as NOT_EXPOSED, with no demo/fabricated data", async () => {
+  it("renders real MARKET telemetry while Scores remains NOT_EXPOSED", async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
     fireEvent.click(screen.getByTestId("tab-market"));
-    expect(screen.getByTestId("not-exposed-label")).toHaveTextContent("NOT_EXPOSED");
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
+    expect(screen.getByTestId("market-view")).toHaveTextContent("CryptoRadar");
+    expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT");
+    expect(screen.queryByTestId("not-exposed-label")).toBeNull();
+
+    // Canonical snapshot + MARKET subrouter fetch.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
 
     fireEvent.click(screen.getByTestId("tab-scores"));
     expect(screen.getByTestId("not-exposed-label")).toHaveTextContent("NOT_EXPOSED");
@@ -57,10 +99,6 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByTestId("mode-badge")).toHaveAttribute("data-mode", "UNKNOWN"));
   });
 
-  // O-02W-D2-R1.1 case 16 — a malformed `status` and a malformed position
-  // field must be rejected by the admission gate BEFORE React attempts to
-  // render them: the app must never throw and must never show a success
-  // panel for either body.
   it("never renders (and never throws) when portfolio.status is malformed", async () => {
     const snap = baseSnapshot();
     (snap.portfolio as unknown as Record<string, unknown>).status = { bad: true };
@@ -106,11 +144,6 @@ describe("App", () => {
     expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
   });
 
-  // O-02W-D2-R1.2 render regression — a string `"false"` must never reach a
-  // boolean render callback and must never be displayed as `true` via JS
-  // truthiness. The typed admission gate rejects the whole snapshot before
-  // SystemView/DecisionsView ever mount, so no "true" text for a supplied
-  // "false" string can ever appear anywhere in the document.
   it('never displays a string "false" boot_alive as true — the typed gate rejects it before render', async () => {
     const snap = baseSnapshot();
     snap.system_health.boot_alive = { value: "false", semantics: "PRESENT" } as never;
@@ -120,8 +153,6 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByTestId("snapshot-status-transport-error")).toBeInTheDocument());
     expect(screen.queryByTestId("system-view")).toBeNull();
     expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
-    // No "true" boolean-rendered boot_alive value anywhere in the document —
-    // the malformed body never reached ObservedValueView's boolean callback.
     expect(document.body.textContent ?? "").not.toMatch(/\btrue\b/);
   });
 

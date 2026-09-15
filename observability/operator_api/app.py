@@ -1,18 +1,20 @@
-"""observability/operator_api/app.py — O-02W-D1: minimum read-only
-canonical operator API.
+"""observability/operator_api/app.py — read-only canonical operator API.
 
-A separate FastAPI process. It NEVER instantiates `MexcSimulator`,
-`WalletSync`, or `RealAccountsObserver`; NEVER imports or starts
-`core.advisor_loop`; NEVER connects to an exchange or reads API
-credentials; NEVER recomputes portfolio values, PnL, or decision
-authority; NEVER infers process liveness; NEVER writes or modifies the
-snapshot/manifest files; NEVER reads a JSONL ledger (deferred, §6 of the
-mission — trades/decision-history/regret are out of D1 scope pending the
-governed generation-sidecar/lifecycle mechanism).
+The canonical advisor snapshot routes NEVER instantiate `MexcSimulator`,
+`WalletSync`, or `RealAccountsObserver`; NEVER import or start
+`core.advisor_loop`; NEVER connect to an exchange or read API credentials;
+NEVER recompute portfolio values, PnL, or decision authority; NEVER infer
+process liveness; NEVER write or modify snapshot/manifest files; NEVER read a
+JSONL ledger.
 
-Every route in this module is a GET. There is no mutating business
-route — see `tests/test_operator_api.py` for a route-table assertion of
-that fact.
+WEB-01-MARKET adds one deliberately separate cross-process presentation route:
+``GET /api/operator/v1/market``. It reads only the atomic
+``cryptoradar_market_snapshot.json`` artifact produced by the read-only
+CryptoRadar publisher. The API still never reads DecisionPacket JSONL itself,
+never imports the radar Telegram bot, and never upgrades MARKET telemetry into
+execution authority.
+
+Every route in this module is a GET. There is no mutating business route.
 """
 
 from __future__ import annotations
@@ -23,29 +25,29 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from observability.operator_api.market_reader import (
+    DEFAULT_MARKET_SNAPSHOT_PATH,
+    DEFAULT_STALE_AFTER_S,
+    MarketReadResult,
+    MarketSnapshotReader,
+)
 from observability.operator_api.paths import DEFAULT_MANIFEST_PATH, DEFAULT_SNAPSHOT_PATH
 from observability.operator_api.reader import SafeSnapshotReader, SnapshotReadResult
 
 app = FastAPI(
     title="Crypto AI Terminal — Operator API (read-only)",
-    version="0.1.0",
-    # Reduce exposed surface (mission §7) — interactive docs are not
-    # required for this minimum read-only transport.
+    version="0.2.0",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
 )
 
 # No CORS middleware is added at all — the default is "no cross-origin
-# access," which is stricter than any permissive wildcard configuration
-# (mission §7: "no permissive wildcard CORS"). Controlled external
-# exposure/auth is explicitly deferred to a later security/deployment
-# mission.
+# access," stricter than a permissive wildcard configuration. Controlled
+# external exposure/auth remains a deployment/security responsibility.
 
-# Overridable at import time by tests via `configure_reader()` — the
-# reader itself only ever takes configurable paths, never the real
-# `databases/` directory in a test process (mission §5/§8/§17).
 _reader = SafeSnapshotReader()
+_market_reader = MarketSnapshotReader()
 
 
 def configure_reader(
@@ -53,9 +55,7 @@ def configure_reader(
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
     now_fn=None,
 ) -> SafeSnapshotReader:
-    """Replace the module-level reader instance. Test-only convenience —
-    production entry points construct one `SafeSnapshotReader` at
-    process start and never repoint it at a different pair of files."""
+    """Replace the canonical-snapshot reader (test/local wiring helper)."""
 
     global _reader
     _reader = SafeSnapshotReader(
@@ -66,6 +66,30 @@ def configure_reader(
 
 def get_reader() -> SafeSnapshotReader:
     return _reader
+
+
+def configure_market_reader(
+    market_snapshot_path: Path = DEFAULT_MARKET_SNAPSHOT_PATH,
+    *,
+    stale_after_s: float = DEFAULT_STALE_AFTER_S,
+    now_fn=None,
+) -> MarketSnapshotReader:
+    """Replace the MARKET artifact reader without touching canonical state.
+
+    Production defaults resolve the governed artifact path once at process
+    start. Tests point this reader only at ``tmp_path`` fixtures.
+    """
+
+    global _market_reader
+    kwargs: Dict[str, Any] = {"stale_after_s": stale_after_s}
+    if now_fn is not None:
+        kwargs["now_fn"] = now_fn
+    _market_reader = MarketSnapshotReader(path=market_snapshot_path, **kwargs)
+    return _market_reader
+
+
+def get_market_reader() -> MarketSnapshotReader:
+    return _market_reader
 
 
 def _envelope(result: SnapshotReadResult) -> Dict[str, Any]:
@@ -84,8 +108,6 @@ def _envelope(result: SnapshotReadResult) -> Dict[str, Any]:
 
 
 def _failure_response(result: SnapshotReadResult) -> JSONResponse:
-    # Structured non-success — never HTTP 200 with fabricated empty
-    # domains (mission §5).
     return JSONResponse(
         status_code=503,
         content={
@@ -96,38 +118,44 @@ def _failure_response(result: SnapshotReadResult) -> JSONResponse:
     )
 
 
+def _market_failure_response(result: MarketReadResult) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error_code": result.error_code,
+            "error_message": result.error_message,
+        },
+    )
+
+
 @app.get("/healthz")
 def healthz() -> Dict[str, Any]:
     """API-transport-process readiness ONLY.
 
-    This endpoint never claims the advisor is alive, that the manifest or
-    a snapshot proves liveness, or that a PID/S-03 proves liveness — it
-    reports only that this FastAPI process itself is up and able to
-    answer requests (mission §4).
+    This endpoint never claims the advisor, CryptoRadar, or MARKET publisher is
+    alive. Component freshness is exposed only on its own read route.
     """
 
     return {
         "api_transport_process": "ready",
         "note": (
             "This reflects only the read-only API transport process's own "
-            "readiness. It makes no claim about advisor/runtime liveness — "
-            "see /api/operator/v1/system-health's boot_alive field, which "
-            "is honestly UNKNOWN today (no independent liveness publisher "
-            "exists yet)."
+            "readiness. It makes no claim about advisor/runtime or CryptoRadar "
+            "publisher liveness."
         ),
     }
 
 
 @app.get("/api/operator/v1/snapshot")
 def get_snapshot() -> Any:
-    """Return the validated canonical snapshot verbatim (no recomputation
-    of any domain value) plus the reader's identity/freshness evidence."""
+    """Return the validated canonical advisor snapshot verbatim plus
+    reader-authored identity/freshness evidence."""
 
     result = get_reader().read()
     if not result.ok:
         return _failure_response(result)
 
-    payload = dict(result.snapshot)  # shallow copy of the already-deep-copied doc
+    payload = dict(result.snapshot)
     payload["instance_relation"] = result.instance_relation
     payload["runtime_state"] = result.runtime_state
     payload["stale_reason"] = result.stale_reason
@@ -143,10 +171,6 @@ def _domain_projection(domain_key: str) -> Any:
 
     domain_payload = result.snapshot.get(domain_key)
     if domain_payload is None:
-        # The envelope validated (required fields present, §5 rule 6
-        # covers this key already), so a missing domain here would be an
-        # internal inconsistency in the producer's own output — never
-        # silently substituted with an empty dict.
         return JSONResponse(
             status_code=503,
             content={
@@ -173,4 +197,28 @@ def get_system_health() -> Any:
     return _domain_projection("system_health")
 
 
-__all__ = ["app", "configure_reader", "get_reader"]
+@app.get("/api/operator/v1/market")
+def get_market() -> Any:
+    """Return only the validated CryptoRadar presentation artifact.
+
+    This is intentionally not projected from the advisor snapshot. MARKET is a
+    separate observational process boundary under O-02W-B §12 / WEB-01-MARKET.
+    """
+
+    result = get_market_reader().read()
+    if not result.ok:
+        return _market_failure_response(result)
+
+    payload = dict(result.snapshot or {})
+    payload["snapshot_age_s"] = result.snapshot_age_s
+    payload["freshness_classification"] = result.freshness_classification
+    return payload
+
+
+__all__ = [
+    "app",
+    "configure_reader",
+    "get_reader",
+    "configure_market_reader",
+    "get_market_reader",
+]

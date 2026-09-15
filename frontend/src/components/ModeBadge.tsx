@@ -21,10 +21,10 @@ export const ModeBadge: React.FC<{ mode: PortfolioMode | string | null | undefin
     <span
       data-testid="mode-badge"
       data-mode={key}
-      className="inline-flex items-center gap-1 px-2 py-0.5 font-mono text-[10px] font-bold tracking-widest leading-none"
+      className="mode-badge"
       style={{ color, background: `${color}18`, borderRadius: "var(--r-chip)" }}
     >
-      <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: color }} aria-hidden="true" />
+      <span className="mode-dot" style={{ background: color }} aria-hidden="true" />
       {label}
     </span>
   );
