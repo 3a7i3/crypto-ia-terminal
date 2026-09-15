@@ -19,7 +19,6 @@ def _directives(prefix: str) -> list[str]:
 
 
 def test_unit_is_loopback_only_and_uses_certified_operator_app():
-    text = _unit_text()
     exec_lines = _directives("ExecStart=")
 
     assert len(exec_lines) == 1
