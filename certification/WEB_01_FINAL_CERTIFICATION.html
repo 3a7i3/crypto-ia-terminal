@@ -1,0 +1,698 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>WEB-01 FINAL CERTIFICATION — Operator Web App v1 (local read-only) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/certification/WEB_01_FINAL_CERTIFICATION.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/certification/WEB_01_FINAL_CERTIFICATION.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="web-01-final-certification-operator-web-app-v1-local-read-only">
+<h1>WEB-01 FINAL CERTIFICATION — Operator Web App v1 (local read-only)<a class="headerlink" href="#web-01-final-certification-operator-web-app-v1-local-read-only" title="Link to this heading">¶</a></h1>
+<p>Date: 2026-09-15
+Repository: <code class="docutils literal notranslate"><span class="pre">3a7i3/crypto-ia-terminal</span></code>
+Mission: Issue #162 — <code class="docutils literal notranslate"><span class="pre">WEB-01</span> <span class="pre">FINAL</span> <span class="pre">—</span> <span class="pre">Operator</span> <span class="pre">Web</span> <span class="pre">App</span> <span class="pre">v1</span> <span class="pre">local</span> <span class="pre">read-only</span> <span class="pre">certification</span></code></p>
+<section id="final-verdict">
+<h2>Final verdict<a class="headerlink" href="#final-verdict" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">WEB_01_FINAL_CERTIFIED</span></code></p>
+<p>This verdict certifies only the <strong>local, read-only Operator Web App v1 chain</strong> described below. It does not certify public/remote exposure, the availability of the canonical operator snapshot, trading profitability, trading algorithms, REAL authority, F-00, burn-in, or the whole repository CI as green.</p>
+</section>
+<section id="certified-identity-and-baseline">
+<h2>1. Certified identity and baseline<a class="headerlink" href="#certified-identity-and-baseline" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Required baseline / deployed <code class="docutils literal notranslate"><span class="pre">main</span></code>: <code class="docutils literal notranslate"><span class="pre">aeebdd1744e54ccc95bd93002af0e3944f4a7618</span></code></p></li>
+<li><p>WEB-01G certified functional source HEAD: <code class="docutils literal notranslate"><span class="pre">ddb70074ac05624a5154bc60230473c0ea15a04d</span></code></p></li>
+<li><p>WEB-01G merge/runtime baseline: <code class="docutils literal notranslate"><span class="pre">aeebdd1744e54ccc95bd93002af0e3944f4a7618</span></code></p></li>
+<li><p>Isolated certification worktree: <code class="docutils literal notranslate"><span class="pre">/tmp/web01-final-cert</span></code></p></li>
+<li><p>Certification worktree state at proof time: detached at exact baseline, clean</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>: PASS</p></li>
+</ul>
+<p>The certification record itself is documentation-only. Its PR/merge identity is tracked by GitHub issue/PR metadata rather than used as a functional WEB-01 source identity.</p>
+</section>
+<section id="certified-lineage">
+<h2>2. Certified lineage<a class="headerlink" href="#certified-lineage" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Layer</p></th>
+<th class="head text-right"><p>PR</p></th>
+<th class="head"><p>Certified source HEAD</p></th>
+<th class="head"><p>Merge SHA</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Minimum read-only canonical Operator API</p></td>
+<td class="text-right"><p>#127 — O-02W-D1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">c8c45b4dc5ac17caeec63d55b580b62b07c04ce4</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fd5350f362383e1d4078a26f61af89e736963fb6</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Minimum read-only React cockpit</p></td>
+<td class="text-right"><p>#128 — O-02W-D2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">27cfbca34a1af48bb9026b67fc025e11bdd50f77</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">44a12d94cc2773771f278d1edb5ce865b48f89dc</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Cross-stack compatibility gate</p></td>
+<td class="text-right"><p>#129 — O-02W-D3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0340ea82450bf88f1a62f5b3bb2b001a522a3769</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">17a2f70537ee48f70500974dddf5f0458c02cc50</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>CryptoRadar read-only MARKET bridge</p></td>
+<td class="text-right"><p>#157 — WEB-01 MARKET</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">7c20c3a95b111845c7ac42276874a2ae2139a700</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0fbd197f9ec0f24ae9b1cd196c7abf7a745487e0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Continuous MARKET runtime</p></td>
+<td class="text-right"><p>#158 — WEB-01E</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">87fd3b839d2584cfd6418beb01e49b201c9e1bb9</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cca6892dc7cb4c4b1311d9b63cedb89fade38df8</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Durable local Operator API runtime</p></td>
+<td class="text-right"><p>#159 — WEB-01F</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0369733d56203626501877784f4046f8065e56ee</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fb9aa5b3f240a04dddd96b5a29a70ee14dd33819</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Durable local frontend runtime</p></td>
+<td class="text-right"><p>#161 / Issue #160 — WEB-01G</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ddb70074ac05624a5154bc60230473c0ea15a04d</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aeebdd1744e54ccc95bd93002af0e3944f4a7618</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>GitHub ancestry comparisons verified that the merge SHAs for #127, #128, #129, #157, #158 and #159 are ancestors of <code class="docutils literal notranslate"><span class="pre">aeebdd1744...</span></code> with <code class="docutils literal notranslate"><span class="pre">behind_by=0</span></code> and exact merge-base equality. PR #161’s merge is identical to the certified <code class="docutils literal notranslate"><span class="pre">main</span></code> baseline. No lineage break was found.</p>
+</section>
+<section id="certified-local-architecture">
+<h2>3. Certified local architecture<a class="headerlink" href="#certified-local-architecture" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>DecisionPacket / CryptoRadar evidence
+        |
+        v
+crypto-market-snapshot.service
+        |
+        v
+cryptoradar_market_snapshot.json
+        |
+        v
+crypto-operator-api.service
+127.0.0.1:8090
+        |
+        v
+crypto-operator-web.service
+127.0.0.1:8181
+        |
+        v
+React Operator Web App
+</pre></div>
+</div>
+<p>The frontend presentation path uses same-origin <code class="docutils literal notranslate"><span class="pre">/api/*</span></code> / <code class="docutils literal notranslate"><span class="pre">/healthz</span></code> transport through the native WEB-01G server. The local frontend server accepts GET/HEAD for API transport and rejects mutating methods. The frontend does not gain a direct write edge into exchange, strategy, risk, sizing, portfolio or execution authority.</p>
+</section>
+<section id="source-certification-evidence">
+<h2>4. Source certification evidence<a class="headerlink" href="#source-certification-evidence" title="Link to this heading">¶</a></h2>
+<p>All final source gates were run from the isolated clean worktree at exact SHA <code class="docutils literal notranslate"><span class="pre">aeebdd1744...</span></code>, not from the live production checkout.</p>
+<section id="python-bounded-web-01-gate">
+<h3>Python bounded WEB-01 gate<a class="headerlink" href="#python-bounded-web-01-gate" title="Link to this heading">¶</a></h3>
+<p>Command scope covered:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/cross_stack/</span></code></p></li>
+<li><p>Operator API targeted tests</p></li>
+<li><p>MARKET producer/API tests</p></li>
+<li><p>WEB-01E/F/G runtime-service contracts</p></li>
+</ul>
+<p>Result:</p>
+<p><code class="docutils literal notranslate"><span class="pre">193</span> <span class="pre">passed</span> <span class="pre">in</span> <span class="pre">6.31s</span></code></p>
+</section>
+<section id="frontend-deterministic-install-build-test">
+<h3>Frontend deterministic install/build/test<a class="headerlink" href="#frontend-deterministic-install-build-test" title="Link to this heading">¶</a></h3>
+<p>The chained command completed through all stages, proving:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">ci</span></code>: PASS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">run</span> <span class="pre">build</span></code>: PASS</p></li>
+<li><p>full Vitest run: <code class="docutils literal notranslate"><span class="pre">223</span> <span class="pre">passed</span> <span class="pre">/</span> <span class="pre">7</span> <span class="pre">skipped</span></code></p></li>
+<li><p>native WEB-01G runtime contracts: <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">passed</span> <span class="pre">/</span> <span class="pre">0</span> <span class="pre">failed</span></code></p></li>
+</ul>
+<p>The 7 skipped tests were the fixture-dependent cross-stack frontend suite. They were not accepted as skipped proof; canonical fixtures were then generated through the real Python producer paths and the exact frontend cross-stack file was executed explicitly.</p>
+</section>
+<section id="exact-producer-api-frontend-cross-stack-proof">
+<h3>Exact producer -&gt; API -&gt; frontend cross-stack proof<a class="headerlink" href="#exact-producer-api-frontend-cross-stack-proof" title="Link to this heading">¶</a></h3>
+<p>Generated with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tests.cross_stack.generate_fixtures</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests.cross_stack.generate_market_fixture</span></code></p></li>
+</ul>
+<p>Then executed <code class="docutils literal notranslate"><span class="pre">src/test/crossStack.compat.test.tsx</span></code> with <code class="docutils literal notranslate"><span class="pre">CROSS_STACK_FIXTURES_DIR</span></code>.</p>
+<p>Result: <code class="docutils literal notranslate"><span class="pre">7</span> <span class="pre">passed</span> <span class="pre">/</span> <span class="pre">7</span></code>.</p>
+<p>Certified scenarios:</p>
+<ul class="simple">
+<li><p>A — exact producer-generated canonical JSON accepted unchanged and canonical cockpit views render;</p></li>
+<li><p>B — UNKNOWN mode remains honest and is never defaulted to PAPER;</p></li>
+<li><p>C — PAPER vs REAL separation and unavailable price/PnL semantics survive unchanged;</p></li>
+<li><p>D — authority mapping accepted exactly, deliberately mutated authority rejected;</p></li>
+<li><p>E — previous-instance snapshot shown as <code class="docutils literal notranslate"><span class="pre">LAST_KNOWN</span></code>, never <code class="docutils literal notranslate"><span class="pre">CURRENT_INSTANCE</span></code>;</p></li>
+<li><p>F — governed 503 surfaced honestly rather than fabricated into success;</p></li>
+<li><p>G — exact CryptoRadar producer/API JSON admitted unchanged and rendered by MARKET.</p></li>
+</ul>
+</section>
+<section id="systemd-source-verification">
+<h3>systemd source verification<a class="headerlink" href="#systemd-source-verification" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">systemd-analyze</span> <span class="pre">verify</span></code> was run against:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-operator-api.service</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code></p></li>
+</ul>
+<p>No error was reported against those three units. Two host-level messages were observed and classified outside WEB-01 scope: a permission warning for <code class="docutils literal notranslate"><span class="pre">netplan-ovs-cleanup.service</span></code> and an unsupported <code class="docutils literal notranslate"><span class="pre">RestartMode</span></code> key in the host <code class="docutils literal notranslate"><span class="pre">snapd.service</span></code>.</p>
+</section>
+<section id="source-integrity-after-gates">
+<h3>Source integrity after gates<a class="headerlink" href="#source-integrity-after-gates" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>HEAD: <code class="docutils literal notranslate"><span class="pre">aeebdd1744e54ccc95bd93002af0e3944f4a7618</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span> <span class="pre">--short</span></code>: empty</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">--check</span></code>: clean</p></li>
+</ul>
+<p>No test/generator mutation remained in the worktree.</p>
+</section>
+</section>
+<section id="real-vps-runtime-evidence">
+<h2>5. Real VPS runtime evidence<a class="headerlink" href="#real-vps-runtime-evidence" title="Link to this heading">¶</a></h2>
+<section id="consolidated-service-state">
+<h3>Consolidated service state<a class="headerlink" href="#consolidated-service-state" title="Link to this heading">¶</a></h3>
+<p>At final certification witness time:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Service</p></th>
+<th class="head text-right"><p>MainPID</p></th>
+<th class="head"><p>Result</p></th>
+<th class="head"><p>State</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code></p></td>
+<td class="text-right"><p><code class="docutils literal notranslate"><span class="pre">2218746</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">active/running</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-operator-api.service</span></code></p></td>
+<td class="text-right"><p><code class="docutils literal notranslate"><span class="pre">2208782</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">active/running</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code></p></td>
+<td class="text-right"><p><code class="docutils literal notranslate"><span class="pre">2224150</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">active/running</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="network-boundary">
+<h3>Network boundary<a class="headerlink" href="#network-boundary" title="Link to this heading">¶</a></h3>
+<p>Observed listeners:</p>
+<ul class="simple">
+<li><p>Operator API: <code class="docutils literal notranslate"><span class="pre">127.0.0.1:8090</span></code></p></li>
+<li><p>Operator Web: <code class="docutils literal notranslate"><span class="pre">127.0.0.1:8181</span></code></p></li>
+</ul>
+<p>No <code class="docutils literal notranslate"><span class="pre">0.0.0.0</span></code> or public frontend/API listener is certified by WEB-01.</p>
+</section>
+<section id="runtime-endpoints">
+<h3>Runtime endpoints<a class="headerlink" href="#runtime-endpoints" title="Link to this heading">¶</a></h3>
+<p>Final consolidated witness:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8090/healthz</span></code> -&gt; HTTP <code class="docutils literal notranslate"><span class="pre">200</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8181/</span></code> -&gt; HTTP <code class="docutils literal notranslate"><span class="pre">200</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8181/api/operator/v1/market</span></code> -&gt; HTTP <code class="docutils literal notranslate"><span class="pre">200</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8181/api/operator/v1/snapshot</span></code> -&gt; HTTP <code class="docutils literal notranslate"><span class="pre">503</span></code></p></li>
+</ul>
+<p>Canonical snapshot body:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"error_code"</span><span class="p">:</span><span class="s2">"SNAPSHOT_MISSING"</span><span class="p">,</span><span class="nt">"error_message"</span><span class="p">:</span><span class="s2">"Canonical snapshot unreadable: MISSING"</span><span class="p">,</span><span class="nt">"retries_used"</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>This 503 is an explicit scientific state, not a runtime-success substitute.</p>
+</section>
+</section>
+<section id="real-browser-evidence">
+<h2>6. Real browser evidence<a class="headerlink" href="#real-browser-evidence" title="Link to this heading">¶</a></h2>
+<p>Real headless Chromium was run against the deployed WEB-01G runtime, not only against component fixtures.</p>
+<p>Observed proof:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">OVERVIEW=UNRESOLVED_OK</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SYSTEM=UNRESOLVED_OK</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DECISIONS=UNRESOLVED_OK</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PORTFOLIO=UNRESOLVED_OK</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SNAPSHOT_API_HTTP=503</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MARKET_FRESHNESS=FRESH</span> <span class="pre">·</span> <span class="pre">5s</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MARKET_OPPORTUNITY_ROWS=20</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BROWSER_POST_HTTP=405</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WEB01_REAL_BROWSER_E2E=PASS</span></code></p></li>
+</ul>
+<p>The browser rendered real MARKET data containing <code class="docutils literal notranslate"><span class="pre">CryptoRadar</span></code>, authority <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code>, mode <code class="docutils literal notranslate"><span class="pre">OBSERVATION</span></code>, and real freshness semantics. A browser POST to the MARKET route was rejected with HTTP 405.</p>
+<p>The E2E harness’s final <code class="docutils literal notranslate"><span class="pre">MARKET_API_HTTP=405</span></code> log value was caused by its response collector recording the intentionally issued final POST to the same MARKET URL and overwriting the earlier GET status. Independent real curl evidence established GET MARKET HTTP 200, and successful browser rendering of MARKET provenance/freshness plus 20 rows causally proves successful GET delivery.</p>
+</section>
+<section id="durability-and-recovery-evidence">
+<h2>7. Durability and recovery evidence<a class="headerlink" href="#durability-and-recovery-evidence" title="Link to this heading">¶</a></h2>
+<p>WEB-01G installed/source systemd units were proven byte-identical during runtime certification:</p>
+<p><code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code> SHA256:
+<code class="docutils literal notranslate"><span class="pre">5e9907156c1a6d432b0e171003cb99944e7cfb3d3f4cb098b02f3129025686d7</span></code></p>
+<p>The unit was <code class="docutils literal notranslate"><span class="pre">enabled</span></code> and contained no secret-file, exchange credential or Telegram-token wiring.</p>
+<p>A controlled restart of <strong>only</strong> <code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code> was performed:</p>
+<ul class="simple">
+<li><p>pre-restart PID: <code class="docutils literal notranslate"><span class="pre">2217390</span></code></p></li>
+<li><p>post-restart PID: <code class="docutils literal notranslate"><span class="pre">2224150</span></code></p></li>
+<li><p>post-restart: <code class="docutils literal notranslate"><span class="pre">active/running</span></code>, <code class="docutils literal notranslate"><span class="pre">Result=success</span></code></p></li>
+<li><p>listener restored on <code class="docutils literal notranslate"><span class="pre">127.0.0.1:8181</span></code></p></li>
+<li><p>frontend restored HTTP 200</p></li>
+<li><p>MARKET restored HTTP 200</p></li>
+</ul>
+<p>No trading/research service was restarted for this recovery proof.</p>
+</section>
+<section id="read-only-and-security-invariants">
+<h2>8. Read-only and security invariants<a class="headerlink" href="#read-only-and-security-invariants" title="Link to this heading">¶</a></h2>
+<p>Certified within WEB-01 scope:</p>
+<ul class="simple">
+<li><p>frontend listener is loopback-only;</p></li>
+<li><p>Operator API listener is loopback-only;</p></li>
+<li><p>frontend API proxy accepts only GET/HEAD transport;</p></li>
+<li><p>mutating POST is rejected with HTTP 405;</p></li>
+<li><p>API paths do not fall through to SPA HTML; an unknown API route returned a real JSON HTTP 404;</p></li>
+<li><p>no BUY/SELL/restart/strategy/capital/gate control is introduced by WEB-01;</p></li>
+<li><p>no exchange credential, Telegram token, secret store or trading authority is required by the Web presentation path;</p></li>
+<li><p>MARKET is <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code> / <code class="docutils literal notranslate"><span class="pre">OBSERVATION</span></code> only;</p></li>
+<li><p>frontend does not directly read runtime database artifacts to bypass the Operator API;</p></li>
+<li><p>no strategy, signal, risk, sizing, portfolio-decision or order-execution algorithm was modified by the final-certification mission.</p></li>
+</ul>
+</section>
+<section id="scientific-truthfulness">
+<h2>9. Scientific truthfulness<a class="headerlink" href="#scientific-truthfulness" title="Link to this heading">¶</a></h2>
+<p>The canonical operator snapshot is currently absent/unreadable at the governed path and therefore remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span> <span class="pre">/</span> <span class="pre">503</span> <span class="pre">SNAPSHOT_MISSING</span></code></p>
+<p>Consequences:</p>
+<ul class="simple">
+<li><p>OVERVIEW, SYSTEM, DECISIONS and PORTFOLIO remain explicitly UNRESOLVED;</p></li>
+<li><p>no replacement values are fabricated;</p></li>
+<li><p>MARKET remains independently available through its separate certified bridge;</p></li>
+<li><p>MARKET freshness is read from its real contract and is not invented by the UI;</p></li>
+<li><p>frontend presentation does not become a competing financial/execution source of truth.</p></li>
+</ul>
+<p>This unresolved state does <strong>not</strong> invalidate the WEB-01 local transport/UI certification; it is preserved as scientific debt to be addressed by a separately scoped mission.</p>
+</section>
+<section id="ci-attribution">
+<h2>10. CI attribution<a class="headerlink" href="#ci-attribution" title="Link to this heading">¶</a></h2>
+<p>On WEB-01G certified source HEAD <code class="docutils literal notranslate"><span class="pre">ddb70074...</span></code>, the following causal WEB/source gates completed successfully:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CI</span></code> — success;</p>
+<ul>
+<li><p>TEST REGRESSION GATE — success</p></li>
+<li><p>LINT REGRESSION GATE — success</p></li>
+<li><p>COVERAGE REGRESSION BASELINE — success</p></li>
+<li><p>Smoke test — success</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Frontend</span> <span class="pre">CI</span></code> — success (frontend tests + production build);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Cross-Stack</span> <span class="pre">Compatibility</span> <span class="pre">Gate</span></code> — success, including real producer fixture generation and frontend compatibility test;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WEB-01</span> <span class="pre">Market</span> <span class="pre">Visual</span> <span class="pre">Proof</span></code> — success;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Generate</span> <span class="pre">Panel</span> <span class="pre">Screenshots</span></code> — success.</p></li>
+</ul>
+<p>Repository CI is <strong>not globally green</strong>. Historical non-causal jobs remained red:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Test</span> <span class="pre">Dashboards</span> <span class="pre">and</span> <span class="pre">Panels</span></code> — the unit/functional test step succeeded; the later end-to-end panel step failed;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Coverage</span> <span class="pre">Report</span></code> — failure in its coverage test step;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Upload</span> <span class="pre">coverage</span> <span class="pre">to</span> <span class="pre">Codecov</span></code> — failure in its coverage test step, upload skipped;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Upload</span> <span class="pre">coverage</span> <span class="pre">to</span> <span class="pre">Coveralls</span></code> — failure in its coverage test step, upload skipped.</p></li>
+</ul>
+<p>These red workflow families pre-existed the bounded WEB-01G/final-certification change and are not silently relabelled green or repaired in this certification-only mission.</p>
+<p>Therefore:</p>
+<p><code class="docutils literal notranslate"><span class="pre">GENERAL_CI</span> <span class="pre">=</span> <span class="pre">NON_GREEN</span> <span class="pre">/</span> <span class="pre">PRE_EXISTING_DEBT</span></code></p>
+<p>while the causal WEB-01 gates above are certified PASS.</p>
+</section>
+<section id="explicit-unresolved-not-certified">
+<h2>11. Explicit unresolved / not certified<a class="headerlink" href="#explicit-unresolved-not-certified" title="Link to this heading">¶</a></h2>
+<p>The following are deliberately <strong>not</strong> certified by <code class="docutils literal notranslate"><span class="pre">WEB_01_FINAL_CERTIFIED</span></code>:</p>
+<ul class="simple">
+<li><p>canonical operator snapshot availability (<code class="docutils literal notranslate"><span class="pre">SNAPSHOT_MISSING</span></code> remains unresolved);</p></li>
+<li><p>public Internet exposure;</p></li>
+<li><p>remote DNS/TLS/reverse proxy;</p></li>
+<li><p>remote authentication;</p></li>
+<li><p>PWA/service worker/offline behavior;</p></li>
+<li><p>WEB-01B implementation;</p></li>
+<li><p>Telegram retirement;</p></li>
+<li><p>trading profitability;</p></li>
+<li><p>strategy/signal/risk/sizing/execution correctness beyond the read-only non-authority boundary;</p></li>
+<li><p>PPL authority promotion;</p></li>
+<li><p>FIN-00 completion;</p></li>
+<li><p>F-00 start;</p></li>
+<li><p>burn-in authorization;</p></li>
+<li><p>REAL trading authorization;</p></li>
+<li><p>globally green repository CI.</p></li>
+</ul>
+</section>
+<section id="final-certification-matrix">
+<h2>12. Final certification matrix<a class="headerlink" href="#final-certification-matrix" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>✅ WEB_01_FINAL_CERTIFIED
+✅ WEB_01_LINEAGE_CERTIFIED
+✅ WEB_01_SOURCE_GATES_CERTIFIED
+✅ WEB_01_CROSS_STACK_CERTIFIED
+✅ WEB_01_RUNTIME_CHAIN_CERTIFIED
+✅ WEB_01_REAL_BROWSER_CERTIFIED
+✅ WEB_01_LOOPBACK_ONLY_CERTIFIED
+✅ WEB_01_READ_ONLY_BOUNDARY_CERTIFIED
+✅ MARKET_CRYPTORADAR_REAL_DATA_CERTIFIED
+🟡 CANONICAL_SNAPSHOT = UNRESOLVED / 503 SNAPSHOT_MISSING
+🟡 GENERAL_CI = NON_GREEN / PRE_EXISTING_DEBT
+✅ NO_TRADING_RESEARCH_ALGORITHM_MUTATION
+</pre></div>
+</div>
+</section>
+<section id="exit-decision">
+<h2>13. Exit decision<a class="headerlink" href="#exit-decision" title="Link to this heading">¶</a></h2>
+<p>WEB-01 Operator Web App v1 is certified as a <strong>durable local read-only operator surface</strong> at the exact runtime baseline <code class="docutils literal notranslate"><span class="pre">aeebdd1744e54ccc95bd93002af0e3944f4a7618</span></code>.</p>
+<p>After this certification is merged:</p>
+<ol class="arabic simple">
+<li><p>roadmap issue #148 may be updated to mark WEB-01 local read-only certification complete;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SNAPSHOT_MISSING</span></code> must remain explicitly unresolved;</p></li>
+<li><p>WEB-01B becomes eligible as a separately scoped private-PWA/controlled-remote-access mission, but this certification does not start it;</p></li>
+<li><p>the master roadmap’s current FIN-00 blocker toward F-00 is not silently reordered;</p></li>
+<li><p>F-00 remains <code class="docutils literal notranslate"><span class="pre">NOT</span> <span class="pre">STARTED</span></code> and burn-in remains <code class="docutils literal notranslate"><span class="pre">NOT</span> <span class="pre">AUTHORIZED</span></code> unless a separate governed decision changes those states.</p></li>
+</ol>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">WEB-01 FINAL CERTIFICATION — Operator Web App v1 (local read-only)</a><ul>
+<li><a class="reference internal" href="#final-verdict">Final verdict</a></li>
+<li><a class="reference internal" href="#certified-identity-and-baseline">1. Certified identity and baseline</a></li>
+<li><a class="reference internal" href="#certified-lineage">2. Certified lineage</a></li>
+<li><a class="reference internal" href="#certified-local-architecture">3. Certified local architecture</a></li>
+<li><a class="reference internal" href="#source-certification-evidence">4. Source certification evidence</a><ul>
+<li><a class="reference internal" href="#python-bounded-web-01-gate">Python bounded WEB-01 gate</a></li>
+<li><a class="reference internal" href="#frontend-deterministic-install-build-test">Frontend deterministic install/build/test</a></li>
+<li><a class="reference internal" href="#exact-producer-api-frontend-cross-stack-proof">Exact producer -&gt; API -&gt; frontend cross-stack proof</a></li>
+<li><a class="reference internal" href="#systemd-source-verification">systemd source verification</a></li>
+<li><a class="reference internal" href="#source-integrity-after-gates">Source integrity after gates</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#real-vps-runtime-evidence">5. Real VPS runtime evidence</a><ul>
+<li><a class="reference internal" href="#consolidated-service-state">Consolidated service state</a></li>
+<li><a class="reference internal" href="#network-boundary">Network boundary</a></li>
+<li><a class="reference internal" href="#runtime-endpoints">Runtime endpoints</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#real-browser-evidence">6. Real browser evidence</a></li>
+<li><a class="reference internal" href="#durability-and-recovery-evidence">7. Durability and recovery evidence</a></li>
+<li><a class="reference internal" href="#read-only-and-security-invariants">8. Read-only and security invariants</a></li>
+<li><a class="reference internal" href="#scientific-truthfulness">9. Scientific truthfulness</a></li>
+<li><a class="reference internal" href="#ci-attribution">10. CI attribution</a></li>
+<li><a class="reference internal" href="#explicit-unresolved-not-certified">11. Explicit unresolved / not certified</a></li>
+<li><a class="reference internal" href="#final-certification-matrix">12. Final certification matrix</a></li>
+<li><a class="reference internal" href="#exit-decision">13. Exit decision</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
