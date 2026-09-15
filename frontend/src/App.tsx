@@ -5,6 +5,7 @@
 
 import React, { useState } from "react";
 import "./tokens.css";
+import "./operator.css";
 import { ModeBadge } from "./components/ModeBadge";
 import { SnapshotStatusBanner } from "./components/SnapshotStatusBanner";
 import { useOperatorSnapshot } from "./lib/snapshotClient";
@@ -32,37 +33,27 @@ const Header: React.FC<{
   activeTab: Tab;
   onTabChange: (t: Tab) => void;
 }> = ({ mode, lastFetchedAt, activeTab, onTabChange }) => (
-  <header
-    style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--bg-border)", position: "sticky", top: 0, zIndex: 50 }}
-  >
-    <div className="flex items-center justify-between px-4 py-2.5">
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-sm font-bold tracking-wide" style={{ color: "var(--text-pri)" }}>
-          CRYPTO<span style={{ color: "var(--accent)" }}>AI</span>
+  <header className="operator-header">
+    <div className="operator-header-row">
+      <div className="operator-brand-group">
+        <span className="operator-brand">
+          CRYPTO<span className="operator-brand-accent">AI</span>
         </span>
         <ModeBadge mode={mode} />
       </div>
 
-      <nav className="flex items-center gap-1">
+      <nav className="operator-nav" aria-label="Operator views">
         {TABS.map((tab) => {
           const active = tab.id === activeTab;
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-xs transition-colors"
-              style={{
-                borderRadius: "var(--r-chip)",
-                background: active ? "var(--bg-hover)" : "transparent",
-                color: active ? "var(--text-pri)" : "var(--text-muted)",
-                fontWeight: active ? 600 : 400,
-                border: "none",
-                cursor: "pointer",
-              }}
+              className={`operator-tab${active ? " operator-tab-active" : ""}`}
               aria-current={active ? "page" : undefined}
               data-testid={`tab-${tab.id}`}
             >
-              <span aria-hidden="true" style={{ color: active ? "var(--accent)" : undefined }}>
+              <span className="operator-tab-glyph" aria-hidden="true">
                 {tab.glyph}
               </span>
               {tab.label}
@@ -71,7 +62,7 @@ const Header: React.FC<{
         })}
       </nav>
 
-      <span className="font-mono text-[10px] hidden md:block" style={{ color: "var(--text-muted)" }} data-testid="last-fetch">
+      <span className="operator-last-fetch" data-testid="last-fetch">
         {lastFetchedAt ? new Date(lastFetchedAt).toLocaleTimeString() : "—"}
       </span>
     </div>
@@ -91,9 +82,12 @@ const App: React.FC = () => {
       <Header mode={mode} lastFetchedAt={lastFetchedAt} activeTab={tab} onTabChange={setTab} />
       <SnapshotStatusBanner state={snapshotState} />
 
-      <main className="px-4 py-4">
+      <main className="operator-main">
         {!activeSnapshot ? (
-          <div className="font-mono text-xs px-2 py-6" style={{ color: "var(--text-muted)" }} data-testid="no-snapshot">
+          <div
+            className="market-loading"
+            data-testid="no-snapshot"
+          >
             No successful snapshot available yet — panels render only from a validated canonical snapshot.
           </div>
         ) : (
