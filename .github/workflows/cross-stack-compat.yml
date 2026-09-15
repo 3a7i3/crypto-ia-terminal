@@ -2,24 +2,18 @@ name: Cross-Stack Compatibility Gate
 
 # O-02W-D3 — LOCAL CROSS-STACK COMPATIBILITY GATE.
 #
-# Proves that one canonical payload generated through the actual Python
-# O-02W-C producer path travels unchanged through the real O-02W-D1
-# FastAPI reader/route and is accepted, unaltered, by the real O-02W-D2
-# frontend validator/cockpit. All artifacts are generated into a temporary
-# directory at run time (tests/cross_stack/generate_fixtures.py); nothing
-# here is a committed handwritten "golden" fixture. No exchange
-# credentials, no VPS/network deployment. Deliberately separate from the
-# repository-wide `ci.yml`/`frontend-ci.yml` gates.
+# Proves that canonical payloads generated through the actual Python producer
+# paths travel through the real read-only FastAPI routes and are accepted,
+# unchanged, by the real frontend validators/cockpit. WEB-01-MARKET extends
+# this gate with the separate CryptoRadar producer -> atomic artifact ->
+# /api/operator/v1/market -> React path. All artifacts are generated into a
+# temporary directory at run time; nothing here is a committed handwritten
+# "golden" fixture. No exchange credentials, no VPS/network deployment.
 #
 # O-02W-D3-R1.1 Blocker A: deliberately NO `paths:` filter. A hand-picked
-# path allowlist is fragile by construction — e.g. the producer directly
-# imports `paper_trading/paper_portfolio_view.py` and
-# `paper_trading/portfolio_status.py`, neither of which was covered by the
-# R1 allowlist, and other indirect dependencies can silently reproduce the
-# same gap in the future. The gate itself is short (a handful of steps),
-# so the stronger scientific guarantee of running on every PR/push to
-# `main` costs little and can never again miss a contract-affecting change
-# through an incomplete manual list.
+# path allowlist is fragile by construction. The gate itself is short, so the
+# stronger scientific guarantee of running on every PR/push to `main` costs
+# little and cannot silently miss an indirect contract dependency.
 
 on:
   pull_request:
@@ -41,8 +35,8 @@ jobs:
 
     # No secrets, no exchange access, no VPS/network deployment, and
     # deliberately no exchange-mode environment variable at all — the
-    # compatibility gate uses only deterministic passive fakes and must
-    # never advertise or depend on any exchange mode (paper/testnet/live).
+    # compatibility gate uses only deterministic passive evidence/fakes and
+    # must never advertise or depend on any exchange mode.
 
     steps:
       - uses: actions/checkout@v4
@@ -70,8 +64,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Generate cross-stack fixtures (temporary directory, real producer path)
-        run: python -m tests.cross_stack.generate_fixtures --out frontend/.cross-stack-fixtures
+      - name: Generate canonical cross-stack fixtures (real producer paths)
+        run: |
+          python -m tests.cross_stack.generate_fixtures --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_market_fixture --out frontend/.cross-stack-fixtures
 
       - name: Frontend cross-stack compatibility test
         working-directory: frontend
