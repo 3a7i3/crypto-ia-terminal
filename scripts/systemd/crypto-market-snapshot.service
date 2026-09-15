@@ -1,0 +1,40 @@
+# WEB-01E — CryptoRadar MARKET snapshot publisher.
+# Strictly passive/read-only toward trading authority. Reads existing
+# DecisionPacket evidence and writes one atomic presentation artifact for the
+# Operator API. No Telegram token, no exchange key, no global secret store.
+#
+# Installation (VPS, explicit operator gesture after merged-SHA certification):
+#   sudo cp scripts/systemd/crypto-market-snapshot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now crypto-market-snapshot.service
+[Unit]
+Description=Crypto AI Terminal — WEB-01 MARKET snapshot publisher (passive)
+After=crypto-advisor.service
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/home/mathieu/crypto_ai_terminal
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=TZ=UTC
+Environment=PYTHONPATH=/home/mathieu/crypto_ai_terminal
+Environment=DP_LOG_DIR=/home/mathieu/crypto_ai_terminal/databases
+Environment=RADAR_MARKET_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/cryptoradar_market_snapshot.json
+ExecStart=/home/mathieu/crypto_ai_terminal/.venv/bin/python -m observability.market_radar_snapshot --interval 30
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_market_snapshot
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
