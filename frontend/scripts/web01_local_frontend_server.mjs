@@ -58,7 +58,12 @@ function proxyToOperatorApi(request, response, target) {
     path: request.url,
     headers: { host: target.host },
   }, (upstreamResponse) => {
-    response.writeHead(upstreamResponse.statusCode ?? 502, copyProxyHeaders(upstreamResponse.headers));
+    const headers = copyProxyHeaders(upstreamResponse.headers);
+    // WEB-01B runtime truth must remain network-only from the browser/PWA
+    // perspective even when an upstream route omits explicit cache metadata.
+    // Override any upstream cache directive at the presentation boundary.
+    headers["cache-control"] = "no-store";
+    response.writeHead(upstreamResponse.statusCode ?? 502, headers);
     if (request.method === "HEAD") response.end();
     else upstreamResponse.pipe(response);
   });
