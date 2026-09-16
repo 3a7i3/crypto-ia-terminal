@@ -8,7 +8,7 @@ import "./tokens.css";
 import "./operator.css";
 import { ModeBadge } from "./components/ModeBadge";
 import { SnapshotStatusBanner } from "./components/SnapshotStatusBanner";
-import { useOperatorSnapshot } from "./lib/snapshotClient";
+import { useOperatorSnapshot, type SnapshotState } from "./lib/snapshotClient";
 import { OverviewView } from "./views/OverviewView";
 import { PortfolioView } from "./views/PortfolioView";
 import { DecisionsView } from "./views/DecisionsView";
@@ -39,7 +39,14 @@ const Header: React.FC<{
         <span className="operator-brand">
           CRYPTO<span className="operator-brand-accent">AI</span>
         </span>
-        <ModeBadge mode={mode} />
+        {activeTab === "market" ? (
+          <span className="domain-badge domain-badge-market" data-testid="market-domain-badge">
+            <span className="domain-dot" aria-hidden="true" />
+            MARKET
+          </span>
+        ) : (
+          <ModeBadge mode={mode} />
+        )}
       </div>
 
       <nav className="operator-nav" aria-label="Operator views">
@@ -56,7 +63,7 @@ const Header: React.FC<{
               <span className="operator-tab-glyph" aria-hidden="true">
                 {tab.glyph}
               </span>
-              {tab.label}
+              <span>{tab.label}</span>
             </button>
           );
         })}
@@ -69,6 +76,32 @@ const Header: React.FC<{
   </header>
 );
 
+const MarketCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
+  if (state.status === "success") return null;
+
+  if (state.status === "loading") {
+    return (
+      <div className="market-domain-context" data-testid="market-canonical-context">
+        Canonical advisor context loading · MARKET telemetry is sourced independently.
+      </div>
+    );
+  }
+
+  const summary = state.status === "api_error"
+    ? `Canonical advisor: UNRESOLVED · ${state.error.error_code ?? "UNKNOWN_ERROR"}`
+    : "Canonical advisor: DISCONNECTED";
+  const detail = state.status === "api_error"
+    ? state.error.error_message ?? "no error message supplied"
+    : state.message;
+
+  return (
+    <details className="market-domain-context" data-testid="market-canonical-context">
+      <summary>{summary} · MARKET remains a separate observational domain</summary>
+      <div className="market-domain-context-detail">{detail}</div>
+    </details>
+  );
+};
+
 const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>("overview");
   const snapshotState = useOperatorSnapshot();
@@ -76,18 +109,22 @@ const App: React.FC = () => {
   const activeSnapshot = snapshotState.status === "success" ? snapshotState.snapshot : null;
   const lastFetchedAt = snapshotState.status === "success" ? snapshotState.fetchedAt : snapshotState.lastSuccess?.fetchedAt ?? null;
   const mode = activeSnapshot?.portfolio.mode;
+  const marketActive = tab === "market";
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-dark)" }}>
+    <div className="operator-shell">
       <Header mode={mode} lastFetchedAt={lastFetchedAt} activeTab={tab} onTabChange={setTab} />
-      <SnapshotStatusBanner state={snapshotState} />
+      {!marketActive && <SnapshotStatusBanner state={snapshotState} />}
 
       <main className="operator-main">
-        {tab === "market" ? (
-          <MarketView />
+        {marketActive ? (
+          <>
+            <MarketCanonicalContext state={snapshotState} />
+            <MarketView />
+          </>
         ) : !activeSnapshot ? (
           <div
-            className="market-loading"
+            className="canonical-unresolved"
             data-testid="no-snapshot"
           >
             Canonical snapshot unavailable — this domain is UNRESOLVED until a validated snapshot is available.
