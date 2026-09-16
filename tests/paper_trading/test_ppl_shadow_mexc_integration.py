@@ -11,6 +11,7 @@ pipeline while legacy PAPER remains untouched.
 from __future__ import annotations
 
 import inspect
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -349,6 +350,63 @@ def test_h_shadow_runtime_construction_confined_to_mexc_sim_paper_bootstrap():
         with open(path, encoding="utf-8") as fh:
             text = fh.read()
         assert "ppl_shadow" not in text, f"REAL execution module imports ppl_shadow: {path}"
+
+
+# ---------------------------------------------------------------------------
+# J — REAL SHADOW DEGRADATION IS OBSERVABLE AND LEGACY STAYS UNTOUCHED
+# ---------------------------------------------------------------------------
+
+
+def test_j_real_shadow_degradation_through_mexc_sim_leaves_legacy_untouched(
+    monkeypatch, tmp_path, caplog
+):
+    """Blocker 3 (MASTER review), end-to-end: a REAL PPLShadowRuntime that
+    degrades mid-flight (durable-store append failure) while wired into
+    MexcSimulator must still (a) emit the explicit [PPL-02D] DEGRADED log
+    and (b) never alter the legacy MEXC_SIM FILLED order/position/capital
+    result — proving the observability fix does not make SHADOW
+    authoritative and does not disturb legacy isolation (tests D/E already
+    cover a MagicMock observer; this uses the real runtime/store path)."""
+    _patch_recorder_to_tmp(monkeypatch, tmp_path)
+
+    baseline = MexcSimulator(mexc_reader=_reader())
+    baseline._capital = 100.0
+    baseline._initial_capital = 100.0
+    baseline_order = baseline.place_market_order(
+        symbol="BTC/USDT", side="BUY", qty_usd=10.0, current_price=100.0
+    )
+
+    shadow = _bound_shadow(tmp_path, epoch_id="epoch-degrade", capital=100.0)
+    monkeypatch.setattr(
+        shadow.store, "append", lambda *a, **k: (_ for _ in ()).throw(OSError("disk failure"))
+    )
+
+    sim = MexcSimulator(mexc_reader=_reader(), shadow_observer=shadow)
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+
+    with caplog.at_level(logging.ERROR, logger="paper_trading.ppl_shadow"):
+        order = sim.place_market_order(
+            symbol="BTC/USDT", side="BUY", qty_usd=10.0, current_price=100.0
+        )
+
+    # Legacy result is byte-for-byte identical to the no-shadow baseline.
+    assert order.status == baseline_order.status
+    assert order.fill_price == pytest.approx(baseline_order.fill_price)
+    assert sim._capital == pytest.approx(baseline._capital)
+    assert "BTC/USDT" in sim._positions
+
+    # But the degradation is real and observable, not silently swallowed.
+    assert shadow.status is ShadowStatus.DEGRADED
+    assert shadow.last_error is not None
+    assert "disk failure" in shadow.last_error
+    degraded_records = [
+        r
+        for r in caplog.records
+        if "[PPL-02D]" in r.message and "DEGRADED" in r.message
+    ]
+    assert len(degraded_records) == 1
+    assert "epoch-degrade" in degraded_records[0].message
 
 
 # ---------------------------------------------------------------------------

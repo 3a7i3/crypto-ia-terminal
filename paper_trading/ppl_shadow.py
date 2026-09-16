@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import stat
@@ -35,6 +36,8 @@ from paper_trading.ledger_events import (
     normalize_side,
 )
 from paper_trading.paper_portfolio_ledger import PaperPortfolioState, project
+
+_log = logging.getLogger(__name__)
 
 _MANIFEST_SCHEMA_VERSION = 1
 _SHADOW_DOMAIN = "PPL-02D-SHADOW-V1"
@@ -636,5 +639,20 @@ class PPLShadowRuntime:
                     )
 
     def _degrade(self, exc: Exception) -> None:
+        # Called only while holding self._lock (see bind_legacy_state /
+        # observe_open / observe_close), so this read-then-write is safe.
+        first_transition = self.status is not ShadowStatus.DEGRADED
         self.status = ShadowStatus.DEGRADED
         self.last_error = f"{type(exc).__name__}: {exc}"
+        if first_transition:
+            # Logged once, on the transition only: MexcSimulator's outer
+            # try/except never sees this exception (it is intentionally
+            # swallowed here to stay non-authoritative), so this is the only
+            # observability point for a real durable-store/projection
+            # failure turning SHADOW DEGRADED.
+            _log.error(
+                "[PPL-02D] SHADOW DEGRADED epoch=%s error=%s: %s",
+                self.manifest.paper_epoch_id,
+                type(exc).__name__,
+                exc,
+            )

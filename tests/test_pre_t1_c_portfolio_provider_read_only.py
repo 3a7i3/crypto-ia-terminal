@@ -541,26 +541,128 @@ def test_source_confirms_route_and_report_loop_at_cited_lines():
     assert "def _report_loop(self) -> None:" in report_window
 
 
+def _find_from_env_assignment(tree: ast.Module) -> tuple[ast.Assign, str] | tuple[None, None]:
+    """Find the single-target `X = CommandCenterBot.from_env(...)` assignment,
+    returning the Assign node and the assigned target's name."""
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            continue
+        value = node.value
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Attribute)
+            and value.func.attr == "from_env"
+            and isinstance(value.func.value, ast.Name)
+            and value.func.value.id == "CommandCenterBot"
+        ):
+            return node, node.targets[0].id
+    return None, None
+
+
+def _statement_lists(tree: ast.Module):
+    """Yield every statement list (a function/module/if/try body) in the
+    tree, so callers can find the list a given statement lives in without
+    relying on ast parent-pointers (not provided by the stdlib parser)."""
+    for node in ast.walk(tree):
+        for field in ("body", "orelse", "finalbody"):
+            stmts = getattr(node, field, None)
+            if isinstance(stmts, list) and stmts and isinstance(stmts[0], ast.stmt):
+                yield stmts
+
+
 def test_source_confirms_portfolio_bot_construction_at_cited_lines():
-    # O-02W-PRE-T1-E REM-C-R1.1: these line citations shift whenever
-    # core/advisor_loop.py gains/loses lines above them. OPS-C-RUNTIME-WIRING
-    # (initial wiring + later dual-domain hardening) added
-    # a pinned-universe certification helper block above this citation
-    # (before `_decision_engine_summary`). Updated to the current,
-    # source-confirmed location (grep-verified, not guessed).
-    lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    window = "\n".join(lines[4262:4264])
-    assert "CommandCenterBot.from_env(" in window
-    assert "_portfolio_bot.start()" in window
+    # Semantic/structural proof (no absolute line numbers pinned): locate the
+    # `_portfolio_bot = CommandCenterBot.from_env(...)` construction via AST,
+    # then confirm `_portfolio_bot.start()` is called within the next few
+    # statements of the *same* logical block — proving the bot is actually
+    # started right after construction, regardless of how many lines precede
+    # it elsewhere in the file.
+    source_path = REPO_ROOT / "core" / "advisor_loop.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+
+    construction, target_name = _find_from_env_assignment(tree)
+    assert construction is not None, "no `X = CommandCenterBot.from_env(...)` assignment found"
+
+    found_start = False
+    for stmts in _statement_lists(tree):
+        if construction not in stmts:
+            continue
+        idx = stmts.index(construction)
+        for stmt in stmts[idx + 1 : idx + 4]:
+            if (
+                isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Call)
+                and isinstance(stmt.value.func, ast.Attribute)
+                and stmt.value.func.attr == "start"
+                and isinstance(stmt.value.func.value, ast.Name)
+                and stmt.value.func.value.id == target_name
+            ):
+                found_start = True
+        break
+
+    assert found_start, f"`{target_name}.start()` not found shortly after construction"
+
+
+def _telegram_call_literal_text(call: ast.Call) -> str:
+    """Reconstruct the literal (non-interpolated) text of a `_telegram(...)`
+    call's message argument, whether it is a plain string constant or an
+    f-string. Interpolated `{...}` parts are skipped since only the fixed
+    operator-facing wording matters here."""
+    if not call.args:
+        return ""
+    arg = call.args[0]
+    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+        return arg.value
+    if isinstance(arg, ast.JoinedStr):
+        return "".join(
+            piece.value for piece in arg.values if isinstance(piece, ast.Constant)
+        )
+    return ""
 
 
 def test_source_confirms_resume_negation_lines_contain_resume_string():
-    lines = (REPO_ROOT / "core" / "advisor_loop.py").read_text(encoding="utf-8").splitlines()
-    # Shifted by OPS-C-RUNTIME-WIRING's certification helper
-    # block — see comment on
-    # test_source_confirms_portfolio_bot_construction_at_cited_lines above.
-    for line_no in (4143, 4155, 5850):
-        assert "/RESUME" in lines[line_no - 1]
+    # Semantic/structural proof (no absolute line numbers pinned): every
+    # `_telegram(...)` call whose message mentions `/RESUME` must carry the
+    # negation-of-availability phrasing, never one of the old imperative
+    # "send /RESUME to resume" instructions. Anchoring on `_telegram(...)`
+    # call sites (rather than a whole-file substring search) preserves the
+    # original locality/causality proof: this checks the actual text sent to
+    # the operator, not merely that the string appears somewhere in the file.
+    source_path = REPO_ROOT / "core" / "advisor_loop.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+
+    resume_calls = [
+        call
+        for call in ast.walk(tree)
+        if isinstance(call, ast.Call)
+        and isinstance(call.func, ast.Name)
+        and call.func.id == "_telegram"
+        and "/RESUME" in _telegram_call_literal_text(call)
+    ]
+    assert resume_calls, "expected at least one `_telegram(...)` call mentioning /RESUME"
+
+    negation_marker = "Aucune commande /RESUME n'est disponible"
+    imperative_markers = (
+        "Envoyez /RESUME si intervention requise",
+        "Envoyez /RESUME pour reprendre",
+        "Envoyer /RESUME pour reprendre",
+    )
+
+    for call in resume_calls:
+        literal_text = _telegram_call_literal_text(call)
+        assert negation_marker in literal_text, (
+            f"_telegram() call at line {call.lineno} mentions /RESUME without "
+            "the negation-of-availability phrasing"
+        )
+        for marker in imperative_markers:
+            assert marker not in literal_text, (
+                f"_telegram() call at line {call.lineno} still contains an "
+                f"imperative /RESUME instruction: {marker!r}"
+            )
 
 
 # ── R1.3, Correction A: §6 TelegramKillSwitch citation, section-scoped ─────

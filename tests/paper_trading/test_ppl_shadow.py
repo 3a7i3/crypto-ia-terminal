@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import pytest
 
@@ -292,6 +293,79 @@ def test_shadow_append_failure_degrades_without_fabricating_success(
     assert shadow.last_error is not None
     assert "disk failure" in shadow.last_error
     assert len(DurableEventStore(tmp_path / "ppl").load_epoch(EPOCH)) == 1
+
+
+def test_real_shadow_degradation_is_observable_and_stops_on_first_transition(
+    tmp_path,
+    monkeypatch,
+    caplog,
+):
+    """Blocker 3 (MASTER review): a real durable-store failure inside
+    PPLShadowRuntime must produce an explicit, one-time [PPL-02D] DEGRADED
+    log — the outer MexcSimulator try/except never sees this exception (it
+    is deliberately swallowed to stay non-authoritative), so this is the
+    only observability point for the transition.
+
+    Uses a REAL PPLShadowRuntime backed by a REAL DurableEventStore (only
+    ``store.append`` is monkeypatched to fail) — not a MagicMock observer —
+    to prove the actual production `_degrade()` path, not a test double's
+    behavior.
+    """
+    shadow = runtime(tmp_path)
+
+    # 1. Clean shadow activation succeeds.
+    assert shadow.bind_legacy_state(available_capital=CAPITAL, open_positions=[])
+    assert shadow.status is ShadowStatus.ACTIVE
+
+    # 2. Induce a real shadow failure on the durable-store append path.
+    def boom(*_args, **_kwargs):
+        raise OSError("disk failure")
+
+    monkeypatch.setattr(shadow.store, "append", boom)
+
+    # 3./4. Call observe_open(): result is None, no exception propagates.
+    with caplog.at_level(logging.ERROR, logger="paper_trading.ppl_shadow"):
+        result = shadow.observe_open(open_fact())
+    assert result is None
+
+    # 5./6. status == DEGRADED and last_error carries the actual failure.
+    assert shadow.status is ShadowStatus.DEGRADED
+    assert shadow.last_error is not None
+    assert "OSError" in shadow.last_error
+    assert "disk failure" in shadow.last_error
+
+    # 7. caplog contains exactly one explicit PPL-02D DEGRADED log, carrying
+    # the PPL-02D identifier, DEGRADED, the exception type/message, and the
+    # paper_epoch_id.
+    degraded_records = [
+        r
+        for r in caplog.records
+        if "[PPL-02D]" in r.message and "DEGRADED" in r.message
+    ]
+    assert len(degraded_records) == 1
+    message = degraded_records[0].message
+    assert "OSError" in message
+    assert "disk failure" in message
+    assert EPOCH in message
+
+    events_before = len(shadow.store.load_epoch(EPOCH))
+    caplog.clear()
+
+    # 8. Repeating another observation while already DEGRADED must not
+    # append events and must not produce another transition log (the
+    # guard clause at the top of observe_close short-circuits before the
+    # still-broken store.append is ever reached).
+    with caplog.at_level(logging.ERROR, logger="paper_trading.ppl_shadow"):
+        result_2 = shadow.observe_close(close_fact())
+    assert result_2 is None
+    assert shadow.status is ShadowStatus.DEGRADED
+    assert len(shadow.store.load_epoch(EPOCH)) == events_before
+    repeated_degraded_records = [
+        r
+        for r in caplog.records
+        if "[PPL-02D]" in r.message and "DEGRADED" in r.message
+    ]
+    assert repeated_degraded_records == []
 
 
 def test_manifest_rejects_non_finite_capital(tmp_path):
