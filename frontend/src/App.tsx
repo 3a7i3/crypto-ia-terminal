@@ -88,7 +88,9 @@ const MarketCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) =
   }
 
   const summary = state.status === "api_error"
-    ? `Canonical advisor: UNRESOLVED · ${state.error.error_code ?? "UNKNOWN_ERROR"}`
+    ? state.error.error_code === "SNAPSHOT_MISSING"
+      ? "Canonical advisor: UNRESOLVED · SNAPSHOT_MISSING"
+      : `Canonical advisor API error · ${state.error.error_code ?? "UNKNOWN_ERROR"}`
     : "Canonical advisor: DISCONNECTED";
   const detail = state.status === "api_error"
     ? state.error.error_message ?? "no error message supplied"
