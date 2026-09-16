@@ -41,17 +41,28 @@ function marketSnapshot(freshness: "FRESH" | "STALE" = "FRESH") {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("MarketView", () => {
-  it("renders CryptoRadar telemetry without execution levels", async () => {
+  it("renders the same CryptoRadar opportunity truth for desktop and mobile without execution levels", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot())));
     render(<MarketView />);
 
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
     const view = screen.getByTestId("market-view");
-    expect(view).toHaveTextContent("BTC/USDT");
     expect(view).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
+    expect(view).toHaveTextContent("rolling 24h observation window");
+    expect(view).toHaveTextContent("display classification only");
+
+    const row = screen.getByTestId("market-opportunity-row");
+    const card = screen.getByTestId("market-opportunity-card");
+    for (const expected of ["BTC/USDT", "75.0", "80.0", "LONG", "100%", "2", "bull_trend"]) {
+      expect(row).toHaveTextContent(expected);
+      expect(card).toHaveTextContent(expected);
+    }
+
+    expect(screen.getByTestId("market-opportunity-cards")).toBeInTheDocument();
     expect(view).not.toHaveTextContent("Entry");
     expect(view).not.toHaveTextContent("Stop Loss");
     expect(view).not.toHaveTextContent("Take Profit");
+    expect(view).not.toHaveTextContent("trade_allowed");
   });
 
   it("renders stale evidence explicitly", async () => {
@@ -60,6 +71,16 @@ describe("MarketView", () => {
 
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("STALE"));
     expect(screen.getByTestId("market-view")).toHaveTextContent("120s");
+  });
+
+  it("keeps provenance inspectable without changing source values", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot())));
+    render(<MarketView />);
+
+    await waitFor(() => expect(screen.getByText("Provenance & source timing")).toBeInTheDocument());
+    const view = screen.getByTestId("market-view");
+    expect(view).toHaveTextContent("2026-09-14 20:00:00Z");
+    expect(view).toHaveTextContent("2026-09-14 19:59:00Z");
   });
 
   it("renders explicit API failure rather than an empty healthy market", async () => {
