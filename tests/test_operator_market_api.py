@@ -118,6 +118,30 @@ def test_market_route_rejects_wrong_authority_and_execution_shaped_rows(tmp_path
     assert resp.json()["error_code"] == "MARKET_SNAPSHOT_INVALID_SCHEMA"
 
 
+def test_market_route_rejects_timezone_naive_source_updated_at(tmp_path):
+    path = tmp_path / "market.json"
+    bad = _valid_market()
+    bad["source_updated_at_utc"] = "2026-09-16T06:08:15.303926"
+    _write(path, bad)
+    client = _client(path, 1_789_416_030.0)
+
+    resp = client.get("/api/operator/v1/market")
+    assert resp.status_code == 503
+    assert resp.json()["error_code"] == "MARKET_SNAPSHOT_INVALID_SCHEMA"
+
+
+def test_market_route_accepts_explicit_offset_source_updated_at(tmp_path):
+    path = tmp_path / "market.json"
+    doc = _valid_market()
+    doc["source_updated_at_utc"] = "2026-09-14T21:59:30+02:00"
+    _write(path, doc)
+    client = _client(path, 1_789_416_030.0)
+
+    resp = client.get("/api/operator/v1/market")
+    assert resp.status_code == 200
+    assert resp.json()["source_updated_at_utc"] == "2026-09-14T21:59:30+02:00"
+
+
 def test_market_route_has_no_mutating_methods(tmp_path):
     path = tmp_path / "market.json"
     _write(path, _valid_market())
