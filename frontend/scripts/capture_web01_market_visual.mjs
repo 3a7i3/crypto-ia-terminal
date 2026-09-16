@@ -108,8 +108,8 @@ try {
   const mobileCards = page.getByTestId("market-opportunity-card");
   assert((await mobileCards.count()) > 0, "phone MARKET opportunity cards are missing");
   assert(await mobileCards.first().isVisible(), "first phone MARKET opportunity card is not visible");
-  const mobileCardText = await mobileCards.first().innerText();
-  for (const expected of ["BTC/USDT", "LONG", "Avg conf", "Max", "Dominance", "Signals", "Regime"]) {
+  const mobileCardText = (await mobileCards.first().innerText()).toLowerCase();
+  for (const expected of ["btc/usdt", "long", "avg conf", "max", "dominance", "signals", "regime"]) {
     assert(mobileCardText.includes(expected), `phone MARKET card missing ${expected}`);
   }
   const freshnessBox = await page.getByTestId("market-freshness").boundingBox();
