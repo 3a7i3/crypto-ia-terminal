@@ -79,6 +79,8 @@ describe("App", () => {
 
     fireEvent.click(screen.getByTestId("tab-market"));
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
+    expect(screen.getByTestId("market-domain-badge")).toHaveTextContent("MARKET");
+    expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(screen.getByTestId("market-view")).toHaveTextContent("CryptoRadar");
     expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT");
     expect(screen.queryByTestId("not-exposed-label")).toBeNull();
@@ -93,7 +95,7 @@ describe("App", () => {
     expect(text).not.toMatch(/expectancy|equity_curve/i);
   });
 
-  it("keeps MARKET reachable when the canonical snapshot is explicitly missing", async () => {
+  it("keeps MARKET independently healthy when the canonical snapshot is explicitly missing", async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "/api/operator/v1/market") return Promise.resolve(jsonResponse(baseMarketSnapshot()));
@@ -106,8 +108,16 @@ describe("App", () => {
 
     fireEvent.click(screen.getByTestId("tab-market"));
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
+    expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
+    expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("SNAPSHOT_MISSING");
+    expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("separate observational domain");
     expect(screen.getByTestId("market-view")).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
     expect(screen.queryByTestId("overview-view")).toBeNull();
+
+    // The canonical truth is not hidden; it returns with the canonical domain.
+    fireEvent.click(screen.getByTestId("tab-overview"));
+    expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING");
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
   });
 
   it("renders the canonical portfolio mode without a PAPER fallback for UNKNOWN", async () => {

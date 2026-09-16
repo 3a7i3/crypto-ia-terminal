@@ -5,15 +5,16 @@
   /* Backgrounds */
   --bg-dark:      #0f172a;
   --bg-card:      #1e293b;
+  --bg-card-soft: #182235;
   --bg-hover:     #263348;
   --bg-border:    #2d3f55;
 
   /* Text */
   --text-pri:     #f8fafc;
   --text-sec:     #94a3b8;
-  --text-muted:   #475569;
+  --text-muted:   #64748b;
 
-  /* Functional palette — 4 couleurs max */
+  /* Functional palette */
   --accent:       #00e0ff;
   --accent-dim:   rgba(0, 224, 255, 0.10);
   --ok:           #22c55e;
@@ -23,7 +24,16 @@
   --danger:       #ef4444;
   --danger-dim:   rgba(239, 68, 68, 0.10);
   --neutral:      #6b7280;
-  --neutral-dim:  rgba(107, 114, 128, 0.10);
+  --neutral-dim:  rgba(107, 114, 128, 0.12);
+  --violet:       #a78bfa;
+  --violet-dim:   rgba(167, 139, 250, 0.11);
+
+  /* Presentation semantics — never execution authority */
+  --market-observation: #22d3ee;
+  --market-observation-dim: rgba(34, 211, 238, 0.10);
+  --market-long:  #22d3ee;
+  --market-short: #a78bfa;
+  --shadow-state: #8b5cf6;
 
   /* Conviction */
   --cv-vh:        #22c55e;
@@ -54,8 +64,8 @@
   --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
   /* Radius */
-  --r-card:       6px;
-  --r-chip:       3px;
+  --r-card:       8px;
+  --r-chip:       4px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -68,6 +78,10 @@ html {
   color: var(--text-pri);
   -webkit-font-smoothing: antialiased;
 }
+
+html, body, #root { min-height: 100%; }
+body { min-width: 0; background: var(--bg-dark); }
+button, input, select, textarea { font: inherit; }
 
 ::-webkit-scrollbar              { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track        { background: transparent; }
