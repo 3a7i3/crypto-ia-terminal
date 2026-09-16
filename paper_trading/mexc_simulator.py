@@ -111,6 +111,9 @@ class MexcOrder:
     score: int = 0
     personality: str = "unknown"
     regime: str = "unknown"
+    # PPL-02D — explicit decision provenance (DecisionPacket.packet_id when
+    # an actual packet exists). Never a trace_id/cycle_id/order_id alias.
+    decision_id: Optional[str] = None
 
 
 @dataclass
@@ -139,6 +142,8 @@ class MexcPosition:
     # restored from durable evidence and were recomputed/defaulted instead
     # (never presented as the original values). See _restore_positions().
     restored_evidence_gaps: list = field(default_factory=list)
+    # PPL-02D — explicit decision provenance, carried OPEN -> CLOSE.
+    decision_id: Optional[str] = None
 
     @property
     def is_open(self) -> bool:
@@ -264,6 +269,7 @@ class MexcSimulator:
         self,
         mexc_reader=None,
         telegram_fn: Optional[Callable[[str], None]] = None,
+        shadow_observer=None,
     ) -> None:
         self._mexc = mexc_reader
         self._telegram = telegram_fn
@@ -275,6 +281,11 @@ class MexcSimulator:
         self._lock = threading.Lock()
         self._running = False
         self._perf = PerformanceTracker()
+        # PPL-02D — optional, non-authoritative SHADOW observer. Caller
+        # constructs it explicitly (build_shadow_runtime_from_env()); this
+        # simulator never builds a PPL store itself. None = zero PPL I/O,
+        # behavior identical to before PPL-02D.
+        self._shadow_observer = shadow_observer
 
     # ── Démarrage ─────────────────────────────────────────────────────────────
 
@@ -305,6 +316,40 @@ class MexcSimulator:
         self._perf.record_equity(capital)
 
         restored = self._restore_positions()
+
+        # PPL-02D — startup bind/restart. Occurs after capital init and
+        # position restore, before normal runtime processing. Wrapped
+        # defensively: no shadow failure may prevent legacy startup, and
+        # this never mutates a legacy position to force reconciliation.
+        if self._shadow_observer is not None:
+            try:
+                from paper_trading.ppl_shadow import ShadowLegacyPosition
+
+                with self._lock:
+                    legacy_positions = [
+                        ShadowLegacyPosition(
+                            trade_id=pos.pos_id,
+                            symbol=pos.symbol,
+                            side=pos.side.value,
+                            principal=pos.qty_usd,
+                            entry_price=pos.entry_price,
+                            entry_fee=pos.fee_entry_usd,
+                        )
+                        for pos in self._positions.values()
+                    ]
+                    bind_capital = self._capital
+                self._shadow_observer.bind_legacy_state(
+                    available_capital=bind_capital,
+                    open_positions=legacy_positions,
+                )
+                _log.info(
+                    "[SIM][PPL-02D] shadow status=%s",
+                    getattr(self._shadow_observer, "status", "?"),
+                )
+            except Exception as exc:
+                _log.warning(
+                    "[SIM][PPL-02D] startup bind échoué (non-fatal): %s", exc
+                )
 
         self._running = True
         t = threading.Thread(target=self._monitor_loop, daemon=True, name="MEXC-SIM")
@@ -641,6 +686,7 @@ class MexcSimulator:
         regime: str = "unknown",
         admission: "Optional[AdmissionVerdict]" = None,
         cycle_id: str = "",
+        decision_id: Optional[str] = None,
     ) -> Optional[MexcOrder]:
         """Ordre MARKET : exécution immédiate au prix courant + slippage.
 
@@ -676,6 +722,7 @@ class MexcSimulator:
             score=score,
             personality=personality,
             regime=regime,
+            decision_id=decision_id,
         )
         if current_price <= 0:
             current_price = self._fetch_price(symbol)
@@ -831,6 +878,7 @@ class MexcSimulator:
                 score=order.score,
                 personality=order.personality,
                 regime=order.regime,
+                decision_id=order.decision_id,
             )
             self._positions[order.symbol] = pos
             order.fill_price = fill
@@ -855,6 +903,30 @@ class MexcSimulator:
             )
         except Exception as exc:
             _log.warning("[SIM] record_open échoué: %s", exc)
+
+        # PPL-02D — non-authoritative shadow observation. Occurs strictly
+        # after the legacy FILLED result/position/capital mutation above.
+        # Any failure here is logged and swallowed: it must never change
+        # the legacy order/position/capital result, never remove the
+        # position, never refund/redebit capital, never affect Telegram.
+        if self._shadow_observer is not None:
+            try:
+                from paper_trading.ppl_shadow import ShadowOpenFact
+
+                self._shadow_observer.observe_open(
+                    ShadowOpenFact(
+                        trade_id=pos.pos_id,
+                        symbol=pos.symbol,
+                        side=pos.side.value,
+                        principal=pos.qty_usd,
+                        entry_price=pos.entry_price,
+                        entry_fee=pos.fee_entry_usd,
+                        timestamp=pos.opened_ts,
+                        decision_id=pos.decision_id or None,
+                    )
+                )
+            except Exception as exc:
+                _log.warning("[SIM][PPL-02D] observe_open échoué (non-fatal): %s", exc)
 
         wins = sum(1 for p in self._closed if p.pnl_usd >= 0)
         total = len(self._closed)
@@ -1038,6 +1110,27 @@ class MexcSimulator:
             )
         except Exception as exc:
             _log.warning("[SIM] record_close échoué: %s", exc)
+
+        # PPL-02D — non-authoritative shadow observation. Same
+        # exception-safety guarantee as observe_open above: never affects
+        # legacy state.
+        if self._shadow_observer is not None:
+            try:
+                from paper_trading.ppl_shadow import ShadowCloseFact
+
+                self._shadow_observer.observe_close(
+                    ShadowCloseFact(
+                        trade_id=pos.pos_id,
+                        exit_price=fill,
+                        exit_fee=fee,
+                        timestamp=pos.closed_ts,
+                        decision_id=pos.decision_id or None,
+                    )
+                )
+            except Exception as exc:
+                _log.warning(
+                    "[SIM][PPL-02D] observe_close échoué (non-fatal): %s", exc
+                )
 
         wins = sum(1 for p in self._closed if p.pnl_usd >= 0)
         losses = len(self._closed) - wins

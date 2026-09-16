@@ -2724,6 +2724,7 @@ def analyze_symbol(
             current_price=float(prix),
             admission=_admission_verdict,
             cycle_id=str(cycle),
+            decision_id=(str(_dp.packet_id) if _dp is not None else None),
         )
 
     persona_name = personality.name if personality else "N/A"
@@ -5715,9 +5716,28 @@ def main(
 
             _mexc_reader_sim = _MexcReaderCls()
             _vp_tg_fn = _telegram_alert.info if _telegram_alert else None
+
+            # PPL-02D — optional, default-OFF SHADOW observer. Only
+            # constructed inside this MEXC_SIM/PAPER bootstrap path; both
+            # PPL_SHADOW_MANIFEST and PPL_SHADOW_STORE_ROOT must be set
+            # explicitly. Absent/partial/invalid config: SHADOW OFF, legacy
+            # MEXC_SIM still starts normally with shadow_observer=None.
+            _ppl_shadow_observer = None
+            try:
+                from paper_trading.ppl_shadow import build_shadow_runtime_from_env
+
+                _ppl_shadow_observer = build_shadow_runtime_from_env()
+            except Exception as _ppl_shadow_exc:
+                log.warning(
+                    "[SIM][PPL-02D] shadow runtime config invalide — SHADOW OFF: %s",
+                    _ppl_shadow_exc,
+                )
+                _ppl_shadow_observer = None
+
             _virtual_portfolio = _SimCls(
                 mexc_reader=_mexc_reader_sim,
                 telegram_fn=_vp_tg_fn,
+                shadow_observer=_ppl_shadow_observer,
             )
             _virtual_portfolio.start()
             log.info("[SIM] MexcSimulator initialise")
