@@ -22,7 +22,8 @@ def _packets():
             "confidence": 70,
             "side": "BUY",
             "regime": "bull_trend",
-            "created_at": "2026-09-14T20:01:00Z",
+            # Real DecisionPacket producer format: datetime.utcnow().isoformat().
+            "created_at": "2026-09-14T20:01:00",
         },
         {
             "symbol": "ETH/USDT",
@@ -75,6 +76,64 @@ def test_build_market_snapshot_reuses_radar_stats_without_execution_fields(monke
         '"is_actionable"',
     ):
         assert forbidden not in blob
+
+
+def test_real_decision_packet_naive_timestamp_is_labelled_utc_without_clock_shift(monkeypatch):
+    packets = [
+        {
+            "symbol": "XRP/USDT",
+            "confidence": 80,
+            "side": "BUY",
+            "regime": "RANGE",
+            "created_at": "2026-09-16T06:08:15.303926",
+        }
+    ]
+    monkeypatch.setattr(market.radar_bot, "load_recent_packets", lambda _hours: packets)
+
+    snap = market.build_market_snapshot(now_fn=lambda: 1_758_000_000.0)
+
+    assert snap["source_updated_at_utc"] == "2026-09-16T06:08:15.303926Z"
+
+
+def test_explicit_offset_is_normalized_to_utc_and_compared_as_an_instant(monkeypatch):
+    packets = [
+        {
+            "symbol": "BTC/USDT",
+            "confidence": 80,
+            "side": "BUY",
+            "regime": "RANGE",
+            "created_at": "2026-09-16T06:08:15",
+        },
+        {
+            "symbol": "ETH/USDT",
+            "confidence": 80,
+            "side": "SELL",
+            "regime": "RANGE",
+            "created_at": "2026-09-16T08:08:16+02:00",
+        },
+    ]
+    monkeypatch.setattr(market.radar_bot, "load_recent_packets", lambda _hours: packets)
+
+    snap = market.build_market_snapshot(now_fn=lambda: 1_758_000_000.0)
+
+    assert snap["source_updated_at_utc"] == "2026-09-16T06:08:16Z"
+
+
+def test_malformed_source_timestamp_is_never_fabricated(monkeypatch):
+    packets = [
+        {
+            "symbol": "BTC/USDT",
+            "confidence": 80,
+            "side": "BUY",
+            "regime": "RANGE",
+            "created_at": "not-a-timestamp",
+        }
+    ]
+    monkeypatch.setattr(market.radar_bot, "load_recent_packets", lambda _hours: packets)
+
+    snap = market.build_market_snapshot(now_fn=lambda: 1_758_000_000.0)
+
+    assert snap["source_updated_at_utc"] is None
 
 
 def test_atomic_writer_publishes_parseable_complete_document(tmp_path, monkeypatch):
