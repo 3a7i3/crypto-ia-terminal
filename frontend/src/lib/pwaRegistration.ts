@@ -18,22 +18,22 @@ export function registerOperatorPwa(): void {
   if (!canRegisterOperatorPwa()) return;
 
   const register = async () => {
-    // Reload only when an already-controlled page receives a replacement
-    // worker. First installation remains non-disruptive; later deployments
-    // deterministically activate the new shell after skipWaiting()/claim().
-    const hadController = navigator.serviceWorker.controller !== null;
+    // A first installation may claim this already-open page without reloading it.
+    // Keep the controllerchange listener alive across that initial claim so the
+    // *next* replacement in the same session still performs one deterministic
+    // reload. Existing controlled pages reload on their first controller change.
+    let hasSeenController = navigator.serviceWorker.controller !== null;
     let reloadingForUpdate = false;
-    if (hadController) {
-      navigator.serviceWorker.addEventListener(
-        "controllerchange",
-        () => {
-          if (reloadingForUpdate) return;
-          reloadingForUpdate = true;
-          window.location.reload();
-        },
-        { once: true },
-      );
-    }
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hasSeenController) {
+        hasSeenController = true;
+        return;
+      }
+      if (reloadingForUpdate) return;
+      reloadingForUpdate = true;
+      window.location.reload();
+    });
 
     try {
       const registration = await navigator.serviceWorker.register(PWA_SERVICE_WORKER_PATH, { scope: "/" });
