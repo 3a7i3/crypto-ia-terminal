@@ -74,18 +74,50 @@ def _utc_now_iso(now_fn=time.time) -> str:
     )
 
 
-def _latest_packet_timestamp(packets: Iterable[Mapping[str, Any]]) -> Optional[str]:
-    """Return the newest genuine packet ``created_at`` string if available.
+def _normalize_packet_timestamp_utc(value: Any) -> Optional[tuple[datetime, str]]:
+    """Normalize one DecisionPacket ``created_at`` value at the MARKET boundary.
 
-    The producer does not fabricate/normalize a timestamp from file mtime or
-    generation time. ISO-like strings sort chronologically for the formats
-    emitted by DecisionPacket; if a malformed/non-string value is present it
-    is ignored rather than repaired.
+    Runtime proof for WEB-OBS-TIME-01 established that the canonical producer
+    emits UTC wall-clock values through ``datetime.utcnow()`` and serializes
+    them without timezone metadata. A timezone-naive value is therefore
+    labelled UTC without changing its wall-clock fields. Explicit offsets are
+    converted to UTC. Malformed values remain unresolved and are never
+    repaired from generation time or filesystem metadata.
     """
 
-    values = [p.get("created_at") for p in packets]
-    strings = [v for v in values if isinstance(v, str) and v.strip()]
-    return max(strings) if strings else None
+    if not isinstance(value, str) or not value.strip():
+        return None
+
+    raw = value.strip()
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        normalized = parsed.replace(tzinfo=timezone.utc)
+    else:
+        normalized = parsed.astimezone(timezone.utc)
+
+    return normalized, normalized.isoformat().replace("+00:00", "Z")
+
+
+def _latest_packet_timestamp(packets: Iterable[Mapping[str, Any]]) -> Optional[str]:
+    """Return the newest genuine packet ``created_at`` normalized to UTC.
+
+    Comparison is performed on parsed instants rather than raw strings so
+    explicit offsets cannot distort ordering. Malformed values are ignored;
+    no fallback timestamp is fabricated.
+    """
+
+    latest: Optional[tuple[datetime, str]] = None
+    for packet in packets:
+        normalized = _normalize_packet_timestamp_utc(packet.get("created_at"))
+        if normalized is None:
+            continue
+        if latest is None or normalized[0] > latest[0]:
+            latest = normalized
+    return latest[1] if latest is not None else None
 
 
 def _market_regime(all_stats: Iterable[Mapping[str, Any]]) -> Optional[str]:
