@@ -138,11 +138,18 @@ test("actual service worker fetch listener never calls respondWith for runtime o
   assert.equal(staticIntercepted, true, "same-origin static assets should be shell-cache eligible");
 });
 
-test("service-worker registration defines deterministic update activation without first-install reload", async () => {
+test("service-worker registration keeps same-session replacement reload armed without first-install reload", async () => {
   const source = await readFile(path.join(SRC, "lib", "pwaRegistration.ts"), "utf8");
-  assert.match(source, /navigator\.serviceWorker\.controller !== null/);
-  assert.match(source, /"controllerchange"/);
-  assert.match(source, /window\.location\.reload\(\)/);
-  assert.match(source, /\{ once: true \}/);
+  assert.match(source, /let hasSeenController = navigator\.serviceWorker\.controller !== null/);
+  assert.match(source, /navigator\.serviceWorker\.addEventListener\("controllerchange"/);
+  assert.match(source, /if \(!hasSeenController\) \{\s*hasSeenController = true;\s*return;\s*\}/);
+  assert.match(source, /if \(reloadingForUpdate\) return;/);
+  assert.match(source, /reloadingForUpdate = true;\s*window\.location\.reload\(\)/);
   assert.match(source, /registration\.update\(\)/);
+
+  const listenerStart = source.indexOf('navigator.serviceWorker.addEventListener("controllerchange"');
+  const listenerEnd = source.indexOf("\n\n    try {", listenerStart);
+  assert.ok(listenerStart >= 0 && listenerEnd > listenerStart, "controllerchange listener block must be present");
+  const listenerBlock = source.slice(listenerStart, listenerEnd);
+  assert.doesNotMatch(listenerBlock, /once:\s*true/, "controllerchange listener must survive the first-install claim");
 });
