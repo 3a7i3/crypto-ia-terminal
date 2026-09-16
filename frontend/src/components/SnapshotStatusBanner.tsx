@@ -1,6 +1,8 @@
-// ── SnapshotStatusBanner — honest transport/API failure presentation ───────
+// ── SnapshotStatusBanner — honest canonical-domain status presentation ─────
 // Never converts a failed fetch into an empty "healthy" snapshot; never
 // silently continues presenting cached data as current without saying so.
+// WEB-UX-01 only changes visual severity: SNAPSHOT_MISSING is unresolved,
+// not a critical runtime failure. Transport failures remain critical.
 
 import React from "react";
 import type { SnapshotState } from "../lib/snapshotClient";
@@ -8,7 +10,7 @@ import type { SnapshotState } from "../lib/snapshotClient";
 export const SnapshotStatusBanner: React.FC<{ state: SnapshotState }> = ({ state }) => {
   if (state.status === "loading") {
     return (
-      <div data-testid="snapshot-status-loading" className="px-4 py-2 font-mono text-xs" style={{ color: "var(--text-muted)" }}>
+      <div data-testid="snapshot-status-loading" className="snapshot-banner snapshot-banner-neutral">
         Loading canonical snapshot…
       </div>
     );
@@ -19,13 +21,14 @@ export const SnapshotStatusBanner: React.FC<{ state: SnapshotState }> = ({ state
   }
 
   if (state.status === "api_error") {
+    const errorCode = state.error.error_code ?? "UNKNOWN_ERROR";
+    const unresolved = errorCode === "SNAPSHOT_MISSING";
     return (
       <div
         data-testid="snapshot-status-api-error"
-        className="px-4 py-2 font-mono text-xs"
-        style={{ background: "#7f1d1d33", color: "#fca5a5", borderBottom: "1px solid #7f1d1d" }}
+        className={`snapshot-banner ${unresolved ? "snapshot-banner-neutral" : "snapshot-banner-critical"}`}
       >
-        API structured failure (HTTP {state.httpStatus}): {state.error.error_code ?? "UNKNOWN_ERROR"} —{" "}
+        {unresolved ? "Canonical snapshot unresolved" : `API structured failure (HTTP ${state.httpStatus})`}: {errorCode} —{" "}
         {state.error.error_message ?? "no error message supplied"}.
         {state.lastSuccess && (
           <span data-testid="snapshot-status-last-known">
@@ -37,12 +40,10 @@ export const SnapshotStatusBanner: React.FC<{ state: SnapshotState }> = ({ state
     );
   }
 
-  // transport_error
   return (
     <div
       data-testid="snapshot-status-transport-error"
-      className="px-4 py-2 font-mono text-xs"
-      style={{ background: "#7f1d1d33", color: "#fca5a5", borderBottom: "1px solid #7f1d1d" }}
+      className="snapshot-banner snapshot-banner-critical"
     >
       Transport failure: {state.message}.
       {state.lastSuccess && (
