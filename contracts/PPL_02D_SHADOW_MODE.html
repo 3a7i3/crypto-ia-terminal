@@ -1,0 +1,623 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>PPL-02D — SHADOW MODE Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/PPL_02D_SHADOW_MODE.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/PPL_02D_SHADOW_MODE.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="ppl-02d-shadow-mode-contract">
+<h1>PPL-02D — SHADOW MODE Contract<a class="headerlink" href="#ppl-02d-shadow-mode-contract" title="Link to this heading">¶</a></h1>
+<p>Status: <strong>IMPLEMENTATION IN PROGRESS</strong></p>
+<p>Mission: PPL-02D — parallel legacy/PPL projection with zero PPL authority</p>
+<p>Baseline SHA: <code class="docutils literal notranslate"><span class="pre">f86a561eb487954b2b9e770a4238298e0db022cf</span></code></p>
+<p>Issue: <code class="docutils literal notranslate"><span class="pre">#167</span></code></p>
+<section id="purpose">
+<h2>1. Purpose<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>PPL-02D runs the existing legacy PAPER accounting path and the PPL event-sourced accounting projection in parallel from the same MEXC simulator semantic facts.</p>
+<p>The mission is observational. It does not promote PPL to PAPER authority and does not change execution, risk, sizing, strategy, admission, exchange, Telegram, or REAL behavior.</p>
+<p>The required outcome is:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>same MEXC_SIM semantic OPEN/CLOSE facts
+        |                    |
+        v                    v
+legacy PAPER             PPL SHADOW
+(authoritative)          (non-authoritative)
+</pre></div>
+</div>
+<p>Any divergence is evidence for WEB-02 and later authority-transition work. PPL-02D never repairs legacy accounting by mutating the legacy path.</p>
+</section>
+<section id="certified-forensic-baseline">
+<h2>2. Certified forensic baseline<a class="headerlink" href="#certified-forensic-baseline" title="Link to this heading">¶</a></h2>
+<p>The Phase-0 forensic investigation established:</p>
+<ul class="simple">
+<li><p>the production process is <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>;</p></li>
+<li><p>current PAPER positions are held by <code class="docutils literal notranslate"><span class="pre">_virtual_portfolio</span></code> / <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>;</p></li>
+<li><p>the PAPER decision path calls <code class="docutils literal notranslate"><span class="pre">_virtual_portfolio.place_market_order(...)</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MexcSimulator._fill_market()</span></code> knows the exact entry fill and entry fee;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MexcSimulator._close_position()</span></code> knows the exact exit fill and exit fee;</p></li>
+<li><p>both transitions currently persist the legacy <code class="docutils literal notranslate"><span class="pre">PaperTradeRecorder</span></code> journal;</p></li>
+<li><p>a separate PositionManager/ExecutionEngine recorder path exists in <code class="docutils literal notranslate"><span class="pre">advisor_loop</span></code>, but its OPEN does not carry explicit <code class="docutils literal notranslate"><span class="pre">fee_entry_usd</span></code> and its CLOSE does not carry explicit exit fee;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">advisor_loop::_remediate_orphan_opens()</span></code> can rewrite the legacy journal during startup but is not a financial semantic OPEN/CLOSE producer;</p></li>
+<li><p>the active legacy journal contains no <code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code> or <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> and no explicit exit fee records;</p></li>
+<li><p>the legacy JSONL is therefore not a complete SHADOW input boundary.</p></li>
+</ul>
+<p>Consequently, PPL-02D observes the <strong>MEXC_SIM semantic transition</strong>, never the legacy JSONL.</p>
+</section>
+<section id="absolute-authority-boundary">
+<h2>3. Absolute authority boundary<a class="headerlink" href="#absolute-authority-boundary" title="Link to this heading">¶</a></h2>
+<p>PPL-02D MUST NOT:</p>
+<ul class="simple">
+<li><p>call <code class="docutils literal notranslate"><span class="pre">place_market_order</span></code>, <code class="docutils literal notranslate"><span class="pre">_fill_market</span></code>, <code class="docutils literal notranslate"><span class="pre">_close_position</span></code>, execution engines, exchange APIs, strategy code, risk gates, admission policy, sizing, or PortfolioBrain;</p></li>
+<li><p>create, resize, close, reject, approve, or otherwise influence a legacy position;</p></li>
+<li><p>modify <code class="docutils literal notranslate"><span class="pre">paper_trades.jsonl</span></code>;</p></li>
+<li><p>derive missing fees, prices, capital, identity, or provenance from current configuration or historical PnL;</p></li>
+<li><p>create a new paper epoch on restart, deploy, pull, process start, or service restart;</p></li>
+<li><p>become a source for any execution decision;</p></li>
+<li><p>be used by REAL trading.</p></li>
+</ul>
+<p>Legacy PAPER remains authoritative throughout PPL-02D.</p>
+</section>
+<section id="shadow-source-domain">
+<h2>4. Shadow source domain<a class="headerlink" href="#shadow-source-domain" title="Link to this heading">¶</a></h2>
+<p>The only certified source domain for PPL-02D is:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MEXC_SIM
+</pre></div>
+</div>
+<p>A PositionManager/ExecutionEngine recorder event is not automatically equivalent to a MEXC_SIM financial event and must not be silently mixed into the PPL shadow stream.</p>
+<p>If the runtime cannot prove that an observed fact belongs to MEXC_SIM, the fact is not appended to PPL.</p>
+</section>
+<section id="semantic-fact-contract">
+<h2>5. Semantic fact contract<a class="headerlink" href="#semantic-fact-contract" title="Link to this heading">¶</a></h2>
+<p>PPL-02D receives immutable facts produced by an already-completed legacy simulator transition.</p>
+<section id="open-fact">
+<h3>OPEN fact<a class="headerlink" href="#open-fact" title="Link to this heading">¶</a></h3>
+<p>Required fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">trade_id</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">symbol</span></code></p></li>
+<li><p>canonicalizable side (<code class="docutils literal notranslate"><span class="pre">BUY</span></code>/<code class="docutils literal notranslate"><span class="pre">SELL</span></code>/<code class="docutils literal notranslate"><span class="pre">LONG</span></code>/<code class="docutils literal notranslate"><span class="pre">SHORT</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">principal</span></code></p></li>
+<li><p>exact <code class="docutils literal notranslate"><span class="pre">entry_price</span></code></p></li>
+<li><p>exact <code class="docutils literal notranslate"><span class="pre">entry_fee</span></code></p></li>
+<li><p>semantic timestamp</p></li>
+<li><p>optional explicit <code class="docutils literal notranslate"><span class="pre">decision_id</span></code></p></li>
+</ul>
+<p>The OPEN fact maps to PPL <code class="docutils literal notranslate"><span class="pre">POSITION_OPENED</span></code>.</p>
+</section>
+<section id="close-fact">
+<h3>CLOSE fact<a class="headerlink" href="#close-fact" title="Link to this heading">¶</a></h3>
+<p>Required fields:</p>
+<ul class="simple">
+<li><p>matching <code class="docutils literal notranslate"><span class="pre">trade_id</span></code></p></li>
+<li><p>exact <code class="docutils literal notranslate"><span class="pre">exit_price</span></code></p></li>
+<li><p>exact <code class="docutils literal notranslate"><span class="pre">exit_fee</span></code></p></li>
+<li><p>semantic timestamp</p></li>
+<li><p>optional explicit <code class="docutils literal notranslate"><span class="pre">decision_id</span></code></p></li>
+</ul>
+<p>The CLOSE fact maps to PPL <code class="docutils literal notranslate"><span class="pre">POSITION_CLOSED</span></code>.</p>
+<p>No caller-supplied gross or realized PnL is stored in the PPL CLOSE event. PPL derives PnL through <code class="docutils literal notranslate"><span class="pre">paper_portfolio_ledger.project()</span></code>.</p>
+</section>
+</section>
+<section id="observation-point">
+<h2>6. Observation point<a class="headerlink" href="#observation-point" title="Link to this heading">¶</a></h2>
+<p>The observation point is inside <code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>, after the legacy transition has produced the complete semantic facts.</p>
+<p>For OPEN, observation occurs only after the simulator has:</p>
+<ol class="arabic simple">
+<li><p>validated the order;</p></li>
+<li><p>computed fill/slippage and exact entry fee;</p></li>
+<li><p>mutated legacy capital/position state;</p></li>
+<li><p>created the <code class="docutils literal notranslate"><span class="pre">MexcPosition</span></code> identity.</p></li>
+</ol>
+<p>For CLOSE, observation occurs only after the simulator has:</p>
+<ol class="arabic simple">
+<li><p>selected the position;</p></li>
+<li><p>computed exit fill and exact exit fee;</p></li>
+<li><p>computed legacy PnL;</p></li>
+<li><p>mutated legacy capital/closed-position state;</p></li>
+<li><p>stamped the position closed.</p></li>
+</ol>
+<p>The observer is downstream of legacy truth production and upstream of no authority path.</p>
+</section>
+<section id="failure-isolation">
+<h2>7. Failure isolation<a class="headerlink" href="#failure-isolation" title="Link to this heading">¶</a></h2>
+<p>SHADOW failures are never legacy failures.</p>
+<p>Any exception from:</p>
+<ul class="simple">
+<li><p>manifest validation;</p></li>
+<li><p>durable-store load/append;</p></li>
+<li><p>event construction;</p></li>
+<li><p>replay/projection;</p></li>
+<li><p>startup reconciliation;</p></li>
+<li><p>identity/sequence validation;</p></li>
+<li><p>filesystem durability;</p></li>
+</ul>
+<p>must transition the shadow runtime to a fail-closed degraded state for the current process.</p>
+<p>After degradation:</p>
+<ul class="simple">
+<li><p>no further PPL events are appended by that shadow runtime;</p></li>
+<li><p>legacy PAPER continues unchanged;</p></li>
+<li><p>the error is observable through logs/status;</p></li>
+<li><p>no automatic reset/new epoch is attempted.</p></li>
+</ul>
+</section>
+<section id="explicit-epoch-bootstrap">
+<h2>8. Explicit epoch bootstrap<a class="headerlink" href="#explicit-epoch-bootstrap" title="Link to this heading">¶</a></h2>
+<p>SHADOW is OFF by default.</p>
+<p>Activation requires both:</p>
+<ul class="simple">
+<li><p>an explicit operator-provided shadow epoch manifest;</p></li>
+<li><p>an explicit PPL store root.</p></li>
+</ul>
+<p>There is no production default for either.</p>
+<p>The manifest contains, at minimum:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">created_at</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial_virtual_capital</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">code_sha</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config_snapshot_hash</span></code></p></li>
+<li><p>schema version</p></li>
+</ul>
+<p>The runtime may consume these explicit facts; it may not invent or infer them.</p>
+</section>
+<section id="clean-boundary-first-activation">
+<h2>9. Clean-boundary first activation<a class="headerlink" href="#clean-boundary-first-activation" title="Link to this heading">¶</a></h2>
+<p>If the configured epoch does not yet exist in the durable store, first activation is allowed only when:</p>
+<ul class="simple">
+<li><p>MEXC_SIM has zero open positions;</p></li>
+<li><p>the simulator free capital matches the manifest’s explicit <code class="docutils literal notranslate"><span class="pre">initial_virtual_capital</span></code> under the frozen numeric comparison rule;</p></li>
+<li><p>no prior event exists for the configured <code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>;</p></li>
+<li><p>the manifest passes strict validation.</p></li>
+</ul>
+<p>Only then may the shadow runtime append sequence 1 <code class="docutils literal notranslate"><span class="pre">EPOCH_CREATED</span></code>.</p>
+<p>If any condition fails, SHADOW remains inactive/degraded and legacy PAPER continues.</p>
+<p>This avoids inventing a historical PPL epoch around pre-existing open positions.</p>
+</section>
+<section id="restart-contract">
+<h2>10. Restart contract<a class="headerlink" href="#restart-contract" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">RESTART</span> <span class="pre">!=</span> <span class="pre">RESET</span></code>, <code class="docutils literal notranslate"><span class="pre">DEPLOY</span> <span class="pre">!=</span> <span class="pre">RESET</span></code>, <code class="docutils literal notranslate"><span class="pre">PULL</span> <span class="pre">!=</span> <span class="pre">RESET</span></code>.</p>
+<p>When a configured durable epoch already exists:</p>
+<ol class="arabic simple">
+<li><p>load the exact epoch from <code class="docutils literal notranslate"><span class="pre">DurableEventStore</span></code>;</p></li>
+<li><p>replay it with <code class="docutils literal notranslate"><span class="pre">project()</span></code>;</p></li>
+<li><p>never append a second <code class="docutils literal notranslate"><span class="pre">EPOCH_CREATED</span></code>;</p></li>
+<li><p>reconcile the PPL open-position set against MEXC_SIM restore state;</p></li>
+<li><p>continue only if the certified reconciliation contract passes.</p></li>
+</ol>
+<p>A mismatch fails SHADOW closed. It never mutates the simulator to force convergence.</p>
+</section>
+<section id="startup-reconciliation">
+<h2>11. Startup reconciliation<a class="headerlink" href="#startup-reconciliation" title="Link to this heading">¶</a></h2>
+<p>For each open PPL trade, MEXC_SIM must expose a matching restored/live position with the same:</p>
+<ul class="simple">
+<li><p>trade identity;</p></li>
+<li><p>symbol;</p></li>
+<li><p>side;</p></li>
+<li><p>principal;</p></li>
+<li><p>entry price;</p></li>
+<li><p>entry-fee evidence when required by the implemented reconciliation rule.</p></li>
+</ul>
+<p>The exact comparison/tolerance rules are frozen by tests before runtime deployment.</p>
+<p>Extra/missing positions on either side are a reconciliation failure, not an automatic repair request.</p>
+</section>
+<section id="event-identity">
+<h2>12. Event identity<a class="headerlink" href="#event-identity" title="Link to this heading">¶</a></h2>
+<p>Event IDs are deterministic and domain-separated.</p>
+<p>Conceptual identity input:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PPL-02D-SHADOW-V1 | paper_epoch_id | event_type | trade_id
+</pre></div>
+</div>
+<p>The resulting event ID must not equal <code class="docutils literal notranslate"><span class="pre">trade_id</span></code>.</p>
+<p>The same semantic OPEN or CLOSE retried after an interrupted append must resolve to the same event identity.</p>
+<p>Before assigning a new sequence, the shadow runtime checks whether that deterministic event already exists:</p>
+<ul class="simple">
+<li><p>identical existing event -&gt; idempotent success;</p></li>
+<li><p>same event ID with different facts -&gt; fail closed;</p></li>
+<li><p>absent event -&gt; append at the next strict sequence.</p></li>
+</ul>
+</section>
+<section id="sequence-contract">
+<h2>13. Sequence contract<a class="headerlink" href="#sequence-contract" title="Link to this heading">¶</a></h2>
+<p>Sequence is per <code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>, starting at 1 with <code class="docutils literal notranslate"><span class="pre">EPOCH_CREATED</span></code>.</p>
+<p>New semantic events use the next durable sequence only after the store has been loaded/validated.</p>
+<p>No sequence is generated from wall-clock time, process PID, cycle number, or restart count.</p>
+</section>
+<section id="decision-provenance">
+<h2>14. Decision provenance<a class="headerlink" href="#decision-provenance" title="Link to this heading">¶</a></h2>
+<p>PPL <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> is optional.</p>
+<p>An explicit DecisionPacket decision identity may be propagated when it is available and proven.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cycle_id</span></code>, <code class="docutils literal notranslate"><span class="pre">trace_id</span></code>, process ID, or order ID must not be silently relabeled as <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>.</p>
+<p>Absent explicit decision identity remains <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</section>
+<section id="numeric-contract">
+<h2>15. Numeric contract<a class="headerlink" href="#numeric-contract" title="Link to this heading">¶</a></h2>
+<p>All financial inputs must be finite.</p>
+<p>Required positive/non-negative semantics remain those enforced by the existing PPL event/projector contracts.</p>
+<p>No NaN/Inf, clamp, zero substitution, current-config reconstruction, or inferred fee is permitted.</p>
+<p>The first-activation capital match uses one frozen comparison rule covered by tests; the implementation must not use an ad-hoc tolerance that varies by call site.</p>
+</section>
+<section id="projection-contract">
+<h2>16. Projection contract<a class="headerlink" href="#projection-contract" title="Link to this heading">¶</a></h2>
+<p>After every successful append, the shadow runtime must be able to replay the full configured epoch through:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">paper_trading</span><span class="o">.</span><span class="n">paper_portfolio_ledger</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Projection failure after an append is a SHADOW degraded condition and must be visible. It never rolls back or rewrites durable event truth.</p>
+</section>
+<section id="expected-divergence">
+<h2>17. Expected divergence<a class="headerlink" href="#expected-divergence" title="Link to this heading">¶</a></h2>
+<p>PPL-02D does not require legacy and PPL values to be equal.</p>
+<p>Known historical accounting defects were one motivation for PPL. For example, PPL-01R/PPL-02A explicitly hardened entry-fee treatment and the PPL projector charges entry fee exactly once.</p>
+<p>Therefore a repeatable legacy-vs-PPL delta can be scientifically correct evidence.</p>
+<p>PPL-02D captures independent projections. WEB-02 will display and attribute the deltas.</p>
+</section>
+<section id="runtime-status-vocabulary">
+<h2>18. Runtime status vocabulary<a class="headerlink" href="#runtime-status-vocabulary" title="Link to this heading">¶</a></h2>
+<p>At minimum, SHADOW runtime status must distinguish:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">OFF</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WAITING_CLEAN_BOUNDARY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ACTIVE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DEGRADED</span></code></p></li>
+</ul>
+<p>Status is observational only and carries no execution authority.</p>
+</section>
+<section id="required-proof-matrix">
+<h2>19. Required proof matrix<a class="headerlink" href="#required-proof-matrix" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>D01: default configuration leaves SHADOW OFF and performs no PPL I/O;</p></li>
+<li><p>D02: first activation without explicit manifest/store root is impossible;</p></li>
+<li><p>D03: first activation with open MEXC_SIM positions does not create an epoch;</p></li>
+<li><p>D04: first activation with capital mismatch does not create an epoch;</p></li>
+<li><p>D05: clean first activation appends exactly one <code class="docutils literal notranslate"><span class="pre">EPOCH_CREATED</span></code>;</p></li>
+<li><p>D06: restart reuses the same epoch and never creates a second epoch;</p></li>
+<li><p>D07: exact OPEN semantic fact appends one deterministic <code class="docutils literal notranslate"><span class="pre">POSITION_OPENED</span></code>;</p></li>
+<li><p>D08: exact CLOSE semantic fact appends one deterministic <code class="docutils literal notranslate"><span class="pre">POSITION_CLOSED</span></code> with exact exit fee;</p></li>
+<li><p>D09: duplicate retry is idempotent;</p></li>
+<li><p>D10: identity collision fails closed;</p></li>
+<li><p>D11: sequence gap/regression/corruption fails closed;</p></li>
+<li><p>D12: every successful append can be replayed through <code class="docutils literal notranslate"><span class="pre">project()</span></code>;</p></li>
+<li><p>D13: startup open-position mismatch fails SHADOW closed without mutating legacy;</p></li>
+<li><p>D14: shadow store I/O failure never changes legacy order/position/capital result;</p></li>
+<li><p>D15: shadow projector failure never changes legacy result;</p></li>
+<li><p>D16: no legacy JSONL reader is used as runtime SHADOW input;</p></li>
+<li><p>D17: no PositionManager recorder event is silently mixed into MEXC_SIM SHADOW;</p></li>
+<li><p>D18: no execution/risk/strategy/sizing module imports PPL shadow as an authority;</p></li>
+<li><p>D19: REAL mode cannot activate PPL-02D;</p></li>
+<li><p>D20: known legacy/PPL accounting delta remains observable rather than auto-repaired.</p></li>
+</ul>
+</section>
+<section id="exit-criteria">
+<h2>20. Exit criteria<a class="headerlink" href="#exit-criteria" title="Link to this heading">¶</a></h2>
+<p>PPL-02D is source-certifiable when:</p>
+<ul class="simple">
+<li><p>all proof-matrix tests pass;</p></li>
+<li><p>full existing CI remains causally green or any unrelated red is proven pre-existing/non-causal;</p></li>
+<li><p>runtime wiring is default-OFF and MEXC_SIM-only;</p></li>
+<li><p>no authority boundary is crossed;</p></li>
+<li><p>a controlled runtime test demonstrates same semantic OPEN/CLOSE facts producing a valid durable PPL projection while legacy remains authoritative.</p></li>
+</ul>
+<p>PPL-02D completion does <strong>not</strong> authorize PPL-02E.</p>
+<p>The next planned mission remains WEB-02, which will compare the two projections and expose divergence/provenance before any PAPER authority transition.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">PPL-02D — SHADOW MODE Contract</a><ul>
+<li><a class="reference internal" href="#purpose">1. Purpose</a></li>
+<li><a class="reference internal" href="#certified-forensic-baseline">2. Certified forensic baseline</a></li>
+<li><a class="reference internal" href="#absolute-authority-boundary">3. Absolute authority boundary</a></li>
+<li><a class="reference internal" href="#shadow-source-domain">4. Shadow source domain</a></li>
+<li><a class="reference internal" href="#semantic-fact-contract">5. Semantic fact contract</a><ul>
+<li><a class="reference internal" href="#open-fact">OPEN fact</a></li>
+<li><a class="reference internal" href="#close-fact">CLOSE fact</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#observation-point">6. Observation point</a></li>
+<li><a class="reference internal" href="#failure-isolation">7. Failure isolation</a></li>
+<li><a class="reference internal" href="#explicit-epoch-bootstrap">8. Explicit epoch bootstrap</a></li>
+<li><a class="reference internal" href="#clean-boundary-first-activation">9. Clean-boundary first activation</a></li>
+<li><a class="reference internal" href="#restart-contract">10. Restart contract</a></li>
+<li><a class="reference internal" href="#startup-reconciliation">11. Startup reconciliation</a></li>
+<li><a class="reference internal" href="#event-identity">12. Event identity</a></li>
+<li><a class="reference internal" href="#sequence-contract">13. Sequence contract</a></li>
+<li><a class="reference internal" href="#decision-provenance">14. Decision provenance</a></li>
+<li><a class="reference internal" href="#numeric-contract">15. Numeric contract</a></li>
+<li><a class="reference internal" href="#projection-contract">16. Projection contract</a></li>
+<li><a class="reference internal" href="#expected-divergence">17. Expected divergence</a></li>
+<li><a class="reference internal" href="#runtime-status-vocabulary">18. Runtime status vocabulary</a></li>
+<li><a class="reference internal" href="#required-proof-matrix">19. Required proof matrix</a></li>
+<li><a class="reference internal" href="#exit-criteria">20. Exit criteria</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
