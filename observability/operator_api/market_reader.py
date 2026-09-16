@@ -153,9 +153,9 @@ def validate_market_snapshot(doc: Any) -> bool:
         return False
     if _parse_utc(doc["generated_at_utc"]) is None:
         return False
-    if doc["source_updated_at_utc"] is not None and not isinstance(
-        doc["source_updated_at_utc"], str
-    ):
+    if doc["source_updated_at_utc"] is not None and _parse_utc(
+        doc["source_updated_at_utc"]
+    ) is None:
         return False
     if not _non_negative_int(doc["window_hours"]) or doc["window_hours"] <= 0:
         return False
