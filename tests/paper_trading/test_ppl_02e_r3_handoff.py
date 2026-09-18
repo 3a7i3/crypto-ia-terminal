@@ -190,7 +190,10 @@ def test_r3_legacy_restore_is_disabled_under_ppl_authority(monkeypatch):
         "get_recorder",
         lambda: (_ for _ in ()).throw(AssertionError("legacy recorder read")),
     )
-    sim = MexcSimulator(lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY)
+    sim = MexcSimulator(
+        lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY,
+        authority_runtime=object(),
+    )
 
     assert sim._restore_positions() == 0
 
