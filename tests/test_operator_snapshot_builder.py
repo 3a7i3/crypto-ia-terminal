@@ -2336,6 +2336,38 @@ def test_mexc_simulator_import_failure_never_claims_attempted_read():
     assert result["portfolio"]["status"] == "UNAVAILABLE"
 
 
+# ── WEB-02 runtime remediation — canonical legacy blocker projection ──────
+
+
+def test_op_legacy_first_blocker_does_not_require_gate_reason():
+    """Rejected execution gates have failed but no reason attribute.
+
+    O-02W-C must project the already-canonical result["blockers"] value
+    instead of dereferencing a field the real GlobalRiskGate does not expose.
+    """
+    from types import SimpleNamespace
+
+    import core.advisor_loop as _al
+
+    gate = SimpleNamespace(allowed=False, failed=["signal_score"])
+    result = {
+        "trade_allowed": False,
+        "blockers": "gate,meta",
+        "gate": gate,
+    }
+
+    assert not hasattr(gate, "reason")
+    assert _al._op_legacy_first_blocker(result) == "gate"
+
+
+def test_op_legacy_first_blocker_matches_authority_and_empty_semantics():
+    import core.advisor_loop as _al
+
+    assert _al._op_legacy_first_blocker({"blockers": " authority , gate "}) == "authority"
+    assert _al._op_legacy_first_blocker({"blockers": ""}) is None
+    assert _al._op_legacy_first_blocker({"blockers": None}) is None
+
+
 # ── R4.3 (seventh MASTER review round) — production-adapter integration ───
 #
 # MASTER's finding: R3/R4/R4.2's `_ObsFresh`/`_ObsStale`/etc. fakes are
