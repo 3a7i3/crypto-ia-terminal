@@ -103,15 +103,16 @@ export function validatePplComparisonSnapshot(x: unknown): x is PplComparisonSna
   if (!nullableString(x.comparison_unavailable_reason)) return false;
   if (x.comparison_available && x.shadow_status !== "ACTIVE") return false;
   if (!obj(x.legacy_source) || !obj(x.ppl_source) || !obj(x.summary)) return false;
+  const summary = x.summary;
 
   const summaryKeys = [
     "total", "comparable", "partial", "unresolved", "equal", "different",
     "legacy_only", "ppl_only", "not_comparable",
   ];
-  if (!summaryKeys.every((key) => nonNegativeInt(x.summary[key]))) return false;
+  if (!summaryKeys.every((key) => nonNegativeInt(summary[key]))) return false;
 
   if (!Array.isArray(x.comparisons) || !x.comparisons.every(comparison)) return false;
-  if (x.summary.total !== x.comparisons.length) return false;
+  if (summary.total !== x.comparisons.length) return false;
   if (!Array.isArray(x.positions) || !x.positions.every(group)) return false;
   if (!Array.isArray(x.closed_session) || !x.closed_session.every(group)) return false;
   if (!Array.isArray(x.ppl_events) || !x.ppl_events.every(event)) return false;
