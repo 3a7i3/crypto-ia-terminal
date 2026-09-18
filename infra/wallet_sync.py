@@ -85,29 +85,33 @@ def _read_ledger_pnl(log_path: str | Path | None = None) -> float:
 
 
 def get_scientific_capital() -> float:
+    """Return the single decision/sizing/risk capital.
+
+    LEGACY_AUTHORITY and PPL_SHADOW preserve the historical semantic:
+    WALLET_PAPER_CAPITAL + SUM(legacy CLOSE.pnl_usd).
+
+    In PPL_AUTHORITY, the value comes only from the explicit authoritative PPL
+    epoch. Missing/corrupt/unresolved PPL state raises; there is deliberately
+    no fallback to legacy JSONL or exchange balance.
     """
-    Capital de décision scientifique — SEULE entrée autorisée pour le sizing,
-    le risque, et toute calculation de décision (O-02W-PRE-T1-D remediation,
-    voir docs/adr/0018-scientific-capital-exchange-observation-separation.md).
 
-    Dérivé UNIQUEMENT du grand livre paper (WALLET_PAPER_CAPITAL + cumul PnL
-    du ledger depuis l'origine) — formule héritée de
-    WalletSync._base_capital()/get_balance() en mode paper, inchangée.
+    from paper_trading.paper_authority import (
+        PaperLifecycleAuthority,
+        resolve_paper_lifecycle_authority,
+    )
 
-    Garanties structurelles :
-      - Zéro appel réseau/exchange (aucune référence à un client ccxt ici).
-      - Indépendant de EXCHANGE_MODE, PAPER_TRADING_ENABLED,
-        LIVE_TRADING_CONFIRMED, et de l'ordre d'initialisation du singleton
-        WalletSync — cette fonction ne lit ni n'écrit `_singleton`.
-      - Valeur identique pour un même état de portefeuille scientifique quel
-        que soit le contexte d'appel.
+    authority = resolve_paper_lifecycle_authority(os.environ)
+    if authority in {
+        PaperLifecycleAuthority.LEGACY_AUTHORITY,
+        PaperLifecycleAuthority.PPL_SHADOW,
+    }:
+        return _PAPER_CAPITAL + _read_ledger_pnl()
 
-    Les soldes d'exchange réels restent purement observationnels — voir
-    WalletSync.observe_exchange_balance() — et ne doivent JAMAIS alimenter
-    cette fonction ni son appelant.
-    """
-    return _PAPER_CAPITAL + _read_ledger_pnl()
+    from paper_trading.ppl_capital import scientific_capital_from_ppl
 
+    store_root = str(os.getenv("PPL_AUTHORITY_STORE_ROOT", "") or "").strip()
+    paper_epoch_id = str(os.getenv("PPL_AUTHORITY_EPOCH_ID", "") or "").strip()
+    return scientific_capital_from_ppl(store_root, paper_epoch_id)
 
 class ExchangeObservationStatus(str, Enum):
     """État de provenance d'une observation de solde d'exchange — jamais un
@@ -242,7 +246,7 @@ class WalletSync:
         Mode live/testnet : balance API cachée sur WALLET_CACHE_TTL_S, fallback X.
         """
         if self._mode == "paper":
-            return self._base_capital() + _read_ledger_pnl()
+            return get_scientific_capital()
 
         with self._lock:
             now = time.time()
