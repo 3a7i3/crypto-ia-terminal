@@ -108,3 +108,33 @@ def test_reader_rejects_invented_nested_authority_provenance(tmp_path):
     ).read()
     assert not result.ok
     assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
+
+
+
+def test_reader_rejects_inconsistent_summary_counts(tmp_path):
+    doc = _doc()
+    doc["summary"]["equal"] = 1
+    path = tmp_path / "comparison.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+    result = PplComparisonSnapshotReader(
+        path,
+        now_fn=lambda: 100.0,
+    ).read()
+    assert not result.ok
+    assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
+
+
+def test_reader_rejects_non_finite_json_constants(tmp_path):
+    path = tmp_path / "comparison.json"
+    path.write_text(
+        '{"schema_version": NaN}',
+        encoding="utf-8",
+    )
+
+    result = PplComparisonSnapshotReader(
+        path,
+        now_fn=lambda: 100.0,
+    ).read()
+    assert not result.ok
+    assert result.error_code == "PPL_COMPARISON_MALFORMED_JSON"
