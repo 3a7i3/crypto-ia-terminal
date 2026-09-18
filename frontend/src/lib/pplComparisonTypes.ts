@@ -49,6 +49,19 @@ export interface PplComparisonEvent {
   payload: Record<string, unknown>;
 }
 
+export interface PplLegacySourceMeta {
+  source: string;
+  authority: "PAPER_AUTHORITY";
+  scope: string;
+}
+
+export interface PplShadowSourceMeta {
+  source: string;
+  authority: "NONE";
+  scope: string;
+  last_error: string | null;
+}
+
 export interface PplComparisonSummary {
   total: number;
   comparable: number;
@@ -75,8 +88,8 @@ export interface PplComparisonSnapshot {
   paper_epoch_id: string | null;
   comparison_available: boolean;
   comparison_unavailable_reason: string | null;
-  legacy_source: Record<string, unknown>;
-  ppl_source: Record<string, unknown>;
+  legacy_source: PplLegacySourceMeta;
+  ppl_source: PplShadowSourceMeta;
   summary: PplComparisonSummary;
   comparisons: PplComparisonRecord[];
   positions: PplComparisonGroup[];
