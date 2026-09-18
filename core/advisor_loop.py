@@ -3670,8 +3670,9 @@ def main(
         "1",
         "yes",
     }
-    if _paper_trading_enabled:
-        _gate_paper_dataset()
+
+    _paper_lifecycle_authority = _bootstrap_paper_lifecycle_authority(
+        _paper_trading_enabled)
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
     prewarm_1h_enabled = ADVISOR_PREWARM_1H
     prewarm_mtf_enabled = ADVISOR_PREWARM_MTF and not startup_light
@@ -4493,6 +4494,20 @@ def main(
     ) -> bool:
         result_mode = str(order_result.get("mode", ""))
         if result_mode not in {"futures_demo", "paper", "live"}:
+            return False
+
+        # PPL-02E-R1 — suppress the ExecutionEngine/PositionManager PAPER
+        # lifecycle only when the canonical MexcSimulator PAPER runtime is
+        # configured.  Outside PAPER_TRADING_ENABLED, mode="paper" may be the
+        # sole local execution path (existing smoke/fallback contract) and is
+        # preserved.  This removes coexistence, not the fallback itself.
+        if result_mode == "paper" and _paper_trading_enabled:
+            log.info(
+                "[PPL-02E-R1] secondary PositionManager PAPER lifecycle "
+                "suppressed symbol=%s authority=%s",
+                symbol,
+                _paper_lifecycle_authority.value,
+            )
             return False
 
         try:
@@ -5738,6 +5753,7 @@ def main(
                 mexc_reader=_mexc_reader_sim,
                 telegram_fn=_vp_tg_fn,
                 shadow_observer=_ppl_shadow_observer,
+                lifecycle_authority=_paper_lifecycle_authority,
             )
             _virtual_portfolio.start()
             log.info("[SIM] MexcSimulator initialise")
@@ -8571,10 +8587,12 @@ def main(
                     _enl_log
                     / f"decision_packets_{_dt.utcnow().strftime('%Y-%m-%d')}.jsonl"
                 )
-                import json as _json
+                import json as _json_enl
 
                 with open(_enl_file, "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps(_enl_dp.to_dict(), ensure_ascii=False) + "\n")
+                    _f.write(
+                        _json_enl.dumps(_enl_dp.to_dict(), ensure_ascii=False) + "\n"
+                    )
             except Exception:
                 pass
             if _OBS_AVAILABLE:
@@ -8635,6 +8653,28 @@ def main(
         log.critical("[main] Sortie anormale — sys.exit(1)")
         sys.exit(1)
 
+
+
+def _bootstrap_paper_lifecycle_authority(paper_trading_enabled: bool):
+    """Resolve PAPER lifecycle authority once, before any legacy dataset gate.
+
+    R1 only establishes the authority boundary.  Until R2/R3 wire the
+    authoritative coordinator/replay/capital handoff, explicit PPL_AUTHORITY
+    must fail before DatasetGate can inspect/remediate the legacy JSONL.
+    """
+
+    from paper_trading.paper_authority import resolve_paper_lifecycle_authority
+
+    authority = resolve_paper_lifecycle_authority(os.environ)
+    log.info("[PPL-02E-R1] PAPER lifecycle authority=%s", authority.value)
+    if authority.ppl_is_authoritative:
+        raise RuntimeError(
+            "PPL_AUTHORITY is not runtime-ready: PPL-02E R2/R3 coordinator "
+            "and replay/capital handoff are not wired"
+        )
+    if paper_trading_enabled:
+        _gate_paper_dataset()
+    return authority
 
 
 def _op_legacy_first_blocker(result: dict[str, Any]) -> str | None:

@@ -270,9 +270,23 @@ class MexcSimulator:
         mexc_reader=None,
         telegram_fn: Optional[Callable[[str], None]] = None,
         shadow_observer=None,
+        lifecycle_authority=None,
     ) -> None:
+        from paper_trading.paper_authority import (
+            PaperLifecycleAuthority,
+            parse_paper_lifecycle_authority,
+        )
+
         self._mexc = mexc_reader
         self._telegram = telegram_fn
+        if lifecycle_authority is None:
+            self._lifecycle_authority = PaperLifecycleAuthority.LEGACY_AUTHORITY
+        elif isinstance(lifecycle_authority, PaperLifecycleAuthority):
+            self._lifecycle_authority = lifecycle_authority
+        else:
+            self._lifecycle_authority = parse_paper_lifecycle_authority(
+                str(lifecycle_authority)
+            )
         self._capital: float = 0.0
         self._initial_capital: float = 0.0
         self._positions: dict[str, MexcPosition] = {}
@@ -683,6 +697,30 @@ class MexcSimulator:
 
     # ── Passage d'ordres ──────────────────────────────────────────────────────
 
+    def _reject_legacy_mutation_under_ppl_authority(
+        self, symbol: str
+    ) -> Optional[MexcOrder]:
+        """Fail closed until the R2 authoritative PPL coordinator is wired.
+
+        PPL-02E-R1 establishes the authority boundary only.  In
+        PPL_AUTHORITY mode this legacy simulator must never mutate first and
+        notify PPL afterward, because that ordering is valid only for SHADOW.
+        """
+
+        if not self._lifecycle_authority.ppl_is_authoritative:
+            return None
+        order = self._make_rejected_stub(symbol)
+        _log.error(
+            "[SIM][PPL-02E-R1] legacy PAPER mutation blocked — "
+            "authority=PPL_AUTHORITY symbol=%s",
+            symbol,
+        )
+        self._notify(
+            f"[SIM] REJETE {symbol} — PPL_AUTHORITY exige la frontière "
+            "durable PPL (R2 non câblé)"
+        )
+        return order
+
     def place_market_order(
         self,
         symbol: str,
@@ -716,6 +754,12 @@ class MexcSimulator:
 
         ``cycle_id`` : identifiant du cycle advisor pour audit causal.
         """
+        _authority_reject = self._reject_legacy_mutation_under_ppl_authority(
+            symbol
+        )
+        if _authority_reject is not None:
+            return _authority_reject
+
         # ── Enveloppe admission (Phase 5.2.5) ─────────────────────────────
         _adm_ctx = self._enter_admission(symbol, admission, cycle_id)
         if _adm_ctx is not None and _adm_ctx.short_circuit_order is not None:
@@ -783,6 +827,9 @@ class MexcSimulator:
         personality: str = "unknown",
     ) -> MexcOrder:
         """Ordre LIMIT : en attente jusqu'à ce que le prix atteigne limit_price."""
+        authority_reject = self._reject_legacy_mutation_under_ppl_authority(symbol)
+        if authority_reject is not None:
+            return authority_reject
         order = MexcOrder(
             order_id=str(uuid.uuid4())[:10].upper(),
             symbol=symbol,
@@ -819,6 +866,9 @@ class MexcSimulator:
         personality: str = "unknown",
     ) -> MexcOrder:
         """Ordre STOP_LIMIT : déclenché sur stop_price, exécuté à limit_price."""
+        authority_reject = self._reject_legacy_mutation_under_ppl_authority(symbol)
+        if authority_reject is not None:
+            return authority_reject
         order = MexcOrder(
             order_id=str(uuid.uuid4())[:10].upper(),
             symbol=symbol,
