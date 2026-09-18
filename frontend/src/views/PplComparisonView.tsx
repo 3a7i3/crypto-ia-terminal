@@ -254,6 +254,8 @@ export const PplComparisonView: React.FC = () => {
           <div><span>Cycle</span><code>{snapshot.cycle}</code></div>
           <div><span>Source SHA</span><code>{snapshot.source_sha ?? "UNKNOWN"}</code></div>
           <div><span>Authority</span><code>{snapshot.authority}</code></div>
+          <div><span>Legacy authority</span><code>{raw(snapshot.legacy_source.authority)}</code></div>
+          <div><span>PPL authority</span><code>{raw(snapshot.ppl_source.authority)}</code></div>
         </div>
       </section>
 
