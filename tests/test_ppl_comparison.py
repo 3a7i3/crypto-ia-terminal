@@ -1,14 +1,32 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
 import observability.ppl_comparison as ppl_comparison
 from observability.ppl_comparison import build_ppl_comparison_snapshot
 from paper_trading.durable_event_store import DurableEventStore
-from paper_trading.mexc_simulator import MexcPosition, OrderSide
+from paper_trading.mexc_simulator import MexcPosition, MexcSimulator, OrderSide
 from paper_trading.ppl_shadow import PPLShadowRuntime, ShadowEpochManifest
+
+
+def _patch_recorder_to_tmp(monkeypatch, tmp_path):
+    """Redirect the legacy PaperTradeRecorder singleton to a scratch file."""
+    import paper_trading.recorder as recorder_module
+
+    rec = recorder_module.PaperTradeRecorder(
+        log_path=str(tmp_path / "paper_trades.jsonl")
+    )
+    monkeypatch.setattr(recorder_module, "_recorder", rec)
+    return rec
+
+
+def _reader(price: float = 100.0) -> MagicMock:
+    reader = MagicMock()
+    reader.spot.fetch_ticker.return_value = {"last": price}
+    return reader
 
 
 class _Sim:
@@ -272,3 +290,96 @@ def test_source_pair_capture_withholds_continuously_moving_state(monkeypatch):
 
     with pytest.raises(RuntimeError, match="bounded coherent capture"):
         ppl_comparison._snapshot_sources_consistently(object())
+
+
+# ---------------------------------------------------------------------------
+# WEB-02 causal-coherence gate — generation-based, on top of byte stability.
+# ---------------------------------------------------------------------------
+
+
+def test_generation_open_then_ppl_observation_admits_comparison(monkeypatch, tmp_path):
+    """(1) Legacy OPEN generation observed by PPL -> comparison admitted."""
+    _patch_recorder_to_tmp(monkeypatch, tmp_path)
+    shadow = _active_shadow(tmp_path)
+    sim = MexcSimulator(mexc_reader=_reader(), shadow_observer=shadow)
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+
+    order = sim.place_market_order(
+        symbol="BTC/USDT", side="BUY", qty_usd=10.0, current_price=100.0
+    )
+    assert order.status.value == "FILLED"
+    assert sim._legacy_generation == 1
+    assert shadow.consistent_view().observed_legacy_generation == 1
+
+    doc = _build(sim)
+    assert doc["comparison_available"] is True
+
+
+def test_unacknowledged_legacy_generation_withholds_artifact(tmp_path):
+    """(2) Legacy generation not yet acknowledged by PPL -> artifact retained."""
+    shadow = _active_shadow(tmp_path)
+    sim = _Sim(shadow)
+    # Legacy claims to be at generation 1 but never sent PPL a fact for it
+    # (PPL's own ack, from a fresh bind with zero observations, stays 0).
+    sim._legacy_generation = 1
+
+    with pytest.raises(RuntimeError, match="generation mismatch"):
+        _build(sim)
+
+
+def test_close_transition_withholds_artifact(tmp_path):
+    """(3) Legacy CLOSE in transition -> artifact retained."""
+    shadow = _active_shadow(tmp_path)
+    sim = _Sim(shadow)
+    sim._legacy_transitions_in_flight = 1
+
+    with pytest.raises(RuntimeError, match="CLOSE mutation in progress"):
+        _build(sim)
+
+
+def test_close_transition_clears_after_full_mutation(monkeypatch, tmp_path):
+    """A completed CLOSE never leaves the transition marker set."""
+    _patch_recorder_to_tmp(monkeypatch, tmp_path)
+    shadow = _active_shadow(tmp_path)
+    sim = MexcSimulator(mexc_reader=_reader(), shadow_observer=shadow)
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+
+    sim.place_market_order(
+        symbol="BTC/USDT", side="BUY", qty_usd=10.0, current_price=100.0
+    )
+    sim._close_position("BTC/USDT", 110.0, "TP")
+
+    assert sim._legacy_transitions_in_flight == 0
+    assert sim._legacy_generation == 2
+    assert shadow.consistent_view().observed_legacy_generation == 2
+
+    doc = _build(sim)
+    assert doc["comparison_available"] is True
+
+
+def test_ppl_failure_leaves_legacy_authoritative_and_ppl_honest(monkeypatch, tmp_path):
+    """(5) A PPL append failure never blocks Legacy and is reported honestly."""
+    _patch_recorder_to_tmp(monkeypatch, tmp_path)
+    shadow = _active_shadow(tmp_path)
+
+    def boom(*_args, **_kwargs):
+        raise OSError("disk failure")
+
+    monkeypatch.setattr(shadow.store, "append", boom)
+
+    sim = MexcSimulator(mexc_reader=_reader(), shadow_observer=shadow)
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+
+    order = sim.place_market_order(
+        symbol="BTC/USDT", side="BUY", qty_usd=10.0, current_price=100.0
+    )
+    assert order.status.value == "FILLED"
+    assert "BTC/USDT" in sim._positions
+    assert sim._legacy_generation == 1
+
+    doc = _build(sim)
+    assert doc["shadow_status"] == "DEGRADED"
+    assert doc["comparison_available"] is False

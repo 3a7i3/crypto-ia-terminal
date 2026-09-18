@@ -45,12 +45,37 @@ atomic artifact only.
 
 The frontend never recomputes accounting, PnL, fees, or deltas.
 
-The producer also applies a bounded coherent-capture guard. Because MEXC_SIM
-commits the authoritative legacy mutation before the downstream passive PPL
-observer call, WEB-02 requires two consecutive identical legacy+PPL source-pair
-captures before publication. A continuously moving pair is withheld
-fail-passively and the previous atomic artifact remains untouched. A persistent,
-stable divergence is still published exactly as observed.
+The producer applies two independent, bounded coherent-capture guards before
+publication. Because MEXC_SIM commits the authoritative legacy mutation before
+the downstream passive PPL observer call, a naive single read can land inside
+that short hand-off window:
+
+1. **Byte-semantic stability.** Two consecutive identical legacy+PPL
+   source-pair captures are required. A continuously moving pair is withheld
+   fail-passively.
+2. **Causal coherence (generation).** Byte stability alone is insufficient: a
+   PPL that permanently lags one mutation behind Legacy is byte-stable across
+   any number of reads yet never describes the same instant as Legacy.
+   `MexcSimulator` maintains a monotonic `legacy_generation` counter,
+   advanced only after a complete OPEN (capital + position + order) or CLOSE
+   (position removal + capital/`_closed`) mutation, read under
+   `MexcSimulator._lock`. Each `ShadowOpenFact`/`ShadowCloseFact` carries the
+   generation it was produced at; `PPLShadowRuntime` acknowledges a
+   generation only once its durable append and projection succeed, and only
+   along a contiguous prefix (generation 2 observed before generation 1 is
+   parked until 1 also lands — 2 is never announced as fully acknowledged in
+   the meantime). WEB-02 withholds the artifact fail-passively whenever:
+   - a CLOSE mutation is mid-transition (the position has left
+     `_positions` but capital/`_closed` are not yet credited — tracked by an
+     in-flight counter read under the same lock), or
+   - PPL is ACTIVE and its acknowledged generation does not equal the
+     generation Legacy was captured at.
+
+Either guard failing withholds the artifact fail-passively and the previous
+atomic artifact remains untouched. A persistent, causally-coherent divergence
+is still published exactly as observed. This generation/transition state is
+runtime/memory only: it is never written into a durable PPL event and never
+enters any financial computation.
 
 ## 4. Comparison vocabulary
 

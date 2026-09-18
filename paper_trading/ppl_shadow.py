@@ -198,10 +198,23 @@ class ShadowLegacyPosition:
         )
 
 
+def _require_generation(name: str, value: Any) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ValueError(f"{name} must be a non-negative int, got {value!r}")
+    return value
+
+
 @dataclass(frozen=True)
 class ShadowOpenFact(ShadowLegacyPosition):
     timestamp: float = 0.0
     decision_id: Optional[str] = None
+    # WEB-02 causal-coherence generation — a monotonic counter owned by
+    # MexcSimulator, advanced only after its OPEN mutation (capital +
+    # position + order) is fully complete. Runtime/memory only: never
+    # written into the durable LedgerEvent payload and never used in any
+    # financial computation. 0 means "no generation tracking" (legacy
+    # caller/tests not participating in the WEB-02 coherence gate).
+    legacy_generation: int = 0
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -214,6 +227,11 @@ class ShadowOpenFact(ShadowLegacyPosition):
             not isinstance(self.decision_id, str) or not self.decision_id
         ):
             raise ValueError("decision_id must be a non-empty string or None")
+        object.__setattr__(
+            self,
+            "legacy_generation",
+            _require_generation("legacy_generation", self.legacy_generation),
+        )
 
 
 @dataclass(frozen=True)
@@ -223,6 +241,11 @@ class ShadowCloseFact:
     exit_fee: float
     timestamp: float
     decision_id: Optional[str] = None
+    # WEB-02 causal-coherence generation — see ShadowOpenFact.legacy_generation.
+    # CLOSE only reaches this fact after MexcSimulator's own two-phase mutation
+    # (position removal, then capital/_closed) is fully complete, so the
+    # generation observed here already reflects the post-CLOSE legacy state.
+    legacy_generation: int = 0
 
     def __post_init__(self) -> None:
         if not self.trade_id:
@@ -246,6 +269,11 @@ class ShadowCloseFact:
             not isinstance(self.decision_id, str) or not self.decision_id
         ):
             raise ValueError("decision_id must be a non-empty string or None")
+        object.__setattr__(
+            self,
+            "legacy_generation",
+            _require_generation("legacy_generation", self.legacy_generation),
+        )
 
 
 @dataclass(frozen=True)
@@ -255,6 +283,26 @@ class ShadowRuntimeSnapshot:
     event_count: int
     last_sequence: int
     last_error: Optional[str]
+
+
+@dataclass(frozen=True)
+class ShadowConsistentView:
+    """One atomic read of everything WEB-02 needs from the PPL side.
+
+    status/projection/events/observed_legacy_generation must describe the
+    exact same instant — reading them through separate lock acquisitions
+    (as three independent property reads would) can interleave with a
+    concurrent observe_open/observe_close and hand the comparator a torn
+    view (e.g. a status/last_sequence pair from before a mutation next to
+    a projection from after it).
+    """
+
+    status: ShadowStatus
+    paper_epoch_id: str
+    last_error: Optional[str]
+    projection: Optional[PaperPortfolioState]
+    events: tuple[LedgerEvent, ...]
+    observed_legacy_generation: int
 
 
 def load_shadow_manifest(path: os.PathLike[str] | str) -> ShadowEpochManifest:
@@ -368,6 +416,14 @@ class PPLShadowRuntime:
         self._events: tuple[LedgerEvent, ...] = ()
         self._projection: Optional[PaperPortfolioState] = None
         self._lock = threading.RLock()
+        # WEB-02 causal-coherence acknowledgment (runtime/memory only — see
+        # ShadowOpenFact.legacy_generation). `_legacy_generation_ack` only
+        # ever advances across a contiguous prefix: a fact for generation 2
+        # observed before generation 1 is parked in `_pending_generations`
+        # until 1 also lands, so WEB-02 never sees 2 "fully acknowledged"
+        # while 1 is still outstanding.
+        self._legacy_generation_ack: int = 0
+        self._pending_generations: set[int] = set()
 
     @property
     def events(self) -> tuple[LedgerEvent, ...]:
@@ -388,6 +444,29 @@ class PPLShadowRuntime:
                 last_sequence=self._events[-1].sequence if self._events else 0,
                 last_error=self.last_error,
             )
+
+    def consistent_view(self) -> ShadowConsistentView:
+        """Atomic status+projection+events+ack read — see ShadowConsistentView."""
+        with self._lock:
+            return ShadowConsistentView(
+                status=self.status,
+                paper_epoch_id=self.manifest.paper_epoch_id,
+                last_error=self.last_error,
+                projection=self._projection,
+                events=self._events,
+                observed_legacy_generation=self._legacy_generation_ack,
+            )
+
+    def _advance_generation_ack(self, generation: int) -> None:
+        # Called only while holding self._lock. 0 means the caller is not
+        # participating in WEB-02 generation tracking — never advances the
+        # ack and never blocks it either.
+        if generation <= 0:
+            return
+        self._pending_generations.add(generation)
+        while (self._legacy_generation_ack + 1) in self._pending_generations:
+            self._legacy_generation_ack += 1
+            self._pending_generations.discard(self._legacy_generation_ack)
 
     def bind_legacy_state(
         self,
@@ -484,7 +563,9 @@ class PPLShadowRuntime:
                         schema_version=self.manifest.schema_version,
                     )
 
-                return self._append_semantic(event_id, _build)
+                result = self._append_semantic(event_id, _build)
+                self._advance_generation_ack(fact.legacy_generation)
+                return result
             except Exception as exc:
                 self._degrade(exc)
                 return None
@@ -517,7 +598,9 @@ class PPLShadowRuntime:
                         schema_version=self.manifest.schema_version,
                     )
 
-                return self._append_semantic(event_id, _build)
+                result = self._append_semantic(event_id, _build)
+                self._advance_generation_ack(fact.legacy_generation)
+                return result
             except Exception as exc:
                 self._degrade(exc)
                 return None

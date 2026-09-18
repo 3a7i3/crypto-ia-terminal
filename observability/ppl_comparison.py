@@ -27,11 +27,22 @@ _COMPARISON_CLASSES = {"COMPARABLE", "PARTIAL", "UNRESOLVED"}
 _SHADOW_STATUSES = {"OFF", "WAITING_CLEAN_BOUNDARY", "ACTIVE", "DEGRADED"}
 
 # A legacy mutation and its downstream PPL observation are deliberately not one
-# shared transaction. WEB-02 therefore publishes only after two consecutive
-# legacy+PPL source-pair captures are byte-semantically stable. This prevents a
-# mid-transition observation from being materialized as a durable divergence,
-# while a persistent divergence remains visible. The guard is bounded so the
-# observer can never stall the advisor loop indefinitely.
+# shared transaction. WEB-02 applies two independent guards before publishing:
+#
+#   1. Byte-semantic stability (_snapshot_sources_consistently): two
+#      consecutive legacy+PPL captures must be identical. This is bounded so
+#      the observer can never stall the advisor loop indefinitely.
+#   2. Causal coherence (_assert_causally_coherent): stability alone is
+#      insufficient — a PPL that permanently lags one generation behind
+#      Legacy is byte-stable across any number of reads yet never describes
+#      the same instant as Legacy. This gate compares MexcSimulator's own
+#      monotonic legacy generation (see MexcSimulator._legacy_generation)
+#      against PPLShadowRuntime's contiguously-acknowledged generation, and
+#      rejects a Legacy snapshot taken mid-CLOSE-transition outright.
+#
+# Either guard failing withholds the artifact fail-passively: no convergence
+# and no divergence is published, and the previous atomic artifact is left
+# untouched. A persistent, causally-coherent divergence remains visible.
 _SOURCE_STABILITY_ATTEMPTS = 4
 _SOURCE_STABILITY_SLEEP_S = 0.025
 
@@ -190,6 +201,15 @@ def _snapshot_legacy(simulator: Any) -> Dict[str, Any]:
     with lock:
         capital = float(getattr(simulator, "_capital"))
         initial_capital = float(getattr(simulator, "_initial_capital"))
+        # WEB-02 causal-coherence markers — see MexcSimulator._legacy_generation
+        # / _legacy_transitions_in_flight. Read under the same lock as the
+        # rest of this snapshot so "generation" and "transitioning" describe
+        # exactly the positions/capital/closed_session captured below.
+        # Absent on a test double that predates WEB-02 -> generation 0,
+        # not transitioning (matches a freshly-bound PPL runtime's default
+        # observed_legacy_generation of 0).
+        generation = int(getattr(simulator, "_legacy_generation", 0))
+        transitioning = int(getattr(simulator, "_legacy_transitions_in_flight", 0)) > 0
         positions = []
         for pos in getattr(simulator, "_positions", {}).values():
             positions.append(
@@ -236,6 +256,8 @@ def _snapshot_legacy(simulator: Any) -> Dict[str, Any]:
         "closed_session": sorted(
             closed_session, key=lambda row: row["trade_id"]
         ),
+        "generation": generation,
+        "transitioning": transitioning,
     }
 
 
@@ -248,15 +270,20 @@ def _snapshot_ppl(simulator: Any) -> Dict[str, Any]:
             "last_error": None,
             "projection": None,
             "events": [],
+            "observed_legacy_generation": 0,
         }
 
-    snap = shadow.snapshot()
-    status = str(_enum_value(snap.status))
+    # WEB-02 — status/projection/events/observed_legacy_generation must
+    # describe one single instant. Reading them via three separate locked
+    # accessors (snapshot(), .projection, .events) could interleave with a
+    # concurrent observe_open/observe_close and hand back a torn view.
+    view = shadow.consistent_view()
+    status = str(_enum_value(view.status))
     if status not in _SHADOW_STATUSES:
         status = "DEGRADED"
 
-    projection = shadow.projection
-    events = shadow.events
+    projection = view.projection
+    events = view.events
 
     if projection is None:
         projection_doc = None
@@ -304,10 +331,11 @@ def _snapshot_ppl(simulator: Any) -> Dict[str, Any]:
 
     return {
         "status": status,
-        "paper_epoch_id": snap.paper_epoch_id or None,
-        "last_error": snap.last_error,
+        "paper_epoch_id": view.paper_epoch_id or None,
+        "last_error": view.last_error,
         "projection": projection_doc,
         "events": event_docs,
+        "observed_legacy_generation": int(view.observed_legacy_generation),
     }
 
 
@@ -354,6 +382,44 @@ def _snapshot_sources_consistently(simulator: Any) -> tuple[Dict[str, Any], Dict
     )
 
 
+def _assert_causally_coherent(legacy: Dict[str, Any], ppl: Dict[str, Any]) -> None:
+    """Reject a source pair that two byte-identical reads cannot detect.
+
+    Two consecutive identical captures (``_snapshot_sources_consistently``)
+    only prove that nothing changed *during the capture window*. They do
+    not prove Legacy and PPL are describing the same instant: PPL lag can
+    leave a pair stable-but-stale for an arbitrarily long time (Legacy has
+    already moved to generation N, PPL has only acknowledged N-1, and
+    nothing else changes afterwards). This second, independent gate checks
+    the causal-coherence generation instead of byte stability:
+
+      - Legacy mid-CLOSE-transition (position removed from _positions, not
+        yet credited to capital/_closed) is never treated as stable.
+      - Once PPL is ACTIVE, its acknowledged legacy generation must equal
+        the generation Legacy was captured at; a PPL lagging behind (or,
+        symmetrically, a Legacy snapshot captured before PPL's latest
+        acknowledgment) is withheld rather than compared.
+
+    Neither publishes convergence nor divergence — the previous valid
+    atomic artifact is left untouched by the caller (fail-passive).
+    """
+
+    if legacy.get("transitioning"):
+        raise RuntimeError(
+            "WEB-02 legacy CLOSE mutation in progress; comparison artifact "
+            "withheld"
+        )
+    if ppl.get("status") == "ACTIVE" and legacy.get("generation", 0) != ppl.get(
+        "observed_legacy_generation", 0
+    ):
+        raise RuntimeError(
+            "WEB-02 legacy/PPL generation mismatch "
+            f"(legacy={legacy.get('generation', 0)!r} "
+            f"ppl_observed={ppl.get('observed_legacy_generation', 0)!r}); "
+            "comparison artifact withheld"
+        )
+
+
 def _presence(legacy_present: bool, ppl_present: bool) -> str:
     if legacy_present and ppl_present:
         return "BOTH"
@@ -392,6 +458,7 @@ def build_ppl_comparison_snapshot(
     now_fn: Callable[[], float],
 ) -> Dict[str, Any]:
     legacy, ppl = _snapshot_sources_consistently(simulator)
+    _assert_causally_coherent(legacy, ppl)
     status = ppl["status"]
     projection = ppl["projection"]
     epoch_id = ppl["paper_epoch_id"]
