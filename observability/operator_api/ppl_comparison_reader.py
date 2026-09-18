@@ -105,6 +105,11 @@ _RELATIONS = {
 }
 _GROUP_RELATIONS = {"BOTH", "LEGACY_ONLY", "PPL_ONLY", "NEITHER"}
 _SHADOW_STATUSES = {"OFF", "WAITING_CLEAN_BOUNDARY", "ACTIVE", "DEGRADED"}
+_EVENT_PAYLOAD_KEYS = {
+    "EPOCH_CREATED": {"initial_virtual_capital", "code_sha", "config_snapshot_hash"},
+    "POSITION_OPENED": {"symbol", "side", "principal", "entry_price", "entry_fee"},
+    "POSITION_CLOSED": {"exit_price", "exit_fee"},
+}
 
 
 @dataclass(frozen=True)
@@ -227,9 +232,14 @@ def _valid_event(row: Any) -> bool:
         or row["sequence"] < 1
     ):
         return False
-    if not isinstance(row["event_type"], str) or not row["event_type"]:
+    event_type = row["event_type"]
+    if event_type not in _EVENT_PAYLOAD_KEYS:
         return False
     if row["trade_id"] is not None and not isinstance(row["trade_id"], str):
+        return False
+    if event_type == "EPOCH_CREATED" and row["trade_id"] is not None:
+        return False
+    if event_type != "EPOCH_CREATED" and not row["trade_id"]:
         return False
     if row["decision_id"] is not None and not isinstance(
         row["decision_id"], str
@@ -237,7 +247,40 @@ def _valid_event(row: Any) -> bool:
         return False
     if not _finite_number(row["timestamp"]):
         return False
-    return isinstance(row["payload"], dict)
+
+    payload = row["payload"]
+    if not isinstance(payload, dict) or set(payload) != _EVENT_PAYLOAD_KEYS[event_type]:
+        return False
+    if not _valid_json_value(payload):
+        return False
+
+    if event_type == "EPOCH_CREATED":
+        return (
+            _finite_number(payload["initial_virtual_capital"])
+            and float(payload["initial_virtual_capital"]) > 0
+            and isinstance(payload["code_sha"], str)
+            and bool(payload["code_sha"])
+            and isinstance(payload["config_snapshot_hash"], str)
+            and bool(payload["config_snapshot_hash"])
+        )
+    if event_type == "POSITION_OPENED":
+        return (
+            isinstance(payload["symbol"], str)
+            and bool(payload["symbol"])
+            and payload["side"] in {"LONG", "SHORT"}
+            and _finite_number(payload["principal"])
+            and float(payload["principal"]) > 0
+            and _finite_number(payload["entry_price"])
+            and float(payload["entry_price"]) > 0
+            and _finite_number(payload["entry_fee"])
+            and float(payload["entry_fee"]) >= 0
+        )
+    return (
+        _finite_number(payload["exit_price"])
+        and float(payload["exit_price"]) > 0
+        and _finite_number(payload["exit_fee"])
+        and float(payload["exit_fee"]) >= 0
+    )
 
 
 def validate_ppl_comparison_snapshot(doc: Any) -> bool:
@@ -387,11 +430,19 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
         _valid_event(row) for row in doc["ppl_events"]
     ):
         return False
-    sequences = [row["sequence"] for row in doc["ppl_events"]]
+    events = doc["ppl_events"]
+    sequences = [row["sequence"] for row in events]
     if sequences != list(range(1, len(sequences) + 1)):
         return False
-    event_ids = [row["event_id"] for row in doc["ppl_events"]]
+    event_ids = [row["event_id"] for row in events]
     if len(event_ids) != len(set(event_ids)):
+        return False
+    if events:
+        if events[0]["event_type"] != "EPOCH_CREATED":
+            return False
+        if sum(row["event_type"] == "EPOCH_CREATED" for row in events) != 1:
+            return False
+    if doc["shadow_status"] == "ACTIVE" and not events:
         return False
     return True
 
