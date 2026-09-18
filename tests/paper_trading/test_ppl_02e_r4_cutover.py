@@ -24,6 +24,7 @@ from paper_trading.ppl_authority_runtime import (
     RollbackDisposition,
     build_authority_runtime_from_env,
     build_cutover_manifest,
+    configured_rollback_disposition,
     load_authority_manifest,
     write_authority_manifest,
 )
@@ -398,3 +399,52 @@ def test_r4_compatibility_projection_is_downstream_only(tmp_path):
     assert second == 0
     assert rows[0]["source_authority"] == "PPL"
     assert rows[0]["paper_epoch_id"] == EPOCH
+
+
+def test_r4_configured_rollback_guard_is_safe_before_lifecycle_and_blocks_after(tmp_path):
+    path = tmp_path / "authority.json"
+    store_root = tmp_path / "ppl"
+    write_authority_manifest(path, manifest())
+    env = {
+        "PPL_AUTHORITY_MANIFEST": str(path),
+        "PPL_AUTHORITY_STORE_ROOT": str(store_root),
+        "PPL_AUTHORITY_EPOCH_ID": EPOCH,
+    }
+
+    assert (
+        configured_rollback_disposition(env)
+        is RollbackDisposition.SAFE_BEFORE_FIRST_LIFECYCLE_EVENT
+    )
+
+    rt = build_authority_runtime_from_env(env)
+    rt.bind(now=11.0)
+    assert (
+        configured_rollback_disposition(env)
+        is RollbackDisposition.SAFE_BEFORE_FIRST_LIFECYCLE_EVENT
+    )
+
+    rt.commit_open(
+        trade_id="trade-rollback",
+        symbol="BTCUSDT",
+        side="BUY",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.01,
+        opened_at=20.0,
+        tp_price=104.0,
+        sl_price=98.0,
+        timeout_at=30.0,
+        recovery_eligible_until=40.0,
+        decision_id="dp-rb",
+    )
+    assert (
+        configured_rollback_disposition(env)
+        is RollbackDisposition.BLOCKED_RECONCILIATION_REQUIRED
+    )
+
+
+def test_r4_partial_authority_config_is_not_treated_as_safe_rollback(tmp_path):
+    with pytest.raises(AuthorityManifestError, match="partial"):
+        configured_rollback_disposition(
+            {"PPL_AUTHORITY_STORE_ROOT": str(tmp_path / "ppl")}
+        )
