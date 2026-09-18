@@ -53,6 +53,8 @@ _TOP_KEYS = {
     "ppl_events",
 }
 _SOURCE_KEYS = {"value", "status", "provenance"}
+_LEGACY_META_KEYS = {"source", "authority", "scope"}
+_PPL_META_KEYS = {"source", "authority", "scope", "last_error"}
 _COMPARISON_KEYS = {
     "comparison_id",
     "domain",
@@ -262,9 +264,31 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
     if doc["comparison_available"] and doc["shadow_status"] != "ACTIVE":
         return False
 
-    if not isinstance(doc["legacy_source"], dict):
+    legacy_meta = doc["legacy_source"]
+    ppl_meta = doc["ppl_source"]
+    if not isinstance(legacy_meta, dict) or set(legacy_meta) != _LEGACY_META_KEYS:
         return False
-    if not isinstance(doc["ppl_source"], dict):
+    if (
+        not isinstance(legacy_meta["source"], str)
+        or not legacy_meta["source"]
+        or legacy_meta["authority"] != "PAPER_AUTHORITY"
+        or not isinstance(legacy_meta["scope"], str)
+        or not legacy_meta["scope"]
+    ):
+        return False
+    if not isinstance(ppl_meta, dict) or set(ppl_meta) != _PPL_META_KEYS:
+        return False
+    if (
+        not isinstance(ppl_meta["source"], str)
+        or not ppl_meta["source"]
+        or ppl_meta["authority"] != "NONE"
+        or not isinstance(ppl_meta["scope"], str)
+        or not ppl_meta["scope"]
+        or (
+            ppl_meta["last_error"] is not None
+            and not isinstance(ppl_meta["last_error"], str)
+        )
+    ):
         return False
 
     summary = doc["summary"]
