@@ -19,7 +19,7 @@ import threading
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence
+from typing import Mapping, Optional
 
 from paper_trading.durable_event_store import (
     AppendResult,
