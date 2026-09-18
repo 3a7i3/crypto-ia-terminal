@@ -3670,6 +3670,18 @@ def main(
         "1",
         "yes",
     }
+
+    # PPL-02E-R1 — resolve PAPER lifecycle authority exactly once for this
+    # process.  Mutation-capable components receive this frozen value; no hot
+    # environment re-read may switch authority mid-process/epoch.
+    from paper_trading.paper_authority import resolve_paper_lifecycle_authority
+
+    _paper_lifecycle_authority = resolve_paper_lifecycle_authority(os.environ)
+    log.info(
+        "[PPL-02E-R1] PAPER lifecycle authority=%s",
+        _paper_lifecycle_authority.value,
+    )
+
     if _paper_trading_enabled:
         _gate_paper_dataset()
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
@@ -4493,6 +4505,19 @@ def main(
     ) -> bool:
         result_mode = str(order_result.get("mode", ""))
         if result_mode not in {"futures_demo", "paper", "live"}:
+            return False
+
+        # PPL-02E-R1 — PAPER has one lifecycle boundary.  ExecutionEngine's
+        # local mode="paper" result is an execution/audit result only; it must
+        # never create a second PositionManager lifecycle beside the canonical
+        # PAPER runtime (MexcSimulator today, PPL coordinator after R2).
+        if result_mode == "paper":
+            log.info(
+                "[PPL-02E-R1] PositionManager PAPER registration suppressed "
+                "symbol=%s authority=%s",
+                symbol,
+                _paper_lifecycle_authority.value,
+            )
             return False
 
         try:
@@ -5738,6 +5763,7 @@ def main(
                 mexc_reader=_mexc_reader_sim,
                 telegram_fn=_vp_tg_fn,
                 shadow_observer=_ppl_shadow_observer,
+                lifecycle_authority=_paper_lifecycle_authority,
             )
             _virtual_portfolio.start()
             log.info("[SIM] MexcSimulator initialise")
