@@ -39,47 +39,35 @@ def test_r1_invalid_authority_fails_closed():
         parse_paper_lifecycle_authority("dual")
 
 
-def test_r1_ppl_authority_blocks_legacy_market_mutation(tmp_path, monkeypatch):
-    monkeypatch.setenv("PAPER_TRADE_LOG", str(tmp_path / "paper.jsonl"))
-    sim = MexcSimulator(lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY)
-    sim._capital = 100.0
-    sim._initial_capital = 100.0
+def test_r1_ppl_authority_without_runtime_fails_closed_at_construction():
+    """R4 supersedes R1's temporary rejected-order shim with a harder boundary."""
+    with pytest.raises(ValueError, match="requires an authority_runtime"):
+        MexcSimulator(lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY)
 
-    order = sim.place_market_order(
-        symbol="BTC/USDT",
+
+def test_r1_pending_legacy_orders_remain_blocked_when_ppl_runtime_exists():
+    # The runtime object is intentionally opaque here: LIMIT/STOP_LIMIT are
+    # rejected before any authoritative runtime method can be invoked.
+    sim = MexcSimulator(
+        lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY,
+        authority_runtime=object(),
+    )
+    limit_order = sim.place_limit_order(
+        symbol="ETH/USDT",
         side="BUY",
         qty_usd=10.0,
-        current_price=100.0,
-        decision_id="decision-1",
+        limit_price=100.0,
+    )
+    stop_order = sim.place_stop_limit_order(
+        symbol="SOL/USDT",
+        side="BUY",
+        qty_usd=10.0,
+        stop_price=101.0,
+        limit_price=100.0,
     )
 
-    assert order is not None
-    assert order.status is OrderStatus.REJECTED
-    assert sim._positions == {}
-    assert sim._capital == pytest.approx(100.0)
-    assert not (tmp_path / "paper.jsonl").exists()
-
-
-@pytest.mark.parametrize("kind", ["limit", "stop_limit"])
-def test_r1_ppl_authority_blocks_pending_legacy_orders(kind):
-    sim = MexcSimulator(lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY)
-    if kind == "limit":
-        order = sim.place_limit_order(
-            symbol="ETH/USDT",
-            side="BUY",
-            qty_usd=10.0,
-            limit_price=100.0,
-        )
-    else:
-        order = sim.place_stop_limit_order(
-            symbol="ETH/USDT",
-            side="BUY",
-            qty_usd=10.0,
-            stop_price=101.0,
-            limit_price=100.0,
-        )
-
-    assert order.status is OrderStatus.REJECTED
+    assert limit_order.status is OrderStatus.REJECTED
+    assert stop_order.status is OrderStatus.REJECTED
     assert sim._orders == {}
 
 
@@ -107,13 +95,21 @@ def test_r1_advisor_suppresses_only_secondary_position_manager_paper_lifecycle()
     assert "secondary PositionManager PAPER lifecycle" in source
 
 
-def test_r1_advisor_bootstrap_fails_before_legacy_dataset_gate_for_ppl_authority():
+def test_r1_advisor_bootstrap_preserves_single_authority_barrier():
+    """R4 replaces the temporary R1 block with explicit authority-runtime binding."""
     source = Path("core/advisor_loop.py").read_text(encoding="utf-8")
     helper_start = source.index("def _bootstrap_paper_lifecycle_authority(")
     helper_end = source.index("def _op_legacy_first_blocker(", helper_start)
     helper = source[helper_start:helper_end]
+
     resolve_pos = helper.index("resolve_paper_lifecycle_authority(os.environ)")
-    barrier_pos = helper.index("if authority.ppl_is_authoritative:")
+    authority_pos = helper.index("if authority.ppl_is_authoritative:")
+    runtime_pos = helper.index("build_authority_runtime_from_env()")
+    bind_pos = helper.index("authority_runtime.bind(now=time.time())")
+    rollback_pos = helper.index("configured_rollback_disposition()")
     gate_pos = helper.index("_gate_paper_dataset()")
-    assert resolve_pos < barrier_pos < gate_pos
-    assert "PPL_AUTHORITY is not runtime-ready" in helper
+
+    assert resolve_pos < authority_pos < runtime_pos < bind_pos
+    assert bind_pos < rollback_pos < gate_pos
+    assert "PPL_AUTHORITY requires PAPER_TRADING_ENABLED=true" in helper
+    assert "return authority, authority_runtime" in helper
