@@ -482,6 +482,32 @@ class PPLAuthorityRuntime:
             return RollbackDisposition.BLOCKED_RECONCILIATION_REQUIRED
 
 
+def configured_rollback_disposition(
+    environ: Optional[Mapping[str, str]] = None,
+) -> Optional[RollbackDisposition]:
+    """Inspect configured authority epoch without creating or modifying it."""
+
+    env = os.environ if environ is None else environ
+    configured = [
+        bool(str(env.get("PPL_AUTHORITY_MANIFEST", "") or "").strip()),
+        bool(str(env.get("PPL_AUTHORITY_STORE_ROOT", "") or "").strip()),
+        bool(str(env.get("PPL_AUTHORITY_EPOCH_ID", "") or "").strip()),
+    ]
+    if not any(configured):
+        return None
+    if not all(configured):
+        raise AuthorityManifestError(
+            "partial PPL authority configuration is not a valid rollback state"
+        )
+    runtime = build_authority_runtime_from_env(env)
+    try:
+        events = runtime.store.load_epoch(runtime.manifest.paper_epoch_id)
+    except EpochNotFoundError:
+        return RollbackDisposition.SAFE_BEFORE_FIRST_LIFECYCLE_EVENT
+    if len(events) <= 1:
+        return RollbackDisposition.SAFE_BEFORE_FIRST_LIFECYCLE_EVENT
+    return RollbackDisposition.BLOCKED_RECONCILIATION_REQUIRED
+
 def build_authority_runtime_from_env(
     environ: Optional[Mapping[str, str]] = None,
 ) -> PPLAuthorityRuntime:
@@ -519,6 +545,7 @@ __all__ = [
     "PPLAuthorityRuntimeError",
     "RollbackDisposition",
     "build_authority_runtime_from_env",
+    "configured_rollback_disposition",
     "build_cutover_manifest",
     "load_authority_manifest",
     "write_authority_manifest",
