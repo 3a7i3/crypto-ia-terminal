@@ -1,0 +1,597 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>WEB-02 — PPL Comparator Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/WEB_02_PPL_COMPARATOR_CONTRACT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/WEB_02_PPL_COMPARATOR_CONTRACT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="web-02-ppl-comparator-contract">
+<h1>WEB-02 — PPL Comparator Contract<a class="headerlink" href="#web-02-ppl-comparator-contract" title="Link to this heading">¶</a></h1>
+<p>Issue: #175
+Parent governance: #148
+Baseline: <code class="docutils literal notranslate"><span class="pre">main&#64;cdedbf41fb1579feedac355cd8d1b2d0ff94ffa2</span></code></p>
+<section id="purpose">
+<h2>1. Purpose<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>WEB-02 exposes a read-only comparison between authoritative legacy PAPER
+(<code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code>) and non-authoritative PPL SHADOW
+(<code class="docutils literal notranslate"><span class="pre">PPLShadowRuntime.projection</span></code>).</p>
+<p>The comparator observes divergence. It never repairs either side and never
+changes trading authority.</p>
+</section>
+<section id="authority">
+<h2>2. Authority<a class="headerlink" href="#authority" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Legacy PAPER: <code class="docutils literal notranslate"><span class="pre">PAPER_AUTHORITY</span></code></p></li>
+<li><p>PPL: <code class="docutils literal notranslate"><span class="pre">NONE</span></code></p></li>
+<li><p>Comparator/API/frontend: <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code></p></li>
+<li><p>No BUY/SELL/close/restart/risk/sizing/strategy authority is introduced.</p></li>
+<li><p>PPL-02E is not authorized by WEB-02.</p></li>
+</ul>
+</section>
+<section id="process-boundary">
+<h2>3. Process boundary<a class="headerlink" href="#process-boundary" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>existing MexcSimulator + existing PPLShadowRuntime
+                  |
+                  v
+observability.ppl_comparison
+                  |
+                  v
+atomic databases/ppl_comparison_snapshot.json
+                  |
+                  v
+GET /api/operator/v1/ppl-comparison
+                  |
+                  v
+PPL Compare React view
+</pre></div>
+</div>
+<p>The Operator API never instantiates the simulator/PPL runtime and never reads
+<code class="docutils literal notranslate"><span class="pre">paper_trades.jsonl</span></code> or the PPL durable store. It validates and transports the
+atomic artifact only.</p>
+<p>The frontend never recomputes accounting, PnL, fees, or deltas.</p>
+<p>The producer applies two independent, bounded coherent-capture guards before
+publication. Because MEXC_SIM commits the authoritative legacy mutation before
+the downstream passive PPL observer call, a naive single read can land inside
+that short hand-off window:</p>
+<ol class="arabic simple">
+<li><p><strong>Byte-semantic stability.</strong> Two consecutive identical legacy+PPL
+source-pair captures are required. A continuously moving pair is withheld
+fail-passively.</p></li>
+<li><p><strong>Causal coherence (generation).</strong> Byte stability alone is insufficient: a
+PPL that permanently lags one mutation behind Legacy is byte-stable across
+any number of reads yet never describes the same instant as Legacy.
+<code class="docutils literal notranslate"><span class="pre">MexcSimulator</span></code> maintains a monotonic <code class="docutils literal notranslate"><span class="pre">legacy_generation</span></code> counter,
+advanced only after a complete OPEN (capital + position + order) or CLOSE
+(position removal + capital/<code class="docutils literal notranslate"><span class="pre">_closed</span></code>) mutation, read under
+<code class="docutils literal notranslate"><span class="pre">MexcSimulator._lock</span></code>. Each <code class="docutils literal notranslate"><span class="pre">ShadowOpenFact</span></code>/<code class="docutils literal notranslate"><span class="pre">ShadowCloseFact</span></code> carries the
+generation it was produced at; <code class="docutils literal notranslate"><span class="pre">PPLShadowRuntime</span></code> acknowledges a
+generation only once its durable append and projection succeed, and only
+along a contiguous prefix (generation 2 observed before generation 1 is
+parked until 1 also lands — 2 is never announced as fully acknowledged in
+the meantime). WEB-02 withholds the artifact fail-passively whenever:</p>
+<ul class="simple">
+<li><p>a CLOSE mutation is mid-transition (the position has left
+<code class="docutils literal notranslate"><span class="pre">_positions</span></code> but capital/<code class="docutils literal notranslate"><span class="pre">_closed</span></code> are not yet credited — tracked by an
+in-flight counter read under the same lock), or</p></li>
+<li><p>PPL is ACTIVE and its acknowledged generation does not equal the
+generation Legacy was captured at.</p></li>
+</ul>
+</li>
+</ol>
+<p>Either guard failing withholds the artifact fail-passively and the previous
+atomic artifact remains untouched. A persistent, causally-coherent divergence
+is still published exactly as observed. This generation/transition state is
+runtime/memory only: it is never written into a durable PPL event and never
+enters any financial computation.</p>
+</section>
+<section id="comparison-vocabulary">
+<h2>4. Comparison vocabulary<a class="headerlink" href="#comparison-vocabulary" title="Link to this heading">¶</a></h2>
+<section id="classification">
+<h3>Classification<a class="headerlink" href="#classification" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMPARABLE</span></code>: both source facts have compatible semantics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PARTIAL</span></code>: both raw facts may be useful, but scope/provenance differs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code>: a scientifically required source fact is absent or its
+provenance is insufficient.</p></li>
+</ul>
+</section>
+<section id="relation">
+<h3>Relation<a class="headerlink" href="#relation" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">EQUAL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DIFFERENT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LEGACY_ONLY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PPL_ONLY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_COMPARABLE</span></code></p></li>
+</ul>
+<p>A numeric <code class="docutils literal notranslate"><span class="pre">delta_ppl_minus_legacy</span></code> is emitted only when:</p>
+<ol class="arabic simple">
+<li><p>classification is <code class="docutils literal notranslate"><span class="pre">COMPARABLE</span></code>;</p></li>
+<li><p>both raw values are finite numeric facts.</p></li>
+</ol>
+<p>All other rows carry <code class="docutils literal notranslate"><span class="pre">delta_ppl_minus_legacy</span> <span class="pre">=</span> <span class="pre">null</span></code>.</p>
+</section>
+</section>
+<section id="numeric-rule">
+<h2>5. Numeric rule<a class="headerlink" href="#numeric-rule" title="Link to this heading">¶</a></h2>
+<p>Comparable numeric values use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rel_tol</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">abs_tol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+<span class="n">delta</span> <span class="o">=</span> <span class="n">ppl_value</span> <span class="o">-</span> <span class="n">legacy_value</span>
+</pre></div>
+</div>
+<p>No presentation rounding changes the raw producer value.</p>
+<p>Side comparison uses canonical semantic equivalence only:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BUY</span> <span class="pre">==</span> <span class="pre">LONG</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SELL</span> <span class="pre">==</span> <span class="pre">SHORT</span></code></p></li>
+</ul>
+<p>Both raw side strings remain present in the record.</p>
+</section>
+<section id="v1-comparison-matrix">
+<h2>6. V1 comparison matrix<a class="headerlink" href="#v1-comparison-matrix" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Fact</p></th>
+<th class="head"><p>V1 classification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>free cash</p></td>
+<td><p>COMPARABLE</p></td>
+</tr>
+<tr class="row-odd"><td><p>open-position count</p></td>
+<td><p>COMPARABLE</p></td>
+</tr>
+<tr class="row-even"><td><p>open trade identity</p></td>
+<td><p>COMPARABLE</p></td>
+</tr>
+<tr class="row-odd"><td><p>symbol / side / principal / entry price</p></td>
+<td><p>COMPARABLE</p></td>
+</tr>
+<tr class="row-even"><td><p>entry fee</p></td>
+<td><p>COMPARABLE only when legacy fee evidence is complete</p></td>
+</tr>
+<tr class="row-odd"><td><p>restored unknown entry fee</p></td>
+<td><p>UNRESOLVED</p></td>
+</tr>
+<tr class="row-even"><td><p>reserved principal</p></td>
+<td><p>PARTIAL (legacy is explicit derivation from live positions)</p></td>
+</tr>
+<tr class="row-odd"><td><p>epoch realized PnL vs legacy session realized PnL</p></td>
+<td><p>PARTIAL</p></td>
+</tr>
+<tr class="row-even"><td><p>cumulative fees</p></td>
+<td><p>UNRESOLVED</p></td>
+</tr>
+<tr class="row-odd"><td><p>closed count epoch vs current session</p></td>
+<td><p>PARTIAL</p></td>
+</tr>
+<tr class="row-even"><td><p>exit price</p></td>
+<td><p>COMPARABLE when the same close exists in both live evidence sets</p></td>
+</tr>
+<tr class="row-odd"><td><p>exit fee</p></td>
+<td><p>UNRESOLVED on legacy side</p></td>
+</tr>
+<tr class="row-even"><td><p>per-trade realized PnL</p></td>
+<td><p>PARTIAL; PPL has no per-trade realized map in V1</p></td>
+</tr>
+<tr class="row-odd"><td><p>unrealized PnL with open positions</p></td>
+<td><p>UNRESOLVED in V1</p></td>
+</tr>
+<tr class="row-even"><td><p>unrealized PnL with zero open positions</p></td>
+<td><p>COMPARABLE zero</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code> applies throughout.</p>
+</section>
+<section id="known-accounting-divergence">
+<h2>7. Known accounting divergence<a class="headerlink" href="#known-accounting-divergence" title="Link to this heading">¶</a></h2>
+<p>Legacy MEXC_SIM debits <code class="docutils literal notranslate"><span class="pre">principal</span> <span class="pre">+</span> <span class="pre">entry_fee</span></code> on OPEN and later credits
+<code class="docutils literal notranslate"><span class="pre">principal</span> <span class="pre">+</span> <span class="pre">pnl_usd</span></code>, while legacy <code class="docutils literal notranslate"><span class="pre">pnl_usd</span></code> already includes the entry
+fee. PPL debits the entry fee once from cash and includes it in realized-PnL
+reporting without re-debiting cash on CLOSE.</p>
+<p>Therefore free-cash divergence after closes is expected scientific evidence.
+WEB-02 must display it and must not normalize it away.</p>
+</section>
+<section id="ppl-lifecycle-states">
+<h2>8. PPL lifecycle states<a class="headerlink" href="#ppl-lifecycle-states" title="Link to this heading">¶</a></h2>
+<section id="active">
+<h3>ACTIVE<a class="headerlink" href="#active" title="Link to this heading">¶</a></h3>
+<p>Comparison rows may be emitted from the current PPL projection.</p>
+</section>
+<section id="off">
+<h3>OFF<a class="headerlink" href="#off" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">comparison_available=false</span></code>. No convergence is inferred.</p>
+</section>
+<section id="waiting-clean-boundary-degraded">
+<h3>WAITING_CLEAN_BOUNDARY / DEGRADED<a class="headerlink" href="#waiting-clean-boundary-degraded" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">comparison_available=false</span></code>. Existing PPL raw event provenance may be shown,
+but comparator rows are withheld rather than presenting a stale/degraded
+projection as converged.</p>
+</section>
+</section>
+<section id="artifact-contract">
+<h2>9. Artifact contract<a class="headerlink" href="#artifact-contract" title="Link to this heading">¶</a></h2>
+<p>Product: <code class="docutils literal notranslate"><span class="pre">PPLComparator</span></code>
+Domain: <code class="docutils literal notranslate"><span class="pre">ppl_comparison</span></code>
+Mode: <code class="docutils literal notranslate"><span class="pre">SHADOW_COMPARISON</span></code>
+Authority: <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code>
+Schema: <code class="docutils literal notranslate"><span class="pre">1.0.0</span></code></p>
+<p>The artifact carries:</p>
+<ul class="simple">
+<li><p>generated timestamp;</p></li>
+<li><p>process/cycle/source SHA;</p></li>
+<li><p>SHADOW status and epoch;</p></li>
+<li><p>explicit comparison availability;</p></li>
+<li><p>source authority/provenance;</p></li>
+<li><p>summary counts;</p></li>
+<li><p>comparison records;</p></li>
+<li><p>open/closed trade identity groupings;</p></li>
+<li><p>durable PPL event provenance.</p></li>
+</ul>
+<p>The reader uses a closed-schema admission gate. Unknown top-level or comparison
+fields are rejected.</p>
+</section>
+<section id="failure-isolation">
+<h2>10. Failure isolation<a class="headerlink" href="#failure-isolation" title="Link to this heading">¶</a></h2>
+<p>The comparison sidecar is invoked from the already-certified passive
+<code class="docutils literal notranslate"><span class="pre">OperatorSnapshotWriter</span></code> boundary.</p>
+<p>Its failure:</p>
+<ul class="simple">
+<li><p>is caught independently;</p></li>
+<li><p>increments a dedicated comparison write-error counter;</p></li>
+<li><p>never invalidates an already-written canonical operator snapshot;</p></li>
+<li><p>never propagates into the advisor loop;</p></li>
+<li><p>never changes PAPER/PPL state.</p></li>
+</ul>
+</section>
+<section id="ui-contract">
+<h2>11. UI contract<a class="headerlink" href="#ui-contract" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">PPL</span> <span class="pre">Compare</span></code> tab is independent from the canonical snapshot, analogous
+to MARKET.</p>
+<p>The UI:</p>
+<ul class="simple">
+<li><p>shows raw Legacy and PPL values side-by-side;</p></li>
+<li><p>shows producer-authored relation/classification/delta;</p></li>
+<li><p>exposes provenance;</p></li>
+<li><p>presents PARTIAL/UNRESOLVED explicitly;</p></li>
+<li><p>does not label equality as “good” or divergence as “bad”;</p></li>
+<li><p>does not recompute accounting;</p></li>
+<li><p>remains responsive on desktop/tablet/phone.</p></li>
+</ul>
+</section>
+<section id="exit-boundary">
+<h2>12. Exit boundary<a class="headerlink" href="#exit-boundary" title="Link to this heading">¶</a></h2>
+<p>WEB-02 certification permits observation only.</p>
+<p>It does <strong>not</strong>:</p>
+<ul class="simple">
+<li><p>promote PPL to PAPER authority;</p></li>
+<li><p>authorize PPL-02E;</p></li>
+<li><p>start F-00;</p></li>
+<li><p>authorize burn-in;</p></li>
+<li><p>authorize live trading.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">WEB-02 — PPL Comparator Contract</a><ul>
+<li><a class="reference internal" href="#purpose">1. Purpose</a></li>
+<li><a class="reference internal" href="#authority">2. Authority</a></li>
+<li><a class="reference internal" href="#process-boundary">3. Process boundary</a></li>
+<li><a class="reference internal" href="#comparison-vocabulary">4. Comparison vocabulary</a><ul>
+<li><a class="reference internal" href="#classification">Classification</a></li>
+<li><a class="reference internal" href="#relation">Relation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#numeric-rule">5. Numeric rule</a></li>
+<li><a class="reference internal" href="#v1-comparison-matrix">6. V1 comparison matrix</a></li>
+<li><a class="reference internal" href="#known-accounting-divergence">7. Known accounting divergence</a></li>
+<li><a class="reference internal" href="#ppl-lifecycle-states">8. PPL lifecycle states</a><ul>
+<li><a class="reference internal" href="#active">ACTIVE</a></li>
+<li><a class="reference internal" href="#off">OFF</a></li>
+<li><a class="reference internal" href="#waiting-clean-boundary-degraded">WAITING_CLEAN_BOUNDARY / DEGRADED</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#artifact-contract">9. Artifact contract</a></li>
+<li><a class="reference internal" href="#failure-isolation">10. Failure isolation</a></li>
+<li><a class="reference internal" href="#ui-contract">11. UI contract</a></li>
+<li><a class="reference internal" href="#exit-boundary">12. Exit boundary</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
