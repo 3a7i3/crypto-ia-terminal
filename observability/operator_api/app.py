@@ -32,11 +32,17 @@ from observability.operator_api.market_reader import (
     MarketSnapshotReader,
 )
 from observability.operator_api.paths import DEFAULT_MANIFEST_PATH, DEFAULT_SNAPSHOT_PATH
+from observability.operator_api.ppl_comparison_reader import (
+    DEFAULT_PPL_COMPARISON_PATH,
+    DEFAULT_STALE_AFTER_S as DEFAULT_PPL_COMPARISON_STALE_AFTER_S,
+    PplComparisonReadResult,
+    PplComparisonSnapshotReader,
+)
 from observability.operator_api.reader import SafeSnapshotReader, SnapshotReadResult
 
 app = FastAPI(
     title="Crypto AI Terminal — Operator API (read-only)",
-    version="0.2.0",
+    version="0.3.0",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -48,6 +54,7 @@ app = FastAPI(
 
 _reader = SafeSnapshotReader()
 _market_reader = MarketSnapshotReader()
+_ppl_comparison_reader = PplComparisonSnapshotReader()
 
 
 def configure_reader(
@@ -92,6 +99,26 @@ def get_market_reader() -> MarketSnapshotReader:
     return _market_reader
 
 
+def configure_ppl_comparison_reader(
+    path: Path = DEFAULT_PPL_COMPARISON_PATH,
+    *,
+    stale_after_s: float = DEFAULT_PPL_COMPARISON_STALE_AFTER_S,
+    now_fn=None,
+) -> PplComparisonSnapshotReader:
+    """Replace the WEB-02 artifact reader without touching trading state."""
+
+    global _ppl_comparison_reader
+    kwargs: Dict[str, Any] = {"stale_after_s": stale_after_s}
+    if now_fn is not None:
+        kwargs["now_fn"] = now_fn
+    _ppl_comparison_reader = PplComparisonSnapshotReader(path=path, **kwargs)
+    return _ppl_comparison_reader
+
+
+def get_ppl_comparison_reader() -> PplComparisonSnapshotReader:
+    return _ppl_comparison_reader
+
+
 def _envelope(result: SnapshotReadResult) -> Dict[str, Any]:
     snap = result.snapshot or {}
     return {
@@ -119,6 +146,18 @@ def _failure_response(result: SnapshotReadResult) -> JSONResponse:
 
 
 def _market_failure_response(result: MarketReadResult) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error_code": result.error_code,
+            "error_message": result.error_message,
+        },
+    )
+
+
+def _ppl_comparison_failure_response(
+    result: PplComparisonReadResult,
+) -> JSONResponse:
     return JSONResponse(
         status_code=503,
         content={
@@ -197,6 +236,24 @@ def get_system_health() -> Any:
     return _domain_projection("system_health")
 
 
+@app.get("/api/operator/v1/ppl-comparison")
+def get_ppl_comparison() -> Any:
+    """Return only the validated WEB-02 comparison artifact.
+
+    The API does not import PPL projection code, MexcSimulator, or trading
+    ledgers. It transports the producer-authored atomic artifact only.
+    """
+
+    result = get_ppl_comparison_reader().read()
+    if not result.ok:
+        return _ppl_comparison_failure_response(result)
+
+    payload = dict(result.snapshot or {})
+    payload["snapshot_age_s"] = result.snapshot_age_s
+    payload["freshness_classification"] = result.freshness_classification
+    return payload
+
+
 @app.get("/api/operator/v1/market")
 def get_market() -> Any:
     """Return only the validated CryptoRadar presentation artifact.
@@ -221,4 +278,6 @@ __all__ = [
     "get_reader",
     "configure_market_reader",
     "get_market_reader",
+    "configure_ppl_comparison_reader",
+    "get_ppl_comparison_reader",
 ]
