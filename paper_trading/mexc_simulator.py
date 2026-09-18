@@ -876,6 +876,10 @@ class MexcSimulator:
         personality: str = "unknown",
     ) -> MexcOrder:
         """Ordre LIMIT : en attente jusqu'à ce que le prix atteigne limit_price."""
+        if self._lifecycle_authority.ppl_is_authoritative:
+            order = self._make_rejected_stub(symbol)
+            self._notify(f"[SIM] REJETE {symbol} — LIMIT non certifie sous PPL_AUTHORITY")
+            return order
         authority_reject = self._reject_legacy_mutation_under_ppl_authority(symbol)
         if authority_reject is not None:
             return authority_reject
@@ -915,6 +919,10 @@ class MexcSimulator:
         personality: str = "unknown",
     ) -> MexcOrder:
         """Ordre STOP_LIMIT : déclenché sur stop_price, exécuté à limit_price."""
+        if self._lifecycle_authority.ppl_is_authoritative:
+            order = self._make_rejected_stub(symbol)
+            self._notify(f"[SIM] REJETE {symbol} — STOP_LIMIT non certifie sous PPL_AUTHORITY")
+            return order
         authority_reject = self._reject_legacy_mutation_under_ppl_authority(symbol)
         if authority_reject is not None:
             return authority_reject
@@ -944,7 +952,83 @@ class MexcSimulator:
 
     # ── Exécution interne ─────────────────────────────────────────────────────
 
+    def _fill_market_ppl_authority(self, order: MexcOrder, price: float) -> MexcOrder:
+        """Durable-first MARKET OPEN for authoritative PPL."""
+        with self._lock:
+            if order.symbol in self._positions:
+                order.status = OrderStatus.REJECTED
+                self._notify(f"[SIM] REJETE — position deja ouverte sur {order.symbol}")
+                return order
+            size = min(
+                order.qty_usd or (self._capital * _POSITION_SIZE_PCT),
+                _MAX_POSITION_USD,
+            )
+            if size < 1.0 or self._capital < size * 1.01:
+                order.status = OrderStatus.REJECTED
+                self._notify(
+                    f"[SIM] REJETE — capital insuffisant "
+                    f"(dispo=${self._capital:.2f}, requis=${size:.2f})"
+                )
+                return order
+            slip = price * _SLIPPAGE
+            fill = price + slip if order.side == OrderSide.BUY else price - slip
+            fee = size * _TAKER_FEE
+            if order.side == OrderSide.BUY:
+                tp = fill * (1 + order.tp_pct)
+                sl = fill * (1 - order.sl_pct)
+            else:
+                tp = fill * (1 - order.tp_pct)
+                sl = fill * (1 + order.sl_pct)
+            opened_at = time.time()
+            timeout_at = opened_at + (_MAX_POSITION_AGE_H * 3600.0)
+            recovery_until = timeout_at + _RESTORE_MAX_AGE_S
+            self._authority_runtime.commit_open(
+                trade_id=order.order_id,
+                symbol=order.symbol,
+                side=order.side.value,
+                principal=size,
+                entry_price=fill,
+                entry_fee=fee,
+                opened_at=opened_at,
+                tp_price=tp,
+                sl_price=sl,
+                timeout_at=timeout_at,
+                recovery_eligible_until=recovery_until,
+                decision_id=order.decision_id,
+            )
+            authority_state = self._authority_runtime.consistent_view().projection
+            pos = MexcPosition(
+                pos_id=order.order_id,
+                symbol=order.symbol,
+                side=order.side,
+                qty_usd=size,
+                entry_price=fill,
+                tp_price=tp,
+                sl_price=sl,
+                fee_entry_usd=fee,
+                score=order.score,
+                personality=order.personality,
+                regime=order.regime,
+                opened_ts=opened_at,
+                decision_id=order.decision_id,
+                timeout_at=timeout_at,
+                recovery_eligible_until=recovery_until,
+            )
+            self._positions[order.symbol] = pos
+            self._capital = authority_state.available_cash
+            order.fill_price = fill
+            order.fill_ts = opened_at
+            order.status = OrderStatus.FILLED
+            self._legacy_generation += 1
+        try:
+            self._authority_runtime.sync_compatibility()
+        except Exception as exc:
+            _log.warning("[SIM][PPL-02E-R4] compatibility OPEN sync failed: %s", exc)
+        return order
+
     def _fill_market(self, order: MexcOrder, price: float) -> MexcOrder:
+        if self._lifecycle_authority.ppl_is_authoritative:
+            return self._fill_market_ppl_authority(order, price)
         with self._lock:
             if order.symbol in self._positions:
                 order.status = OrderStatus.REJECTED
@@ -1122,14 +1206,15 @@ class MexcSimulator:
                 pos = self._positions.get(sym)
             if pos is None:
                 continue
-            age_h = (time.time() - pos.opened_ts) / 3600
-            if age_h >= _MAX_POSITION_AGE_H:
-                _log.info(
-                    "[SIM] TIMEOUT %s — ouverte depuis %.1fh (max %.1fh)",
-                    sym,
-                    age_h,
-                    _MAX_POSITION_AGE_H,
-                )
+            now = time.time()
+            age_h = (now - pos.opened_ts) / 3600
+            timeout_due = (
+                now >= pos.timeout_at
+                if pos.timeout_at is not None
+                else age_h >= _MAX_POSITION_AGE_H
+            )
+            if timeout_due:
+                _log.info("[SIM] TIMEOUT %s — ouverte depuis %.1fh", sym, age_h)
                 self._close_position(sym, price, "TIMEOUT")
                 continue
             live = pos.live_pnl_pct(price)
@@ -1166,7 +1251,49 @@ class MexcSimulator:
                 with self._lock:
                     self._orders.pop(order.order_id, None)
 
+    def _close_position_ppl_authority(
+        self, symbol: str, exit_price: float, reason: str
+    ) -> None:
+        """Durable-first CLOSE for authoritative PPL."""
+        with self._lock:
+            pos = self._positions.get(symbol)
+            if pos is None:
+                return
+            slip = exit_price * _SLIPPAGE
+            fill = exit_price - slip if pos.side == OrderSide.BUY else exit_price + slip
+            fee = pos.qty_usd * _TAKER_FEE
+            closed_at = time.time()
+            self._authority_runtime.commit_close(
+                trade_id=pos.pos_id,
+                exit_price=fill,
+                exit_fee=fee,
+                closed_at=closed_at,
+                decision_id=pos.decision_id,
+            )
+            authority_state = self._authority_runtime.consistent_view().projection
+            if pos.side == OrderSide.BUY:
+                gross_pct = (fill - pos.entry_price) / pos.entry_price
+            else:
+                gross_pct = (pos.entry_price - fill) / pos.entry_price
+            pnl_usd = pos.qty_usd * gross_pct - fee - pos.fee_entry_usd
+            pos.exit_price = fill
+            pos.closed_ts = closed_at
+            pos.pnl_usd = pnl_usd
+            pos.pnl_pct = gross_pct * 100.0
+            pos.close_reason = reason
+            self._positions.pop(symbol, None)
+            self._closed.append(pos)
+            self._capital = authority_state.available_cash
+            self._legacy_generation += 1
+        try:
+            self._authority_runtime.sync_compatibility()
+        except Exception as exc:
+            _log.warning("[SIM][PPL-02E-R4] compatibility CLOSE sync failed: %s", exc)
+
     def _close_position(self, symbol: str, exit_price: float, reason: str) -> None:
+        if self._lifecycle_authority.ppl_is_authoritative:
+            self._close_position_ppl_authority(symbol, exit_price, reason)
+            return
         with self._lock:
             pos = self._positions.pop(symbol, None)
             # WEB-02 — the position is gone from _positions but capital/
