@@ -188,3 +188,34 @@ def test_reader_rejects_non_contiguous_ppl_event_sequence(tmp_path):
     result = PplComparisonSnapshotReader(path, now_fn=lambda: 100.0).read()
     assert not result.ok
     assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
+
+
+
+def test_reader_rejects_unknown_ppl_event_payload_field(tmp_path):
+    doc = _doc()
+    doc["shadow_status"] = "ACTIVE"
+    doc["paper_epoch_id"] = "epoch-1"
+    doc["comparison_available"] = True
+    doc["comparison_unavailable_reason"] = None
+    doc["ppl_events"] = [
+        {
+            "event_id": "birth-1",
+            "sequence": 1,
+            "event_type": "EPOCH_CREATED",
+            "trade_id": None,
+            "decision_id": None,
+            "timestamp": 1.0,
+            "payload": {
+                "initial_virtual_capital": 10.0,
+                "code_sha": "a" * 40,
+                "config_snapshot_hash": "b" * 64,
+                "invented_finance": 123,
+            },
+        }
+    ]
+    path = tmp_path / "comparison.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+    result = PplComparisonSnapshotReader(path, now_fn=lambda: 100.0).read()
+    assert not result.ok
+    assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
