@@ -2,8 +2,8 @@
 
 Status: **SOURCE IMPLEMENTATION CANDIDATE**
 
-Parent: #180  
-Mission issue: #184  
+Parent: #180
+Mission issue: #184
 Baseline: `main@1a3d1df896613e3867b57aff8b8cc9c9fdb0bf80`
 
 ## Purpose
