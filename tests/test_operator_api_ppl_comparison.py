@@ -94,3 +94,17 @@ def test_get_route_missing_artifact_is_honest_503(tmp_path):
     assert response.json()["error_code"] == (
         "PPL_COMPARISON_SNAPSHOT_MISSING"
     )
+
+
+def test_reader_rejects_invented_nested_authority_provenance(tmp_path):
+    doc = _doc()
+    doc["legacy_source"]["invented_authority_hint"] = "TRUST_ME"
+    path = tmp_path / "comparison.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+    result = PplComparisonSnapshotReader(
+        path,
+        now_fn=lambda: 100.0,
+    ).read()
+    assert not result.ok
+    assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
