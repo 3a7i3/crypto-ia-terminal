@@ -3671,8 +3671,9 @@ def main(
         "yes",
     }
 
-    _paper_lifecycle_authority = _bootstrap_paper_lifecycle_authority(
-        _paper_trading_enabled)
+    _paper_lifecycle_authority, _ppl_authority_runtime = (
+        _bootstrap_paper_lifecycle_authority(_paper_trading_enabled)
+    )
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
     prewarm_1h_enabled = ADVISOR_PREWARM_1H
     prewarm_mtf_enabled = ADVISOR_PREWARM_MTF and not startup_light
@@ -5732,32 +5733,32 @@ def main(
             _mexc_reader_sim = _MexcReaderCls()
             _vp_tg_fn = _telegram_alert.info if _telegram_alert else None
 
-            # PPL-02D — optional, default-OFF SHADOW observer. Only
-            # constructed inside this MEXC_SIM/PAPER bootstrap path; both
-            # PPL_SHADOW_MANIFEST and PPL_SHADOW_STORE_ROOT must be set
-            # explicitly. Absent/partial/invalid config: SHADOW OFF, legacy
-            # MEXC_SIM still starts normally with shadow_observer=None.
+            # SHADOW and authority runtimes are mutually exclusive.
             _ppl_shadow_observer = None
-            try:
-                from paper_trading.ppl_shadow import build_shadow_runtime_from_env
+            if not _paper_lifecycle_authority.ppl_is_authoritative:
+                try:
+                    from paper_trading.ppl_shadow import build_shadow_runtime_from_env
 
-                _ppl_shadow_observer = build_shadow_runtime_from_env()
-            except Exception as _ppl_shadow_exc:
-                log.warning(
-                    "[SIM][PPL-02D] shadow runtime config invalide — SHADOW OFF: %s",
-                    _ppl_shadow_exc,
-                )
-                _ppl_shadow_observer = None
-
+                    _ppl_shadow_observer = build_shadow_runtime_from_env()
+                except Exception as _ppl_shadow_exc:
+                    log.warning(
+                        "[SIM][PPL-02D] shadow runtime config invalide — SHADOW OFF: %s",
+                        _ppl_shadow_exc,
+                    )
+                    _ppl_shadow_observer = None
             _virtual_portfolio = _SimCls(
                 mexc_reader=_mexc_reader_sim,
                 telegram_fn=_vp_tg_fn,
                 shadow_observer=_ppl_shadow_observer,
                 lifecycle_authority=_paper_lifecycle_authority,
+                authority_runtime=_ppl_authority_runtime,
             )
             _virtual_portfolio.start()
             log.info("[SIM] MexcSimulator initialise")
         except Exception as _vp_exc:
+            if _paper_lifecycle_authority.ppl_is_authoritative:
+                log.critical("[SIM][PPL-02E-R4] authority startup failed: %s", _vp_exc)
+                raise
             log.warning("[SIM] Non disponible: %s", _vp_exc)
 
     # P6 — Adaptive Core
@@ -6021,8 +6022,13 @@ def main(
                         scientific_capital
                         * float(os.getenv("V9_MAX_POSITION_WEIGHT", "0.05")),
                     )
-            except Exception:
-                pass
+            except Exception as _capital_exc:
+                if _paper_lifecycle_authority.ppl_is_authoritative:
+                    log.critical(
+                        "[PPL-02E-R4] scientific capital refresh failed closed: %s",
+                        _capital_exc,
+                    )
+                    raise
 
             # ── Runtime config — rechargement à chaud chaque cycle ────────────
             # GOUVERNANCE : GATE_MIN_SCORE_OVERRIDE et FORCE_TEST_EXECUTION sont
@@ -8656,26 +8662,29 @@ def main(
 
 
 def _bootstrap_paper_lifecycle_authority(paper_trading_enabled: bool):
-    """Resolve PAPER lifecycle authority once, before any legacy dataset gate.
-
-    R1 only establishes the authority boundary.  Until R2/R3 wire the
-    authoritative coordinator/replay/capital handoff, explicit PPL_AUTHORITY
-    must fail before DatasetGate can inspect/remediate the legacy JSONL.
-    """
+    """Resolve process-lifetime authority and bind explicit PPL epoch if selected."""
 
     from paper_trading.paper_authority import resolve_paper_lifecycle_authority
 
     authority = resolve_paper_lifecycle_authority(os.environ)
-    log.info("[PPL-02E-R1] PAPER lifecycle authority=%s", authority.value)
-    if authority.ppl_is_authoritative:
-        raise RuntimeError(
-            "PPL_AUTHORITY is not runtime-ready: PPL-02E R2/R3 coordinator "
-            "and replay/capital handoff are not wired"
-        )
-    if paper_trading_enabled:
-        _gate_paper_dataset()
-    return authority
+    log.info("[PPL-02E-R4] PAPER lifecycle authority=%s", authority.value)
+    authority_runtime = None
 
+    if authority.ppl_is_authoritative:
+        if not paper_trading_enabled:
+            raise RuntimeError("PPL_AUTHORITY requires PAPER_TRADING_ENABLED=true")
+        from paper_trading.ppl_authority_runtime import (
+            build_authority_runtime_from_env,
+        )
+
+        authority_runtime = build_authority_runtime_from_env()
+        # Explicit PPL_AUTHORITY is the only condition allowed to create/replay
+        # the transition epoch. Failure is fatal; there is no legacy fallback.
+        authority_runtime.bind(now=time.time())
+    elif paper_trading_enabled:
+        _gate_paper_dataset()
+
+    return authority, authority_runtime
 
 def _op_legacy_first_blocker(result: dict[str, Any]) -> str | None:
     """Project the canonical legacy first blocker for operator telemetry.
