@@ -3682,6 +3682,16 @@ def main(
         _paper_lifecycle_authority.value,
     )
 
+    # R1 safety barrier: the authoritative PPL coordinator/replay/capital
+    # handoff is introduced only by R2/R3.  Until then, an operator selecting
+    # PPL_AUTHORITY must fail before the legacy DatasetGate can inspect or
+    # rewrite paper_trades.jsonl and before any legacy restore can run.
+    if _paper_lifecycle_authority.ppl_is_authoritative:
+        raise RuntimeError(
+            "PPL_AUTHORITY is not runtime-ready: PPL-02E R2/R3 coordinator "
+            "and replay/capital handoff are not wired"
+        )
+
     if _paper_trading_enabled:
         _gate_paper_dataset()
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
