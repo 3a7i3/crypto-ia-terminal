@@ -230,6 +230,14 @@ class TradeEvent:
     # fabricated, but must never be presented as fully-evidenced when this
     # is True: the entry-fee term in it is an assumption, not evidence.
     pnl_fee_evidence_incomplete: bool = False
+    # PPL-02E-R3 compatibility provenance. Empty on historical legacy rows.
+    source_authority: str = ""
+    paper_epoch_id: str = ""
+    ppl_event_id: str = ""
+    projection_id: str = ""
+    projection_schema_version: int = 0
+    evidence_status: str = ""
+    missing_evidence_fields: str = ""
 
 
 @dataclass
@@ -272,6 +280,14 @@ class CompleteTrade:
     # Schema v5 (REM-C R1.2) — see TradeEvent. True = this trade's realized
     # pnl_usd/pnl_pct used an assumed (not evidenced) entry fee.
     pnl_fee_evidence_incomplete: bool = False
+    # PPL-02E-R3 provenance propagated from compatibility events when present.
+    source_authority: str = ""
+    paper_epoch_id: str = ""
+    open_ppl_event_id: str = ""
+    close_ppl_event_id: str = ""
+    open_projection_id: str = ""
+    close_projection_id: str = ""
+    evidence_status: str = ""
 
 
 # ── Recorder ─────────────────────────────────────────────────────────────────
@@ -459,6 +475,11 @@ class PaperTradeRecorder:
                 tp_price=op.tp_price,
                 sl_price=op.sl_price,
                 fee_entry_usd=op.fee_entry_usd,
+                source_authority=op.source_authority,
+                paper_epoch_id=op.paper_epoch_id,
+                open_ppl_event_id=op.ppl_event_id,
+                open_projection_id=op.projection_id,
+                evidence_status=op.evidence_status,
             )
             if cl:
                 ct.exit_price = cl.exit_price
@@ -477,6 +498,14 @@ class PaperTradeRecorder:
                 ct.mae_pct = cl.mae_pct
                 ct.mfe_pct = cl.mfe_pct
                 ct.pnl_fee_evidence_incomplete = cl.pnl_fee_evidence_incomplete
+                if cl.source_authority:
+                    ct.source_authority = cl.source_authority
+                if cl.paper_epoch_id:
+                    ct.paper_epoch_id = cl.paper_epoch_id
+                ct.close_ppl_event_id = cl.ppl_event_id
+                ct.close_projection_id = cl.projection_id
+                if cl.evidence_status:
+                    ct.evidence_status = cl.evidence_status
             result.append(ct)
 
         # CLOSE orphelins (sans OPEN correspondant — cas VPS décalé)
@@ -506,6 +535,11 @@ class PaperTradeRecorder:
                     mae_pct=cl.mae_pct,
                     mfe_pct=cl.mfe_pct,
                     pnl_fee_evidence_incomplete=cl.pnl_fee_evidence_incomplete,
+                    source_authority=cl.source_authority,
+                    paper_epoch_id=cl.paper_epoch_id,
+                    close_ppl_event_id=cl.ppl_event_id,
+                    close_projection_id=cl.projection_id,
+                    evidence_status=cl.evidence_status,
                 )
                 result.append(ct)
 
