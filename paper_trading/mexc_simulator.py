@@ -1176,11 +1176,6 @@ class MexcSimulator:
             else "—"
         )
         icon = "TP atteint" if reason == "TP" else "SL touche"
-        sl_efficiency = (
-            f"{pos.mae_pct / pos.sl_pct_used * 100:.0f}%"
-            if hasattr(pos, "sl_pct_used") and pos.sl_pct_used
-            else "—"
-        )
         self._notify(
             f"MEXC SIM — {icon}\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
