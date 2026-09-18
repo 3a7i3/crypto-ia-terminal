@@ -419,12 +419,18 @@ class MexcSimulator:
         self._running = False
 
     def _restore_positions(self) -> int:
-        """Restaure les positions OPEN sans CLOSE depuis paper_trades.jsonl.
+        """Restore legacy positions only while legacy remains lifecycle authority.
 
-        Les positions trop anciennes (> SIM_RESTORE_MAX_AGE_H) sont expirées :
-        un événement CLOSE est écrit dans le ledger avec reason='expired_on_restore'
-        pour qu'elles ne soient plus jamais restaurées.
+        In PPL_AUTHORITY mode, restart state must come from replay-complete PPL
+        events (R2). Reading paper_trades.jsonl here would silently recreate a
+        second recovery authority, so the legacy restore path is disabled.
         """
+        if self._lifecycle_authority.ppl_is_authoritative:
+            _log.info(
+                "[SIM][PPL-02E-R3] legacy JSONL restore disabled under PPL_AUTHORITY"
+            )
+            return 0
+
         try:
             from paper_trading.recorder import get_recorder
 
