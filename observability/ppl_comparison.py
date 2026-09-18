@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
@@ -24,6 +25,15 @@ NUMERIC_ABS_TOL = 1e-9
 
 _COMPARISON_CLASSES = {"COMPARABLE", "PARTIAL", "UNRESOLVED"}
 _SHADOW_STATUSES = {"OFF", "WAITING_CLEAN_BOUNDARY", "ACTIVE", "DEGRADED"}
+
+# A legacy mutation and its downstream PPL observation are deliberately not one
+# shared transaction. WEB-02 therefore publishes only after two consecutive
+# legacy+PPL source-pair captures are byte-semantically stable. This prevents a
+# mid-transition observation from being materialized as a durable divergence,
+# while a persistent divergence remains visible. The guard is bounded so the
+# observer can never stall the advisor loop indefinitely.
+_SOURCE_STABILITY_ATTEMPTS = 4
+_SOURCE_STABILITY_SLEEP_S = 0.025
 
 
 def _iso_utc(ts: float) -> str:
@@ -301,6 +311,49 @@ def _snapshot_ppl(simulator: Any) -> Dict[str, Any]:
     }
 
 
+def _source_pair_fingerprint(
+    legacy: Dict[str, Any],
+    ppl: Dict[str, Any],
+) -> str:
+    payload = json.dumps(
+        {"legacy": legacy, "ppl": ppl},
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _snapshot_sources_consistently(simulator: Any) -> tuple[Dict[str, Any], Dict[str, Any]]:
+    """Return one bounded, stable legacy+PPL source pair.
+
+    MEXC_SIM applies its authoritative mutation before invoking the passive PPL
+    observer. A comparator read can therefore land inside that short hand-off
+    window. Publishing such a pair would turn scheduling latency into a false
+    durable divergence. Two consecutive identical captures are required. A
+    genuinely persistent divergence is stable and is still published exactly
+    as observed. Continuous movement fails passively at the sidecar writer.
+    """
+
+    legacy = _snapshot_legacy(simulator)
+    ppl = _snapshot_ppl(simulator)
+    fingerprint = _source_pair_fingerprint(legacy, ppl)
+
+    for _ in range(_SOURCE_STABILITY_ATTEMPTS - 1):
+        time.sleep(_SOURCE_STABILITY_SLEEP_S)
+        next_legacy = _snapshot_legacy(simulator)
+        next_ppl = _snapshot_ppl(simulator)
+        next_fingerprint = _source_pair_fingerprint(next_legacy, next_ppl)
+        if next_fingerprint == fingerprint:
+            return next_legacy, next_ppl
+        legacy, ppl, fingerprint = next_legacy, next_ppl, next_fingerprint
+
+    raise RuntimeError(
+        "WEB-02 source pair changed during bounded coherent capture; "
+        "comparison artifact withheld"
+    )
+
+
 def _presence(legacy_present: bool, ppl_present: bool) -> str:
     if legacy_present and ppl_present:
         return "BOTH"
@@ -338,8 +391,7 @@ def build_ppl_comparison_snapshot(
     source_sha: Optional[str],
     now_fn: Callable[[], float],
 ) -> Dict[str, Any]:
-    legacy = _snapshot_legacy(simulator)
-    ppl = _snapshot_ppl(simulator)
+    legacy, ppl = _snapshot_sources_consistently(simulator)
     status = ppl["status"]
     projection = ppl["projection"]
     epoch_id = ppl["paper_epoch_id"]
