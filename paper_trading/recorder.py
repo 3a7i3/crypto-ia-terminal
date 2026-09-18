@@ -1,8 +1,10 @@
 """
-paper_trading/recorder.py — Journal de trades paper unique et portable.
+paper_trading/recorder.py — Journal de trades paper portable.
 
-Source de vérité pour tous les trades paper/futures_demo exécutés.
-Fonctionne en local ET sur VPS — format JSONL append-only.
+En LEGACY_AUTHORITY/PPL_SHADOW, ce JSONL conserve son rôle historique.
+En PPL_AUTHORITY (PPL-02E-R3), il devient une projection de compatibilité /
+recherche dérivée de PPL et n'est plus une autorité de lifecycle, de restart
+ou de capital scientifique. Format append-only dans les deux cas.
 
 Chaque trade = 2 événements :
   OPEN  → enregistré à l'entrée
