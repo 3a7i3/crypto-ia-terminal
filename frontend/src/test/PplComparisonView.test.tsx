@@ -52,8 +52,8 @@ function snapshot(active = true) {
     paper_epoch_id: active ? "epoch-1" : null,
     comparison_available: active,
     comparison_unavailable_reason: active ? null : "PPL SHADOW is OFF; convergence must not be inferred.",
-    legacy_source: { source: "MEXC_SIM", authority: "PAPER_AUTHORITY" },
-    ppl_source: { source: "PPL", authority: "NONE" },
+    legacy_source: { source: "MEXC_SIM", authority: "PAPER_AUTHORITY", scope: "live_process_state" },
+    ppl_source: { source: "PPL", authority: "NONE", scope: "configured_shadow_epoch", last_error: null },
     summary: {
       total: comparisons.length,
       comparable: active ? 1 : 0,
