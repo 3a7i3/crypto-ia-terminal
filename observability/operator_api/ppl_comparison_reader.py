@@ -106,9 +106,25 @@ _RELATIONS = {
 _GROUP_RELATIONS = {"BOTH", "LEGACY_ONLY", "PPL_ONLY", "NEITHER"}
 _SHADOW_STATUSES = {"OFF", "WAITING_CLEAN_BOUNDARY", "ACTIVE", "DEGRADED"}
 _EVENT_PAYLOAD_KEYS = {
-    "EPOCH_CREATED": {"initial_virtual_capital", "code_sha", "config_snapshot_hash"},
-    "POSITION_OPENED": {"symbol", "side", "principal", "entry_price", "entry_fee"},
-    "POSITION_CLOSED": {"exit_price", "exit_fee"},
+    "EPOCH_CREATED": (
+        {"initial_virtual_capital", "code_sha", "config_snapshot_hash"},
+    ),
+    "POSITION_OPENED": (
+        {"symbol", "side", "principal", "entry_price", "entry_fee"},
+        {
+            "symbol",
+            "side",
+            "principal",
+            "entry_price",
+            "entry_fee",
+            "tp_price",
+            "sl_price",
+            "timeout_at",
+            "recovery_eligible_until",
+        },
+    ),
+    "POSITION_CLOSED": ({"exit_price", "exit_fee"},),
+    "POSITION_UNRESOLVED": ({"reason"},),
 }
 
 
@@ -249,7 +265,10 @@ def _valid_event(row: Any) -> bool:
         return False
 
     payload = row["payload"]
-    if not isinstance(payload, dict) or set(payload) != _EVENT_PAYLOAD_KEYS[event_type]:
+    if (
+        not isinstance(payload, dict)
+        or set(payload) not in _EVENT_PAYLOAD_KEYS[event_type]
+    ):
         return False
     if not _valid_json_value(payload):
         return False
@@ -264,7 +283,7 @@ def _valid_event(row: Any) -> bool:
             and bool(payload["config_snapshot_hash"])
         )
     if event_type == "POSITION_OPENED":
-        return (
+        base_valid = (
             isinstance(payload["symbol"], str)
             and bool(payload["symbol"])
             and payload["side"] in {"LONG", "SHORT"}
@@ -275,6 +294,23 @@ def _valid_event(row: Any) -> bool:
             and _finite_number(payload["entry_fee"])
             and float(payload["entry_fee"]) >= 0
         )
+        if not base_valid:
+            return False
+        if "tp_price" in payload:
+            return (
+                _finite_number(payload["tp_price"])
+                and float(payload["tp_price"]) > 0
+                and _finite_number(payload["sl_price"])
+                and float(payload["sl_price"]) > 0
+                and _finite_number(payload["timeout_at"])
+                and float(payload["timeout_at"]) > float(row["timestamp"])
+                and _finite_number(payload["recovery_eligible_until"])
+                and float(payload["recovery_eligible_until"])
+                >= float(payload["timeout_at"])
+            )
+        return True
+    if event_type == "POSITION_UNRESOLVED":
+        return isinstance(payload["reason"], str) and bool(payload["reason"])
     return (
         _finite_number(payload["exit_price"])
         and float(payload["exit_price"]) > 0
@@ -296,7 +332,7 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
         return False
     if doc["authority"] != "OBSERVATIONAL_TELEMETRY":
         return False
-    if doc["mode"] != "SHADOW_COMPARISON":
+    if doc["mode"] not in {"SHADOW_COMPARISON", "AUTHORITY_STATUS"}:
         return False
     if _parse_utc(doc["generated_at_utc"]) is None:
         return False
@@ -328,6 +364,8 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
         return False
     if doc["shadow_status"] == "ACTIVE" and not doc["paper_epoch_id"]:
         return False
+    if doc["mode"] == "AUTHORITY_STATUS" and doc["comparison_available"]:
+        return False
 
     legacy_meta = doc["legacy_source"]
     ppl_meta = doc["ppl_source"]
@@ -336,7 +374,6 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
     if (
         not isinstance(legacy_meta["source"], str)
         or not legacy_meta["source"]
-        or legacy_meta["authority"] != "PAPER_AUTHORITY"
         or not isinstance(legacy_meta["scope"], str)
         or not legacy_meta["scope"]
     ):
@@ -346,7 +383,6 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
     if (
         not isinstance(ppl_meta["source"], str)
         or not ppl_meta["source"]
-        or ppl_meta["authority"] != "NONE"
         or not isinstance(ppl_meta["scope"], str)
         or not ppl_meta["scope"]
         or (
@@ -355,6 +391,16 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
         )
     ):
         return False
+    if doc["mode"] == "SHADOW_COMPARISON":
+        if legacy_meta["authority"] != "PAPER_AUTHORITY":
+            return False
+        if ppl_meta["authority"] != "NONE":
+            return False
+    else:
+        if legacy_meta["authority"] != "NONE":
+            return False
+        if ppl_meta["authority"] != "PAPER_AUTHORITY":
+            return False
 
     summary = doc["summary"]
     if not isinstance(summary, dict) or set(summary) != _SUMMARY_KEYS:

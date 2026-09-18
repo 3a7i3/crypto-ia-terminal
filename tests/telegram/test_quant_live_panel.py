@@ -460,10 +460,12 @@ def test_confidence_label_removed(tmp_path, monkeypatch):
 
 
 def test_legacy_confidence_pct_not_read(tmp_path, monkeypatch):
-    """confidence_pct=99 in the snapshot must be ignored (we read brain_score_pct)."""
+    """confidence_pct=99 is ignored; rendered score comes from brain_score_pct=54."""
     snap = _load(tmp_path, monkeypatch)
     assert snap.mean_signal_score == 54
-    assert "99" not in render_quant_live_panel(snap)
+    panel = render_quant_live_panel(snap)
+    assert "Mean signal score 54 / 100" in panel
+    assert "confidence" not in panel.lower()
 
 
 # ── FIX 4 — health_database dropped ───────────────────────────────────────────

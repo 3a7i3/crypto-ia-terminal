@@ -457,6 +457,58 @@ def build_ppl_comparison_snapshot(
     source_sha: Optional[str],
     now_fn: Callable[[], float],
 ) -> Dict[str, Any]:
+    lifecycle_authority = getattr(simulator, "_lifecycle_authority", None)
+    if bool(getattr(lifecycle_authority, "ppl_is_authoritative", False)):
+        runtime = getattr(simulator, "_authority_runtime", None)
+        if runtime is None:
+            raise RuntimeError("PPL_AUTHORITY comparator requires authority runtime")
+        view = runtime.consistent_view()
+        events = [
+            {
+                "event_id": str(event.event_id),
+                "sequence": int(event.sequence),
+                "event_type": str(_enum_value(event.event_type)),
+                "trade_id": event.trade_id,
+                "decision_id": event.decision_id,
+                "timestamp": float(event.timestamp),
+                "payload": _json_value(dict(event.payload)),
+            }
+            for event in view.events
+        ]
+        empty_summary = _summary([])
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "product": PRODUCT,
+            "domain": DOMAIN,
+            "authority": AUTHORITY,
+            "mode": "AUTHORITY_STATUS",
+            "generated_at_utc": _iso_utc(float(now_fn())),
+            "process_instance_id": str(process_instance_id),
+            "cycle": int(cycle),
+            "source_sha": source_sha,
+            "shadow_status": "ACTIVE",
+            "paper_epoch_id": view.paper_epoch_id,
+            "comparison_available": False,
+            "comparison_unavailable_reason": (
+                "PPL is PAPER_AUTHORITY; legacy-vs-shadow comparison is disabled after cutover."
+            ),
+            "legacy_source": {
+                "source": "paper_trading.recorder.PaperTradeRecorder",
+                "authority": "NONE",
+                "scope": "compatibility_projection_only",
+            },
+            "ppl_source": {
+                "source": "paper_trading.ppl_authority_runtime.PPLAuthorityRuntime.projection",
+                "authority": "PAPER_AUTHORITY",
+                "scope": "authoritative_epoch",
+                "last_error": view.last_error,
+            },
+            "summary": empty_summary,
+            "comparisons": [],
+            "positions": [],
+            "closed_session": [],
+            "ppl_events": events,
+        }
     legacy, ppl = _snapshot_sources_consistently(simulator)
     _assert_causally_coherent(legacy, ppl)
     status = ppl["status"]

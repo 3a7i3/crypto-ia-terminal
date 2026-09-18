@@ -95,13 +95,15 @@ export function validatePplComparisonSnapshot(x: unknown): x is PplComparisonSna
   if (!obj(x)) return false;
   if (x.schema_version !== "1.0.0") return false;
   if (x.product !== "PPLComparator" || x.domain !== "ppl_comparison") return false;
-  if (x.authority !== "OBSERVATIONAL_TELEMETRY" || x.mode !== "SHADOW_COMPARISON") return false;
+  if (x.authority !== "OBSERVATIONAL_TELEMETRY") return false;
+  if (x.mode !== "SHADOW_COMPARISON" && x.mode !== "AUTHORITY_STATUS") return false;
   if (typeof x.generated_at_utc !== "string" || Number.isNaN(Date.parse(x.generated_at_utc))) return false;
   if (typeof x.process_instance_id !== "string" || !nonNegativeInt(x.cycle)) return false;
   if (!nullableString(x.source_sha) || !SHADOW.has(x.shadow_status as PplShadowStatus)) return false;
   if (!nullableString(x.paper_epoch_id) || typeof x.comparison_available !== "boolean") return false;
   if (!nullableString(x.comparison_unavailable_reason)) return false;
   if (x.comparison_available && x.shadow_status !== "ACTIVE") return false;
+  if (x.mode === "AUTHORITY_STATUS" && x.comparison_available) return false;
   if (!obj(x.legacy_source) || !obj(x.ppl_source) || !obj(x.summary)) return false;
   const legacySource = x.legacy_source;
   const pplSource = x.ppl_source;
@@ -112,18 +114,21 @@ export function validatePplComparisonSnapshot(x: unknown): x is PplComparisonSna
   if (
     typeof legacySource.source !== "string" ||
     legacySource.source.length === 0 ||
-    legacySource.authority !== "PAPER_AUTHORITY" ||
     typeof legacySource.scope !== "string" ||
     legacySource.scope.length === 0
   ) return false;
   if (
     typeof pplSource.source !== "string" ||
     pplSource.source.length === 0 ||
-    pplSource.authority !== "NONE" ||
     typeof pplSource.scope !== "string" ||
     pplSource.scope.length === 0 ||
     !nullableString(pplSource.last_error)
   ) return false;
+  if (x.mode === "SHADOW_COMPARISON") {
+    if (legacySource.authority !== "PAPER_AUTHORITY" || pplSource.authority !== "NONE") return false;
+  } else {
+    if (legacySource.authority !== "NONE" || pplSource.authority !== "PAPER_AUTHORITY") return false;
+  }
 
   const summary = x.summary;
 

@@ -51,13 +51,13 @@ export interface PplComparisonEvent {
 
 export interface PplLegacySourceMeta {
   source: string;
-  authority: "PAPER_AUTHORITY";
+  authority: "PAPER_AUTHORITY" | "NONE";
   scope: string;
 }
 
 export interface PplShadowSourceMeta {
   source: string;
-  authority: "NONE";
+  authority: "NONE" | "PAPER_AUTHORITY";
   scope: string;
   last_error: string | null;
 }
@@ -79,7 +79,7 @@ export interface PplComparisonSnapshot {
   product: "PPLComparator";
   domain: "ppl_comparison";
   authority: "OBSERVATIONAL_TELEMETRY";
-  mode: "SHADOW_COMPARISON";
+  mode: "SHADOW_COMPARISON" | "AUTHORITY_STATUS";
   generated_at_utc: string;
   process_instance_id: string;
   cycle: number;
