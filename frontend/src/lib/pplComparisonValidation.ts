@@ -103,6 +103,28 @@ export function validatePplComparisonSnapshot(x: unknown): x is PplComparisonSna
   if (!nullableString(x.comparison_unavailable_reason)) return false;
   if (x.comparison_available && x.shadow_status !== "ACTIVE") return false;
   if (!obj(x.legacy_source) || !obj(x.ppl_source) || !obj(x.summary)) return false;
+  const legacySource = x.legacy_source;
+  const pplSource = x.ppl_source;
+  const legacyKeys = Object.keys(legacySource).sort();
+  const pplKeys = Object.keys(pplSource).sort();
+  if (legacyKeys.join("|") !== ["authority", "scope", "source"].join("|")) return false;
+  if (pplKeys.join("|") !== ["authority", "last_error", "scope", "source"].join("|")) return false;
+  if (
+    typeof legacySource.source !== "string" ||
+    legacySource.source.length === 0 ||
+    legacySource.authority !== "PAPER_AUTHORITY" ||
+    typeof legacySource.scope !== "string" ||
+    legacySource.scope.length === 0
+  ) return false;
+  if (
+    typeof pplSource.source !== "string" ||
+    pplSource.source.length === 0 ||
+    pplSource.authority !== "NONE" ||
+    typeof pplSource.scope !== "string" ||
+    pplSource.scope.length === 0 ||
+    !nullableString(pplSource.last_error)
+  ) return false;
+
   const summary = x.summary;
 
   const summaryKeys = [
