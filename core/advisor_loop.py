@@ -8681,8 +8681,20 @@ def _bootstrap_paper_lifecycle_authority(paper_trading_enabled: bool):
         # Explicit PPL_AUTHORITY is the only condition allowed to create/replay
         # the transition epoch. Failure is fatal; there is no legacy fallback.
         authority_runtime.bind(now=time.time())
-    elif paper_trading_enabled:
-        _gate_paper_dataset()
+    else:
+        from paper_trading.ppl_authority_runtime import (
+            RollbackDisposition,
+            configured_rollback_disposition,
+        )
+
+        rollback = configured_rollback_disposition()
+        if rollback is RollbackDisposition.BLOCKED_RECONCILIATION_REQUIRED:
+            raise RuntimeError(
+                "rollback to non-PPL PAPER authority is blocked: authoritative "
+                "PPL lifecycle events already exist; reconciliation is required"
+            )
+        if paper_trading_enabled:
+            _gate_paper_dataset()
 
     return authority, authority_runtime
 
