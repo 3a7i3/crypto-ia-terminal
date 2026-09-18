@@ -5,8 +5,8 @@ name: Cross-Stack Compatibility Gate
 # Proves that canonical payloads generated through the actual Python producer
 # paths travel through the real read-only FastAPI routes and are accepted,
 # unchanged, by the real frontend validators/cockpit. WEB-01-MARKET extends
-# this gate with the separate CryptoRadar producer -> atomic artifact ->
-# /api/operator/v1/market -> React path. All artifacts are generated into a
+# this gate with separate observational producer -> atomic artifact -> API ->
+# React paths for CryptoRadar MARKET and WEB-02 PPL comparison. All artifacts are generated into a
 # temporary directory at run time; nothing here is a committed handwritten
 # "golden" fixture. No exchange credentials, no VPS/network deployment.
 #
@@ -68,6 +68,7 @@ jobs:
         run: |
           python -m tests.cross_stack.generate_fixtures --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_market_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_ppl_comparison_fixture --out frontend/.cross-stack-fixtures
 
       - name: Frontend cross-stack compatibility test
         working-directory: frontend
