@@ -285,7 +285,7 @@ def test_t13_malformed_event_schema_fails_closed(tmp_path, mutation):
 def test_t13_unsupported_schema_version_fails_closed(tmp_path):
     root = tmp_path / "ppl"
     record = canonical_record(epoch_created())
-    record["schema_version"] = 2
+    record["schema_version"] = 3
     write_record(epoch_path(root, EPOCH_A), record)
 
     with pytest.raises(UnsupportedSchemaVersionError):
