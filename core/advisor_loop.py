@@ -8378,8 +8378,12 @@ def main(
                             )
                         )
                 except Exception as _op_snap_exc:
-                    log.debug(
-                        "[O-02W-C] snapshot operateur echoue (non bloquant): %s",
+                    log.warning(
+                        "[O-02W-C] snapshot operateur echoue (non bloquant): "
+                        "cycle=%s process_instance_id=%s type=%s message=%s",
+                        cycle,
+                        _op_boot_coordinator.process_instance_id,
+                        type(_op_snap_exc).__name__,
                         _op_snap_exc,
                     )
 
