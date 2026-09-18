@@ -77,6 +77,14 @@
 
 .domain-badge-market .domain-dot { background: var(--market-observation); }
 
+.domain-badge-ppl {
+  color: var(--violet);
+  background: var(--violet-dim);
+  border: 1px solid rgba(167, 139, 250, 0.24);
+}
+
+.domain-badge-ppl .domain-dot { background: var(--violet); }
+
 .operator-nav {
   display: flex;
   justify-content: center;
