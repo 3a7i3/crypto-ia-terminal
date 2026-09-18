@@ -1,7 +1,7 @@
 # WEB-02 — PPL Comparator Contract
 
-Issue: #175  
-Parent governance: #148  
+Issue: #175
+Parent governance: #148
 Baseline: `main@cdedbf41fb1579feedac355cd8d1b2d0ff94ffa2`
 
 ## 1. Purpose
@@ -137,10 +137,10 @@ projection as converged.
 
 ## 9. Artifact contract
 
-Product: `PPLComparator`  
-Domain: `ppl_comparison`  
-Mode: `SHADOW_COMPARISON`  
-Authority: `OBSERVATIONAL_TELEMETRY`  
+Product: `PPLComparator`
+Domain: `ppl_comparison`
+Mode: `SHADOW_COMPARISON`
+Authority: `OBSERVATIONAL_TELEMETRY`
 Schema: `1.0.0`
 
 The artifact carries:
