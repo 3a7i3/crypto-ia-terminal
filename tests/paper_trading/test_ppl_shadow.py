@@ -368,6 +368,42 @@ def test_real_shadow_degradation_is_observable_and_stops_on_first_transition(
     assert repeated_degraded_records == []
 
 
+def test_generation_ack_only_advances_on_contiguous_prefix(tmp_path):
+    """(4) PPL arriving out of order -> the ack advances only once the
+    missing prefix generation also lands (WEB-02 causal-coherence gate)."""
+    shadow = runtime(tmp_path)
+    assert shadow.bind_legacy_state(available_capital=CAPITAL, open_positions=[])
+
+    fact_b = ShadowOpenFact(
+        trade_id="trade-B",
+        symbol="ETH/USDT",
+        side="BUY",
+        principal=5.0,
+        entry_price=50.0,
+        entry_fee=0.005,
+        timestamp=CREATED + 1,
+        legacy_generation=2,
+    )
+    assert shadow.observe_open(fact_b) is not None
+    # Generation 2 landed but 1 is still outstanding — never announced as
+    # fully acknowledged yet.
+    assert shadow.consistent_view().observed_legacy_generation == 0
+
+    fact_a = ShadowOpenFact(
+        trade_id="trade-A",
+        symbol="BTC/USDT",
+        side="BUY",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.01,
+        timestamp=CREATED + 2,
+        legacy_generation=1,
+    )
+    assert shadow.observe_open(fact_a) is not None
+    # The contiguous prefix [1, 2] is now complete.
+    assert shadow.consistent_view().observed_legacy_generation == 2
+
+
 def test_manifest_rejects_non_finite_capital(tmp_path):
     path = tmp_path / "manifest.json"
     path.write_text(

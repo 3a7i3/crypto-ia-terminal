@@ -2579,3 +2579,61 @@ def test_production_adapter_failure_is_fail_passive_through_real_adapter():
     assert portfolio["real_account_free_usd"]["semantics"] == "UNAVAILABLE"
     assert portfolio["real_account_stale"]["semantics"] == "UNAVAILABLE"
     assert portfolio["real_account_last_poll_utc"]["semantics"] == "UNKNOWN"
+
+
+# ── WEB-02 — independent comparison sidecar failure domain ────────────────
+
+
+def test_ppl_comparison_sidecar_failure_preserves_last_valid_artifact(
+    tmp_path, monkeypatch
+):
+    import observability.ppl_comparison as ppl_comparison
+
+    canonical = tmp_path / "operator_snapshot.json"
+    comparison = tmp_path / "ppl_comparison_snapshot.json"
+    writer = osb.OperatorSnapshotWriter(
+        path=canonical,
+        min_interval_s=0.0,
+        ppl_comparison_path=comparison,
+    )
+
+    class _PplAwareFakeSimulator(_FakeSimulator):
+        def __init__(self):
+            super().__init__()
+            self._shadow_observer = object()
+
+    sim = _PplAwareFakeSimulator()
+
+    def _write_valid(_sim, *, path, **_kwargs):
+        path.write_bytes(b'{"stable":"web02"}')
+        return {"stable": "web02"}
+
+    monkeypatch.setattr(
+        ppl_comparison,
+        "write_ppl_comparison_snapshot",
+        _write_valid,
+    )
+    assert writer.maybe_refresh(
+        _inputs(cycle=1, mexc_simulator=sim),
+        force=True,
+    ) is True
+    before = comparison.read_bytes()
+    assert writer.ppl_comparison_write_errors == 0
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("forced WEB-02 coherent-capture failure")
+
+    monkeypatch.setattr(
+        ppl_comparison,
+        "write_ppl_comparison_snapshot",
+        _boom,
+    )
+    assert writer.maybe_refresh(
+        _inputs(cycle=2, mexc_simulator=sim),
+        force=True,
+    ) is True
+
+    assert writer.ppl_comparison_write_errors == 1
+    assert comparison.read_bytes() == before
+    # Canonical operator publication remains an independent success path.
+    assert json.loads(canonical.read_text(encoding="utf-8"))["cycle"] == 2

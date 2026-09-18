@@ -14,9 +14,10 @@ import { PortfolioView } from "./views/PortfolioView";
 import { DecisionsView } from "./views/DecisionsView";
 import { SystemView } from "./views/SystemView";
 import { MarketView } from "./views/MarketView";
+import { PplComparisonView } from "./views/PplComparisonView";
 import { NotExposedView } from "./views/NotExposedView";
 
-type Tab = "overview" | "portfolio" | "decisions" | "system" | "market" | "scores";
+type Tab = "overview" | "portfolio" | "decisions" | "system" | "market" | "ppl" | "scores";
 
 const TABS: { id: Tab; label: string; glyph: string }[] = [
   { id: "overview", label: "Overview", glyph: "◉" },
@@ -24,6 +25,7 @@ const TABS: { id: Tab; label: string; glyph: string }[] = [
   { id: "decisions", label: "Decisions", glyph: "≡" },
   { id: "system", label: "System", glyph: "⚙" },
   { id: "market", label: "Market", glyph: "↗" },
+  { id: "ppl", label: "PPL Compare", glyph: "⇄" },
   { id: "scores", label: "Scores", glyph: "◈" },
 ];
 
@@ -43,6 +45,11 @@ const Header: React.FC<{
           <span className="domain-badge domain-badge-market" data-testid="market-domain-badge">
             <span className="domain-dot" aria-hidden="true" />
             MARKET
+          </span>
+        ) : activeTab === "ppl" ? (
+          <span className="domain-badge domain-badge-ppl" data-testid="ppl-domain-badge">
+            <span className="domain-dot" aria-hidden="true" />
+            PPL SHADOW
           </span>
         ) : (
           <ModeBadge mode={mode} />
@@ -104,6 +111,21 @@ const MarketCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) =
   );
 };
 
+const PplCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
+  if (state.status === "success") return null;
+  const summary = state.status === "loading"
+    ? "Canonical advisor context loading"
+    : state.status === "api_error"
+      ? `Canonical advisor: ${state.error.error_code ?? "UNRESOLVED"}`
+      : "Canonical advisor: DISCONNECTED";
+
+  return (
+    <div className="market-domain-context" data-testid="ppl-canonical-context">
+      {summary} · PPL comparison remains an independent observational domain.
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>("overview");
   const snapshotState = useOperatorSnapshot();
@@ -112,17 +134,24 @@ const App: React.FC = () => {
   const lastFetchedAt = snapshotState.status === "success" ? snapshotState.fetchedAt : snapshotState.lastSuccess?.fetchedAt ?? null;
   const mode = activeSnapshot?.portfolio.mode;
   const marketActive = tab === "market";
+  const pplActive = tab === "ppl";
+  const independentDomainActive = marketActive || pplActive;
 
   return (
     <div className="operator-shell">
       <Header mode={mode} lastFetchedAt={lastFetchedAt} activeTab={tab} onTabChange={setTab} />
-      {!marketActive && <SnapshotStatusBanner state={snapshotState} />}
+      {!independentDomainActive && <SnapshotStatusBanner state={snapshotState} />}
 
       <main className="operator-main">
         {marketActive ? (
           <>
             <MarketCanonicalContext state={snapshotState} />
             <MarketView />
+          </>
+        ) : pplActive ? (
+          <>
+            <PplCanonicalContext state={snapshotState} />
+            <PplComparisonView />
           </>
         ) : !activeSnapshot ? (
           <div

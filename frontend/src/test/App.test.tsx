@@ -39,6 +39,50 @@ function baseMarketSnapshot() {
   };
 }
 
+function basePplComparisonSnapshot() {
+  return {
+    schema_version: "1.0.0",
+    product: "PPLComparator",
+    domain: "ppl_comparison",
+    authority: "OBSERVATIONAL_TELEMETRY",
+    mode: "SHADOW_COMPARISON",
+    generated_at_utc: "2026-09-18T01:00:00Z",
+    process_instance_id: "proc-1",
+    cycle: 42,
+    source_sha: "a".repeat(40),
+    shadow_status: "ACTIVE",
+    paper_epoch_id: "epoch-1",
+    comparison_available: true,
+    comparison_unavailable_reason: null,
+    legacy_source: { source: "MEXC_SIM", authority: "PAPER_AUTHORITY", scope: "live_process_state" },
+    ppl_source: { source: "PPL", authority: "NONE", scope: "configured_shadow_epoch", last_error: null },
+    summary: {
+      total: 1, comparable: 1, partial: 0, unresolved: 0,
+      equal: 0, different: 1, legacy_only: 0, ppl_only: 0, not_comparable: 0,
+    },
+    comparisons: [
+      {
+        comparison_id: "web02-cash",
+        domain: "accounting",
+        field: "free_cash",
+        trade_id: null,
+        classification: "COMPARABLE",
+        relation: "DIFFERENT",
+        legacy: { value: 678.46, status: "PRESENT", provenance: "MEXC_SIM._capital" },
+        ppl: { value: 678.4625, status: "PRESENT", provenance: "PPL.projection.available_cash" },
+        delta_ppl_minus_legacy: 0.0025,
+        comparison_rule: "numeric_abs_tol_1e-9",
+        note: "raw divergence",
+      },
+    ],
+    positions: [],
+    closed_session: [],
+    ppl_events: [],
+    snapshot_age_s: 10,
+    freshness_classification: "FRESH",
+  };
+}
+
 describe("App", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -46,6 +90,7 @@ describe("App", () => {
     fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "/api/operator/v1/market") return Promise.resolve(jsonResponse(baseMarketSnapshot()));
+      if (url === "/api/operator/v1/ppl-comparison") return Promise.resolve(jsonResponse(basePplComparisonSnapshot()));
       return Promise.resolve(jsonResponse(baseSnapshot()));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -68,9 +113,21 @@ describe("App", () => {
     fireEvent.click(screen.getByTestId("tab-system"));
     expect(screen.getByTestId("system-view")).toBeInTheDocument();
 
-    // WEB-01-MARKET is the only explicit cross-process exception. None of
-    // these canonical advisor panels triggers any second per-panel request.
+    // None of these canonical advisor panels triggers an independent-domain
+    // request. MARKET and WEB-02 PPL fetch only when their tabs mount.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders WEB-02 as an independent observational domain", async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId("tab-ppl"));
+    await waitFor(() => expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Legacy PAPER"));
+    expect(screen.getByTestId("ppl-domain-badge")).toHaveTextContent("PPL SHADOW");
+    expect(screen.queryByTestId("mode-badge")).toBeNull();
+    expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("678.46");
+    expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/ppl-comparison", { method: "GET" });
   });
 
   it("renders real MARKET telemetry while Scores remains NOT_EXPOSED", async () => {

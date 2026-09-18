@@ -279,6 +279,16 @@ class MexcSimulator:
         self._orders: dict[str, MexcOrder] = {}
         self._closed: list[MexcPosition] = []
         self._lock = threading.Lock()
+        # WEB-02 causal-coherence generation (observational only — read by
+        # observability/ppl_comparison.py under self._lock, never influences
+        # trading decisions or accounting). Monotonic: incremented only after
+        # a complete OPEN or CLOSE mutation of capital/_positions/_closed.
+        # _legacy_transitions_in_flight > 0 marks the brief window in
+        # _close_position between removing the position from _positions and
+        # crediting capital/_closed — the comparator must never treat that
+        # window as a stable state.
+        self._legacy_generation: int = 0
+        self._legacy_transitions_in_flight: int = 0
         self._running = False
         self._perf = PerformanceTracker()
         # PPL-02D — optional, non-authoritative SHADOW observer. Caller
@@ -884,6 +894,12 @@ class MexcSimulator:
             order.fill_price = fill
             order.fill_ts = time.time()
             order.status = OrderStatus.FILLED
+            # WEB-02 — advance only after capital/position/order are fully
+            # mutated, still inside this same critical section: no reader
+            # holding self._lock can ever observe this generation alongside
+            # a partially-applied OPEN.
+            self._legacy_generation += 1
+            generation = self._legacy_generation
 
         try:
             from paper_trading.recorder import get_recorder
@@ -923,6 +939,7 @@ class MexcSimulator:
                         entry_fee=pos.fee_entry_usd,
                         timestamp=pos.opened_ts,
                         decision_id=pos.decision_id or None,
+                        legacy_generation=generation,
                     )
                 )
             except Exception as exc:
@@ -1053,6 +1070,13 @@ class MexcSimulator:
     def _close_position(self, symbol: str, exit_price: float, reason: str) -> None:
         with self._lock:
             pos = self._positions.pop(symbol, None)
+            # WEB-02 — the position is gone from _positions but capital/
+            # _closed below are not credited yet: mark the transition
+            # in-flight so a concurrent comparator read landing in this
+            # window (protected by the same self._lock) never treats it as
+            # a stable, causally-coherent legacy state.
+            if pos is not None:
+                self._legacy_transitions_in_flight += 1
         if pos is None:
             return
 
@@ -1077,6 +1101,13 @@ class MexcSimulator:
         with self._lock:
             self._capital += pos.qty_usd + pnl_usd
             self._closed.append(pos)
+            # WEB-02 — CLOSE mutation (position removal + capital/_closed)
+            # is now fully complete: advance the generation and clear the
+            # in-flight marker in the same critical section, so neither is
+            # ever observed out of sync with the other.
+            self._legacy_generation += 1
+            generation = self._legacy_generation
+            self._legacy_transitions_in_flight -= 1
 
         try:
             from paper_trading.recorder import get_recorder
@@ -1125,6 +1156,7 @@ class MexcSimulator:
                         exit_fee=fee,
                         timestamp=pos.closed_ts,
                         decision_id=pos.decision_id or None,
+                        legacy_generation=generation,
                     )
                 )
             except Exception as exc:
@@ -1144,11 +1176,6 @@ class MexcSimulator:
             else "—"
         )
         icon = "TP atteint" if reason == "TP" else "SL touche"
-        sl_efficiency = (
-            f"{pos.mae_pct / pos.sl_pct_used * 100:.0f}%"
-            if hasattr(pos, "sl_pct_used") and pos.sl_pct_used
-            else "—"
-        )
         self._notify(
             f"MEXC SIM — {icon}\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"

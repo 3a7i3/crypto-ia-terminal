@@ -1070,12 +1070,19 @@ class OperatorSnapshotWriter:
         self,
         path: Path = DEFAULT_SNAPSHOT_PATH,
         min_interval_s: float = DEFAULT_MIN_REFRESH_INTERVAL_S,
+        ppl_comparison_path: Optional[Path] = None,
     ) -> None:
         self._path = Path(path)
+        self._ppl_comparison_path = (
+            Path(ppl_comparison_path)
+            if ppl_comparison_path is not None
+            else self._path.parent / "ppl_comparison_snapshot.json"
+        )
         self._min_interval_s = min_interval_s
         self._last_write_monotonic: float = float("-inf")
         self._lock = threading.Lock()
         self.write_errors = 0
+        self.ppl_comparison_write_errors = 0
 
     def maybe_refresh(self, inputs: OperatorSnapshotInputs, force: bool = False) -> bool:
         """Refresh the snapshot file if the minimum cadence has elapsed.
@@ -1102,6 +1109,33 @@ class OperatorSnapshotWriter:
             _log.warning(
                 "[OperatorSnapshotWriter] Écriture échouée (non bloquant): %s", exc
             )
+
+        # WEB-02 sidecar: same already-existing observer boundary, separate
+        # artifact and separate failure domain. Only the real MEXC_SIM
+        # instance exposes PPL-02D's shadow attribute; lightweight fakes are
+        # intentionally ignored rather than coerced into a comparison.
+        sim = inputs.mexc_simulator
+        if sim is not None and hasattr(sim, "_shadow_observer"):
+            try:
+                from observability.ppl_comparison import (
+                    write_ppl_comparison_snapshot,
+                )
+
+                write_ppl_comparison_snapshot(
+                    sim,
+                    path=self._ppl_comparison_path,
+                    cycle=inputs.cycle,
+                    process_instance_id=inputs.process_instance_id,
+                    source_sha=inputs.source_evidence.source_sha,
+                    now_fn=inputs.now_fn,
+                )
+            except Exception as exc:
+                self.ppl_comparison_write_errors += 1
+                _log.warning(
+                    "[WEB-02] PPL comparison snapshot failed "
+                    "(non-blocking, canonical snapshot preserved): %s",
+                    exc,
+                )
         return True
 
     def _write_atomic(self, snapshot: Dict[str, Any]) -> None:
