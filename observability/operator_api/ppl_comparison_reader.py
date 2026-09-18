@@ -125,6 +125,25 @@ def _finite_number(value: Any) -> bool:
     )
 
 
+def _valid_json_value(value: Any) -> bool:
+    if value is None or isinstance(value, (str, bool, int)):
+        return True
+    if isinstance(value, float):
+        return math.isfinite(value)
+    if isinstance(value, list):
+        return all(_valid_json_value(item) for item in value)
+    if isinstance(value, dict):
+        return all(
+            isinstance(key, str) and _valid_json_value(item)
+            for key, item in value.items()
+        )
+    return False
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-finite JSON constant {value!r}")
+
+
 def _parse_utc(value: Any) -> Optional[datetime]:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -141,6 +160,7 @@ def _valid_source(value: Any) -> bool:
     return (
         isinstance(value, dict)
         and set(value) == _SOURCE_KEYS
+        and _valid_json_value(value["value"])
         and isinstance(value["status"], str)
         and bool(value["status"])
         and isinstance(value["provenance"], str)
@@ -263,6 +283,8 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
         return False
     if doc["comparison_available"] and doc["shadow_status"] != "ACTIVE":
         return False
+    if doc["shadow_status"] == "ACTIVE" and not doc["paper_epoch_id"]:
+        return False
 
     legacy_meta = doc["legacy_source"]
     ppl_meta = doc["ppl_source"]
@@ -310,6 +332,24 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
     if summary["total"] != len(comparisons):
         return False
 
+    comparison_ids = [row["comparison_id"] for row in comparisons]
+    if len(comparison_ids) != len(set(comparison_ids)):
+        return False
+
+    actual_summary = {
+        "total": len(comparisons),
+        "comparable": sum(row["classification"] == "COMPARABLE" for row in comparisons),
+        "partial": sum(row["classification"] == "PARTIAL" for row in comparisons),
+        "unresolved": sum(row["classification"] == "UNRESOLVED" for row in comparisons),
+        "equal": sum(row["relation"] == "EQUAL" for row in comparisons),
+        "different": sum(row["relation"] == "DIFFERENT" for row in comparisons),
+        "legacy_only": sum(row["relation"] == "LEGACY_ONLY" for row in comparisons),
+        "ppl_only": sum(row["relation"] == "PPL_ONLY" for row in comparisons),
+        "not_comparable": sum(row["relation"] == "NOT_COMPARABLE" for row in comparisons),
+    }
+    if summary != actual_summary:
+        return False
+
     if not isinstance(doc["positions"], list) or not all(
         _valid_group(row) for row in doc["positions"]
     ):
@@ -318,12 +358,40 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
         _valid_group(row) for row in doc["closed_session"]
     ):
         return False
+
+    all_groups = list(doc["positions"]) + list(doc["closed_session"])
+    position_trade_ids = [row["trade_id"] for row in doc["positions"]]
+    closed_trade_ids = [row["trade_id"] for row in doc["closed_session"]]
+    if len(position_trade_ids) != len(set(position_trade_ids)):
+        return False
+    if len(closed_trade_ids) != len(set(closed_trade_ids)):
+        return False
+
+    by_id = {row["comparison_id"]: row for row in comparisons}
+    for group in all_groups:
+        refs = group["field_comparison_ids"]
+        if len(refs) != len(set(refs)):
+            return False
+        for comparison_id in refs:
+            row = by_id.get(comparison_id)
+            if row is None or row["trade_id"] != group["trade_id"]:
+                return False
+
+    if not doc["comparison_available"]:
+        if comparisons or doc["positions"] or doc["closed_session"]:
+            return False
+        if any(summary.values()):
+            return False
+
     if not isinstance(doc["ppl_events"], list) or not all(
         _valid_event(row) for row in doc["ppl_events"]
     ):
         return False
     sequences = [row["sequence"] for row in doc["ppl_events"]]
-    if sequences != sorted(sequences) or len(sequences) != len(set(sequences)):
+    if sequences != list(range(1, len(sequences) + 1)):
+        return False
+    event_ids = [row["event_id"] for row in doc["ppl_events"]]
+    if len(event_ids) != len(set(event_ids)):
         return False
     return True
 
@@ -366,14 +434,17 @@ class PplComparisonSnapshotReader:
             )
 
         try:
-            doc = json.loads(self._path.read_text(encoding="utf-8"))
+            doc = json.loads(
+                self._path.read_text(encoding="utf-8"),
+                parse_constant=_reject_json_constant,
+            )
         except (OSError, UnicodeError) as exc:
             return PplComparisonReadResult(
                 ok=False,
                 error_code="PPL_COMPARISON_UNREADABLE",
                 error_message=str(exc),
             )
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, ValueError) as exc:
             return PplComparisonReadResult(
                 ok=False,
                 error_code="PPL_COMPARISON_MALFORMED_JSON",
