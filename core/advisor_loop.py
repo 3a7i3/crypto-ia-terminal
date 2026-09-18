@@ -3671,29 +3671,8 @@ def main(
         "yes",
     }
 
-    # PPL-02E-R1 — resolve PAPER lifecycle authority exactly once for this
-    # process.  Mutation-capable components receive this frozen value; no hot
-    # environment re-read may switch authority mid-process/epoch.
-    from paper_trading.paper_authority import resolve_paper_lifecycle_authority
-
-    _paper_lifecycle_authority = resolve_paper_lifecycle_authority(os.environ)
-    log.info(
-        "[PPL-02E-R1] PAPER lifecycle authority=%s",
-        _paper_lifecycle_authority.value,
-    )
-
-    # R1 safety barrier: the authoritative PPL coordinator/replay/capital
-    # handoff is introduced only by R2/R3.  Until then, an operator selecting
-    # PPL_AUTHORITY must fail before the legacy DatasetGate can inspect or
-    # rewrite paper_trades.jsonl and before any legacy restore can run.
-    if _paper_lifecycle_authority.ppl_is_authoritative:
-        raise RuntimeError(
-            "PPL_AUTHORITY is not runtime-ready: PPL-02E R2/R3 coordinator "
-            "and replay/capital handoff are not wired"
-        )
-
-    if _paper_trading_enabled:
-        _gate_paper_dataset()
+    _paper_lifecycle_authority = _bootstrap_paper_lifecycle_authority(
+        _paper_trading_enabled)
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
     prewarm_1h_enabled = ADVISOR_PREWARM_1H
     prewarm_mtf_enabled = ADVISOR_PREWARM_MTF and not startup_light
@@ -4517,14 +4496,15 @@ def main(
         if result_mode not in {"futures_demo", "paper", "live"}:
             return False
 
-        # PPL-02E-R1 — PAPER has one lifecycle boundary.  ExecutionEngine's
-        # local mode="paper" result is an execution/audit result only; it must
-        # never create a second PositionManager lifecycle beside the canonical
-        # PAPER runtime (MexcSimulator today, PPL coordinator after R2).
-        if result_mode == "paper":
+        # PPL-02E-R1 — suppress the ExecutionEngine/PositionManager PAPER
+        # lifecycle only when the canonical MexcSimulator PAPER runtime is
+        # configured.  Outside PAPER_TRADING_ENABLED, mode="paper" may be the
+        # sole local execution path (existing smoke/fallback contract) and is
+        # preserved.  This removes coexistence, not the fallback itself.
+        if result_mode == "paper" and _paper_trading_enabled:
             log.info(
-                "[PPL-02E-R1] PositionManager PAPER registration suppressed "
-                "symbol=%s authority=%s",
+                "[PPL-02E-R1] secondary PositionManager PAPER lifecycle "
+                "suppressed symbol=%s authority=%s",
                 symbol,
                 _paper_lifecycle_authority.value,
             )
@@ -8673,6 +8653,28 @@ def main(
         log.critical("[main] Sortie anormale — sys.exit(1)")
         sys.exit(1)
 
+
+
+def _bootstrap_paper_lifecycle_authority(paper_trading_enabled: bool):
+    """Resolve PAPER lifecycle authority once, before any legacy dataset gate.
+
+    R1 only establishes the authority boundary.  Until R2/R3 wire the
+    authoritative coordinator/replay/capital handoff, explicit PPL_AUTHORITY
+    must fail before DatasetGate can inspect/remediate the legacy JSONL.
+    """
+
+    from paper_trading.paper_authority import resolve_paper_lifecycle_authority
+
+    authority = resolve_paper_lifecycle_authority(os.environ)
+    log.info("[PPL-02E-R1] PAPER lifecycle authority=%s", authority.value)
+    if authority.ppl_is_authoritative:
+        raise RuntimeError(
+            "PPL_AUTHORITY is not runtime-ready: PPL-02E R2/R3 coordinator "
+            "and replay/capital handoff are not wired"
+        )
+    if paper_trading_enabled:
+        _gate_paper_dataset()
+    return authority
 
 
 def _op_legacy_first_blocker(result: dict[str, Any]) -> str | None:
