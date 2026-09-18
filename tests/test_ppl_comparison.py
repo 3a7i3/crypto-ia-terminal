@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import observability.ppl_comparison as ppl_comparison
 from observability.ppl_comparison import build_ppl_comparison_snapshot
 from paper_trading.durable_event_store import DurableEventStore
 from paper_trading.mexc_simulator import MexcPosition, OrderSide
@@ -206,3 +207,68 @@ def test_realized_and_fee_domains_do_not_invent_equivalence(tmp_path):
     assert realized["delta_ppl_minus_legacy"] is None
     assert fees["classification"] == "UNRESOLVED"
     assert fees["legacy"]["value"] is None
+
+
+
+def _stable_test_legacy(cash: float):
+    return {
+        "free_cash": cash,
+        "initial_capital": 100.0,
+        "positions": [],
+        "closed_session": [],
+    }
+
+
+def _stable_test_ppl_off():
+    return {
+        "status": "OFF",
+        "paper_epoch_id": None,
+        "last_error": None,
+        "projection": None,
+        "events": [],
+    }
+
+
+def test_source_pair_capture_retries_until_two_consecutive_reads_match(monkeypatch):
+    legacy_reads = iter(
+        [
+            _stable_test_legacy(99.0),
+            _stable_test_legacy(100.0),
+            _stable_test_legacy(100.0),
+        ]
+    )
+    monkeypatch.setattr(
+        ppl_comparison,
+        "_snapshot_legacy",
+        lambda _sim: next(legacy_reads),
+    )
+    monkeypatch.setattr(
+        ppl_comparison,
+        "_snapshot_ppl",
+        lambda _sim: _stable_test_ppl_off(),
+    )
+    monkeypatch.setattr(ppl_comparison.time, "sleep", lambda _seconds: None)
+
+    legacy, ppl = ppl_comparison._snapshot_sources_consistently(object())
+
+    assert legacy["free_cash"] == 100.0
+    assert ppl["status"] == "OFF"
+
+
+def test_source_pair_capture_withholds_continuously_moving_state(monkeypatch):
+    counter = {"value": 0}
+
+    def moving_legacy(_sim):
+        counter["value"] += 1
+        return _stable_test_legacy(float(counter["value"]))
+
+    monkeypatch.setattr(ppl_comparison, "_snapshot_legacy", moving_legacy)
+    monkeypatch.setattr(
+        ppl_comparison,
+        "_snapshot_ppl",
+        lambda _sim: _stable_test_ppl_off(),
+    )
+    monkeypatch.setattr(ppl_comparison.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(RuntimeError, match="bounded coherent capture"):
+        ppl_comparison._snapshot_sources_consistently(object())
