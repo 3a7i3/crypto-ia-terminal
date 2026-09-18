@@ -18,6 +18,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
 import { validateOperatorSnapshot } from "../lib/snapshotValidation";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
+import { validatePplComparisonSnapshot } from "../lib/pplComparisonValidation";
 import type { OperatorSnapshot, ApiStructuredError } from "../types";
 
 const FIXTURES_DIR =
@@ -170,5 +171,50 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(screen.getByTestId("market-view")).not.toHaveTextContent("Stop Loss");
     expect(screen.getByTestId("market-view")).not.toHaveTextContent("Take Profit");
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/market", { method: "GET" });
+  });
+
+
+  it("H WEB-02: exact comparator producer/API JSON preserves the raw divergence into the cockpit", async () => {
+    const canonical = loadFixture("A_minimal_canonical");
+    const ppl = loadFixture("H_ppl_comparison");
+    expect(canonical.http_status).toBe(200);
+    expect(ppl.http_status).toBe(200);
+    expect(validateOperatorSnapshot(canonical.body)).toBe(true);
+    expect(validatePplComparisonSnapshot(ppl.body)).toBe(true);
+    expect(ppl._proof?.producer_authority).toBe("OBSERVATIONAL_TELEMETRY");
+    expect(ppl._proof?.legacy_authority).toBe("PAPER_AUTHORITY");
+    expect(ppl._proof?.shadow_authority).toBe("NONE");
+    expect(ppl._proof?.raw_legacy_cash).toBe(99.99);
+    expect(ppl._proof?.raw_ppl_cash).toBe(100);
+    expect(ppl._proof?.producer_delta).toBeCloseTo(0.01);
+
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/operator/v1/ppl-comparison") {
+        return Promise.resolve(jsonResponse(ppl.body, 200));
+      }
+      if (url === "/api/operator/v1/snapshot") {
+        return Promise.resolve(jsonResponse(canonical.body, 200));
+      }
+      return Promise.resolve(jsonResponse({ error_code: "UNEXPECTED_TEST_URL" }, 404));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("tab-ppl"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Legacy PAPER"),
+    );
+    const view = screen.getByTestId("ppl-comparison-view");
+    expect(view).toHaveTextContent("99.99");
+    expect(view).toHaveTextContent("100");
+    expect(view).toHaveTextContent("0.01");
+    expect(view).toHaveTextContent("DIFFERENT");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/operator/v1/ppl-comparison",
+      { method: "GET" },
+    );
   });
 });
