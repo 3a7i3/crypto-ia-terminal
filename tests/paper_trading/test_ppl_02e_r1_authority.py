@@ -101,20 +101,19 @@ def test_r1_shadow_keeps_legacy_mutation_authority(tmp_path, monkeypatch):
     assert "SOL/USDT" in sim._positions
 
 
-def test_r1_advisor_suppresses_position_manager_paper_lifecycle():
+def test_r1_advisor_suppresses_only_secondary_position_manager_paper_lifecycle():
     source = Path("core/advisor_loop.py").read_text(encoding="utf-8")
-    assert 'if result_mode == "paper":' in source
-    assert "PositionManager PAPER registration suppressed" in source
+    assert 'if result_mode == "paper" and _paper_trading_enabled:' in source
+    assert "secondary PositionManager PAPER lifecycle" in source
 
 
 def test_r1_advisor_bootstrap_fails_before_legacy_dataset_gate_for_ppl_authority():
     source = Path("core/advisor_loop.py").read_text(encoding="utf-8")
-    resolve_pos = source.index(
-        "_paper_lifecycle_authority = resolve_paper_lifecycle_authority(os.environ)"
-    )
-    barrier_pos = source.index(
-        "if _paper_lifecycle_authority.ppl_is_authoritative:", resolve_pos
-    )
-    gate_pos = source.index("_gate_paper_dataset()", barrier_pos)
+    helper_start = source.index("def _bootstrap_paper_lifecycle_authority(")
+    helper_end = source.index("def _op_legacy_first_blocker(", helper_start)
+    helper = source[helper_start:helper_end]
+    resolve_pos = helper.index("resolve_paper_lifecycle_authority(os.environ)")
+    barrier_pos = helper.index("if authority.ppl_is_authoritative:")
+    gate_pos = helper.index("_gate_paper_dataset()")
     assert resolve_pos < barrier_pos < gate_pos
-    assert "PPL_AUTHORITY is not runtime-ready" in source
+    assert "PPL_AUTHORITY is not runtime-ready" in helper
