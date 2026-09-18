@@ -144,6 +144,9 @@ class MexcPosition:
     restored_evidence_gaps: list = field(default_factory=list)
     # PPL-02D — explicit decision provenance, carried OPEN -> CLOSE.
     decision_id: Optional[str] = None
+    # PPL-02E-R4 — durable lifecycle deadlines. None for legacy positions.
+    timeout_at: Optional[float] = None
+    recovery_eligible_until: Optional[float] = None
 
     @property
     def is_open(self) -> bool:
@@ -271,6 +274,7 @@ class MexcSimulator:
         telegram_fn: Optional[Callable[[str], None]] = None,
         shadow_observer=None,
         lifecycle_authority=None,
+        authority_runtime=None,
     ) -> None:
         from paper_trading.paper_authority import (
             PaperLifecycleAuthority,
@@ -310,70 +314,110 @@ class MexcSimulator:
         # simulator never builds a PPL store itself. None = zero PPL I/O,
         # behavior identical to before PPL-02D.
         self._shadow_observer = shadow_observer
+        self._authority_runtime = authority_runtime
+        if self._lifecycle_authority.ppl_is_authoritative:
+            if self._shadow_observer is not None:
+                raise ValueError("PPL_AUTHORITY cannot run with PPL SHADOW observer")
+            if self._authority_runtime is None:
+                raise ValueError("PPL_AUTHORITY requires an authority_runtime")
 
     # ── Démarrage ─────────────────────────────────────────────────────────────
 
     def start(self) -> None:
         from infra.wallet_sync import get_wallet_sync
 
-        wallet = get_wallet_sync()
-        capital_source = "Solde reel MEXC"
-        if wallet.mode == "paper":
-            # Source unique — identique à /portfolio, bot Intel, prelive_gate.
-            capital = wallet.get_balance()
-            capital_source = "WalletSync (paper)"
-            _log.info("[SIM] Capital via WalletSync (paper): $%.2f", capital)
-        else:
-            capital = self._read_mexc_balance()
-            forced = os.getenv("MEXC_SIM_CAPITAL", "")
-            if forced:
-                capital = float(forced)
-                capital_source = "Forcé via env (MEXC_SIM_CAPITAL)"
-                _log.info("[SIM] Capital forcé via env: $%.2f", capital)
-            if capital <= 0:
-                _log.warning("[SIM] Solde MEXC non lisible — fallback WalletSync")
-                capital = wallet.get_balance()
-                capital_source = "WalletSync (fallback, solde MEXC illisible)"
-
-        self._capital = capital
-        self._initial_capital = capital
-        self._perf.record_equity(capital)
-
-        restored = self._restore_positions()
-
-        # PPL-02D — startup bind/restart. Occurs after capital init and
-        # position restore, before normal runtime processing. Wrapped
-        # defensively: no shadow failure may prevent legacy startup, and
-        # this never mutates a legacy position to force reconciliation.
-        if self._shadow_observer is not None:
+        restored = 0
+        if self._lifecycle_authority.ppl_is_authoritative:
+            state = self._authority_runtime.bind(now=time.time())
+            if state.epoch is None:
+                raise RuntimeError("PPL authority bind returned no epoch")
+            self._initial_capital = state.epoch.initial_virtual_capital
+            self._capital = state.available_cash
+            self._positions = {}
+            for pos in state.open_positions.values():
+                side = OrderSide.BUY if pos.side.value == "LONG" else OrderSide.SELL
+                self._positions[pos.symbol] = MexcPosition(
+                    pos_id=pos.trade_id,
+                    symbol=pos.symbol,
+                    side=side,
+                    qty_usd=pos.principal,
+                    entry_price=pos.entry_price,
+                    tp_price=float(pos.tp_price),
+                    sl_price=float(pos.sl_price),
+                    fee_entry_usd=pos.entry_fee,
+                    score=0,
+                    personality="ppl_replay",
+                    regime="unknown",
+                    opened_ts=pos.opened_at,
+                    restored_evidence_gaps=[],
+                    decision_id=None,
+                    timeout_at=pos.timeout_at,
+                    recovery_eligible_until=pos.recovery_eligible_until,
+                )
+                restored += 1
+            self._perf.record_equity(self._initial_capital)
+            capital = self._capital
+            capital_source = "PPL authority replay"
             try:
-                from paper_trading.ppl_shadow import ShadowLegacyPosition
-
-                with self._lock:
-                    legacy_positions = [
-                        ShadowLegacyPosition(
-                            trade_id=pos.pos_id,
-                            symbol=pos.symbol,
-                            side=pos.side.value,
-                            principal=pos.qty_usd,
-                            entry_price=pos.entry_price,
-                            entry_fee=pos.fee_entry_usd,
-                        )
-                        for pos in self._positions.values()
-                    ]
-                    bind_capital = self._capital
-                self._shadow_observer.bind_legacy_state(
-                    available_capital=bind_capital,
-                    open_positions=legacy_positions,
-                )
-                _log.info(
-                    "[SIM][PPL-02D] shadow status=%s",
-                    getattr(self._shadow_observer, "status", "?"),
-                )
+                self._authority_runtime.sync_compatibility()
             except Exception as exc:
                 _log.warning(
-                    "[SIM][PPL-02D] startup bind échoué (non-fatal): %s", exc
+                    "[SIM][PPL-02E-R4] compatibility sync failed (non-authoritative): %s",
+                    exc,
                 )
+        else:
+            wallet = get_wallet_sync()
+            capital_source = "Solde reel MEXC"
+            if wallet.mode == "paper":
+                capital = wallet.get_balance()
+                capital_source = "WalletSync (paper)"
+                _log.info("[SIM] Capital via WalletSync (paper): $%.2f", capital)
+            else:
+                capital = self._read_mexc_balance()
+                forced = os.getenv("MEXC_SIM_CAPITAL", "")
+                if forced:
+                    capital = float(forced)
+                    capital_source = "Forcé via env (MEXC_SIM_CAPITAL)"
+                    _log.info("[SIM] Capital forcé via env: $%.2f", capital)
+                if capital <= 0:
+                    _log.warning("[SIM] Solde MEXC non lisible — fallback WalletSync")
+                    capital = wallet.get_balance()
+                    capital_source = "WalletSync (fallback, solde MEXC illisible)"
+
+            self._capital = capital
+            self._initial_capital = capital
+            self._perf.record_equity(capital)
+            restored = self._restore_positions()
+
+            if self._shadow_observer is not None:
+                try:
+                    from paper_trading.ppl_shadow import ShadowLegacyPosition
+
+                    with self._lock:
+                        legacy_positions = [
+                            ShadowLegacyPosition(
+                                trade_id=pos.pos_id,
+                                symbol=pos.symbol,
+                                side=pos.side.value,
+                                principal=pos.qty_usd,
+                                entry_price=pos.entry_price,
+                                entry_fee=pos.fee_entry_usd,
+                            )
+                            for pos in self._positions.values()
+                        ]
+                        bind_capital = self._capital
+                    self._shadow_observer.bind_legacy_state(
+                        available_capital=bind_capital,
+                        open_positions=legacy_positions,
+                    )
+                    _log.info(
+                        "[SIM][PPL-02D] shadow status=%s",
+                        getattr(self._shadow_observer, "status", "?"),
+                    )
+                except Exception as exc:
+                    _log.warning(
+                        "[SIM][PPL-02D] startup bind échoué (non-fatal): %s", exc
+                    )
 
         self._running = True
         t = threading.Thread(target=self._monitor_loop, daemon=True, name="MEXC-SIM")
@@ -392,7 +436,7 @@ class MexcSimulator:
             f"Ordres    : MARKET | LIMIT | STOP_LIMIT\n"
             f"Donnees   : MEXC temps reel\n"
             f"Mode      : SIMULATION — aucun ordre reel\n"
-            f"Objectif  : 7 jours validation burn-in"
+            f"Objectif  : validation scientifique PAPER"
         )
 
     def _read_mexc_balance(self) -> float:
@@ -715,16 +759,15 @@ class MexcSimulator:
 
         if not self._lifecycle_authority.ppl_is_authoritative:
             return None
+        if self._authority_runtime is not None:
+            return None
         order = self._make_rejected_stub(symbol)
         _log.error(
-            "[SIM][PPL-02E-R1] legacy PAPER mutation blocked — "
-            "authority=PPL_AUTHORITY symbol=%s",
+            "[SIM][PPL-02E-R4] PAPER mutation blocked — "
+            "authority=PPL_AUTHORITY runtime absent symbol=%s",
             symbol,
         )
-        self._notify(
-            f"[SIM] REJETE {symbol} — PPL_AUTHORITY exige la frontière "
-            "durable PPL (R2 non câblé)"
-        )
+        self._notify(f"[SIM] REJETE {symbol} — PPL_AUTHORITY runtime indisponible")
         return order
 
     def place_market_order(
