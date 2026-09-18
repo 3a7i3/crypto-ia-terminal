@@ -383,13 +383,19 @@ class PPLAuthorityRuntime:
     ) -> AppendResult:
         with self._lock:
             self._reload()
-            sequence = self._events[-1].sequence + 1
+            event_id = _event_id(
+                self.manifest.paper_epoch_id,
+                LedgerEventType.POSITION_OPENED,
+                trade_id,
+            )
+            existing = next((ev for ev in self._events if ev.event_id == event_id), None)
+            sequence = (
+                existing.sequence
+                if existing is not None
+                else self._events[-1].sequence + 1
+            )
             event = make_position_opened_event(
-                event_id=_event_id(
-                    self.manifest.paper_epoch_id,
-                    LedgerEventType.POSITION_OPENED,
-                    trade_id,
-                ),
+                event_id=event_id,
                 paper_epoch_id=self.manifest.paper_epoch_id,
                 sequence=sequence,
                 timestamp=opened_at,
@@ -421,13 +427,19 @@ class PPLAuthorityRuntime:
     ) -> AppendResult:
         with self._lock:
             self._reload()
-            sequence = self._events[-1].sequence + 1
+            event_id = _event_id(
+                self.manifest.paper_epoch_id,
+                LedgerEventType.POSITION_CLOSED,
+                trade_id,
+            )
+            existing = next((ev for ev in self._events if ev.event_id == event_id), None)
+            sequence = (
+                existing.sequence
+                if existing is not None
+                else self._events[-1].sequence + 1
+            )
             event = make_position_closed_event(
-                event_id=_event_id(
-                    self.manifest.paper_epoch_id,
-                    LedgerEventType.POSITION_CLOSED,
-                    trade_id,
-                ),
+                event_id=event_id,
                 paper_epoch_id=self.manifest.paper_epoch_id,
                 sequence=sequence,
                 timestamp=closed_at,
