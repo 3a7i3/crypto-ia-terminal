@@ -138,3 +138,53 @@ def test_reader_rejects_non_finite_json_constants(tmp_path):
     ).read()
     assert not result.ok
     assert result.error_code == "PPL_COMPARISON_MALFORMED_JSON"
+
+
+
+def test_reader_rejects_orphan_group_comparison_reference(tmp_path):
+    doc = _doc()
+    doc["positions"] = [
+        {
+            "trade_id": "T-orphan",
+            "relation": "BOTH",
+            "legacy_present": True,
+            "ppl_present": True,
+            "field_comparison_ids": ["web02-does-not-exist"],
+        }
+    ]
+    path = tmp_path / "comparison.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+    result = PplComparisonSnapshotReader(path, now_fn=lambda: 100.0).read()
+    assert not result.ok
+    assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
+
+
+def test_reader_rejects_non_contiguous_ppl_event_sequence(tmp_path):
+    doc = _doc()
+    doc["ppl_events"] = [
+        {
+            "event_id": "event-1",
+            "sequence": 1,
+            "event_type": "EPOCH_CREATED",
+            "trade_id": None,
+            "decision_id": None,
+            "timestamp": 1.0,
+            "payload": {},
+        },
+        {
+            "event_id": "event-3",
+            "sequence": 3,
+            "event_type": "POSITION_OPENED",
+            "trade_id": "T-gap",
+            "decision_id": None,
+            "timestamp": 2.0,
+            "payload": {},
+        },
+    ]
+    path = tmp_path / "comparison.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+    result = PplComparisonSnapshotReader(path, now_fn=lambda: 100.0).read()
+    assert not result.ok
+    assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
