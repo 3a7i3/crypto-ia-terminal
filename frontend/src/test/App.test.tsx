@@ -54,8 +54,8 @@ function basePplComparisonSnapshot() {
     paper_epoch_id: "epoch-1",
     comparison_available: true,
     comparison_unavailable_reason: null,
-    legacy_source: { source: "MEXC_SIM", authority: "PAPER_AUTHORITY" },
-    ppl_source: { source: "PPL", authority: "NONE" },
+    legacy_source: { source: "MEXC_SIM", authority: "PAPER_AUTHORITY", scope: "live_process_state" },
+    ppl_source: { source: "PPL", authority: "NONE", scope: "configured_shadow_epoch", last_error: null },
     summary: {
       total: 1, comparable: 1, partial: 0, unresolved: 0,
       equal: 0, different: 1, legacy_only: 0, ppl_only: 0, not_comparable: 0,
