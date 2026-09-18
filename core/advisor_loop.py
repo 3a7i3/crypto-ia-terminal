@@ -564,24 +564,6 @@ def _op_real_accounts_observer_for_snapshot():
 _REAL_ACCOUNTS_OBSERVER_ADAPTER = _RealAccountsObserverAdapter()
 
 
-def _op_legacy_first_blocker(result: dict[str, Any]) -> str | None:
-    """Project the canonical legacy first blocker for operator telemetry.
-
-    Mirrors observability.decision_observation.build_from_result():
-    result["blockers"] is the existing legacy source of truth. Do not
-    inspect gate.reason here: the execution-path GlobalRiskGate and
-    fail-closed authority gates expose allowed/failed but no reason
-    attribute. This helper is observational only and never feeds a
-    decision back into the execution path.
-    """
-
-    blockers_raw = result.get("blockers", "")
-    if not isinstance(blockers_raw, str) or not blockers_raw:
-        return None
-    blockers = [item.strip() for item in blockers_raw.split(",") if item.strip()]
-    return blockers[0] if blockers else None
-
-
 def _real_accounts_snapshots():
     """Soldes des comptes API réels (« compte n°1 ») — affichage uniquement.
 
@@ -8652,6 +8634,25 @@ def main(
     if not _clean_exit:
         log.critical("[main] Sortie anormale — sys.exit(1)")
         sys.exit(1)
+
+
+
+def _op_legacy_first_blocker(result: dict[str, Any]) -> str | None:
+    """Project the canonical legacy first blocker for operator telemetry.
+
+    Mirrors observability.decision_observation.build_from_result():
+    result["blockers"] is the existing legacy source of truth. Do not
+    inspect gate.reason here: the execution-path GlobalRiskGate and
+    fail-closed authority gates expose allowed/failed but no reason
+    attribute. This helper is observational only and never feeds a
+    decision back into the execution path.
+    """
+
+    blockers_raw = result.get("blockers", "")
+    if not isinstance(blockers_raw, str) or not blockers_raw:
+        return None
+    blockers = [item.strip() for item in blockers_raw.split(",") if item.strip()]
+    return blockers[0] if blockers else None
 
 
 if __name__ == "__main__":
