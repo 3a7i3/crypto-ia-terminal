@@ -1,14 +1,12 @@
-"""PPL-02E-R1 — process-lifetime PAPER lifecycle authority selector.
+"""PPL-02E process-lifetime PAPER lifecycle authority selector.
 
-This module deliberately does *not* implement PPL authority.  R1 only freezes
-which subsystem is allowed to claim PAPER lifecycle mutation.  Until R2 wires a
-replay-complete authoritative PPL coordinator, selecting PPL_AUTHORITY must fail
-closed at legacy mutation boundaries.
+R1 froze the single-authority boundary. R2/R3 added replay-complete durable
+facts and the scientific-capital/compatibility handoff. R4 wires the explicit
+PPL authority runtime.
 
-Authority is resolved once by the process bootstrap and then passed explicitly
-to mutation-capable components.  Callers must not re-read the environment on
-individual order/close calls: a hot authority flip inside one process/epoch is
-forbidden by the PPL-02E-R1 contract.
+Authority is resolved once at process bootstrap and passed explicitly to
+mutation-capable components. Hot authority changes inside one process/epoch
+remain forbidden.
 """
 
 from __future__ import annotations
