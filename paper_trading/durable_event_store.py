@@ -27,7 +27,7 @@ from typing import Any
 
 from paper_trading.ledger_events import LedgerEvent, LedgerEventType, Side
 
-_SCHEMA_VERSION = 1
+_SUPPORTED_SCHEMA_VERSIONS = frozenset({1, 2})
 _TOP_LEVEL_FIELDS = frozenset(
     {
         "event_id",
@@ -41,18 +41,43 @@ _TOP_LEVEL_FIELDS = frozenset(
         "schema_version",
     }
 )
-_PAYLOAD_FIELDS = {
-    LedgerEventType.EPOCH_CREATED: frozenset(
-        {"initial_virtual_capital", "code_sha", "config_snapshot_hash"}
-    ),
-    LedgerEventType.POSITION_OPENED: frozenset(
-        {"symbol", "side", "principal", "entry_price", "entry_fee"}
-    ),
-    LedgerEventType.POSITION_CLOSED: frozenset({"exit_price", "exit_fee"}),
-    LedgerEventType.POSITION_UNRESOLVED: frozenset({"reason"}),
-    LedgerEventType.RECOVERY_COMPLETED: frozenset(
-        {"restored_count", "unresolved_count"}
-    ),
+_PAYLOAD_FIELDS_BY_SCHEMA = {
+    1: {
+        LedgerEventType.EPOCH_CREATED: frozenset(
+            {"initial_virtual_capital", "code_sha", "config_snapshot_hash"}
+        ),
+        LedgerEventType.POSITION_OPENED: frozenset(
+            {"symbol", "side", "principal", "entry_price", "entry_fee"}
+        ),
+        LedgerEventType.POSITION_CLOSED: frozenset({"exit_price", "exit_fee"}),
+        LedgerEventType.POSITION_UNRESOLVED: frozenset({"reason"}),
+        LedgerEventType.RECOVERY_COMPLETED: frozenset(
+            {"restored_count", "unresolved_count"}
+        ),
+    },
+    2: {
+        LedgerEventType.EPOCH_CREATED: frozenset(
+            {"initial_virtual_capital", "code_sha", "config_snapshot_hash"}
+        ),
+        LedgerEventType.POSITION_OPENED: frozenset(
+            {
+                "symbol",
+                "side",
+                "principal",
+                "entry_price",
+                "entry_fee",
+                "tp_price",
+                "sl_price",
+                "timeout_at",
+                "recovery_eligible_until",
+            }
+        ),
+        LedgerEventType.POSITION_CLOSED: frozenset({"exit_price", "exit_fee"}),
+        LedgerEventType.POSITION_UNRESOLVED: frozenset({"reason"}),
+        LedgerEventType.RECOVERY_COMPLETED: frozenset(
+            {"restored_count", "unresolved_count"}
+        ),
+    },
 }
 _TRADE_SCOPED_EVENT_TYPES = frozenset(
     {
@@ -190,9 +215,11 @@ def _validate_payload(
     event_type: LedgerEventType,
     payload: Mapping[str, Any],
     *,
+    schema_version: int,
+    timestamp: float,
     error_type: type[Exception],
 ) -> None:
-    expected_fields = _PAYLOAD_FIELDS[event_type]
+    expected_fields = _PAYLOAD_FIELDS_BY_SCHEMA[schema_version][event_type]
     actual_fields = frozenset(payload)
     if actual_fields != expected_fields:
         missing = sorted(expected_fields - actual_fields)
@@ -229,6 +256,26 @@ def _validate_payload(
             _require_number(
                 payload[field], field=f"payload.{field}", error_type=error_type
             )
+        if schema_version == 2:
+            for field in (
+                "tp_price",
+                "sl_price",
+                "timeout_at",
+                "recovery_eligible_until",
+            ):
+                _require_number(
+                    payload[field], field=f"payload.{field}", error_type=error_type
+                )
+            if payload["tp_price"] <= 0 or payload["sl_price"] <= 0:
+                raise error_type("payload.tp_price and payload.sl_price must be > 0")
+            if payload["timeout_at"] <= timestamp:
+                raise error_type(
+                    "payload.timeout_at must be strictly after event timestamp"
+                )
+            if payload["recovery_eligible_until"] < payload["timeout_at"]:
+                raise error_type(
+                    "payload.recovery_eligible_until must be >= payload.timeout_at"
+                )
     elif event_type is LedgerEventType.POSITION_CLOSED:
         for field in ("exit_price", "exit_fee"):
             _require_number(
@@ -281,16 +328,22 @@ def _event_to_record(event: LedgerEvent) -> dict[str, Any]:
         event.schema_version, bool
     ):
         raise EventSerializationError("schema_version must be an integer")
-    if event.schema_version != _SCHEMA_VERSION:
+    if event.schema_version not in _SUPPORTED_SCHEMA_VERSIONS:
         raise UnsupportedSchemaVersionError(
             f"unsupported schema_version={event.schema_version!r}; "
-            f"supported={_SCHEMA_VERSION}"
+            f"supported={sorted(_SUPPORTED_SCHEMA_VERSIONS)}"
         )
 
     payload = _jsonable(event.payload, location="payload")
     if not isinstance(payload, dict):
         raise EventSerializationError("payload must be a mapping")
-    _validate_payload(event.event_type, payload, error_type=EventSerializationError)
+    _validate_payload(
+        event.event_type,
+        payload,
+        schema_version=event.schema_version,
+        timestamp=event.timestamp,
+        error_type=EventSerializationError,
+    )
 
     return {
         "event_id": event.event_id,
@@ -388,14 +441,20 @@ def _record_to_event(record: Any, *, source: Path, record_number: int) -> Ledger
         )
     if not isinstance(schema_version, int) or isinstance(schema_version, bool):
         raise EventDeserializationError(f"{context}: schema_version must be an integer")
-    if schema_version != _SCHEMA_VERSION:
+    if schema_version not in _SUPPORTED_SCHEMA_VERSIONS:
         raise UnsupportedSchemaVersionError(
             f"{context}: unsupported schema_version={schema_version!r}; "
-            f"supported={_SCHEMA_VERSION}"
+            f"supported={sorted(_SUPPORTED_SCHEMA_VERSIONS)}"
         )
     if not isinstance(payload, dict):
         raise EventDeserializationError(f"{context}: payload must be an object")
-    _validate_payload(event_type, payload, error_type=EventDeserializationError)
+    _validate_payload(
+        event_type,
+        payload,
+        schema_version=schema_version,
+        timestamp=float(timestamp),
+        error_type=EventDeserializationError,
+    )
 
     try:
         return LedgerEvent(

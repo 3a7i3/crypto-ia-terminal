@@ -265,8 +265,65 @@ def make_position_opened_event(
     entry_fee: float,
     decision_id: Optional[str] = None,
     schema_version: int = 1,
+    tp_price: Optional[float] = None,
+    sl_price: Optional[float] = None,
+    timeout_at: Optional[float] = None,
+    recovery_eligible_until: Optional[float] = None,
 ) -> LedgerEvent:
+    """Build POSITION_OPENED.
+
+    Schema v1 preserves the historical/SHADOW payload exactly.
+
+    Schema v2 is replay-complete for future PAPER authority: TP, SL and the
+    accepted timeout/recovery deadlines are durable OPEN facts.  Restart must
+    therefore never consult today's environment to reconstruct those terms.
+    """
+
     canonical_side = normalize_side(side)
+    payload = {
+        "symbol": symbol,
+        "side": canonical_side.value,
+        "principal": principal,
+        "entry_price": entry_price,
+        "entry_fee": entry_fee,
+    }
+
+    replay_terms = (tp_price, sl_price, timeout_at, recovery_eligible_until)
+    if schema_version == 1:
+        if any(value is not None for value in replay_terms):
+            raise ValueError(
+                "schema_version=1 POSITION_OPENED cannot carry v2 replay terms"
+            )
+    elif schema_version == 2:
+        if any(value is None for value in replay_terms):
+            raise ValueError(
+                "schema_version=2 POSITION_OPENED requires tp_price, sl_price, "
+                "timeout_at, and recovery_eligible_until"
+            )
+        opened_at = _require_finite("timestamp", timestamp)
+        tp_value = _require_finite("tp_price", tp_price)
+        sl_value = _require_finite("sl_price", sl_price)
+        timeout_value = _require_finite("timeout_at", timeout_at)
+        recovery_value = _require_finite(
+            "recovery_eligible_until", recovery_eligible_until
+        )
+        if tp_value <= 0 or sl_value <= 0:
+            raise ValueError("tp_price and sl_price must be > 0")
+        if timeout_value <= opened_at:
+            raise ValueError("timeout_at must be strictly after POSITION_OPENED timestamp")
+        if recovery_value < timeout_value:
+            raise ValueError(
+                "recovery_eligible_until must be >= timeout_at"
+            )
+        payload.update(
+            {
+                "tp_price": tp_value,
+                "sl_price": sl_value,
+                "timeout_at": timeout_value,
+                "recovery_eligible_until": recovery_value,
+            }
+        )
+
     return LedgerEvent(
         event_id=event_id,
         paper_epoch_id=paper_epoch_id,
@@ -275,13 +332,7 @@ def make_position_opened_event(
         timestamp=timestamp,
         trade_id=trade_id,
         decision_id=decision_id,
-        payload={
-            "symbol": symbol,
-            "side": canonical_side.value,
-            "principal": principal,
-            "entry_price": entry_price,
-            "entry_fee": entry_fee,
-        },
+        payload=payload,
         schema_version=schema_version,
     )
 

@@ -175,6 +175,25 @@ class OpenPositionState:
     entry_price: float
     entry_fee: float
     opened_sequence: int
+    opened_at: float
+    tp_price: Optional[float] = None
+    sl_price: Optional[float] = None
+    timeout_at: Optional[float] = None
+    recovery_eligible_until: Optional[float] = None
+
+    @property
+    def replay_complete(self) -> bool:
+        """Whether restart can reconstruct lifecycle terms without inference."""
+
+        return all(
+            value is not None
+            for value in (
+                self.tp_price,
+                self.sl_price,
+                self.timeout_at,
+                self.recovery_eligible_until,
+            )
+        )
 
 
 @dataclass(frozen=True)
@@ -330,6 +349,11 @@ def _apply(state: PaperPortfolioState, event: LedgerEvent) -> PaperPortfolioStat
     if event.event_id in state.seen_event_ids:
         raise DuplicateEventError(f"duplicate event_id={event.event_id!r}")
 
+    if event.schema_version not in {1, 2}:
+        raise IllegalTransitionError(
+            f"unsupported PPL replay schema_version={event.schema_version!r}"
+        )
+
     if state.paper_epoch_id is None:
         if event.event_type is not LedgerEventType.EPOCH_CREATED:
             raise IllegalTransitionError(
@@ -345,6 +369,12 @@ def _apply(state: PaperPortfolioState, event: LedgerEvent) -> PaperPortfolioStat
             raise EpochMismatchError(
                 f"event paper_epoch_id={event.paper_epoch_id!r} != "
                 f"state paper_epoch_id={state.paper_epoch_id!r}"
+            )
+        assert state.epoch is not None
+        if event.schema_version != state.epoch.schema_version:
+            raise IllegalTransitionError(
+                "mixed schema versions inside one paper_epoch_id are forbidden: "
+                f"epoch={state.epoch.schema_version}, event={event.schema_version}"
             )
 
     expected_sequence = state.last_sequence + 1
@@ -435,6 +465,28 @@ def _apply_position_opened(
     principal = _finite("principal", event.payload["principal"], positive=True)
     entry_price = _finite("entry_price", event.payload["entry_price"], positive=True)
     entry_fee = _finite("entry_fee", event.payload["entry_fee"], non_negative=True)
+    opened_at = _finite("opened_at", event.timestamp)
+
+    tp_price: Optional[float] = None
+    sl_price: Optional[float] = None
+    timeout_at: Optional[float] = None
+    recovery_eligible_until: Optional[float] = None
+    if event.schema_version == 2:
+        tp_price = _finite("tp_price", event.payload["tp_price"], positive=True)
+        sl_price = _finite("sl_price", event.payload["sl_price"], positive=True)
+        timeout_at = _finite("timeout_at", event.payload["timeout_at"])
+        recovery_eligible_until = _finite(
+            "recovery_eligible_until",
+            event.payload["recovery_eligible_until"],
+        )
+        if timeout_at <= opened_at:
+            raise IllegalTransitionError(
+                "timeout_at must be strictly after POSITION_OPENED timestamp"
+            )
+        if recovery_eligible_until < timeout_at:
+            raise IllegalTransitionError(
+                "recovery_eligible_until must be >= timeout_at"
+            )
 
     new_available_cash = _finite_derived(
         "available_cash", state.available_cash - principal - entry_fee
@@ -458,6 +510,11 @@ def _apply_position_opened(
         entry_price=entry_price,
         entry_fee=entry_fee,
         opened_sequence=event.sequence,
+        opened_at=opened_at,
+        tp_price=tp_price,
+        sl_price=sl_price,
+        timeout_at=timeout_at,
+        recovery_eligible_until=recovery_eligible_until,
     )
     new_open_positions = dict(state.open_positions)
     new_open_positions[trade_id] = pos
