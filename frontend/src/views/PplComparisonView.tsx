@@ -11,7 +11,7 @@ function raw(value: unknown): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "number") return Number.isFinite(value) ? String(value) : "UNAVAILABLE";
   if (typeof value === "string" || typeof value === "boolean") return String(value);
-  return JSON.stringify(value);
+  return JSON.stringify(value) ?? "UNRESOLVED";
 }
 
 function relationLabel(row: PplComparisonRecord): string {
