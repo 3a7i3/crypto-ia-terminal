@@ -137,4 +137,18 @@ describe("PplComparisonView", () => {
       ),
     );
   });
+
+
+  it("rejects a PPL authority escalation instead of rendering it", async () => {
+    const mutated = snapshot() as any;
+    mutated.ppl_source.authority = "PAPER_AUTHORITY";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(mutated)));
+    render(<PplComparisonView />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent(
+        "did not satisfy the WEB-02 PPL comparison contract",
+      ),
+    );
+  });
 });
