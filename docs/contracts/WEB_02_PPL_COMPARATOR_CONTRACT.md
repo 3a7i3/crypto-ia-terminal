@@ -45,6 +45,13 @@ atomic artifact only.
 
 The frontend never recomputes accounting, PnL, fees, or deltas.
 
+The producer also applies a bounded coherent-capture guard. Because MEXC_SIM
+commits the authoritative legacy mutation before the downstream passive PPL
+observer call, WEB-02 requires two consecutive identical legacy+PPL source-pair
+captures before publication. A continuously moving pair is withheld
+fail-passively and the previous atomic artifact remains untouched. A persistent,
+stable divergence is still published exactly as observed.
+
 ## 4. Comparison vocabulary
 
 ### Classification
