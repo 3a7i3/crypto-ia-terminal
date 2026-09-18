@@ -1,0 +1,208 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import pytest
+
+from observability.ppl_comparison import build_ppl_comparison_snapshot
+from paper_trading.durable_event_store import DurableEventStore
+from paper_trading.mexc_simulator import MexcPosition, OrderSide
+from paper_trading.ppl_shadow import PPLShadowRuntime, ShadowEpochManifest
+
+
+class _Sim:
+    def __init__(self, shadow=None):
+        import threading
+
+        self._lock = threading.Lock()
+        self._capital = 100.0
+        self._initial_capital = 100.0
+        self._positions = {}
+        self._closed = []
+        self._shadow_observer = shadow
+
+
+def _active_shadow(tmp_path, capital=100.0):
+    manifest = ShadowEpochManifest(
+        paper_epoch_id="web02-epoch",
+        created_at=1.0,
+        initial_virtual_capital=capital,
+        code_sha="a" * 40,
+        config_snapshot_hash="b" * 64,
+    )
+    shadow = PPLShadowRuntime(
+        manifest=manifest,
+        store=DurableEventStore(tmp_path / "ppl"),
+    )
+    assert shadow.bind_legacy_state(
+        available_capital=capital,
+        open_positions=[],
+    )
+    return shadow
+
+
+def _build(sim):
+    return build_ppl_comparison_snapshot(
+        sim,
+        cycle=7,
+        process_instance_id="pid-1",
+        source_sha="c" * 40,
+        now_fn=lambda: 10.0,
+    )
+
+
+def _by_field(doc, domain, field, trade_id=None):
+    return next(
+        row
+        for row in doc["comparisons"]
+        if row["domain"] == domain
+        and row["field"] == field
+        and row["trade_id"] == trade_id
+    )
+
+
+def test_off_shadow_never_fabricates_convergence():
+    doc = _build(_Sim())
+    assert doc["shadow_status"] == "OFF"
+    assert doc["comparison_available"] is False
+    assert doc["comparisons"] == []
+    assert doc["summary"]["total"] == 0
+    assert "convergence must not be inferred" in doc[
+        "comparison_unavailable_reason"
+    ]
+
+
+def test_active_zero_position_snapshot_compares_cash_and_unrealized(tmp_path):
+    shadow = _active_shadow(tmp_path)
+    doc = _build(_Sim(shadow))
+
+    assert doc["comparison_available"] is True
+    cash = _by_field(doc, "accounting", "free_cash")
+    assert cash["relation"] == "EQUAL"
+    assert cash["delta_ppl_minus_legacy"] == pytest.approx(0.0)
+
+    unrealized = _by_field(doc, "valuation", "unrealized_pnl")
+    assert unrealized["classification"] == "COMPARABLE"
+    assert unrealized["relation"] == "EQUAL"
+
+
+def test_known_cash_divergence_is_visible_not_repaired(tmp_path):
+    shadow = _active_shadow(tmp_path)
+    sim = _Sim(shadow)
+    sim._capital = 99.99
+
+    cash = _by_field(_build(sim), "accounting", "free_cash")
+    assert cash["legacy"]["value"] == pytest.approx(99.99)
+    assert cash["ppl"]["value"] == pytest.approx(100.0)
+    assert cash["relation"] == "DIFFERENT"
+    assert cash["delta_ppl_minus_legacy"] == pytest.approx(0.01)
+
+
+def test_restored_unknown_entry_fee_stays_unresolved(tmp_path):
+    shadow = _active_shadow(tmp_path)
+    from paper_trading.ppl_shadow import ShadowOpenFact
+
+    shadow.observe_open(
+        ShadowOpenFact(
+            trade_id="T1",
+            symbol="BTC/USDT",
+            side="BUY",
+            principal=10.0,
+            entry_price=100.0,
+            entry_fee=0.01,
+            timestamp=2.0,
+        )
+    )
+
+    sim = _Sim(shadow)
+    sim._capital = 89.99
+    sim._positions["BTC/USDT"] = MexcPosition(
+        pos_id="T1",
+        symbol="BTC/USDT",
+        side=OrderSide.BUY,
+        qty_usd=10.0,
+        entry_price=100.0,
+        tp_price=104.0,
+        sl_price=98.0,
+        fee_entry_usd=0.0,
+        score=70,
+        personality="restored",
+        opened_ts=2.0,
+        restored_evidence_gaps=["fee_entry_unknown"],
+    )
+
+    fee = _by_field(
+        _build(sim), "open_position", "entry_fee", "T1"
+    )
+    assert fee["classification"] == "UNRESOLVED"
+    assert fee["relation"] == "NOT_COMPARABLE"
+    assert fee["legacy"]["value"] == 0.0
+    assert fee["legacy"]["status"] == "UNRESOLVED"
+    assert fee["delta_ppl_minus_legacy"] is None
+
+
+def test_side_compares_canonically_but_preserves_raw_values(tmp_path):
+    shadow = _active_shadow(tmp_path)
+    from paper_trading.ppl_shadow import ShadowOpenFact
+
+    shadow.observe_open(
+        ShadowOpenFact(
+            trade_id="T2",
+            symbol="ETH/USDT",
+            side="SELL",
+            principal=10.0,
+            entry_price=100.0,
+            entry_fee=0.01,
+            timestamp=2.0,
+        )
+    )
+    sim = _Sim(shadow)
+    sim._capital = 89.99
+    sim._positions["ETH/USDT"] = MexcPosition(
+        pos_id="T2",
+        symbol="ETH/USDT",
+        side=OrderSide.SELL,
+        qty_usd=10.0,
+        entry_price=100.0,
+        tp_price=96.0,
+        sl_price=102.0,
+        fee_entry_usd=0.01,
+        score=70,
+        personality="test",
+        opened_ts=2.0,
+    )
+
+    side = _by_field(_build(sim), "open_position", "side", "T2")
+    assert side["legacy"]["value"] == "SELL"
+    assert side["ppl"]["value"] == "SHORT"
+    assert side["relation"] == "EQUAL"
+    assert side["comparison_rule"] == "canonical_side"
+
+
+def test_realized_and_fee_domains_do_not_invent_equivalence(tmp_path):
+    shadow = _active_shadow(tmp_path)
+    sim = _Sim(shadow)
+    sim._closed.append(
+        SimpleNamespace(
+            pos_id="OLD",
+            symbol="BTC/USDT",
+            side=OrderSide.BUY,
+            qty_usd=10.0,
+            entry_price=100.0,
+            fee_entry_usd=0.01,
+            exit_price=101.0,
+            pnl_usd=0.08,
+            closed_ts=3.0,
+            close_reason="TP",
+            decision_id=None,
+            restored_evidence_gaps=[],
+        )
+    )
+
+    doc = _build(sim)
+    realized = _by_field(doc, "performance", "realized_pnl")
+    fees = _by_field(doc, "accounting", "fees_paid")
+    assert realized["classification"] == "PARTIAL"
+    assert realized["delta_ppl_minus_legacy"] is None
+    assert fees["classification"] == "UNRESOLVED"
+    assert fees["legacy"]["value"] is None
