@@ -30,9 +30,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
-      # Scope is the maintained CI corpus. Historical test trees are tracked separately.
-      - name: Run maintained test corpus with coverage
-        run: pytest tests/ --ignore=tests/stress --cov=. --cov-report=xml --cov-report=term-missing
+      # Coverage publication excludes resource-sensitive performance/endurance
+      # tests; those remain blocking in CI's LONG-RUN PERFORMANCE GATE.
+      - name: Run deterministic coverage corpus
+        run: pytest tests/ --ignore=tests/stress -m "not performance and not slow" --cov=. --cov-report=xml --cov-report=term-missing
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:

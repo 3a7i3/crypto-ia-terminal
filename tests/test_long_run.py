@@ -202,6 +202,7 @@ class TestC1Baseline:
                 result.metrics[i].trades >= result.metrics[i - 1].trades
             ), f"Trade history décroissante au cycle {result.metrics[i].cycle}"
 
+    @pytest.mark.performance
     def test_10k_performance_under_30s(self):
         """10 000 cycles en moins de 30 secondes."""
         t0 = time.monotonic()
@@ -289,14 +290,19 @@ class TestC2StateDrift:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.performance
 class TestC3MemoryLeak:
     """
-    Détection de fuites mémoire sur run de 10k cycles.
+    Détection de rétention/fuite mémoire sur workloads synthétiques.
 
-    Critères :
-      - Croissance tracemalloc < 30 MB sur 10k cycles
-      - Croissance 5k→10k < 2× croissance 1k→5k (pas super-linéaire)
-      - Pas d'explosion du nombre d'objets GC
+    Contrat :
+      - allocation tracemalloc < 30 MB sur 10k cycles ;
+      - après warm-up, des runs indépendants identiques ne retiennent pas
+        plusieurs MB d'allocations Python résiduelles ;
+      - pas d'explosion du nombre d'objets GC.
+
+    Ces tests sont resource-sensitive et appartiennent au gate long-run
+    dédié, pas au gate de correctness ni au transport de couverture.
     """
 
     def test_tracemalloc_growth_bounded_10k(self):
@@ -319,43 +325,49 @@ class TestC3MemoryLeak:
             total_mb < 30.0
         ), f"Allocation tracemalloc trop élevée: {total_mb:.1f} MB pour 10k cycles"
 
-    def test_memory_growth_not_superlinear(self):
+    def test_repeated_runs_retained_memory_bounded(self):
         """
-        La mémoire Python ne croît pas super-linéairement.
+        Après warm-up, des runs indépendants identiques ne doivent pas
+        accumuler plusieurs MB d'allocations Python retenues.
 
-        Mesure la croissance 1k→5k et 5k→10k cycles.
-        La seconde moitié ne doit pas être > 3× la première.
+        Le test précédent divisait deux deltas tracemalloc de l'ordre du KB
+        issus de workloads indépendants et de seeds différentes ; le ratio
+        était dominé par le bruit du runner. Ici on mesure une quantité
+        absolue après warm-up, répétition du même workload et GC explicite.
         """
         gc.collect()
         tracemalloc.start()
 
-        # Phase 1 : 1k cycles
+        # Warm-up : imports/caches paresseux ne font pas partie de la fuite.
         _run_simulation(1_000, seed=42)
         gc.collect()
-        snap1 = tracemalloc.take_snapshot()
+        snap_before = tracemalloc.take_snapshot()
 
-        # Phase 2 : 5k cycles supplémentaires (total 6k)
-        _run_simulation(5_000, seed=43)
-        gc.collect()
-        snap2 = tracemalloc.take_snapshot()
+        # Même workload, même seed, cinq fois : toute rétention par run
+        # s'accumule dans la différence finale.
+        for _ in range(5):
+            _run_simulation(5_000, seed=42)
+            gc.collect()
 
-        # Phase 3 : 5k cycles supplémentaires (total 11k)
-        _run_simulation(5_000, seed=44)
-        gc.collect()
-        snap3 = tracemalloc.take_snapshot()
-
+        snap_after = tracemalloc.take_snapshot()
         tracemalloc.stop()
 
-        growth_1_2 = sum(max(s.size_diff, 0) for s in snap2.compare_to(snap1, "lineno"))
-        growth_2_3 = sum(max(s.size_diff, 0) for s in snap3.compare_to(snap2, "lineno"))
+        stats = snap_after.compare_to(snap_before, "lineno")
+        retained_bytes = sum(max(stat.size_diff, 0) for stat in stats)
+        retained_mb = retained_bytes / (1024 * 1024)
+        top = ", ".join(
+            f"{stat.traceback[0]}={stat.size_diff / 1024:.1f}KB"
+            for stat in stats[:5]
+            if stat.size_diff > 0
+        )
 
-        # Si growth_1_2 == 0, éviter division par zéro
-        if growth_1_2 > 0:
-            ratio = growth_2_3 / growth_1_2
-            assert ratio < 3.0, (
-                f"Croissance super-linéaire détectée: ratio={ratio:.2f} "
-                f"(phase1={growth_1_2/1024:.0f}KB, phase2={growth_2_3/1024:.0f}KB)"
-            )
+        # 5 MB est plusieurs ordres de grandeur au-dessus du bruit KB observé
+        # lors de #214, tout en restant une borne stricte de rétention après
+        # 25k cycles répétés et collectés.
+        assert retained_bytes < 5 * 1024 * 1024, (
+            f"Rétention mémoire excessive après runs répétés: "
+            f"{retained_mb:.2f}MB; top={top}"
+        )
 
     def test_gc_objects_not_exploding(self):
         """Le nombre d'objets Python ne croît pas de façon incontrôlée."""
