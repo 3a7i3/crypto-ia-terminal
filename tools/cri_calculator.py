@@ -470,7 +470,10 @@ def compute_cri(
         result["validity"] = "OK"
 
     metadata_missing = sum(
-        1 for trade in trades if not _decision_metadata_available(trade)
+        1
+        for trade in trades
+        if trade.get("source_authority") == "PPL"
+        and not _decision_metadata_available(trade)
     )
     result["trade_decision_metadata_unavailable"] = metadata_missing
     if metadata_missing:
