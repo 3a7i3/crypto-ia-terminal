@@ -38,4 +38,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
-          fail_ci_if_error: true
+          # External publication is supplemental; Coverage Report remains the binding test evidence.
+          fail_ci_if_error: false
