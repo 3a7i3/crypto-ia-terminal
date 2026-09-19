@@ -30,8 +30,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
-      - name: Run tests with coverage
-        run: pytest --cov=. --cov-report=xml --cov-report=term-missing
+      # Scope is the maintained CI corpus. Historical test trees are tracked separately.
+      - name: Run maintained test corpus with coverage
+        run: pytest tests/ --cov=. --cov-report=xml --cov-report=term-missing
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
