@@ -306,7 +306,7 @@ def trades_provenance(path: Optional[Path] = None) -> dict:
     return {
         "loader": "tools.cri_calculator.load_clean_trades",
         "source_path": str(target),
-        "clean_data_since": canonical_population_since().isoformat(),
+        "clean_data_since": CLEAN_DATA_SINCE_ACTIVE.isoformat(),
         "close_events_total": len(closes),
         "n_canonical": kept,
         "excluded_by_reason": excluded,
@@ -442,7 +442,7 @@ def compute_cri(
         "gate_ready": cri >= 90.0,
         "n_clean": len(trades),
         "n_regrets_clean": len(regrets),
-        "clean_data_since": CLEAN_DATA_SINCE_ACTIVE.isoformat(),
+        "clean_data_since": canonical_population_since().isoformat(),
         "sub_scores": {k: round(v, 2) for k, v in scores.items()},
         "weights": WEIGHTS,
     }
