@@ -157,6 +157,7 @@ jobs:
             --cov=quant_hedge_ai/agents/quant \
             --cov-report=xml \
             --cov-report=term-missing \
+            --cov-precision=2 \
             --cov-fail-under=4 \
             -x -q \
             supervision/test_supervision.py \
