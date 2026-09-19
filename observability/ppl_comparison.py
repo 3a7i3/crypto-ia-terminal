@@ -460,7 +460,12 @@ def _assert_causally_coherent(legacy: Dict[str, Any], ppl: Dict[str, Any]) -> No
     atomic artifact is left untouched by the caller (fail-passive).
     """
 
-    if legacy.get("transitioning"):
+    transitions_in_flight = legacy.get("lifecycle_transitions_in_flight")
+    if legacy.get("transitioning") or (
+        isinstance(transitions_in_flight, int)
+        and not isinstance(transitions_in_flight, bool)
+        and transitions_in_flight > 0
+    ):
         raise RuntimeError(
             "WEB-02 legacy CLOSE mutation in progress; comparison artifact "
             "withheld"
