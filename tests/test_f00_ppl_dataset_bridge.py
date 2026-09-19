@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import time
 
 import pytest
 
@@ -239,6 +240,56 @@ def test_ppl_regrets_are_bounded_by_epoch_creation(tmp_path, monkeypatch):
 
     assert len(regrets) == 1
     assert regrets[0]["score"] == 71
+
+
+def test_ppl_regret_freshness_requires_evidence_inside_epoch(tmp_path, monkeypatch):
+    import tools.regret_repository as regret_repository
+
+    now = time.time()
+    created_at = now - 60.0
+    store_root = tmp_path / "ppl"
+    epoch = make_epoch_created_event(
+        event_id="evt-freshness-epoch",
+        paper_epoch_id=EPOCH,
+        sequence=1,
+        timestamp=created_at,
+        initial_virtual_capital=100.0,
+        code_sha="sha-fresh",
+        config_snapshot_hash="cfg-fresh",
+        schema_version=2,
+    )
+    _persist(store_root, (epoch,))
+    _select_ppl(monkeypatch, store_root)
+
+    regret_dir = tmp_path / "regret"
+    regret_dir.mkdir()
+    pre_epoch_but_recent = {
+        "schema_version": 2,
+        "dataset_version": "regret-v2",
+        "record_type": "HORIZON_EVIDENCE",
+        "evidence_id": "pre-epoch:1h",
+        "observation_id": "pre-epoch",
+        "ts_signal": created_at - 60.0,
+        "ts_eval": now - 10.0,
+        "horizon": "1h",
+        "horizon_status": "EVALUATED",
+        "result": {
+            "ts_eval": now - 10.0,
+            "favorable_endpoint_pct": 0.0,
+            "adverse_endpoint_pct": 0.0,
+        },
+    }
+    (regret_dir / "regret_horizons_test.jsonl").write_text(
+        json.dumps(pre_epoch_but_recent) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(regret_repository, "REGRET_DIR", regret_dir)
+
+    result = compute_cri(None, None)
+
+    assert result["n_regrets_clean"] == 0
+    assert result["regret_fresh"] is False
+    assert result["validity"] == "PARTIAL"
 
 
 def test_ppl_gate_funnel_is_bounded_by_epoch_creation(tmp_path, monkeypatch):
