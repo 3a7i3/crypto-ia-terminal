@@ -371,12 +371,7 @@ class PPLAuthorityRuntime:
                         config_snapshot_hash=self.manifest.config_snapshot_hash,
                         schema_version=_PPL_EVENT_SCHEMA_VERSION,
                     )
-                    validated_projection = project((event,))
                     self._append_semantically_validated(event)
-                    self._assert_projection_matches(
-                        self._projection,
-                        validated_projection,
-                    )
 
                 self._reload()
                 plan = plan_restart_recovery(self._projection, now=now)
@@ -397,8 +392,7 @@ class PPLAuthorityRuntime:
                         reason="recovery_window_expired",
                         schema_version=_PPL_EVENT_SCHEMA_VERSION,
                     )
-                    self.store.append(self.manifest.paper_epoch_id, event)
-                    self._reload()
+                    self._append_semantically_validated(event)
 
                 self.status = AuthorityRuntimeStatus.READY
                 self.last_error = None
