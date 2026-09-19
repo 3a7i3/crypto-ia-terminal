@@ -30,6 +30,7 @@ from paper_trading.admission_types import (
     AdmissionAttempt,
     AdmissionBlocker,
     AdmissionDecision,
+    AdmissionLevel,
     AdmissionVerdict,
     WriteResult,
     make_attempt,
@@ -61,6 +62,20 @@ _MAX_OHLCV_TICKER_DEV = float(os.getenv("MEXC_SIM_MAX_PRICE_DEV", "0.20"))
 _RESTORE_MAX_AGE_S = float(os.getenv("SIM_RESTORE_MAX_AGE_H", "4")) * 3600
 # Durée max avant fermeture forcée (évite les positions bloquées indéfiniment)
 _MAX_POSITION_AGE_H = float(os.getenv("MEXC_SIM_MAX_AGE_H", "8.0"))
+
+_LEGACY_ADMISSION_FREEZE_ENV = "PAPER_LEGACY_ADMISSIONS_FROZEN"
+
+
+def _legacy_admissions_frozen_from_env() -> bool:
+    """Strict bootstrap parser: invalid values must not silently stay open."""
+    raw = os.getenv(_LEGACY_ADMISSION_FREEZE_ENV, "false").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"", "0", "false", "no", "off"}:
+        return False
+    raise ValueError(
+        f"{_LEGACY_ADMISSION_FREEZE_ENV} must be an explicit boolean, got {raw!r}"
+    )
 
 
 class OrderType(str, Enum):
@@ -307,6 +322,15 @@ class MexcSimulator:
         # window as a stable state.
         self._legacy_generation: int = 0
         self._legacy_transitions_in_flight: int = 0
+        self._legacy_admissions_frozen = _legacy_admissions_frozen_from_env()
+        self._legacy_admissions_state = (
+            "FROZEN" if self._legacy_admissions_frozen else "UNFROZEN"
+        )
+        self._legacy_admissions_provenance = (
+            f"{_LEGACY_ADMISSION_FREEZE_ENV}=true at process bootstrap"
+            if self._legacy_admissions_frozen
+            else f"{_LEGACY_ADMISSION_FREEZE_ENV}=false/default at process bootstrap"
+        )
         self._running = False
         self._perf = PerformanceTracker()
         # PPL-02D — optional, non-authoritative SHADOW observer. Caller
@@ -639,6 +663,54 @@ class MexcSimulator:
 
     # ── Admission (Phase 5.2.5) ───────────────────────────────────────────────
 
+    def _reject_legacy_admission_if_frozen(
+        self, symbol: str, order_type: str
+    ) -> Optional[MexcOrder]:
+        """Reject every new Legacy lifecycle admission while frozen.
+
+        State is fixed at process bootstrap. CLOSE remains available to drain
+        already-open positions. Rejections are paired in the append-only
+        admission ledger, so the boundary claim is auditable.
+        """
+        if self._lifecycle_authority.ppl_is_authoritative:
+            return None
+        if not self._legacy_admissions_frozen:
+            return None
+        with self._lock:
+            n_before = len(self._positions)
+            verdict = AdmissionVerdict(
+                decision=AdmissionDecision.REJECTED,
+                level=AdmissionLevel.OFF,
+                n_at_check=n_before,
+                hard_max_at_check=n_before,
+                blocker=AdmissionBlocker.LEGACY_ADMISSION_FREEZE,
+                reason="operator-governed Legacy admission freeze is active",
+                checked_by=_LEGACY_ADMISSION_FREEZE_ENV,
+            )
+            attempt = make_attempt(
+                verdict, cycle_id="legacy_admission_freeze", symbol=symbol
+            )
+            ledger = get_admission_ledger()
+            ledger.record_attempt(attempt)
+            ledger.record_outcome(
+                make_outcome(
+                    attempt,
+                    WriteResult.REJECTED_FROZEN,
+                    n_after=n_before,
+                    anomaly=f"order_type={order_type}",
+                )
+            )
+        order = self._make_rejected_stub(symbol)
+        _log.warning(
+            "[SIM][PPL-02E] Legacy admission frozen — rejected %s %s",
+            order_type,
+            symbol,
+        )
+        self._notify(
+            f"[SIM] REJETE {symbol} — admissions Legacy gelee ({order_type})"
+        )
+        return order
+
     def _make_rejected_stub(self, symbol: str) -> MexcOrder:
         """MexcOrder minimal en état REJECTED pour l'API de retour."""
         return MexcOrder(
@@ -808,6 +880,9 @@ class MexcSimulator:
         )
         if _authority_reject is not None:
             return _authority_reject
+        _freeze_reject = self._reject_legacy_admission_if_frozen(symbol, "MARKET")
+        if _freeze_reject is not None:
+            return _freeze_reject
 
         # ── Enveloppe admission (Phase 5.2.5) ─────────────────────────────
         _adm_ctx = self._enter_admission(symbol, admission, cycle_id)
@@ -876,6 +951,9 @@ class MexcSimulator:
         personality: str = "unknown",
     ) -> MexcOrder:
         """Ordre LIMIT : en attente jusqu'à ce que le prix atteigne limit_price."""
+        freeze_reject = self._reject_legacy_admission_if_frozen(symbol, "LIMIT")
+        if freeze_reject is not None:
+            return freeze_reject
         if self._lifecycle_authority.ppl_is_authoritative:
             order = self._make_rejected_stub(symbol)
             self._notify(f"[SIM] REJETE {symbol} — LIMIT non certifie sous PPL_AUTHORITY")
@@ -919,6 +997,9 @@ class MexcSimulator:
         personality: str = "unknown",
     ) -> MexcOrder:
         """Ordre STOP_LIMIT : déclenché sur stop_price, exécuté à limit_price."""
+        freeze_reject = self._reject_legacy_admission_if_frozen(symbol, "STOP_LIMIT")
+        if freeze_reject is not None:
+            return freeze_reject
         if self._lifecycle_authority.ppl_is_authoritative:
             order = self._make_rejected_stub(symbol)
             self._notify(f"[SIM] REJETE {symbol} — STOP_LIMIT non certifie sous PPL_AUTHORITY")
