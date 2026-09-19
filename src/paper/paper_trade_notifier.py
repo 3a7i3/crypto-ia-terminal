@@ -4,7 +4,9 @@ trades PAPER de la main machine (mission TG-PAPER-01).
 
 Rôle exact et exclusif : lire databases/paper_trades.jsonl (source de
 vérité écrite par paper_trading/recorder.py), filtrer les événements
-mode="futures_demo" (Legacy main machine) OU les projections PPL explicitement\nprovenancées, et envoyer une notification Telegram par OPEN et par CLOSE via\n@PaperArena_bot.
+mode="futures_demo" (Legacy main machine) OU les projections PPL explicitement
+provenancées, et envoyer une notification Telegram par OPEN et par CLOSE via
+@PaperArena_bot.
 
 Ce module n'est PAS une autorité financière :
   - il ne génère aucun signal, aucune stratégie, aucun score ;
@@ -57,7 +59,11 @@ _TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
 _HTTP_TIMEOUT_S = 8
 _POLL_INTERVAL_S = 2.0
 
-_MAIN_MACHINE_MODE = "futures_demo"\n_PPL_COMPAT_MODE = "paper"\n_PPL_SOURCE_AUTHORITY = "PPL"\n_PPL_PROJECTION_SCHEMA_VERSION = 1\n_HANDLED_EVENTS = ("OPEN", "CLOSE")
+_MAIN_MACHINE_MODE = "futures_demo"
+_PPL_COMPAT_MODE = "paper"
+_PPL_SOURCE_AUTHORITY = "PPL"
+_PPL_PROJECTION_SCHEMA_VERSION = 1
+_HANDLED_EVENTS = ("OPEN", "CLOSE")
 
 
 # ── Configuration ────────────────────────────────────────────────────────────
