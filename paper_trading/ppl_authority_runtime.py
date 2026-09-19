@@ -293,6 +293,44 @@ class PPLAuthorityRuntime:
         self._projection = PaperPortfolioState()
         self._lock = threading.RLock()
 
+    @staticmethod
+    def _assert_projection_matches(
+        durable: PaperPortfolioState,
+        validated: PaperPortfolioState,
+    ) -> None:
+        """Prove the durable replay matches the state validated pre-append."""
+        if durable != validated:
+            raise PPLAuthorityRuntimeError(
+                "durable PPL projection differs from the prospectively "
+                "validated projection"
+            )
+
+    def _append_semantically_validated(self, event: LedgerEvent) -> AppendResult:
+        """Validate the prospective lifecycle state before the durability boundary.
+
+        Existing event ids retain the DurableEventStore's exact-event idempotence
+        contract.  A genuinely new event is projected in-memory first; semantic
+        rejection therefore happens before append/fsync and cannot poison the
+        authoritative epoch.
+        """
+
+        existing = next(
+            (stored for stored in self._events if stored.event_id == event.event_id),
+            None,
+        )
+        if existing is None:
+            validated_projection = project(self._events + (event,))
+        else:
+            # The store remains authoritative for canonical identity collision
+            # detection.  For an exact retry, the current replay is already the
+            # prospectively validated state.
+            validated_projection = self._projection
+
+        result = self.store.append(self.manifest.paper_epoch_id, event)
+        self._reload()
+        self._assert_projection_matches(self._projection, validated_projection)
+        return result
+
     def _reload(self) -> None:
         events = self.store.load_epoch(self.manifest.paper_epoch_id)
         state = project(events)
@@ -333,7 +371,12 @@ class PPLAuthorityRuntime:
                         config_snapshot_hash=self.manifest.config_snapshot_hash,
                         schema_version=_PPL_EVENT_SCHEMA_VERSION,
                     )
-                    self.store.append(self.manifest.paper_epoch_id, event)
+                    validated_projection = project((event,))
+                    self._append_semantically_validated(event)
+                    self._assert_projection_matches(
+                        self._projection,
+                        validated_projection,
+                    )
 
                 self._reload()
                 plan = plan_restart_recovery(self._projection, now=now)
@@ -412,9 +455,7 @@ class PPLAuthorityRuntime:
                 timeout_at=timeout_at,
                 recovery_eligible_until=recovery_eligible_until,
             )
-            result = self.store.append(self.manifest.paper_epoch_id, event)
-            self._reload()
-            return result
+            return self._append_semantically_validated(event)
 
     def commit_close(
         self,
@@ -449,9 +490,7 @@ class PPLAuthorityRuntime:
                 decision_id=decision_id,
                 schema_version=_PPL_EVENT_SCHEMA_VERSION,
             )
-            result = self.store.append(self.manifest.paper_epoch_id, event)
-            self._reload()
-            return result
+            return self._append_semantically_validated(event)
 
     def sync_compatibility(self) -> int:
         with self._lock:
