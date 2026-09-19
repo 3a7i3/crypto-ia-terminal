@@ -295,7 +295,8 @@ class TestC3MemoryLeak:
 
     Critères :
       - Croissance tracemalloc < 30 MB sur 10k cycles
-      - Croissance 5k→10k < 2× croissance 1k→5k (pas super-linéaire)
+      - Deux fenêtres consécutives de 5k cycles sur le MÊME moteur persistant
+        ne doivent pas montrer une croissance mémoire super-linéaire (>3×)
       - Pas d'explosion du nombre d'objets GC
     """
 
@@ -321,41 +322,88 @@ class TestC3MemoryLeak:
 
     def test_memory_growth_not_superlinear(self):
         """
-        La mémoire Python ne croît pas super-linéairement.
+        Vérifie la croissance retenue sur UN MÊME workload persistant.
 
-        Mesure la croissance 1k→5k et 5k→10k cycles.
-        La seconde moitié ne doit pas être > 3× la première.
+        L'ancien test lançait trois simulations indépendantes puis divisait
+        deux deltas positifs de snapshots souvent de l'ordre de 1–2 KB.
+        Cette métrique mesurait surtout le bruit de l'interpréteur/coverage.
+
+        Ici, un même PaperTradingEngine, un même RNG et une même fenêtre sont
+        conservés pendant 11k cycles. Après un warm-up de 1k, on compare deux
+        fenêtres de 5k cycles de même longueur. Une fuite structurelle doit
+        alors apparaître comme une accélération de la mémoire retenue du même
+        état persistant, et non comme une différence entre trois runs séparés.
         """
+        from quant_hedge_ai.agents.execution.paper_trading_engine import (
+            PaperTradingEngine,
+        )
+        from quant_hedge_ai.agents.execution.signal_engine import compute_signal
+
+        rng = random.Random(42)
+        engine = PaperTradingEngine(initial_balance=_INITIAL_BALANCE, persist=False)
+        window: deque = deque(maxlen=30)
+        price = _BASE_PRICE
+
+        def advance(n_cycles: int) -> None:
+            nonlocal price
+            for _ in range(n_cycles):
+                candle = _make_candle(price, rng)
+                price = candle["close"]
+                window.append(candle)
+
+                signal = compute_signal(_STRATEGY_RSI, list(window))
+                has_pos = engine.positions.get(_SYMBOL, 0.0) > 0
+                cost = price * _ORDER_SIZE
+                if signal == "BUY" and not has_pos and engine.balance >= cost:
+                    engine.execute(
+                        {"symbol": _SYMBOL, "action": "BUY", "size": _ORDER_SIZE},
+                        price,
+                    )
+                elif signal == "SELL" and has_pos:
+                    engine.execute(
+                        {"symbol": _SYMBOL, "action": "SELL", "size": _ORDER_SIZE},
+                        price,
+                    )
+
         gc.collect()
         tracemalloc.start()
 
-        # Phase 1 : 1k cycles
-        _run_simulation(1_000, seed=42)
+        # Warm-up : imports/caches + 1k cycles avant la mesure comparative.
+        advance(1_000)
         gc.collect()
         snap1 = tracemalloc.take_snapshot()
+        trades_1 = len(engine.trade_history)
 
-        # Phase 2 : 5k cycles supplémentaires (total 6k)
-        _run_simulation(5_000, seed=43)
+        # Deux fenêtres égales et consécutives sur le même état.
+        advance(5_000)
         gc.collect()
         snap2 = tracemalloc.take_snapshot()
+        trades_2 = len(engine.trade_history)
 
-        # Phase 3 : 5k cycles supplémentaires (total 11k)
-        _run_simulation(5_000, seed=44)
+        advance(5_000)
         gc.collect()
         snap3 = tracemalloc.take_snapshot()
+        trades_3 = len(engine.trade_history)
 
         tracemalloc.stop()
 
         growth_1_2 = sum(max(s.size_diff, 0) for s in snap2.compare_to(snap1, "lineno"))
         growth_2_3 = sum(max(s.size_diff, 0) for s in snap3.compare_to(snap2, "lineno"))
 
-        # Si growth_1_2 == 0, éviter division par zéro
-        if growth_1_2 > 0:
-            ratio = growth_2_3 / growth_1_2
-            assert ratio < 3.0, (
-                f"Croissance super-linéaire détectée: ratio={ratio:.2f} "
-                f"(phase1={growth_1_2/1024:.0f}KB, phase2={growth_2_3/1024:.0f}KB)"
-            )
+        # Le workload persistant doit réellement croître dans les deux fenêtres;
+        # sinon la mesure ne prouverait rien et doit échouer explicitement.
+        assert trades_2 > trades_1
+        assert trades_3 > trades_2
+        assert growth_1_2 > 0
+
+        ratio = growth_2_3 / growth_1_2
+        assert ratio < 3.0, (
+            f"Croissance super-linéaire détectée sur workload persistant: "
+            f"ratio={ratio:.2f} "
+            f"(phase1={growth_1_2/1024:.0f}KB, "
+            f"phase2={growth_2_3/1024:.0f}KB, "
+            f"trades={trades_1}->{trades_2}->{trades_3})"
+        )
 
     def test_gc_objects_not_exploding(self):
         """Le nombre d'objets Python ne croît pas de façon incontrôlée."""
