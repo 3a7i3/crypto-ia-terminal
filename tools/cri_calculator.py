@@ -45,7 +45,53 @@ MIN_PSI_SAMPLE = 10
 
 WEIGHTS = {"n": 25.0, "coverage": 25.0, "drift": 25.0, "balance": 25.0}
 
+
 SCORE_BIN_LABELS = ["<50", "50-59", "60-69", "70-79", "80+"]
+
+
+class ScientificDatasetUnavailableError(RuntimeError):
+    """The canonical scientific population cannot be identified honestly."""
+
+
+def _active_ppl_epoch_id() -> Optional[str]:
+    """Return the exact authoritative PPL epoch used as scientific population."""
+
+    from paper_trading.paper_authority import (
+        PaperLifecycleAuthority,
+        resolve_paper_lifecycle_authority,
+    )
+
+    authority = resolve_paper_lifecycle_authority(os.environ)
+    if authority is not PaperLifecycleAuthority.PPL_AUTHORITY:
+        return None
+
+    epoch_id = str(os.getenv("PPL_AUTHORITY_EPOCH_ID", "") or "").strip()
+    if not epoch_id:
+        raise ScientificDatasetUnavailableError(
+            "PPL_AUTHORITY scientific dataset requires PPL_AUTHORITY_EPOCH_ID"
+        )
+    return epoch_id
+
+
+def _missing_evidence_fields(record: dict) -> set[str]:
+    raw = record.get("missing_evidence_fields")
+    if not raw:
+        return set()
+    if isinstance(raw, str):
+        return {item.strip() for item in raw.split(",") if item.strip()}
+    if isinstance(raw, (list, tuple, set)):
+        return {str(item).strip() for item in raw if str(item).strip()}
+    return {str(raw).strip()}
+
+
+def _trade_has_decision_metadata(record: dict) -> bool:
+    """Whether score/regime are evidenced enough for coverage/drift metrics."""
+
+    if str(record.get("source_authority") or "") == "PPL":
+        missing = _missing_evidence_fields(record)
+        if "score" in missing or "regime" in missing:
+            return False
+    return record.get("score") is not None and record.get("regime") is not None
 
 DEFAULT_TRADES_PATH = Path("databases/paper_trades.jsonl")
 # Override CLI historique uniquement. ``path=None`` utilise regret_repository.
@@ -129,11 +175,41 @@ def default_trades_path() -> Path:
     return Path(os.getenv("PAPER_TRADE_LOG", str(DEFAULT_TRADES_PATH)))
 
 
-def _exclusion_reason(record: dict) -> Optional[str]:
-    """Motif d'exclusion d'un événement CLOSE, ou None s'il est canonique."""
+def _exclusion_reason(
+    record: dict,
+    *,
+    ppl_epoch_id: Optional[str],
+) -> Optional[str]:
+    """Motif d'exclusion d'un CLOSE sous le contrat de population actif."""
+
     ts = _event_ts(record)
     if ts is None:
         return "ts_absent_ou_illisible"
+
+    source_authority = str(record.get("source_authority") or "")
+    record_epoch = str(record.get("paper_epoch_id") or "")
+
+    if ppl_epoch_id is not None:
+        if source_authority != "PPL":
+            return "legacy_outside_ppl_epoch"
+        if record_epoch != ppl_epoch_id:
+            return "ppl_wrong_epoch"
+        if (
+            str(record.get("evidence_status") or "").upper() == "UNRESOLVED"
+            or record.get("pnl_usd") is None
+        ):
+            return "ppl_unresolved_outcome"
+        # Epoch identity is the experiment boundary under PPL. Historical
+        # price/score fixture heuristics must never reinterpret a provenance-
+        # bound PPL trade as synthetic evidence.
+        return None
+
+    # Legacy scientific population remains exactly the historical clean-window
+    # contract. Once PPL rows exist in the compatibility journal, they are not
+    # silently mixed back into that Legacy population.
+    if source_authority == "PPL":
+        return "ppl_outside_legacy_population"
+
     if ts < CLEAN_DATA_SINCE_ACTIVE:
         return "anterieur_borne_canonique"
 
@@ -153,69 +229,95 @@ def _exclusion_reason(record: dict) -> Optional[str]:
 def load_clean_trades(path: Optional[Path] = None) -> list[dict]:
     """Dataset canonique des paper trades — LOADER UNIQUE (INV-DATASET-001).
 
-    Filtres appliqués, dans l'ordre :
-      1. `event == "CLOSE"`
-      2. horodatage >= `CLEAN_DATA_SINCE_ACTIVE` (borne d'époque, ADR-0017)
-      3. hors fixtures de test (prix < 500 ET score == 0)
-      4. hors artefacts de restauration (durée == 0 ET score == 0 ET régime inconnu)
+    LEGACY/PPL_SHADOW conservent le contrat historique CLEAN_DATA_SINCE +
+    heuristiques de qualité.
 
-    `path=None` → `default_trades_path()`. Aucun appelant ne doit reconstruire
-    ces filtres : tout KPI calculé sur une autre population que celle-ci est,
-    par construction, incomparable aux autres outils du dépôt.
+    Sous PPL_AUTHORITY, l'identité scientifique est stricte : uniquement les
+    CLOSE projetés par PPL pour l'exact PPL_AUTHORITY_EPOCH_ID. Les lignes
+    Legacy, les autres epochs et les outcomes UNRESOLVED sont exclus. Les
+    heuristiques historiques prix/score ne s'appliquent jamais à une ligne PPL
+    provenance-bound.
     """
+
     target = default_trades_path() if path is None else path
+    ppl_epoch_id = _active_ppl_epoch_id()
     return [
         d
         for d in _read_jsonl(target)
-        if d.get("event") == "CLOSE" and _exclusion_reason(d) is None
+        if d.get("event") == "CLOSE"
+        and _exclusion_reason(d, ppl_epoch_id=ppl_epoch_id) is None
     ]
 
 
 def trades_provenance(path: Optional[Path] = None) -> dict:
-    """Provenance du dataset chargé — à joindre à toute décision (INV-DATASET-001).
+    """Provenance exacte de la population scientifique effectivement mesurée."""
 
-    Rend explicite CE QUI a été lu et CE QUI a été écarté, pour qu'un rapport
-    ne puisse pas citer un N sans que sa population soit reconstituable.
-    """
     target = default_trades_path() if path is None else path
+    ppl_epoch_id = _active_ppl_epoch_id()
     closes = [d for d in _read_jsonl(target) if d.get("event") == "CLOSE"]
 
     excluded: dict[str, int] = {}
-    kept = 0
+    kept_records: list[dict] = []
     for record in closes:
-        reason = _exclusion_reason(record)
+        reason = _exclusion_reason(record, ppl_epoch_id=ppl_epoch_id)
         if reason is None:
-            kept += 1
+            kept_records.append(record)
         else:
             excluded[reason] = excluded.get(reason, 0) + 1
 
     return {
         "loader": "tools.cri_calculator.load_clean_trades",
         "source_path": str(target),
-        "clean_data_since": CLEAN_DATA_SINCE_ACTIVE.isoformat(),
+        "population_mode": "PPL_EPOCH" if ppl_epoch_id is not None else "LEGACY_CLEAN_WINDOW",
+        "source_authority": "PPL" if ppl_epoch_id is not None else "LEGACY_COMPATIBLE",
+        "paper_epoch_id": ppl_epoch_id,
+        "clean_data_since": (
+            None if ppl_epoch_id is not None else CLEAN_DATA_SINCE_ACTIVE.isoformat()
+        ),
         "close_events_total": len(closes),
-        "n_canonical": kept,
+        "n_canonical": len(kept_records),
+        "decision_metadata_complete": sum(
+            1 for record in kept_records if _trade_has_decision_metadata(record)
+        ),
         "excluded_by_reason": excluded,
     }
 
 
 def load_clean_regrets(path: Optional[Path] = None) -> list[dict]:
-    """Regrets filtrés par CLEAN_DATA_SINCE_ACTIVE.
+    """Load regret evidence under the same scientific-epoch contract.
 
-    `path=None` → SOURCE CANONIQUE (MC-001 / ADR-0018 : regret-v2 via
-    tools.regret_repository, jamais un chemin en dur). Un chemin explicite lit
-    un fichier plat historique (compat tests / override d'audit)."""
+    In PPL_AUTHORITY, regret observations are usable only when they explicitly
+    carry source_authority=PPL and the exact authoritative paper_epoch_id.
+    Existing regret-v2 rows without that provenance remain valid historical
+    evidence but are not silently attributed to F-00.
+    """
+
+    ppl_epoch_id = _active_ppl_epoch_id()
     if path is None:
         from tools.regret_repository import read_canonical_regrets
 
-        return read_canonical_regrets(since=CLEAN_DATA_SINCE_ACTIVE)
-    regrets = []
-    for d in _read_jsonl(path):
-        ts = _event_ts(d)
-        if ts is None or ts < CLEAN_DATA_SINCE_ACTIVE:
-            continue
-        regrets.append(d)
-    return regrets
+        rows = read_canonical_regrets(
+            since=None if ppl_epoch_id is not None else CLEAN_DATA_SINCE_ACTIVE
+        )
+    else:
+        rows = []
+        for d in _read_jsonl(path):
+            ts = _event_ts(d)
+            if ts is None:
+                continue
+            if ppl_epoch_id is None and ts < CLEAN_DATA_SINCE_ACTIVE:
+                continue
+            rows.append(d)
+
+    if ppl_epoch_id is None:
+        return rows
+
+    return [
+        row
+        for row in rows
+        if str(row.get("source_authority") or "") == "PPL"
+        and str(row.get("paper_epoch_id") or "") == ppl_epoch_id
+    ]
 
 
 def n_score(n_clean: int) -> float:
@@ -225,14 +327,17 @@ def n_score(n_clean: int) -> float:
 def coverage_score(trades: list[dict], regrets: list[dict]) -> float:
     """% des cellules (régime observé x score_bin) avec >= 5 observations.
 
-    Grille fondée sur les régimes RÉELLEMENT observés dans le dataset —
-    pas une taxonomie théorique (au moins 3 coexistent dans le code, dont
-    une exclut le régime flash_crash pourtant observé en production —
-    voir ADR-0011)."""
+    Les trades PPL à métadonnées de décision partielles comptent pour le
+    lifecycle/PnL, mais jamais pour une cellule score/régime qu'ils ne prouvent
+    pas. Les regrets doivent déjà avoir été filtrés par epoch par le loader.
+    """
+
     cells: dict[tuple[str, str], int] = defaultdict(int)
     observed_regimes: set[str] = set()
 
     for r in trades:
+        if not _trade_has_decision_metadata(r):
+            continue
         regime = r.get("regime")
         score = r.get("score")
         if regime is None or score is None:
@@ -280,11 +385,13 @@ def _psi(expected: list[float], actual: list[float], bins: int = 5) -> float:
 
 
 def drift_score(trades: list[dict]) -> float:
-    """100 x (1 - PSI) entre 1ere et 2eme moitie du dataset propre.
+    """Score de drift uniquement sur les scores réellement attribués."""
 
-    Retourne 0.0 (pas 100.0) si l'echantillon est trop petit pour un PSI
-    significatif — cohérent avec un N_score déjà bas à ce stade."""
-    scores = [float(t["score"]) for t in trades if t.get("score") is not None]
+    scores = [
+        float(t["score"])
+        for t in trades
+        if _trade_has_decision_metadata(t) and t.get("score") is not None
+    ]
     n = len(scores)
     if n < 2 * MIN_PSI_SAMPLE:
         return 0.0
@@ -320,12 +427,16 @@ def compute_cri(
         + WEIGHTS["balance"] * scores["balance_score"]
     ) / 100.0
 
+    provenance = trades_provenance(trades_path)
     result = {
         "cri": round(cri, 2),
         "gate_ready": cri >= 90.0,
         "n_clean": len(trades),
         "n_regrets_clean": len(regrets),
-        "clean_data_since": CLEAN_DATA_SINCE_ACTIVE.isoformat(),
+        "dataset_population_mode": provenance["population_mode"],
+        "paper_epoch_id": provenance["paper_epoch_id"],
+        "clean_data_since": provenance["clean_data_since"],
+        "decision_metadata_complete": provenance["decision_metadata_complete"],
         "sub_scores": {k: round(v, 2) for k, v in scores.items()},
         "weights": WEIGHTS,
     }
@@ -341,16 +452,31 @@ def compute_cri(
         result["regret_last_event"] = f["last_event_utc"]
         result["regret_last_canonical_evaluated"] = f["last_canonical_evaluated_utc"]
         result["regret_fresh"] = f["fresh"]
-        result["validity"] = "OK" if f["fresh"] else "PARTIAL"
+        warnings = []
+        if provenance["population_mode"] == "PPL_EPOCH" and not regrets:
+            warnings.append(
+                "REGRET_EPOCH_ATTRIBUTION_UNAVAILABLE — aucune preuve regret-v2 "
+                "n'est attribuable à l'epoch PPL actif; coverage CRI reste censurée"
+            )
         if not f["fresh"]:
-            result["warnings"] = [
+            warnings.append(
                 "DATASET REGRET PÉRIMÉ (dernière évaluation canonique "
                 f"{f['last_canonical_evaluated_utc']}) — CRI PARTIELLEMENT "
                 "CENSURÉ, ne pas comparer dans le temps"
-            ]
+            )
+        result["validity"] = "PARTIAL" if warnings else "OK"
+        if warnings:
+            result["warnings"] = warnings
     else:
         result["regret_source"] = "explicit_path"
-        result["validity"] = "OK"
+        if provenance["population_mode"] == "PPL_EPOCH" and not regrets:
+            result["validity"] = "PARTIAL"
+            result["warnings"] = [
+                "REGRET_EPOCH_ATTRIBUTION_UNAVAILABLE — chemin explicite sans "
+                "preuve regret attribuable à l'epoch PPL actif"
+            ]
+        else:
+            result["validity"] = "OK"
     return result
 
 

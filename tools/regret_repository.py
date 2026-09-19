@@ -67,6 +67,8 @@ def _normalise_horizon(
         "packet_id": record.get("packet_id", ""),
         "trace_id": record.get("trace_id", ""),
         "experiment_id": record.get("experiment_id"),
+        "source_authority": record.get("source_authority"),
+        "paper_epoch_id": record.get("paper_epoch_id"),
         "cycle": record.get("cycle"),
         "engine_version": record.get("engine_version", "unknown"),
         "ts_signal": record.get("ts_signal"),

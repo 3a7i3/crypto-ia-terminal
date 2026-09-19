@@ -48,13 +48,14 @@ _DEFAULT_OUTPUT = Path("cache/burn_in_reports/burnin_v3.json")
 
 
 def _initial_capital() -> float:
-    """Base de capital pour le drawdown — même source que prelive_gate."""
-    try:
-        from infra.wallet_sync import get_wallet_sync
+    """Base de capital pour le drawdown — même source que prelive_gate.
 
-        return float(get_wallet_sync().initial_capital())
-    except Exception:
-        return float(os.getenv("WALLET_PAPER_CAPITAL", "1000") or 1000.0)
+    En PPL_AUTHORITY, une baseline indisponible est une erreur scientifique
+    bloquante. Aucun fallback numérique ne peut fabriquer un capital initial.
+    """
+    from infra.wallet_sync import get_wallet_sync
+
+    return float(get_wallet_sync().initial_capital())
 
 
 # ── Data classes ──────────────────────────────────────────────────────────────
@@ -548,7 +549,7 @@ def print_report(report: BurnInV3Report) -> None:
         print(_kpi("Duree moyenne", f"{t.avg_duration_h:.2f}h"))
 
     print(f"\n  {_hr}")
-    print(f"  ETAT SYSTEME")
+    print("  ETAT SYSTEME")
     print(f"  {_hr}")
     print(_kpi("KillSwitch", "HALTED" if s.killswitch_halted else "OK"))
     print(_kpi("V9_ADVISOR_ONLY", str(s.v9_advisor_only)))

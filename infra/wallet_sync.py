@@ -361,8 +361,30 @@ class WalletSync:
             )
 
     def initial_capital(self) -> float:
-        """Capital de départ — utilisé pour calculer ROI%/drawdown%."""
-        return self._base_capital()
+        """Capital de départ immuable pour ROI%/drawdown%.
+
+        Sous PPL_AUTHORITY, la seule baseline scientifique autorisée est
+        EPOCH_CREATED.initial_virtual_capital de cet epoch PPL autoritaire.
+        Aucune valeur WALLET_PAPER_CAPITAL, Legacy ou exchange ne peut la
+        remplacer si le replay PPL est indisponible.
+        """
+        if self._mode != "paper":
+            return self._base_capital()
+
+        from paper_trading.paper_authority import (
+            PaperLifecycleAuthority,
+            resolve_paper_lifecycle_authority,
+        )
+
+        authority = resolve_paper_lifecycle_authority(os.environ)
+        if authority is not PaperLifecycleAuthority.PPL_AUTHORITY:
+            return self._base_capital()
+
+        from paper_trading.ppl_capital import initial_virtual_capital_from_ppl
+
+        store_root = str(os.getenv("PPL_AUTHORITY_STORE_ROOT", "") or "").strip()
+        paper_epoch_id = str(os.getenv("PPL_AUTHORITY_EPOCH_ID", "") or "").strip()
+        return initial_virtual_capital_from_ppl(store_root, paper_epoch_id)
 
     def session_pnl_since_restart(self) -> float:
         """PnL réalisé depuis le démarrage de CE process — affichage uniquement.
