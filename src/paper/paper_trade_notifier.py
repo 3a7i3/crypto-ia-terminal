@@ -245,7 +245,7 @@ def is_main_machine_event(record: dict) -> bool:
         return False
 
     if record.get("mode") == _MAIN_MACHINE_MODE:
-        return True
+        return record.get("source_authority") in (None, "")
 
     if record.get("mode") != _PPL_COMPAT_MODE:
         return False
