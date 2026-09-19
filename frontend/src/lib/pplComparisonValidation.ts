@@ -116,7 +116,7 @@ export function validatePplComparisonSnapshot(x: unknown): x is PplComparisonSna
   if (quiescenceKeys.join("|") !== ["admissions_state", "generation", "lifecycle_transitions_in_flight", "pending_order_count"].join("|")) return false;
   if (!sourceValue(quiescence.pending_order_count) || !sourceValue(quiescence.lifecycle_transitions_in_flight) || !sourceValue(quiescence.admissions_state) || !sourceValue(quiescence.generation)) return false;
   for (const key of ["pending_order_count", "lifecycle_transitions_in_flight", "generation"] as const) {
-    const item = quiescence[key];
+    const item = quiescence[key] as PplComparisonSourceValue;
     if (item.status === "PRESENT" && !nonNegativeInt(item.value)) return false;
   }
   if (quiescence.admissions_state.status === "PRESENT" && typeof quiescence.admissions_state.value !== "string") return false;
