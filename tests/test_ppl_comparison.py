@@ -401,3 +401,68 @@ def test_ppl_failure_leaves_legacy_authoritative_and_ppl_honest(monkeypatch, tmp
     doc = _build(sim)
     assert doc["shadow_status"] == "DEGRADED"
     assert doc["comparison_available"] is False
+
+
+def test_legacy_admission_freeze_is_observable_and_blocks_all_new_order_types(
+    monkeypatch, tmp_path
+):
+    """A boundary freeze blocks every new Legacy admission and leaves audit pairs."""
+    from paper_trading.admission_ledger import (
+        get_admission_ledger,
+        reset_admission_ledger_singleton,
+    )
+
+    monkeypatch.setenv("PAPER_LEGACY_ADMISSIONS_FROZEN", "true")
+    monkeypatch.setenv("PAPER_ADMISSION_LEDGER", str(tmp_path / "admission.jsonl"))
+    reset_admission_ledger_singleton()
+
+    sim = MexcSimulator(mexc_reader=_reader())
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+
+    market = sim.place_market_order(
+        symbol="BTC/USDT", side="BUY", qty_usd=10.0, current_price=100.0
+    )
+    limit = sim.place_limit_order(
+        symbol="ETH/USDT", side="BUY", qty_usd=10.0, limit_price=100.0
+    )
+    stop_limit = sim.place_stop_limit_order(
+        symbol="SOL/USDT",
+        side="BUY",
+        qty_usd=10.0,
+        stop_price=101.0,
+        limit_price=100.0,
+    )
+
+    assert [market.status.value, limit.status.value, stop_limit.status.value] == [
+        "REJECTED",
+        "REJECTED",
+        "REJECTED",
+    ]
+    assert sim._positions == {}
+    assert sim._orders == {}
+    assert sim._legacy_admissions_state == "FROZEN"
+
+    events = get_admission_ledger().events()
+    outcomes = [row for row in events if row["event"] == "ADMISSION_OUTCOME"]
+    assert len(outcomes) == 3
+    assert {row["write_result"] for row in outcomes} == {"REJECTED_FROZEN"}
+    assert {row["anomaly"] for row in outcomes} == {
+        "order_type=MARKET",
+        "order_type=LIMIT",
+        "order_type=STOP_LIMIT",
+    }
+
+    legacy = ppl_comparison._snapshot_legacy(sim)
+    quiescence = ppl_comparison._legacy_quiescence(legacy)
+    assert quiescence["admissions_state"] == {
+        "value": "FROZEN",
+        "status": "PRESENT",
+        "provenance": "PAPER_LEGACY_ADMISSIONS_FROZEN=true at process bootstrap",
+    }
+
+
+def test_legacy_admission_freeze_rejects_invalid_configuration(monkeypatch):
+    monkeypatch.setenv("PAPER_LEGACY_ADMISSIONS_FROZEN", "perhaps")
+    with pytest.raises(ValueError, match="must be an explicit boolean"):
+        MexcSimulator(mexc_reader=_reader())
