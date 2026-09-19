@@ -295,7 +295,7 @@ class TestC3MemoryLeak:
 
     Critères :
       - Croissance tracemalloc < 30 MB sur 10k cycles
-      - Croissance 5k→10k < 2× croissance 1k→5k (pas super-linéaire)
+      - Mémoire Python retenue bornée après warm-up et runs répétés
       - Pas d'explosion du nombre d'objets GC
     """
 
@@ -319,43 +319,47 @@ class TestC3MemoryLeak:
             total_mb < 30.0
         ), f"Allocation tracemalloc trop élevée: {total_mb:.1f} MB pour 10k cycles"
 
-    def test_memory_growth_not_superlinear(self):
-        """
-        La mémoire Python ne croît pas super-linéairement.
+    def test_repeated_runs_retained_memory_bounded(self):
+        """La mémoire Python retenue reste bornée après des runs identiques.
 
-        Mesure la croissance 1k→5k et 5k→10k cycles.
-        La seconde moitié ne doit pas être > 3× la première.
+        Le précédent test divisait deux petits deltas positifs de snapshots
+        tracemalloc issus de simulations indépendantes. Avec des deltas de
+        l'ordre du kilo-octet, ce ratio amplifiait le bruit de l'allocateur,
+        du GC et de l'instrumentation coverage ; le même SHA a produit
+        FAIL → PASS → PASS sur le même runner GitHub Actions.
+
+        Ce test mesure à la place la mémoire courante retenue après GC,
+        relativement à une baseline prise après warm-up. On répète le même
+        workload afin d'éliminer la variance liée au contenu des simulations.
+        Une fuite réellement cumulative doit faire croître cette mémoire
+        retenue et franchir une borne absolue ; aucun quasi-zéro n'est utilisé
+        comme dénominateur.
         """
+        retained_limit_bytes = 2 * 1024 * 1024  # 2 MiB de rétention max.
+
         gc.collect()
         tracemalloc.start()
+        try:
+            # Warm-up : absorbe imports tardifs, caches et allocations
+            # one-shot avant de définir la baseline de rétention.
+            _run_simulation(1_000, seed=42)
+            gc.collect()
+            baseline_current, _ = tracemalloc.get_traced_memory()
 
-        # Phase 1 : 1k cycles
-        _run_simulation(1_000, seed=42)
-        gc.collect()
-        snap1 = tracemalloc.take_snapshot()
+            retained_after_runs: list[int] = []
+            for _ in range(3):
+                _run_simulation(5_000, seed=42)
+                gc.collect()
+                current, _ = tracemalloc.get_traced_memory()
+                retained_after_runs.append(max(0, current - baseline_current))
 
-        # Phase 2 : 5k cycles supplémentaires (total 6k)
-        _run_simulation(5_000, seed=43)
-        gc.collect()
-        snap2 = tracemalloc.take_snapshot()
-
-        # Phase 3 : 5k cycles supplémentaires (total 11k)
-        _run_simulation(5_000, seed=44)
-        gc.collect()
-        snap3 = tracemalloc.take_snapshot()
-
-        tracemalloc.stop()
-
-        growth_1_2 = sum(max(s.size_diff, 0) for s in snap2.compare_to(snap1, "lineno"))
-        growth_2_3 = sum(max(s.size_diff, 0) for s in snap3.compare_to(snap2, "lineno"))
-
-        # Si growth_1_2 == 0, éviter division par zéro
-        if growth_1_2 > 0:
-            ratio = growth_2_3 / growth_1_2
-            assert ratio < 3.0, (
-                f"Croissance super-linéaire détectée: ratio={ratio:.2f} "
-                f"(phase1={growth_1_2/1024:.0f}KB, phase2={growth_2_3/1024:.0f}KB)"
+            assert max(retained_after_runs) < retained_limit_bytes, (
+                "Mémoire retenue excessive après runs répétés: "
+                f"{[round(v / 1024) for v in retained_after_runs]}KB "
+                f"(limite={retained_limit_bytes / 1024:.0f}KB)"
             )
+        finally:
+            tracemalloc.stop()
 
     def test_gc_objects_not_exploding(self):
         """Le nombre d'objets Python ne croît pas de façon incontrôlée."""
