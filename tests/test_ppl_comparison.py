@@ -114,7 +114,8 @@ def test_legacy_quiescence_exposes_pending_and_transition_facts_without_freeze_i
     }
     sim._legacy_transitions_in_flight = 2
 
-    quiescence = _build(sim)["legacy_quiescence"]
+    legacy = ppl_comparison._snapshot_legacy(sim)
+    quiescence = ppl_comparison._legacy_quiescence(legacy)
     assert quiescence["pending_order_count"]["value"] == 1
     assert quiescence["pending_order_count"]["status"] == "PRESENT"
     assert quiescence["lifecycle_transitions_in_flight"]["value"] == 2
