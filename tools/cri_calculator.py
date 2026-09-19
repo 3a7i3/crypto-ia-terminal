@@ -453,17 +453,39 @@ def compute_cri(
         from tools.regret_repository import freshness
 
         f = freshness()
+        regret_fresh = bool(f["fresh"])
+        last_canonical = f["last_canonical_evaluated_utc"]
+
+        if _ppl_authority_selected():
+            evaluated_ts = []
+            for row in regrets:
+                try:
+                    evaluated_ts.append(float(row.get("ts_eval")))
+                except (TypeError, ValueError):
+                    continue
+            latest_epoch_eval = max(evaluated_ts, default=None)
+            max_stale_h = float(f["max_stale_h"])
+            regret_fresh = (
+                latest_epoch_eval is not None
+                and 0 <= (time.time() - latest_epoch_eval) <= max_stale_h * 3600.0
+            )
+            last_canonical = (
+                datetime.fromtimestamp(latest_epoch_eval, timezone.utc).isoformat()
+                if latest_epoch_eval is not None
+                else None
+            )
+
         result["regret_source"] = "canonical:" + f["dataset_version"]
         result["canonical_horizon"] = f["canonical_horizon"]
         result["regret_last_event"] = f["last_event_utc"]
-        result["regret_last_canonical_evaluated"] = f["last_canonical_evaluated_utc"]
-        result["regret_fresh"] = f["fresh"]
-        result["validity"] = "OK" if f["fresh"] else "PARTIAL"
-        if not f["fresh"]:
+        result["regret_last_canonical_evaluated"] = last_canonical
+        result["regret_fresh"] = regret_fresh
+        result["validity"] = "OK" if regret_fresh else "PARTIAL"
+        if not regret_fresh:
             result["warnings"] = [
-                "DATASET REGRET PÉRIMÉ (dernière évaluation canonique "
-                f"{f['last_canonical_evaluated_utc']}) — CRI PARTIELLEMENT "
-                "CENSURÉ, ne pas comparer dans le temps"
+                "DATASET REGRET PÉRIMÉ/ABSENT DANS L'EPOQUE "
+                f"(dernière évaluation canonique {last_canonical}) — "
+                "CRI PARTIELLEMENT CENSURÉ, ne pas comparer dans le temps"
             ]
     else:
         result["regret_source"] = "explicit_path"
