@@ -30,9 +30,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio coveralls
-      # Scope is the maintained CI corpus. Historical test trees are tracked separately.
-      - name: Run maintained test corpus with coverage
-        run: pytest tests/ --ignore=tests/stress --cov=. --cov-report=xml
+      # Coverage producer only. Correctness/performance authority stays in
+      # .github/workflows/ci.yml. Long-run memory/performance tests are not
+      # re-executed as a second gate merely to transport coverage to Coveralls.
+      - name: Run deterministic coverage corpus
+        run: >-
+          pytest tests/
+          --ignore=tests/stress
+          --ignore=tests/test_long_run.py
+          --cov=.
+          --cov-report=xml
       - name: Upload coverage to Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
