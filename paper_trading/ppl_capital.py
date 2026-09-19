@@ -12,6 +12,7 @@ financial outcomes.  Any unresolved capital makes the value unavailable.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from pathlib import Path
 
 from paper_trading.durable_event_store import DurableEventStore
@@ -20,6 +21,33 @@ from paper_trading.paper_portfolio_ledger import project
 
 class ScientificCapitalUnavailableError(RuntimeError):
     """Authoritative PPL cannot provide a certified scientific-capital value."""
+
+
+@dataclass(frozen=True)
+class ScientificEpochBaseline:
+    paper_epoch_id: str
+    created_at: float
+    initial_virtual_capital: float
+
+
+def _validated_ppl_state(store_root: str | Path, paper_epoch_id: str):
+    state = _validated_ppl_state(store_root, paper_epoch_id)
+    return state
+
+
+def scientific_epoch_baseline_from_ppl(
+    store_root: str | Path,
+    paper_epoch_id: str,
+) -> ScientificEpochBaseline:
+    """Return the immutable experiment baseline from the authoritative epoch."""
+
+    state = _validated_ppl_state(store_root, paper_epoch_id)
+    assert state.epoch is not None
+    return ScientificEpochBaseline(
+        paper_epoch_id=paper_epoch_id,
+        created_at=float(state.epoch.created_at),
+        initial_virtual_capital=float(state.epoch.initial_virtual_capital),
+    )
 
 
 def scientific_capital_from_ppl(
@@ -67,5 +95,7 @@ def scientific_capital_from_ppl(
 
 __all__ = [
     "ScientificCapitalUnavailableError",
+    "ScientificEpochBaseline",
     "scientific_capital_from_ppl",
+    "scientific_epoch_baseline_from_ppl",
 ]
