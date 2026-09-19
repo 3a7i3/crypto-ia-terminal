@@ -209,7 +209,23 @@ def _snapshot_legacy(simulator: Any) -> Dict[str, Any]:
         # not transitioning (matches a freshly-bound PPL runtime's default
         # observed_legacy_generation of 0).
         generation = int(getattr(simulator, "_legacy_generation", 0))
-        transitioning = int(getattr(simulator, "_legacy_transitions_in_flight", 0)) > 0
+        transitions_raw = getattr(simulator, "_legacy_transitions_in_flight", None)
+        transitions_in_flight = (
+            int(transitions_raw)
+            if isinstance(transitions_raw, int)
+            and not isinstance(transitions_raw, bool)
+            and transitions_raw >= 0
+            else None
+        )
+        orders = getattr(simulator, "_orders", None)
+        pending_order_count = (
+            sum(
+                str(_enum_value(getattr(order, "status", ""))).upper() == "PENDING"
+                for order in orders.values()
+            )
+            if isinstance(orders, dict)
+            else None
+        )
         positions = []
         for pos in getattr(simulator, "_positions", {}).values():
             positions.append(
@@ -257,7 +273,47 @@ def _snapshot_legacy(simulator: Any) -> Dict[str, Any]:
             closed_session, key=lambda row: row["trade_id"]
         ),
         "generation": generation,
-        "transitioning": transitioning,
+        "pending_order_count": pending_order_count,
+        "lifecycle_transitions_in_flight": transitions_in_flight,
+    }
+
+
+def _legacy_quiescence(legacy: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Expose only directly observed Legacy quiescence facts.
+
+    Admission freeze is intentionally UNRESOLVED here: the current Legacy
+    runtime has no canonical admission-freeze state.  Zero is never inferred
+    from an empty position book or a quiet ledger.
+    """
+
+    def observed_or_unresolved(value: Any, provenance: str) -> Dict[str, Any]:
+        return _source(
+            value,
+            status="PRESENT" if value is not None else "UNRESOLVED",
+            provenance=provenance,
+        )
+
+    return {
+        "pending_order_count": observed_or_unresolved(
+            legacy.get("pending_order_count"),
+            "MEXC_SIM._orders where status=PENDING",
+        ),
+        "lifecycle_transitions_in_flight": observed_or_unresolved(
+            legacy.get("lifecycle_transitions_in_flight"),
+            "MEXC_SIM._legacy_transitions_in_flight",
+        ),
+        "admissions_state": _source(
+            None,
+            status="UNRESOLVED",
+            provenance=(
+                "No canonical Legacy lifecycle admission-freeze state is "
+                "materialized by the running process."
+            ),
+        ),
+        "generation": observed_or_unresolved(
+            legacy.get("generation"),
+            "MEXC_SIM._legacy_generation",
+        ),
     }
 
 
@@ -502,6 +558,12 @@ def build_ppl_comparison_snapshot(
                 "authority": "PAPER_AUTHORITY",
                 "scope": "authoritative_epoch",
                 "last_error": view.last_error,
+            },
+            "legacy_quiescence": {
+                "pending_order_count": _source(None, status="NOT_APPLICABLE", provenance="Legacy compatibility projection only"),
+                "lifecycle_transitions_in_flight": _source(None, status="NOT_APPLICABLE", provenance="Legacy compatibility projection only"),
+                "admissions_state": _source(None, status="NOT_APPLICABLE", provenance="Legacy compatibility projection only"),
+                "generation": _source(None, status="NOT_APPLICABLE", provenance="Legacy compatibility projection only"),
             },
             "summary": empty_summary,
             "comparisons": [],
@@ -939,6 +1001,7 @@ def build_ppl_comparison_snapshot(
             "scope": "configured_shadow_epoch",
             "last_error": ppl["last_error"],
         },
+        "legacy_quiescence": _legacy_quiescence(legacy),
         "summary": _summary(comparisons),
         "comparisons": comparisons,
         "positions": positions,
