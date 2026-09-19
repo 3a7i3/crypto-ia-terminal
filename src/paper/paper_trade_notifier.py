@@ -4,8 +4,9 @@ trades PAPER de la main machine (mission TG-PAPER-01).
 
 Rôle exact et exclusif : lire databases/paper_trades.jsonl (source de
 vérité écrite par paper_trading/recorder.py), filtrer les événements
-mode="futures_demo" (main machine), et envoyer une notification Telegram
-par OPEN et par CLOSE via @PaperArena_bot.
+mode="futures_demo" (Legacy main machine) OU les projections PPL explicitement
+provenancées, et envoyer une notification Telegram par OPEN et par CLOSE via
+@PaperArena_bot.
 
 Ce module n'est PAS une autorité financière :
   - il ne génère aucun signal, aucune stratégie, aucun score ;
@@ -59,6 +60,9 @@ _HTTP_TIMEOUT_S = 8
 _POLL_INTERVAL_S = 2.0
 
 _MAIN_MACHINE_MODE = "futures_demo"
+_PPL_COMPAT_MODE = "paper"
+_PPL_SOURCE_AUTHORITY = "PPL"
+_PPL_PROJECTION_SCHEMA_VERSION = 1
 _HANDLED_EVENTS = ("OPEN", "CLOSE")
 
 
@@ -233,14 +237,33 @@ class CheckpointStore:
 
 
 def is_main_machine_event(record: dict) -> bool:
-    """True seulement pour un OPEN/CLOSE explicitement mode=futures_demo.
+    """Return True only for a provenance-proven main-machine PAPER event.
 
-    Un `mode` absent n'est jamais traité comme PAPER main-machine (filtrage
-    conservateur — voir mission §4).
+    Legacy events remain eligible only through the historical
+    `mode=futures_demo` contract.
+
+    PPL compatibility rows use `mode=paper`, so that mode alone is never
+    sufficient. They must carry the exact projector provenance tuple emitted
+    by `paper_trading.ppl_compatibility`; arbitrary or historical
+    `mode=paper` rows stay ignored.
     """
     if record.get("event") not in _HANDLED_EVENTS:
         return False
-    return record.get("mode") == _MAIN_MACHINE_MODE
+
+    if record.get("mode") == _MAIN_MACHINE_MODE:
+        return record.get("source_authority") in (None, "")
+
+    if record.get("mode") != _PPL_COMPAT_MODE:
+        return False
+    if record.get("source_authority") != _PPL_SOURCE_AUTHORITY:
+        return False
+    if record.get("projection_schema_version") != _PPL_PROJECTION_SCHEMA_VERSION:
+        return False
+
+    return all(
+        isinstance(record.get(field), str) and bool(record[field].strip())
+        for field in ("paper_epoch_id", "ppl_event_id", "projection_id")
+    )
 
 
 def normalize_side(side: Optional[str]) -> str:

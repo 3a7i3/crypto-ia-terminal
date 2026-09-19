@@ -2,7 +2,7 @@
 
 Le transport Telegram est entièrement mocké (jamais de réseau réel dans
 les tests). Ces tests couvrent : bootstrap live-only, filtrage
-mode=futures_demo, honnêteté des valeurs manquantes (None != 0),
+Legacy mode=futures_demo + projections PPL provenancées, honnêteté des valeurs\nmanquantes (None != 0),
 normalisation du side, avancement/non-avancement du checkpoint,
 tolérance aux lignes partielles/malformées, et l'invariant de passivité
 (aucune importation d'un composant de stratégie/exécution/gate).
@@ -66,6 +66,20 @@ def _close_record(trade_id="T1", **overrides):
     }
     rec.update(overrides)
     return rec
+
+
+def _ppl_projection(record: dict, *, suffix: str = "evt") -> dict:
+    projected = dict(record)
+    projected.update(
+        mode="paper",
+        source_authority="PPL",
+        paper_epoch_id="PPL02E-AUTH-TEST",
+        ppl_event_id=f"ppl-event-{suffix}",
+        projection_id=f"projection-{suffix}",
+        projection_schema_version=1,
+        evidence_status="PARTIAL_METADATA",
+    )
+    return projected
 
 
 @pytest.fixture
@@ -145,7 +159,7 @@ def test_new_close_appended_sends_one_exit_notification(cfg):
 # ── 4/5/6. Filtering ──────────────────────────────────────────────────────────
 
 
-def test_event_mode_not_futures_demo_is_ignored(cfg):
+def test_unprovenanced_paper_mode_is_ignored(cfg):
     cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
     cfg.source_path.write_text("", encoding="utf-8")
     follower = _make_follower(cfg)
@@ -156,6 +170,107 @@ def test_event_mode_not_futures_demo_is_ignored(cfg):
 
     assert sent == 0
     assert sender.sent == []
+
+
+def test_ppl_projected_open_and_close_are_notified(cfg):
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.source_path.write_text("", encoding="utf-8")
+    follower = _make_follower(cfg)
+
+    rows = [
+        _ppl_projection(_open_record("PPL1"), suffix="open"),
+        _ppl_projection(_close_record("PPL1"), suffix="close"),
+    ]
+    _write_lines(cfg.source_path, rows)
+
+    sender = FakeSender()
+    sent = notifier.run_once(follower, sender.send)
+
+    assert sent == 2
+    assert "PAPER ENTRY" in sender.sent[0]
+    assert "PAPER EXIT" in sender.sent[1]
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["paper_epoch_id", "ppl_event_id", "projection_id"],
+)
+def test_ppl_projected_event_missing_identity_is_ignored(cfg, field):
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.source_path.write_text("", encoding="utf-8")
+    follower = _make_follower(cfg)
+
+    rec = _ppl_projection(_open_record("PPL2"), suffix=field)
+    rec[field] = ""
+    _write_lines(cfg.source_path, [rec])
+
+    sender = FakeSender()
+    sent = notifier.run_once(follower, sender.send)
+
+    assert sent == 0
+    assert sender.sent == []
+
+
+def test_ppl_authority_cannot_use_legacy_futures_demo_shape(cfg):
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.source_path.write_text("", encoding="utf-8")
+    follower = _make_follower(cfg)
+
+    rec = _open_record(source_authority="PPL")
+    _write_lines(cfg.source_path, [rec])
+
+    sender = FakeSender()
+    sent = notifier.run_once(follower, sender.send)
+
+    assert sent == 0
+    assert sender.sent == []
+
+
+def test_ppl_unresolved_close_is_notified_honestly(cfg):
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.source_path.write_text("", encoding="utf-8")
+    follower = _make_follower(cfg)
+
+    rec = _ppl_projection(
+        _close_record(
+            "PPL3",
+            exit_price=None,
+            price=None,
+            pnl_usd=None,
+            pnl_pct=None,
+            reason="ppl_unresolved:recovery_window_expired",
+            evidence_status="UNRESOLVED",
+        ),
+        suffix="unresolved",
+    )
+    rec["evidence_status"] = "UNRESOLVED"
+    _write_lines(cfg.source_path, [rec])
+
+    sender = FakeSender()
+    sent = notifier.run_once(follower, sender.send)
+
+    assert sent == 1
+    assert "PAPER OUTCOME UNRESOLVED" in sender.sent[0]
+    assert "PnL    : UNKNOWN" in sender.sent[0]
+    assert "$0.00" not in sender.sent[0]
+
+
+def test_ppl_projected_event_checkpoint_survives_restart(cfg):
+    cfg.source_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.source_path.write_text("", encoding="utf-8")
+    follower = _make_follower(cfg)
+    _write_lines(
+        cfg.source_path,
+        [_ppl_projection(_open_record("PPL4"), suffix="restart")],
+    )
+
+    first = FakeSender()
+    assert notifier.run_once(follower, first.send) == 1
+
+    restarted = _make_follower(cfg)
+    second = FakeSender()
+    assert notifier.run_once(restarted, second.send) == 0
+    assert second.sent == []
 
 
 def test_missing_mode_is_ignored(cfg):
