@@ -17,6 +17,7 @@ from paper_trading.mexc_simulator import (
     OrderType,
 )
 from paper_trading.paper_authority import PaperLifecycleAuthority
+from paper_trading.paper_portfolio_ledger import NegativeCashError
 from paper_trading.ppl_authority_runtime import (
     AuthorityManifestError,
     CutoverQuiescence,
@@ -231,6 +232,108 @@ def test_r4_restart_after_recovery_window_emits_unresolved_not_fake_close(tmp_pa
     assert state.unresolved_capital == pytest.approx(10.0)
     assert state.realized_pnl == 0.0
     assert restarted.consistent_view().events[-1].event_type.value == "POSITION_UNRESOLVED"
+
+
+def test_r5_invalid_open_is_rejected_before_durable_append(tmp_path):
+    rt = runtime(tmp_path)
+    epoch_path = next((tmp_path / "ppl" / "epochs").iterdir())
+    durable_before = epoch_path.read_bytes()
+    events_before = rt.store.load_epoch(EPOCH)
+
+    with pytest.raises(NegativeCashError, match="OPEN"):
+        rt.commit_open(
+            trade_id="trade-too-large",
+            symbol="BTCUSDT",
+            side="BUY",
+            principal=100.0,
+            entry_price=100.0,
+            entry_fee=0.01,
+            opened_at=20.0,
+            tp_price=104.0,
+            sl_price=98.0,
+            timeout_at=30.0,
+            recovery_eligible_until=40.0,
+            decision_id="dp-too-large",
+        )
+
+    assert rt.store.load_epoch(EPOCH) == events_before
+    assert epoch_path.read_bytes() == durable_before
+    assert len(rt.consistent_view().events) == 1
+
+
+def test_r5_adverse_short_close_never_poison_durable_epoch(tmp_path):
+    rt = runtime(tmp_path)
+    rt.commit_open(
+        trade_id="trade-short",
+        symbol="BTCUSDT",
+        side="SELL",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.01,
+        opened_at=20.0,
+        tp_price=96.0,
+        sl_price=102.0,
+        timeout_at=30.0,
+        recovery_eligible_until=40.0,
+        decision_id="dp-short",
+    )
+    epoch_path = next((tmp_path / "ppl" / "epochs").iterdir())
+    durable_before = epoch_path.read_bytes()
+    events_before = rt.store.load_epoch(EPOCH)
+
+    with pytest.raises(NegativeCashError, match="CLOSE"):
+        rt.commit_close(
+            trade_id="trade-short",
+            exit_price=2000.0,
+            exit_fee=0.01,
+            closed_at=25.0,
+            decision_id="dp-short",
+        )
+
+    assert rt.store.load_epoch(EPOCH) == events_before
+    assert epoch_path.read_bytes() == durable_before
+    view = rt.consistent_view()
+    assert len(view.events) == 2
+    assert "trade-short" in view.projection.open_positions
+
+    restarted = PPLAuthorityRuntime(
+        manifest=manifest(),
+        store=DurableEventStore(tmp_path / "ppl"),
+    )
+    state = restarted.bind(now=25.0)
+    assert "trade-short" in state.open_positions
+    assert len(restarted.consistent_view().events) == 2
+
+
+def test_r5_simulator_invalid_short_close_keeps_memory_and_durable_state(tmp_path):
+    rt = runtime(tmp_path)
+    sim = MexcSimulator(
+        lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY,
+        authority_runtime=rt,
+    )
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+    order = MexcOrder(
+        order_id="SHORT1",
+        symbol="BTCUSDT",
+        side=OrderSide.SELL,
+        order_type=OrderType.MARKET,
+        qty_usd=10.0,
+        decision_id="dp-short",
+    )
+    sim._fill_market(order, 100.0)
+    capital_before = sim._capital
+    events_before = rt.store.load_epoch(EPOCH)
+    epoch_path = next((tmp_path / "ppl" / "epochs").iterdir())
+    durable_before = epoch_path.read_bytes()
+
+    with pytest.raises(NegativeCashError, match="CLOSE"):
+        sim._close_position("BTCUSDT", 2000.0, "SL")
+
+    assert "BTCUSDT" in sim._positions
+    assert sim._capital == capital_before
+    assert rt.store.load_epoch(EPOCH) == events_before
+    assert epoch_path.read_bytes() == durable_before
 
 
 def test_r4_close_retry_is_idempotent(tmp_path):
