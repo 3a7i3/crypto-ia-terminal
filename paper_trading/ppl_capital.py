@@ -15,21 +15,18 @@ import math
 from pathlib import Path
 
 from paper_trading.durable_event_store import DurableEventStore
-from paper_trading.paper_portfolio_ledger import project
+from paper_trading.paper_portfolio_ledger import PaperPortfolioState, project
 
 
 class ScientificCapitalUnavailableError(RuntimeError):
     """Authoritative PPL cannot provide a certified scientific-capital value."""
 
 
-def scientific_capital_from_ppl(
+def _replay_authoritative_ppl(
     store_root: str | Path,
     paper_epoch_id: str,
-) -> float:
-    """Return certified PAPER scientific capital from one PPL epoch.
-
-    There is deliberately no legacy JSONL or exchange fallback here.
-    """
+) -> PaperPortfolioState:
+    """Replay and validate one authoritative PPL epoch without fallback."""
 
     if not str(store_root):
         raise ScientificCapitalUnavailableError("PPL authority store root is missing")
@@ -52,11 +49,42 @@ def scientific_capital_from_ppl(
         raise ScientificCapitalUnavailableError(
             "PPL authority scientific capital requires replay-complete schema v2"
         )
+    return state
+
+
+def initial_virtual_capital_from_ppl(
+    store_root: str | Path,
+    paper_epoch_id: str,
+) -> float:
+    """Return the immutable drawdown/ROI baseline declared by EPOCH_CREATED."""
+
+    state = _replay_authoritative_ppl(store_root, paper_epoch_id)
+    assert state.epoch is not None
+    value = float(state.epoch.initial_virtual_capital)
+    if not math.isfinite(value) or value <= 0:
+        raise ScientificCapitalUnavailableError(
+            f"authoritative PPL initial virtual capital is invalid: {value!r}"
+        )
+    return value
+
+
+def scientific_capital_from_ppl(
+    store_root: str | Path,
+    paper_epoch_id: str,
+) -> float:
+    """Return certified PAPER scientific capital from one PPL epoch.
+
+    There is deliberately no legacy JSONL or exchange fallback here.
+    """
+
+    state = _replay_authoritative_ppl(store_root, paper_epoch_id)
+
     if state.unresolved_capital != 0.0 or state.unresolved_positions:
         raise ScientificCapitalUnavailableError(
             "authoritative PPL contains unresolved capital; UNKNOWN != ZERO"
         )
 
+    assert state.epoch is not None
     value = state.epoch.initial_virtual_capital + state.realized_pnl
     if not math.isfinite(value) or value < 0:
         raise ScientificCapitalUnavailableError(
@@ -67,5 +95,6 @@ def scientific_capital_from_ppl(
 
 __all__ = [
     "ScientificCapitalUnavailableError",
+    "initial_virtual_capital_from_ppl",
     "scientific_capital_from_ppl",
 ]
