@@ -581,7 +581,7 @@ def print_report(report: BurnInV3Report) -> None:
         print(_kpi("Duree moyenne", f"{t.avg_duration_h:.2f}h"))
 
     print(f"\n  {_hr}")
-    print(f"  ETAT SYSTEME")
+    print("  ETAT SYSTEME")
     print(f"  {_hr}")
     print(_kpi("KillSwitch", "HALTED" if s.killswitch_halted else "OK"))
     print(_kpi("V9_ADVISOR_ONLY", str(s.v9_advisor_only)))
