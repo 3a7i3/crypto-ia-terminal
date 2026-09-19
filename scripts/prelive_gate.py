@@ -211,6 +211,33 @@ def gate_b_performance() -> GateResult:
 
 
 def gate_c_dataset() -> GateResult:
+    from paper_trading.paper_authority import (
+        PaperLifecycleAuthority,
+        resolve_paper_lifecycle_authority,
+    )
+
+    if (
+        resolve_paper_lifecycle_authority(os.environ)
+        is PaperLifecycleAuthority.PPL_AUTHORITY
+    ):
+        from paper_trading.ppl_authority_gate import validate_ppl_authority_dataset
+
+        store_root = str(os.getenv("PPL_AUTHORITY_STORE_ROOT", "") or "").strip()
+        epoch_id = str(os.getenv("PPL_AUTHORITY_EPOCH_ID", "") or "").strip()
+        report = validate_ppl_authority_dataset(store_root, epoch_id)
+        if not report.ready_for_mutation:
+            return GateResult(
+                "C. Dataset",
+                STATUS_NOGO,
+                f"PPL epoch={epoch_id or '?'} non certifiable — {report.reason}",
+            )
+        return GateResult(
+            "C. Dataset",
+            STATUS_GO,
+            f"PPL epoch={epoch_id} replay-complete; "
+            f"open={report.open_positions}; unresolved={report.unresolved_positions}",
+        )
+
     try:
         from paper_trading.dataset_validator import validate_corpus  # noqa: PLC0415
     except ImportError:

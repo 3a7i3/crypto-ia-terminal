@@ -84,6 +84,33 @@ def _read_ledger_pnl(log_path: str | Path | None = None) -> float:
     return total
 
 
+def get_scientific_initial_capital() -> float:
+    """Return the experiment baseline used by ROI/drawdown calculations.
+
+    Under PPL authority this is the immutable epoch initial_virtual_capital,
+    never WALLET_PAPER_CAPITAL and never an exchange observation.
+    """
+
+    from paper_trading.paper_authority import (
+        PaperLifecycleAuthority,
+        resolve_paper_lifecycle_authority,
+    )
+
+    authority = resolve_paper_lifecycle_authority(os.environ)
+    if authority in {
+        PaperLifecycleAuthority.LEGACY_AUTHORITY,
+        PaperLifecycleAuthority.PPL_SHADOW,
+    }:
+        return _PAPER_CAPITAL
+
+    from paper_trading.ppl_capital import scientific_epoch_baseline_from_ppl
+
+    store_root = str(os.getenv("PPL_AUTHORITY_STORE_ROOT", "") or "").strip()
+    paper_epoch_id = str(os.getenv("PPL_AUTHORITY_EPOCH_ID", "") or "").strip()
+    baseline = scientific_epoch_baseline_from_ppl(store_root, paper_epoch_id)
+    return baseline.initial_virtual_capital
+
+
 def get_scientific_capital() -> float:
     """Return the single decision/sizing/risk capital.
 
@@ -361,7 +388,14 @@ class WalletSync:
             )
 
     def initial_capital(self) -> float:
-        """Capital de départ — utilisé pour calculer ROI%/drawdown%."""
+        """Capital de départ — utilisé pour calculer ROI%/drawdown%.
+
+        PAPER follows the selected lifecycle authority.  PPL therefore uses
+        the immutable epoch baseline and fails closed if that baseline cannot
+        be replayed.  Live/testnet retain the historical API/X semantics.
+        """
+        if self._mode == "paper":
+            return get_scientific_initial_capital()
         return self._base_capital()
 
     def session_pnl_since_restart(self) -> float:

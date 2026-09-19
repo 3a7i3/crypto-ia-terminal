@@ -26,6 +26,7 @@ import argparse
 import json
 import math
 import os
+import time
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -72,6 +73,93 @@ _REAL_TRADE_PRICE_FLOOR = 500.0
 # instantanément les positions ouvertes au redémarrage, avant le correctif de
 # la session 2026-06-07. Prix réel, mais durée nulle et aucun contexte pipeline.
 _RESTORE_ARTIFACT_REGIME = "unknown"
+
+
+class ScientificDatasetUnavailableError(RuntimeError):
+    """The selected scientific population cannot be proven from authority data."""
+
+
+def _ppl_authority_selected() -> bool:
+    from paper_trading.paper_authority import (
+        PaperLifecycleAuthority,
+        resolve_paper_lifecycle_authority,
+    )
+
+    return (
+        resolve_paper_lifecycle_authority(os.environ)
+        is PaperLifecycleAuthority.PPL_AUTHORITY
+    )
+
+
+def _ppl_authority_config() -> tuple[str, str]:
+    store_root = str(os.getenv("PPL_AUTHORITY_STORE_ROOT", "") or "").strip()
+    paper_epoch_id = str(os.getenv("PPL_AUTHORITY_EPOCH_ID", "") or "").strip()
+    if not store_root or not paper_epoch_id:
+        raise ScientificDatasetUnavailableError(
+            "PPL scientific dataset requires PPL_AUTHORITY_STORE_ROOT and "
+            "PPL_AUTHORITY_EPOCH_ID"
+        )
+    return store_root, paper_epoch_id
+
+
+def _ppl_rows_and_baseline() -> tuple[tuple[dict, ...], object]:
+    from paper_trading.durable_event_store import DurableEventStore
+    from paper_trading.ppl_capital import scientific_epoch_baseline_from_ppl
+    from paper_trading.ppl_compatibility import build_compatibility_rows
+
+    store_root, paper_epoch_id = _ppl_authority_config()
+    try:
+        events = DurableEventStore(store_root).load_epoch(paper_epoch_id)
+        baseline = scientific_epoch_baseline_from_ppl(store_root, paper_epoch_id)
+        rows = build_compatibility_rows(events)
+    except Exception as exc:
+        raise ScientificDatasetUnavailableError(
+            f"authoritative PPL scientific population unavailable for "
+            f"epoch={paper_epoch_id!r}: {exc}"
+        ) from exc
+    return rows, baseline
+
+
+def canonical_population_since() -> datetime:
+    """Earliest timestamp admitted to the currently selected experiment."""
+
+    if not _ppl_authority_selected():
+        return CLEAN_DATA_SINCE_ACTIVE
+    _, baseline = _ppl_rows_and_baseline()
+    return datetime.fromtimestamp(float(baseline.created_at), tz=timezone.utc)
+
+
+def _ppl_financial_close(row: dict) -> bool:
+    return (
+        row.get("event") == "CLOSE"
+        and row.get("source_authority") == "PPL"
+        and row.get("evidence_status") != "UNRESOLVED"
+        and row.get("pnl_usd") is not None
+        and row.get("pnl_pct") is not None
+        and row.get("exit_price") is not None
+    )
+
+
+def _decision_metadata_available(record: dict) -> bool:
+    """Whether score/regime are evidenced rather than compatibility placeholders."""
+
+    if record.get("source_authority") != "PPL":
+        return record.get("score") is not None and record.get("regime") is not None
+
+    # PPL-02E compatibility schema v1 deliberately has no decision metadata.
+    if int(record.get("projection_schema_version") or 0) <= 1:
+        return False
+    missing = {
+        item.strip()
+        for item in str(record.get("missing_evidence_fields") or "").split(",")
+        if item.strip()
+    }
+    return (
+        "score" not in missing
+        and "regime" not in missing
+        and record.get("score") is not None
+        and record.get("regime") is not None
+    )
 
 
 def _score_bin(score: float) -> str:
@@ -151,18 +239,17 @@ def _exclusion_reason(record: dict) -> Optional[str]:
 
 
 def load_clean_trades(path: Optional[Path] = None) -> list[dict]:
-    """Dataset canonique des paper trades — LOADER UNIQUE (INV-DATASET-001).
+    """Return the canonical financial PAPER population.
 
-    Filtres appliqués, dans l'ordre :
-      1. `event == "CLOSE"`
-      2. horodatage >= `CLEAN_DATA_SINCE_ACTIVE` (borne d'époque, ADR-0017)
-      3. hors fixtures de test (prix < 500 ET score == 0)
-      4. hors artefacts de restauration (durée == 0 ET score == 0 ET régime inconnu)
-
-    `path=None` → `default_trades_path()`. Aucun appelant ne doit reconstruire
-    ces filtres : tout KPI calculé sur une autre population que celle-ci est,
-    par construction, incomparable aux autres outils du dépôt.
+    Legacy/SHADOW preserve INV-DATASET-001's historical timestamp/quality
+    filters.  PPL_AUTHORITY ignores the compatibility JSONL entirely and
+    derives the population from the exact durable authority epoch.
     """
+
+    if _ppl_authority_selected():
+        rows, _ = _ppl_rows_and_baseline()
+        return [row for row in rows if _ppl_financial_close(row)]
+
     target = default_trades_path() if path is None else path
     return [
         d
@@ -172,11 +259,39 @@ def load_clean_trades(path: Optional[Path] = None) -> list[dict]:
 
 
 def trades_provenance(path: Optional[Path] = None) -> dict:
-    """Provenance du dataset chargé — à joindre à toute décision (INV-DATASET-001).
+    """Describe exactly which authority/population a scientific N represents."""
 
-    Rend explicite CE QUI a été lu et CE QUI a été écarté, pour qu'un rapport
-    ne puisse pas citer un N sans que sa population soit reconstituable.
-    """
+    if _ppl_authority_selected():
+        rows, baseline = _ppl_rows_and_baseline()
+        closes = [row for row in rows if row.get("event") == "CLOSE"]
+        canonical = [row for row in closes if _ppl_financial_close(row)]
+        unresolved = sum(
+            1 for row in closes if row.get("evidence_status") == "UNRESOLVED"
+        )
+        metadata_missing = sum(
+            1 for row in canonical if not _decision_metadata_available(row)
+        )
+        store_root, paper_epoch_id = _ppl_authority_config()
+        return {
+            "loader": "tools.cri_calculator.load_clean_trades",
+            "source_authority": "PPL",
+            "source_kind": "PPL_AUTHORITY_STORE",
+            "source_path": store_root,
+            "paper_epoch_id": paper_epoch_id,
+            "epoch_created_at": datetime.fromtimestamp(
+                float(baseline.created_at), tz=timezone.utc
+            ).isoformat(),
+            "initial_virtual_capital": float(baseline.initial_virtual_capital),
+            "close_events_total": len(closes),
+            "n_canonical": len(canonical),
+            "excluded_by_reason": {
+                "unresolved_outcome": unresolved,
+            }
+            if unresolved
+            else {},
+            "decision_metadata_unavailable": metadata_missing,
+        }
+
     target = default_trades_path() if path is None else path
     closes = [d for d in _read_jsonl(target) if d.get("event") == "CLOSE"]
 
@@ -198,21 +313,18 @@ def trades_provenance(path: Optional[Path] = None) -> dict:
         "excluded_by_reason": excluded,
     }
 
-
 def load_clean_regrets(path: Optional[Path] = None) -> list[dict]:
-    """Regrets filtrés par CLEAN_DATA_SINCE_ACTIVE.
+    """Return regrets inside the currently selected scientific experiment."""
 
-    `path=None` → SOURCE CANONIQUE (MC-001 / ADR-0018 : regret-v2 via
-    tools.regret_repository, jamais un chemin en dur). Un chemin explicite lit
-    un fichier plat historique (compat tests / override d'audit)."""
+    since = canonical_population_since()
     if path is None:
         from tools.regret_repository import read_canonical_regrets
 
-        return read_canonical_regrets(since=CLEAN_DATA_SINCE_ACTIVE)
+        return read_canonical_regrets(since=since)
     regrets = []
     for d in _read_jsonl(path):
         ts = _event_ts(d)
-        if ts is None or ts < CLEAN_DATA_SINCE_ACTIVE:
+        if ts is None or ts < since:
             continue
         regrets.append(d)
     return regrets
@@ -233,6 +345,8 @@ def coverage_score(trades: list[dict], regrets: list[dict]) -> float:
     observed_regimes: set[str] = set()
 
     for r in trades:
+        if not _decision_metadata_available(r):
+            continue
         regime = r.get("regime")
         score = r.get("score")
         if regime is None or score is None:
@@ -284,7 +398,11 @@ def drift_score(trades: list[dict]) -> float:
 
     Retourne 0.0 (pas 100.0) si l'echantillon est trop petit pour un PSI
     significatif — cohérent avec un N_score déjà bas à ce stade."""
-    scores = [float(t["score"]) for t in trades if t.get("score") is not None]
+    scores = [
+        float(t["score"])
+        for t in trades
+        if _decision_metadata_available(t) and t.get("score") is not None
+    ]
     n = len(scores)
     if n < 2 * MIN_PSI_SAMPLE:
         return 0.0
@@ -325,7 +443,7 @@ def compute_cri(
         "gate_ready": cri >= 90.0,
         "n_clean": len(trades),
         "n_regrets_clean": len(regrets),
-        "clean_data_since": CLEAN_DATA_SINCE_ACTIVE.isoformat(),
+        "clean_data_since": canonical_population_since().isoformat(),
         "sub_scores": {k: round(v, 2) for k, v in scores.items()},
         "weights": WEIGHTS,
     }
@@ -336,21 +454,57 @@ def compute_cri(
         from tools.regret_repository import freshness
 
         f = freshness()
+        regret_fresh = bool(f["fresh"])
+        last_canonical = f["last_canonical_evaluated_utc"]
+
+        if _ppl_authority_selected():
+            evaluated_ts = []
+            for row in regrets:
+                try:
+                    evaluated_ts.append(float(row.get("ts_eval")))
+                except (TypeError, ValueError):
+                    continue
+            latest_epoch_eval = max(evaluated_ts, default=None)
+            max_stale_h = float(f["max_stale_h"])
+            regret_fresh = (
+                latest_epoch_eval is not None
+                and 0 <= (time.time() - latest_epoch_eval) <= max_stale_h * 3600.0
+            )
+            last_canonical = (
+                datetime.fromtimestamp(latest_epoch_eval, timezone.utc).isoformat()
+                if latest_epoch_eval is not None
+                else None
+            )
+
         result["regret_source"] = "canonical:" + f["dataset_version"]
         result["canonical_horizon"] = f["canonical_horizon"]
         result["regret_last_event"] = f["last_event_utc"]
-        result["regret_last_canonical_evaluated"] = f["last_canonical_evaluated_utc"]
-        result["regret_fresh"] = f["fresh"]
-        result["validity"] = "OK" if f["fresh"] else "PARTIAL"
-        if not f["fresh"]:
+        result["regret_last_canonical_evaluated"] = last_canonical
+        result["regret_fresh"] = regret_fresh
+        result["validity"] = "OK" if regret_fresh else "PARTIAL"
+        if not regret_fresh:
             result["warnings"] = [
-                "DATASET REGRET PÉRIMÉ (dernière évaluation canonique "
-                f"{f['last_canonical_evaluated_utc']}) — CRI PARTIELLEMENT "
-                "CENSURÉ, ne pas comparer dans le temps"
+                "DATASET REGRET PÉRIMÉ/ABSENT DANS L'EPOQUE "
+                f"(dernière évaluation canonique {last_canonical}) — "
+                "CRI PARTIELLEMENT CENSURÉ, ne pas comparer dans le temps"
             ]
     else:
         result["regret_source"] = "explicit_path"
         result["validity"] = "OK"
+
+    metadata_missing = sum(
+        1
+        for trade in trades
+        if trade.get("source_authority") == "PPL"
+        and not _decision_metadata_available(trade)
+    )
+    result["trade_decision_metadata_unavailable"] = metadata_missing
+    if metadata_missing:
+        result["validity"] = "PARTIAL"
+        result.setdefault("warnings", []).append(
+            f"{metadata_missing} trade(s) PPL sans score/regime evidences — "
+            "coverage/drift n'utilisent pas les placeholders de compatibilite"
+        )
     return result
 
 

@@ -35,6 +35,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.cri_calculator import (  # noqa: E402
+    canonical_population_since,
     default_trades_path,
     load_clean_trades,
     trades_provenance,
@@ -48,12 +49,22 @@ _DEFAULT_OUTPUT = Path("cache/burn_in_reports/burnin_v3.json")
 
 
 def _initial_capital() -> float:
-    """Base de capital pour le drawdown — même source que prelive_gate."""
+    """Return the selected experiment baseline for drawdown calculations."""
     try:
         from infra.wallet_sync import get_wallet_sync
 
         return float(get_wallet_sync().initial_capital())
     except Exception:
+        from paper_trading.paper_authority import (
+            PaperLifecycleAuthority,
+            resolve_paper_lifecycle_authority,
+        )
+
+        if (
+            resolve_paper_lifecycle_authority(os.environ)
+            is PaperLifecycleAuthority.PPL_AUTHORITY
+        ):
+            raise
         return float(os.getenv("WALLET_PAPER_CAPITAL", "1000") or 1000.0)
 
 
@@ -139,6 +150,28 @@ def _load_gate_funnel(path: Path) -> GateFunnel:
 
     if not rows:
         return GateFunnel()
+
+    from paper_trading.paper_authority import (
+        PaperLifecycleAuthority,
+        resolve_paper_lifecycle_authority,
+    )
+
+    if (
+        resolve_paper_lifecycle_authority(os.environ)
+        is PaperLifecycleAuthority.PPL_AUTHORITY
+    ):
+        since_ts = canonical_population_since().timestamp()
+        epoch_rows = []
+        for row in rows:
+            try:
+                row_ts = float(row.get("ts", ""))
+            except (TypeError, ValueError):
+                continue
+            if row_ts >= since_ts:
+                epoch_rows.append(row)
+        rows = epoch_rows
+        if not rows:
+            return GateFunnel()
 
     allowed = [r for r in rows if r.get("allowed") == "True"]
     rejected = [r for r in rows if r.get("allowed") == "False"]
@@ -548,7 +581,7 @@ def print_report(report: BurnInV3Report) -> None:
         print(_kpi("Duree moyenne", f"{t.avg_duration_h:.2f}h"))
 
     print(f"\n  {_hr}")
-    print(f"  ETAT SYSTEME")
+    print("  ETAT SYSTEME")
     print(f"  {_hr}")
     print(_kpi("KillSwitch", "HALTED" if s.killswitch_halted else "OK"))
     print(_kpi("V9_ADVISOR_ONLY", str(s.v9_advisor_only)))
