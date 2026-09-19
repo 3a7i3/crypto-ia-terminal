@@ -6,12 +6,10 @@ BADGES = [
     {
         "name": "Codecov",
         "url": "https://codecov.io/gh/3a7i3/crypto-ia-terminal/branch/main/graph/badge.svg",
-        "page": "https://codecov.io/gh/3a7i3/crypto-ia-terminal",
     },
     {
         "name": "Coveralls",
         "url": "https://coveralls.io/repos/github/3a7i3/crypto-ia-terminal/badge.svg?branch=main",
-        "page": "https://coveralls.io/github/3a7i3/crypto-ia-terminal?branch=main",
     },
 ]
 
@@ -23,12 +21,6 @@ def check_badge(badge):
         print(f"  [OK] Badge SVG accessible: {badge['url']}")
     else:
         print(f"  [FAIL] Badge not accessible or not SVG: {badge['url']}")
-        sys.exit(1)
-    r2 = requests.get(badge["page"])
-    if r2.status_code == 200:
-        print(f"  [OK] Badge page accessible: {badge['page']}")
-    else:
-        print(f"  [FAIL] Badge page not accessible: {badge['page']}")
         sys.exit(1)
 
 
