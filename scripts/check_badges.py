@@ -5,13 +5,13 @@ import requests
 BADGES = [
     {
         "name": "Codecov",
-        "url": "https://codecov.io/gh/0xl1v/crypto-ai-terminal/branch/main/graph/badge.svg",
-        "page": "https://codecov.io/gh/0xl1v/crypto-ai-terminal",
+        "url": "https://codecov.io/gh/3a7i3/crypto-ia-terminal/branch/main/graph/badge.svg",
+        "page": "https://codecov.io/gh/3a7i3/crypto-ia-terminal",
     },
     {
         "name": "Coveralls",
-        "url": "https://coveralls.io/repos/github/0xl1v/crypto-ai-terminal/badge.svg?branch=main",
-        "page": "https://coveralls.io/github/0xl1v/crypto-ai-terminal?branch=main",
+        "url": "https://coveralls.io/repos/github/3a7i3/crypto-ia-terminal/badge.svg?branch=main",
+        "page": "https://coveralls.io/github/3a7i3/crypto-ia-terminal?branch=main",
     },
 ]
 
