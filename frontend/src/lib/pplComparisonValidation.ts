@@ -104,13 +104,22 @@ export function validatePplComparisonSnapshot(x: unknown): x is PplComparisonSna
   if (!nullableString(x.comparison_unavailable_reason)) return false;
   if (x.comparison_available && x.shadow_status !== "ACTIVE") return false;
   if (x.mode === "AUTHORITY_STATUS" && x.comparison_available) return false;
-  if (!obj(x.legacy_source) || !obj(x.ppl_source) || !obj(x.summary)) return false;
+  if (!obj(x.legacy_source) || !obj(x.ppl_source) || !obj(x.legacy_quiescence) || !obj(x.summary)) return false;
   const legacySource = x.legacy_source;
   const pplSource = x.ppl_source;
+  const quiescence = x.legacy_quiescence;
   const legacyKeys = Object.keys(legacySource).sort();
   const pplKeys = Object.keys(pplSource).sort();
   if (legacyKeys.join("|") !== ["authority", "scope", "source"].join("|")) return false;
   if (pplKeys.join("|") !== ["authority", "last_error", "scope", "source"].join("|")) return false;
+  const quiescenceKeys = Object.keys(quiescence).sort();
+  if (quiescenceKeys.join("|") !== ["admissions_state", "generation", "lifecycle_transitions_in_flight", "pending_order_count"].join("|")) return false;
+  if (!sourceValue(quiescence.pending_order_count) || !sourceValue(quiescence.lifecycle_transitions_in_flight) || !sourceValue(quiescence.admissions_state) || !sourceValue(quiescence.generation)) return false;
+  for (const key of ["pending_order_count", "lifecycle_transitions_in_flight", "generation"] as const) {
+    const item = quiescence[key] as PplComparisonSourceValue;
+    if (item.status === "PRESENT" && !nonNegativeInt(item.value)) return false;
+  }
+  if (quiescence.admissions_state.status === "PRESENT" && typeof quiescence.admissions_state.value !== "string") return false;
   if (
     typeof legacySource.source !== "string" ||
     legacySource.source.length === 0 ||

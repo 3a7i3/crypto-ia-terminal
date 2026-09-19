@@ -46,6 +46,7 @@ _TOP_KEYS = {
     "comparison_unavailable_reason",
     "legacy_source",
     "ppl_source",
+    "legacy_quiescence",
     "summary",
     "comparisons",
     "positions",
@@ -55,6 +56,12 @@ _TOP_KEYS = {
 _SOURCE_KEYS = {"value", "status", "provenance"}
 _LEGACY_META_KEYS = {"source", "authority", "scope"}
 _PPL_META_KEYS = {"source", "authority", "scope", "last_error"}
+_QUIESCENCE_KEYS = {
+    "pending_order_count",
+    "lifecycle_transitions_in_flight",
+    "admissions_state",
+    "generation",
+}
 _COMPARISON_KEYS = {
     "comparison_id",
     "domain",
@@ -379,6 +386,22 @@ def validate_ppl_comparison_snapshot(doc: Any) -> bool:
     ):
         return False
     if not isinstance(ppl_meta, dict) or set(ppl_meta) != _PPL_META_KEYS:
+        return False
+    quiescence = doc["legacy_quiescence"]
+    if not isinstance(quiescence, dict) or set(quiescence) != _QUIESCENCE_KEYS:
+        return False
+    if not all(_valid_source(quiescence[name]) for name in _QUIESCENCE_KEYS):
+        return False
+    for name in ("pending_order_count", "lifecycle_transitions_in_flight", "generation"):
+        item = quiescence[name]
+        if item["status"] == "PRESENT" and (
+            isinstance(item["value"], bool)
+            or not isinstance(item["value"], int)
+            or item["value"] < 0
+        ):
+            return False
+    admission = quiescence["admissions_state"]
+    if admission["status"] == "PRESENT" and not isinstance(admission["value"], str):
         return False
     if (
         not isinstance(ppl_meta["source"], str)

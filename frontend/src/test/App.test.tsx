@@ -56,6 +56,12 @@ function basePplComparisonSnapshot() {
     comparison_unavailable_reason: null,
     legacy_source: { source: "MEXC_SIM", authority: "PAPER_AUTHORITY", scope: "live_process_state" },
     ppl_source: { source: "PPL", authority: "NONE", scope: "configured_shadow_epoch", last_error: null },
+    legacy_quiescence: {
+      pending_order_count: { value: 0, status: "PRESENT", provenance: "MEXC_SIM._orders where status=PENDING" },
+      lifecycle_transitions_in_flight: { value: 0, status: "PRESENT", provenance: "MEXC_SIM._legacy_transitions_in_flight" },
+      admissions_state: { value: null, status: "UNRESOLVED", provenance: "No canonical Legacy lifecycle admission-freeze state is materialized by the running process." },
+      generation: { value: 0, status: "PRESENT", provenance: "MEXC_SIM._legacy_generation" },
+    },
     summary: {
       total: 1, comparable: 1, partial: 0, unresolved: 0,
       equal: 0, different: 1, legacy_only: 0, ppl_only: 0, not_comparable: 0,
