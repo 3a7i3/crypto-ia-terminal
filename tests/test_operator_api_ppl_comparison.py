@@ -37,6 +37,22 @@ def test_closed_schema_accepts_real_producer_document():
     assert validate_ppl_comparison_snapshot(_doc())
 
 
+
+def test_reader_rejects_negative_quiescence_count(tmp_path):
+    doc = _doc()
+    doc["legacy_quiescence"]["pending_order_count"] = {
+        "value": -1,
+        "status": "PRESENT",
+        "provenance": "test",
+    }
+    path = tmp_path / "comparison.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+
+    result = PplComparisonSnapshotReader(path, now_fn=lambda: 100.0).read()
+    assert not result.ok
+    assert result.error_code == "PPL_COMPARISON_INVALID_SCHEMA"
+
+
 def test_reader_returns_missing_as_structured_failure(tmp_path):
     result = PplComparisonSnapshotReader(
         tmp_path / "missing.json",

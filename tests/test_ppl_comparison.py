@@ -105,6 +105,24 @@ def test_active_zero_position_snapshot_compares_cash_and_unrealized(tmp_path):
     assert unrealized["relation"] == "EQUAL"
 
 
+
+def test_legacy_quiescence_exposes_pending_and_transition_facts_without_freeze_inference(tmp_path):
+    sim = _Sim(_active_shadow(tmp_path))
+    sim._orders = {
+        "pending": SimpleNamespace(status="PENDING"),
+        "filled": SimpleNamespace(status="FILLED"),
+    }
+    sim._legacy_transitions_in_flight = 2
+
+    legacy = ppl_comparison._snapshot_legacy(sim)
+    quiescence = ppl_comparison._legacy_quiescence(legacy)
+    assert quiescence["pending_order_count"]["value"] == 1
+    assert quiescence["pending_order_count"]["status"] == "PRESENT"
+    assert quiescence["lifecycle_transitions_in_flight"]["value"] == 2
+    assert quiescence["admissions_state"]["value"] is None
+    assert quiescence["admissions_state"]["status"] == "UNRESOLVED"
+
+
 def test_known_cash_divergence_is_visible_not_repaired(tmp_path):
     shadow = _active_shadow(tmp_path)
     sim = _Sim(shadow)
