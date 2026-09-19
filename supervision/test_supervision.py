@@ -129,6 +129,49 @@ class TestAlertManager:
         assert correction["correction"] is True
 
 
+    def test_drawdown_alert_emits_drawdown_event(self, tmp_path):
+        from event_bus.bus import EventBus
+
+        audit = tmp_path / "a.jsonl"
+        mgr = AlertManager(audit_file=str(audit))
+        bus = MagicMock()
+        alert = Alert(
+            type_="drawdown",
+            severity="critical",
+            module="risk",
+            message="drawdown",
+            context={
+                "drawdown_pct": 7.5,
+                "max_allowed_pct": 5.0,
+                "symbol": "BTC/USDT",
+                "action": "halt",
+            },
+        )
+
+        with patch.object(EventBus, "get", return_value=bus):
+            mgr.raise_alert(alert)
+
+        bus.emit.assert_called_once()
+        event = bus.emit.call_args.args[0]
+        assert event.current_drawdown_pct == 7.5
+        assert event.max_allowed_pct == 5.0
+        assert event.symbol == "BTC/USDT"
+        assert event.action_taken == "halt"
+
+    def test_event_bus_failure_is_non_blocking(self, tmp_path):
+        from event_bus.bus import EventBus
+
+        audit = tmp_path / "a.jsonl"
+        mgr = AlertManager(audit_file=str(audit))
+        alert = Alert(type_="security", severity="warning", module="m", message="x")
+
+        with patch.object(EventBus, "get", side_effect=RuntimeError("bus unavailable")):
+            mgr.raise_alert(alert)
+
+        assert len(mgr.alerts) == 1
+        assert audit.exists()
+
+
 # ---------------------------------------------------------------------------
 # MultiNotifier
 # ---------------------------------------------------------------------------
