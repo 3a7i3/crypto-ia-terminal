@@ -1,7 +1,8 @@
 # .github/workflows/orchestrator-healthcheck.yml
-# GitHub Actions : Healthcheck orchestrateur après chaque push sur main
+# Current contract: source/unit integrity for the orchestration surface that
+# actually exists. There is no active orchestrator HTTP health endpoint.
 
-name: Orchestrator Healthcheck
+name: Orchestration Integrity Check
 
 on:
   push:
@@ -9,6 +10,8 @@ on:
     paths-ignore:
       - audit_requests/**
       - audit_results/**
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -19,22 +22,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  healthcheck:
+  integrity:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-      - name: Install dependencies
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest requests
+      - name: Prove stale health surface is retired
         run: |
-          pip install requests
-      - name: Start orchestrator (background)
+          test ! -e orchestration/orchestrate_all.ps1
+          test ! -e orchestration/healthcheck_orchestrator.py
+      - name: Parse current orchestration sources
         run: |
-          pwsh -Command "Start-Process -NoNewWindow -FilePath 'powershell' -ArgumentList '-ExecutionPolicy Bypass -File orchestration/orchestrate_all.ps1'"
-          sleep 10
-      - name: Healthcheck orchestrator
-        run: |
-          python orchestration/healthcheck_orchestrator.py
+          python -m py_compile core/orchestration/orchestrate_all.py
+          python -m py_compile core/orchestration/orchestrate_ecosystem.py
+      - name: Exercise current mocked orchestration contract
+        env:
+          PYTHONPATH: ${{ github.workspace }}/core/orchestration:${{ github.workspace }}
+        run: python -m pytest -q tests/root/test_orchestrate_ecosystem.py
