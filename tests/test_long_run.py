@@ -325,8 +325,7 @@ class TestC3MemoryLeak:
         Le précédent test divisait deux petits deltas positifs de snapshots
         tracemalloc issus de simulations indépendantes. Avec des deltas de
         l'ordre du kilo-octet, ce ratio amplifiait le bruit de l'allocateur,
-        du GC et de l'instrumentation coverage ; le même SHA a produit
-        FAIL → PASS → PASS sur le même runner GitHub Actions.
+        du GC et de l'instrumentation coverage.
 
         Ce test mesure à la place la mémoire courante retenue après GC,
         relativement à une baseline prise après warm-up. On répète le même
@@ -335,7 +334,9 @@ class TestC3MemoryLeak:
         retenue et franchir une borne absolue ; aucun quasi-zéro n'est utilisé
         comme dénominateur.
         """
-        retained_limit_bytes = 2 * 1024 * 1024  # 2 MiB de rétention max.
+        # Borne absolue : très au-dessus du bruit KB-scale observé, tout en
+        # restant 15× plus stricte que le garde-fou global de 30 MiB/10k.
+        retained_limit_bytes = 2 * 1024 * 1024
 
         gc.collect()
         tracemalloc.start()
