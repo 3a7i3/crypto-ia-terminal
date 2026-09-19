@@ -217,6 +217,10 @@ def _snapshot_legacy(simulator: Any) -> Dict[str, Any]:
             and transitions_raw >= 0
             else None
         )
+        admissions_state = getattr(simulator, "_legacy_admissions_state", None)
+        admissions_provenance = getattr(
+            simulator, "_legacy_admissions_provenance", None
+        )
         orders = getattr(simulator, "_orders", None)
         pending_order_count = (
             sum(
@@ -275,6 +279,8 @@ def _snapshot_legacy(simulator: Any) -> Dict[str, Any]:
         "generation": generation,
         "pending_order_count": pending_order_count,
         "lifecycle_transitions_in_flight": transitions_in_flight,
+        "admissions_state": admissions_state,
+        "admissions_provenance": admissions_provenance,
     }
 
 
@@ -302,10 +308,10 @@ def _legacy_quiescence(legacy: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             legacy.get("lifecycle_transitions_in_flight"),
             "MEXC_SIM._legacy_transitions_in_flight",
         ),
-        "admissions_state": _source(
-            None,
-            status="UNRESOLVED",
-            provenance=(
+        "admissions_state": observed_or_unresolved(
+            legacy.get("admissions_state"),
+            legacy.get("admissions_provenance")
+            or (
                 "No canonical Legacy lifecycle admission-freeze state is "
                 "materialized by the running process."
             ),
