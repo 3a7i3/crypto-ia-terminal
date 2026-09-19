@@ -62,6 +62,13 @@ export interface PplShadowSourceMeta {
   last_error: string | null;
 }
 
+export interface PplLegacyQuiescence {
+  pending_order_count: PplComparisonSourceValue;
+  lifecycle_transitions_in_flight: PplComparisonSourceValue;
+  admissions_state: PplComparisonSourceValue;
+  generation: PplComparisonSourceValue;
+}
+
 export interface PplComparisonSummary {
   total: number;
   comparable: number;
@@ -90,6 +97,7 @@ export interface PplComparisonSnapshot {
   comparison_unavailable_reason: string | null;
   legacy_source: PplLegacySourceMeta;
   ppl_source: PplShadowSourceMeta;
+  legacy_quiescence: PplLegacyQuiescence;
   summary: PplComparisonSummary;
   comparisons: PplComparisonRecord[];
   positions: PplComparisonGroup[];
