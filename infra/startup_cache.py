@@ -4,6 +4,7 @@ Stocke configs, états, modèles en RAM pré-chargée
 """
 
 import json
+import os
 import pickle
 import time
 from pathlib import Path
@@ -22,7 +23,17 @@ class StartupCache:
     MEMORY_CACHE = CACHE_DIR / "evolution_memory.pkl"
     TIMESTAMP_FILE = CACHE_DIR / "last_snapshot.txt"
 
-    def __init__(self):
+    def __init__(self, cache_dir: str | Path | None = None):
+        resolved_dir = (
+            Path(cache_dir)
+            if cache_dir is not None
+            else Path(os.getenv("STARTUP_CACHE_DIR", str(type(self).CACHE_DIR)))
+        )
+        self.CACHE_DIR = resolved_dir
+        self.CONFIG_CACHE = resolved_dir / "configs.json"
+        self.STATE_CACHE = resolved_dir / "runtime_state.pkl"
+        self.MEMORY_CACHE = resolved_dir / "evolution_memory.pkl"
+        self.TIMESTAMP_FILE = resolved_dir / "last_snapshot.txt"
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
         self._memory: Dict[str, Any] = {}
         self._load_timestamp = None
