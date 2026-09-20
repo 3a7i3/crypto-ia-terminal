@@ -14,7 +14,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from enum import Enum
-from typing import Iterable, Optional, Sequence, Union
+import hashlib
+import json
+from typing import Iterable, Mapping, Optional, Sequence, Union
 
 Numberish = Union[Decimal, int, float, str]
 
@@ -81,6 +83,117 @@ class ReconciliationStatus(str, Enum):
     WITHIN_TOLERANCE = "WITHIN_TOLERANCE"
     DIVERGENT = "DIVERGENT"
     UNRESOLVED = "UNRESOLVED"
+
+
+
+def canonical_identity_hash(namespace: str, fields: Mapping[str, object]) -> str:
+    """Return the FIN-00 canonical identity hash.
+
+    Identity input is UTF-8 canonical JSON with sorted keys, compact separators,
+    no NaN/Infinity, and a versioned namespace prefix. Values must already be
+    normalized semantic scalars; FIN-01 must not hash presentation formatting.
+    """
+
+    if not namespace:
+        raise FinancialContractError("identity namespace must be non-empty")
+    try:
+        payload = json.dumps(
+            dict(fields),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise FinancialContractError("identity fields are not canonically serializable") from exc
+    material = f"{namespace}\n{payload}".encode("utf-8")
+    return hashlib.sha256(material).hexdigest()
+
+
+def derive_financial_event_id(
+    *,
+    source_domain: str,
+    source_authority: str,
+    source_event_id: str,
+    paper_epoch_id: str,
+    source_sequence: int,
+    schema_version: int,
+) -> str:
+    """Deterministic FIN event identity derived from immutable source identity."""
+
+    identity = FinancialEventIdentity(
+        financial_event_id="pending",
+        source_domain=source_domain,
+        source_authority=source_authority,
+        source_event_id=source_event_id,
+        paper_epoch_id=paper_epoch_id,
+        source_sequence=source_sequence,
+        schema_version=schema_version,
+        code_sha="identity-only",
+        config_hash="identity-only",
+    )
+    return canonical_identity_hash(
+        "FIN_EVENT_ID_V1",
+        {
+            "source_domain": identity.source_domain,
+            "source_authority": identity.source_authority,
+            "source_event_id": identity.source_event_id,
+            "paper_epoch_id": identity.paper_epoch_id,
+            "source_sequence": identity.source_sequence,
+            "schema_version": identity.schema_version,
+        },
+    )
+
+
+def derive_financial_snapshot_id(
+    *,
+    paper_epoch_id: str,
+    last_source_sequence: int,
+    source_stream_digest: str,
+    schema_version: int,
+    code_sha: str,
+    config_hash: str,
+    valuation_set_digest: str,
+    valuation_as_of: str,
+) -> str:
+    """Deterministic immutable FinancialSnapshot identity contract."""
+
+    for name, value in (
+        ("paper_epoch_id", paper_epoch_id),
+        ("source_stream_digest", source_stream_digest),
+        ("code_sha", code_sha),
+        ("config_hash", config_hash),
+        ("valuation_set_digest", valuation_set_digest),
+        ("valuation_as_of", valuation_as_of),
+    ):
+        if not value:
+            raise FinancialContractError(f"{name} must be non-empty")
+    if (
+        not isinstance(last_source_sequence, int)
+        or isinstance(last_source_sequence, bool)
+        or last_source_sequence < 1
+    ):
+        raise FinancialContractError("last_source_sequence must be an integer >= 1")
+    if (
+        not isinstance(schema_version, int)
+        or isinstance(schema_version, bool)
+        or schema_version < 1
+    ):
+        raise FinancialContractError("schema_version must be an integer >= 1")
+
+    return canonical_identity_hash(
+        "FIN_SNAPSHOT_ID_V1",
+        {
+            "paper_epoch_id": paper_epoch_id,
+            "last_source_sequence": last_source_sequence,
+            "source_stream_digest": source_stream_digest,
+            "schema_version": schema_version,
+            "code_sha": code_sha,
+            "config_hash": config_hash,
+            "valuation_set_digest": valuation_set_digest,
+            "valuation_as_of": valuation_as_of,
+        },
+    )
 
 
 def canonical_decimal(name: str, value: Numberish) -> Decimal:
