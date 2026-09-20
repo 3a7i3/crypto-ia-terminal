@@ -18,6 +18,8 @@ from financial_institute.semantics import (
     derive_financial_snapshot_id,
     linear_price_pnl,
     realized_pnl_to_date,
+    reconciliation_delta,
+    unreconciled_capital,
     within_reconciliation_tolerance,
 )
 
@@ -292,6 +294,12 @@ def test_certified_equity_rejects_open_count_reserved_capital_mismatch() -> None
             open_position_count=1,
             valuation_statuses=(ValuationStatus.LIVE,),
         )
+
+
+
+def test_reconciliation_delta_is_observation_minus_projection() -> None:
+    assert reconciliation_delta(projected="100", observed="99.75") == Decimal("-0.25")
+    assert unreconciled_capital(projected="100", observed="99.75") == Decimal("0.25")
 
 
 def test_reconciliation_tolerance_is_explicit() -> None:
