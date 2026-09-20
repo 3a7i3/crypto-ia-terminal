@@ -14,6 +14,8 @@ from financial_institute.semantics import (
     book_equity_at_cost,
     canonical_decimal,
     certified_equity,
+    derive_financial_event_id,
+    derive_financial_snapshot_id,
     linear_price_pnl,
     realized_pnl_to_date,
     within_reconciliation_tolerance,
@@ -39,6 +41,41 @@ def post(
         asset=ASSET,
         amount=Decimal(amount),
         paper_epoch_id=EPOCH,
+    )
+
+
+
+def test_financial_event_identity_is_deterministic_and_source_bound() -> None:
+    kwargs = dict(
+        source_domain="PAPER",
+        source_authority="PPL_AUTHORITY",
+        source_event_id="ppl-event-4",
+        paper_epoch_id=EPOCH,
+        source_sequence=4,
+        schema_version=1,
+    )
+    first = derive_financial_event_id(**kwargs)
+    second = derive_financial_event_id(**kwargs)
+    assert first == second
+    assert len(first) == 64
+    assert first != derive_financial_event_id(**{**kwargs, "source_sequence": 5})
+
+
+def test_financial_snapshot_identity_changes_when_bound_input_changes() -> None:
+    kwargs = dict(
+        paper_epoch_id=EPOCH,
+        last_source_sequence=4,
+        source_stream_digest="a" * 64,
+        schema_version=1,
+        code_sha="b" * 40,
+        config_hash="c" * 64,
+        valuation_set_digest="d" * 64,
+        valuation_as_of="2026-09-20T23:59:00Z",
+    )
+    first = derive_financial_snapshot_id(**kwargs)
+    assert first == derive_financial_snapshot_id(**kwargs)
+    assert first != derive_financial_snapshot_id(
+        **{**kwargs, "valuation_set_digest": "e" * 64}
     )
 
 
