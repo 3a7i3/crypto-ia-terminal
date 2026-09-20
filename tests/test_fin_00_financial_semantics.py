@@ -7,6 +7,7 @@ import pytest
 from financial_institute.semantics import (
     FinancialAccount,
     FinancialContractError,
+    FinancialModel,
     EvidenceStatus,
     LedgerPosting,
     PostingSide,
@@ -46,6 +47,15 @@ def post(
         paper_epoch_id=EPOCH,
     )
 
+
+
+
+def test_financial_models_are_explicitly_distinct() -> None:
+    assert FinancialModel.PAPER_LINEAR_PRINCIPAL_V1 != FinancialModel.SPOT_QUANTITY
+    assert (
+        FinancialModel.PAPER_LINEAR_PRINCIPAL_V1
+        != FinancialModel.DERIVATIVE_CONTRACT
+    )
 
 
 def test_financial_event_identity_is_deterministic_and_source_bound() -> None:
