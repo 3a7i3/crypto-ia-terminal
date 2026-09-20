@@ -37,6 +37,14 @@ class AccountKind(str, Enum):
     EXPENSE = "EXPENSE"
 
 
+class FinancialModel(str, Enum):
+    """Closed accounting-model vocabulary for FIN-00."""
+
+    PAPER_LINEAR_PRINCIPAL_V1 = "PAPER_LINEAR_PRINCIPAL_V1"
+    SPOT_QUANTITY = "SPOT_QUANTITY"
+    DERIVATIVE_CONTRACT = "DERIVATIVE_CONTRACT"
+
+
 class FinancialAccount(str, Enum):
     """FIN-00 PAPER v1 chart of accounts.
 
