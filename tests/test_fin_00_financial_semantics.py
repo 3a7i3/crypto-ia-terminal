@@ -176,6 +176,19 @@ def test_certified_equity_requires_no_unresolved_capital() -> None:
     )
 
 
+def test_certified_equity_fails_closed_when_reserved_capital_has_no_marks() -> None:
+    assert (
+        certified_equity(
+            cash_available="989.99",
+            capital_reserved="10",
+            unrealized_pnl="0",
+            capital_unresolved="0",
+            valuation_statuses=(),
+        )
+        is None
+    )
+
+
 def test_certified_equity_requires_live_marks_for_open_positions() -> None:
     assert (
         certified_equity(
