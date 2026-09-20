@@ -60,7 +60,7 @@ population, admission decision, sizing, exits, risk, universe, or PAPER/PPL
 authority. It includes signal, gate, MTF, regime, portfolio, execution,
 allocation, conviction, no-trade, meta-strategy, executive override, risk
 governor, capital throttle, exposure, invariants, safety, V9, position manager,
-MEXC simulator, P6/P8/P9/P10, Kelly, PAPER and PPL namespaces plus specific
+MEXC simulator, P6/P8/P9, Kelly, PAPER and PPL namespaces plus specific
 exchange/live-confirmation controls.
 
 This is an experiment-governance allowlist, not a dump of the process
@@ -108,7 +108,20 @@ Offline/test/documentation trees are excluded from default discovery:
 - virtual environments;
 - S2 forensic scripts.
 
-The remaining production tree is scanned.
+The remaining production tree is scanned, but materiality is still bounded to
+the deployed F00 advisor runtime.
+
+For the certified F00 runtime in this phase, `crypto-advisor.service` executes
+`core/advisor_loop.py`. The P10/ColdStart namespace belongs to the strangler
+path `runtime/advisor_main.py` and is not referenced by the deployed advisor
+loop. Therefore `P10_*` is explicitly excluded from the F00 material namespace
+until that runtime becomes the deployed execution path. This prevents inactive
+future/alternate runtime defaults from blocking or contaminating the current
+experiment fingerprint.
+
+If the service entrypoint later migrates to `runtime/advisor_main.py`, the
+material namespace contract must be revised and recertified before another
+experiment freeze.
 
 ## Pre-start guard versus final experiment configuration
 
