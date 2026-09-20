@@ -170,6 +170,7 @@ def test_certified_equity_requires_no_unresolved_capital() -> None:
             capital_reserved="0",
             unrealized_pnl="0",
             capital_unresolved="10",
+            open_position_count=0,
             valuation_statuses=(),
         )
         is None
@@ -183,6 +184,7 @@ def test_certified_equity_fails_closed_when_reserved_capital_has_no_marks() -> N
             capital_reserved="10",
             unrealized_pnl="0",
             capital_unresolved="0",
+            open_position_count=1,
             valuation_statuses=(),
         )
         is None
@@ -196,6 +198,7 @@ def test_certified_equity_requires_live_marks_for_open_positions() -> None:
             capital_reserved="10",
             unrealized_pnl="1",
             capital_unresolved="0",
+            open_position_count=1,
             valuation_statuses=(ValuationStatus.STALE,),
         )
         is None
@@ -205,8 +208,36 @@ def test_certified_equity_requires_live_marks_for_open_positions() -> None:
         capital_reserved="10",
         unrealized_pnl="1",
         capital_unresolved="0",
+        open_position_count=1,
         valuation_statuses=(ValuationStatus.LIVE,),
     ) == Decimal("1000.99")
+
+
+
+def test_certified_equity_requires_one_live_mark_per_open_position() -> None:
+    assert (
+        certified_equity(
+            cash_available="979.98",
+            capital_reserved="20",
+            unrealized_pnl="0",
+            capital_unresolved="0",
+            open_position_count=2,
+            valuation_statuses=(ValuationStatus.LIVE,),
+        )
+        is None
+    )
+
+
+def test_certified_equity_rejects_open_count_reserved_capital_mismatch() -> None:
+    with pytest.raises(FinancialContractError, match="disagree"):
+        certified_equity(
+            cash_available="1000",
+            capital_reserved="0",
+            unrealized_pnl="0",
+            capital_unresolved="0",
+            open_position_count=1,
+            valuation_statuses=(ValuationStatus.LIVE,),
+        )
 
 
 def test_reconciliation_tolerance_is_explicit() -> None:
