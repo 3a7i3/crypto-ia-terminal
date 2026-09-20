@@ -417,6 +417,29 @@ def certified_equity(
     return cash + reserved + unrealized
 
 
+
+def reconciliation_delta(
+    *, projected: Numberish, observed: Numberish
+) -> Decimal:
+    """Signed comparison delta: observed - projected.
+
+    This is reconciliation evidence, not a ledger posting. A non-zero delta
+    must never mutate FIN balances automatically.
+    """
+
+    p = canonical_decimal("projected", projected)
+    o = canonical_decimal("observed", observed)
+    return o - p
+
+
+def unreconciled_capital(
+    *, projected: Numberish, observed: Numberish
+) -> Decimal:
+    """Absolute magnitude of a known reconciliation difference."""
+
+    return abs(reconciliation_delta(projected=projected, observed=observed))
+
+
 def within_reconciliation_tolerance(
     *,
     projected: Numberish,
