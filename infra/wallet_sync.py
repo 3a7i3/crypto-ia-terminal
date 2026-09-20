@@ -207,7 +207,8 @@ class WalletSync:
         Récupère le solde réel (spot USDT libre) depuis l'API au démarrage.
 
         Retourne X si X >= MIN_CAPITAL_X, sinon None.
-        En cas de succès, X devient la base de capital pour tout le système.
+        En cas de succès, X devient l'observation API disponible pour les chemins
+        live/testnet et d'affichage; il ne remplace pas le capital scientifique PAPER.
         En cas d'échec (pas d'exchange, erreur API, solde=0) : retourne None.
         Ce résultat décrit uniquement l'observation API X. Il ne choisit jamais
         la provenance du capital scientifique PAPER, résolue séparément par
