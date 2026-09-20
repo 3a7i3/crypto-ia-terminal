@@ -9,7 +9,6 @@
     "cache/startup/runtime_state.pkl",
     "databases/ai_evolution/strategy_memory.json",
     "databases/dip/dip.sqlite",
-    "databases/sim_runs.sqlite",
     "databases/system_state.json"
   ]
 }
