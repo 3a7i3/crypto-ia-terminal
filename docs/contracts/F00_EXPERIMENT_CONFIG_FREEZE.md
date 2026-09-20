@@ -15,8 +15,7 @@ For epoch `<paper_epoch_id>`:
 
 `databases/ppl_authority/<paper_epoch_id>.experiment-config.json`
 
-The artifact is local runtime evidence and is never committed with environment
-values.
+The snapshot and its admission overlay are local runtime evidence and are never committed with environment values. The admission overlay is created while inactive and MUST NOT be wired into systemd before separate owner authorization.
 
 Schema:
 
@@ -26,8 +25,10 @@ The deterministic SHA-256 covers:
 - schema;
 - exact paper epoch id;
 - exact runtime source SHA;
-- EnvironmentFile paths in precedence order;
-- every selected material parameter;
+- active pre-start EnvironmentFile paths in precedence order;
+- immutable admission-overlay path, SHA-256 and planned override;
+- the pre-start guard (`PB_MAX_POSITIONS=0`);
+- every selected material parameter in its FINAL F-00 experiment value;
 - value;
 - provenance;
 - source;
@@ -109,24 +110,38 @@ Offline/test/documentation trees are excluded from default discovery:
 
 The remaining production tree is scanned.
 
-## Pre-start invariants
+## Pre-start guard versus final experiment configuration
+
+`PB_MAX_POSITIONS=0` is a temporary physical admission barrier, not the final
+portfolio limit for the F-00 experiment. Freezing it as the final value would
+make the snapshot invalid the moment admissions are opened.
+
+Capture therefore requires the operator to declare a future positive
+`PB_MAX_POSITIONS`. The tool creates, with O_EXCL, a separate inactive file:
+
+`databases/ppl_authority/<paper_epoch_id>.admission.env`
+
+containing only:
+
+`PB_MAX_POSITIONS=<planned positive integer>`
+
+The snapshot's parameter map represents the FINAL experiment configuration
+after this overlay would be applied, while `prestart_guard` proves the current
+active value is still zero. The overlay is not added to systemd by capture.
 
 Capture refuses to proceed unless:
 - `PAPER_LIFECYCLE_AUTHORITY=PPL_AUTHORITY`;
 - `PAPER_TRADING_ENABLED=true`;
-- `PB_MAX_POSITIONS=0`;
+- currently active `PB_MAX_POSITIONS=0`;
+- planned activation `PB_MAX_POSITIONS >= 1`;
 - `PPL_AUTHORITY_EPOCH_ID` exactly matches the requested epoch;
 - the git worktree is clean.
 
-Thus the freeze cannot itself open admissions.
+Thus configuration freeze and admission authorization remain separate acts.
 
 ## Immutability
 
-Snapshot creation uses exclusive creation and never overwrites an existing
-snapshot.
-
-If the file already exists, capture fails. Correction requires explicit
-governance and a new artifact disposition; silent replacement is forbidden.
+Snapshot creation and admission-overlay creation both use exclusive creation and never overwrite existing files. If either exists, capture fails. Correction requires explicit governance and a new artifact disposition; silent replacement is forbidden.
 
 ## Validation
 
@@ -135,10 +150,11 @@ governance and a new artifact disposition; silent replacement is forbidden.
 1. verifies the stored snapshot SHA;
 2. requires the repository to remain clean;
 3. requires the exact runtime source SHA;
-4. re-reads the same EnvironmentFiles in the frozen order;
-5. re-scans production code defaults;
-6. rebuilds the canonical payload;
-7. requires byte-semantic equality and the same SHA-256.
+4. re-reads the same active pre-start EnvironmentFiles in the frozen order;
+5. verifies the inactive admission overlay byte hash;
+6. re-scans production code defaults;
+7. rebuilds the final experiment payload from the pre-start guard + frozen activation plan;
+8. requires byte-semantic equality and the same SHA-256.
 
 Any source/config/default/precedence drift fails closed.
 
@@ -151,7 +167,8 @@ python3 -B scripts/f00_experiment_config_freeze.py capture \
   --epoch F00-EPOCH-01-20260920T084335Z \
   --env-file .env \
   --env-file .env.secrets \
-  --env-file databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.cutover.env
+  --env-file databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.cutover.env \
+  --activation-pb-max-positions <OWNER_AUTHORIZED_VALUE>
 ```
 
 Validation:
@@ -161,9 +178,7 @@ python3 -B scripts/f00_experiment_config_freeze.py validate \
   --snapshot databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.experiment-config.json
 ```
 
-A PASS from this tool is necessary but not sufficient to start F-00. The parent
-F00-START precheck must still certify the clean PPL population and the owner must
-separately authorize opening PAPER admissions.
+A PASS from this tool is necessary but not sufficient to start F-00. The parent F00-START precheck must still certify the clean PPL population. Only after that PASS may the owner separately authorize wiring the already-frozen admission overlay into systemd. The wiring step must use the exact overlay hash recorded by the snapshot.
 
 ## Forbidden interpretation
 
