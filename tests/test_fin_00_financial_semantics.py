@@ -136,6 +136,23 @@ def test_close_loss_postings_balance_without_inverting_cash_semantics() -> None:
     assert_balanced_postings(postings)
 
 
+
+def test_funding_received_postings_balance() -> None:
+    postings = [
+        post("p1", "f-funding-in", FinancialAccount.CASH_AVAILABLE, PostingSide.DEBIT, "0.25"),
+        post("p2", "f-funding-in", FinancialAccount.FUNDING_PNL, PostingSide.CREDIT, "0.25"),
+    ]
+    assert_balanced_postings(postings)
+
+
+def test_funding_paid_postings_balance() -> None:
+    postings = [
+        post("p1", "f-funding-out", FinancialAccount.FUNDING_PNL, PostingSide.DEBIT, "0.25"),
+        post("p2", "f-funding-out", FinancialAccount.CASH_AVAILABLE, PostingSide.CREDIT, "0.25"),
+    ]
+    assert_balanced_postings(postings)
+
+
 def test_unresolved_moves_principal_without_fabricated_cash_or_pnl() -> None:
     postings = [
         post(
