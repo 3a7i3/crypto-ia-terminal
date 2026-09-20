@@ -300,7 +300,7 @@ population, admission decision, sizing, exits, risk, universe, or PAPER/PPL
 authority. It includes signal, gate, MTF, regime, portfolio, execution,
 allocation, conviction, no-trade, meta-strategy, executive override, risk
 governor, capital throttle, exposure, invariants, safety, V9, position manager,
-MEXC simulator, P6/P8/P9/P10, Kelly, PAPER and PPL namespaces plus specific
+MEXC simulator, P6/P8/P9, Kelly, PAPER and PPL namespaces plus specific
 exchange/live-confirmation controls.</p>
 <p>This is an experiment-governance allowlist, not a dump of the process
 environment.</p>
@@ -348,7 +348,18 @@ call-sites.</p>
 <li><p>virtual environments;</p></li>
 <li><p>S2 forensic scripts.</p></li>
 </ul>
-<p>The remaining production tree is scanned.</p>
+<p>The remaining production tree is scanned, but materiality is still bounded to
+the deployed F00 advisor runtime.</p>
+<p>For the certified F00 runtime in this phase, <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> executes
+<code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>. The P10/ColdStart namespace belongs to the strangler
+path <code class="docutils literal notranslate"><span class="pre">runtime/advisor_main.py</span></code> and is not referenced by the deployed advisor
+loop. Therefore <code class="docutils literal notranslate"><span class="pre">P10_*</span></code> is explicitly excluded from the F00 material namespace
+until that runtime becomes the deployed execution path. This prevents inactive
+future/alternate runtime defaults from blocking or contaminating the current
+experiment fingerprint.</p>
+<p>If the service entrypoint later migrates to <code class="docutils literal notranslate"><span class="pre">runtime/advisor_main.py</span></code>, the
+material namespace contract must be revised and recertified before another
+experiment freeze.</p>
 </section>
 <section id="pre-start-guard-versus-final-experiment-configuration">
 <h2>Pre-start guard versus final experiment configuration<a class="headerlink" href="#pre-start-guard-versus-final-experiment-configuration" title="Link to this heading">¶</a></h2>
