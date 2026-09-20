@@ -353,7 +353,7 @@ Allowed status:
 A stale mark may be displayed as indicative evidence, but it MUST NOT produce
 `certified_equity`.
 
-If any open position lacks a `LIVE` mark, certified equity is unavailable.
+If any open position lacks exactly one corresponding `LIVE` valuation status, certified equity is unavailable. Mark coverage count must equal open-position count; partial coverage never certifies equity.
 
 The valuation layer MUST NOT silently replace a missing mark with entry price,
 last known price, zero or another venue's price.
