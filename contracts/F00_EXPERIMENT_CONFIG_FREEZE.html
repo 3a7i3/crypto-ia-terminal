@@ -324,10 +324,16 @@ SMTP/email credentials and equivalent key names must never enter:</p>
 <li><p>if explicitly configured, the effective value and winning EnvironmentFile are
 recorded as <code class="docutils literal notranslate"><span class="pre">EXPLICIT_ENVIRONMENT_FILE</span></code>;</p></li>
 <li><p>if unset, production Python call-sites are scanned for
-<code class="docutils literal notranslate"><span class="pre">os.getenv(...)</span></code> / <code class="docutils literal notranslate"><span class="pre">os.environ.get(...)</span></code> literal defaults;</p></li>
-<li><p>one unambiguous default is recorded as <code class="docutils literal notranslate"><span class="pre">CODE_DEFAULT</span></code>;</p></li>
+<code class="docutils literal notranslate"><span class="pre">os.getenv(...)</span></code> / <code class="docutils literal notranslate"><span class="pre">os.environ.get(...)</span></code> defaults;</p></li>
+<li><p>direct literals are accepted;</p></li>
+<li><p>a same-module constant is accepted only when its module-level assignment is
+itself a pure literal and the default merely references/casts that constant
+(for example <code class="docutils literal notranslate"><span class="pre">str(_P8_ACTIVE_SHARPE_MIN_DEFAULT)</span></code> where the constant is
+assigned <code class="docutils literal notranslate"><span class="pre">0.30</span></code>);</p></li>
+<li><p>no code is executed and imports/expressions/function calls are never followed;</p></li>
+<li><p>one unambiguous resolved default is recorded as <code class="docutils literal notranslate"><span class="pre">CODE_DEFAULT</span></code>;</p></li>
 <li><p>conflicting defaults fail closed;</p></li>
-<li><p>non-literal defaults fail closed when the variable is unset.</p></li>
+<li><p>dynamic/imported/non-literal defaults fail closed when the variable is unset.</p></li>
 </ul>
 <p>Explicit configuration intentionally resolves conflicting code defaults because
 the service-level value wins at every call-site.</p>
