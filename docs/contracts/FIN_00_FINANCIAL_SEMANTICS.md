@@ -139,7 +139,34 @@ explicit future reconciliation/resolution contract settles it.
 
 `UNKNOWN != 0`.
 
-### 5.6 Fees
+### 5.6 Unreconciled capital
+
+`unreconciled_capital` is the absolute magnitude of a **known comparison
+difference** between a FIN projected amount and an independently observed
+amount.
+
+Signed comparison delta:
+
+`reconciliation_delta = observed - projected`
+
+Magnitude:
+
+`unreconciled_capital = abs(reconciliation_delta)`
+
+This is reconciliation evidence, not an accounting asset/liability and not an
+automatic correcting entry.
+
+It is distinct from `capital_unresolved`:
+
+- `capital_unresolved` = lifecycle/settlement outcome itself is not known;
+- `unreconciled_capital` = two known values exist but do not reconcile.
+
+If either comparison value is unavailable, the reconciliation status is
+`UNRESOLVED` and no numeric unreconciled-capital amount is fabricated.
+
+A reconciliation delta MUST NEVER silently mutate the FIN ledger.
+
+### 5.7 Fees
 
 Fees are realized financial expenses at the moment the durable fee fact exists.
 
@@ -152,7 +179,7 @@ A fee is never deferred merely because the position remains open.
 
 A fee is never charged twice.
 
-### 5.7 Funding
+### 5.8 Funding
 
 Funding is a signed realized cashflow:
 
@@ -544,6 +571,7 @@ FIN-01 must be capable of projecting at least:
 - capital reserved;
 - capital deployed;
 - unresolved capital;
+- unreconciled capital/delta when both compared values are known;
 - gross realized price PnL;
 - fees paid;
 - funding net + funding evidence status;
