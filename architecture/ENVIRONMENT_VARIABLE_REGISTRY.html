@@ -397,49 +397,55 @@ PRECEDENCE_RISK finding referenced from the constitution’s §5 (row A,
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p>—</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ENV_PATH</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">STARTUP_CACHE_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">DAILY_ANALYZER_DB</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p>CODE_DEFAULT / optional env override</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+<td><p>TI-00 path injection; production defaults remain <code class="docutils literal notranslate"><span class="pre">cache/startup</span></code> and <code class="docutils literal notranslate"><span class="pre">cache/daily_analysis.db</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ENV_PATH</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p>—</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INVOCATION_ID</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">INVOCATION_ID</span></code></p></td>
 <td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
 <td><p>CODE_DEFAULT</p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p>Injected by systemd (<code class="docutils literal notranslate"><span class="pre">%n</span></code>-style), not human-set</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PYTHONUNBUFFERED</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONIOENCODING</span></code>, <code class="docutils literal notranslate"><span class="pre">TZ</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PYTHONUNBUFFERED</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONIOENCODING</span></code>, <code class="docutils literal notranslate"><span class="pre">TZ</span></code>, <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code></p></td>
 <td><p>DEPLOYMENT_CONFIG</p></td>
 <td><p>SYSTEMD_ONLY</p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p>Set directly in <code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code> via <code class="docutils literal notranslate"><span class="pre">Environment=</span></code>, never in <code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DP_LOG_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">DP_LOG_PATH</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DP_LOG_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">DP_LOG_PATH</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code> (also a systemd-only override on <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code>)</p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> sets <code class="docutils literal notranslate"><span class="pre">DP_LOG_DIR</span></code> directly via <code class="docutils literal notranslate"><span class="pre">Environment=</span></code>, overriding any <code class="docutils literal notranslate"><span class="pre">.env</span></code> value for that unit only</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PARAM_AUDIT_LOG</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PARAM_AUDIT_LOG</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p>—</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code> (INTERVAL, TIMEOUT, MAX_RESTARTS, RAM_ALERT_MB, RAM_RESTART_MB, RESTART_COOLDOWN, RESTART_DELAY, STARTUP_GRACE, USE_SYSTEMD, SNAPSHOT, DEAD_ALERT_REPEAT_S)</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code> (INTERVAL, TIMEOUT, MAX_RESTARTS, RAM_ALERT_MB, RAM_RESTART_MB, RESTART_COOLDOWN, RESTART_DELAY, STARTUP_GRACE, USE_SYSTEMD, SNAPSHOT, DEAD_ALERT_REPEAT_S)</p></td>
 <td><p>CADENCE / THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p>Consumed by <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code> (deployed) — see precedence-risk finding in the constitution doc</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P10_WD_*</span></code> (CHECK_S, FREEZE_LAG_S, HEARTBEAT_S, MAX_RESTARTS, STALE_S)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P10_WD_*</span></code> (CHECK_S, FREEZE_LAG_S, HEARTBEAT_S, MAX_RESTARTS, STALE_S)</p></td>
 <td><p>CADENCE / THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 <td><p>Phase-10 watchdog-shaped config, parallel prefix to <code class="docutils literal notranslate"><span class="pre">WATCHDOG_*</span></code> — duplication candidate, see <code class="docutils literal notranslate"><span class="pre">MODULE_FAMILY_REGISTRY.md</span></code>-adjacent debt</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P10_PHASE</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_CERT_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_CERT_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_DECISION_KEY_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_TAMPER_LOG_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_WARMUP_HMAC_KEY</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P10_PHASE</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_CERT_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_CERT_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_DECISION_KEY_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_TAMPER_LOG_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">P10_WARMUP_HMAC_KEY</span></code></p></td>
 <td><p>SECRET / RESTRICTED_IDENTITY</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env.secrets</span></code> (keys/paths that gate certification)</p></td>
 <td><p>INCONCLUSIVE</p></td>
@@ -547,67 +553,72 @@ PRECEDENCE_RISK finding referenced from the constitution’s §5 (row A,
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RANKER_*</span></code> (BLACKLIST_DEMOTES, DB, DEMOTE_SCORE, ENABLED, EXCHANGE, MIN_TRADES, MIN_VOL_USD, PROMOTE_SCORE, STALE_DAYS, TOP_N)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SIM_RUNS_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">EVOLUTION_MEMORY_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">STRATEGY_MEMORY_FILE</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p>CODE_DEFAULT / optional env override</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RANKER_*</span></code> (BLACKLIST_DEMOTES, DB, DEMOTE_SCORE, ENABLED, EXCHANGE, MIN_TRADES, MIN_VOL_USD, PROMOTE_SCORE, STALE_DAYS, TOP_N)</p></td>
 <td><p>FEATURE_FLAG / THRESHOLD / PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MM_*</span></code> (MAX_DB, MIN_LOSS_PCT, REPEAT_THRESHOLD, RULE_EXPIRY_DAYS)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MM_*</span></code> (MAX_DB, MIN_LOSS_PCT, REPEAT_THRESHOLD, RULE_EXPIRY_DAYS)</p></td>
 <td><p>THRESHOLD / PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — <code class="docutils literal notranslate"><span class="pre">mistake_memory.py</span></code> thresholds</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MISTAKE_DB</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MISTAKE_DB</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P8_*</span></code> (~35 vars: CONF_<em>, DWE_</em>, PERF_W_<em>, PROBATION_</em>, RAMP_<em>, TRACKING_</em>, etc.)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P8_*</span></code> (~35 vars: CONF_<em>, DWE_</em>, PERF_W_<em>, PROBATION_</em>, RAMP_<em>, TRACKING_</em>, etc.)</p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — strategy_ranker / confidence-weighting phase-8 config</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P9_*</span></code> (~28 vars: BDD_<em>, CONC_</em>, DD_WARN, DRIFT_<em>, ERROR_RATE_</em>, GOV_<em>, LATENCY_</em>, PF_WARN, RG_BURST_COUNT, SHARPE_WARN, etc.)</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P9_*</span></code> (~28 vars: BDD_<em>, CONC_</em>, DD_WARN, DRIFT_<em>, ERROR_RATE_</em>, GOV_<em>, LATENCY_</em>, PF_WARN, RG_BURST_COUNT, SHARPE_WARN, etc.)</p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — phase-9 governance/drift thresholds</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CAE_*</span></code> (EV_MIN, KELLY_MAX, KELLY_SAFETY, LEVERAGE_MAX, MIN_TRADES_KELLY, VOL_MAX_REDUCTION, VOL_REFERENCE)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CAE_*</span></code> (EV_MIN, KELLY_MAX, KELLY_SAFETY, LEVERAGE_MAX, MIN_TRADES_KELLY, VOL_MAX_REDUCTION, VOL_REFERENCE)</p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — capital allocation engine</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CONV_*</span></code> (SIZE_<em>, THRESH_</em>, W_MEMORY, W_MTF, W_QUALITY, W_REGIME, W_SIGNAL)</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CONV_*</span></code> (SIZE_<em>, THRESH_</em>, W_MEMORY, W_MTF, W_QUALITY, W_REGIME, W_SIGNAL)</p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — conviction scoring weights</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NTL_*</span></code> (~14 vars: CHOP_THRESHOLD, CONTRADICTION, FOMO_WINDOW, MAX_ATR_MULT, MIN_SCORE, W_FOMO, W_MARKET, W_SIGNAL, W_TACTICAL, etc.)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">NTL_*</span></code> (~14 vars: CHOP_THRESHOLD, CONTRADICTION, FOMO_WINDOW, MAX_ATR_MULT, MIN_SCORE, W_FOMO, W_MARKET, W_SIGNAL, W_TACTICAL, etc.)</p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — no_trade_layer thresholds</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">META_*_MIN_SCORE</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_SL</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_TP</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_TRAIL</span></code> (per personality: MOMENTUM, RANGE, SCALP, SHORT)</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">META_*_MIN_SCORE</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_SL</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_TP</span></code>, <code class="docutils literal notranslate"><span class="pre">META_*_TRAIL</span></code> (per personality: MOMENTUM, RANGE, SCALP, SHORT)</p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — per-personality exit params</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">REGIME_*</span></code> (ABSOLUTE_FLOOR, MISMATCH_COOLDOWN, RAMP_CYCLES, SIDEWAYS_MIN_SCORE, SIDEWAYS_TP_ATR, STABILITY_WINDOW)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REGIME_*</span></code> (ABSOLUTE_FLOOR, MISMATCH_COOLDOWN, RAMP_CYCLES, SIDEWAYS_MIN_SCORE, SIDEWAYS_TP_ATR, STABILITY_WINDOW)</p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SIGNAL_MIN_SCORE</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SIGNAL_MIN_SCORE</span></code></p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LSE_MTF_MIN_AGREE</span></code>, <code class="docutils literal notranslate"><span class="pre">LSE_MTF_MIN_STRENGTH</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LSE_MTF_MIN_AGREE</span></code>, <code class="docutils literal notranslate"><span class="pre">LSE_MTF_MIN_STRENGTH</span></code></p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">V9_*</span></code> (ADVISOR_ONLY, INITIAL_CAPITAL, LOG_LEVEL, MAX_POSITION_WEIGHT, SYMBOLS)</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">V9_*</span></code> (ADVISOR_ONLY, INITIAL_CAPITAL, LOG_LEVEL, MAX_POSITION_WEIGHT, SYMBOLS)</p></td>
 <td><p>NON_SECRET_RUNTIME_CONFIG</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — quant_hedge_ai v9 config namespace</p></td>
@@ -790,47 +801,52 @@ PRECEDENCE_RISK finding referenced from the constitution’s §5 (row A,
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REGRET_*</span></code> (CANONICAL_HORIZON, DB, DELAY_CYCLES, HORIZONS_DIR, MAX_DB, MAX_STALE_H, MIN_MOVE, MIN_MOVE_PCT, MIN_SCORE)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DIP_DB_PATH</span></code></p></td>
+<td><p>PATH</p></td>
+<td><p>CODE_DEFAULT / optional env override</p></td>
+<td><p>ACTIVE_SOURCE_PATH</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">REGRET_*</span></code> (CANONICAL_HORIZON, DB, DELAY_CYCLES, HORIZONS_DIR, MAX_DB, MAX_STALE_H, MIN_MOVE, MIN_MOVE_PCT, MIN_SCORE)</p></td>
 <td><p>THRESHOLD / PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">REJECTION_STORE_DIR</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REJECTION_STORE_DIR</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DQE_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">DQE_QUALITY_THRESHOLD</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DQE_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">DQE_QUALITY_THRESHOLD</span></code></p></td>
 <td><p>PATH / THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH — data-quality engine</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ALLOCATOR_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">FORBIDDEN_PATTERNS_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">PROBATION_DB</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ALLOCATOR_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">FORBIDDEN_PATTERNS_DB</span></code>, <code class="docutils literal notranslate"><span class="pre">PROBATION_DB</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SIM_RESTORE_MAX_AGE_H</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SIM_RESTORE_MAX_AGE_H</span></code></p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BURN_IN_REPORTS_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">COLD_START_REPORT_DIR</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BURN_IN_REPORTS_DIR</span></code>, <code class="docutils literal notranslate"><span class="pre">COLD_START_REPORT_DIR</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INTEGRITY_AUDIT_EVERY</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEGRITY_LOG_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEGRITY_UNSAFE_SCORE</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">INTEGRITY_AUDIT_EVERY</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEGRITY_LOG_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">INTEGRITY_UNSAFE_SCORE</span></code></p></td>
 <td><p>CADENCE / PATH / THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">POSITIONS_SNAPSHOT_PATH</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">POSITIONS_SNAPSHOT_PATH</span></code></p></td>
 <td><p>PATH</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TRADING_STALLED_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">RECOVERY_STABLE_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">HEARTBEAT_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">INACTIVITY_WARN_RATIO</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TRADING_STALLED_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">RECOVERY_STABLE_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">HEARTBEAT_CYCLES</span></code>, <code class="docutils literal notranslate"><span class="pre">INACTIVITY_WARN_RATIO</span></code></p></td>
 <td><p>THRESHOLD</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">.env</span></code></p></td>
 <td><p>ACTIVE_SOURCE_PATH</p></td>
