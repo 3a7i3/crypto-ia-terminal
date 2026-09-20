@@ -385,6 +385,7 @@ def certified_equity(
     capital_unresolved: Numberish,
     open_position_count: int,
     valuation_statuses: Sequence[ValuationStatus],
+    funding_status: EvidenceStatus,
 ) -> Optional[Decimal]:
     """Return certified mark-to-market equity or None when evidence is unsafe.
 
@@ -405,6 +406,8 @@ def certified_equity(
     ):
         raise FinancialContractError("open_position_count must be an integer >= 0")
     if unresolved != 0:
+        return None
+    if funding_status not in {EvidenceStatus.COMPLETE, EvidenceStatus.NOT_APPLICABLE}:
         return None
     if (reserved == 0) != (open_position_count == 0):
         raise FinancialContractError(
