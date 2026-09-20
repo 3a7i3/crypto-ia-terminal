@@ -286,6 +286,8 @@ def certified_equity(
 
     if unresolved != 0:
         return None
+    if reserved != 0 and not valuation_statuses:
+        return None
     if any(status is not ValuationStatus.LIVE for status in valuation_statuses):
         return None
     return cash + reserved + unrealized
