@@ -304,7 +304,22 @@ For historical principal `P`:
 
 There is no fabricated cash release and no fabricated PnL.
 
-### 8.5 RECOVERY_COMPLETED
+### 8.5 FUNDING
+
+When an authoritative funding cashflow exists:
+
+Funding received `F > 0`:
+- Debit `CASH_AVAILABLE F`
+- Credit `FUNDING_PNL F`
+
+Funding paid `F > 0`:
+- Debit `FUNDING_PNL F`
+- Credit `CASH_AVAILABLE F`
+
+Missing applicable funding evidence produces no fabricated zero-value posting;
+the financial evidence state remains `UNRESOLVED`.
+
+### 8.6 RECOVERY_COMPLETED
 
 The PPL recovery marker is lifecycle/recovery evidence.
 
