@@ -270,6 +270,7 @@ def certified_equity(
     capital_reserved: Numberish,
     unrealized_pnl: Numberish,
     capital_unresolved: Numberish,
+    open_position_count: int,
     valuation_statuses: Sequence[ValuationStatus],
 ) -> Optional[Decimal]:
     """Return certified mark-to-market equity or None when evidence is unsafe.
@@ -284,9 +285,19 @@ def certified_equity(
     unresolved = _non_negative("capital_unresolved", capital_unresolved)
     unrealized = canonical_decimal("unrealized_pnl", unrealized_pnl)
 
+    if (
+        not isinstance(open_position_count, int)
+        or isinstance(open_position_count, bool)
+        or open_position_count < 0
+    ):
+        raise FinancialContractError("open_position_count must be an integer >= 0")
     if unresolved != 0:
         return None
-    if reserved != 0 and not valuation_statuses:
+    if (reserved == 0) != (open_position_count == 0):
+        raise FinancialContractError(
+            "capital_reserved and open_position_count disagree about open exposure"
+        )
+    if len(valuation_statuses) != open_position_count:
         return None
     if any(status is not ValuationStatus.LIVE for status in valuation_statuses):
         return None
