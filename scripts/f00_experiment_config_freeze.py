@@ -193,13 +193,59 @@ def _effective_explicit(
     return effective, source
 
 
-def _literal_default(node: ast.AST | None) -> tuple[bool, Any]:
+def _module_literal_constants(tree: ast.AST) -> dict[str, Any]:
+    """Resolve only module-level constants whose RHS is a pure Python literal.
+
+    This intentionally does not execute code, follow imports, call functions, or
+    evaluate expressions. It is sufficient for patterns such as:
+
+        _DEFAULT = 0.30
+        os.getenv("P8_ACTIVE_SHARPE_MIN", str(_DEFAULT))
+
+    Anything more dynamic remains unresolved and fails closed when the
+    corresponding environment variable is unset.
+    """
+
+    constants: dict[str, Any] = {}
+    body = getattr(tree, "body", ())
+    for node in body:
+        name: str | None = None
+        value_node: ast.AST | None = None
+
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name):
+                name = target.id
+                value_node = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name = node.target.id
+            value_node = node.value
+
+        if not name or value_node is None:
+            continue
+
+        try:
+            constants[name] = ast.literal_eval(value_node)
+        except (ValueError, TypeError):
+            continue
+
+    return constants
+
+
+def _literal_default(
+    node: ast.AST | None,
+    module_constants: dict[str, Any],
+) -> tuple[bool, Any]:
     if node is None:
         return True, None
+
     try:
         return True, ast.literal_eval(node)
     except (ValueError, TypeError):
         pass
+
+    if isinstance(node, ast.Name) and node.id in module_constants:
+        return True, module_constants[node.id]
 
     if (
         isinstance(node, ast.Call)
@@ -208,9 +254,8 @@ def _literal_default(node: ast.AST | None) -> tuple[bool, Any]:
         and len(node.args) == 1
         and not node.keywords
     ):
-        try:
-            value = ast.literal_eval(node.args[0])
-        except (ValueError, TypeError):
+        ok, value = _literal_default(node.args[0], module_constants)
+        if not ok:
             return False, None
         try:
             converter = {"str": str, "int": int, "float": float, "bool": bool}[
@@ -288,6 +333,7 @@ def _discover_defaults(repo_root: Path) -> tuple[
             raise ConfigFreezeError(f"cannot parse production source {path}: {exc}") from exc
 
         os_names, getenv_names = _os_aliases(tree)
+        module_constants = _module_literal_constants(tree)
         rel = _normalise_path(path, repo_root)
 
         for node in ast.walk(tree):
@@ -309,7 +355,7 @@ def _discover_defaults(repo_root: Path) -> tuple[
                         default_node = kw.value
                         break
 
-            ok, value = _literal_default(default_node)
+            ok, value = _literal_default(default_node, module_constants)
             location = f"{rel}:{getattr(node, 'lineno', 0)}"
             if not ok:
                 unresolved.setdefault(key, []).append(location)
