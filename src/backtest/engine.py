@@ -27,39 +27,55 @@ class BacktestEngine:
         self.data_feed.reset()
 
         ctx = self.run_context or RunContext(strategy_id="unknown")
-        pending_close: dict | None = None
-        # No-lookahead : mirror de pending_close pour les entrees. Le signal decide
-        # sur bar i (avec candle["close"] visible) s'execute a l'ouverture du bar i+1.
+        # A signal observed at close[i] may only mutate the simulated portfolio
+        # at open[i+1].  There is deliberately no time-based pending_close:
+        # lifecycle exits are caused by an opposite strategy signal, while an
+        # open position that survives to the dataset boundary is liquidated at
+        # the final observed close.
         pending_open: dict | None = None
+        last_prices: dict[str, float] = {}
+
+        def close_position(symbol: str, price: float) -> None:
+            close_meta = {
+                "run_id": ctx.run_id,
+                "strategy_id": ctx.strategy_id,
+                "execution_mode": "backtest",
+            }
+            result = self.router.sim_engine.close_position(
+                symbol, price, metadata=close_meta
+            )
+            if result is not None:
+                self._trades.append(result)
 
         while True:
             candle = self.data_feed.next()
-
-            if pending_open is not None and candle is not None:
-                # Executer l'entree deferee a l'OPEN de ce bar (premier prix atteignable)
-                order = pending_open["order"]
-                entry_px = candle.get("open", candle["close"])
-                self.router.execute(order, entry_px)
-                pending_close = {"symbol": pending_open["symbol"]}
-                pending_open = None
-
-            if pending_close is not None and candle is not None:
-                symbol = pending_close["symbol"]
-                if symbol in self.portfolio.positions:
-                    close_meta = {
-                        "run_id": ctx.run_id,
-                        "strategy_id": ctx.strategy_id,
-                        "execution_mode": "backtest",
-                    }
-                    result = self.router.sim_engine.close_position(
-                        symbol, candle["close"], metadata=close_meta
-                    )
-                    if result is not None:
-                        self._trades.append(result)
-                pending_close = None
-
             if candle is None:
                 break
+
+            symbol = candle.get("symbol", "BTC")
+            last_prices[symbol] = candle["close"]
+
+            if pending_open is not None:
+                order = pending_open["order"]
+                order_symbol = pending_open["symbol"]
+                execution_px = candle.get("open", candle["close"])
+                desired_side = "long" if order.side == "buy" else "short"
+                existing = self.portfolio.positions.get(order_symbol)
+
+                if existing is not None and existing.side != desired_side:
+                    # Reversal: close the old position and open the new one at
+                    # the same next-bar open.  Both actions use only information
+                    # that was available after the preceding bar closed.
+                    close_position(order_symbol, execution_px)
+                    existing = None
+
+                if existing is None:
+                    self.router.execute(order, execution_px)
+
+                # A same-side repeated signal is idempotent for this simple
+                # one-position-per-symbol engine; it must never overwrite the
+                # existing Position and reset its entry price.
+                pending_open = None
 
             ctx.market_state = {
                 k: candle[k] for k in ("close", "volume") if k in candle
@@ -80,13 +96,17 @@ class BacktestEngine:
                     size=1.0,
                     metadata=order_meta,
                 )
-                # Defer entry to next bar's open (no-lookahead fix)
                 pending_open = {"symbol": signal.symbol, "order": order}
 
-            equity = self.portfolio.mark_to_market(
-                {candle.get("symbol", "BTC"): candle["close"]}
-            )
+            equity = self.portfolio.mark_to_market({symbol: candle["close"]})
             self._equity_curve.append(equity)
+
+        # Reports contain realized trades only.  A position still open at the
+        # finite dataset boundary is therefore liquidated at the last observed
+        # close for its own symbol.  No synthetic price is invented.
+        for symbol in list(self.portfolio.positions):
+            if symbol in last_prices:
+                close_position(symbol, last_prices[symbol])
 
         pnl = total_pnl(self._trades)
         wr = win_rate(self._trades)
