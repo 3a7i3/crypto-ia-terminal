@@ -16,6 +16,7 @@ avec WAL mode pour lectures concurrentes.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import threading
 from collections import OrderedDict
@@ -213,8 +214,12 @@ class DIPStore:
         with cls._lock:
             if cls._instance is None:
                 if db_path is None:
-                    root = Path(__file__).parent.parent.parent
-                    db_path = root / "databases" / "dip" / "dip.sqlite"
+                    configured = os.getenv("DIP_DB_PATH")
+                    if configured:
+                        db_path = Path(configured)
+                    else:
+                        root = Path(__file__).parent.parent.parent
+                        db_path = root / "databases" / "dip" / "dip.sqlite"
                 cls._instance = cls(db_path)
         return cls._instance
 
