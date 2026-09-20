@@ -23,6 +23,8 @@ from .semantics import (
     derive_financial_snapshot_id,
     linear_price_pnl,
     realized_pnl_to_date,
+    reconciliation_delta,
+    unreconciled_capital,
     within_reconciliation_tolerance,
 )
 
@@ -45,5 +47,7 @@ __all__ = [
     "derive_financial_snapshot_id",
     "linear_price_pnl",
     "realized_pnl_to_date",
+    "reconciliation_delta",
+    "unreconciled_capital",
     "within_reconciliation_tolerance",
 ]
