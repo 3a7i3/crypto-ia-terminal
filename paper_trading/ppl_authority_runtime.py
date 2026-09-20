@@ -42,11 +42,15 @@ from paper_trading.ppl_recovery import (
 )
 
 
-_MANIFEST_SCHEMA_VERSION = 1
+_TRANSITION_MANIFEST_SCHEMA_VERSION = 1
+_EXPERIMENT_MANIFEST_SCHEMA_VERSION = 2
 _PPL_EVENT_SCHEMA_VERSION = 2
-_EPOCH_ROLE = "PPL_AUTHORITY_TRANSITION"
-_EVENT_DOMAIN = "PPL-02E-R4-AUTHORITY-V1"
-_MANIFEST_FIELDS = frozenset(
+_TRANSITION_EPOCH_ROLE = "PPL_AUTHORITY_TRANSITION"
+_EXPERIMENT_EPOCH_ROLE = "F00_EXPERIMENT"
+_TRANSITION_EVENT_DOMAIN = "PPL-02E-R4-AUTHORITY-V1"
+_EXPERIMENT_EVENT_DOMAIN = "F00-EPOCH-AUTHORITY-V1"
+
+_MANIFEST_COMMON_FIELDS = frozenset(
     {
         "manifest_schema_version",
         "paper_epoch_id",
@@ -56,11 +60,16 @@ _MANIFEST_FIELDS = frozenset(
         "config_snapshot_hash",
         "legacy_boundary_sha256",
         "legacy_event_count",
-        "predecessor_shadow_epoch_id",
         "epoch_role",
         "ppl_event_schema_version",
     }
 )
+_TRANSITION_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
+    "predecessor_shadow_epoch_id"
+}
+_EXPERIMENT_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
+    "predecessor_authority_epoch_id"
+}
 
 
 class PPLAuthorityRuntimeError(RuntimeError):
@@ -90,10 +99,11 @@ class AuthorityEpochManifest:
     config_snapshot_hash: str
     legacy_boundary_sha256: str
     legacy_event_count: int
-    predecessor_shadow_epoch_id: str
-    epoch_role: str = _EPOCH_ROLE
+    predecessor_shadow_epoch_id: str = ""
+    predecessor_authority_epoch_id: str = ""
+    epoch_role: str = _TRANSITION_EPOCH_ROLE
     ppl_event_schema_version: int = _PPL_EVENT_SCHEMA_VERSION
-    manifest_schema_version: int = _MANIFEST_SCHEMA_VERSION
+    manifest_schema_version: int = _TRANSITION_MANIFEST_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
         for name in (
@@ -105,19 +115,54 @@ class AuthorityEpochManifest:
             value = getattr(self, name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{name} must be a non-empty string")
-        if not isinstance(self.predecessor_shadow_epoch_id, str):
-            raise ValueError("predecessor_shadow_epoch_id must be a string")
-        if (
-            self.predecessor_shadow_epoch_id
-            and self.predecessor_shadow_epoch_id == self.paper_epoch_id
+
+        for name in (
+            "predecessor_shadow_epoch_id",
+            "predecessor_authority_epoch_id",
         ):
-            raise ValueError("authority epoch must differ from predecessor SHADOW epoch")
-        if self.epoch_role != _EPOCH_ROLE:
-            raise ValueError(f"epoch_role must be {_EPOCH_ROLE!r}")
+            if not isinstance(getattr(self, name), str):
+                raise ValueError(f"{name} must be a string")
+
+        if self.epoch_role == _TRANSITION_EPOCH_ROLE:
+            if self.manifest_schema_version != _TRANSITION_MANIFEST_SCHEMA_VERSION:
+                raise ValueError("transition authority manifest must use schema v1")
+            if self.predecessor_authority_epoch_id:
+                raise ValueError(
+                    "transition authority manifest must not carry "
+                    "predecessor_authority_epoch_id"
+                )
+            if (
+                self.predecessor_shadow_epoch_id
+                and self.predecessor_shadow_epoch_id == self.paper_epoch_id
+            ):
+                raise ValueError(
+                    "authority epoch must differ from predecessor SHADOW epoch"
+                )
+        elif self.epoch_role == _EXPERIMENT_EPOCH_ROLE:
+            if self.manifest_schema_version != _EXPERIMENT_MANIFEST_SCHEMA_VERSION:
+                raise ValueError("F00 experiment authority manifest must use schema v2")
+            if self.predecessor_shadow_epoch_id:
+                raise ValueError(
+                    "F00 experiment authority manifest must not carry "
+                    "predecessor_shadow_epoch_id"
+                )
+            if not self.predecessor_authority_epoch_id.strip():
+                raise ValueError(
+                    "F00 experiment authority manifest requires "
+                    "predecessor_authority_epoch_id"
+                )
+            if self.predecessor_authority_epoch_id == self.paper_epoch_id:
+                raise ValueError(
+                    "experiment epoch must differ from predecessor authority epoch"
+                )
+        else:
+            raise ValueError(
+                "unsupported epoch_role; expected "
+                f"{_TRANSITION_EPOCH_ROLE!r} or {_EXPERIMENT_EPOCH_ROLE!r}"
+            )
+
         if self.ppl_event_schema_version != _PPL_EVENT_SCHEMA_VERSION:
             raise ValueError("authoritative PPL event schema must be v2")
-        if self.manifest_schema_version != _MANIFEST_SCHEMA_VERSION:
-            raise ValueError("unsupported authority manifest schema")
         if (
             not isinstance(self.legacy_event_count, int)
             or isinstance(self.legacy_event_count, bool)
@@ -135,7 +180,6 @@ class AuthorityEpochManifest:
                 raise ValueError("initial_virtual_capital must be > 0")
             object.__setattr__(self, name, value)
 
-
 @dataclass(frozen=True)
 class CutoverQuiescence:
     legacy_open_positions: int
@@ -150,6 +194,23 @@ class CutoverQuiescence:
             and self.legacy_open_positions == 0
             and self.legacy_pending_orders == 0
             and self.legacy_transitions_in_flight == 0
+        )
+
+
+@dataclass(frozen=True)
+class EpochRotationQuiescence:
+    authority_open_positions: int
+    authority_pending_orders: int
+    authority_transitions_in_flight: int
+    authority_process_stopped: bool
+
+    @property
+    def quiescent(self) -> bool:
+        return (
+            self.authority_process_stopped
+            and self.authority_open_positions == 0
+            and self.authority_pending_orders == 0
+            and self.authority_transitions_in_flight == 0
         )
 
 
@@ -196,11 +257,44 @@ def build_cutover_manifest(
     )
 
 
+def build_experiment_manifest(
+    *,
+    paper_epoch_id: str,
+    created_at: float,
+    initial_virtual_capital: float,
+    code_sha: str,
+    config_snapshot_hash: str,
+    legacy_log_bytes: bytes,
+    quiescence: EpochRotationQuiescence,
+    predecessor_authority_epoch_id: str,
+) -> AuthorityEpochManifest:
+    """Build an explicit F00 experiment manifest at a proven stopped boundary."""
+
+    if not quiescence.quiescent:
+        raise AuthorityManifestError(
+            "experiment epoch rotation requires stopped authority process, "
+            "zero open positions, zero pending orders and zero lifecycle "
+            "transition in flight"
+        )
+    return AuthorityEpochManifest(
+        paper_epoch_id=paper_epoch_id,
+        created_at=created_at,
+        initial_virtual_capital=initial_virtual_capital,
+        code_sha=code_sha,
+        config_snapshot_hash=config_snapshot_hash,
+        legacy_boundary_sha256=hashlib.sha256(legacy_log_bytes).hexdigest(),
+        legacy_event_count=_count_nonempty_lines(legacy_log_bytes),
+        predecessor_authority_epoch_id=predecessor_authority_epoch_id,
+        epoch_role=_EXPERIMENT_EPOCH_ROLE,
+        manifest_schema_version=_EXPERIMENT_MANIFEST_SCHEMA_VERSION,
+    )
+
+
 def write_authority_manifest(
     path: os.PathLike[str] | str,
     manifest: AuthorityEpochManifest,
 ) -> None:
-    """Write one explicit cutover manifest; existing files are never replaced."""
+    """Write one explicit authority manifest; existing files are never replaced."""
 
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -213,10 +307,22 @@ def write_authority_manifest(
         "config_snapshot_hash": manifest.config_snapshot_hash,
         "legacy_boundary_sha256": manifest.legacy_boundary_sha256,
         "legacy_event_count": manifest.legacy_event_count,
-        "predecessor_shadow_epoch_id": manifest.predecessor_shadow_epoch_id,
         "epoch_role": manifest.epoch_role,
         "ppl_event_schema_version": manifest.ppl_event_schema_version,
     }
+    if manifest.epoch_role == _TRANSITION_EPOCH_ROLE:
+        payload["predecessor_shadow_epoch_id"] = (
+            manifest.predecessor_shadow_epoch_id
+        )
+    elif manifest.epoch_role == _EXPERIMENT_EPOCH_ROLE:
+        payload["predecessor_authority_epoch_id"] = (
+            manifest.predecessor_authority_epoch_id
+        )
+    else:  # Defensive: AuthorityEpochManifest already rejects this.
+        raise AuthorityManifestError(
+            f"unsupported authority manifest role: {manifest.epoch_role!r}"
+        )
+
     encoded = (
         json.dumps(payload, ensure_ascii=False, allow_nan=False, sort_keys=True)
         + "\n"
@@ -247,8 +353,39 @@ def load_authority_manifest(path: os.PathLike[str] | str) -> AuthorityEpochManif
         data = json.loads(target.read_text(encoding="utf-8"))
     except Exception as exc:
         raise AuthorityManifestError(f"invalid authority manifest: {exc}") from exc
-    if not isinstance(data, dict) or frozenset(data) != _MANIFEST_FIELDS:
+    if not isinstance(data, dict):
+        raise AuthorityManifestError("authority manifest must be a JSON object")
+
+    role = data.get("epoch_role")
+    manifest_schema = data.get("manifest_schema_version")
+    if (
+        role == _TRANSITION_EPOCH_ROLE
+        and manifest_schema == _TRANSITION_MANIFEST_SCHEMA_VERSION
+    ):
+        expected_fields = _TRANSITION_MANIFEST_FIELDS
+        predecessor_kwargs = {
+            "predecessor_shadow_epoch_id": data.get(
+                "predecessor_shadow_epoch_id", ""
+            )
+        }
+    elif (
+        role == _EXPERIMENT_EPOCH_ROLE
+        and manifest_schema == _EXPERIMENT_MANIFEST_SCHEMA_VERSION
+    ):
+        expected_fields = _EXPERIMENT_MANIFEST_FIELDS
+        predecessor_kwargs = {
+            "predecessor_authority_epoch_id": data.get(
+                "predecessor_authority_epoch_id", ""
+            )
+        }
+    else:
+        raise AuthorityManifestError(
+            "unsupported authority manifest role/schema combination"
+        )
+
+    if frozenset(data) != expected_fields:
         raise AuthorityManifestError("authority manifest fields mismatch")
+
     try:
         return AuthorityEpochManifest(
             paper_epoch_id=data["paper_epoch_id"],
@@ -258,18 +395,37 @@ def load_authority_manifest(path: os.PathLike[str] | str) -> AuthorityEpochManif
             config_snapshot_hash=data["config_snapshot_hash"],
             legacy_boundary_sha256=data["legacy_boundary_sha256"],
             legacy_event_count=data["legacy_event_count"],
-            predecessor_shadow_epoch_id=data["predecessor_shadow_epoch_id"],
             epoch_role=data["epoch_role"],
             ppl_event_schema_version=data["ppl_event_schema_version"],
             manifest_schema_version=data["manifest_schema_version"],
+            **predecessor_kwargs,
         )
     except (TypeError, ValueError) as exc:
         raise AuthorityManifestError(f"invalid authority manifest values: {exc}") from exc
 
 
-def _event_id(epoch_id: str, event_type: LedgerEventType, trade_id: str) -> str:
-    raw = "\x1f".join((_EVENT_DOMAIN, epoch_id, event_type.value, trade_id))
-    return f"ppl02e-{hashlib.sha256(raw.encode('utf-8')).hexdigest()}"
+def _event_domain_and_prefix(
+    manifest: AuthorityEpochManifest,
+) -> tuple[str, str]:
+    if manifest.epoch_role == _TRANSITION_EPOCH_ROLE:
+        return _TRANSITION_EVENT_DOMAIN, "ppl02e"
+    if manifest.epoch_role == _EXPERIMENT_EPOCH_ROLE:
+        return _EXPERIMENT_EVENT_DOMAIN, "f00"
+    raise PPLAuthorityRuntimeError(
+        f"unsupported authority event domain for role={manifest.epoch_role!r}"
+    )
+
+
+def _event_id(
+    manifest: AuthorityEpochManifest,
+    event_type: LedgerEventType,
+    trade_id: str,
+) -> str:
+    domain, prefix = _event_domain_and_prefix(manifest)
+    raw = "\x1f".join(
+        (domain, manifest.paper_epoch_id, event_type.value, trade_id)
+    )
+    return f"{prefix}-{hashlib.sha256(raw.encode('utf-8')).hexdigest()}"
 
 
 class PPLAuthorityRuntime:
@@ -359,7 +515,7 @@ class PPLAuthorityRuntime:
                 except EpochNotFoundError:
                     event = make_epoch_created_event(
                         event_id=_event_id(
-                            self.manifest.paper_epoch_id,
+                            self.manifest,
                             LedgerEventType.EPOCH_CREATED,
                             "epoch",
                         ),
@@ -381,7 +537,7 @@ class PPLAuthorityRuntime:
                     sequence = self._events[-1].sequence + 1
                     event = make_position_unresolved_event(
                         event_id=_event_id(
-                            self.manifest.paper_epoch_id,
+                            self.manifest,
                             LedgerEventType.POSITION_UNRESOLVED,
                             item.trade_id,
                         ),
@@ -421,7 +577,7 @@ class PPLAuthorityRuntime:
         with self._lock:
             self._reload()
             event_id = _event_id(
-                self.manifest.paper_epoch_id,
+                self.manifest,
                 LedgerEventType.POSITION_OPENED,
                 trade_id,
             )
@@ -463,7 +619,7 @@ class PPLAuthorityRuntime:
         with self._lock:
             self._reload()
             event_id = _event_id(
-                self.manifest.paper_epoch_id,
+                self.manifest,
                 LedgerEventType.POSITION_CLOSED,
                 trade_id,
             )
@@ -574,12 +730,14 @@ __all__ = [
     "AuthorityManifestError",
     "AuthorityRuntimeStatus",
     "CutoverQuiescence",
+    "EpochRotationQuiescence",
     "PPLAuthorityRuntime",
     "PPLAuthorityRuntimeError",
     "RollbackDisposition",
     "build_authority_runtime_from_env",
     "configured_rollback_disposition",
     "build_cutover_manifest",
+    "build_experiment_manifest",
     "load_authority_manifest",
     "write_authority_manifest",
 ]
