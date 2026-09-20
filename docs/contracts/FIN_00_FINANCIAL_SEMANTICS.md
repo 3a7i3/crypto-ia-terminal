@@ -205,11 +205,47 @@ funding cashflow. FIN-01 must expose funding evidence as `UNRESOLVED` unless
 an explicit PAPER instrument/model contract proves `NOT_APPLICABLE`, or a
 future authoritative source supplies the funding cashflow.
 
-## 6. PnL semantics
+## 6. Financial model / market-type boundary
+
+FIN distinguishes the **accounting model** from an exchange's market label.
+
+Closed FIN-00 accounting-model vocabulary:
+
+- `PAPER_LINEAR_PRINCIPAL_V1`
+- `SPOT_QUANTITY`
+- `DERIVATIVE_CONTRACT`
+
+The current authoritative PPL schema durably carries `principal`, side,
+entry/exit prices and fees. It does **not** durably carry spot asset quantity,
+contract quantity, contract size, leverage, maintenance margin or a generic
+funding stream.
+
+Therefore FIN-01 is authorized to implement only:
+
+`PAPER_LINEAR_PRINCIPAL_V1`
+
+Even when the experimental universe is certified against a futures/swap venue,
+the word `swap` MUST NOT cause FIN to invent real exchange derivative
+accounting semantics.
+
+`SPOT_QUANTITY` requires explicit base/quote quantity and settlement facts.
+
+`DERIVATIVE_CONTRACT` requires an independently certified contract containing
+at least quantity/contracts, contract size/multiplier, quote/settlement asset,
+margin model, leverage semantics when applicable, mark/index valuation rule,
+fees and funding semantics.
+
+Until those facts exist, FIN fails closed rather than deriving them from the
+symbol name, venue label or current exchange metadata.
+
+This is a deliberate FIN-01 boundary. Exchange-faithful derivative treasury is
+deferred to the later TESTNET/REAL Financial Institute certification path.
+
+## 7. PnL semantics
 
 FIN separates price performance from realized costs.
 
-### 6.1 Gross realized price PnL
+### 7.1 Gross realized price PnL
 
 For the current PPL linear principal model:
 
@@ -225,7 +261,7 @@ This mirrors the existing certified PPL price-return convention.
 
 It is not a universal derivatives pricing formula.
 
-### 6.2 Unrealized price PnL
+### 7.2 Unrealized price PnL
 
 For an open position the same formula is evaluated against a certified mark
 instead of an exit price.
@@ -234,7 +270,7 @@ Unrealized PnL requires valid valuation evidence.
 
 No mark -> no certified unrealized PnL.
 
-### 6.3 Realized PnL to date
+### 7.3 Realized PnL to date
 
 Canonical FIN realized PnL is:
 
@@ -249,7 +285,7 @@ outcome only when that lifecycle settles.
 
 The two values MUST NOT be conflated.
 
-### 6.4 Net total PnL / mark-to-market performance
+### 7.4 Net total PnL / mark-to-market performance
 
 When valuation is fully certified and no unresolved capital exists:
 
@@ -263,7 +299,7 @@ Equivalent asset-side form:
 
 for current PAPER v1, when `capital_unresolved == 0`.
 
-## 7. Chart of accounts — PAPER v1
+## 8. Chart of accounts — PAPER v1
 
 | Account | Kind | Meaning |
 |---|---|---|
@@ -277,7 +313,7 @@ for current PAPER v1, when `capital_unresolved == 0`.
 
 No UI may invent a second chart of accounts.
 
-## 8. Posting convention
+## 9. Posting convention
 
 FIN uses positive posting amounts and an explicit `DEBIT` / `CREDIT` side.
 
@@ -288,14 +324,14 @@ decimal normalization:
 
 No event may silently create or destroy capital.
 
-### 8.1 EPOCH_CREATED
+### 9.1 EPOCH_CREATED
 
 For initial capital `C`:
 
 - Debit `CASH_AVAILABLE C`
 - Credit `EPOCH_CAPITAL C`
 
-### 8.2 POSITION_OPENED
+### 9.2 POSITION_OPENED
 
 For principal `P` and entry fee `F_entry`:
 
@@ -306,7 +342,7 @@ For principal `P` and entry fee `F_entry`:
 This is one economic interpretation of the immutable PPL facts; it does not
 change the PPL event.
 
-### 8.3 POSITION_CLOSED
+### 9.3 POSITION_CLOSED
 
 First release historical principal:
 
@@ -328,7 +364,7 @@ For exit fee `F_exit > 0`:
 - Debit `FEES_EXPENSE F_exit`
 - Credit `CASH_AVAILABLE F_exit`
 
-### 8.4 POSITION_UNRESOLVED
+### 9.4 POSITION_UNRESOLVED
 
 For historical principal `P`:
 
@@ -337,7 +373,7 @@ For historical principal `P`:
 
 There is no fabricated cash release and no fabricated PnL.
 
-### 8.5 FUNDING
+### 9.5 FUNDING
 
 When an authoritative funding cashflow exists:
 
@@ -352,14 +388,14 @@ Funding paid `F > 0`:
 Missing applicable funding evidence produces no fabricated zero-value posting;
 the financial evidence state remains `UNRESOLVED`.
 
-### 8.6 RECOVERY_COMPLETED
+### 9.6 RECOVERY_COMPLETED
 
 The PPL recovery marker is lifecycle/recovery evidence.
 
 By itself it creates **no financial posting** unless a future contract adds an
 explicit financial fact.
 
-## 9. Historical-cost conservation
+## 10. Historical-cost conservation
 
 For PAPER v1, ignoring unsupported external capital flows:
 
@@ -375,7 +411,7 @@ valuation when unresolved capital exists.
 No mid-epoch deposit/withdrawal event exists in the current PPL contract.
 FIN-01 must fail closed if an unsupported capital-flow semantic appears.
 
-## 10. Valuation contract
+## 11. Valuation contract
 
 Every mark used by FIN carries at minimum:
 
@@ -410,7 +446,7 @@ economic equity unavailable rather than silently assuming zero funding.
 The valuation layer MUST NOT silently replace a missing mark with entry price,
 last known price, zero or another venue's price.
 
-## 11. Attribution
+## 12. Attribution
 
 Every financial datum must remain attributable to its population.
 
@@ -442,7 +478,7 @@ it from current runtime configuration after the fact.
 `paper_epoch_id` is a provenance anchor; it is not silently re-labeled as a
 strategy id.
 
-## 12. Evidence completeness
+## 13. Evidence completeness
 
 Allowed evidence classifications:
 
@@ -460,7 +496,7 @@ Examples:
 - funding impossible by explicit instrument contract -> NOT_APPLICABLE;
 - funding applicable but absent -> null, UNRESOLVED.
 
-## 13. Reconciliation
+## 14. Reconciliation
 
 FIN-02 will compare:
 
@@ -505,7 +541,7 @@ Statuses:
 
 A divergence is never silently corrected.
 
-## 14. FinancialEvent identity
+## 15. FinancialEvent identity
 
 Every derived financial event must have:
 
@@ -539,7 +575,7 @@ Replaying the same immutable source identity under the same FIN schema therefore
 produces the same financial event id. No random UUID may make identical replay
 produce a different financial history.
 
-## 15. FinancialSnapshot identity
+## 16. FinancialSnapshot identity
 
 An immutable FinancialSnapshot must bind at minimum:
 
@@ -572,7 +608,7 @@ The snapshot identity must change when any bound input changes.
 UI/API transport must expose the identity/provenance rather than recomputing the
 accounting state independently.
 
-## 16. Minimum FinancialSnapshot vocabulary
+## 17. Minimum FinancialSnapshot vocabulary
 
 FIN-01 must be capable of projecting at least:
 
@@ -595,7 +631,7 @@ FIN-01 must be capable of projecting at least:
 - reconciliation status;
 - freshness/provenance.
 
-## 17. Scientific invariants
+## 18. Scientific invariants
 
 The following are normative:
 
@@ -617,7 +653,7 @@ The following are normative:
 16. PPL remains lifecycle authority; FIN interpretation cannot rewrite PPL.
 17. FIN has no signal, risk, sizing, order-placement or exchange-write authority.
 
-## 18. F00 stop/continue decision rule
+## 19. F00 stop/continue decision rule
 
 FIN-00 itself does not require stopping the active F00 process because it is
 source-only and has no runtime interaction.
@@ -636,7 +672,7 @@ if any of the following becomes true:
 Stopping F00 must preserve its epoch/event store and record an exact terminal
 boundary. It must never delete or rewrite the accidental/pre-FIN evidence.
 
-## 19. FIN-00 exit gate
+## 20. FIN-00 exit gate
 
 FIN-00 may receive:
 
