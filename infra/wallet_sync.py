@@ -1,10 +1,16 @@
 """
 infra/wallet_sync.py — Source unique de vérité pour le solde du portefeuille.
 
-Portefeuille totalitaire unique : un seul X pour tout le système.
-X = solde réel du compte API connecté (spot/futures USDT libre).
-Si aucune clé API : X = WALLET_PAPER_CAPITAL (env var, défaut 100).
-Si X < 1.0 USDT : X = null → le système ne peut pas trader.
+Deux provenances sont volontairement séparées :
+- X = observation du solde réel API (spot/futures USDT libre), jamais une
+  autorité de capital scientifique PAPER. Sans clé/API, X reste null.
+- capital scientifique PAPER = résolu par get_scientific_capital() selon
+  PAPER_LIFECYCLE_AUTHORITY.
+
+Sous LEGACY_AUTHORITY / PPL_SHADOW, la sémantique historique reste
+WALLET_PAPER_CAPITAL + PnL Legacy. Sous PPL_AUTHORITY, le capital vient
+exclusivement de l'epoch PPL autoritaire et échoue sans fallback Legacy,
+WALLET_PAPER_CAPITAL ou exchange.
 
 Avant ce module, 4 chiffres de capital coexistaient sans jamais être synchronisés :
   - V9_INITIAL_CAPITAL      ($1000) — fallback exec_engine.fetch_available_capital()
@@ -14,14 +20,10 @@ Avant ce module, 4 chiffres de capital coexistaient sans jamais être synchronis
 
 Résultat : chaque bot/module affichait un solde différent pour le même système.
 
-Avec WalletSync, un seul chemin :
-  - Mode paper  → WALLET_PAPER_CAPITAL + cumul PnL du ledger depuis l'origine
-                  (grand livre continu, jamais réinitialisé — c'est la mesure
-                  du drawdown réel et l'entrée du sizing). Un redémarrage du
-                  process ne change JAMAIS cette valeur, le ledger persistant
-                  sur disque en est l'unique source. Pour un compteur "depuis
-                  ce redémarrage" (affichage uniquement, jamais le sizing),
-                  voir session_pnl_since_restart().
+Avec WalletSync, le chemin PAPER dépend explicitement de l'autorité :
+  - LEGACY_AUTHORITY / PPL_SHADOW → WALLET_PAPER_CAPITAL + cumul PnL Legacy.
+  - PPL_AUTHORITY → capital initial + PnL réalisé du seul epoch PPL autoritaire;
+                    aucun fallback Legacy / WALLET_PAPER_CAPITAL / exchange.
   - Mode live/testnet → solde réel récupéré via l'API de l'exchange configuré
                   par l'utilisateur (MEXC par défaut), avec cache TTL et
                   fallback sur la dernière valeur connue si l'API échoue
@@ -146,9 +148,12 @@ class WalletSync:
     """
     Source unique de solde — portefeuille totalitaire unique (X) pour tout le système.
 
-    X = solde réel API (spot + futures USDT) récupéré au démarrage via bootstrap().
-    Si bootstrap() réussit : X remplace WALLET_PAPER_CAPITAL comme base de capital.
-    Si bootstrap() échoue (pas de clé API, solde=0) : X=None → dégradé.
+    X = observation du solde réel API (spot + futures USDT) récupérée via
+    bootstrap(). X est séparé du capital scientifique PAPER.
+
+    En mode PAPER, get_balance() délègue à get_scientific_capital() :
+    LEGACY_AUTHORITY/PPL_SHADOW conservent la formule historique, tandis que
+    PPL_AUTHORITY lit exclusivement l'epoch PPL autoritaire et fail-closed.
 
     Usage :
         wallet = get_wallet_sync()
@@ -204,7 +209,9 @@ class WalletSync:
         Retourne X si X >= MIN_CAPITAL_X, sinon None.
         En cas de succès, X devient la base de capital pour tout le système.
         En cas d'échec (pas d'exchange, erreur API, solde=0) : retourne None.
-        Le système continue en mode dégradé (WALLET_PAPER_CAPITAL comme fallback).
+        Ce résultat décrit uniquement l'observation API X. Il ne choisit jamais
+        la provenance du capital scientifique PAPER, résolue séparément par
+        get_scientific_capital().
         """
         exch = exchange or self._exchange
         if exch is None:
@@ -229,8 +236,11 @@ class WalletSync:
             return None
 
     def _base_capital(self) -> float:
-        """Capital de base : en paper = capital fictif WALLET_PAPER_CAPITAL (indépendant
-        du solde réel API). En live/testnet = X (solde API réel)."""
+        """Fallback local historique/live.
+
+        En PAPER sous PPL_AUTHORITY, get_balance() n'appelle pas ce helper :
+        la provenance scientifique est l'epoch PPL via get_scientific_capital().
+        """
         if self._mode == "paper":
             return _PAPER_CAPITAL
         return self._x if self._x is not None else _PAPER_CAPITAL
@@ -239,10 +249,10 @@ class WalletSync:
         """
         Retourne le solde actuel — paper (grand livre continu) ou live/testnet (API).
 
-        Mode paper : WALLET_PAPER_CAPITAL + cumul PnL du ledger depuis l'origine —
-        continu à travers les redémarrages (jamais de baseline soustraite ici).
-        C'est la valeur utilisée pour le sizing (Kelly/EV/CapitalThrottle) : un
-        redémarrage ne doit jamais produire de discontinuité de capital.
+        Mode paper : délègue à get_scientific_capital().
+        - LEGACY_AUTHORITY/PPL_SHADOW : WALLET_PAPER_CAPITAL + PnL Legacy.
+        - PPL_AUTHORITY : replay exclusif de l'epoch PPL autoritaire, sans
+          fallback Legacy / WALLET_PAPER_CAPITAL / exchange.
         Mode live/testnet : balance API cachée sur WALLET_CACHE_TTL_S, fallback X.
         """
         if self._mode == "paper":
