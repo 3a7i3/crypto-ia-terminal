@@ -31,7 +31,7 @@ def test_ti00_simbot_default_uses_isolated_run_repository() -> None:
 
 
 def test_ti00_evolution_memory_default_uses_isolated_env() -> None:
-    from signal.evolution.evolution_memory import EvolutionMemoryDB
+    from evolution_memory import EvolutionMemoryDB
 
     db = EvolutionMemoryDB()
     assert db.db_path == Path(os.environ["EVOLUTION_MEMORY_DB"])
