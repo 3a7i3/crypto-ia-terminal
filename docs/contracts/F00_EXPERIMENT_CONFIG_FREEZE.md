@@ -84,10 +84,16 @@ For each material variable:
 - if explicitly configured, the effective value and winning EnvironmentFile are
   recorded as `EXPLICIT_ENVIRONMENT_FILE`;
 - if unset, production Python call-sites are scanned for
-  `os.getenv(...)` / `os.environ.get(...)` literal defaults;
-- one unambiguous default is recorded as `CODE_DEFAULT`;
+  `os.getenv(...)` / `os.environ.get(...)` defaults;
+- direct literals are accepted;
+- a same-module constant is accepted only when its module-level assignment is
+  itself a pure literal and the default merely references/casts that constant
+  (for example `str(_P8_ACTIVE_SHARPE_MIN_DEFAULT)` where the constant is
+  assigned `0.30`);
+- no code is executed and imports/expressions/function calls are never followed;
+- one unambiguous resolved default is recorded as `CODE_DEFAULT`;
 - conflicting defaults fail closed;
-- non-literal defaults fail closed when the variable is unset.
+- dynamic/imported/non-literal defaults fail closed when the variable is unset.
 
 Explicit configuration intentionally resolves conflicting code defaults because
 the service-level value wins at every call-site.

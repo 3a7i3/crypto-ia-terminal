@@ -164,7 +164,7 @@ B = int(os.getenv("REGIME_RAMP_CYCLES", "7"))
     )
 
 
-def test_unset_nonliteral_default_fails_closed(
+def test_unset_module_literal_constant_default_is_resolved(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -175,7 +175,43 @@ def test_unset_nonliteral_default_fails_closed(
         """
 import os
 
-_DEFAULT = "4"
+_P8_ACTIVE_SHARPE_MIN_DEFAULT = 0.30
+SHARPE = float(
+    os.getenv("P8_ACTIVE_SHARPE_MIN", str(_P8_ACTIVE_SHARPE_MIN_DEFAULT))
+)
+""",
+    )
+
+    payload = freeze.build_snapshot_payload(
+        repo_root=tmp_path,
+        env_files=env_files,
+        paper_epoch_id=EPOCH,
+        activation_path=tmp_path / "f00.admission.env",
+        activation_bytes=b"PB_MAX_POSITIONS=2\n",
+    )
+
+    assert payload["parameters"]["P8_ACTIVE_SHARPE_MIN"]["value"] == "0.3"
+    assert (
+        payload["parameters"]["P8_ACTIVE_SHARPE_MIN"]["provenance"]
+        == "CODE_DEFAULT"
+    )
+
+
+def test_unset_dynamic_default_still_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_clean_repo(monkeypatch)
+    env_files = _env_files(tmp_path)
+    _production_source(
+        tmp_path,
+        """
+import os
+
+def _runtime_default():
+    return "4"
+
+_DEFAULT = _runtime_default()
 RAMP = int(os.getenv("REGIME_RAMP_CYCLES", _DEFAULT))
 """,
     )
