@@ -4063,13 +4063,31 @@ def main(
             )
         else:
             log.info(
-                "[WalletSync] Aucune clé API détectée — X=%s (paper fallback WALLET_PAPER_CAPITAL)",
-                os.getenv("WALLET_PAPER_CAPITAL", "100"),
+                "[WalletSync] Observation API absente — X=null; "
+                "le capital scientifique PAPER sera résolu par l'autorité lifecycle"
             )
 
-    # Lire le capital réel disponible (balance USDT testnet ou .env fallback)
-    # Après bootstrap, WalletSync retourne X si défini, sinon WALLET_PAPER_CAPITAL.
+    # Résoudre le capital de décision scientifique via l'autorité PAPER.
+    # Sous PPL_AUTHORITY, ExecutionEngine.fetch_available_capital() délègue à
+    # get_scientific_capital(), qui rejoue exclusivement l'epoch PPL configuré
+    # et échoue sans fallback Legacy / WALLET_PAPER_CAPITAL.
     scientific_capital = exec_engine.fetch_available_capital()
+    if _paper_mode:
+        if _paper_lifecycle_authority.ppl_is_authoritative:
+            log.info(
+                "[WalletSync] Scientific PAPER capital=$%.2f | authority=%s | "
+                "epoch=%s | provenance=PPL_REPLAY | legacy_fallback=disabled",
+                scientific_capital,
+                _paper_lifecycle_authority.value,
+                os.getenv("PPL_AUTHORITY_EPOCH_ID", ""),
+            )
+        else:
+            log.info(
+                "[WalletSync] Scientific PAPER capital=$%.2f | authority=%s | "
+                "provenance=WALLET_PAPER_CAPITAL_PLUS_LEGACY",
+                scientific_capital,
+                _paper_lifecycle_authority.value,
+            )
     if scientific_capital < MIN_CAPITAL_X:
         log.warning(
             "[WalletSync] Capital = $%.4f < $%.1f — système en mode dégradé",
