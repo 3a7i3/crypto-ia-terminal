@@ -7,7 +7,6 @@ mission id and a reason.
 
 | Test | Location | Reason | Follow-up mission |
 |---|---|---|---|
-| `TestTier2GoldenSnapshot::test_backtest_matches_golden` | `tests/test_phase_a_replay_invariants.py` | `BacktestEngine.run()` force-closes every position exactly one bar after entry regardless of strategy exit signal, collapsing PnL to the synthetic candles' constant intrabar spread instead of the golden's multi-bar, all-winning trades. Classified `BACKTEST_ENGINE_DEFECT` by CI-00B investigation (not fixed — investigate-only per mission scope). Marked `xfail(strict=True)`: an unexpected PASS (e.g. the engine gets fixed incidentally by unrelated work) fails the suite instead of silently disappearing — the marker must be removed in the same PR that actually fixes it. See CI-00B remediation report §9. | `BT-00` |
 | `TestSrcInternalConsistency::test_src_no_circular_between_subdirectories` | `tests/test_architecture.py` | Known simple dependency cycles `src.analytics ↔ src.backtest` and `src.analytics ↔ src.risk`; the test remains `xfail(strict=False)` until the lower-layer regime/domain boundary is corrected. | `#207 ARCH-00C` |
 | `TestTraceIdPipelineEnforcement::test_i16_trace_id_propagated_to_worker_threads` | `tests/governance/test_constitution_i16.py` | Current thread-local trace context does not propagate the parent trace_id into worker/prewarm threads. The XFAIL remains explicit until cross-thread propagation is implemented without breaking thread isolation. | `#208 G4-TRACE-01` |
 
