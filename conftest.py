@@ -81,9 +81,12 @@ _pytest_data_dir = tempfile.mkdtemp(prefix="pytest_data_")
 # tests must resolve outside the repository before test modules are collected.
 # Assign unconditionally: a developer/CI shell pointing one of these variables
 # at production-like data must never make pytest mutate that path.
-_pytest_persistence_dir = Path(
-    tempfile.mkdtemp(prefix="pytest_scientific_persistence_")
-)
+_ti00_root = os.environ.get("_TI00_PYTEST_PERSISTENCE_ROOT")
+if not _ti00_root:
+    _ti00_root = tempfile.mkdtemp(prefix="pytest_scientific_persistence_")
+    os.environ["_TI00_PYTEST_PERSISTENCE_ROOT"] = _ti00_root
+_pytest_persistence_dir = Path(_ti00_root)
+
 for _name, _relative in {
     "SIM_RUNS_DB": "sim_runs.sqlite",
     "EVOLUTION_MEMORY_DB": "evolution_memory.db",
