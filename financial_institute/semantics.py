@@ -11,11 +11,11 @@ There is no hidden epsilon and no implicit rounding policy.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from enum import Enum
-import hashlib
-import json
 from typing import Iterable, Mapping, Optional, Sequence, Union
 
 Numberish = Union[Decimal, int, float, str]
