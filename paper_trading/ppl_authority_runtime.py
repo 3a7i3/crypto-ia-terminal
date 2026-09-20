@@ -180,6 +180,7 @@ class AuthorityEpochManifest:
                 raise ValueError("initial_virtual_capital must be > 0")
             object.__setattr__(self, name, value)
 
+
 @dataclass(frozen=True)
 class CutoverQuiescence:
     legacy_open_positions: int
