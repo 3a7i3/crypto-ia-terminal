@@ -199,6 +199,12 @@ Funding may be:
 FIN-01 may only implement funding sources explicitly covered by durable
 evidence.
 
+Repository inspection for FIN-00 found no current PAPER/PPL funding event
+contract. Absence of a funding event is therefore **not** evidence of a zero
+funding cashflow. FIN-01 must expose funding evidence as `UNRESOLVED` unless
+an explicit PAPER instrument/model contract proves `NOT_APPLICABLE`, or a
+future authoritative source supplies the funding cashflow.
+
 ## 6. PnL semantics
 
 FIN separates price performance from realized costs.
@@ -396,6 +402,10 @@ A stale mark may be displayed as indicative evidence, but it MUST NOT produce
 `certified_equity`.
 
 If any open position lacks exactly one corresponding `LIVE` valuation status, certified equity is unavailable. Mark coverage count must equal open-position count; partial coverage never certifies equity.
+
+Certified equity additionally requires funding evidence status `COMPLETE` or
+`NOT_APPLICABLE`. A funding status of `PARTIAL` or `UNRESOLVED` makes
+economic equity unavailable rather than silently assuming zero funding.
 
 The valuation layer MUST NOT silently replace a missing mark with entry price,
 last known price, zero or another venue's price.
