@@ -467,12 +467,25 @@ Every derived financial event must have:
 - code SHA;
 - config hash.
 
-FIN-01 must define the canonical serialization/hash recipe before emitting
-durable FinancialEvents. Replaying the same source facts under the same FIN
-schema must generate the same event identities.
+FIN-00 freezes the canonical identity recipe:
 
-No random identity may make identical replay produce a different financial
-history.
+`sha256(namespace + "\\n" + canonical_json(fields))`
+
+where canonical JSON is UTF-8, sorted-key, compact JSON with no NaN/Infinity.
+
+Financial event namespace: `FIN_EVENT_ID_V1`.
+
+Bound fields:
+- source_domain;
+- source_authority;
+- source_event_id;
+- paper_epoch_id;
+- source_sequence;
+- financial schema version.
+
+Replaying the same immutable source identity under the same FIN schema therefore
+produces the same financial event id. No random UUID may make identical replay
+produce a different financial history.
 
 ## 15. FinancialSnapshot identity
 
@@ -489,6 +502,18 @@ An immutable FinancialSnapshot must bind at minimum:
 - valuation as-of time;
 - evidence completeness;
 - reconciliation status.
+
+Snapshot namespace: `FIN_SNAPSHOT_ID_V1`.
+
+The same canonical SHA-256 recipe binds:
+- paper_epoch_id;
+- last included source sequence;
+- source stream digest;
+- FIN schema version;
+- code SHA;
+- config hash;
+- valuation-set digest;
+- valuation as-of time.
 
 The snapshot identity must change when any bound input changes.
 
