@@ -64,8 +64,7 @@ def test_backtest_runs_and_logs_trades():
 
 def test_backtest_pnl_coherent():
     candles = make_candles(n=60, trend=1.0)
-    engine, _, portfolio = make_backtest_stack(candles)
-    initial_balance = portfolio.balance
+    engine, _, _ = make_backtest_stack(candles)
     report = engine.run()
     # With a strong uptrend, at least some trades should have occurred
     assert isinstance(report["total_pnl"], float)
