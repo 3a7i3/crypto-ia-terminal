@@ -7,6 +7,7 @@ import pytest
 from financial_institute.semantics import (
     FinancialAccount,
     FinancialContractError,
+    EvidenceStatus,
     LedgerPosting,
     PostingSide,
     ValuationStatus,
@@ -228,6 +229,7 @@ def test_certified_equity_requires_no_unresolved_capital() -> None:
             capital_unresolved="10",
             open_position_count=0,
             valuation_statuses=(),
+            funding_status=EvidenceStatus.COMPLETE,
         )
         is None
     )
@@ -242,6 +244,7 @@ def test_certified_equity_fails_closed_when_reserved_capital_has_no_marks() -> N
             capital_unresolved="0",
             open_position_count=1,
             valuation_statuses=(),
+            funding_status=EvidenceStatus.COMPLETE,
         )
         is None
     )
@@ -256,6 +259,7 @@ def test_certified_equity_requires_live_marks_for_open_positions() -> None:
             capital_unresolved="0",
             open_position_count=1,
             valuation_statuses=(ValuationStatus.STALE,),
+            funding_status=EvidenceStatus.COMPLETE,
         )
         is None
     )
@@ -266,6 +270,7 @@ def test_certified_equity_requires_live_marks_for_open_positions() -> None:
         capital_unresolved="0",
         open_position_count=1,
         valuation_statuses=(ValuationStatus.LIVE,),
+        funding_status=EvidenceStatus.COMPLETE,
     ) == Decimal("1000.99")
 
 
@@ -279,6 +284,7 @@ def test_certified_equity_requires_one_live_mark_per_open_position() -> None:
             capital_unresolved="0",
             open_position_count=2,
             valuation_statuses=(ValuationStatus.LIVE,),
+            funding_status=EvidenceStatus.COMPLETE,
         )
         is None
     )
@@ -293,8 +299,34 @@ def test_certified_equity_rejects_open_count_reserved_capital_mismatch() -> None
             capital_unresolved="0",
             open_position_count=1,
             valuation_statuses=(ValuationStatus.LIVE,),
+            funding_status=EvidenceStatus.COMPLETE,
         )
 
+
+
+
+def test_certified_equity_requires_complete_or_not_applicable_funding() -> None:
+    assert (
+        certified_equity(
+            cash_available="990",
+            capital_reserved="10",
+            unrealized_pnl="0",
+            capital_unresolved="0",
+            open_position_count=1,
+            valuation_statuses=(ValuationStatus.LIVE,),
+            funding_status=EvidenceStatus.UNRESOLVED,
+        )
+        is None
+    )
+    assert certified_equity(
+        cash_available="990",
+        capital_reserved="10",
+        unrealized_pnl="0",
+        capital_unresolved="0",
+        open_position_count=1,
+        valuation_statuses=(ValuationStatus.LIVE,),
+        funding_status=EvidenceStatus.NOT_APPLICABLE,
+    ) == Decimal("1000")
 
 
 def test_reconciliation_delta_is_observation_minus_projection() -> None:
