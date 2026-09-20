@@ -59,7 +59,6 @@ MATERIAL_PREFIXES = (
     "P6_",
     "P8_",
     "P9_",
-    "P10_",
     "KELLY_",
     "PAPER_",
     "PPL_",

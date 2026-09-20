@@ -307,3 +307,35 @@ def test_activation_overlay_requires_positive_pb_max_positions(
             activation_path=tmp_path / "f00.admission.env",
             activation_bytes=b"PB_MAX_POSITIONS=0\n",
         )
+
+
+def test_inactive_p10_namespace_is_excluded_from_f00_material_surface(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_clean_repo(monkeypatch)
+    env_files = _env_files(tmp_path)
+    _production_source(
+        tmp_path,
+        """
+import os
+
+# P10/ColdStart belongs to runtime/advisor_main.py, not the deployed
+# core/advisor_loop.py F00 path. A non-literal default here must therefore
+# not block the F00 experiment snapshot.
+LIVE_READY_THRESHOLD = 0.85
+RANGING = float(os.getenv("P10_THRESHOLD_RANGING", str(LIVE_READY_THRESHOLD)))
+ACTIVE = int(os.getenv("REGIME_RAMP_CYCLES", "4"))
+""",
+    )
+
+    payload = freeze.build_snapshot_payload(
+        repo_root=tmp_path,
+        env_files=env_files,
+        paper_epoch_id=EPOCH,
+        activation_path=tmp_path / "f00.admission.env",
+        activation_bytes=b"PB_MAX_POSITIONS=2\n",
+    )
+
+    assert "P10_THRESHOLD_RANGING" not in payload["parameters"]
+    assert payload["parameters"]["REGIME_RAMP_CYCLES"]["value"] == "4"
