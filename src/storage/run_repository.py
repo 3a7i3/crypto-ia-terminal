@@ -6,6 +6,7 @@ Tables :
   trades       — trades fermés (schema étendu TradeEvent — Phase B B3)
 """
 
+import os
 import sqlite3
 import threading
 from datetime import datetime, timezone
@@ -78,9 +79,14 @@ _NEW_TRADE_COLS = {
 
 
 class RunRepository:
-    def __init__(self, db_path: str = "databases/sim_runs.sqlite"):
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._path = db_path
+    def __init__(self, db_path: str | None = None):
+        resolved_path = (
+            db_path
+            if db_path is not None
+            else os.getenv("SIM_RUNS_DB", "databases/sim_runs.sqlite")
+        )
+        Path(resolved_path).parent.mkdir(parents=True, exist_ok=True)
+        self._path = resolved_path
         self._lock = threading.Lock()
         self._init_db()
 

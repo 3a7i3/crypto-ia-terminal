@@ -4,6 +4,7 @@ Stocke configs, états, modèles en RAM pré-chargée
 """
 
 import json
+import os
 import pickle
 import time
 from pathlib import Path
@@ -22,7 +23,49 @@ class StartupCache:
     MEMORY_CACHE = CACHE_DIR / "evolution_memory.pkl"
     TIMESTAMP_FILE = CACHE_DIR / "last_snapshot.txt"
 
-    def __init__(self):
+    _DEFAULT_CACHE_DIR = Path("cache/startup")
+    _DEFAULT_CONFIG_CACHE = _DEFAULT_CACHE_DIR / "configs.json"
+    _DEFAULT_STATE_CACHE = _DEFAULT_CACHE_DIR / "runtime_state.pkl"
+    _DEFAULT_MEMORY_CACHE = _DEFAULT_CACHE_DIR / "evolution_memory.pkl"
+    _DEFAULT_TIMESTAMP_FILE = _DEFAULT_CACHE_DIR / "last_snapshot.txt"
+
+    def __init__(self, cache_dir: str | Path | None = None):
+        cls = type(self)
+        class_override = any(
+            (
+                Path(cls.CACHE_DIR) != self._DEFAULT_CACHE_DIR,
+                Path(cls.CONFIG_CACHE) != self._DEFAULT_CONFIG_CACHE,
+                Path(cls.STATE_CACHE) != self._DEFAULT_STATE_CACHE,
+                Path(cls.MEMORY_CACHE) != self._DEFAULT_MEMORY_CACHE,
+                Path(cls.TIMESTAMP_FILE) != self._DEFAULT_TIMESTAMP_FILE,
+            )
+        )
+
+        if cache_dir is not None:
+            resolved_dir = Path(cache_dir)
+            self.CACHE_DIR = resolved_dir
+            self.CONFIG_CACHE = resolved_dir / "configs.json"
+            self.STATE_CACHE = resolved_dir / "runtime_state.pkl"
+            self.MEMORY_CACHE = resolved_dir / "evolution_memory.pkl"
+            self.TIMESTAMP_FILE = resolved_dir / "last_snapshot.txt"
+        elif class_override:
+            # Preserve explicit test/operator monkeypatches that pre-date TI-00.
+            # Explicit class injection outranks the pytest env isolation layer.
+            self.CACHE_DIR = Path(cls.CACHE_DIR)
+            self.CONFIG_CACHE = Path(cls.CONFIG_CACHE)
+            self.STATE_CACHE = Path(cls.STATE_CACHE)
+            self.MEMORY_CACHE = Path(cls.MEMORY_CACHE)
+            self.TIMESTAMP_FILE = Path(cls.TIMESTAMP_FILE)
+        else:
+            resolved_dir = Path(
+                os.getenv("STARTUP_CACHE_DIR", str(self._DEFAULT_CACHE_DIR))
+            )
+            self.CACHE_DIR = resolved_dir
+            self.CONFIG_CACHE = resolved_dir / "configs.json"
+            self.STATE_CACHE = resolved_dir / "runtime_state.pkl"
+            self.MEMORY_CACHE = resolved_dir / "evolution_memory.pkl"
+            self.TIMESTAMP_FILE = resolved_dir / "last_snapshot.txt"
+
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
         self._memory: Dict[str, Any] = {}
         self._load_timestamp = None

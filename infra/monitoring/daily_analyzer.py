@@ -5,6 +5,7 @@ Surveillance simple et claire: stabilité, dérives, incidents
 
 import json
 import logging
+import os
 import sqlite3
 import time
 from dataclasses import asdict, dataclass
@@ -38,7 +39,13 @@ class DailyAnalyzer:
 
     DB_PATH = Path("cache/daily_analysis.db")
 
-    def __init__(self):
+    def __init__(self, db_path: str | Path | None = None):
+        resolved_path = (
+            Path(db_path)
+            if db_path is not None
+            else Path(os.getenv("DAILY_ANALYZER_DB", str(type(self).DB_PATH)))
+        )
+        self.DB_PATH = resolved_path
         self._init_db()
         self.boot_time = time.time()
 

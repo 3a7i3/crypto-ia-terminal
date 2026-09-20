@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from observability.json_logger import get_logger
@@ -11,7 +12,14 @@ _log = get_logger("quant_hedge_ai.ai_evolution.strategy_memory")
 
 @dataclass
 class MemoryConfig:
-    file_path: Path = Path("databases/ai_evolution/strategy_memory.json")
+    file_path: Path = field(
+        default_factory=lambda: Path(
+            os.getenv(
+                "STRATEGY_MEMORY_FILE",
+                "databases/ai_evolution/strategy_memory.json",
+            )
+        )
+    )
     top_k_per_regime: int = 30
     max_regime_history: int = 100
     decay_per_cycle: float = 0.03

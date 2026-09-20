@@ -76,6 +76,28 @@ os.environ["PAPER_TRADE_LOG"] = os.path.join(
 )
 
 _pytest_data_dir = tempfile.mkdtemp(prefix="pytest_data_")
+
+# TI-00 — all legacy/scientific persistence defaults that are exercised by
+# tests must resolve outside the repository before test modules are collected.
+# Assign unconditionally: a developer/CI shell pointing one of these variables
+# at production-like data must never make pytest mutate that path.
+_ti00_root = os.environ.get("_TI00_PYTEST_PERSISTENCE_ROOT")
+if not _ti00_root:
+    _ti00_root = tempfile.mkdtemp(prefix="pytest_scientific_persistence_")
+    os.environ["_TI00_PYTEST_PERSISTENCE_ROOT"] = _ti00_root
+_pytest_persistence_dir = Path(_ti00_root)
+
+for _name, _relative in {
+    "SIM_RUNS_DB": "sim_runs.sqlite",
+    "EVOLUTION_MEMORY_DB": "evolution_memory.db",
+    "STARTUP_CACHE_DIR": "startup_cache",
+    "DAILY_ANALYZER_DB": "daily_analysis.db",
+    "STRATEGY_MEMORY_FILE": "strategy_memory.json",
+    "DIP_DB_PATH": "dip.sqlite",
+    "SYSTEM_STATE_FILE": "system_state.json",
+}.items():
+    os.environ[_name] = str(_pytest_persistence_dir / _relative)
+
 os.environ.setdefault(
     "REJECTION_STORE_DIR", os.path.join(_pytest_data_dir, "rejections")
 )

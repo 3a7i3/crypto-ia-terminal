@@ -59,7 +59,7 @@ class SimBot:
     def __init__(
         self,
         initial_balance: float = 10_000.0,
-        db_path: str = "databases/sim_runs.sqlite",
+        db_path: str | None = None,
     ):
         self._balance = initial_balance
         self._kill_switch = KillSwitch()

@@ -69,6 +69,7 @@ PRECEDENCE_RISK finding referenced from the constitution's §5 (row A,
 | `AI_MODE` | NON_SECRET_RUNTIME_CONFIG | `.env` | ACTIVE_SOURCE_PATH | — |
 | `ENGINE_VERSION` | NON_SECRET_RUNTIME_CONFIG | `.env` | ACTIVE_SOURCE_PATH | — |
 | `SYSTEM_STATE_FILE` | PATH | `.env` | ACTIVE_SOURCE_PATH | — |
+| `STARTUP_CACHE_DIR`, `DAILY_ANALYZER_DB` | PATH | CODE_DEFAULT / optional env override | ACTIVE_SOURCE_PATH | TI-00 path injection; production defaults remain `cache/startup` and `cache/daily_analysis.db` |
 | `ENV_PATH` | PATH | `.env` | ACTIVE_SOURCE_PATH | — |
 | `INVOCATION_ID` | NON_SECRET_RUNTIME_CONFIG | CODE_DEFAULT | ACTIVE_SOURCE_PATH | Injected by systemd (`%n`-style), not human-set |
 | `PYTHONUNBUFFERED`, `PYTHONIOENCODING`, `TZ`, `PYTHONPATH` | DEPLOYMENT_CONFIG | SYSTEMD_ONLY | ACTIVE_SOURCE_PATH | Set directly in `scripts/systemd/*.service` via `Environment=`, never in `.env` |
@@ -101,6 +102,7 @@ PRECEDENCE_RISK finding referenced from the constitution's §5 (row A,
 
 | VARIABLE_NAME | CATEGORY | EXPECTED_FILE | STATUS |
 |---|---|---|---|
+| `SIM_RUNS_DB`, `EVOLUTION_MEMORY_DB`, `STRATEGY_MEMORY_FILE` | PATH | CODE_DEFAULT / optional env override | ACTIVE_SOURCE_PATH | TI-00 test-isolation controls; defaults remain `databases/sim_runs.sqlite`, `cache/evolution_memory.db`, `databases/ai_evolution/strategy_memory.json` |
 | `RANKER_*` (BLACKLIST_DEMOTES, DB, DEMOTE_SCORE, ENABLED, EXCHANGE, MIN_TRADES, MIN_VOL_USD, PROMOTE_SCORE, STALE_DAYS, TOP_N) | FEATURE_FLAG / THRESHOLD / PATH | `.env` | ACTIVE_SOURCE_PATH |
 | `MM_*` (MAX_DB, MIN_LOSS_PCT, REPEAT_THRESHOLD, RULE_EXPIRY_DAYS) | THRESHOLD / PATH | `.env` | ACTIVE_SOURCE_PATH — `mistake_memory.py` thresholds |
 | `MISTAKE_DB` | PATH | `.env` | ACTIVE_SOURCE_PATH |
@@ -155,6 +157,7 @@ PRECEDENCE_RISK finding referenced from the constitution's §5 (row A,
 
 | VARIABLE_NAME | CATEGORY | EXPECTED_FILE | STATUS |
 |---|---|---|---|
+| `DIP_DB_PATH` | PATH | CODE_DEFAULT / optional env override | ACTIVE_SOURCE_PATH | TI-00 test-isolation control for DIPStore; production default remains `databases/dip/dip.sqlite` |
 | `REGRET_*` (CANONICAL_HORIZON, DB, DELAY_CYCLES, HORIZONS_DIR, MAX_DB, MAX_STALE_H, MIN_MOVE, MIN_MOVE_PCT, MIN_SCORE) | THRESHOLD / PATH | `.env` | ACTIVE_SOURCE_PATH |
 | `REJECTION_STORE_DIR` | PATH | `.env` | ACTIVE_SOURCE_PATH |
 | `DQE_DB`, `DQE_QUALITY_THRESHOLD` | PATH / THRESHOLD | `.env` | ACTIVE_SOURCE_PATH — data-quality engine |

@@ -4,8 +4,17 @@ from src.telegram.sim_bot import SimBot, _synthetic_candles
 
 
 @pytest.fixture
-def bot():
-    return SimBot(initial_balance=10_000.0)
+def bot(tmp_path):
+    """Keep SimBot's SQLite database outside repo scientific-data roots.
+
+    RunRepository uses SQLite WAL mode, so allowing SimBot's production
+    default here can create sim_runs.sqlite plus transient -wal/-shm sidecars
+    under databases/.  A per-test tmp_path contains all three files.
+    """
+    return SimBot(
+        initial_balance=10_000.0,
+        db_path=str(tmp_path / "sim_runs.sqlite"),
+    )
 
 
 # -- /start / /help --
