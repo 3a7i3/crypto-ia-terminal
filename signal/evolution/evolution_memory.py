@@ -5,6 +5,7 @@ Persiste: meilleurs genomes, fitness history, patterns d'apprentissage
 
 import json
 import logging
+import os
 import sqlite3
 import time
 from dataclasses import dataclass, field
@@ -56,8 +57,13 @@ class IncidentPattern:
 class EvolutionMemoryDB:
     """Base de données SQLite pour mémoire d'évolution"""
 
-    def __init__(self, db_path: str = "cache/evolution_memory.db"):
-        self.db_path = Path(db_path)
+    def __init__(self, db_path: str | None = None):
+        resolved_path = (
+            db_path
+            if db_path is not None
+            else os.getenv("EVOLUTION_MEMORY_DB", "cache/evolution_memory.db")
+        )
+        self.db_path = Path(resolved_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
