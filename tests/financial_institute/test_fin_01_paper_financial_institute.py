@@ -132,6 +132,77 @@ def test_same_inputs_replay_to_identical_snapshot() -> None:
     assert first.source_stream_digest == second.source_stream_digest
 
 
+
+def test_semantic_context_changes_financial_and_snapshot_identity() -> None:
+    events = [birth(), opened()]
+    marks = [live_mark()]
+    first = build_financial_snapshot(
+        events,
+        context(strategy_id="strategy-a"),
+        marks,
+        valuation_as_of=Decimal("1003"),
+        max_mark_age_s=Decimal("10"),
+    )
+    second = build_financial_snapshot(
+        events,
+        context(strategy_id="strategy-b"),
+        marks,
+        valuation_as_of=Decimal("1003"),
+        max_mark_age_s=Decimal("10"),
+    )
+    assert first.semantic_context_digest != second.semantic_context_digest
+    assert first.snapshot_id != second.snapshot_id
+
+    adapted_a = adapt_ppl_stream(events, context(strategy_id="strategy-a"))
+    adapted_b = adapt_ppl_stream(events, context(strategy_id="strategy-b"))
+    assert (
+        adapted_a.financial_events[0].financial_event_id
+        != adapted_b.financial_events[0].financial_event_id
+    )
+
+
+def test_decimal_fin_projection_does_not_fail_on_ppl_float_accumulation_artifact() -> None:
+    open_event = make_position_opened_event(
+        event_id="e2",
+        paper_epoch_id=EPOCH,
+        sequence=2,
+        timestamp=1001.0,
+        trade_id="t1",
+        symbol="BTCUSDT",
+        side="LONG",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.1,
+        decision_id="d1",
+        schema_version=2,
+        tp_price=110.0,
+        sl_price=90.0,
+        timeout_at=1100.0,
+        recovery_eligible_until=1200.0,
+    )
+    close_event = make_position_closed_event(
+        event_id="e3",
+        paper_epoch_id=EPOCH,
+        sequence=3,
+        timestamp=1004.0,
+        trade_id="t1",
+        exit_price=100.0,
+        exit_fee=0.2,
+        decision_id="d1",
+        schema_version=2,
+    )
+    snapshot = build_financial_snapshot(
+        [birth(), open_event, close_event],
+        context(),
+        [],
+        valuation_as_of=Decimal("1005"),
+        max_mark_age_s=Decimal("10"),
+    )
+    assert snapshot.fees_paid == Decimal("0.3")
+    assert snapshot.realized_pnl == Decimal("-0.3")
+    assert snapshot.cash_available == Decimal("999.7")
+
+
 def test_fin_code_sha_is_snapshot_provenance() -> None:
     events = [birth(), opened()]
     marks = [live_mark()]
