@@ -26,7 +26,7 @@ from financial_institute.semantics import (
     within_reconciliation_tolerance,
 )
 from paper_trading.ledger_events import LedgerEvent
-from paper_trading.paper_portfolio_ledger import PaperPortfolioState, project
+from paper_trading.paper_portfolio_ledger import project
 from financial_institute.ppl_adapter import ppl_stream_digest
 
 
