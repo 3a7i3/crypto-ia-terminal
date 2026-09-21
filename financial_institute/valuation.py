@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Mapping, Sequence
+from typing import Sequence
 
 from financial_institute.models import PositionValuation, ValuationObservation
 from financial_institute.semantics import (
