@@ -37,7 +37,7 @@ jobs:
         run: |
           rm -rf /tmp/fin02-fixtures
           python -m tests.cross_stack.generate_fixtures --out /tmp/fin02-fixtures
-          python scripts/generate_fin02_visual_fixture.py \
+          PYTHONPATH=. python scripts/generate_fin02_visual_fixture.py \
             --out /tmp/fin02-fixtures/_producer/I_financial_reconciliation/financial_reconciliation_snapshot.json
           test -s /tmp/fin02-fixtures/_producer/A_minimal_canonical/operator_snapshot.json
           test -s /tmp/fin02-fixtures/_producer/A_minimal_canonical/operator_runtime_manifest.json
