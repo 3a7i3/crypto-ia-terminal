@@ -81,6 +81,7 @@ export function validateFinancialReconciliationSnapshot(
     "reconciliation_id",
     "paper_epoch_id",
     "financial_snapshot_id",
+    "reconciliation_code_sha",
     "source_stream_digest",
     "fin_code_sha",
     "source_code_sha",
