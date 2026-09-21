@@ -373,3 +373,26 @@ def test_r2_refactor_preserves_public_simulator_capture_contract():
     )
 
     assert public == coherent.simulator_observation
+
+
+def test_r2_rejects_projection_event_population_mismatch():
+    events = _events()
+    mismatched_view = AuthorityRuntimeView(
+        status=AuthorityRuntimeStatus.READY,
+        paper_epoch_id=EPOCH,
+        last_error=None,
+        projection=project(events[:1]),
+        events=events,
+    )
+    runtime = _Runtime(mismatched_view)
+    simulator = _simulator(runtime)
+
+    with pytest.raises(
+        CoherentFinancialCaptureError,
+        match="projection differs",
+    ):
+        capture_coherent_financial_boundary(
+            simulator,
+            captured_at=Decimal("10"),
+            semantic_inputs=_semantic_inputs(),
+        )
