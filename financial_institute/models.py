@@ -189,6 +189,18 @@ class PositionValuation:
     source_id: Optional[str]
     venue: Optional[str]
     market_type: Optional[str]
+
+    def __post_init__(self) -> None:
+        if not self.snapshot_id:
+            raise ValueError("snapshot_id must be non-empty")
+        if not self.semantic_context_digest:
+            raise ValueError("semantic_context_digest must be non-empty")
+        object.__setattr__(self, "valuations", tuple(self.valuations))
+        object.__setattr__(
+            self,
+            "valuation_statuses",
+            tuple(self.valuation_statuses),
+        )
     source_timestamp: Optional[Decimal]
     age_s: Optional[Decimal]
     unrealized_pnl: Optional[Decimal]
