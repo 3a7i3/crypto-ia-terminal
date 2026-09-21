@@ -14,6 +14,7 @@ from financial_institute.recovery import (
     financial_state_digest,
     ppl_state_digest,
 )
+from financial_institute.semantics import EvidenceStatus
 from financial_institute.snapshot import build_financial_snapshot
 from financial_institute.valuation import ValuationError
 from paper_trading.durable_event_store import AppendStatus, DurableEventStore
@@ -34,7 +35,7 @@ EPOCH = "PPL-RECOVERY-01-TEST-EPOCH"
 def _context() -> FinancialContext:
     return FinancialContext(
         fin_code_sha="fin-recovery-source-sha",
-        funding_status="NOT_APPLICABLE",
+        funding_status=EvidenceStatus.NOT_APPLICABLE,
         funding_evidence_ref=PAPER_LINEAR_FUNDING_EVIDENCE_REF,
         strategy_id="recovery-test-strategy",
         strategy_version="v1",
