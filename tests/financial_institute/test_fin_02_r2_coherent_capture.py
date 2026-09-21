@@ -127,6 +127,7 @@ def _simulator(
             ppl_is_authoritative=ppl_authority
         ),
         _authority_runtime=runtime,
+        _shadow_observer=None,
         _running=running,
         _capital=capital,
         _positions=(
@@ -390,6 +391,22 @@ def test_r2_rejects_projection_event_population_mismatch():
     with pytest.raises(
         CoherentFinancialCaptureError,
         match="projection differs",
+    ):
+        capture_coherent_financial_boundary(
+            simulator,
+            captured_at=Decimal("10"),
+            semantic_inputs=_semantic_inputs(),
+        )
+
+
+def test_r2_rejects_shadow_observer_on_authoritative_simulator():
+    runtime = _Runtime(_view())
+    simulator = _simulator(runtime)
+    simulator._shadow_observer = object()
+
+    with pytest.raises(
+        CoherentFinancialCaptureError,
+        match="forbids an attached SHADOW observer",
     ):
         capture_coherent_financial_boundary(
             simulator,
