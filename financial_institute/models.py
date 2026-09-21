@@ -17,6 +17,9 @@ from financial_institute.semantics import (
 )
 
 FIN_SCHEMA_VERSION = 1
+PAPER_LINEAR_FUNDING_EVIDENCE_REF = (
+    "FIN-00:PAPER_LINEAR_PRINCIPAL_V1:FUNDING_NOT_MODELED"
+)
 
 
 @dataclass(frozen=True)
@@ -36,10 +39,12 @@ class FinancialContext:
     market_type: Optional[str] = None
 
     def __post_init__(self) -> None:
-        if not self.fin_code_sha:
-            raise ValueError("fin_code_sha must be non-empty")
-        if not self.asset:
-            raise ValueError("asset must be non-empty")
+        if not isinstance(self.fin_code_sha, str) or not self.fin_code_sha:
+            raise ValueError("fin_code_sha must be a non-empty string")
+        if not isinstance(self.asset, str) or not self.asset:
+            raise ValueError("asset must be a non-empty string")
+        if self.asset != "USDT":
+            raise ValueError("FIN-01 PAPER v1 supports asset=USDT only")
         if not isinstance(self.financial_model, FinancialModel):
             raise ValueError("financial_model must be a FinancialModel")
         if not isinstance(self.funding_status, EvidenceStatus):
@@ -55,13 +60,28 @@ class FinancialContext:
             raise ValueError(
                 "PPL-only FIN-01 cannot claim COMPLETE/PARTIAL funding evidence"
             )
-        if (
-            self.funding_status is EvidenceStatus.NOT_APPLICABLE
-            and not self.funding_evidence_ref
+        if self.funding_status is EvidenceStatus.NOT_APPLICABLE:
+            if (
+                self.funding_evidence_ref
+                != PAPER_LINEAR_FUNDING_EVIDENCE_REF
+            ):
+                raise ValueError(
+                    "NOT_APPLICABLE funding requires the certified "
+                    "PAPER_LINEAR_PRINCIPAL_V1 evidence reference"
+                )
+        for name in (
+            "funding_evidence_ref",
+            "strategy_id",
+            "strategy_version",
+            "experiment_id",
+            "venue",
+            "market_type",
         ):
-            raise ValueError(
-                "NOT_APPLICABLE funding requires funding_evidence_ref"
-            )
+            value = getattr(self, name)
+            if value is not None and (
+                not isinstance(value, str) or not value
+            ):
+                raise ValueError(f"{name} must be a non-empty string or null")
         if self.strategy_version and not self.strategy_id:
             raise ValueError("strategy_version requires strategy_id")
 
