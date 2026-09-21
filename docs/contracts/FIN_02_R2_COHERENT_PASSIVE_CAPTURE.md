@@ -2,9 +2,9 @@
 
 Status: **SOURCE IMPLEMENTATION CANDIDATE**
 
-Parent mission: #247 — FIN-02  
-Parent architecture: #150  
-Governance: #148  
+Parent mission: #247 — FIN-02
+Parent architecture: #150
+Governance: #148
 Reference PR: #254
 
 Dependency:
@@ -249,11 +249,11 @@ re-certification.
 
 R2 is source-only.
 
-`ADVISOR_RESTART=NO`  
-`ACTIVE_F00_MUTATION=NO`  
-`PPL_APPEND=NO`  
-`EXCHANGE_READ_OR_WRITE=NO`  
-`FIN_LEDGER_MUTATION=NO`  
+`ADVISOR_RESTART=NO`
+`ACTIVE_F00_MUTATION=NO`
+`PPL_APPEND=NO`
+`EXCHANGE_READ_OR_WRITE=NO`
+`FIN_LEDGER_MUTATION=NO`
 `RUNTIME_PRODUCER_ACTIVATION=NO`
 
 No R2 code is wired into Advisor during this subphase.
