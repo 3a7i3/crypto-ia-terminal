@@ -60,6 +60,13 @@ FIN-01 implements only:
 
 `PAPER_LINEAR_PRINCIPAL_V1`
 
+Reporting/capital asset for FIN-01 v1 is frozen to:
+
+`USDT`
+
+Any other asset fails closed. Multi-asset Financial Institute semantics require
+a later explicit contract rather than relabeling the current PPL principal.
+
 Current PPL does not durably carry the complete facts required for
 exchange-faithful spot or derivative accounting.
 
@@ -182,12 +189,14 @@ Current PPL supplies no generic funding cashflow event.
 
 FIN-01 therefore accepts only:
 
-- `NOT_APPLICABLE` — explicitly declared PAPER model semantics with a
-  non-empty `funding_evidence_ref`; funding net = 0;
+- `NOT_APPLICABLE` — explicitly declared PAPER model semantics with the
+  certified evidence reference
+  `FIN-00:PAPER_LINEAR_PRINCIPAL_V1:FUNDING_NOT_MODELED`; funding net = 0;
 - `UNRESOLVED` — missing applicable evidence; funding net and FIN realized PnL unavailable.
 
-A bare enum value is not sufficient evidence. `NOT_APPLICABLE` without an
-evidence reference fails closed at `FinancialContext` construction.
+A bare enum value or arbitrary operator string is not sufficient evidence.
+`NOT_APPLICABLE` without the exact certified evidence reference fails closed
+at `FinancialContext` construction.
 
 PPL-only FIN-01 cannot claim `COMPLETE` funding evidence.
 
