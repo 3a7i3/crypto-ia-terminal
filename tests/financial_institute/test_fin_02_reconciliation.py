@@ -386,7 +386,7 @@ def test_fin_ppl_identity_mismatch_fails_before_reconciliation():
             snapshot,
             tampered,
             reconciliation_code_sha="fin02-reconciliation-code",
-        policy=_policy(),
+            policy=_policy(),
             as_of=Decimal("10"),
         )
 
