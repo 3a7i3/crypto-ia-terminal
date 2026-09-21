@@ -128,9 +128,6 @@ def project_financial_ledger(
                 "financial event source sequences must be strictly increasing"
             )
 
-        assert_balanced_postings(event.postings)
-        balances = dict(state.balances)
-
         for posting in event.postings:
             if posting.financial_event_id != event.financial_event_id:
                 raise FinancialLedgerError(
@@ -144,6 +141,11 @@ def project_financial_ledger(
                 raise FinancialLedgerError(
                     f"posting asset={posting.asset!r} != ledger asset={asset!r}"
                 )
+
+        assert_balanced_postings(event.postings)
+        balances = dict(state.balances)
+
+        for posting in event.postings:
             delta = _posting_delta(posting.account, posting.side, posting.amount)
             balances[posting.account.value] = _balance(
                 balances, posting.account
