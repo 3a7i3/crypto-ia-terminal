@@ -71,6 +71,7 @@ class FinancialRuntimeSemanticInputs:
     """
 
     reconciliation_code_sha: str
+    context_evidence_ref: str
     experiment_id: str
     venue: str
     market_type: str
@@ -86,6 +87,7 @@ class FinancialRuntimeSemanticInputs:
     def __post_init__(self) -> None:
         for name in (
             "reconciliation_code_sha",
+            "context_evidence_ref",
             "experiment_id",
             "venue",
             "market_type",
@@ -178,6 +180,7 @@ class FinancialRuntimeProvenance:
     fin_code_sha: str
     fin_certified_verdict: str
     reconciliation_code_sha: str
+    context_evidence_ref: str
     semantic_context_digest: str
     asset: str
     source_authority: str
@@ -202,6 +205,7 @@ class FinancialRuntimeProvenance:
             "fin_code_sha": self.fin_code_sha,
             "fin_certified_verdict": self.fin_certified_verdict,
             "reconciliation_code_sha": self.reconciliation_code_sha,
+            "context_evidence_ref": self.context_evidence_ref,
             "semantic_context_digest": self.semantic_context_digest,
             "asset": self.asset,
             "source_authority": self.source_authority,
@@ -253,6 +257,7 @@ def bind_financial_runtime_provenance(
         "fin_code_sha": semantic_inputs.fin_code_sha,
         "fin_certified_verdict": FIN01_PAPER_V1_CERTIFIED_VERDICT,
         "reconciliation_code_sha": semantic_inputs.reconciliation_code_sha,
+        "context_evidence_ref": semantic_inputs.context_evidence_ref,
         "semantic_context_digest": context_digest,
         "asset": semantic_inputs.asset,
         "source_authority": semantic_inputs.source_authority,
@@ -281,6 +286,7 @@ def bind_financial_runtime_provenance(
         fin_code_sha=semantic_inputs.fin_code_sha,
         fin_certified_verdict=FIN01_PAPER_V1_CERTIFIED_VERDICT,
         reconciliation_code_sha=semantic_inputs.reconciliation_code_sha,
+        context_evidence_ref=semantic_inputs.context_evidence_ref,
         semantic_context_digest=context_digest,
         asset=semantic_inputs.asset,
         source_authority=semantic_inputs.source_authority,
