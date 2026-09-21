@@ -47,9 +47,7 @@ class FinancialContext:
         if self.source_authority != "PPL_AUTHORITY":
             raise ValueError("FIN-01 requires source_authority=PPL_AUTHORITY")
         if self.financial_model is not FinancialModel.PAPER_LINEAR_PRINCIPAL_V1:
-            raise ValueError(
-                "FIN-01 supports only PAPER_LINEAR_PRINCIPAL_V1"
-            )
+            raise ValueError("FIN-01 supports only PAPER_LINEAR_PRINCIPAL_V1")
         if self.funding_status not in {
             EvidenceStatus.UNRESOLVED,
             EvidenceStatus.NOT_APPLICABLE,
@@ -189,18 +187,6 @@ class PositionValuation:
     source_id: Optional[str]
     venue: Optional[str]
     market_type: Optional[str]
-
-    def __post_init__(self) -> None:
-        if not self.snapshot_id:
-            raise ValueError("snapshot_id must be non-empty")
-        if not self.semantic_context_digest:
-            raise ValueError("semantic_context_digest must be non-empty")
-        object.__setattr__(self, "valuations", tuple(self.valuations))
-        object.__setattr__(
-            self,
-            "valuation_statuses",
-            tuple(self.valuation_statuses),
-        )
     source_timestamp: Optional[Decimal]
     age_s: Optional[Decimal]
     unrealized_pnl: Optional[Decimal]
@@ -250,3 +236,38 @@ class FinancialSnapshot:
     experiment_attribution_status: EvidenceStatus
     venue: Optional[str]
     market_type: Optional[str]
+
+    def __post_init__(self) -> None:
+        if not self.snapshot_id:
+            raise ValueError("snapshot_id must be non-empty")
+        if not self.paper_epoch_id:
+            raise ValueError("paper_epoch_id must be non-empty")
+        if not self.semantic_context_digest:
+            raise ValueError("semantic_context_digest must be non-empty")
+        if self.open_position_count < 0:
+            raise ValueError("open_position_count must be >= 0")
+        if self.settled_position_count < 0:
+            raise ValueError("settled_position_count must be >= 0")
+        if self.unresolved_position_count < 0:
+            raise ValueError("unresolved_position_count must be >= 0")
+
+        valuations = tuple(self.valuations)
+        statuses = tuple(self.valuation_statuses)
+        if len(valuations) != self.open_position_count:
+            raise ValueError(
+                "valuations count must equal open_position_count"
+            )
+        if len(statuses) != self.open_position_count:
+            raise ValueError(
+                "valuation_statuses count must equal open_position_count"
+            )
+        if any(
+            valuation.status is not status
+            for valuation, status in zip(valuations, statuses)
+        ):
+            raise ValueError(
+                "valuation_statuses must match PositionValuation.status"
+            )
+
+        object.__setattr__(self, "valuations", valuations)
+        object.__setattr__(self, "valuation_statuses", statuses)
