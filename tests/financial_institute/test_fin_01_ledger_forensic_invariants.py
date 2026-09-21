@@ -117,3 +117,22 @@ def test_ledger_rejects_posting_epoch_envelope_mismatch() -> None:
     )
     with pytest.raises(FinancialLedgerError, match="paper_epoch_id"):
         project_financial_ledger((first, corrupted), asset="USDT")
+
+def test_ledger_rejects_epoch_created_outside_source_sequence_one() -> None:
+    first, second = _financial_events()
+    corrupted_first = replace(first, source_sequence=2)
+    corrupted_second = replace(second, source_sequence=3)
+    with pytest.raises(FinancialLedgerError, match="source_sequence=1"):
+        project_financial_ledger(
+            (corrupted_first, corrupted_second),
+            asset="USDT",
+        )
+
+
+def test_ledger_rejects_unknown_financial_source_event_type() -> None:
+    first, second = _financial_events()
+    corrupted = replace(second, source_event_type="RECOVERY_COMPLETED")
+    with pytest.raises(FinancialLedgerError, match="unsupported"):
+        project_financial_ledger((first, corrupted), asset="USDT")
+
+
