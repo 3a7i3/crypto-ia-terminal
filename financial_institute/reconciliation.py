@@ -533,7 +533,15 @@ def _identity_set_record(
 def _overall_status(
     records: Sequence[ReconciliationRecord],
 ) -> ReconciliationStatus:
-    statuses = {record.status for record in records}
+    material = [
+        record
+        for record in records
+        if record.comparability
+        in {Comparability.COMPARABLE, Comparability.UNAVAILABLE}
+    ]
+    if not material:
+        return ReconciliationStatus.UNRESOLVED
+    statuses = {record.status for record in material}
     if ReconciliationStatus.DIVERGENT in statuses:
         return ReconciliationStatus.DIVERGENT
     if ReconciliationStatus.UNRESOLVED in statuses:
