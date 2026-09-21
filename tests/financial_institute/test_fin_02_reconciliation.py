@@ -404,6 +404,12 @@ def test_reconciliation_identity_is_deterministic():
 
     first = reconcile_financial_snapshot(snapshot, ppl, **kwargs)
     second = reconcile_financial_snapshot(snapshot, ppl, **kwargs)
+    changed_code = reconcile_financial_snapshot(
+        snapshot,
+        ppl,
+        **{**kwargs, "reconciliation_code_sha": "fin02-other-code"},
+    )
 
     assert first == second
     assert first.reconciliation_id == second.reconciliation_id
+    assert changed_code.reconciliation_id != first.reconciliation_id
