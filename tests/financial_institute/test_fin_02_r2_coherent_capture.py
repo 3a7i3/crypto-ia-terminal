@@ -16,6 +16,9 @@ from observability.financial_capture import (
     CoherentFinancialCaptureError,
     capture_coherent_financial_boundary,
 )
+from observability.financial_reconciliation import (
+    capture_simulator_observation,
+)
 from paper_trading.ledger_events import (
     make_epoch_created_event,
     make_position_opened_event,
@@ -353,3 +356,20 @@ def test_r2_rejects_degraded_authority_runtime():
             captured_at=Decimal("10"),
             semantic_inputs=_semantic_inputs(),
         )
+
+
+def test_r2_refactor_preserves_public_simulator_capture_contract():
+    runtime = _Runtime(_view())
+    simulator = _simulator(runtime)
+
+    public = capture_simulator_observation(
+        simulator,
+        observed_at=Decimal("10"),
+    )
+    coherent = capture_coherent_financial_boundary(
+        simulator,
+        captured_at=Decimal("10"),
+        semantic_inputs=_semantic_inputs(),
+    )
+
+    assert public == coherent.simulator_observation
