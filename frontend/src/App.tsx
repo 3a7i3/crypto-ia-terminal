@@ -51,7 +51,7 @@ const Header: React.FC<{
         ) : activeTab === "ppl" ? (
           <span className="domain-badge domain-badge-ppl" data-testid="ppl-domain-badge">
             <span className="domain-dot" aria-hidden="true" />
-            PPL
+            PPL SHADOW
           </span>
         ) : activeTab === "finance" ? (
           <span className="domain-badge domain-badge-fin" data-testid="finance-domain-badge">
