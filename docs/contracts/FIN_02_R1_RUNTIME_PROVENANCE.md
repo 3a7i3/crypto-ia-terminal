@@ -2,9 +2,9 @@
 
 Status: **SOURCE IMPLEMENTATION CANDIDATE**
 
-Parent mission: #247 — FIN-02  
-Parent architecture: #150  
-Governance: #148  
+Parent mission: #247 — FIN-02
+Parent architecture: #150
+Governance: #148
 Reference PR: #254
 
 ## 1. Scientific question
