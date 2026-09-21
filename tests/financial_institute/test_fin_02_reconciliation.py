@@ -158,6 +158,7 @@ def test_exact_or_explicit_tolerance_reconciliation_without_silent_correction():
     result = reconcile_financial_snapshot(
         snapshot,
         ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=_policy(),
         as_of=Decimal("10"),
         simulator=_simulator(events),
@@ -197,6 +198,7 @@ def test_known_simulator_capital_divergence_is_visible_and_not_applied():
     result = reconcile_financial_snapshot(
         snapshot,
         ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=_policy(abs_tol="0"),
         as_of=Decimal("10"),
         simulator=_simulator(events, cash_delta="1"),
@@ -235,6 +237,7 @@ def test_stale_simulator_values_remain_visible_but_cannot_certify():
     result = reconcile_financial_snapshot(
         snapshot,
         ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=_policy(stale_after="10"),
         as_of=Decimal("100"),
         simulator=sim,
@@ -267,6 +270,7 @@ def test_missing_quiescence_evidence_blocks_simulator_certification():
     result = reconcile_financial_snapshot(
         snapshot,
         ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=_policy(),
         as_of=Decimal("10"),
         simulator=sim,
@@ -298,6 +302,7 @@ def test_open_position_identity_mismatch_is_divergent_even_when_count_matches():
     result = reconcile_financial_snapshot(
         snapshot,
         ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=_policy(),
         as_of=Decimal("10"),
         simulator=sim,
@@ -335,6 +340,7 @@ def test_real_exchange_observation_is_display_only_for_paper_scope():
     result = reconcile_financial_snapshot(
         snapshot,
         ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=_policy(),
         as_of=Decimal("10"),
         simulator=_simulator(events),
@@ -379,7 +385,8 @@ def test_fin_ppl_identity_mismatch_fails_before_reconciliation():
         reconcile_financial_snapshot(
             snapshot,
             tampered,
-            policy=_policy(),
+            reconciliation_code_sha="fin02-reconciliation-code",
+        policy=_policy(),
             as_of=Decimal("10"),
         )
 
@@ -389,6 +396,7 @@ def test_reconciliation_identity_is_deterministic():
     snapshot = _snapshot(events)
     ppl = ppl_observation_from_events(events, observed_at=Decimal("10"))
     kwargs = dict(
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=_policy(),
         as_of=Decimal("10"),
         simulator=_simulator(events),
