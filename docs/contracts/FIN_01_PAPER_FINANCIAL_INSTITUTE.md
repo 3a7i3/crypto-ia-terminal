@@ -82,6 +82,7 @@ Required/provenance-bearing fields include:
 - source authority;
 - financial model;
 - funding evidence status;
+- funding evidence reference when NOT_APPLICABLE is asserted;
 - optional explicit strategy id/version;
 - optional explicit experiment id;
 - optional venue/market type.
@@ -181,8 +182,12 @@ Current PPL supplies no generic funding cashflow event.
 
 FIN-01 therefore accepts only:
 
-- `NOT_APPLICABLE` — explicitly declared PAPER model semantics; funding net = 0;
+- `NOT_APPLICABLE` — explicitly declared PAPER model semantics with a
+  non-empty `funding_evidence_ref`; funding net = 0;
 - `UNRESOLVED` — missing applicable evidence; funding net and FIN realized PnL unavailable.
+
+A bare enum value is not sufficient evidence. `NOT_APPLICABLE` without an
+evidence reference fails closed at `FinancialContext` construction.
 
 PPL-only FIN-01 cannot claim `COMPLETE` funding evidence.
 
@@ -250,7 +255,7 @@ The snapshot id binds a deterministic `FIN_CONTEXT_V1` digest covering:
 - reporting asset;
 - source authority;
 - financial model;
-- funding evidence status;
+- funding evidence status/reference;
 - explicit strategy id/version;
 - explicit experiment id;
 - venue;
@@ -388,3 +393,25 @@ Required evidence:
 After FIN-01 certification, the blocking mission becomes:
 
 #246 — PPL-RECOVERY-01.
+
+
+## 19. Forensic hardening findings
+
+The FIN-01 forensic audit identified and remediated the following before source
+certification:
+
+1. initial lint defects from unused imports;
+2. FIN-00 executable snapshot identity under-bound semantic context and
+   evidence/reconciliation status despite the normative text requiring them;
+3. exact comparison of PPL float aggregates against FIN Decimal balances could
+   produce false failures from IEEE-754 accumulation artifacts;
+4. ledger replay did not independently reject mixed semantic context, FIN code
+   SHA, config hash, duplicate source event identity, or posting/envelope
+   identity mismatch;
+5. NOT_APPLICABLE funding could be asserted without a provenance reference;
+6. LedgerPosting required explicit enum hardening for account/side;
+7. certified equity now rejects non-zero unrealized PnL when no positions are
+   open.
+
+All findings are source-only. No active F00 runtime mutation or deployment is
+part of these remediations.
