@@ -37,6 +37,7 @@ class AdaptedPPLStream:
     source_stream_digest: str
     source_code_sha: str
     config_hash: str
+    semantic_context_digest: str
     financial_events: tuple[FinancialEvent, ...]
     last_source_sequence: int
 
@@ -47,6 +48,13 @@ class _OpenFact:
     entry_price: Decimal
     entry_fee: Decimal
     side: str
+
+
+
+def _require_nonempty_string(name: str, value: Any) -> str:
+    if not isinstance(value, str) or not value:
+        raise FinancialAdapterError(f"{name} must be a non-empty string")
+    return value
 
 
 def _jsonable(value: Any) -> Any:
@@ -177,8 +185,13 @@ def adapt_ppl_stream(
     if birth.event_type is not LedgerEventType.EPOCH_CREATED:
         raise FinancialAdapterError("first PPL event must be EPOCH_CREATED")
 
-    source_code_sha = str(birth.payload["code_sha"])
-    config_hash = str(birth.payload["config_snapshot_hash"])
+    source_code_sha = _require_nonempty_string(
+        "EPOCH_CREATED.code_sha", birth.payload["code_sha"]
+    )
+    config_hash = _require_nonempty_string(
+        "EPOCH_CREATED.config_snapshot_hash",
+        birth.payload["config_snapshot_hash"],
+    )
     semantic_context_digest = financial_context_digest(context)
     if not source_code_sha or not config_hash:
         raise FinancialAdapterError("PPL epoch provenance is incomplete")
@@ -441,6 +454,7 @@ def adapt_ppl_stream(
         source_stream_digest=ppl_stream_digest(events),
         source_code_sha=source_code_sha,
         config_hash=config_hash,
+        semantic_context_digest=semantic_context_digest,
         financial_events=tuple(financial_events),
         last_source_sequence=events[-1].sequence,
     )
