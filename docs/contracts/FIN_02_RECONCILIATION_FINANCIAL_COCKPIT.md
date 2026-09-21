@@ -247,6 +247,7 @@ Monetary Decimal values are serialized as decimal strings, not JSON floats.
 
 The artifact binds:
 - FIN snapshot identity;
+- explicit FIN-02 reconciliation code SHA, distinct from the FIN-01 code SHA;
 - PPL source-stream digest;
 - source sequence;
 - FIN/source/config provenance;
