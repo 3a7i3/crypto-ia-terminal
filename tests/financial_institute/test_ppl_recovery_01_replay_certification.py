@@ -19,6 +19,7 @@ from financial_institute.snapshot import build_financial_snapshot
 from financial_institute.valuation import ValuationError
 from paper_trading.durable_event_store import AppendStatus, DurableEventStore
 from paper_trading.ledger_events import (
+    LedgerEventType,
     make_epoch_created_event,
     make_position_closed_event,
     make_position_opened_event,
@@ -37,6 +38,27 @@ from paper_trading.ppl_recovery import RestartDisposition, plan_restart_recovery
 EPOCH = "PPL-RECOVERY-01-TEST-EPOCH"
 
 
+
+
+
+
+class _CrashAfterDurableAppendStore(DurableEventStore):
+    """Simulate process death after fsync but before caller acknowledgement."""
+
+    def __init__(self, root_dir, *, crash_event_type: LedgerEventType):
+        super().__init__(root_dir)
+        self._crash_event_type = crash_event_type
+        self._crashed = False
+
+    def append(self, expected_epoch_id, event):
+        result = super().append(expected_epoch_id, event)
+        if (
+            event.event_type is self._crash_event_type
+            and not self._crashed
+        ):
+            self._crashed = True
+            raise OSError("simulated crash after durable append")
+        return result
 
 
 def _manifest():
@@ -563,3 +585,137 @@ def test_invalid_ppl_projection_fails_before_durable_append(tmp_path) -> None:
     assert bytes_after == bytes_before
     assert events_after == events_before
     assert len(events_after) == 1
+
+
+def test_restart_after_ambiguous_durable_close_ack_is_exactly_once(
+    tmp_path,
+) -> None:
+    root = tmp_path / "runtime-store"
+    manifest = _manifest()
+    bootstrap = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    bootstrap.bind(now=2.0)
+    bootstrap.commit_open(
+        trade_id="trade-1",
+        symbol="BTCUSDT",
+        side="LONG",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.1,
+        opened_at=10.0,
+        tp_price=110.0,
+        sl_price=90.0,
+        timeout_at=20.0,
+        recovery_eligible_until=30.0,
+        decision_id="decision-1",
+    )
+
+    crashing = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=_CrashAfterDurableAppendStore(
+            root,
+            crash_event_type=LedgerEventType.POSITION_CLOSED,
+        ),
+    )
+    with pytest.raises(OSError, match="after durable append"):
+        crashing.commit_close(
+            trade_id="trade-1",
+            exit_price=110.0,
+            exit_fee=0.2,
+            closed_at=18.0,
+            decision_id="decision-1",
+        )
+
+    # The close is already authoritative even though the caller saw no ack.
+    after_crash = DurableEventStore(root).load_epoch(EPOCH)
+    assert len(after_crash) == 3
+    assert after_crash[-1].event_type is LedgerEventType.POSITION_CLOSED
+
+    restarted = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    restarted.bind(now=19.0)
+    retry = restarted.commit_close(
+        trade_id="trade-1",
+        exit_price=110.0,
+        exit_fee=0.2,
+        closed_at=18.0,
+        decision_id="decision-1",
+    )
+    view = restarted.consistent_view()
+
+    assert retry.status is AppendStatus.ALREADY_EXISTS
+    assert len(view.events) == 3
+    assert view.projection.reserved_principal == 0.0
+    assert view.projection.fees_paid == pytest.approx(0.3)
+    assert view.projection.realized_pnl == pytest.approx(0.7)
+
+
+def test_restart_completes_only_remaining_unresolved_after_mid_recovery_crash(
+    tmp_path,
+) -> None:
+    root = tmp_path / "runtime-store"
+    manifest = _manifest()
+    bootstrap = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    bootstrap.bind(now=2.0)
+
+    for index, symbol in ((1, "BTCUSDT"), (2, "ETHUSDT")):
+        bootstrap.commit_open(
+            trade_id=f"trade-{index}",
+            symbol=symbol,
+            side="LONG",
+            principal=10.0,
+            entry_price=100.0,
+            entry_fee=0.1,
+            opened_at=10.0 + index,
+            tp_price=110.0,
+            sl_price=90.0,
+            timeout_at=20.0 + index,
+            recovery_eligible_until=30.0 + index,
+            decision_id=f"decision-{index}",
+        )
+
+    crashing = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=_CrashAfterDurableAppendStore(
+            root,
+            crash_event_type=LedgerEventType.POSITION_UNRESOLVED,
+        ),
+    )
+    with pytest.raises(OSError, match="after durable append"):
+        crashing.bind(now=40.0)
+
+    partial_events = DurableEventStore(root).load_epoch(EPOCH)
+    partial_state = project(partial_events)
+    assert len(partial_events) == 4
+    assert len(partial_state.unresolved_positions) == 1
+    assert len(partial_state.open_positions) == 1
+    assert partial_state.unresolved_capital == 10.0
+    assert partial_state.reserved_principal == 10.0
+
+    restarted = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    final_state = restarted.bind(now=40.0)
+    final_view = restarted.consistent_view()
+
+    assert len(final_view.events) == 5
+    assert len(final_state.open_positions) == 0
+    assert len(final_state.unresolved_positions) == 2
+    assert final_state.reserved_principal == 0.0
+    assert final_state.unresolved_capital == 20.0
+    assert final_state.realized_pnl == 0.0
+
+    unresolved_trade_ids = [
+        event.trade_id
+        for event in final_view.events
+        if event.event_type is LedgerEventType.POSITION_UNRESOLVED
+    ]
+    assert sorted(unresolved_trade_ids) == ["trade-1", "trade-2"]
