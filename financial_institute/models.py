@@ -13,6 +13,7 @@ from financial_institute.semantics import (
     LedgerPosting,
     ReconciliationStatus,
     ValuationStatus,
+    canonical_identity_hash,
 )
 
 FIN_SCHEMA_VERSION = 1
@@ -34,6 +35,8 @@ class FinancialContext:
     market_type: Optional[str] = None
 
     def __post_init__(self) -> None:
+        if not self.semantic_context_digest:
+            raise ValueError("semantic_context_digest must be non-empty")
         if not self.fin_code_sha:
             raise ValueError("fin_code_sha must be non-empty")
         if not self.asset:
@@ -56,6 +59,26 @@ class FinancialContext:
 
 
 @dataclass(frozen=True)
+def financial_context_digest(context: FinancialContext) -> str:
+    """Deterministic digest of every semantic input not carried by PPL."""
+
+    return canonical_identity_hash(
+        "FIN_CONTEXT_V1",
+        {
+            "asset": context.asset,
+            "source_authority": context.source_authority,
+            "financial_model": context.financial_model.value,
+            "funding_status": context.funding_status.value,
+            "strategy_id": context.strategy_id,
+            "strategy_version": context.strategy_version,
+            "experiment_id": context.experiment_id,
+            "venue": context.venue,
+            "market_type": context.market_type,
+        },
+    )
+
+
+@dataclass(frozen=True)
 class FinancialEvent:
     financial_event_id: str
     paper_epoch_id: str
@@ -67,6 +90,7 @@ class FinancialEvent:
     trade_id: Optional[str]
     decision_id: Optional[str]
     fin_schema_version: int
+    semantic_context_digest: str
     fin_code_sha: str
     config_hash: str
     postings: Tuple[LedgerPosting, ...]
@@ -159,6 +183,7 @@ class FinancialSnapshot:
     source_stream_digest: str
     last_source_sequence: int
     fin_schema_version: int
+    semantic_context_digest: str
     fin_code_sha: str
     source_code_sha: str
     config_hash: str
