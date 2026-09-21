@@ -17,6 +17,7 @@ function financialSnapshot() {
     reconciliation_id: "r".repeat(64),
     paper_epoch_id: "F00-EPOCH-01",
     financial_snapshot_id: "s".repeat(64),
+    reconciliation_code_sha: "r".repeat(40),
     source_stream_digest: "p".repeat(64),
     last_source_sequence: 7,
     fin_schema_version: 1,
