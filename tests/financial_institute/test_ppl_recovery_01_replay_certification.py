@@ -26,10 +26,35 @@ from paper_trading.ledger_events import (
     make_recovery_completed_event,
 )
 from paper_trading.paper_portfolio_ledger import project
+from paper_trading.ppl_authority_runtime import (
+    EpochRotationQuiescence,
+    PPLAuthorityRuntime,
+    build_experiment_manifest,
+)
 from paper_trading.ppl_recovery import RestartDisposition, plan_restart_recovery
 
 
 EPOCH = "PPL-RECOVERY-01-TEST-EPOCH"
+
+
+
+
+def _manifest():
+    return build_experiment_manifest(
+        paper_epoch_id=EPOCH,
+        created_at=1.0,
+        initial_virtual_capital=1000.0,
+        code_sha="ppl-source-sha",
+        config_snapshot_hash="cfg-hash",
+        legacy_log_bytes=b"",
+        quiescence=EpochRotationQuiescence(
+            authority_open_positions=0,
+            authority_pending_orders=0,
+            authority_transitions_in_flight=0,
+            authority_process_stopped=True,
+        ),
+        predecessor_authority_epoch_id="PPL02E-AUTH-PREDECESSOR",
+    )
 
 
 def _context() -> FinancialContext:
@@ -356,4 +381,155 @@ def test_recovery_certificate_is_fail_closed_on_changed_explicit_inputs(
     assert (
         first.financial_state_digest_before
         != second.financial_state_digest_before
+    )
+
+
+def test_authority_runtime_restart_replays_open_state_without_new_event(
+    tmp_path,
+) -> None:
+    root = tmp_path / "runtime-store"
+    manifest = _manifest()
+    runtime_before = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    runtime_before.bind(now=2.0)
+    runtime_before.commit_open(
+        trade_id="trade-1",
+        symbol="BTCUSDT",
+        side="LONG",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.1,
+        opened_at=10.0,
+        tp_price=110.0,
+        sl_price=90.0,
+        timeout_at=20.0,
+        recovery_eligible_until=30.0,
+        decision_id="decision-1",
+    )
+    before = runtime_before.consistent_view()
+
+    runtime_after = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    rebound = runtime_after.bind(now=15.0)
+    after = runtime_after.consistent_view()
+
+    assert rebound == before.projection
+    assert after.projection == before.projection
+    assert after.events == before.events
+    assert len(after.events) == 2
+    assert ppl_state_digest(after.projection) == ppl_state_digest(
+        before.projection
+    )
+
+
+def test_expired_runtime_recovery_appends_one_unresolved_then_stabilizes(
+    tmp_path,
+) -> None:
+    root = tmp_path / "runtime-store"
+    manifest = _manifest()
+    runtime_before = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    runtime_before.bind(now=2.0)
+    runtime_before.commit_open(
+        trade_id="trade-1",
+        symbol="BTCUSDT",
+        side="LONG",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.1,
+        opened_at=10.0,
+        tp_price=110.0,
+        sl_price=90.0,
+        timeout_at=20.0,
+        recovery_eligible_until=30.0,
+        decision_id="decision-1",
+    )
+    assert len(runtime_before.consistent_view().events) == 2
+
+    runtime_recovery = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    recovered = runtime_recovery.bind(now=31.0)
+    recovery_view = runtime_recovery.consistent_view()
+
+    assert len(recovery_view.events) == 3
+    assert recovery_view.events[-1].event_type.value == "POSITION_UNRESOLVED"
+    assert recovered.reserved_principal == 0.0
+    assert recovered.unresolved_capital == 10.0
+    assert recovered.realized_pnl == 0.0
+
+    # A second restart cannot append or release the same principal again.
+    runtime_second_restart = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    second = runtime_second_restart.bind(now=40.0)
+    second_view = runtime_second_restart.consistent_view()
+
+    assert second_view.events == recovery_view.events
+    assert len(second_view.events) == 3
+    assert second == recovered
+    assert second.reserved_principal == 0.0
+    assert second.unresolved_capital == 10.0
+
+
+def test_fin_snapshot_replays_exactly_after_authority_runtime_restart(
+    tmp_path,
+) -> None:
+    root = tmp_path / "runtime-store"
+    manifest = _manifest()
+    runtime_before = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    runtime_before.bind(now=2.0)
+    runtime_before.commit_open(
+        trade_id="trade-1",
+        symbol="BTCUSDT",
+        side="LONG",
+        principal=10.0,
+        entry_price=100.0,
+        entry_fee=0.1,
+        opened_at=10.0,
+        tp_price=110.0,
+        sl_price=90.0,
+        timeout_at=20.0,
+        recovery_eligible_until=30.0,
+        decision_id="decision-1",
+    )
+    events_before = runtime_before.consistent_view().events
+    snapshot_before = build_financial_snapshot(
+        events_before,
+        _context(),
+        [_mark()],
+        valuation_as_of=Decimal("16"),
+        max_mark_age_s=Decimal("5"),
+    )
+
+    runtime_after = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    runtime_after.bind(now=15.0)
+    events_after = runtime_after.consistent_view().events
+    snapshot_after = build_financial_snapshot(
+        events_after,
+        _context(),
+        [_mark()],
+        valuation_as_of=Decimal("16"),
+        max_mark_age_s=Decimal("5"),
+    )
+
+    assert events_after == events_before
+    assert snapshot_after == snapshot_before
+    assert snapshot_after.snapshot_id == snapshot_before.snapshot_id
+    assert financial_state_digest(snapshot_after) == financial_state_digest(
+        snapshot_before
     )
