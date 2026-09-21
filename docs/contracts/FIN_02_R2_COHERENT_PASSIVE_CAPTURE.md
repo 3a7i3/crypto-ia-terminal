@@ -58,6 +58,8 @@ The inverse order is forbidden by the R2 boundary.
 
 R2 does not accept a `PPLAuthorityRuntime` argument.
 
+It also rejects an attached `_shadow_observer` while PPL is authoritative.
+
 It obtains the runtime only from:
 
 `simulator._authority_runtime`
@@ -201,6 +203,7 @@ The same frozen inputs reproduce the same `capture_id`.
 
 R2 rejects:
 - non-PPL lifecycle authority;
+- attached SHADOW observer;
 - absent simulator-owned authority runtime;
 - absent simulator lock;
 - simulator not already running;
@@ -239,10 +242,19 @@ only in authoritative `paper_trading/mexc_simulator.py`.
 
 Those calls are inside `MEXC_SIM._lock`.
 
-Direct commit calls elsewhere are test/certification code.
+Direct authoritative commit calls elsewhere are test/certification code.
 
-This source fact is part of the R2 proof boundary. Any future production caller
-that mutates PPL outside this lock order invalidates R2 assumptions and requires
+Separate direct `DurableEventStore.append(...)` paths still exist for SHADOW,
+legacy-import/migration and test tooling. They are not part of the active
+PPL_AUTHORITY execution path and R2 does not claim to make an unauthorized
+external writer impossible.
+
+Therefore R2 source certification proves in-process causal coherence under the
+single-authority runtime contract. Runtime certification must separately prove
+that no second process/tool is concurrently writing the active authority store.
+
+Any future active PPL_AUTHORITY production caller that mutates the authority
+store outside the certified lock order invalidates R2 assumptions and requires
 re-certification.
 
 ## 13. Runtime boundary
