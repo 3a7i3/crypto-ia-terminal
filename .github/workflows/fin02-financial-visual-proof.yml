@@ -1,0 +1,108 @@
+name: FIN-02 Financial Cockpit Visual Proof
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fin02-financial-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fin02-visual-proof:
+    name: "FIN-02 FINANCIAL VISUAL PROOF"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install read-only API dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+          pip install uvicorn==0.46.0
+
+      - name: Generate canonical and FIN-02 artifacts
+        run: |
+          rm -rf /tmp/fin02-fixtures
+          python -m tests.cross_stack.generate_fixtures --out /tmp/fin02-fixtures
+          python scripts/generate_fin02_visual_fixture.py \
+            --out /tmp/fin02-fixtures/_producer/I_financial_reconciliation/financial_reconciliation_snapshot.json
+          test -s /tmp/fin02-fixtures/_producer/A_minimal_canonical/operator_snapshot.json
+          test -s /tmp/fin02-fixtures/_producer/A_minimal_canonical/operator_runtime_manifest.json
+          test -s /tmp/fin02-fixtures/_producer/I_financial_reconciliation/financial_reconciliation_snapshot.json
+
+      - name: Start loopback Operator API
+        env:
+          OPERATOR_SNAPSHOT_PATH: /tmp/fin02-fixtures/_producer/A_minimal_canonical/operator_snapshot.json
+          OPERATOR_RUNTIME_MANIFEST_PATH: /tmp/fin02-fixtures/_producer/A_minimal_canonical/operator_runtime_manifest.json
+          FINANCIAL_RECONCILIATION_SNAPSHOT_PATH: /tmp/fin02-fixtures/_producer/I_financial_reconciliation/financial_reconciliation_snapshot.json
+          OPERATOR_API_DEV_PORT: "8090"
+        run: |
+          nohup python -m observability.operator_api.dev_server >/tmp/fin02-api.log 2>&1 &
+          echo $! >/tmp/fin02-api.pid
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8090/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8090/healthz
+          curl --fail --silent http://127.0.0.1:8090/api/operator/v1/snapshot >/tmp/fin02-snapshot-response.json
+          curl --fail --silent http://127.0.0.1:8090/api/operator/v1/financial-reconciliation >/tmp/fin02-financial-response.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend and Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Start Vite app through loopback API proxy
+        working-directory: frontend
+        run: |
+          nohup npm run dev -- --host 127.0.0.1 >/tmp/fin02-vite.log 2>&1 &
+          echo $! >/tmp/fin02-vite.pid
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/ >/dev/null
+
+      - name: Capture and assert FIN-02 visual proof
+        working-directory: frontend
+        run: node scripts/capture_fin02_financial_visual.mjs
+
+      - name: Collect proof bundle
+        if: always()
+        run: |
+          mkdir -p frontend/artifacts/runtime
+          cp /tmp/fin02-api.log frontend/artifacts/runtime/api.log 2>/dev/null || true
+          cp /tmp/fin02-vite.log frontend/artifacts/runtime/vite.log 2>/dev/null || true
+          cp /tmp/fin02-snapshot-response.json frontend/artifacts/runtime/operator-snapshot-response.json 2>/dev/null || true
+          cp /tmp/fin02-financial-response.json frontend/artifacts/runtime/financial-reconciliation-response.json 2>/dev/null || true
+          cp /tmp/fin02-fixtures/_producer/I_financial_reconciliation/financial_reconciliation_snapshot.json frontend/artifacts/runtime/financial-reconciliation-artifact.json 2>/dev/null || true
+
+      - name: Upload FIN-02 visual proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fin02-financial-visual-proof
+          path: frontend/artifacts/
+          if-no-files-found: error
+          retention-days: 14
