@@ -69,6 +69,11 @@ def context(
     return FinancialContext(
         fin_code_sha=fin_code_sha,
         funding_status=funding_status,
+        funding_evidence_ref=(
+            "FIN-00:PAPER_LINEAR_PRINCIPAL_V1:FUNDING_NOT_MODELED"
+            if funding_status is EvidenceStatus.NOT_APPLICABLE
+            else None
+        ),
         strategy_id=strategy_id,
         strategy_version="v1" if strategy_id else None,
         experiment_id=experiment_id,
@@ -250,6 +255,15 @@ def test_missing_mark_is_unresolved_not_zero() -> None:
     assert snapshot.unrealized_pnl is None
     assert snapshot.certified_equity is None
     assert snapshot.evidence_status is EvidenceStatus.UNRESOLVED
+
+
+
+def test_not_applicable_funding_requires_provenance_reference() -> None:
+    with pytest.raises(ValueError, match="funding_evidence_ref"):
+        FinancialContext(
+            fin_code_sha="fin-sha",
+            funding_status=EvidenceStatus.NOT_APPLICABLE,
+        )
 
 
 def test_unknown_funding_blocks_realized_pnl_and_equity() -> None:
