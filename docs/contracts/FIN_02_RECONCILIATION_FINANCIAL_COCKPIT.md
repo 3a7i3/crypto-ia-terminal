@@ -2,9 +2,9 @@
 
 Status: **SOURCE IMPLEMENTATION CANDIDATE**
 
-Parent architecture: #150  
-Mission: #247  
-Governance: #148  
+Parent architecture: #150
+Mission: #247
+Governance: #148
 Dependencies:
 - FIN-00 — certified
 - FIN-01 — certified
