@@ -187,6 +187,7 @@ def capture_coherent_financial_boundary(
     """
 
     observed_at = canonical_decimal("captured_at", captured_at)
+    valuation_inputs = tuple(valuation_observations)
 
     lifecycle_authority = getattr(
         simulator,
@@ -198,6 +199,11 @@ def capture_coherent_financial_boundary(
     ):
         raise CoherentFinancialCaptureError(
             "R2 requires simulator lifecycle authority=PPL_AUTHORITY"
+        )
+
+    if getattr(simulator, "_shadow_observer", None) is not None:
+        raise CoherentFinancialCaptureError(
+            "R2 PPL_AUTHORITY capture forbids an attached SHADOW observer"
         )
 
     runtime = getattr(simulator, "_authority_runtime", None)
@@ -317,7 +323,7 @@ def capture_coherent_financial_boundary(
             "captured PPL projection has no open-position mapping"
         )
     valuations = _normalize_valuation_evidence(
-        valuation_observations,
+        valuation_inputs,
         open_positions=open_positions,
     )
     valuation_digest = _valuation_evidence_digest(valuations)
@@ -337,6 +343,7 @@ def capture_coherent_financial_boundary(
             "last_source_sequence": ppl_observation.last_sequence,
             "simulator": {
                 "source_id": simulator_observation.source_id,
+                "provenance": simulator_observation.provenance,
                 "cash_available": _decimal_text(
                     simulator_observation.cash_available
                 ),
