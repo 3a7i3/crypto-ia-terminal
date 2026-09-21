@@ -62,6 +62,7 @@ from .models import (
     FinancialLedgerState,
     FinancialSnapshot,
     PositionValuation,
+    financial_context_digest,
     TreasuryView,
     ValuationObservation,
 )
@@ -75,6 +76,7 @@ __all__ += [
     "FinancialLedgerState",
     "FinancialSnapshot",
     "PositionValuation",
+    "financial_context_digest",
     "TreasuryView",
     "ValuationObservation",
     "AdaptedPPLStream",
