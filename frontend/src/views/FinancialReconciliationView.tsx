@@ -125,6 +125,7 @@ export const FinancialReconciliationView: React.FC = () => {
         <div className="fin-provenance">
           <div><span>Epoch</span><code>{snapshot.paper_epoch_id}</code></div>
           <div><span>FIN snapshot</span><code>{snapshot.financial_snapshot_id.slice(0, 16)}…</code></div>
+          <div><span>FIN-02 SHA</span><code>{snapshot.reconciliation_code_sha}</code></div>
           <div><span>PPL sequence</span><code>{snapshot.last_source_sequence}</code></div>
           <div><span>Model</span><code>{snapshot.financial_model}</code></div>
           <div><span>Asset</span><code>{snapshot.asset}</code></div>
