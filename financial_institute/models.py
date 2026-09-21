@@ -179,6 +179,7 @@ class FinancialSnapshot:
     certified_equity: Optional[Decimal]
     valuation_as_of: Decimal
     valuation_set_digest: str
+    valuations: Tuple[PositionValuation, ...]
     valuation_statuses: Tuple[ValuationStatus, ...]
     open_position_count: int
     settled_position_count: int
