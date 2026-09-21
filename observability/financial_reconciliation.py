@@ -53,6 +53,72 @@ def _iso_utc_from_decimal(value: Decimal) -> str:
     )
 
 
+def _capture_simulator_observation_locked(
+    simulator: Any,
+    *,
+    observed_at: Decimal,
+) -> SimulatorFinancialObservation:
+    """Read MEXC_SIM accounting fields while the caller holds its lock.
+
+    This lower-level helper never acquires the simulator lock itself.  It exists
+    so FIN-02R2 can hold one uninterrupted SIM -> PPL critical section without
+    deadlocking on MexcSimulator's non-reentrant threading.Lock.
+    """
+
+    cash = Decimal(str(getattr(simulator, "_capital")))
+    positions_obj = getattr(simulator, "_positions", None)
+    if not isinstance(positions_obj, dict):
+        raise ValueError("MEXC_SIM positions are unavailable")
+
+    position_ids: list[str] = []
+    reserved = Decimal("0")
+    for position in positions_obj.values():
+        trade_id = str(getattr(position, "pos_id"))
+        principal = Decimal(str(getattr(position, "qty_usd")))
+        if principal < 0:
+            raise ValueError("simulator position principal must be >= 0")
+        position_ids.append(trade_id)
+        reserved += principal
+
+    transitions_raw = getattr(
+        simulator,
+        "_legacy_transitions_in_flight",
+        None,
+    )
+    transitions = (
+        transitions_raw
+        if isinstance(transitions_raw, int)
+        and not isinstance(transitions_raw, bool)
+        and transitions_raw >= 0
+        else None
+    )
+
+    orders = getattr(simulator, "_orders", None)
+    if isinstance(orders, dict):
+        pending = 0
+        for order in orders.values():
+            raw_status = getattr(order, "status", "")
+            status = getattr(raw_status, "value", raw_status)
+            if str(status).upper() == "PENDING":
+                pending += 1
+    else:
+        pending = None
+
+    return SimulatorFinancialObservation(
+        observed_at=observed_at,
+        cash_available=cash,
+        capital_reserved=reserved,
+        open_position_ids=tuple(position_ids),
+        lifecycle_transitions_in_flight=transitions,
+        pending_order_count=pending,
+        source_id="MEXC_SIM",
+        provenance=(
+            "MEXC_SIM._capital + sum(_positions.qty_usd) + "
+            "_orders/_legacy_transitions_in_flight under simulator lock"
+        ),
+    )
+
+
 def capture_simulator_observation(
     simulator: Any,
     *,
@@ -69,58 +135,10 @@ def capture_simulator_observation(
         raise ValueError("MEXC_SIM exposes no lock for coherent observation")
 
     with lock:
-        cash = Decimal(str(getattr(simulator, "_capital")))
-        positions_obj = getattr(simulator, "_positions", None)
-        if not isinstance(positions_obj, dict):
-            raise ValueError("MEXC_SIM positions are unavailable")
-
-        position_ids: list[str] = []
-        reserved = Decimal("0")
-        for position in positions_obj.values():
-            trade_id = str(getattr(position, "pos_id"))
-            principal = Decimal(str(getattr(position, "qty_usd")))
-            if principal < 0:
-                raise ValueError("simulator position principal must be >= 0")
-            position_ids.append(trade_id)
-            reserved += principal
-
-        transitions_raw = getattr(
+        return _capture_simulator_observation_locked(
             simulator,
-            "_legacy_transitions_in_flight",
-            None,
+            observed_at=observed_at,
         )
-        transitions = (
-            transitions_raw
-            if isinstance(transitions_raw, int)
-            and not isinstance(transitions_raw, bool)
-            and transitions_raw >= 0
-            else None
-        )
-
-        orders = getattr(simulator, "_orders", None)
-        if isinstance(orders, dict):
-            pending = 0
-            for order in orders.values():
-                raw_status = getattr(order, "status", "")
-                status = getattr(raw_status, "value", raw_status)
-                if str(status).upper() == "PENDING":
-                    pending += 1
-        else:
-            pending = None
-
-    return SimulatorFinancialObservation(
-        observed_at=observed_at,
-        cash_available=cash,
-        capital_reserved=reserved,
-        open_position_ids=tuple(position_ids),
-        lifecycle_transitions_in_flight=transitions,
-        pending_order_count=pending,
-        source_id="MEXC_SIM",
-        provenance=(
-            "MEXC_SIM._capital + sum(_positions.qty_usd) + "
-            "_orders/_legacy_transitions_in_flight under simulator lock"
-        ),
-    )
 
 
 def _record_doc(record: ReconciliationRecord) -> dict[str, Any]:
