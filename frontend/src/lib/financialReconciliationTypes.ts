@@ -48,6 +48,7 @@ export interface FinancialReconciliationSnapshot {
   reconciliation_id: string;
   paper_epoch_id: string;
   financial_snapshot_id: string;
+  reconciliation_code_sha: string;
   source_stream_digest: string;
   last_source_sequence: number;
   fin_schema_version: number;
