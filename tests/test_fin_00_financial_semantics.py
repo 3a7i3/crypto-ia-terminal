@@ -100,6 +100,31 @@ def test_financial_snapshot_identity_changes_when_bound_input_changes() -> None:
         **{**kwargs, "reconciliation_status": "DIVERGENT"}
     )
 
+
+def test_ledger_posting_rejects_non_enum_account_or_side() -> None:
+    with pytest.raises(FinancialContractError, match="FinancialAccount"):
+        LedgerPosting(
+            posting_id="p-bad-account",
+            financial_event_id="f-bad-account",
+            account="CASH_AVAILABLE",  # type: ignore[arg-type]
+            side=PostingSide.DEBIT,
+            asset=ASSET,
+            amount=Decimal("1"),
+            paper_epoch_id=EPOCH,
+        )
+
+    with pytest.raises(FinancialContractError, match="PostingSide"):
+        LedgerPosting(
+            posting_id="p-bad-side",
+            financial_event_id="f-bad-side",
+            account=FinancialAccount.CASH_AVAILABLE,
+            side="DEBIT",  # type: ignore[arg-type]
+            asset=ASSET,
+            amount=Decimal("1"),
+            paper_epoch_id=EPOCH,
+        )
+
+
 def test_epoch_capital_postings_balance_exactly() -> None:
     postings = [
         post("p1", "f1", FinancialAccount.CASH_AVAILABLE, PostingSide.DEBIT, "1000"),
@@ -277,6 +302,20 @@ def test_certified_equity_requires_live_marks_for_open_positions() -> None:
         funding_status=EvidenceStatus.COMPLETE,
     ) == Decimal("1000.99")
 
+
+def test_certified_equity_rejects_unrealized_pnl_without_open_positions() -> None:
+    with pytest.raises(FinancialContractError, match="unrealized_pnl"):
+        certified_equity(
+            cash_available="1000",
+            capital_reserved="0",
+            unrealized_pnl="1",
+            capital_unresolved="0",
+            open_position_count=0,
+            valuation_statuses=(),
+            funding_status=EvidenceStatus.NOT_APPLICABLE,
+        )
+
+
 def test_certified_equity_requires_one_live_mark_per_open_position() -> None:
     assert (
         certified_equity(
@@ -325,6 +364,27 @@ def test_certified_equity_requires_complete_or_not_applicable_funding() -> None:
         valuation_statuses=(ValuationStatus.LIVE,),
         funding_status=EvidenceStatus.NOT_APPLICABLE,
     ) == Decimal("1000")
+
+
+def test_snapshot_identity_rejects_unknown_status_vocabulary() -> None:
+    kwargs = dict(
+        paper_epoch_id=EPOCH,
+        last_source_sequence=1,
+        source_stream_digest="a" * 64,
+        schema_version=1,
+        code_sha="b" * 40,
+        config_hash="c" * 64,
+        semantic_context_digest="ctx",
+        valuation_set_digest="d" * 64,
+        valuation_as_of="1000",
+        evidence_status="COMPLETE",
+        reconciliation_status="UNRESOLVED",
+    )
+    with pytest.raises(FinancialContractError, match="closed vocabulary"):
+        derive_financial_snapshot_id(
+            **{**kwargs, "evidence_status": "MAYBE"}
+        )
+
 
 def test_reconciliation_delta_is_observation_minus_projection() -> None:
     assert reconciliation_delta(projected="100", observed="99.75") == Decimal("-0.25")
