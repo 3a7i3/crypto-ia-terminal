@@ -11,7 +11,6 @@ from financial_institute.models import (
     FinancialContext,
     FinancialSnapshot,
     ValuationObservation,
-    financial_context_digest,
 )
 from financial_institute.ppl_adapter import adapt_ppl_stream
 from financial_institute.semantics import (
@@ -118,7 +117,7 @@ def build_financial_snapshot(
         if event.event_type is LedgerEventType.POSITION_UNRESOLVED
     )
 
-    context_digest = financial_context_digest(context)
+    context_digest = adapted.semantic_context_digest
     reconciliation_status = ReconciliationStatus.UNRESOLVED
 
     snapshot_id = derive_financial_snapshot_id(
