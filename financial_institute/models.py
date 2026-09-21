@@ -28,6 +28,7 @@ class FinancialContext:
     source_authority: str = "PPL_AUTHORITY"
     financial_model: FinancialModel = FinancialModel.PAPER_LINEAR_PRINCIPAL_V1
     funding_status: EvidenceStatus = EvidenceStatus.UNRESOLVED
+    funding_evidence_ref: Optional[str] = None
     strategy_id: Optional[str] = None
     strategy_version: Optional[str] = None
     experiment_id: Optional[str] = None
@@ -39,6 +40,10 @@ class FinancialContext:
             raise ValueError("fin_code_sha must be non-empty")
         if not self.asset:
             raise ValueError("asset must be non-empty")
+        if not isinstance(self.financial_model, FinancialModel):
+            raise ValueError("financial_model must be a FinancialModel")
+        if not isinstance(self.funding_status, EvidenceStatus):
+            raise ValueError("funding_status must be an EvidenceStatus")
         if self.source_authority != "PPL_AUTHORITY":
             raise ValueError("FIN-01 requires source_authority=PPL_AUTHORITY")
         if self.financial_model is not FinancialModel.PAPER_LINEAR_PRINCIPAL_V1:
@@ -51,6 +56,13 @@ class FinancialContext:
         }:
             raise ValueError(
                 "PPL-only FIN-01 cannot claim COMPLETE/PARTIAL funding evidence"
+            )
+        if (
+            self.funding_status is EvidenceStatus.NOT_APPLICABLE
+            and not self.funding_evidence_ref
+        ):
+            raise ValueError(
+                "NOT_APPLICABLE funding requires funding_evidence_ref"
             )
         if self.strategy_version and not self.strategy_id:
             raise ValueError("strategy_version requires strategy_id")
@@ -66,6 +78,7 @@ def financial_context_digest(context: FinancialContext) -> str:
             "source_authority": context.source_authority,
             "financial_model": context.financial_model.value,
             "funding_status": context.funding_status.value,
+            "funding_evidence_ref": context.funding_evidence_ref,
             "strategy_id": context.strategy_id,
             "strategy_version": context.strategy_version,
             "experiment_id": context.experiment_id,
@@ -109,6 +122,7 @@ class FinancialEvent:
             raise ValueError("fin_code_sha must be non-empty")
         if not self.config_hash:
             raise ValueError("config_hash must be non-empty")
+        object.__setattr__(self, "postings", tuple(self.postings))
 
 
 @dataclass(frozen=True)
@@ -124,6 +138,11 @@ class FinancialLedgerState:
             self,
             "balances",
             MappingProxyType(dict(self.balances)),
+        )
+        object.__setattr__(
+            self,
+            "applied_financial_event_ids",
+            frozenset(self.applied_financial_event_ids),
         )
 
 
@@ -141,6 +160,7 @@ class TreasuryView:
     fees_paid: Decimal
     funding_net: Optional[Decimal]
     funding_status: EvidenceStatus
+    funding_evidence_ref: Optional[str]
     realized_pnl: Optional[Decimal]
 
 
@@ -197,6 +217,7 @@ class FinancialSnapshot:
     fees_paid: Decimal
     funding_net: Optional[Decimal]
     funding_status: EvidenceStatus
+    funding_evidence_ref: Optional[str]
     realized_pnl: Optional[Decimal]
     known_unrealized_pnl: Decimal
     unrealized_pnl: Optional[Decimal]
