@@ -222,6 +222,7 @@ class FinancialReconciliationSnapshot:
     schema_version: int
     paper_epoch_id: str
     financial_snapshot_id: str
+    reconciliation_code_sha: str
     source_stream_digest: str
     last_source_sequence: int
     as_of: Decimal
@@ -530,6 +531,33 @@ def _identity_set_record(
     )
 
 
+def _record_digest(record: ReconciliationRecord) -> str:
+    return canonical_identity_hash(
+        "FIN02_RECONCILIATION_RECORD_STATE_V1",
+        {
+            "record_id": record.record_id,
+            "source_kind": record.source_kind.value,
+            "source_id": record.source_id,
+            "field": record.field,
+            "projected_value": _decimal_text(record.projected_value),
+            "observed_value": _decimal_text(record.observed_value),
+            "delta_observed_minus_projected": _decimal_text(
+                record.delta_observed_minus_projected
+            ),
+            "unreconciled_amount": _decimal_text(
+                record.unreconciled_amount
+            ),
+            "status": record.status.value,
+            "comparability": record.comparability.value,
+            "freshness": record.freshness.value,
+            "observed_at": _decimal_text(record.observed_at),
+            "projected_provenance": record.projected_provenance,
+            "observed_provenance": record.observed_provenance,
+            "note": record.note,
+        },
+    )
+
+
 def _overall_status(
     records: Sequence[ReconciliationRecord],
 ) -> ReconciliationStatus:
@@ -555,6 +583,7 @@ def reconcile_financial_snapshot(
     snapshot: FinancialSnapshot,
     ppl: PPLFinancialObservation,
     *,
+    reconciliation_code_sha: str,
     policy: ReconciliationPolicy,
     as_of: Decimal,
     simulator: Optional[SimulatorFinancialObservation] = None,
@@ -563,6 +592,11 @@ def reconcile_financial_snapshot(
     """Compare FIN truth against explicit observations without correction."""
 
     as_of_value = canonical_decimal("as_of", as_of)
+    if (
+        not isinstance(reconciliation_code_sha, str)
+        or not reconciliation_code_sha
+    ):
+        raise ValueError("reconciliation_code_sha must be a non-empty string")
     if snapshot.paper_epoch_id != ppl.paper_epoch_id:
         raise ValueError("FIN/PPL paper_epoch_id mismatch")
     if snapshot.source_stream_digest != ppl.source_stream_digest:
@@ -874,6 +908,7 @@ def reconcile_financial_snapshot(
             "schema_version": FIN_RECONCILIATION_SCHEMA_VERSION,
             "paper_epoch_id": snapshot.paper_epoch_id,
             "financial_snapshot_id": snapshot.snapshot_id,
+            "reconciliation_code_sha": reconciliation_code_sha,
             "source_stream_digest": snapshot.source_stream_digest,
             "last_source_sequence": snapshot.last_source_sequence,
             "as_of": _decimal_text(as_of_value),
@@ -886,8 +921,9 @@ def reconcile_financial_snapshot(
             "ppl_observation_digest": ppl_digest,
             "simulator_observation_digest": simulator_digest,
             "external_observation_digest": external_digest,
-            "record_ids": [record.record_id for record in records],
-            "record_statuses": [record.status.value for record in records],
+            "record_digests": [
+                _record_digest(record) for record in records
+            ],
         },
     )
 
@@ -896,6 +932,7 @@ def reconcile_financial_snapshot(
         schema_version=FIN_RECONCILIATION_SCHEMA_VERSION,
         paper_epoch_id=snapshot.paper_epoch_id,
         financial_snapshot_id=snapshot.snapshot_id,
+        reconciliation_code_sha=reconciliation_code_sha,
         source_stream_digest=snapshot.source_stream_digest,
         last_source_sequence=snapshot.last_source_sequence,
         as_of=as_of_value,
