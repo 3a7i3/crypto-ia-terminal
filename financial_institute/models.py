@@ -13,6 +13,7 @@ from financial_institute.semantics import (
     LedgerPosting,
     ReconciliationStatus,
     ValuationStatus,
+    canonical_decimal,
     canonical_identity_hash,
 )
 
@@ -66,8 +67,8 @@ class FinancialContext:
                 != PAPER_LINEAR_FUNDING_EVIDENCE_REF
             ):
                 raise ValueError(
-                    "NOT_APPLICABLE funding requires the certified "
-                    "PAPER_LINEAR_PRINCIPAL_V1 evidence reference"
+                    "NOT_APPLICABLE funding requires certified "
+                    "funding_evidence_ref for PAPER_LINEAR_PRINCIPAL_V1"
                 )
         for name in (
             "funding_evidence_ref",
@@ -124,23 +125,49 @@ class FinancialEvent:
     postings: Tuple[LedgerPosting, ...]
 
     def __post_init__(self) -> None:
-        if not self.financial_event_id:
-            raise ValueError("financial_event_id must be non-empty")
-        if not self.paper_epoch_id:
-            raise ValueError("paper_epoch_id must be non-empty")
-        if not self.source_event_id:
-            raise ValueError("source_event_id must be non-empty")
-        if self.source_sequence < 1:
-            raise ValueError("source_sequence must be >= 1")
-        if self.fin_schema_version < 1:
-            raise ValueError("fin_schema_version must be >= 1")
-        if not self.semantic_context_digest:
-            raise ValueError("semantic_context_digest must be non-empty")
-        if not self.fin_code_sha:
-            raise ValueError("fin_code_sha must be non-empty")
-        if not self.config_hash:
-            raise ValueError("config_hash must be non-empty")
-        object.__setattr__(self, "postings", tuple(self.postings))
+        for name in (
+            "financial_event_id",
+            "paper_epoch_id",
+            "source_event_id",
+            "source_event_type",
+            "semantic_context_digest",
+            "fin_code_sha",
+            "config_hash",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value:
+                raise ValueError(f"{name} must be a non-empty string")
+        if (
+            not isinstance(self.source_sequence, int)
+            or isinstance(self.source_sequence, bool)
+            or self.source_sequence < 1
+        ):
+            raise ValueError("source_sequence must be an integer >= 1")
+        if (
+            not isinstance(self.source_schema_version, int)
+            or isinstance(self.source_schema_version, bool)
+            or self.source_schema_version < 1
+        ):
+            raise ValueError("source_schema_version must be an integer >= 1")
+        if (
+            not isinstance(self.fin_schema_version, int)
+            or isinstance(self.fin_schema_version, bool)
+            or self.fin_schema_version < 1
+        ):
+            raise ValueError("fin_schema_version must be an integer >= 1")
+        for name in ("trade_id", "decision_id"):
+            value = getattr(self, name)
+            if value is not None and (
+                not isinstance(value, str) or not value
+            ):
+                raise ValueError(f"{name} must be a non-empty string or null")
+
+        timestamp = canonical_decimal("timestamp", self.timestamp)
+        postings = tuple(self.postings)
+        if not postings:
+            raise ValueError("FinancialEvent must contain postings")
+        object.__setattr__(self, "timestamp", timestamp)
+        object.__setattr__(self, "postings", postings)
 
 
 @dataclass(frozen=True)
@@ -264,12 +291,24 @@ class FinancialSnapshot:
             raise ValueError("paper_epoch_id must be non-empty")
         if not self.semantic_context_digest:
             raise ValueError("semantic_context_digest must be non-empty")
-        if self.open_position_count < 0:
-            raise ValueError("open_position_count must be >= 0")
-        if self.settled_position_count < 0:
-            raise ValueError("settled_position_count must be >= 0")
-        if self.unresolved_position_count < 0:
-            raise ValueError("unresolved_position_count must be >= 0")
+        for name in (
+            "open_position_count",
+            "settled_position_count",
+            "unresolved_position_count",
+            "last_source_sequence",
+            "fin_schema_version",
+        ):
+            value = getattr(self, name)
+            if (
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or value < 0
+            ):
+                raise ValueError(f"{name} must be an integer >= 0")
+        if self.last_source_sequence < 1:
+            raise ValueError("last_source_sequence must be >= 1")
+        if self.fin_schema_version < 1:
+            raise ValueError("fin_schema_version must be >= 1")
 
         valuations = tuple(self.valuations)
         statuses = tuple(self.valuation_statuses)
