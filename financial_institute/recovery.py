@@ -33,7 +33,6 @@ from paper_trading.paper_portfolio_ledger import (
     project,
 )
 from paper_trading.ppl_recovery import (
-    RestartPositionPlan,
     RestartRecoveryPlan,
     plan_restart_recovery,
 )
