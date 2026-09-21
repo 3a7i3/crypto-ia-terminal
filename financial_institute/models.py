@@ -35,8 +35,6 @@ class FinancialContext:
     market_type: Optional[str] = None
 
     def __post_init__(self) -> None:
-        if not self.semantic_context_digest:
-            raise ValueError("semantic_context_digest must be non-empty")
         if not self.fin_code_sha:
             raise ValueError("fin_code_sha must be non-empty")
         if not self.asset:
@@ -58,7 +56,6 @@ class FinancialContext:
             raise ValueError("strategy_version requires strategy_id")
 
 
-@dataclass(frozen=True)
 def financial_context_digest(context: FinancialContext) -> str:
     """Deterministic digest of every semantic input not carried by PPL."""
 
@@ -106,6 +103,8 @@ class FinancialEvent:
             raise ValueError("source_sequence must be >= 1")
         if self.fin_schema_version < 1:
             raise ValueError("fin_schema_version must be >= 1")
+        if not self.semantic_context_digest:
+            raise ValueError("semantic_context_digest must be non-empty")
         if not self.fin_code_sha:
             raise ValueError("fin_code_sha must be non-empty")
         if not self.config_hash:
