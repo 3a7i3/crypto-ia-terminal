@@ -95,6 +95,7 @@ def _doc():
     reconciliation = reconcile_financial_snapshot(
         financial,
         ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
         policy=ReconciliationPolicy(
             absolute_tolerance=Decimal("0.000000000001"),
             relative_tolerance=Decimal("0"),
