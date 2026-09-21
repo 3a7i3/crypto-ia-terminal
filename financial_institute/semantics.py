@@ -20,15 +20,12 @@ from typing import Iterable, Mapping, Optional, Sequence, Union
 
 Numberish = Union[Decimal, int, float, str]
 
-
 class FinancialContractError(ValueError):
     """A FIN semantic invariant was violated."""
-
 
 class PostingSide(str, Enum):
     DEBIT = "DEBIT"
     CREDIT = "CREDIT"
-
 
 class AccountKind(str, Enum):
     ASSET = "ASSET"
@@ -36,14 +33,12 @@ class AccountKind(str, Enum):
     INCOME = "INCOME"
     EXPENSE = "EXPENSE"
 
-
 class FinancialModel(str, Enum):
     """Closed accounting-model vocabulary for FIN-00."""
 
     PAPER_LINEAR_PRINCIPAL_V1 = "PAPER_LINEAR_PRINCIPAL_V1"
     SPOT_QUANTITY = "SPOT_QUANTITY"
     DERIVATIVE_CONTRACT = "DERIVATIVE_CONTRACT"
-
 
 class FinancialAccount(str, Enum):
     """FIN-00 PAPER v1 chart of accounts.
@@ -61,7 +56,6 @@ class FinancialAccount(str, Enum):
     FEES_EXPENSE = "FEES_EXPENSE"
     FUNDING_PNL = "FUNDING_PNL"
 
-
 ACCOUNT_KINDS = {
     FinancialAccount.CASH_AVAILABLE: AccountKind.ASSET,
     FinancialAccount.CAPITAL_RESERVED: AccountKind.ASSET,
@@ -72,27 +66,22 @@ ACCOUNT_KINDS = {
     FinancialAccount.FUNDING_PNL: AccountKind.INCOME,
 }
 
-
 class EvidenceStatus(str, Enum):
     COMPLETE = "COMPLETE"
     PARTIAL = "PARTIAL"
     UNRESOLVED = "UNRESOLVED"
     NOT_APPLICABLE = "NOT_APPLICABLE"
 
-
 class ValuationStatus(str, Enum):
     LIVE = "LIVE"
     STALE = "STALE"
     UNAVAILABLE = "UNAVAILABLE"
-
 
 class ReconciliationStatus(str, Enum):
     EXACT = "EXACT"
     WITHIN_TOLERANCE = "WITHIN_TOLERANCE"
     DIVERGENT = "DIVERGENT"
     UNRESOLVED = "UNRESOLVED"
-
-
 
 def canonical_identity_hash(namespace: str, fields: Mapping[str, object]) -> str:
     """Return the FIN-00 canonical identity hash.
@@ -117,7 +106,6 @@ def canonical_identity_hash(namespace: str, fields: Mapping[str, object]) -> str
     material = f"{namespace}\n{payload}".encode("utf-8")
     return hashlib.sha256(material).hexdigest()
 
-
 def derive_financial_event_id(
     *,
     source_domain: str,
@@ -126,8 +114,9 @@ def derive_financial_event_id(
     paper_epoch_id: str,
     source_sequence: int,
     schema_version: int,
+    semantic_context_digest: str,
 ) -> str:
-    """Deterministic FIN event identity derived from immutable source identity."""
+    """Deterministic FIN event identity derived from source + semantic context."""
 
     identity = FinancialEventIdentity(
         financial_event_id="pending",
@@ -137,6 +126,7 @@ def derive_financial_event_id(
         paper_epoch_id=paper_epoch_id,
         source_sequence=source_sequence,
         schema_version=schema_version,
+        semantic_context_digest=semantic_context_digest,
         code_sha="identity-only",
         config_hash="identity-only",
     )
@@ -149,9 +139,9 @@ def derive_financial_event_id(
             "paper_epoch_id": identity.paper_epoch_id,
             "source_sequence": identity.source_sequence,
             "schema_version": identity.schema_version,
+            "semantic_context_digest": identity.semantic_context_digest,
         },
     )
-
 
 def derive_financial_snapshot_id(
     *,
@@ -161,18 +151,32 @@ def derive_financial_snapshot_id(
     schema_version: int,
     code_sha: str,
     config_hash: str,
+    semantic_context_digest: str,
     valuation_set_digest: str,
     valuation_as_of: str,
+    evidence_status: str,
+    reconciliation_status: str,
 ) -> str:
     """Deterministic immutable FinancialSnapshot identity contract."""
+
+    try:
+        EvidenceStatus(evidence_status)
+        ReconciliationStatus(reconciliation_status)
+    except ValueError as exc:
+        raise FinancialContractError(
+            "snapshot evidence/reconciliation status is outside the closed vocabulary"
+        ) from exc
 
     for name, value in (
         ("paper_epoch_id", paper_epoch_id),
         ("source_stream_digest", source_stream_digest),
         ("code_sha", code_sha),
         ("config_hash", config_hash),
+        ("semantic_context_digest", semantic_context_digest),
         ("valuation_set_digest", valuation_set_digest),
         ("valuation_as_of", valuation_as_of),
+        ("evidence_status", evidence_status),
+        ("reconciliation_status", reconciliation_status),
     ):
         if not value:
             raise FinancialContractError(f"{name} must be non-empty")
@@ -198,11 +202,13 @@ def derive_financial_snapshot_id(
             "schema_version": schema_version,
             "code_sha": code_sha,
             "config_hash": config_hash,
+            "semantic_context_digest": semantic_context_digest,
             "valuation_set_digest": valuation_set_digest,
             "valuation_as_of": valuation_as_of,
+            "evidence_status": evidence_status,
+            "reconciliation_status": reconciliation_status,
         },
     )
-
 
 def canonical_decimal(name: str, value: Numberish) -> Decimal:
     """Normalize a financial scalar without silently rounding it."""
@@ -217,7 +223,6 @@ def canonical_decimal(name: str, value: Numberish) -> Decimal:
         raise FinancialContractError(f"{name} must be finite, got {value!r}")
     return normalized
 
-
 @dataclass(frozen=True)
 class FinancialEventIdentity:
     """Minimum provenance required for a FIN event derived from source facts."""
@@ -229,6 +234,7 @@ class FinancialEventIdentity:
     paper_epoch_id: str
     source_sequence: int
     schema_version: int
+    semantic_context_digest: str
     code_sha: str
     config_hash: str
 
@@ -239,6 +245,7 @@ class FinancialEventIdentity:
             "source_authority",
             "source_event_id",
             "paper_epoch_id",
+            "semantic_context_digest",
             "code_sha",
             "config_hash",
         ):
@@ -257,7 +264,6 @@ class FinancialEventIdentity:
         ):
             raise FinancialContractError("schema_version must be an integer >= 1")
 
-
 @dataclass(frozen=True)
 class LedgerPosting:
     """One side of a double-entry FIN journal event."""
@@ -274,11 +280,14 @@ class LedgerPosting:
         for name in ("posting_id", "financial_event_id", "asset", "paper_epoch_id"):
             if not getattr(self, name):
                 raise FinancialContractError(f"{name} must be non-empty")
+        if not isinstance(self.account, FinancialAccount):
+            raise FinancialContractError("account must be a FinancialAccount")
+        if not isinstance(self.side, PostingSide):
+            raise FinancialContractError("side must be a PostingSide")
         amount = canonical_decimal("amount", self.amount)
         if amount <= 0:
             raise FinancialContractError("posting amount must be > 0")
         object.__setattr__(self, "amount", amount)
-
 
 def assert_balanced_postings(postings: Iterable[LedgerPosting]) -> None:
     """Require exact debit == credit for one FinancialEvent."""
@@ -311,20 +320,17 @@ def assert_balanced_postings(postings: Iterable[LedgerPosting]) -> None:
             f"unbalanced financial event: debit={debit} credit={credit}"
         )
 
-
 def _positive(name: str, value: Numberish) -> Decimal:
     normalized = canonical_decimal(name, value)
     if normalized <= 0:
         raise FinancialContractError(f"{name} must be > 0")
     return normalized
 
-
 def _non_negative(name: str, value: Numberish) -> Decimal:
     normalized = canonical_decimal(name, value)
     if normalized < 0:
         raise FinancialContractError(f"{name} must be >= 0")
     return normalized
-
 
 def linear_price_pnl(
     *,
@@ -350,7 +356,6 @@ def linear_price_pnl(
         return p * (entry - current) / entry
     raise FinancialContractError("side must be LONG or SHORT")
 
-
 def realized_pnl_to_date(
     *,
     gross_realized_price_pnl: Numberish,
@@ -370,7 +375,6 @@ def realized_pnl_to_date(
     funding = canonical_decimal("funding_net", funding_net)
     return gross + funding - fees
 
-
 def book_equity_at_cost(
     *,
     cash_available: Numberish,
@@ -383,7 +387,6 @@ def book_equity_at_cost(
     reserved = _non_negative("capital_reserved", capital_reserved)
     unresolved = _non_negative("capital_unresolved", capital_unresolved)
     return cash + reserved + unresolved
-
 
 def certified_equity(
     *,
@@ -421,13 +424,15 @@ def certified_equity(
         raise FinancialContractError(
             "capital_reserved and open_position_count disagree about open exposure"
         )
+    if open_position_count == 0 and unrealized != 0:
+        raise FinancialContractError(
+            "unrealized_pnl must be zero when no positions are open"
+        )
     if len(valuation_statuses) != open_position_count:
         return None
     if any(status is not ValuationStatus.LIVE for status in valuation_statuses):
         return None
     return cash + reserved + unrealized
-
-
 
 def reconciliation_delta(
     *, projected: Numberish, observed: Numberish
@@ -442,14 +447,12 @@ def reconciliation_delta(
     o = canonical_decimal("observed", observed)
     return o - p
 
-
 def unreconciled_capital(
     *, projected: Numberish, observed: Numberish
 ) -> Decimal:
     """Absolute magnitude of a known reconciliation difference."""
 
     return abs(reconciliation_delta(projected=projected, observed=observed))
-
 
 def within_reconciliation_tolerance(
     *,

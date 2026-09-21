@@ -6,9 +6,9 @@ import pytest
 
 from financial_institute.semantics import (
     FinancialAccount,
+    EvidenceStatus,
     FinancialContractError,
     FinancialModel,
-    EvidenceStatus,
     LedgerPosting,
     PostingSide,
     ValuationStatus,
@@ -25,10 +25,8 @@ from financial_institute.semantics import (
     within_reconciliation_tolerance,
 )
 
-
 EPOCH = "F00-EPOCH-TEST"
 ASSET = "USDT"
-
 
 def post(
     posting_id: str,
@@ -47,16 +45,12 @@ def post(
         paper_epoch_id=EPOCH,
     )
 
-
-
-
 def test_financial_models_are_explicitly_distinct() -> None:
     assert FinancialModel.PAPER_LINEAR_PRINCIPAL_V1 != FinancialModel.SPOT_QUANTITY
     assert (
         FinancialModel.PAPER_LINEAR_PRINCIPAL_V1
         != FinancialModel.DERIVATIVE_CONTRACT
     )
-
 
 def test_financial_event_identity_is_deterministic_and_source_bound() -> None:
     kwargs = dict(
@@ -66,13 +60,16 @@ def test_financial_event_identity_is_deterministic_and_source_bound() -> None:
         paper_epoch_id=EPOCH,
         source_sequence=4,
         schema_version=1,
+        semantic_context_digest="ctx-a",
     )
     first = derive_financial_event_id(**kwargs)
     second = derive_financial_event_id(**kwargs)
     assert first == second
     assert len(first) == 64
     assert first != derive_financial_event_id(**{**kwargs, "source_sequence": 5})
-
+    assert first != derive_financial_event_id(
+        **{**kwargs, "semantic_context_digest": "ctx-b"}
+    )
 
 def test_financial_snapshot_identity_changes_when_bound_input_changes() -> None:
     kwargs = dict(
@@ -82,14 +79,50 @@ def test_financial_snapshot_identity_changes_when_bound_input_changes() -> None:
         schema_version=1,
         code_sha="b" * 40,
         config_hash="c" * 64,
+        semantic_context_digest="ctx-a",
         valuation_set_digest="d" * 64,
         valuation_as_of="2026-09-20T23:59:00Z",
+        evidence_status="COMPLETE",
+        reconciliation_status="UNRESOLVED",
     )
     first = derive_financial_snapshot_id(**kwargs)
     assert first == derive_financial_snapshot_id(**kwargs)
     assert first != derive_financial_snapshot_id(
         **{**kwargs, "valuation_set_digest": "e" * 64}
     )
+    assert first != derive_financial_snapshot_id(
+        **{**kwargs, "semantic_context_digest": "ctx-b"}
+    )
+    assert first != derive_financial_snapshot_id(
+        **{**kwargs, "evidence_status": "UNRESOLVED"}
+    )
+    assert first != derive_financial_snapshot_id(
+        **{**kwargs, "reconciliation_status": "DIVERGENT"}
+    )
+
+
+def test_ledger_posting_rejects_non_enum_account_or_side() -> None:
+    with pytest.raises(FinancialContractError, match="FinancialAccount"):
+        LedgerPosting(
+            posting_id="p-bad-account",
+            financial_event_id="f-bad-account",
+            account="CASH_AVAILABLE",  # type: ignore[arg-type]
+            side=PostingSide.DEBIT,
+            asset=ASSET,
+            amount=Decimal("1"),
+            paper_epoch_id=EPOCH,
+        )
+
+    with pytest.raises(FinancialContractError, match="PostingSide"):
+        LedgerPosting(
+            posting_id="p-bad-side",
+            financial_event_id="f-bad-side",
+            account=FinancialAccount.CASH_AVAILABLE,
+            side="DEBIT",  # type: ignore[arg-type]
+            asset=ASSET,
+            amount=Decimal("1"),
+            paper_epoch_id=EPOCH,
+        )
 
 
 def test_epoch_capital_postings_balance_exactly() -> None:
@@ -99,7 +132,6 @@ def test_epoch_capital_postings_balance_exactly() -> None:
     ]
     assert_balanced_postings(postings)
 
-
 def test_open_postings_balance_principal_and_entry_fee_once() -> None:
     postings = [
         post("p1", "f-open", FinancialAccount.CAPITAL_RESERVED, PostingSide.DEBIT, "10"),
@@ -107,7 +139,6 @@ def test_open_postings_balance_principal_and_entry_fee_once() -> None:
         post("p3", "f-open", FinancialAccount.CASH_AVAILABLE, PostingSide.CREDIT, "10.01"),
     ]
     assert_balanced_postings(postings)
-
 
 def test_close_gain_postings_balance_release_gain_and_exit_fee() -> None:
     postings = [
@@ -125,7 +156,6 @@ def test_close_gain_postings_balance_release_gain_and_exit_fee() -> None:
         post("p6", "f-close", FinancialAccount.CASH_AVAILABLE, PostingSide.CREDIT, "0.01"),
     ]
     assert_balanced_postings(postings)
-
 
 def test_close_loss_postings_balance_without_inverting_cash_semantics() -> None:
     postings = [
@@ -148,8 +178,6 @@ def test_close_loss_postings_balance_without_inverting_cash_semantics() -> None:
     ]
     assert_balanced_postings(postings)
 
-
-
 def test_funding_received_postings_balance() -> None:
     postings = [
         post("p1", "f-funding-in", FinancialAccount.CASH_AVAILABLE, PostingSide.DEBIT, "0.25"),
@@ -157,14 +185,12 @@ def test_funding_received_postings_balance() -> None:
     ]
     assert_balanced_postings(postings)
 
-
 def test_funding_paid_postings_balance() -> None:
     postings = [
         post("p1", "f-funding-out", FinancialAccount.FUNDING_PNL, PostingSide.DEBIT, "0.25"),
         post("p2", "f-funding-out", FinancialAccount.CASH_AVAILABLE, PostingSide.CREDIT, "0.25"),
     ]
     assert_balanced_postings(postings)
-
 
 def test_unresolved_moves_principal_without_fabricated_cash_or_pnl() -> None:
     postings = [
@@ -185,7 +211,6 @@ def test_unresolved_moves_principal_without_fabricated_cash_or_pnl() -> None:
     ]
     assert_balanced_postings(postings)
 
-
 def test_unbalanced_financial_event_fails_closed() -> None:
     postings = [
         post("p1", "f-bad", FinancialAccount.CASH_AVAILABLE, PostingSide.DEBIT, "10"),
@@ -193,7 +218,6 @@ def test_unbalanced_financial_event_fails_closed() -> None:
     ]
     with pytest.raises(FinancialContractError, match="unbalanced"):
         assert_balanced_postings(postings)
-
 
 @pytest.mark.parametrize(
     ("side", "expected"),
@@ -213,7 +237,6 @@ def test_linear_price_pnl_matches_current_ppl_price_return_contract(
     )
     assert pnl == expected
 
-
 def test_realized_pnl_recognizes_fees_when_charged() -> None:
     assert realized_pnl_to_date(
         gross_realized_price_pnl="0",
@@ -221,14 +244,12 @@ def test_realized_pnl_recognizes_fees_when_charged() -> None:
         funding_net="0",
     ) == Decimal("-0.01")
 
-
 def test_book_equity_conserves_historical_principal_when_unresolved() -> None:
     assert book_equity_at_cost(
         cash_available="989.99",
         capital_reserved="0",
         capital_unresolved="10",
     ) == Decimal("999.99")
-
 
 def test_certified_equity_requires_no_unresolved_capital() -> None:
     assert (
@@ -244,7 +265,6 @@ def test_certified_equity_requires_no_unresolved_capital() -> None:
         is None
     )
 
-
 def test_certified_equity_fails_closed_when_reserved_capital_has_no_marks() -> None:
     assert (
         certified_equity(
@@ -258,7 +278,6 @@ def test_certified_equity_fails_closed_when_reserved_capital_has_no_marks() -> N
         )
         is None
     )
-
 
 def test_certified_equity_requires_live_marks_for_open_positions() -> None:
     assert (
@@ -284,6 +303,18 @@ def test_certified_equity_requires_live_marks_for_open_positions() -> None:
     ) == Decimal("1000.99")
 
 
+def test_certified_equity_rejects_unrealized_pnl_without_open_positions() -> None:
+    with pytest.raises(FinancialContractError, match="unrealized_pnl"):
+        certified_equity(
+            cash_available="1000",
+            capital_reserved="0",
+            unrealized_pnl="1",
+            capital_unresolved="0",
+            open_position_count=0,
+            valuation_statuses=(),
+            funding_status=EvidenceStatus.NOT_APPLICABLE,
+        )
+
 
 def test_certified_equity_requires_one_live_mark_per_open_position() -> None:
     assert (
@@ -299,7 +330,6 @@ def test_certified_equity_requires_one_live_mark_per_open_position() -> None:
         is None
     )
 
-
 def test_certified_equity_rejects_open_count_reserved_capital_mismatch() -> None:
     with pytest.raises(FinancialContractError, match="disagree"):
         certified_equity(
@@ -311,9 +341,6 @@ def test_certified_equity_rejects_open_count_reserved_capital_mismatch() -> None
             valuation_statuses=(ValuationStatus.LIVE,),
             funding_status=EvidenceStatus.COMPLETE,
         )
-
-
-
 
 def test_certified_equity_requires_complete_or_not_applicable_funding() -> None:
     assert (
@@ -339,10 +366,29 @@ def test_certified_equity_requires_complete_or_not_applicable_funding() -> None:
     ) == Decimal("1000")
 
 
+def test_snapshot_identity_rejects_unknown_status_vocabulary() -> None:
+    kwargs = dict(
+        paper_epoch_id=EPOCH,
+        last_source_sequence=1,
+        source_stream_digest="a" * 64,
+        schema_version=1,
+        code_sha="b" * 40,
+        config_hash="c" * 64,
+        semantic_context_digest="ctx",
+        valuation_set_digest="d" * 64,
+        valuation_as_of="1000",
+        evidence_status="COMPLETE",
+        reconciliation_status="UNRESOLVED",
+    )
+    with pytest.raises(FinancialContractError, match="closed vocabulary"):
+        derive_financial_snapshot_id(
+            **{**kwargs, "evidence_status": "MAYBE"}
+        )
+
+
 def test_reconciliation_delta_is_observation_minus_projection() -> None:
     assert reconciliation_delta(projected="100", observed="99.75") == Decimal("-0.25")
     assert unreconciled_capital(projected="100", observed="99.75") == Decimal("0.25")
-
 
 def test_reconciliation_tolerance_is_explicit() -> None:
     assert within_reconciliation_tolerance(
@@ -357,7 +403,6 @@ def test_reconciliation_tolerance_is_explicit() -> None:
         absolute_tolerance="0",
         relative_tolerance="0",
     )
-
 
 @pytest.mark.parametrize("bad", ["NaN", "Infinity", "-Infinity"])
 def test_non_finite_financial_values_fail_closed(bad: str) -> None:
