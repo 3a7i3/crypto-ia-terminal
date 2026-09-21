@@ -201,5 +201,6 @@ def treasury_view(
         fees_paid=fees,
         funding_net=funding_net,
         funding_status=context.funding_status,
+        funding_evidence_ref=context.funding_evidence_ref,
         realized_pnl=realized,
     )
