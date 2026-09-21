@@ -15,9 +15,10 @@ import { DecisionsView } from "./views/DecisionsView";
 import { SystemView } from "./views/SystemView";
 import { MarketView } from "./views/MarketView";
 import { PplComparisonView } from "./views/PplComparisonView";
+import { FinancialReconciliationView } from "./views/FinancialReconciliationView";
 import { NotExposedView } from "./views/NotExposedView";
 
-type Tab = "overview" | "portfolio" | "decisions" | "system" | "market" | "ppl" | "scores";
+type Tab = "overview" | "portfolio" | "decisions" | "system" | "market" | "ppl" | "finance" | "scores";
 
 const TABS: { id: Tab; label: string; glyph: string }[] = [
   { id: "overview", label: "Overview", glyph: "◉" },
@@ -26,6 +27,7 @@ const TABS: { id: Tab; label: string; glyph: string }[] = [
   { id: "system", label: "System", glyph: "⚙" },
   { id: "market", label: "Market", glyph: "↗" },
   { id: "ppl", label: "PPL Compare", glyph: "⇄" },
+  { id: "finance", label: "Financial", glyph: "¤" },
   { id: "scores", label: "Scores", glyph: "◈" },
 ];
 
@@ -49,7 +51,12 @@ const Header: React.FC<{
         ) : activeTab === "ppl" ? (
           <span className="domain-badge domain-badge-ppl" data-testid="ppl-domain-badge">
             <span className="domain-dot" aria-hidden="true" />
-            PPL SHADOW
+            PPL
+          </span>
+        ) : activeTab === "finance" ? (
+          <span className="domain-badge domain-badge-fin" data-testid="finance-domain-badge">
+            <span className="domain-dot" aria-hidden="true" />
+            FIN
           </span>
         ) : (
           <ModeBadge mode={mode} />
@@ -135,7 +142,8 @@ const App: React.FC = () => {
   const mode = activeSnapshot?.portfolio.mode;
   const marketActive = tab === "market";
   const pplActive = tab === "ppl";
-  const independentDomainActive = marketActive || pplActive;
+  const financeActive = tab === "finance";
+  const independentDomainActive = marketActive || pplActive || financeActive;
 
   return (
     <div className="operator-shell">
@@ -153,6 +161,8 @@ const App: React.FC = () => {
             <PplCanonicalContext state={snapshotState} />
             <PplComparisonView />
           </>
+        ) : financeActive ? (
+          <FinancialReconciliationView />
         ) : !activeSnapshot ? (
           <div
             className="canonical-unresolved"
