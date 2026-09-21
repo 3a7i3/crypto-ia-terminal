@@ -569,7 +569,12 @@ Bound fields:
 - source_event_id;
 - paper_epoch_id;
 - source_sequence;
-- financial schema version.
+- financial schema version;
+- semantic context digest.
+
+The semantic context digest binds all non-PPL interpretation inputs that can
+change the resulting FinancialEvent, including reporting asset, financial
+model and explicit attribution/funding semantics.
 
 Replaying the same immutable source identity under the same FIN schema therefore
 produces the same financial event id. No random UUID may make identical replay
@@ -600,8 +605,11 @@ The same canonical SHA-256 recipe binds:
 - FIN schema version;
 - code SHA;
 - config hash;
+- semantic context digest;
 - valuation-set digest;
-- valuation as-of time.
+- valuation as-of time;
+- evidence completeness status;
+- reconciliation status.
 
 The snapshot identity must change when any bound input changes.
 
@@ -691,3 +699,15 @@ only when:
 - #148 is updated with the certified HEAD and verdict.
 
 FIN-01 then implements the deterministic PPL -> Financial Institute projection.
+
+
+## 21. FIN-01 forensic erratum
+
+During FIN-01 forensic implementation, the executable FIN-00 identity helper
+was found to under-bind two requirements already stated by this contract:
+semantic interpretation context and snapshot evidence/reconciliation status.
+
+The implementation is hardened before FIN-01 certification so the executable
+identity recipe matches the normative contract. This erratum does not change
+the accounting semantics, authority boundaries, F00 runtime, or any historical
+PPL fact.
