@@ -30,6 +30,9 @@ try {
   await page.getByTestId("overview-view").waitFor({ state: "visible" });
   await page.getByTestId("tab-finance").click();
   await page.getByTestId("financial-reconciliation-view").waitFor({ state: "visible" });
+  await page
+    .getByRole("heading", { name: "Financial Truth", exact: true })
+    .waitFor({ state: "visible" });
 
   const text = await page.getByTestId("financial-reconciliation-view").innerText();
   for (const required of [
