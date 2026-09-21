@@ -57,6 +57,7 @@ __all__ = [
 
 from .models import (
     FIN_SCHEMA_VERSION,
+    PAPER_LINEAR_FUNDING_EVIDENCE_REF,
     FinancialContext,
     FinancialEvent,
     FinancialLedgerState,
@@ -71,6 +72,7 @@ from .snapshot import build_financial_snapshot
 
 __all__ += [
     "FIN_SCHEMA_VERSION",
+    "PAPER_LINEAR_FUNDING_EVIDENCE_REF",
     "FinancialContext",
     "FinancialEvent",
     "FinancialLedgerState",
