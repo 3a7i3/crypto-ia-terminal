@@ -243,7 +243,21 @@ The immutable snapshot binds:
 - attribution evidence;
 - reconciliation status.
 
-Snapshot identity changes when a bound source/provenance/valuation input changes.
+Snapshot identity changes when a bound source/provenance/valuation/evidence
+input changes.
+
+The snapshot id binds a deterministic `FIN_CONTEXT_V1` digest covering:
+- reporting asset;
+- source authority;
+- financial model;
+- funding evidence status;
+- explicit strategy id/version;
+- explicit experiment id;
+- venue;
+- market type.
+
+It also binds evidence completeness and reconciliation status. Two snapshots
+that differ in any of those semantic states cannot share an identity.
 
 ## 11. Certified equity
 
@@ -258,20 +272,30 @@ NOT_APPLICABLE PAPER-model semantics.
 
 STALE may be displayed as indicative evidence, but it cannot certify equity.
 
-## 12. PPL ↔ FIN consistency gate
+## 12. PPL lifecycle validation vs financial reconciliation
 
-Before a snapshot is returned, FIN-01 compares its projection against PPL for
-facts that must be exactly equivalent:
+FIN-01 validates the complete input stream through canonical PPL replay before
+financial interpretation. This proves epoch partition, sequence, lifecycle and
+source-event validity.
 
-- available cash;
-- reserved principal;
-- unresolved capital;
-- fees paid;
-- initial epoch capital.
+FIN-01 deliberately does **not** require exact numeric equality between PPL's
+legacy float aggregates and FIN's Decimal accounting balances.
 
-Any mismatch raises a snapshot error.
+Reason: PPL lifecycle projection uses IEEE-754 float arithmetic. A valid
+sequence such as fee 0.1 then fee 0.2 can expose
+`0.30000000000000004` in the PPL aggregate while FIN correctly books the
+same durable source facts as Decimal `0.3`.
 
-FIN never silently adjusts its ledger to make the values converge.
+Treating that representational artifact as a financial divergence would create
+a false failure and would violate the domain split:
+
+- PPL = lifecycle/source-fact authority;
+- FIN = canonical financial interpretation;
+- FIN-02 = reconciliation authority.
+
+FIN-01 never rounds PPL to force equality and never silently adjusts its own
+ledger. FIN-02 will later compare independently reported observations using the
+explicit reconciliation contract.
 
 ## 13. Evidence states
 
