@@ -126,8 +126,9 @@ def derive_financial_event_id(
     paper_epoch_id: str,
     source_sequence: int,
     schema_version: int,
+    semantic_context_digest: str,
 ) -> str:
-    """Deterministic FIN event identity derived from immutable source identity."""
+    """Deterministic FIN event identity derived from source + semantic context."""
 
     identity = FinancialEventIdentity(
         financial_event_id="pending",
@@ -137,6 +138,7 @@ def derive_financial_event_id(
         paper_epoch_id=paper_epoch_id,
         source_sequence=source_sequence,
         schema_version=schema_version,
+        semantic_context_digest=semantic_context_digest,
         code_sha="identity-only",
         config_hash="identity-only",
     )
@@ -149,6 +151,7 @@ def derive_financial_event_id(
             "paper_epoch_id": identity.paper_epoch_id,
             "source_sequence": identity.source_sequence,
             "schema_version": identity.schema_version,
+            "semantic_context_digest": identity.semantic_context_digest,
         },
     )
 
@@ -161,8 +164,11 @@ def derive_financial_snapshot_id(
     schema_version: int,
     code_sha: str,
     config_hash: str,
+    semantic_context_digest: str,
     valuation_set_digest: str,
     valuation_as_of: str,
+    evidence_status: str,
+    reconciliation_status: str,
 ) -> str:
     """Deterministic immutable FinancialSnapshot identity contract."""
 
@@ -171,8 +177,11 @@ def derive_financial_snapshot_id(
         ("source_stream_digest", source_stream_digest),
         ("code_sha", code_sha),
         ("config_hash", config_hash),
+        ("semantic_context_digest", semantic_context_digest),
         ("valuation_set_digest", valuation_set_digest),
         ("valuation_as_of", valuation_as_of),
+        ("evidence_status", evidence_status),
+        ("reconciliation_status", reconciliation_status),
     ):
         if not value:
             raise FinancialContractError(f"{name} must be non-empty")
@@ -198,8 +207,11 @@ def derive_financial_snapshot_id(
             "schema_version": schema_version,
             "code_sha": code_sha,
             "config_hash": config_hash,
+            "semantic_context_digest": semantic_context_digest,
             "valuation_set_digest": valuation_set_digest,
             "valuation_as_of": valuation_as_of,
+            "evidence_status": evidence_status,
+            "reconciliation_status": reconciliation_status,
         },
     )
 
@@ -229,6 +241,7 @@ class FinancialEventIdentity:
     paper_epoch_id: str
     source_sequence: int
     schema_version: int
+    semantic_context_digest: str
     code_sha: str
     config_hash: str
 
@@ -239,6 +252,7 @@ class FinancialEventIdentity:
             "source_authority",
             "source_event_id",
             "paper_epoch_id",
+            "semantic_context_digest",
             "code_sha",
             "config_hash",
         ):
