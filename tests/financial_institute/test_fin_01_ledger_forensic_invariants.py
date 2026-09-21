@@ -53,6 +53,9 @@ def _context() -> FinancialContext:
     return FinancialContext(
         fin_code_sha="fin-sha",
         funding_status=EvidenceStatus.NOT_APPLICABLE,
+        funding_evidence_ref=(
+            "FIN-00:PAPER_LINEAR_PRINCIPAL_V1:FUNDING_NOT_MODELED"
+        ),
     )
 
 
