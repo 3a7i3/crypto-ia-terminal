@@ -12,6 +12,7 @@ from financial_institute.models import (
     FIN_SCHEMA_VERSION,
     FinancialContext,
     FinancialEvent,
+    financial_context_digest,
 )
 from financial_institute.semantics import (
     FinancialAccount,
@@ -124,6 +125,7 @@ def _financial_event(
     source: LedgerEvent,
     context: FinancialContext,
     config_hash: str,
+    semantic_context_digest: str,
     postings: Sequence[LedgerPosting],
 ) -> FinancialEvent:
     financial_event_id = derive_financial_event_id(
@@ -133,6 +135,7 @@ def _financial_event(
         paper_epoch_id=source.paper_epoch_id,
         source_sequence=source.sequence,
         schema_version=FIN_SCHEMA_VERSION,
+        semantic_context_digest=semantic_context_digest,
     )
     materialized = tuple(postings)
     assert_balanced_postings(materialized)
@@ -147,6 +150,7 @@ def _financial_event(
         trade_id=source.trade_id,
         decision_id=source.decision_id,
         fin_schema_version=FIN_SCHEMA_VERSION,
+        semantic_context_digest=semantic_context_digest,
         fin_code_sha=context.fin_code_sha,
         config_hash=config_hash,
         postings=materialized,
@@ -175,6 +179,7 @@ def adapt_ppl_stream(
 
     source_code_sha = str(birth.payload["code_sha"])
     config_hash = str(birth.payload["config_snapshot_hash"])
+    semantic_context_digest = financial_context_digest(context)
     if not source_code_sha or not config_hash:
         raise FinancialAdapterError("PPL epoch provenance is incomplete")
 
@@ -189,6 +194,7 @@ def adapt_ppl_stream(
             paper_epoch_id=source.paper_epoch_id,
             source_sequence=source.sequence,
             schema_version=FIN_SCHEMA_VERSION,
+            semantic_context_digest=semantic_context_digest,
         )
         postings: list[LedgerPosting] = []
 
@@ -425,6 +431,7 @@ def adapt_ppl_stream(
                 source=source,
                 context=context,
                 config_hash=config_hash,
+                semantic_context_digest=semantic_context_digest,
                 postings=postings,
             )
         )
