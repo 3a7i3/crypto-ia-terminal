@@ -13,6 +13,14 @@ Dependencies:
 Baseline:
 `main@ab7b73597e98e2962b1650449b3d60d4fb51054f`
 
+Runtime provenance sub-contract:
+`docs/contracts/FIN_02_R1_RUNTIME_PROVENANCE.md`
+
+R1 rule:
+PPL/F00 source identity, certified FIN-01 implementation identity and FIN-02
+reconciliation implementation identity are separate provenance dimensions and
+must never be silently substituted for one another.
+
 ## 1. Mission
 
 FIN-02 reconciles and exposes financial truth without silent correction.
@@ -247,6 +255,9 @@ Monetary Decimal values are serialized as decimal strings, not JSON floats.
 
 The artifact binds:
 - FIN snapshot identity;
+- FIN-02R1 runtime provenance identity;
+- certified FIN-01 source identity;
+- PPL/F00 epoch source identity and configuration binding;
 - explicit FIN-02 reconciliation code SHA, distinct from the FIN-01 code SHA;
 - PPL source-stream digest;
 - source sequence;
@@ -308,7 +319,8 @@ Source:
 - maintained backend/frontend/cross-stack CI.
 
 Runtime:
-- active F00 source/config/epoch preserved;
+- FIN-02R1 runtime provenance contract satisfied;
+- active F00 source/config/epoch preserved until an explicit governed runtime activation step;
 - coherent PPL/FIN/simulator snapshot produced;
 - API transport fidelity;
 - browser transport/render fidelity;
