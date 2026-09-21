@@ -64,6 +64,7 @@ def _events():
 def _inputs(**overrides):
     values = {
         "reconciliation_code_sha": FIN02_SHA,
+        "context_evidence_ref": "F00_CONFIG_FREEZE:fixture-r1",
         "experiment_id": "F00-EXPERIMENT-R1",
         "venue": "MEXC_SIM",
         "market_type": "PAPER_LINEAR",
@@ -105,7 +106,13 @@ def test_r1_context_digest_is_exact_fin01_semantic_context():
 
 @pytest.mark.parametrize(
     "field",
-    ["experiment_id", "venue", "market_type", "reconciliation_code_sha"],
+    [
+        "context_evidence_ref",
+        "experiment_id",
+        "venue",
+        "market_type",
+        "reconciliation_code_sha",
+    ],
 )
 def test_r1_mandatory_runtime_semantics_fail_closed(field):
     with pytest.raises(FinancialRuntimeProvenanceError):
@@ -155,6 +162,10 @@ def test_r1_provenance_identity_is_deterministic_and_semantically_bound():
         events,
         replace(base, reconciliation_code_sha="f" * 40),
     )
+    changed_context_evidence = bind_financial_runtime_provenance(
+        events,
+        replace(base, context_evidence_ref="F00_CONFIG_FREEZE:other"),
+    )
 
     assert first == second
     assert first.provenance_id == second.provenance_id
@@ -163,6 +174,11 @@ def test_r1_provenance_identity_is_deterministic_and_semantically_bound():
     assert changed_reconciliation_code.provenance_id != first.provenance_id
     assert (
         changed_reconciliation_code.semantic_context_digest
+        == first.semantic_context_digest
+    )
+    assert changed_context_evidence.provenance_id != first.provenance_id
+    assert (
+        changed_context_evidence.semantic_context_digest
         == first.semantic_context_digest
     )
 
