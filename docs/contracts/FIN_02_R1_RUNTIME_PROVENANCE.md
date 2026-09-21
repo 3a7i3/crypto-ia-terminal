@@ -110,11 +110,17 @@ PPL lifecycle does not carry every financial semantic attribution.
 The runtime producer must supply explicitly:
 
 - `reconciliation_code_sha`;
+- `context_evidence_ref` identifying the governed artifact/source from which
+  experiment / venue / market semantics were obtained;
 - `experiment_id`;
 - `venue`;
 - `market_type`;
 - optional `strategy_id`;
 - optional `strategy_version`.
+
+`context_evidence_ref` is part of the R1 provenance identity but not the
+FIN-01 semantic-context digest. Changing the proof reference without changing
+the financial semantics therefore changes provenance, not accounting meaning.
 
 No inference is allowed from:
 - epoch naming;
@@ -178,6 +184,7 @@ The deterministic identity binds:
 - certified FIN-01 source identity;
 - FIN-01 certification verdict;
 - FIN-02 reconciliation code identity;
+- governed semantic-context evidence reference;
 - FIN semantic-context digest;
 - asset;
 - source authority;
@@ -197,6 +204,7 @@ R1 rejects:
 - empty PPL stream;
 - missing PPL epoch;
 - empty reconciliation identity;
+- missing semantic-context evidence reference;
 - missing experiment id;
 - missing venue;
 - missing market type;
