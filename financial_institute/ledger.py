@@ -29,6 +29,15 @@ class FinancialLedgerError(FinancialContractError):
     """Deterministic FIN ledger replay violation."""
 
 
+_FINANCIAL_SOURCE_EVENT_TYPES = frozenset(
+    {
+        "EPOCH_CREATED",
+        "POSITION_OPENED",
+        "POSITION_CLOSED",
+        "POSITION_UNRESOLVED",
+    }
+)
+
 _NON_NEGATIVE_ACCOUNTS = frozenset(
     {
         FinancialAccount.CASH_AVAILABLE,
@@ -74,6 +83,8 @@ def project_financial_ledger(
     expected_config_hash = first.config_hash
     if first.source_event_type != "EPOCH_CREATED":
         raise FinancialLedgerError("first financial event must derive from EPOCH_CREATED")
+    if first.source_sequence != 1:
+        raise FinancialLedgerError("EPOCH_CREATED must have source_sequence=1")
 
     state = FinancialLedgerState(
         paper_epoch_id=epoch,
@@ -86,6 +97,10 @@ def project_financial_ledger(
     for event in events:
         if event.paper_epoch_id != epoch:
             raise FinancialLedgerError("financial events span multiple PAPER epochs")
+        if event.source_event_type not in _FINANCIAL_SOURCE_EVENT_TYPES:
+            raise FinancialLedgerError(
+                f"unsupported financial source event type={event.source_event_type!r}"
+            )
         if event.fin_schema_version != expected_fin_schema:
             raise FinancialLedgerError("financial events span multiple FIN schemas")
         if event.semantic_context_digest != expected_context_digest:
