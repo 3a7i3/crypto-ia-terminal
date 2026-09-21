@@ -127,6 +127,7 @@ def ppl_state_digest(state: PaperPortfolioState) -> str:
     if epoch is not None:
         epoch_record = {
             "paper_epoch_id": epoch.paper_epoch_id,
+            "created_at": epoch.created_at,
             "initial_virtual_capital": epoch.initial_virtual_capital,
             "code_sha": epoch.code_sha,
             "config_snapshot_hash": epoch.config_snapshot_hash,
