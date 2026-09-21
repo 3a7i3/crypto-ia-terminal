@@ -16,6 +16,9 @@ Baseline:
 Runtime provenance sub-contract:
 `docs/contracts/FIN_02_R1_RUNTIME_PROVENANCE.md`
 
+Coherent passive capture sub-contract:
+`docs/contracts/FIN_02_R2_COHERENT_PASSIVE_CAPTURE.md`
+
 R1 rule:
 PPL/F00 source identity, certified FIN-01 implementation identity and FIN-02
 reconciliation implementation identity are separate provenance dimensions and
@@ -160,7 +163,26 @@ PPL lifecycle realized PnL recognizes trade-level lifecycle outcome at close.
 Displaying both is required. Subtracting them and calling the result a financial
 divergence is forbidden.
 
-## 9. Simulator reconciliation
+## 9. Coherent capture boundary
+
+FIN-02 runtime evidence must originate from one R2-certified passive capture.
+
+Required lock order:
+
+`MEXC_SIM._lock -> PPLAuthorityRuntime._lock`
+
+The capture must:
+- use the PPL authority runtime already owned by the simulator;
+- freeze PPL events and simulator accounting inside one simulator critical section;
+- require PPL runtime READY;
+- prove simulator generation stability;
+- require zero lifecycle transitions in flight;
+- preserve simulator/PPL divergence rather than hiding it;
+- accept valuation evidence only as explicit caller-supplied observations.
+
+No separate PPL runtime may be injected into the capture boundary.
+
+## 10. Simulator reconciliation
 
 A simulator observation is read under the simulator's existing lock and exposes:
 - cash available;
@@ -177,7 +199,7 @@ transitions are both explicitly known.
 
 Exact trade identity is compared, not symbol-only membership.
 
-## 10. Unreconciled capital
+## 11. Unreconciled capital
 
 FIN-02 must not sum multiple correlated deltas and label the sum as missing
 capital.
@@ -201,7 +223,7 @@ This is reconciliation evidence, not an asset and not an automatic adjustment.
 If the simulator observation is absent/stale/unavailable or FIN contains
 unresolved capital, `unreconciled_capital` is unavailable rather than invented.
 
-## 11. PAPER versus real exchange
+## 12. PAPER versus real exchange
 
 Current FIN-02 scope is PAPER.
 
@@ -219,7 +241,7 @@ No PAPER-vs-real cash/equity delta may be used as reconciliation capital.
 Future FIN-04 may define TESTNET/REAL Treasury reconciliation under a separate
 certified accounting scope.
 
-## 12. Valuation and equity
+## 13. Valuation and equity
 
 FIN-02 transports FIN-01 valuation truth unchanged.
 
@@ -233,7 +255,7 @@ UNKNOWN != ZERO.
 The cockpit must visibly distinguish unresolved/unavailable equity from numeric
 zero equity.
 
-## 13. Presentation artifact
+## 14. Presentation artifact
 
 Canonical artifact default:
 
@@ -269,7 +291,7 @@ The artifact binds:
 
 Writes are atomic and own only this presentation artifact.
 
-## 14. API boundary
+## 15. API boundary
 
 Endpoint:
 
@@ -285,7 +307,7 @@ The API:
 - does not recompute PnL/equity/deltas;
 - returns structured 503 when evidence is absent/invalid.
 
-## 15. Cockpit boundary
+## 16. Cockpit boundary
 
 The Financial domain exposes:
 - cash available;
@@ -303,7 +325,7 @@ The Financial domain exposes:
 
 The browser must not perform financial arithmetic.
 
-## 16. Exit gates
+## 17. Exit gates
 
 Source:
 - deterministic reconciliation identity;
@@ -320,6 +342,7 @@ Source:
 
 Runtime:
 - FIN-02R1 runtime provenance contract satisfied;
+- FIN-02R2 coherent passive capture contract satisfied;
 - active F00 source/config/epoch preserved until an explicit governed runtime activation step;
 - coherent PPL/FIN/simulator snapshot produced;
 - API transport fidelity;
