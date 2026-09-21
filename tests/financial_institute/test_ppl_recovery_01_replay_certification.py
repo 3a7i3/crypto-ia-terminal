@@ -25,7 +25,7 @@ from paper_trading.ledger_events import (
     make_position_unresolved_event,
     make_recovery_completed_event,
 )
-from paper_trading.paper_portfolio_ledger import project
+from paper_trading.paper_portfolio_ledger import CloseWithoutOpenError, project
 from paper_trading.ppl_authority_runtime import (
     EpochRotationQuiescence,
     PPLAuthorityRuntime,
@@ -533,3 +533,33 @@ def test_fin_snapshot_replays_exactly_after_authority_runtime_restart(
     assert financial_state_digest(snapshot_after) == financial_state_digest(
         snapshot_before
     )
+
+
+def test_invalid_ppl_projection_fails_before_durable_append(tmp_path) -> None:
+    root = tmp_path / "runtime-store"
+    manifest = _manifest()
+    runtime = PPLAuthorityRuntime(
+        manifest=manifest,
+        store=DurableEventStore(root),
+    )
+    runtime.bind(now=2.0)
+
+    epoch_file = next((root / "epochs").glob("*.jsonl"))
+    bytes_before = epoch_file.read_bytes()
+    events_before = DurableEventStore(root).load_epoch(EPOCH)
+
+    with pytest.raises(CloseWithoutOpenError):
+        runtime.commit_close(
+            trade_id="never-opened",
+            exit_price=101.0,
+            exit_fee=0.1,
+            closed_at=3.0,
+            decision_id="invalid-close",
+        )
+
+    bytes_after = epoch_file.read_bytes()
+    events_after = DurableEventStore(root).load_epoch(EPOCH)
+
+    assert bytes_after == bytes_before
+    assert events_after == events_before
+    assert len(events_after) == 1
