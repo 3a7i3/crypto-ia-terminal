@@ -239,6 +239,7 @@ def build_financial_reconciliation_document(
         "reconciliation_id": reconciliation.reconciliation_id,
         "paper_epoch_id": reconciliation.paper_epoch_id,
         "financial_snapshot_id": financial.snapshot_id,
+        "reconciliation_code_sha": reconciliation.reconciliation_code_sha,
         "source_stream_digest": financial.source_stream_digest,
         "last_source_sequence": financial.last_source_sequence,
         "fin_schema_version": financial.fin_schema_version,
