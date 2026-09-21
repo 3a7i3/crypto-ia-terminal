@@ -866,6 +866,44 @@ def reconcile_financial_snapshot(
             )
         )
 
+    else:
+        fin_book = (
+            snapshot.cash_available
+            + snapshot.capital_reserved
+            + snapshot.capital_unresolved
+        )
+        records.append(
+            ReconciliationRecord(
+                record_id=_record_id(
+                    financial_snapshot_id=snapshot.snapshot_id,
+                    source_kind=ReconciliationSourceKind.SIMULATOR,
+                    source_id="MEXC_SIM",
+                    field="book_capital_at_cost",
+                ),
+                source_kind=ReconciliationSourceKind.SIMULATOR,
+                source_id="MEXC_SIM",
+                field="book_capital_at_cost",
+                projected_value=fin_book,
+                observed_value=None,
+                delta_observed_minus_projected=None,
+                unreconciled_amount=None,
+                status=ReconciliationStatus.UNRESOLVED,
+                comparability=Comparability.UNAVAILABLE,
+                freshness=ObservationFreshness.UNAVAILABLE,
+                observed_at=as_of_value,
+                projected_provenance=(
+                    "FIN cash_available + capital_reserved + "
+                    "capital_unresolved"
+                ),
+                observed_provenance="MEXC_SIM observation unavailable",
+                note=(
+                    "Current PAPER reconciliation requires an explicit "
+                    "independent simulator observation. Absence cannot "
+                    "certify an EXACT aggregate."
+                ),
+            )
+        )
+
     external_digest: Optional[str] = None
     if external is not None:
         external_digest = _external_digest(external)
