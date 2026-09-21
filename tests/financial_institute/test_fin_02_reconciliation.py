@@ -323,6 +323,31 @@ def test_open_position_identity_mismatch_is_divergent_even_when_count_matches():
     assert result.overall_status is ReconciliationStatus.DIVERGENT
 
 
+def test_missing_simulator_observation_keeps_paper_reconciliation_unresolved():
+    events = _events()
+    snapshot = _snapshot(events)
+    ppl = ppl_observation_from_events(events, observed_at=Decimal("10"))
+
+    result = reconcile_financial_snapshot(
+        snapshot,
+        ppl,
+        reconciliation_code_sha="fin02-reconciliation-code",
+        policy=_policy(),
+        as_of=Decimal("10"),
+    )
+
+    book = _record(
+        result,
+        ReconciliationSourceKind.SIMULATOR,
+        "book_capital_at_cost",
+    )
+    assert book.comparability is Comparability.UNAVAILABLE
+    assert book.freshness is ObservationFreshness.UNAVAILABLE
+    assert book.status is ReconciliationStatus.UNRESOLVED
+    assert result.unreconciled_capital is None
+    assert result.overall_status is ReconciliationStatus.UNRESOLVED
+
+
 def test_real_exchange_observation_is_display_only_for_paper_scope():
     events = _events()
     snapshot = _snapshot(events)
