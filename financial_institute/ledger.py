@@ -66,8 +66,13 @@ def project_financial_ledger(
     if not asset:
         raise FinancialLedgerError("asset must be non-empty")
 
-    epoch = events[0].paper_epoch_id
-    if events[0].source_event_type != "EPOCH_CREATED":
+    first = events[0]
+    epoch = first.paper_epoch_id
+    expected_fin_schema = first.fin_schema_version
+    expected_context_digest = first.semantic_context_digest
+    expected_fin_code_sha = first.fin_code_sha
+    expected_config_hash = first.config_hash
+    if first.source_event_type != "EPOCH_CREATED":
         raise FinancialLedgerError("first financial event must derive from EPOCH_CREATED")
 
     state = FinancialLedgerState(
@@ -76,9 +81,29 @@ def project_financial_ledger(
         balances=MappingProxyType({}),
     )
 
+    seen_source_event_ids: set[str] = set()
+
     for event in events:
         if event.paper_epoch_id != epoch:
             raise FinancialLedgerError("financial events span multiple PAPER epochs")
+        if event.fin_schema_version != expected_fin_schema:
+            raise FinancialLedgerError("financial events span multiple FIN schemas")
+        if event.semantic_context_digest != expected_context_digest:
+            raise FinancialLedgerError("financial events span multiple semantic contexts")
+        if event.fin_code_sha != expected_fin_code_sha:
+            raise FinancialLedgerError("financial events span multiple FIN code SHAs")
+        if event.config_hash != expected_config_hash:
+            raise FinancialLedgerError("financial events span multiple config hashes")
+        if event.source_event_id in seen_source_event_ids:
+            raise FinancialLedgerError(
+                f"duplicate source_event_id={event.source_event_id!r}"
+            )
+        seen_source_event_ids.add(event.source_event_id)
+        if (
+            state.last_source_sequence > 0
+            and event.source_event_type == "EPOCH_CREATED"
+        ):
+            raise FinancialLedgerError("EPOCH_CREATED may appear only once")
         if event.financial_event_id in state.applied_financial_event_ids:
             raise FinancialLedgerError(
                 f"duplicate financial_event_id={event.financial_event_id!r}"
@@ -92,6 +117,14 @@ def project_financial_ledger(
         balances = dict(state.balances)
 
         for posting in event.postings:
+            if posting.financial_event_id != event.financial_event_id:
+                raise FinancialLedgerError(
+                    "posting financial_event_id does not match event envelope"
+                )
+            if posting.paper_epoch_id != event.paper_epoch_id:
+                raise FinancialLedgerError(
+                    "posting paper_epoch_id does not match event envelope"
+                )
             if posting.asset != asset:
                 raise FinancialLedgerError(
                     f"posting asset={posting.asset!r} != ledger asset={asset!r}"
