@@ -424,3 +424,19 @@ certification:
 
 All findings are source-only. No active F00 runtime mutation or deployment is
 part of these remediations.
+
+
+## 20. CI trigger integrity note
+
+After forensic remediation, candidate HEAD
+`fc8e3b7cd3d862dee9e0ae27a6baf8e1ee4a3165` did not receive repository
+GitHub Actions check suites despite pull-request synchronize/reopen events;
+only external check providers materialized.
+
+A temporary mirror PR was opened solely to test event delivery and was closed
+without merge. It produced the same absence of GitHub Actions runs.
+
+This governance-only documentation commit intentionally emits a fresh
+`pull_request:synchronize` event on canonical PR #250. Source certification
+still requires the maintained CI corpus on the exact resulting HEAD. No
+missing CI evidence may be interpreted as PASS.
