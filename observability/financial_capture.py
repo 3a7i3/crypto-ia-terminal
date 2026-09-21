@@ -18,9 +18,10 @@ cannot inject a second PPL runtime into this boundary.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 from financial_institute.models import ValuationObservation
 from financial_institute.reconciliation import (
@@ -64,7 +65,7 @@ def _status_text(value: object) -> str:
 def _normalize_valuation_evidence(
     observations: Sequence[ValuationObservation],
     *,
-    open_positions: dict[str, object],
+    open_positions: Mapping[str, object],
 ) -> tuple[ValuationObservation, ...]:
     """Freeze explicit mark evidence without inventing missing observations."""
 
@@ -306,7 +307,7 @@ def capture_coherent_financial_boundary(
         )
 
     open_positions = getattr(projection, "open_positions", None)
-    if not isinstance(open_positions, dict):
+    if not isinstance(open_positions, Mapping):
         raise CoherentFinancialCaptureError(
             "captured PPL projection has no open-position mapping"
         )
