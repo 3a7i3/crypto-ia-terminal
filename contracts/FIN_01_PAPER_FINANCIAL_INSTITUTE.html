@@ -1,0 +1,743 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>FIN-01 — PAPER Financial Institute v1 - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/FIN_01_PAPER_FINANCIAL_INSTITUTE.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/FIN_01_PAPER_FINANCIAL_INSTITUTE.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="fin-01-paper-financial-institute-v1">
+<h1>FIN-01 — PAPER Financial Institute v1<a class="headerlink" href="#fin-01-paper-financial-institute-v1" title="Link to this heading">¶</a></h1>
+<p>Status: <strong>SOURCE IMPLEMENTATION CANDIDATE</strong></p>
+<p>Parent: #150<br />
+Mission: #245<br />
+Governance: #148<br />
+Dependency: #244 FIN-00<br />
+Baseline: <code class="docutils literal notranslate"><span class="pre">main&#64;ab6d08f525230f9ce21bd5ce07354849f4d672d0</span></code></p>
+<section id="mission">
+<h2>1. Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
+<p>Implement a deterministic PAPER Financial Institute over certified PPL facts.</p>
+<p>FIN-01 remains source-only. It does not deploy to the active F00 runtime and
+does not become an execution or exchange authority.</p>
+<p>Canonical flow:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PPL durable events
+    ↓
+PPL → FinancialEvent adapter
+    ↓
+double-entry FIN ledger
+    ↓
+Treasury projection
+    + explicit valuation observations
+    ↓
+immutable FinancialSnapshot
+</pre></div>
+</div>
+</section>
+<section id="authority-boundary">
+<h2>2. Authority boundary<a class="headerlink" href="#authority-boundary" title="Link to this heading">¶</a></h2>
+<p>PPL remains authoritative for lifecycle facts:</p>
+<ul class="simple">
+<li><p>EPOCH_CREATED;</p></li>
+<li><p>POSITION_OPENED;</p></li>
+<li><p>POSITION_CLOSED;</p></li>
+<li><p>POSITION_UNRESOLVED;</p></li>
+<li><p>RECOVERY_COMPLETED.</p></li>
+</ul>
+<p>FIN is authoritative only for the deterministic financial interpretation of
+those facts under the FIN-00 contract.</p>
+<p>FIN never rewrites PPL.</p>
+<p>FIN-01 contains no:</p>
+<ul class="simple">
+<li><p>BUY/SELL route;</p></li>
+<li><p>exchange write client;</p></li>
+<li><p>strategy mutation;</p></li>
+<li><p>risk/sizing mutation;</p></li>
+<li><p>active F00 config mutation;</p></li>
+<li><p>runtime service activation.</p></li>
+</ul>
+</section>
+<section id="supported-financial-model">
+<h2>3. Supported financial model<a class="headerlink" href="#supported-financial-model" title="Link to this heading">¶</a></h2>
+<p>FIN-01 implements only:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PAPER_LINEAR_PRINCIPAL_V1</span></code></p>
+<p>Reporting/capital asset for FIN-01 v1 is frozen to:</p>
+<p><code class="docutils literal notranslate"><span class="pre">USDT</span></code></p>
+<p>Any other asset fails closed. Multi-asset Financial Institute semantics require
+a later explicit contract rather than relabeling the current PPL principal.</p>
+<p>Current PPL does not durably carry the complete facts required for
+exchange-faithful spot or derivative accounting.</p>
+<p>Therefore:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SPOT_QUANTITY</span></code> fails closed;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DERIVATIVE_CONTRACT</span></code> fails closed.</p></li>
+</ul>
+<p>A swap/futures market label does not authorize FIN to invent quantity,
+contract-size, leverage, margin or funding semantics.</p>
+</section>
+<section id="explicit-projection-context">
+<h2>4. Explicit projection context<a class="headerlink" href="#explicit-projection-context" title="Link to this heading">¶</a></h2>
+<p>Every projection receives an immutable <code class="docutils literal notranslate"><span class="pre">FinancialContext</span></code>.</p>
+<p>Required/provenance-bearing fields include:</p>
+<ul class="simple">
+<li><p>FIN implementation code SHA;</p></li>
+<li><p>reporting asset;</p></li>
+<li><p>source authority;</p></li>
+<li><p>financial model;</p></li>
+<li><p>funding evidence status;</p></li>
+<li><p>funding evidence reference when NOT_APPLICABLE is asserted;</p></li>
+<li><p>optional explicit strategy id/version;</p></li>
+<li><p>optional explicit experiment id;</p></li>
+<li><p>optional venue/market type.</p></li>
+</ul>
+<p>Strategy, experiment, venue and market-type fields are never inferred from
+today’s runtime configuration after the fact.</p>
+</section>
+<section id="ppl-financialevent-adapter">
+<h2>5. PPL → FinancialEvent adapter<a class="headerlink" href="#ppl-financialevent-adapter" title="Link to this heading">¶</a></h2>
+<p>The adapter first validates the complete PPL epoch through canonical PPL replay.</p>
+<p>Financially material mappings:</p>
+<section id="epoch-created">
+<h3>EPOCH_CREATED<a class="headerlink" href="#epoch-created" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Debit CASH_AVAILABLE</p></li>
+<li><p>Credit EPOCH_CAPITAL</p></li>
+</ul>
+</section>
+<section id="position-opened">
+<h3>POSITION_OPENED<a class="headerlink" href="#position-opened" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Debit CAPITAL_RESERVED</p></li>
+<li><p>Debit FEES_EXPENSE when entry fee &gt; 0</p></li>
+<li><p>Credit CASH_AVAILABLE</p></li>
+</ul>
+</section>
+<section id="position-closed">
+<h3>POSITION_CLOSED<a class="headerlink" href="#position-closed" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>release CAPITAL_RESERVED to CASH_AVAILABLE;</p></li>
+<li><p>post gross price gain/loss against REALIZED_TRADING_PNL;</p></li>
+<li><p>post exit fee to FEES_EXPENSE.</p></li>
+</ul>
+<p>Gross price PnL uses the certified PPL linear principal formula.</p>
+</section>
+<section id="position-unresolved">
+<h3>POSITION_UNRESOLVED<a class="headerlink" href="#position-unresolved" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Debit CAPITAL_UNRESOLVED</p></li>
+<li><p>Credit CAPITAL_RESERVED</p></li>
+</ul>
+<p>No cash release and no synthetic PnL.</p>
+</section>
+<section id="recovery-completed">
+<h3>RECOVERY_COMPLETED<a class="headerlink" href="#recovery-completed" title="Link to this heading">¶</a></h3>
+<p>No financial posting under FIN-00.</p>
+<p>The marker remains present in the source-stream digest and last source
+sequence, so it still changes snapshot provenance.</p>
+</section>
+</section>
+<section id="source-stream-identity">
+<h2>6. Source stream identity<a class="headerlink" href="#source-stream-identity" title="Link to this heading">¶</a></h2>
+<p>FIN-01 computes SHA-256 over canonical PPL JSON records in sequence order.</p>
+<p>The digest binds the complete source population used for a snapshot.</p>
+<p>A financially non-material PPL marker still changes the digest.</p>
+</section>
+<section id="double-entry-ledger">
+<h2>7. Double-entry ledger<a class="headerlink" href="#double-entry-ledger" title="Link to this heading">¶</a></h2>
+<p>The ledger applies only deterministic <code class="docutils literal notranslate"><span class="pre">FinancialEvent</span></code> postings.</p>
+<p>Rules:</p>
+<ul class="simple">
+<li><p>exact Decimal arithmetic;</p></li>
+<li><p>one PAPER epoch per replay;</p></li>
+<li><p>strictly increasing source sequence;</p></li>
+<li><p>no duplicate financial event id;</p></li>
+<li><p>debit == credit for every financial event;</p></li>
+<li><p>no negative CASH_AVAILABLE;</p></li>
+<li><p>no negative CAPITAL_RESERVED;</p></li>
+<li><p>no negative CAPITAL_UNRESOLVED;</p></li>
+<li><p>no negative EPOCH_CAPITAL;</p></li>
+<li><p>no negative FEES_EXPENSE.</p></li>
+</ul>
+<p>A replay violation fails closed.</p>
+</section>
+<section id="treasury-projection">
+<h2>8. Treasury projection<a class="headerlink" href="#treasury-projection" title="Link to this heading">¶</a></h2>
+<p>Treasury exposes:</p>
+<ul class="simple">
+<li><p>initial epoch capital;</p></li>
+<li><p>cash available;</p></li>
+<li><p>capital reserved;</p></li>
+<li><p>capital deployed;</p></li>
+<li><p>unresolved capital;</p></li>
+<li><p>gross realized price PnL;</p></li>
+<li><p>fees paid;</p></li>
+<li><p>funding status/value;</p></li>
+<li><p>FIN realized PnL.</p></li>
+</ul>
+<p>For PAPER v1:</p>
+<p><code class="docutils literal notranslate"><span class="pre">capital_deployed</span> <span class="pre">==</span> <span class="pre">capital_reserved</span></code></p>
+<p>but capital deployed is a measure, not an additional asset.</p>
+<section id="funding">
+<h3>Funding<a class="headerlink" href="#funding" title="Link to this heading">¶</a></h3>
+<p>Current PPL supplies no generic funding cashflow event.</p>
+<p>FIN-01 therefore accepts only:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> — explicitly declared PAPER model semantics with the
+certified evidence reference
+<code class="docutils literal notranslate"><span class="pre">FIN-00:PAPER_LINEAR_PRINCIPAL_V1:FUNDING_NOT_MODELED</span></code>; funding net = 0;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code> — missing applicable evidence; funding net and FIN realized PnL unavailable.</p></li>
+</ul>
+<p>A bare enum value or arbitrary operator string is not sufficient evidence.
+<code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> without the exact certified evidence reference fails closed
+at <code class="docutils literal notranslate"><span class="pre">FinancialContext</span></code> construction.</p>
+<p>PPL-only FIN-01 cannot claim <code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code> funding evidence.</p>
+</section>
+</section>
+<section id="valuation">
+<h2>9. Valuation<a class="headerlink" href="#valuation" title="Link to this heading">¶</a></h2>
+<p>Valuation receives explicit observations keyed by trade id.</p>
+<p>Each observation carries:</p>
+<ul class="simple">
+<li><p>trade id;</p></li>
+<li><p>symbol;</p></li>
+<li><p>source id;</p></li>
+<li><p>venue;</p></li>
+<li><p>market type;</p></li>
+<li><p>price;</p></li>
+<li><p>source timestamp.</p></li>
+</ul>
+<p>The caller supplies:</p>
+<ul class="simple">
+<li><p>valuation as-of time;</p></li>
+<li><p>maximum accepted mark age.</p></li>
+</ul>
+<p>No wall-clock read occurs inside the valuation engine.</p>
+<p>Classification:</p>
+<ul class="simple">
+<li><p>LIVE — valid, positive, non-future mark within freshness threshold;</p></li>
+<li><p>STALE — valid mark older than threshold;</p></li>
+<li><p>UNAVAILABLE — missing/invalid/future-skewed evidence.</p></li>
+</ul>
+<p>No fallback to:</p>
+<ul class="simple">
+<li><p>entry price;</p></li>
+<li><p>last known mark;</p></li>
+<li><p>zero;</p></li>
+<li><p>another venue;</p></li>
+<li><p>symbol-derived assumptions.</p></li>
+</ul>
+</section>
+<section id="financialsnapshot">
+<h2>10. FinancialSnapshot<a class="headerlink" href="#financialsnapshot" title="Link to this heading">¶</a></h2>
+<p>The immutable snapshot binds:</p>
+<ul class="simple">
+<li><p>FIN snapshot id;</p></li>
+<li><p>PAPER epoch;</p></li>
+<li><p>source authority;</p></li>
+<li><p>PPL stream digest;</p></li>
+<li><p>last PPL sequence;</p></li>
+<li><p>FIN schema;</p></li>
+<li><p>FIN code SHA;</p></li>
+<li><p>source/PPL code SHA;</p></li>
+<li><p>config hash;</p></li>
+<li><p>financial model;</p></li>
+<li><p>Treasury fields;</p></li>
+<li><p>funding evidence;</p></li>
+<li><p>valuation set + digest;</p></li>
+<li><p>realized/unrealized/equity state;</p></li>
+<li><p>population counts;</p></li>
+<li><p>attribution evidence;</p></li>
+<li><p>reconciliation status.</p></li>
+</ul>
+<p>Snapshot identity changes when a bound source/provenance/valuation/evidence
+input changes.</p>
+<p>The snapshot id binds a deterministic <code class="docutils literal notranslate"><span class="pre">FIN_CONTEXT_V1</span></code> digest covering:</p>
+<ul class="simple">
+<li><p>reporting asset;</p></li>
+<li><p>source authority;</p></li>
+<li><p>financial model;</p></li>
+<li><p>funding evidence status/reference;</p></li>
+<li><p>explicit strategy id/version;</p></li>
+<li><p>explicit experiment id;</p></li>
+<li><p>venue;</p></li>
+<li><p>market type.</p></li>
+</ul>
+<p>It also binds evidence completeness and reconciliation status. Two snapshots
+that differ in any of those semantic states cannot share an identity.</p>
+</section>
+<section id="certified-equity">
+<h2>11. Certified equity<a class="headerlink" href="#certified-equity" title="Link to this heading">¶</a></h2>
+<p>Certified equity exists only when:</p>
+<ul class="simple">
+<li><p>no unresolved capital exists;</p></li>
+<li><p>every open position has exactly one LIVE mark;</p></li>
+<li><p>funding status is COMPLETE or NOT_APPLICABLE.</p></li>
+</ul>
+<p>Within FIN-01 PPL-only operation, funding can satisfy this only through explicit
+NOT_APPLICABLE PAPER-model semantics.</p>
+<p>STALE may be displayed as indicative evidence, but it cannot certify equity.</p>
+</section>
+<section id="ppl-lifecycle-validation-vs-financial-reconciliation">
+<h2>12. PPL lifecycle validation vs financial reconciliation<a class="headerlink" href="#ppl-lifecycle-validation-vs-financial-reconciliation" title="Link to this heading">¶</a></h2>
+<p>FIN-01 validates the complete input stream through canonical PPL replay before
+financial interpretation. This proves epoch partition, sequence, lifecycle and
+source-event validity.</p>
+<p>FIN-01 deliberately does <strong>not</strong> require exact numeric equality between PPL’s
+legacy float aggregates and FIN’s Decimal accounting balances.</p>
+<p>Reason: PPL lifecycle projection uses IEEE-754 float arithmetic. A valid
+sequence such as fee 0.1 then fee 0.2 can expose
+<code class="docutils literal notranslate"><span class="pre">0.30000000000000004</span></code> in the PPL aggregate while FIN correctly books the
+same durable source facts as Decimal <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p>
+<p>Treating that representational artifact as a financial divergence would create
+a false failure and would violate the domain split:</p>
+<ul class="simple">
+<li><p>PPL = lifecycle/source-fact authority;</p></li>
+<li><p>FIN = canonical financial interpretation;</p></li>
+<li><p>FIN-02 = reconciliation authority.</p></li>
+</ul>
+<p>FIN-01 never rounds PPL to force equality and never silently adjusts its own
+ledger. FIN-02 will later compare independently reported observations using the
+explicit reconciliation contract.</p>
+</section>
+<section id="evidence-states">
+<h2>13. Evidence states<a class="headerlink" href="#evidence-states" title="Link to this heading">¶</a></h2>
+<p>Snapshot evidence is:</p>
+<ul class="simple">
+<li><p>COMPLETE when required current evidence is complete;</p></li>
+<li><p>PARTIAL when only stale valuation evidence prevents certification;</p></li>
+<li><p>UNRESOLVED when lifecycle, mark or funding evidence is unresolved.</p></li>
+</ul>
+<p>Unknown is never represented by numeric zero.</p>
+</section>
+<section id="reconciliation-boundary">
+<h2>14. Reconciliation boundary<a class="headerlink" href="#reconciliation-boundary" title="Link to this heading">¶</a></h2>
+<p>FIN-01 does not perform external/simulator reconciliation.</p>
+<p>Snapshot reconciliation status remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+<p>until #247 FIN-02 compares FIN against independent read-only observations.</p>
+</section>
+<section id="determinism-contract">
+<h2>15. Determinism contract<a class="headerlink" href="#determinism-contract" title="Link to this heading">¶</a></h2>
+<p>Given exactly the same:</p>
+<ul class="simple">
+<li><p>ordered PPL event stream;</p></li>
+<li><p>FIN schema;</p></li>
+<li><p>FIN code SHA;</p></li>
+<li><p>FinancialContext/provenance;</p></li>
+<li><p>valuation observations;</p></li>
+<li><p>valuation as-of;</p></li>
+<li><p>freshness threshold;</p></li>
+</ul>
+<p>FIN-01 must reproduce exactly the same:</p>
+<ul class="simple">
+<li><p>FinancialEvents;</p></li>
+<li><p>postings;</p></li>
+<li><p>account balances;</p></li>
+<li><p>Treasury view;</p></li>
+<li><p>valuation set;</p></li>
+<li><p>snapshot fields;</p></li>
+<li><p>snapshot id.</p></li>
+</ul>
+<p>No clock, randomness, API or environment lookup is permitted in the pure
+projection path.</p>
+</section>
+<section id="restart-replay-scope">
+<h2>16. Restart/replay scope<a class="headerlink" href="#restart-replay-scope" title="Link to this heading">¶</a></h2>
+<p>FIN-01 proves source-level replay determinism.</p>
+<p>Crash/restart runtime certification remains owned by:</p>
+<p>#246 PPL-RECOVERY-01</p>
+<p>FIN-01 must provide the pure deterministic substrate required for #246.</p>
+</section>
+<section id="f00-boundary">
+<h2>17. F00 boundary<a class="headerlink" href="#f00-boundary" title="Link to this heading">¶</a></h2>
+<p>Active F00 remains pinned independently to its certified runtime source.</p>
+<p>FIN-01 source work MUST NOT:</p>
+<ul class="simple">
+<li><p>deploy to active F00;</p></li>
+<li><p>mutate the active epoch;</p></li>
+<li><p>modify strategy/signal/risk/sizing/execution;</p></li>
+<li><p>alter PPL durable events.</p></li>
+</ul>
+<p>Any future FIN runtime activation requires a separately governed boundary.</p>
+</section>
+<section id="exit-gate">
+<h2>18. Exit gate<a class="headerlink" href="#exit-gate" title="Link to this heading">¶</a></h2>
+<p>Target verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_01_PAPER_FINANCIAL_INSTITUTE_SOURCE_CERTIFIED</span></code></p>
+<p>Required evidence:</p>
+<ul class="simple">
+<li><p>FIN-00 dependency certified;</p></li>
+<li><p>adapter tests PASS;</p></li>
+<li><p>double-entry/replay tests PASS;</p></li>
+<li><p>Treasury tests PASS;</p></li>
+<li><p>valuation/freshness tests PASS;</p></li>
+<li><p>snapshot determinism tests PASS;</p></li>
+<li><p>unresolved/funding fail-closed tests PASS;</p></li>
+<li><p>full maintained CI PASS;</p></li>
+<li><p>exact certified HEAD recorded;</p></li>
+<li><p>no F00 deployment/mutation;</p></li>
+<li><p>#148 updated.</p></li>
+</ul>
+<p>After FIN-01 certification, the blocking mission becomes:</p>
+<p>#246 — PPL-RECOVERY-01.</p>
+</section>
+<section id="forensic-hardening-findings">
+<h2>19. Forensic hardening findings<a class="headerlink" href="#forensic-hardening-findings" title="Link to this heading">¶</a></h2>
+<p>The FIN-01 forensic audit identified and remediated the following before source
+certification:</p>
+<ol class="arabic simple">
+<li><p>initial lint defects from unused imports;</p></li>
+<li><p>FIN-00 executable snapshot identity under-bound semantic context and
+evidence/reconciliation status despite the normative text requiring them;</p></li>
+<li><p>exact comparison of PPL float aggregates against FIN Decimal balances could
+produce false failures from IEEE-754 accumulation artifacts;</p></li>
+<li><p>ledger replay did not independently reject mixed semantic context, FIN code
+SHA, config hash, duplicate source event identity, or posting/envelope
+identity mismatch;</p></li>
+<li><p>NOT_APPLICABLE funding could be asserted without a provenance reference;</p></li>
+<li><p>LedgerPosting required explicit enum hardening for account/side;</p></li>
+<li><p>certified equity now rejects non-zero unrealized PnL when no positions are
+open.</p></li>
+</ol>
+<p>All findings are source-only. No active F00 runtime mutation or deployment is
+part of these remediations.</p>
+</section>
+<section id="ci-trigger-integrity-note">
+<h2>20. CI trigger integrity note<a class="headerlink" href="#ci-trigger-integrity-note" title="Link to this heading">¶</a></h2>
+<p>After forensic remediation, candidate HEAD
+<code class="docutils literal notranslate"><span class="pre">fc8e3b7cd3d862dee9e0ae27a6baf8e1ee4a3165</span></code> did not receive repository
+GitHub Actions check suites despite pull-request synchronize/reopen events;
+only external check providers materialized.</p>
+<p>A temporary mirror PR was opened solely to test event delivery and was closed
+without merge. It produced the same absence of GitHub Actions runs.</p>
+<p>This governance-only documentation commit intentionally emits a fresh
+<code class="docutils literal notranslate"><span class="pre">pull_request:synchronize</span></code> event on canonical PR #250. Source certification
+still requires the maintained CI corpus on the exact resulting HEAD. No
+missing CI evidence may be interpreted as PASS.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">FIN-01 — PAPER Financial Institute v1</a><ul>
+<li><a class="reference internal" href="#mission">1. Mission</a></li>
+<li><a class="reference internal" href="#authority-boundary">2. Authority boundary</a></li>
+<li><a class="reference internal" href="#supported-financial-model">3. Supported financial model</a></li>
+<li><a class="reference internal" href="#explicit-projection-context">4. Explicit projection context</a></li>
+<li><a class="reference internal" href="#ppl-financialevent-adapter">5. PPL → FinancialEvent adapter</a><ul>
+<li><a class="reference internal" href="#epoch-created">EPOCH_CREATED</a></li>
+<li><a class="reference internal" href="#position-opened">POSITION_OPENED</a></li>
+<li><a class="reference internal" href="#position-closed">POSITION_CLOSED</a></li>
+<li><a class="reference internal" href="#position-unresolved">POSITION_UNRESOLVED</a></li>
+<li><a class="reference internal" href="#recovery-completed">RECOVERY_COMPLETED</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#source-stream-identity">6. Source stream identity</a></li>
+<li><a class="reference internal" href="#double-entry-ledger">7. Double-entry ledger</a></li>
+<li><a class="reference internal" href="#treasury-projection">8. Treasury projection</a><ul>
+<li><a class="reference internal" href="#funding">Funding</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#valuation">9. Valuation</a></li>
+<li><a class="reference internal" href="#financialsnapshot">10. FinancialSnapshot</a></li>
+<li><a class="reference internal" href="#certified-equity">11. Certified equity</a></li>
+<li><a class="reference internal" href="#ppl-lifecycle-validation-vs-financial-reconciliation">12. PPL lifecycle validation vs financial reconciliation</a></li>
+<li><a class="reference internal" href="#evidence-states">13. Evidence states</a></li>
+<li><a class="reference internal" href="#reconciliation-boundary">14. Reconciliation boundary</a></li>
+<li><a class="reference internal" href="#determinism-contract">15. Determinism contract</a></li>
+<li><a class="reference internal" href="#restart-replay-scope">16. Restart/replay scope</a></li>
+<li><a class="reference internal" href="#f00-boundary">17. F00 boundary</a></li>
+<li><a class="reference internal" href="#exit-gate">18. Exit gate</a></li>
+<li><a class="reference internal" href="#forensic-hardening-findings">19. Forensic hardening findings</a></li>
+<li><a class="reference internal" href="#ci-trigger-integrity-note">20. CI trigger integrity note</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

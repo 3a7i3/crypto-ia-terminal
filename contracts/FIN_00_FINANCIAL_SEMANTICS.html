@@ -771,8 +771,12 @@ normalization</strong>.</p>
 <li><p>source_event_id;</p></li>
 <li><p>paper_epoch_id;</p></li>
 <li><p>source_sequence;</p></li>
-<li><p>financial schema version.</p></li>
+<li><p>financial schema version;</p></li>
+<li><p>semantic context digest.</p></li>
 </ul>
+<p>The semantic context digest binds all non-PPL interpretation inputs that can
+change the resulting FinancialEvent, including reporting asset, financial
+model and explicit attribution/funding semantics.</p>
 <p>Replaying the same immutable source identity under the same FIN schema therefore
 produces the same financial event id. No random UUID may make identical replay
 produce a different financial history.</p>
@@ -802,8 +806,11 @@ produce a different financial history.</p>
 <li><p>FIN schema version;</p></li>
 <li><p>code SHA;</p></li>
 <li><p>config hash;</p></li>
+<li><p>semantic context digest;</p></li>
 <li><p>valuation-set digest;</p></li>
-<li><p>valuation as-of time.</p></li>
+<li><p>valuation as-of time;</p></li>
+<li><p>evidence completeness status;</p></li>
+<li><p>reconciliation status.</p></li>
 </ul>
 <p>The snapshot identity must change when any bound input changes.</p>
 <p>UI/API transport must expose the identity/provenance rather than recomputing the
@@ -891,6 +898,16 @@ boundary. It must never delete or rewrite the accidental/pre-FIN evidence.</p>
 <li><p>#148 is updated with the certified HEAD and verdict.</p></li>
 </ul>
 <p>FIN-01 then implements the deterministic PPL -&gt; Financial Institute projection.</p>
+</section>
+<section id="fin-01-forensic-erratum">
+<h2>21. FIN-01 forensic erratum<a class="headerlink" href="#fin-01-forensic-erratum" title="Link to this heading">¶</a></h2>
+<p>During FIN-01 forensic implementation, the executable FIN-00 identity helper
+was found to under-bind two requirements already stated by this contract:
+semantic interpretation context and snapshot evidence/reconciliation status.</p>
+<p>The implementation is hardened before FIN-01 certification so the executable
+identity recipe matches the normative contract. This erratum does not change
+the accounting semantics, authority boundaries, F00 runtime, or any historical
+PPL fact.</p>
 </section>
 </section>
 
@@ -980,6 +997,7 @@ boundary. It must never delete or rewrite the accidental/pre-FIN evidence.</p>
 <li><a class="reference internal" href="#scientific-invariants">18. Scientific invariants</a></li>
 <li><a class="reference internal" href="#f00-stop-continue-decision-rule">19. F00 stop/continue decision rule</a></li>
 <li><a class="reference internal" href="#fin-00-exit-gate">20. FIN-00 exit gate</a></li>
+<li><a class="reference internal" href="#fin-01-forensic-erratum">21. FIN-01 forensic erratum</a></li>
 </ul>
 </li>
 </ul>
