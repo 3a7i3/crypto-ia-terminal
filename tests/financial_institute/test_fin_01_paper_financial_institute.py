@@ -258,6 +258,21 @@ def test_missing_mark_is_unresolved_not_zero() -> None:
 
 
 
+
+def test_fin01_rejects_non_usdt_reporting_asset() -> None:
+    with pytest.raises(ValueError, match="asset=USDT"):
+        FinancialContext(fin_code_sha="fin-sha", asset="USD")
+
+
+def test_not_applicable_funding_rejects_wrong_reference() -> None:
+    with pytest.raises(ValueError, match="funding_evidence_ref"):
+        FinancialContext(
+            fin_code_sha="fin-sha",
+            funding_status=EvidenceStatus.NOT_APPLICABLE,
+            funding_evidence_ref="operator-claim",
+        )
+
+
 def test_not_applicable_funding_requires_provenance_reference() -> None:
     with pytest.raises(ValueError, match="funding_evidence_ref"):
         FinancialContext(
