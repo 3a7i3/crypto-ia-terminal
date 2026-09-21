@@ -800,32 +800,37 @@ def reconcile_financial_snapshot(
         ):
             capital_reconciliation = book_record.unreconciled_amount
 
-        if (
-            simulator.lifecycle_transitions_in_flight not in (None, 0)
-            or simulator.pending_order_count not in (None, 0)
-        ):
-            records.append(
-                _numeric_record(
-                    snapshot=snapshot,
-                    policy=policy,
-                    as_of=as_of_value,
-                    source_kind=ReconciliationSourceKind.SIMULATOR,
-                    source_id=simulator.source_id,
-                    field="quiescence",
-                    projected=Decimal("0"),
-                    observed=Decimal(
-                        (simulator.lifecycle_transitions_in_flight or 0)
-                        + (simulator.pending_order_count or 0)
-                    ),
-                    observed_at=simulator.observed_at,
-                    projected_provenance="FIN-02 coherent-capture requirement",
-                    observed_provenance=simulator.provenance,
-                    note=(
-                        "Non-zero in-flight transitions/pending orders make "
-                        "the simulator observation non-quiescent."
-                    ),
-                )
+        quiescence_observed = (
+            None
+            if (
+                simulator.lifecycle_transitions_in_flight is None
+                or simulator.pending_order_count is None
             )
+            else Decimal(
+                simulator.lifecycle_transitions_in_flight
+                + simulator.pending_order_count
+            )
+        )
+        records.append(
+            _numeric_record(
+                snapshot=snapshot,
+                policy=policy,
+                as_of=as_of_value,
+                source_kind=ReconciliationSourceKind.SIMULATOR,
+                source_id=simulator.source_id,
+                field="quiescence",
+                projected=Decimal("0"),
+                observed=quiescence_observed,
+                observed_at=simulator.observed_at,
+                projected_provenance="FIN-02 coherent-capture requirement",
+                observed_provenance=simulator.provenance,
+                note=(
+                    "Zero requires both in-flight transitions and pending "
+                    "orders to be explicitly observed. Missing evidence "
+                    "remains UNRESOLVED; non-zero is a visible divergence."
+                ),
+            )
+        )
 
     external_digest: Optional[str] = None
     if external is not None:
