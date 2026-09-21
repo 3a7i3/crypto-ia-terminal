@@ -42,6 +42,7 @@ from observability.financial_reconciliation import (
     _capture_simulator_observation_locked,
 )
 from paper_trading.ledger_events import LedgerEvent
+from paper_trading.paper_portfolio_ledger import project
 
 
 FIN02_R2_CAPTURE_SCHEMA_VERSION = 1
@@ -269,6 +270,10 @@ def capture_coherent_financial_boundary(
     if projection is None:
         raise CoherentFinancialCaptureError(
             "PPL authority view contains no projection"
+        )
+    if projection != project(events):
+        raise CoherentFinancialCaptureError(
+            "PPL authority projection differs from captured event replay"
         )
 
     ppl_observation = ppl_observation_from_events(
