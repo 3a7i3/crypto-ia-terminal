@@ -156,6 +156,7 @@ def build_financial_snapshot(
         fees_paid=treasury.fees_paid,
         funding_net=treasury.funding_net,
         funding_status=treasury.funding_status,
+        funding_evidence_ref=treasury.funding_evidence_ref,
         realized_pnl=treasury.realized_pnl,
         known_unrealized_pnl=valuation_set.known_unrealized_pnl,
         unrealized_pnl=valuation_set.unrealized_pnl,
