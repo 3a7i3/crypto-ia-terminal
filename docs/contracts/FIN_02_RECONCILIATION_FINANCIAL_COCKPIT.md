@@ -202,7 +202,7 @@ R3 must:
 - convert ordinary build/path/write failures into a fail-passive result;
 - have no production Advisor call site during source certification.
 
-## 18. Simulator reconciliation
+## 11. Simulator reconciliation
 
 A simulator observation is read under the simulator's existing lock and exposes:
 - cash available;
@@ -219,7 +219,7 @@ transitions are both explicitly known.
 
 Exact trade identity is compared, not symbol-only membership.
 
-## 11. Unreconciled capital
+## 12. Unreconciled capital
 
 FIN-02 must not sum multiple correlated deltas and label the sum as missing
 capital.
@@ -243,7 +243,7 @@ This is reconciliation evidence, not an asset and not an automatic adjustment.
 If the simulator observation is absent/stale/unavailable or FIN contains
 unresolved capital, `unreconciled_capital` is unavailable rather than invented.
 
-## 12. PAPER versus real exchange
+## 13. PAPER versus real exchange
 
 Current FIN-02 scope is PAPER.
 
@@ -261,7 +261,7 @@ No PAPER-vs-real cash/equity delta may be used as reconciliation capital.
 Future FIN-04 may define TESTNET/REAL Treasury reconciliation under a separate
 certified accounting scope.
 
-## 13. Valuation and equity
+## 14. Valuation and equity
 
 FIN-02 transports FIN-01 valuation truth unchanged.
 
@@ -275,7 +275,7 @@ UNKNOWN != ZERO.
 The cockpit must visibly distinguish unresolved/unavailable equity from numeric
 zero equity.
 
-## 14. Presentation artifact
+## 15. Presentation artifact
 
 Canonical artifact default:
 
@@ -311,7 +311,7 @@ The artifact binds:
 
 Writes are atomic and own only this presentation artifact.
 
-## 15. API boundary
+## 16. API boundary
 
 Endpoint:
 
@@ -327,7 +327,7 @@ The API:
 - does not recompute PnL/equity/deltas;
 - returns structured 503 when evidence is absent/invalid.
 
-## 16. Cockpit boundary
+## 17. Cockpit boundary
 
 The Financial domain exposes:
 - cash available;
@@ -345,7 +345,7 @@ The Financial domain exposes:
 
 The browser must not perform financial arithmetic.
 
-## 17. Exit gates
+## 18. Exit gates
 
 Source:
 - deterministic reconciliation identity;
