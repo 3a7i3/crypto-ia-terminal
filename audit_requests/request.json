@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "FIN02-R4-PRE-MANIFEST-20260922T0633Z",
-  "action": "snapshot_manifest",
-  "requested_at_utc": "2026-09-22T06:33:00Z"
+  "request_id": "FIN02-R4-PRE-TRIGGERS-20260922T0635Z",
+  "action": "service_trigger_matrix",
+  "requested_at_utc": "2026-09-22T06:35:00Z"
 }
