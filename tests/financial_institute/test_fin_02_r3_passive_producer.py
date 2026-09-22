@@ -372,3 +372,48 @@ def test_r3_invalid_artifact_path_is_fail_passive():
     assert not result.ok
     assert result.product is None
     assert result.error_type == "TypeError"
+
+
+def test_r3_failure_diagnostics_cannot_escape_fail_passive(tmp_path):
+    class _HostileCapture:
+        @property
+        def capture_id(self):
+            raise RuntimeError("capture id unavailable")
+
+        @property
+        def runtime_provenance(self):
+            raise RuntimeError("provenance unavailable")
+
+    result = run_passive_financial_producer(
+        _HostileCapture(),
+        policy=_policy(),
+        generated_at=GENERATED_AT,
+        max_mark_age_s=Decimal("30"),
+        artifact_path=tmp_path / "financial.json",
+    )
+
+    assert result.status is PassiveFinancialProducerStatus.FAILED
+    assert result.capture_id == ""
+    assert result.runtime_provenance_id == ""
+    assert result.error_type == "PassiveFinancialProducerError"
+
+
+def test_r3_reconciliation_age_uses_generation_time_not_capture_time():
+    product = build_passive_financial_product(
+        _capture(),
+        policy=ReconciliationPolicy(
+            absolute_tolerance=Decimal("0.000000000001"),
+            relative_tolerance=Decimal("0"),
+            stale_after_s=Decimal("90"),
+        ),
+        generated_at=Decimal("101"),
+        max_mark_age_s=Decimal("30"),
+    )
+
+    source_records = [
+        row
+        for row in product.reconciliation_snapshot.records
+        if row.source_kind.value in {"PPL", "SIMULATOR"}
+    ]
+    assert source_records
+    assert any(row.freshness.value == "STALE" for row in source_records)
