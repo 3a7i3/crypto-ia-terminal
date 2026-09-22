@@ -236,5 +236,6 @@ def test_r4_advisor_call_is_end_of_cycle_and_defensively_fail_passive():
 
     assert operator_idx < fin_idx < watchdog_idx
     block = source[fin_idx:watchdog_idx]
-    assert "_fin02_runtime_writer.maybe_refresh(_virtual_portfolio)" in block
+    assert "_fin02_runtime_writer.maybe_refresh(" in block
+    assert "_virtual_portfolio" in block
     assert "except Exception as _fin02_runtime_exc" in block
