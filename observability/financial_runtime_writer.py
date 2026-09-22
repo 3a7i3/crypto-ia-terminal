@@ -173,9 +173,9 @@ def load_financial_runtime_activation_config(
         FIN02_MIN_REFRESH_INTERVAL_S_ENV,
         DEFAULT_FIN02_MIN_REFRESH_INTERVAL_S,
     )
-    if not math.isfinite(min_interval) or min_interval < 0:
+    if not math.isfinite(min_interval) or min_interval <= 0:
         raise ValueError(
-            "FIN02 minimum refresh interval must be finite and >= 0"
+            "FIN02 minimum refresh interval must be finite and > 0"
         )
 
     max_mark_age = _decimal_env(
