@@ -302,14 +302,18 @@ def run_passive_financial_producer(
     strategy, risk, sizing and execution state are never written here.
     """
 
-    path = Path(artifact_path)
     capture_id = str(getattr(capture, "capture_id", "") or "")
     provenance = getattr(capture, "runtime_provenance", None)
     provenance_id = str(
         getattr(provenance, "provenance_id", "") or ""
     )
+    try:
+        artifact_path_text = str(artifact_path)
+    except Exception:
+        artifact_path_text = "<invalid-artifact-path>"
 
     try:
+        path = Path(artifact_path)
         product = build_passive_financial_product(
             capture,
             policy=policy,
@@ -326,7 +330,7 @@ def run_passive_financial_producer(
             status=PassiveFinancialProducerStatus.FAILED,
             capture_id=capture_id,
             runtime_provenance_id=provenance_id,
-            artifact_path=str(path),
+            artifact_path=artifact_path_text,
             product=None,
             error_type=type(exc).__name__,
             error_message=str(exc),
@@ -336,7 +340,7 @@ def run_passive_financial_producer(
         status=PassiveFinancialProducerStatus.WRITTEN,
         capture_id=product.capture_id,
         runtime_provenance_id=product.runtime_provenance_id,
-        artifact_path=str(path),
+        artifact_path=artifact_path_text,
         product=product,
     )
 
