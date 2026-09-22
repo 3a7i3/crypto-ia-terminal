@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -239,3 +240,83 @@ def test_r4_advisor_call_is_end_of_cycle_and_defensively_fail_passive():
     assert "_fin02_runtime_writer.maybe_refresh(" in block
     assert "_virtual_portfolio" in block
     assert "except Exception as _fin02_runtime_exc" in block
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["0", "-1", "nan", "inf", "-inf"],
+)
+def test_r4_enabled_activation_requires_positive_bounded_cadence(
+    tmp_path,
+    value,
+):
+    env = _enabled_env(tmp_path)
+    env["FIN02_MIN_REFRESH_INTERVAL_S"] = value
+
+    with pytest.raises(ValueError, match="finite and > 0"):
+        load_financial_runtime_activation_config(env)
+
+
+def test_r4_empty_artifact_path_fails_closed(tmp_path):
+    env = _enabled_env(tmp_path)
+    env["FINANCIAL_RECONCILIATION_SNAPSHOT_PATH"] = "   "
+
+    with pytest.raises(
+        ValueError,
+        match="FINANCIAL_RECONCILIATION_SNAPSHOT_PATH",
+    ):
+        load_financial_runtime_activation_config(env)
+
+
+def test_r4_advisor_passes_only_existing_virtual_portfolio():
+    source = Path("core/advisor_loop.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    matches = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not isinstance(func, ast.Attribute):
+            continue
+        if func.attr != "maybe_refresh":
+            continue
+        owner = func.value
+        if (
+            isinstance(owner, ast.Name)
+            and owner.id == "_fin02_runtime_writer"
+        ):
+            matches.append(node)
+
+    assert len(matches) == 1
+    call = matches[0]
+    assert len(call.args) == 1
+    assert isinstance(call.args[0], ast.Name)
+    assert call.args[0].id == "_virtual_portfolio"
+    assert call.keywords == []
+
+
+def test_r4_runtime_writer_does_not_import_exchange_or_authority_modules():
+    source = Path("observability/financial_runtime_writer.py").read_text(
+        encoding="utf-8"
+    )
+    tree = ast.parse(source)
+
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module)
+
+    forbidden_prefixes = (
+        "ccxt",
+        "paper_trading.mexc_simulator",
+        "paper_trading.ppl_authority_runtime",
+        "exchange",
+    )
+    assert not any(
+        module.startswith(prefix)
+        for module in imported
+        for prefix in forbidden_prefixes
+    )
