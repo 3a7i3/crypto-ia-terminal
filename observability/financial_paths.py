@@ -25,12 +25,15 @@ def resolve_financial_reconciliation_path(
     """Resolve the single governed FIN-02 producer/reader artifact path."""
 
     source = os.environ if environ is None else environ
-    return Path(
-        source.get(
-            FINANCIAL_RECONCILIATION_SNAPSHOT_PATH_ENV,
-            str(CANONICAL_FINANCIAL_RECONCILIATION_PATH),
-        )
+    raw = source.get(
+        FINANCIAL_RECONCILIATION_SNAPSHOT_PATH_ENV,
+        str(CANONICAL_FINANCIAL_RECONCILIATION_PATH),
     )
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError(
+            "FINANCIAL_RECONCILIATION_SNAPSHOT_PATH must be non-empty"
+        )
+    return Path(raw.strip())
 
 
 # Backward-compatible effective default: preserves the pre-R4 behavior where
