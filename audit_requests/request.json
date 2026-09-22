@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "FIN02-R4-PRE-REPO-20260922T0605Z",
-  "action": "repo_status",
-  "requested_at_utc": "2026-09-22T06:05:00Z"
+  "request_id": "FIN02-R4-PRE-SERVICES-20260922T0628Z",
+  "action": "service_matrix",
+  "requested_at_utc": "2026-09-22T06:28:00Z"
 }
