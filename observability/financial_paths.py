@@ -14,7 +14,7 @@ from pathlib import Path
 FINANCIAL_RECONCILIATION_SNAPSHOT_PATH_ENV = (
     "FINANCIAL_RECONCILIATION_SNAPSHOT_PATH"
 )
-DEFAULT_FINANCIAL_RECONCILIATION_PATH = Path(
+CANONICAL_FINANCIAL_RECONCILIATION_PATH = Path(
     "databases/financial_reconciliation_snapshot.json"
 )
 
@@ -28,12 +28,20 @@ def resolve_financial_reconciliation_path(
     return Path(
         source.get(
             FINANCIAL_RECONCILIATION_SNAPSHOT_PATH_ENV,
-            str(DEFAULT_FINANCIAL_RECONCILIATION_PATH),
+            str(CANONICAL_FINANCIAL_RECONCILIATION_PATH),
         )
     )
 
 
+# Backward-compatible effective default: preserves the pre-R4 behavior where
+# FINANCIAL_RECONCILIATION_SNAPSHOT_PATH is resolved once at process import.
+DEFAULT_FINANCIAL_RECONCILIATION_PATH = (
+    resolve_financial_reconciliation_path()
+)
+
+
 __all__ = [
+    "CANONICAL_FINANCIAL_RECONCILIATION_PATH",
     "DEFAULT_FINANCIAL_RECONCILIATION_PATH",
     "FINANCIAL_RECONCILIATION_SNAPSHOT_PATH_ENV",
     "resolve_financial_reconciliation_path",
