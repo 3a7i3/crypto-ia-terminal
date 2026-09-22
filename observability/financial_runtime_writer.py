@@ -10,6 +10,7 @@ explicit governed environment envelope and remains a separate operator action.
 
 from __future__ import annotations
 
+import math
 import os
 import time
 from collections.abc import Mapping, Sequence
@@ -63,6 +64,7 @@ DEFAULT_FIN02_RELATIVE_TOLERANCE = Decimal("0")
 DEFAULT_FIN02_RECONCILIATION_STALE_AFTER_S = Decimal("90")
 
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+_FALSE_VALUES = frozenset({"", "0", "false", "no", "off"})
 
 
 class FinancialRuntimeRefreshStatus(str, Enum):
@@ -139,8 +141,13 @@ def load_financial_runtime_activation_config(
 
     source = os.environ if environ is None else environ
     enabled = source.get(FIN02_RUNTIME_ENABLED_ENV, "").strip().lower()
-    if enabled not in _TRUE_VALUES:
+    if enabled in _FALSE_VALUES:
         return None
+    if enabled not in _TRUE_VALUES:
+        raise ValueError(
+            "FIN02_RUNTIME_ENABLED must be one of "
+            "true/false, 1/0, yes/no or on/off"
+        )
 
     semantic_inputs = FinancialRuntimeSemanticInputs(
         reconciliation_code_sha=_required_text(
@@ -166,8 +173,10 @@ def load_financial_runtime_activation_config(
         FIN02_MIN_REFRESH_INTERVAL_S_ENV,
         DEFAULT_FIN02_MIN_REFRESH_INTERVAL_S,
     )
-    if min_interval < 0:
-        raise ValueError("FIN02 minimum refresh interval must be >= 0")
+    if not math.isfinite(min_interval) or min_interval < 0:
+        raise ValueError(
+            "FIN02 minimum refresh interval must be finite and >= 0"
+        )
 
     max_mark_age = _decimal_env(
         source,
