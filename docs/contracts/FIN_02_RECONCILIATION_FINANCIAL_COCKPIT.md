@@ -22,6 +22,9 @@ Coherent passive capture sub-contract:
 Passive producer sub-contract:
 `docs/contracts/FIN_02_R3_PASSIVE_PRODUCER.md`
 
+Governed runtime activation proof:
+`docs/contracts/FIN_02_R4_GOVERNED_RUNTIME_ACTIVATION_PROOF.md`
+
 R1 rule:
 PPL/F00 source identity, certified FIN-01 implementation identity and FIN-02
 reconciliation implementation identity are separate provenance dimensions and
@@ -364,6 +367,7 @@ Runtime:
 - FIN-02R1 runtime provenance contract satisfied;
 - FIN-02R2 coherent passive capture contract satisfied;
 - FIN-02R3 passive producer contract satisfied;
+- FIN-02R4 governed runtime activation proof satisfied;
 - active F00 source/config/epoch preserved until an explicit governed runtime activation step;
 - coherent PPL/FIN/simulator snapshot produced;
 - API transport fidelity;
