@@ -19,6 +19,9 @@ Runtime provenance sub-contract:
 Coherent passive capture sub-contract:
 `docs/contracts/FIN_02_R2_COHERENT_PASSIVE_CAPTURE.md`
 
+Passive producer sub-contract:
+`docs/contracts/FIN_02_R3_PASSIVE_PRODUCER.md`
+
 R1 rule:
 PPL/F00 source identity, certified FIN-01 implementation identity and FIN-02
 reconciliation implementation identity are separate provenance dimensions and
@@ -182,7 +185,24 @@ The capture must:
 
 No separate PPL runtime may be injected into the capture boundary.
 
-## 10. Simulator reconciliation
+## 10. Passive producer boundary
+
+FIN-02 artifact production must satisfy the R3 passive producer contract.
+
+The source flow is:
+
+`R2 capture -> FIN-01 snapshot -> FIN-02 reconciliation -> atomic artifact`
+
+R3 must:
+- derive FIN context only from certified R1 provenance;
+- reverify FIN_CONTEXT_V1 before projection;
+- use R2 capture time for valuation_as_of;
+- use explicit generated_at for reconciliation freshness;
+- preserve the existing closed artifact schema;
+- convert ordinary build/path/write failures into a fail-passive result;
+- have no production Advisor call site during source certification.
+
+## 18. Simulator reconciliation
 
 A simulator observation is read under the simulator's existing lock and exposes:
 - cash available;
@@ -343,6 +363,7 @@ Source:
 Runtime:
 - FIN-02R1 runtime provenance contract satisfied;
 - FIN-02R2 coherent passive capture contract satisfied;
+- FIN-02R3 passive producer contract satisfied;
 - active F00 source/config/epoch preserved until an explicit governed runtime activation step;
 - coherent PPL/FIN/simulator snapshot produced;
 - API transport fidelity;
