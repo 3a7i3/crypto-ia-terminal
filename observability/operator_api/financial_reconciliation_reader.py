@@ -4,20 +4,17 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-
-DEFAULT_FINANCIAL_RECONCILIATION_PATH = Path(
-    os.getenv(
-        "FINANCIAL_RECONCILIATION_SNAPSHOT_PATH",
-        "databases/financial_reconciliation_snapshot.json",
-    )
+from observability.financial_paths import (
+    DEFAULT_FINANCIAL_RECONCILIATION_PATH,
 )
+
+
 DEFAULT_FINANCIAL_RECONCILIATION_STALE_AFTER_S = 90.0
 
 _TOP_KEYS = {
