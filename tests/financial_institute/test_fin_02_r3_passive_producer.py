@@ -219,7 +219,7 @@ def test_r3_preserves_simulator_divergence_for_reconciliation():
     assert product.document["sources"]["simulator"]["open_position_ids"] == []
 
 
-def test_r3_rejects_tampered_r1_semantic_context():
+def test_r3_rejects_tampered_r1_semantic_context(tmp_path):
     capture = _capture()
     bad_provenance = replace(
         capture.runtime_provenance,
@@ -235,12 +235,12 @@ def test_r3_rejects_tampered_r1_semantic_context():
         policy=_policy(),
         generated_at=GENERATED_AT,
         max_mark_age_s=Decimal("30"),
-        artifact_path=SimpleNamespace(),
+        artifact_path=tmp_path / "financial.json",
     )
 
     assert result.status is PassiveFinancialProducerStatus.FAILED
     assert result.product is None
-    assert result.error_type in {"PassiveFinancialProducerError", "TypeError"}
+    assert result.error_type == "PassiveFinancialProducerError"
 
 
 def test_r3_rejects_generation_time_before_capture(tmp_path):
@@ -354,3 +354,21 @@ def test_r3_generated_at_changes_reconciliation_and_product_identity():
     assert first.financial_snapshot.snapshot_id == (
         second.financial_snapshot.snapshot_id
     )
+
+
+def test_r3_invalid_artifact_path_is_fail_passive():
+    class _InvalidPath:
+        pass
+
+    result = run_passive_financial_producer(
+        _capture(),
+        policy=_policy(),
+        generated_at=GENERATED_AT,
+        max_mark_age_s=Decimal("30"),
+        artifact_path=_InvalidPath(),
+    )
+
+    assert result.status is PassiveFinancialProducerStatus.FAILED
+    assert not result.ok
+    assert result.product is None
+    assert result.error_type == "TypeError"
