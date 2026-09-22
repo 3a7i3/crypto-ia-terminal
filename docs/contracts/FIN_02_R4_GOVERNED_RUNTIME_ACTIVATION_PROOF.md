@@ -505,3 +505,119 @@ The source candidate must receive exact-HEAD maintained CI and Semgrep evidence
 before any runtime activation can be considered.  Runtime tracks D/E/F remain
 separate and require the pre-activation evidence bundle plus explicit operator
 authorization before any restart or deployment.
+
+
+## 20. Source-side forensic findings
+
+R4 source audit identified one existing dormant integration rather than a need
+for a new caller.
+
+### Bootstrap
+
+In `core/advisor_loop.py`, FIN-02 bootstrap:
+- imports `build_financial_runtime_writer_from_env(...)`;
+- constructs no simulator, PPL runtime or exchange client;
+- returns `None` when `FIN02_RUNTIME_ENABLED` is absent/false;
+- catches configuration/bootstrap failure and leaves the observer disabled.
+
+Runtime activation is therefore OFF by default.
+
+### Exact caller
+
+The single Advisor caller is located in the end-of-cycle observational block:
+
+`_fin02_runtime_writer.maybe_refresh(_virtual_portfolio)`
+
+It executes:
+- after the canonical operator snapshot block;
+- after decision/execution work for the cycle;
+- before the existing watchdog end-of-cycle marker;
+- inside a defensive `try/except`.
+
+The caller passes exactly one positional runtime object:
+the already-existing `_virtual_portfolio`.
+
+It passes no valuation observer, no external-account observation and no second
+runtime object.
+
+### Cadence
+
+`FinancialReconciliationRuntimeWriter` owns process-local cadence with:
+- default interval: 30 seconds;
+- monotonic clock for eligibility;
+- wall clock only for observation timestamps;
+- cadence advanced on every eligible attempt, including failure;
+- no retry burst after failure/delay;
+- no background thread.
+
+R4 source hardening now rejects a configured interval <= 0.
+Enabled runtime cadence must therefore be finite and strictly positive.
+
+### Artifact path
+
+Producer and API reader share:
+
+`observability.financial_paths`
+
+Canonical default:
+
+`databases/financial_reconciliation_snapshot.json`
+
+Override:
+
+`FINANCIAL_RECONCILIATION_SNAPSHOT_PATH`
+
+R4 source hardening now rejects an empty/whitespace-only override instead of
+allowing it to collapse to the current directory.
+
+## 21. Source-side proof tests
+
+Dedicated source tests:
+
+`tests/financial_institute/test_fin_02_r4_runtime_activation_source.py`
+
+prove:
+- disabled-by-default activation;
+- explicit provenance required when enabled;
+- shared producer/reader path contract;
+- first eligible write then cadence skip;
+- next eligible write only after interval;
+- failed attempt advances cadence and does not burst;
+- producer failure returns FAILED rather than raising;
+- no background thread / simulator / PPL-runtime / ccxt constructor in the
+  runtime writer;
+- Advisor caller ordering at the end-of-cycle boundary;
+- defensive outer fail-passive wrapper;
+- AST proof that the Advisor caller passes exactly one argument:
+  `_virtual_portfolio`;
+- AST proof that the runtime writer imports no exchange, MexcSimulator or
+  PPLAuthorityRuntime module;
+- enabled runtime rejects zero/negative/non-finite cadence;
+- empty artifact-path override fails closed.
+
+## 22. Source-side certification boundary
+
+Source-side certification may conclude only:
+
+`FIN_02_R4_SOURCE_ACTIVATION_READY`
+
+This verdict means:
+- caller placement is source-proven;
+- cadence is source-proven;
+- fail-passive wiring is source-proven;
+- canonical path contract is source-proven;
+- source CI is green.
+
+It does **not** mean:
+- runtime enabled;
+- VPS deployed;
+- Advisor restarted;
+- second-writer exclusivity proven at runtime;
+- F00 epoch/source/config governance completed;
+- fail-passive behavior proven in the real process.
+
+The full R4 verdict remains:
+
+`FIN_02_R4_GOVERNED_RUNTIME_ACTIVATION_CERTIFIED`
+
+and requires the VPS/runtime evidence defined earlier in this contract.
