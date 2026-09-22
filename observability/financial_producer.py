@@ -302,11 +302,17 @@ def run_passive_financial_producer(
     strategy, risk, sizing and execution state are never written here.
     """
 
-    capture_id = str(getattr(capture, "capture_id", "") or "")
-    provenance = getattr(capture, "runtime_provenance", None)
-    provenance_id = str(
-        getattr(provenance, "provenance_id", "") or ""
-    )
+    try:
+        capture_id = str(getattr(capture, "capture_id", "") or "")
+    except Exception:
+        capture_id = ""
+    try:
+        provenance = getattr(capture, "runtime_provenance", None)
+        provenance_id = str(
+            getattr(provenance, "provenance_id", "") or ""
+        )
+    except Exception:
+        provenance_id = ""
     try:
         artifact_path_text = str(artifact_path)
     except Exception:
