@@ -1,6 +1,6 @@
 # FIN-02R4 — Governed Runtime Activation Proof
 
-Status: **PLANNED / DOCUMENTATION-ONLY**
+Status: **SOURCE IMPLEMENTATION ACTIVE / RUNTIME NOT STARTED**
 
 Parent mission: #247 — FIN-02
 Parent architecture: #150
@@ -17,7 +17,7 @@ Certified R3 HEAD:
 
 `3dbdcbee97dc7c2c1943c88df4d5e513ca31a079`
 
-This R4 document does **not** authorize deployment, restart or runtime wiring.
+This R4 source phase does **not** authorize deployment, restart or runtime activation.
 It defines the evidence required before runtime activation can be certified.
 
 ## 1. Mission
@@ -450,3 +450,58 @@ Target verdict:
 R4 certification still does not automatically imply final FIN-02 closure.
 After R4, FIN-02 must receive one explicit final mission-level certification
 verdict against the complete FIN-00 → FIN-02 contract chain.
+
+
+## 20. Source-side implementation boundary
+
+The R4 source candidate introduces the runtime activation boundary without
+activating it.
+
+Implemented source components:
+
+- `observability/financial_paths.py`
+  - one neutral canonical artifact path contract;
+  - default `databases/financial_reconciliation_snapshot.json`;
+  - existing `FINANCIAL_RECONCILIATION_SNAPSHOT_PATH` override preserved;
+  - producer and API reader consume the same path contract.
+
+- `observability/financial_runtime_writer.py`
+  - activation OFF by default through `FIN02_RUNTIME_ENABLED`;
+  - explicit required provenance inputs when enabled;
+  - process-local 30-second default bounded cadence;
+  - cadence advances on failed eligible attempts, preventing retry bursts;
+  - no thread, simulator, PPL runtime or exchange-client construction;
+  - missing valuation/external evidence remains missing;
+  - R2 capture and R3 producer failures are returned as observational FAILED
+    results rather than escaping into trading control flow.
+
+- `core/advisor_loop.py`
+  - one bootstrap of the passive writer before the main loop;
+  - exact caller placement after the canonical operator snapshot attempt and
+    before end-of-cycle watchdog completion;
+  - existing live `_virtual_portfolio` is injected;
+  - no new trading/runtime authority is constructed;
+  - defense-in-depth `try/except` prevents observer failure from escaping the
+    Advisor cycle.
+
+- `tests/financial_institute/test_fin_02_r4_runtime_activation_source.py`
+  - disabled-by-default activation;
+  - mandatory explicit provenance;
+  - canonical producer/reader path equality;
+  - first-write / cadence-skip / next-eligible-write behavior;
+  - no retry burst after failure;
+  - producer/capture failure passivity;
+  - no background or authority constructors;
+  - source assertion for exact Advisor end-of-cycle placement.
+
+Runtime remains explicitly unstarted:
+
+`ADVISOR_RESTART=NO`
+`VPS_DEPLOYMENT=NO`
+`ACTIVE_F00_MUTATION=NO`
+`RUNTIME_PRODUCER_ACTIVATION=NO`
+
+The source candidate must receive exact-HEAD maintained CI and Semgrep evidence
+before any runtime activation can be considered.  Runtime tracks D/E/F remain
+separate and require the pre-activation evidence bundle plus explicit operator
+authorization before any restart or deployment.
