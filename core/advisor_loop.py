@@ -5886,6 +5886,35 @@ def main(
         )
         _op_snapshot_writer = None
 
+    # ── FIN-02R4 — governed passive financial observer bootstrap ────────────
+    # Disabled by default.  Runtime activation requires an explicit governed
+    # environment envelope; invalid/missing observer configuration cannot stop
+    # Advisor or change PAPER authority.
+    _fin02_runtime_writer: Any = None
+    try:
+        from observability.financial_runtime_writer import (
+            build_financial_runtime_writer_from_env as _build_fin02_writer,
+        )
+
+        _fin02_runtime_writer = _build_fin02_writer()
+        if _fin02_runtime_writer is None:
+            log.info("[FIN-02R4] passive financial producer disabled")
+        else:
+            log.info(
+                "[FIN-02R4] passive financial producer armed "
+                "(path=%s cadence_s=%s)",
+                _fin02_runtime_writer.artifact_path,
+                _fin02_runtime_writer.min_refresh_interval_s,
+            )
+    except Exception as _fin02_boot_exc:
+        log.warning(
+            "[FIN-02R4] passive financial producer config rejected "
+            "(non bloquant): type=%s message=%s",
+            type(_fin02_boot_exc).__name__,
+            _fin02_boot_exc,
+        )
+        _fin02_runtime_writer = None
+
     while True:
         cycle += 1
         cycle_completed = False
@@ -8420,6 +8449,40 @@ def main(
                         _op_boot_coordinator.process_instance_id,
                         type(_op_snap_exc).__name__,
                         _op_snap_exc,
+                    )
+
+            # ── FIN-02R4 — Passive financial reconciliation observer ──
+            # Exact end-of-cycle observational boundary.  Reuses the already
+            # running MEXC_SIM/PPL authority objects only; no mark/external
+            # evidence is fabricated here.  The writer owns its cadence and
+            # converts R2/R3 failures to observational FAILED results.
+            if _fin02_runtime_writer is not None:
+                try:
+                    _fin02_runtime_result = _fin02_runtime_writer.maybe_refresh(
+                        _virtual_portfolio
+                    )
+                    if _fin02_runtime_result.status.value == "FAILED":
+                        log.warning(
+                            "[FIN-02R4] passive refresh failed (non bloquant): "
+                            "type=%s message=%s path=%s",
+                            _fin02_runtime_result.error_type,
+                            _fin02_runtime_result.error_message,
+                            _fin02_runtime_result.artifact_path,
+                        )
+                    elif _fin02_runtime_result.status.value == "WRITTEN":
+                        log.debug(
+                            "[FIN-02R4] passive refresh written: "
+                            "capture_id=%s provenance_id=%s path=%s",
+                            _fin02_runtime_result.capture_id,
+                            _fin02_runtime_result.runtime_provenance_id,
+                            _fin02_runtime_result.artifact_path,
+                        )
+                except Exception as _fin02_runtime_exc:
+                    log.warning(
+                        "[FIN-02R4] passive refresh escaped writer boundary "
+                        "(absorbe, non bloquant): type=%s message=%s",
+                        type(_fin02_runtime_exc).__name__,
+                        _fin02_runtime_exc,
                     )
 
             # Watchdog fin de cycle

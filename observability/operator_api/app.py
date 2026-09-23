@@ -25,6 +25,12 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from observability.operator_api.financial_reconciliation_reader import (
+    DEFAULT_FINANCIAL_RECONCILIATION_PATH,
+    DEFAULT_FINANCIAL_RECONCILIATION_STALE_AFTER_S,
+    FinancialReconciliationReadResult,
+    FinancialReconciliationSnapshotReader,
+)
 from observability.operator_api.market_reader import (
     DEFAULT_MARKET_SNAPSHOT_PATH,
     DEFAULT_STALE_AFTER_S,
@@ -55,6 +61,7 @@ app = FastAPI(
 _reader = SafeSnapshotReader()
 _market_reader = MarketSnapshotReader()
 _ppl_comparison_reader = PplComparisonSnapshotReader()
+_financial_reconciliation_reader = FinancialReconciliationSnapshotReader()
 
 
 def configure_reader(
@@ -119,6 +126,29 @@ def get_ppl_comparison_reader() -> PplComparisonSnapshotReader:
     return _ppl_comparison_reader
 
 
+def configure_financial_reconciliation_reader(
+    path: Path = DEFAULT_FINANCIAL_RECONCILIATION_PATH,
+    *,
+    stale_after_s: float = DEFAULT_FINANCIAL_RECONCILIATION_STALE_AFTER_S,
+    now_fn=None,
+) -> FinancialReconciliationSnapshotReader:
+    """Replace the FIN-02 artifact reader without touching financial state."""
+
+    global _financial_reconciliation_reader
+    kwargs: Dict[str, Any] = {"stale_after_s": stale_after_s}
+    if now_fn is not None:
+        kwargs["now_fn"] = now_fn
+    _financial_reconciliation_reader = FinancialReconciliationSnapshotReader(
+        path=path,
+        **kwargs,
+    )
+    return _financial_reconciliation_reader
+
+
+def get_financial_reconciliation_reader() -> FinancialReconciliationSnapshotReader:
+    return _financial_reconciliation_reader
+
+
 def _envelope(result: SnapshotReadResult) -> Dict[str, Any]:
     snap = result.snapshot or {}
     return {
@@ -157,6 +187,18 @@ def _market_failure_response(result: MarketReadResult) -> JSONResponse:
 
 def _ppl_comparison_failure_response(
     result: PplComparisonReadResult,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error_code": result.error_code,
+            "error_message": result.error_message,
+        },
+    )
+
+
+def _financial_reconciliation_failure_response(
+    result: FinancialReconciliationReadResult,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=503,
@@ -254,6 +296,25 @@ def get_ppl_comparison() -> Any:
     return payload
 
 
+@app.get("/api/operator/v1/financial-reconciliation")
+def get_financial_reconciliation() -> Any:
+    """Return only the validated FIN-02 presentation artifact.
+
+    The API never imports FIN ledger/reconciliation computation, PPL stores,
+    MexcSimulator or exchange clients.  It transports the producer-authored
+    atomic artifact verbatim plus reader-authored freshness.
+    """
+
+    result = get_financial_reconciliation_reader().read()
+    if not result.ok:
+        return _financial_reconciliation_failure_response(result)
+
+    payload = dict(result.snapshot or {})
+    payload["snapshot_age_s"] = result.snapshot_age_s
+    payload["freshness_classification"] = result.freshness_classification
+    return payload
+
+
 @app.get("/api/operator/v1/market")
 def get_market() -> Any:
     """Return only the validated CryptoRadar presentation artifact.
@@ -280,4 +341,6 @@ __all__ = [
     "get_market_reader",
     "configure_ppl_comparison_reader",
     "get_ppl_comparison_reader",
+    "configure_financial_reconciliation_reader",
+    "get_financial_reconciliation_reader",
 ]
