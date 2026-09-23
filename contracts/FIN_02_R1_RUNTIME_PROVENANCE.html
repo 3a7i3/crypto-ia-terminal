@@ -1,0 +1,549 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>FIN-02R1 — Runtime Financial Provenance Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/FIN_02_R1_RUNTIME_PROVENANCE.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/FIN_02_R1_RUNTIME_PROVENANCE.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="fin-02r1-runtime-financial-provenance-contract">
+<h1>FIN-02R1 — Runtime Financial Provenance Contract<a class="headerlink" href="#fin-02r1-runtime-financial-provenance-contract" title="Link to this heading">¶</a></h1>
+<p>Status: <strong>SOURCE IMPLEMENTATION CANDIDATE</strong></p>
+<p>Parent mission: #247 — FIN-02
+Parent architecture: #150
+Governance: #148
+Reference PR: #254</p>
+<section id="scientific-question">
+<h2>1. Scientific question<a class="headerlink" href="#scientific-question" title="Link to this heading">¶</a></h2>
+<p>Before FIN-02 can produce a runtime financial reconciliation artifact, the
+system must be able to answer exactly:</p>
+<blockquote>
+<div><p>Which implementation interpreted the PPL lifecycle, which implementation
+performed reconciliation, which PPL population was interpreted, and which
+explicit semantic context was applied?</p>
+</div></blockquote>
+<p>A financial value without that binding is observationally insufficient for
+FIN-02 certification.</p>
+</section>
+<section id="r1-scope">
+<h2>2. R1 scope<a class="headerlink" href="#r1-scope" title="Link to this heading">¶</a></h2>
+<p>FIN-02R1 freezes provenance only.</p>
+<p>It does <strong>not</strong>:</p>
+<ul class="simple">
+<li><p>wire a producer into Advisor;</p></li>
+<li><p>restart F00;</p></li>
+<li><p>mutate the active epoch/configuration;</p></li>
+<li><p>append PPL events;</p></li>
+<li><p>read or write exchange state;</p></li>
+<li><p>generate marks;</p></li>
+<li><p>change FIN-01 accounting formulas;</p></li>
+<li><p>change reconciliation arithmetic;</p></li>
+<li><p>grant BUY/SELL or capital-allocation authority.</p></li>
+</ul>
+</section>
+<section id="three-identities-that-must-never-be-conflated">
+<h2>3. Three identities that must never be conflated<a class="headerlink" href="#three-identities-that-must-never-be-conflated" title="Link to this heading">¶</a></h2>
+<section id="ppl-f00-source-identity">
+<h3>3.1 PPL/F00 source identity<a class="headerlink" href="#ppl-f00-source-identity" title="Link to this heading">¶</a></h3>
+<p>Source: authoritative PPL <code class="docutils literal notranslate"><span class="pre">EPOCH_CREATED.code_sha</span></code>.</p>
+<p>Meaning:
+the source identity under which the lifecycle epoch itself was created.</p>
+<p>It is owned by PPL lifecycle provenance.</p>
+<p>It is <strong>not</strong> the FIN implementation identity.</p>
+</section>
+<section id="fin-01-implementation-identity">
+<h3>3.2 FIN-01 implementation identity<a class="headerlink" href="#fin-01-implementation-identity" title="Link to this heading">¶</a></h3>
+<p>Canonical FIN-01 PAPER v1 source:</p>
+<p><code class="docutils literal notranslate"><span class="pre">c639ac397122929769be2a1ce7654e3a1bc24cfe</span></code></p>
+<p>Certified verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_01_PAPER_FINANCIAL_INSTITUTE_SOURCE_CERTIFIED</span></code></p>
+<p>This exact identity was certified in #245 and was the FIN source identity used
+by the deterministic financial replay proof in #246.</p>
+<p>Meaning:
+the certified implementation of the FIN-01 semantic adapter, ledger, treasury,
+valuation contract and FinancialSnapshot construction.</p>
+<p>This identity remains the FIN-01 semantic implementation identity even when a
+later repository/deployment commit contains that already-certified code.</p>
+<p>It must never be replaced silently by:</p>
+<ul class="simple">
+<li><p>the active F00 source SHA;</p></li>
+<li><p>the current branch HEAD;</p></li>
+<li><p>the PPL epoch source SHA;</p></li>
+<li><p>the FIN-02 reconciliation SHA.</p></li>
+</ul>
+<p>A future FIN implementation requires an explicit new certification contract;
+FIN-02R1 PAPER v1 fails closed on any other <code class="docutils literal notranslate"><span class="pre">fin_code_sha</span></code>.</p>
+</section>
+<section id="fin-02-reconciliation-implementation-identity">
+<h3>3.3 FIN-02 reconciliation implementation identity<a class="headerlink" href="#fin-02-reconciliation-implementation-identity" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">reconciliation_code_sha</span></code> identifies the exact FIN-02 reconciliation
+implementation that produced the reconciliation evidence.</p>
+<p>It is supplied explicitly by the producer/deployment boundary.</p>
+<p>R1 does not infer it from PPL, FIN-01 or an environment default.</p>
+<p>It must identify FIN-02 separately from the certified FIN-01 implementation.</p>
+</section>
+</section>
+<section id="ppl-owned-binding">
+<h2>4. PPL-owned binding<a class="headerlink" href="#ppl-owned-binding" title="Link to this heading">¶</a></h2>
+<p>FIN-02R1 accepts the authoritative PPL event population and derives from that
+population only:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>;</p></li>
+<li><p>PPL source code identity from <code class="docutils literal notranslate"><span class="pre">EPOCH_CREATED.code_sha</span></code>;</p></li>
+<li><p>PPL configuration hash from <code class="docutils literal notranslate"><span class="pre">EPOCH_CREATED.config_snapshot_hash</span></code>;</p></li>
+<li><p>exact PPL source-stream digest;</p></li>
+<li><p>exact last source sequence.</p></li>
+</ul>
+<p>The caller cannot supply duplicate copies of these fields.</p>
+<p>This prevents a runtime caller from presenting one event stream while attaching
+the epoch/config/source identity of another.</p>
+</section>
+<section id="explicit-semantic-inputs">
+<h2>5. Explicit semantic inputs<a class="headerlink" href="#explicit-semantic-inputs" title="Link to this heading">¶</a></h2>
+<p>PPL lifecycle does not carry every financial semantic attribution.</p>
+<p>The runtime producer must supply explicitly:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reconciliation_code_sha</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">context_evidence_ref</span></code> identifying the governed artifact/source from which
+experiment / venue / market semantics were obtained;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">venue</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">market_type</span></code>;</p></li>
+<li><p>optional <code class="docutils literal notranslate"><span class="pre">strategy_id</span></code>;</p></li>
+<li><p>optional <code class="docutils literal notranslate"><span class="pre">strategy_version</span></code>.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">context_evidence_ref</span></code> is part of the R1 provenance identity but not the
+FIN-01 semantic-context digest. Changing the proof reference without changing
+the financial semantics therefore changes provenance, not accounting meaning.</p>
+<p>No inference is allowed from:</p>
+<ul class="simple">
+<li><p>epoch naming;</p></li>
+<li><p>symbol naming;</p></li>
+<li><p>process mode;</p></li>
+<li><p>exchange client presence;</p></li>
+<li><p>current working tree;</p></li>
+<li><p>UI labels.</p></li>
+</ul>
+<p>For PAPER v1, the following semantics are inherited from the certified FIN-01
+contract:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">asset</span> <span class="pre">=</span> <span class="pre">USDT</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_authority</span> <span class="pre">=</span> <span class="pre">PPL_AUTHORITY</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">financial_model</span> <span class="pre">=</span> <span class="pre">PAPER_LINEAR_PRINCIPAL_V1</span></code>;</p></li>
+<li><p>FIN source = certified FIN-01 HEAD above;</p></li>
+<li><p>funding is either:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> with the certified
+<code class="docutils literal notranslate"><span class="pre">FIN-00:PAPER_LINEAR_PRINCIPAL_V1:FUNDING_NOT_MODELED</span></code> evidence reference;
+or</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code> when the producer cannot certify applicability.</p></li>
+</ul>
+</li>
+</ul>
+<p>UNKNOWN/UNRESOLVED is never converted to zero.</p>
+</section>
+<section id="deterministic-semantic-context-binding">
+<h2>6. Deterministic semantic-context binding<a class="headerlink" href="#deterministic-semantic-context-binding" title="Link to this heading">¶</a></h2>
+<p>The explicit semantic inputs are materialized through the existing FIN-01
+<code class="docutils literal notranslate"><span class="pre">FinancialContext</span></code>.</p>
+<p>Its existing <code class="docutils literal notranslate"><span class="pre">FIN_CONTEXT_V1</span></code> digest remains the canonical financial semantic
+context identity.</p>
+<p>FIN-02R1 does not introduce a competing context formula.</p>
+<p>Therefore:</p>
+<p>same semantic inputs
+→ same <code class="docutils literal notranslate"><span class="pre">semantic_context_digest</span></code>.</p>
+<p>Changing experiment/strategy/venue/market/funding semantics
+→ changes <code class="docutils literal notranslate"><span class="pre">semantic_context_digest</span></code>.</p>
+<p>Changing only FIN-02 reconciliation implementation
+→ does <strong>not</strong> change FIN-01 semantic context, but <strong>does</strong> change the R1
+runtime provenance identity.</p>
+</section>
+<section id="runtime-provenance-identity">
+<h2>7. Runtime provenance identity<a class="headerlink" href="#runtime-provenance-identity" title="Link to this heading">¶</a></h2>
+<p>Namespace:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN02_RUNTIME_PROVENANCE_V1</span></code></p>
+<p>The deterministic identity binds:</p>
+<ul class="simple">
+<li><p>schema version;</p></li>
+<li><p>PPL epoch id;</p></li>
+<li><p>PPL stream digest;</p></li>
+<li><p>PPL last sequence;</p></li>
+<li><p>PPL source code identity;</p></li>
+<li><p>PPL config hash;</p></li>
+<li><p>certified FIN-01 source identity;</p></li>
+<li><p>FIN-01 certification verdict;</p></li>
+<li><p>FIN-02 reconciliation code identity;</p></li>
+<li><p>governed semantic-context evidence reference;</p></li>
+<li><p>FIN semantic-context digest;</p></li>
+<li><p>asset;</p></li>
+<li><p>source authority;</p></li>
+<li><p>financial model;</p></li>
+<li><p>funding status/reference;</p></li>
+<li><p>experiment id;</p></li>
+<li><p>strategy id/version;</p></li>
+<li><p>venue;</p></li>
+<li><p>market type.</p></li>
+</ul>
+<p>Any material change produces a different <code class="docutils literal notranslate"><span class="pre">provenance_id</span></code>.</p>
+</section>
+<section id="fail-closed-rules">
+<h2>8. Fail-closed rules<a class="headerlink" href="#fail-closed-rules" title="Link to this heading">¶</a></h2>
+<p>R1 rejects:</p>
+<ul class="simple">
+<li><p>empty PPL stream;</p></li>
+<li><p>missing PPL epoch;</p></li>
+<li><p>empty reconciliation identity;</p></li>
+<li><p>missing semantic-context evidence reference;</p></li>
+<li><p>missing experiment id;</p></li>
+<li><p>missing venue;</p></li>
+<li><p>missing market type;</p></li>
+<li><p>FIN source identity different from the certified FIN-01 PAPER v1 identity;</p></li>
+<li><p>FIN-02 identity aliased to FIN-01 identity;</p></li>
+<li><p>unsupported asset/model/source authority;</p></li>
+<li><p>unsupported funding status;</p></li>
+<li><p>NOT_APPLICABLE funding without its certified evidence reference;</p></li>
+<li><p>strategy version without strategy identity.</p></li>
+</ul>
+</section>
+<section id="runtime-activation-boundary">
+<h2>9. Runtime activation boundary<a class="headerlink" href="#runtime-activation-boundary" title="Link to this heading">¶</a></h2>
+<p>R1 is <strong>not</strong> runtime activation.</p>
+<p>The next phase must prove how a passive producer obtains:</p>
+<ol class="arabic simple">
+<li><p>one coherent authoritative PPL view;</p></li>
+<li><p>one coherent simulator observation;</p></li>
+<li><p>explicit valuation evidence;</p></li>
+<li><p>this R1 provenance binding;</p></li>
+</ol>
+<p>without mutating PPL, FIN, simulator, strategy, risk, sizing or execution.</p>
+<p>No Advisor restart or active F00 deployment is authorized by this contract.</p>
+</section>
+<section id="source-exit-criteria">
+<h2>10. Source exit criteria<a class="headerlink" href="#source-exit-criteria" title="Link to this heading">¶</a></h2>
+<p>FIN-02R1 source is ready only when:</p>
+<ul class="simple">
+<li><p>the three source identities are explicitly separated;</p></li>
+<li><p>the certified FIN-01 identity is pinned;</p></li>
+<li><p>PPL-owned provenance is taken only from authoritative PPL facts;</p></li>
+<li><p>missing experiment/venue/market attribution fails closed;</p></li>
+<li><p>the existing FIN-01 semantic context remains canonical;</p></li>
+<li><p>runtime provenance identity is deterministic;</p></li>
+<li><p>tests prove semantic and stream changes affect the correct identities;</p></li>
+<li><p>full maintained CI is green on the exact candidate HEAD.</p></li>
+</ul>
+<p>Candidate sub-verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_R1_RUNTIME_PROVENANCE_SOURCE_READY</span></code></p>
+<p>This is not the final FIN-02 verdict.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">FIN-02R1 — Runtime Financial Provenance Contract</a><ul>
+<li><a class="reference internal" href="#scientific-question">1. Scientific question</a></li>
+<li><a class="reference internal" href="#r1-scope">2. R1 scope</a></li>
+<li><a class="reference internal" href="#three-identities-that-must-never-be-conflated">3. Three identities that must never be conflated</a><ul>
+<li><a class="reference internal" href="#ppl-f00-source-identity">3.1 PPL/F00 source identity</a></li>
+<li><a class="reference internal" href="#fin-01-implementation-identity">3.2 FIN-01 implementation identity</a></li>
+<li><a class="reference internal" href="#fin-02-reconciliation-implementation-identity">3.3 FIN-02 reconciliation implementation identity</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ppl-owned-binding">4. PPL-owned binding</a></li>
+<li><a class="reference internal" href="#explicit-semantic-inputs">5. Explicit semantic inputs</a></li>
+<li><a class="reference internal" href="#deterministic-semantic-context-binding">6. Deterministic semantic-context binding</a></li>
+<li><a class="reference internal" href="#runtime-provenance-identity">7. Runtime provenance identity</a></li>
+<li><a class="reference internal" href="#fail-closed-rules">8. Fail-closed rules</a></li>
+<li><a class="reference internal" href="#runtime-activation-boundary">9. Runtime activation boundary</a></li>
+<li><a class="reference internal" href="#source-exit-criteria">10. Source exit criteria</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

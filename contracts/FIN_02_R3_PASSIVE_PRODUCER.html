@@ -1,0 +1,667 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>FIN-02R3 — Passive Financial Producer - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/FIN_02_R3_PASSIVE_PRODUCER.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/FIN_02_R3_PASSIVE_PRODUCER.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="fin-02r3-passive-financial-producer">
+<h1>FIN-02R3 — Passive Financial Producer<a class="headerlink" href="#fin-02r3-passive-financial-producer" title="Link to this heading">¶</a></h1>
+<p>Status: <strong>SOURCE IMPLEMENTATION CANDIDATE</strong></p>
+<p>Parent mission: #247 — FIN-02
+Parent architecture: #150
+Governance: #148
+Reference PR: #254</p>
+<p>Dependencies:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_R1_RUNTIME_PROVENANCE_SOURCE_CERTIFIED</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_R2_COHERENT_PASSIVE_CAPTURE_SOURCE_CERTIFIED</span></code></p>
+<p>Certified R2 HEAD:</p>
+<p><code class="docutils literal notranslate"><span class="pre">280fb1c9a42b645871e5fc423a19d0c9724ea04a</span></code></p>
+<section id="scientific-question">
+<h2>1. Scientific question<a class="headerlink" href="#scientific-question" title="Link to this heading">¶</a></h2>
+<p>R1 certified runtime financial provenance.</p>
+<p>R2 certified one coherent passive capture of:</p>
+<ul class="simple">
+<li><p>authoritative PPL;</p></li>
+<li><p>independent MEXC_SIM accounting state;</p></li>
+<li><p>explicit valuation evidence.</p></li>
+</ul>
+<p>R3 must answer:</p>
+<blockquote>
+<div><p>Can one immutable R2 capture be transformed into FIN-01 financial truth,
+reconciled with FIN-02, and atomically published as the existing closed
+FIN-02 artifact without creating new authority or propagating failures into
+the active PAPER runtime?</p>
+</div></blockquote>
+</section>
+<section id="source-flow">
+<h2>2. Source flow<a class="headerlink" href="#source-flow" title="Link to this heading">¶</a></h2>
+<p>The only certified R3 source flow is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">R2</span> <span class="n">CoherentFinancialCapture</span>
+        <span class="o">|</span>
+        <span class="n">v</span>
+<span class="n">R1</span> <span class="n">provenance</span> <span class="o">-&gt;</span> <span class="n">reconstruct</span> <span class="n">FIN</span> <span class="n">FinancialContext</span>
+        <span class="o">|</span>
+        <span class="n">v</span>
+<span class="n">verify</span> <span class="n">FIN_CONTEXT_V1</span> <span class="n">digest</span>
+        <span class="o">|</span>
+        <span class="n">v</span>
+<span class="n">FIN</span><span class="o">-</span><span class="mi">01</span> <span class="n">build_financial_snapshot</span><span class="p">()</span>
+        <span class="o">|</span>
+        <span class="n">v</span>
+<span class="n">FIN</span><span class="o">-</span><span class="mi">02</span> <span class="n">reconcile_financial_snapshot</span><span class="p">()</span>
+        <span class="o">|</span>
+        <span class="n">v</span>
+<span class="n">FIN</span><span class="o">-</span><span class="mi">02</span> <span class="n">build_financial_reconciliation_document</span><span class="p">()</span>
+        <span class="o">|</span>
+        <span class="n">v</span>
+<span class="n">atomic</span> <span class="n">presentation</span> <span class="n">artifact</span> <span class="n">write</span>
+</pre></div>
+</div>
+<p>R3 does not reproduce accounting equations.</p>
+<p>It composes already-certified FIN-01/FIN-02 functions.</p>
+</section>
+<section id="no-independent-financialcontext-input">
+<h2>3. No independent FinancialContext input<a class="headerlink" href="#no-independent-financialcontext-input" title="Link to this heading">¶</a></h2>
+<p>R3 does not accept a caller-supplied <code class="docutils literal notranslate"><span class="pre">FinancialContext</span></code>.</p>
+<p>The context is reconstructed exclusively from:</p>
+<p><code class="docutils literal notranslate"><span class="pre">capture.runtime_provenance</span></code></p>
+<p>including:</p>
+<ul class="simple">
+<li><p>FIN-01 certified implementation SHA;</p></li>
+<li><p>asset;</p></li>
+<li><p>source authority;</p></li>
+<li><p>financial model;</p></li>
+<li><p>funding status/evidence;</p></li>
+<li><p>strategy attribution;</p></li>
+<li><p>experiment attribution;</p></li>
+<li><p>venue;</p></li>
+<li><p>market type.</p></li>
+</ul>
+<p>R3 then recomputes:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_CONTEXT_V1</span></code></p>
+<p>and requires exact equality with:</p>
+<p><code class="docutils literal notranslate"><span class="pre">capture.runtime_provenance.semantic_context_digest</span></code></p>
+<p>Mismatch fails closed.</p>
+<p>This prevents a caller from pairing:</p>
+<ul class="simple">
+<li><p>R2 financial facts from context A;</p></li>
+<li><p>with FIN projection semantics from context B.</p></li>
+</ul>
+</section>
+<section id="r2-capture-validation">
+<h2>4. R2 capture validation<a class="headerlink" href="#r2-capture-validation" title="Link to this heading">¶</a></h2>
+<p>Before financial projection, R3 reasserts:</p>
+<ul class="simple">
+<li><p>object is <code class="docutils literal notranslate"><span class="pre">CoherentFinancialCapture</span></code>;</p></li>
+<li><p>R2 schema version is certified;</p></li>
+<li><p>R2 lock-order identity is certified;</p></li>
+<li><p>R1 provenance epoch equals R2 PPL observation epoch;</p></li>
+<li><p>R1 source-stream digest equals R2 PPL observation digest;</p></li>
+<li><p>R1 last source sequence equals R2 PPL observation sequence.</p></li>
+</ul>
+<p>R3 does not assume a dataclass is trustworthy merely because it was constructed
+successfully earlier. A mutated/replaced test or deserialized object must still
+pass these identity checks.</p>
+</section>
+<section id="fin-01-projection">
+<h2>5. FIN-01 projection<a class="headerlink" href="#fin-01-projection" title="Link to this heading">¶</a></h2>
+<p>R3 calls the existing certified:</p>
+<p><code class="docutils literal notranslate"><span class="pre">build_financial_snapshot(...)</span></code></p>
+<p>Inputs are only:</p>
+<ul class="simple">
+<li><p>frozen R2 PPL events;</p></li>
+<li><p>reconstructed R1 FinancialContext;</p></li>
+<li><p>frozen R2 valuation observations;</p></li>
+<li><p>R2 capture timestamp as <code class="docutils literal notranslate"><span class="pre">valuation_as_of</span></code>;</p></li>
+<li><p>explicit <code class="docutils literal notranslate"><span class="pre">max_mark_age_s</span></code>.</p></li>
+</ul>
+<p>No mark is fetched.</p>
+<p>No missing valuation is fabricated.</p>
+<p>After projection, R3 additionally requires exact identity continuity for:</p>
+<ul class="simple">
+<li><p>paper epoch id;</p></li>
+<li><p>source-stream digest;</p></li>
+<li><p>last source sequence;</p></li>
+<li><p>semantic-context digest;</p></li>
+<li><p>FIN-01 code identity;</p></li>
+<li><p>PPL source code identity;</p></li>
+<li><p>PPL config hash.</p></li>
+</ul>
+</section>
+<section id="reconciliation-time-semantics">
+<h2>6. Reconciliation time semantics<a class="headerlink" href="#reconciliation-time-semantics" title="Link to this heading">¶</a></h2>
+<p>Two times are intentionally distinct:</p>
+<section id="valuation-as-of">
+<h3>valuation_as_of<a class="headerlink" href="#valuation-as-of" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">capture.captured_at</span></code></p>
+<p>This is the instant against which the valuation evidence frozen in R2 is
+classified by FIN-01.</p>
+</section>
+<section id="reconciliation-generated-at">
+<h3>reconciliation/generated_at<a class="headerlink" href="#reconciliation-generated-at" title="Link to this heading">¶</a></h3>
+<p>Explicit <code class="docutils literal notranslate"><span class="pre">generated_at</span></code> supplied to R3.</p>
+<p>This is used as:</p>
+<ul class="simple">
+<li><p>FIN-02 reconciliation <code class="docutils literal notranslate"><span class="pre">as_of</span></code>;</p></li>
+<li><p>artifact generation time.</p></li>
+</ul>
+<p>R3 requires:</p>
+<p><code class="docutils literal notranslate"><span class="pre">generated_at</span> <span class="pre">&gt;=</span> <span class="pre">capture.captured_at</span></code></p>
+<p>This means a delayed producer cannot make old PPL/simulator observations look
+fresh merely by reusing the capture timestamp.</p>
+</section>
+</section>
+<section id="fin-02-reconciliation">
+<h2>7. FIN-02 reconciliation<a class="headerlink" href="#fin-02-reconciliation" title="Link to this heading">¶</a></h2>
+<p>R3 calls:</p>
+<p><code class="docutils literal notranslate"><span class="pre">reconcile_financial_snapshot(...)</span></code></p>
+<p>with:</p>
+<ul class="simple">
+<li><p>FIN-01 snapshot produced from the same R2 capture;</p></li>
+<li><p>R2 PPL observation;</p></li>
+<li><p>reconciliation code SHA from R1 provenance;</p></li>
+<li><p>explicit reconciliation policy;</p></li>
+<li><p>generated_at as reconciliation as_of;</p></li>
+<li><p>R2 simulator observation;</p></li>
+<li><p>optional caller-supplied external read-only observation.</p></li>
+</ul>
+<p>R3 performs no auto-correction.</p>
+<p>A coherent simulator/PPL divergence remains a FIN-02 divergence.</p>
+</section>
+<section id="external-account-boundary">
+<h2>8. External account boundary<a class="headerlink" href="#external-account-boundary" title="Link to this heading">¶</a></h2>
+<p>R3 never calls an exchange.</p>
+<p>An <code class="docutils literal notranslate"><span class="pre">ExternalFinancialObservation</span></code> may be supplied explicitly by a future
+caller.</p>
+<p>If supplied, it remains governed by existing FIN-02 semantics:
+PAPER versus real account is NOT_APPLICABLE as an accounting subtraction.</p>
+<p>Absence of external evidence is allowed.</p>
+</section>
+<section id="artifact-schema">
+<h2>9. Artifact schema<a class="headerlink" href="#artifact-schema" title="Link to this heading">¶</a></h2>
+<p>R3 deliberately does not change the existing closed artifact schema:</p>
+<ul class="simple">
+<li><p>schema version: <code class="docutils literal notranslate"><span class="pre">1.0.0</span></code>;</p></li>
+<li><p>product: <code class="docutils literal notranslate"><span class="pre">FIN02FinancialCockpit</span></code>;</p></li>
+<li><p>authority: <code class="docutils literal notranslate"><span class="pre">FINANCIAL_OBSERVATION</span></code>.</p></li>
+</ul>
+<p>No <code class="docutils literal notranslate"><span class="pre">capture_id</span></code> field is injected into the browser/API document.</p>
+<p>Reason:
+the existing artifact already cryptographically binds:</p>
+<ul class="simple">
+<li><p>FIN snapshot identity;</p></li>
+<li><p>FIN semantic/valuation state through <code class="docutils literal notranslate"><span class="pre">financial_snapshot_id</span></code>;</p></li>
+<li><p>PPL and simulator observation digests through <code class="docutils literal notranslate"><span class="pre">reconciliation_id</span></code>;</p></li>
+<li><p>source stream digest;</p></li>
+<li><p>code/config identities.</p></li>
+</ul>
+<p>Adding a new top-level field would require an API/frontend schema migration with
+no new financial meaning.</p>
+<p>R3 therefore keeps explicit:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">capture_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runtime_provenance_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">product_id</span></code>;</p></li>
+</ul>
+<p>inside the internal <code class="docutils literal notranslate"><span class="pre">PassiveFinancialProduct</span></code>.</p>
+</section>
+<section id="r3-product-identity">
+<h2>10. R3 product identity<a class="headerlink" href="#r3-product-identity" title="Link to this heading">¶</a></h2>
+<p>Namespace:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN02_PASSIVE_FINANCIAL_PRODUCT_V1</span></code></p>
+<p>The R3 product id binds:</p>
+<ul class="simple">
+<li><p>R3 schema version;</p></li>
+<li><p>R2 capture id;</p></li>
+<li><p>R1 runtime provenance id;</p></li>
+<li><p>FIN-01 financial snapshot id;</p></li>
+<li><p>FIN-02 reconciliation id;</p></li>
+<li><p>generated_at;</p></li>
+<li><p>max mark age;</p></li>
+<li><p>absolute tolerance;</p></li>
+<li><p>relative tolerance;</p></li>
+<li><p>stale-after threshold.</p></li>
+</ul>
+<p>Same inputs must reproduce the same product id.</p>
+</section>
+<section id="pure-build-versus-artifact-i-o">
+<h2>11. Pure build versus artifact I/O<a class="headerlink" href="#pure-build-versus-artifact-i-o" title="Link to this heading">¶</a></h2>
+<p>R3 has two explicit layers.</p>
+<section id="pure-layer">
+<h3>Pure layer<a class="headerlink" href="#pure-layer" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">build_passive_financial_product(...)</span></code></p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p>deterministic;</p></li>
+<li><p>no file write;</p></li>
+<li><p>no environment read;</p></li>
+<li><p>no wall-clock read;</p></li>
+<li><p>no exchange read;</p></li>
+<li><p>no simulator mutation;</p></li>
+<li><p>no PPL append;</p></li>
+<li><p>no FIN ledger mutation.</p></li>
+</ul>
+</section>
+<section id="i-o-layer">
+<h3>I/O layer<a class="headerlink" href="#i-o-layer" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">run_passive_financial_producer(...)</span></code></p>
+<p>Only allowed owned mutation:
+atomic replacement of the FIN-02 presentation artifact.</p>
+<p>It uses the existing certified writer:</p>
+<p><code class="docutils literal notranslate"><span class="pre">write_financial_reconciliation_document(...)</span></code></p>
+</section>
+</section>
+<section id="fail-passive-contract">
+<h2>12. Fail-passive contract<a class="headerlink" href="#fail-passive-contract" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">run_passive_financial_producer(...)</span></code> must not raise an ordinary exception to
+its future runtime caller.</p>
+<p>Failures are converted to:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PassiveFinancialProducerStatus.FAILED</span></code></p>
+<p>with:</p>
+<ul class="simple">
+<li><p>capture id when available;</p></li>
+<li><p>runtime provenance id when available;</p></li>
+<li><p>target artifact path;</p></li>
+<li><p>exception type;</p></li>
+<li><p>exception message.</p></li>
+</ul>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>provenance mismatch;</p></li>
+<li><p>invalid R2 boundary;</p></li>
+<li><p>invalid temporal ordering;</p></li>
+<li><p>FIN projection failure;</p></li>
+<li><p>reconciliation failure;</p></li>
+<li><p>document construction failure;</p></li>
+<li><p>invalid artifact path;</p></li>
+<li><p>filesystem/write failure.</p></li>
+</ul>
+<p>A producer failure must never:</p>
+<ul class="simple">
+<li><p>append PPL;</p></li>
+<li><p>alter simulator capital/positions/orders;</p></li>
+<li><p>alter FIN ledger truth;</p></li>
+<li><p>submit/cancel an exchange order;</p></li>
+<li><p>affect strategy/risk/sizing/execution state.</p></li>
+</ul>
+</section>
+<section id="existing-artifact-on-build-failure">
+<h2>13. Existing artifact on build failure<a class="headerlink" href="#existing-artifact-on-build-failure" title="Link to this heading">¶</a></h2>
+<p>All financial construction occurs before artifact write.</p>
+<p>Therefore a build/provenance/reconciliation failure must not replace a
+previously-valid artifact.</p>
+<p>The atomic writer remains responsible for file-level replacement semantics.</p>
+<p>An I/O durability error may concern the observational artifact itself; such an
+error is still fail-passive with respect to all trading/accounting authorities.</p>
+</section>
+<section id="runtime-activation-boundary">
+<h2>14. Runtime activation boundary<a class="headerlink" href="#runtime-activation-boundary" title="Link to this heading">¶</a></h2>
+<p>R3 source certification does not wire the producer into Advisor.</p>
+<p>R3 must have no production call site during this subphase.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ADVISOR_RESTART=NO</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">ACTIVE_F00_MUTATION=NO</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">PPL_APPEND=NO</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">EXCHANGE_READ_OR_WRITE=NO</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_LEDGER_MUTATION=NO</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">STRATEGY_RISK_SIZING_EXECUTION_CHANGE=NO</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">RUNTIME_PRODUCER_ACTIVATION=NO</span></code></p>
+</section>
+<section id="runtime-threat-boundary-carried-from-r2">
+<h2>15. Runtime threat boundary carried from R2<a class="headerlink" href="#runtime-threat-boundary-carried-from-r2" title="Link to this heading">¶</a></h2>
+<p>R3 inherits the R2 threat boundary.</p>
+<p>Source certification proves composition against the single in-process
+PPL_AUTHORITY runtime model.</p>
+<p>It does not prove that an unauthorized second external process is incapable of
+writing the active DurableEventStore.</p>
+<p>That remains a runtime proof requirement.</p>
+</section>
+<section id="source-exit-criteria">
+<h2>16. Source exit criteria<a class="headerlink" href="#source-exit-criteria" title="Link to this heading">¶</a></h2>
+<p>R3 is source-certified only when:</p>
+<ul class="simple">
+<li><p>R1 remains certified;</p></li>
+<li><p>R2 remains certified;</p></li>
+<li><p>FinancialContext is derived only from R1 provenance;</p></li>
+<li><p>FIN_CONTEXT_V1 is reverified;</p></li>
+<li><p>FIN-01 snapshot identity continuity is reverified;</p></li>
+<li><p>valuation_as_of is the R2 capture instant;</p></li>
+<li><p>reconciliation as_of is explicit generated_at;</p></li>
+<li><p>generated_at cannot predate capture;</p></li>
+<li><p>no external market/exchange fetch exists;</p></li>
+<li><p>simulator divergence is preserved;</p></li>
+<li><p>closed artifact schema 1.0.0 remains accepted;</p></li>
+<li><p>product identity is deterministic;</p></li>
+<li><p>build failures leave previous artifact untouched;</p></li>
+<li><p>write/path failures return FAILED without propagation;</p></li>
+<li><p>no production caller is introduced;</p></li>
+<li><p>full maintained CI is green on the exact candidate HEAD;</p></li>
+<li><p>Semgrep is green;</p></li>
+<li><p>no active F00 runtime mutation occurs.</p></li>
+</ul>
+<p>Target sub-verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_R3_PASSIVE_PRODUCER_SOURCE_CERTIFIED</span></code></p>
+<p>This is not the final FIN-02 verdict and does not authorize runtime activation.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">FIN-02R3 — Passive Financial Producer</a><ul>
+<li><a class="reference internal" href="#scientific-question">1. Scientific question</a></li>
+<li><a class="reference internal" href="#source-flow">2. Source flow</a></li>
+<li><a class="reference internal" href="#no-independent-financialcontext-input">3. No independent FinancialContext input</a></li>
+<li><a class="reference internal" href="#r2-capture-validation">4. R2 capture validation</a></li>
+<li><a class="reference internal" href="#fin-01-projection">5. FIN-01 projection</a></li>
+<li><a class="reference internal" href="#reconciliation-time-semantics">6. Reconciliation time semantics</a><ul>
+<li><a class="reference internal" href="#valuation-as-of">valuation_as_of</a></li>
+<li><a class="reference internal" href="#reconciliation-generated-at">reconciliation/generated_at</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fin-02-reconciliation">7. FIN-02 reconciliation</a></li>
+<li><a class="reference internal" href="#external-account-boundary">8. External account boundary</a></li>
+<li><a class="reference internal" href="#artifact-schema">9. Artifact schema</a></li>
+<li><a class="reference internal" href="#r3-product-identity">10. R3 product identity</a></li>
+<li><a class="reference internal" href="#pure-build-versus-artifact-i-o">11. Pure build versus artifact I/O</a><ul>
+<li><a class="reference internal" href="#pure-layer">Pure layer</a></li>
+<li><a class="reference internal" href="#i-o-layer">I/O layer</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fail-passive-contract">12. Fail-passive contract</a></li>
+<li><a class="reference internal" href="#existing-artifact-on-build-failure">13. Existing artifact on build failure</a></li>
+<li><a class="reference internal" href="#runtime-activation-boundary">14. Runtime activation boundary</a></li>
+<li><a class="reference internal" href="#runtime-threat-boundary-carried-from-r2">15. Runtime threat boundary carried from R2</a></li>
+<li><a class="reference internal" href="#source-exit-criteria">16. Source exit criteria</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

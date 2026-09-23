@@ -1,0 +1,947 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>FIN-02R4 — Governed Runtime Activation Proof - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/FIN_02_R4_GOVERNED_RUNTIME_ACTIVATION_PROOF.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/FIN_02_R4_GOVERNED_RUNTIME_ACTIVATION_PROOF.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="fin-02r4-governed-runtime-activation-proof">
+<h1>FIN-02R4 — Governed Runtime Activation Proof<a class="headerlink" href="#fin-02r4-governed-runtime-activation-proof" title="Link to this heading">¶</a></h1>
+<p>Status: <strong>SOURCE IMPLEMENTATION ACTIVE / RUNTIME NOT STARTED</strong></p>
+<p>Parent mission: #247 — FIN-02
+Parent architecture: #150
+Governance: #148
+Reference PR: #254</p>
+<p>Certified dependencies:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">FIN_02_R1_RUNTIME_PROVENANCE_SOURCE_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FIN_02_R2_COHERENT_PASSIVE_CAPTURE_SOURCE_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FIN_02_R3_PASSIVE_PRODUCER_SOURCE_CERTIFIED</span></code></p></li>
+</ul>
+<p>Certified R3 HEAD:</p>
+<p><code class="docutils literal notranslate"><span class="pre">3dbdcbee97dc7c2c1943c88df4d5e513ca31a079</span></code></p>
+<p>This R4 source phase does <strong>not</strong> authorize deployment, restart or runtime activation.
+It defines the evidence required before runtime activation can be certified.</p>
+<section id="mission">
+<h2>1. Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
+<p>R1-R3 proved the source-level financial chain:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>authoritative PPL provenance
+        ↓
+coherent passive PPL + MEXC_SIM capture
+        ↓
+FIN-01 financial snapshot
+        ↓
+FIN-02 reconciliation
+        ↓
+fail-passive atomic observational artifact
+</pre></div>
+</div>
+<p>R4 must prove that this chain can be activated in the real Advisor process
+without silently changing authority, cadence, financial semantics or the active
+F00 experiment.</p>
+<p>The required runtime question is:</p>
+<blockquote>
+<div><p>Can the certified R1-R3 producer run inside the already-authoritative PAPER
+process as a bounded, fail-passive observer, with one canonical artifact
+path, one PPL writer authority, explicit source/config/epoch governance and
+reproducible runtime evidence?</p>
+</div></blockquote>
+</section>
+<section id="absolute-authority-boundary">
+<h2>2. Absolute authority boundary<a class="headerlink" href="#absolute-authority-boundary" title="Link to this heading">¶</a></h2>
+<p>R4 remains observational.</p>
+<p>FIN-02 R4 must never:</p>
+<ul class="simple">
+<li><p>submit, cancel or modify an exchange order;</p></li>
+<li><p>append or rewrite PPL events;</p></li>
+<li><p>alter MEXC_SIM cash, positions or orders;</p></li>
+<li><p>mutate FIN accounting truth;</p></li>
+<li><p>alter strategy, signal, gate, risk, sizing or execution decisions;</p></li>
+<li><p>start a second MEXC_SIM;</p></li>
+<li><p>start a second PPL authority runtime;</p></li>
+<li><p>start a second exchange client;</p></li>
+<li><p>create an independent background trading loop;</p></li>
+<li><p>silently rotate the active F00 epoch;</p></li>
+<li><p>silently replace the active F00 config.</p></li>
+</ul>
+<p>The only R3-owned mutation that may become active is atomic replacement of the
+FIN-02 observational artifact.</p>
+</section>
+<section id="required-proof-track-a-real-passive-caller-placement">
+<h2>3. Required proof track A — real passive caller placement<a class="headerlink" href="#required-proof-track-a-real-passive-caller-placement" title="Link to this heading">¶</a></h2>
+<p>R4 must identify the exact production call site in <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>.</p>
+<p>The preferred integration pattern is the existing end-of-cycle passive
+observability boundary already used by canonical operator/runtime snapshot
+writers.</p>
+<p>The source proof must establish:</p>
+<ul class="simple">
+<li><p>exact function / surrounding lifecycle location;</p></li>
+<li><p>execution occurs after the cycle’s decision/execution work;</p></li>
+<li><p>no call occurs inside signal, gate, risk, sizing or order submission code;</p></li>
+<li><p>the existing live <code class="docutils literal notranslate"><span class="pre">_virtual_portfolio</span></code> / MEXC_SIM reference is injected;</p></li>
+<li><p>no new simulator or PPL runtime is instantiated;</p></li>
+<li><p>no exchange client is constructed by FIN-02;</p></li>
+<li><p>the call is wrapped so producer failure cannot escape into the Advisor loop;</p></li>
+<li><p>no new background thread is required.</p></li>
+</ul>
+<p>Before runtime activation, tests must prove that producer exceptions do not
+change control flow of the Advisor cycle.</p>
+</section>
+<section id="required-proof-track-b-bounded-cadence">
+<h2>4. Required proof track B — bounded cadence<a class="headerlink" href="#required-proof-track-b-bounded-cadence" title="Link to this heading">¶</a></h2>
+<p>FIN-02 must not write on every arbitrary read request and must not spin in a
+dedicated polling thread.</p>
+<p>The repository already contains a certified passive precedent:</p>
+<p><code class="docutils literal notranslate"><span class="pre">OperatorSnapshotWriter.maybe_refresh(...)</span></code></p>
+<p>with a bounded default cadence of approximately 30 seconds.</p>
+<p>R4 must define and test its own explicit cadence policy.</p>
+<p>Required evidence:</p>
+<ul class="simple">
+<li><p>cadence value is configuration/constant evidence, not implicit timing;</p></li>
+<li><p>calls inside the minimum interval are skipped without failure;</p></li>
+<li><p>first eligible call writes;</p></li>
+<li><p>next eligible call writes only after the interval;</p></li>
+<li><p>a failed write does not alter trading control flow;</p></li>
+<li><p>cadence state is process-local observational state only;</p></li>
+<li><p>restart resets cadence state without altering financial truth;</p></li>
+<li><p>no catch-up burst occurs after a delay.</p></li>
+</ul>
+<p>The exact cadence selected by R4 must be documented in source and runtime
+evidence. Reusing a 30-second passive cadence is allowed only after source proof,
+not by assumption.</p>
+</section>
+<section id="required-proof-track-c-canonical-artifact-path">
+<h2>5. Required proof track C — canonical artifact path<a class="headerlink" href="#required-proof-track-c-canonical-artifact-path" title="Link to this heading">¶</a></h2>
+<p>Existing FIN-02 artifact default:</p>
+<p><code class="docutils literal notranslate"><span class="pre">databases/financial_reconciliation_snapshot.json</span></code></p>
+<p>Existing override:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FINANCIAL_RECONCILIATION_SNAPSHOT_PATH</span></code></p>
+<p>R4 must prove one canonical runtime path for both producer and Operator API
+reader.</p>
+<p>Required source/runtime evidence:</p>
+<ul class="simple">
+<li><p>producer effective path;</p></li>
+<li><p>reader effective path;</p></li>
+<li><p>exact path equality;</p></li>
+<li><p>path resolves to the intended observational database location;</p></li>
+<li><p>path is not PPL event storage;</p></li>
+<li><p>path is not legacy paper-trade storage;</p></li>
+<li><p>path is not an exchange credential/config path;</p></li>
+<li><p>parent directory is writable by the Advisor service user;</p></li>
+<li><p>artifact is a regular file after first successful write;</p></li>
+<li><p>atomic temporary files are created only in the same destination directory;</p></li>
+<li><p>API reads the exact artifact produced by R3;</p></li>
+<li><p>stale/missing artifact remains honest 503/STALE behavior.</p></li>
+</ul>
+<p>No second FIN-02 artifact path may silently become an alternative authority.</p>
+</section>
+<section id="required-proof-track-d-single-active-ppl-writer">
+<h2>6. Required proof track D — single active PPL writer<a class="headerlink" href="#required-proof-track-d-single-active-ppl-writer" title="Link to this heading">¶</a></h2>
+<p>R2 source certification proved in-process causal coherence under the
+single-authority runtime contract.</p>
+<p>R4 must add runtime evidence that there is no second active PPL writer.</p>
+<p>The proof must cover:</p>
+<ul class="simple">
+<li><p>one active <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code> process / MainPID;</p></li>
+<li><p>no duplicate Advisor process;</p></li>
+<li><p>no orphan process running the same repository/runtime;</p></li>
+<li><p>no SHADOW writer attached while PPL_AUTHORITY is active;</p></li>
+<li><p>no migration/import/replay tool concurrently writing the active PPL store;</p></li>
+<li><p>no second process holding an authority-writer role;</p></li>
+<li><p>active PPL store path identified explicitly;</p></li>
+<li><p>PPL event sequence remains monotonic;</p></li>
+<li><p>writer ownership matches the active authoritative runtime.</p></li>
+</ul>
+<p>Evidence should include process/service facts and store-level facts.</p>
+<p>A simple statement that “only one process should exist” is insufficient.</p>
+<p>If writer exclusivity cannot be demonstrated, R4 must fail closed.</p>
+</section>
+<section id="required-proof-track-e-fail-passive-behavior-in-the-real-process">
+<h2>7. Required proof track E — fail-passive behavior in the real process<a class="headerlink" href="#required-proof-track-e-fail-passive-behavior-in-the-real-process" title="Link to this heading">¶</a></h2>
+<p>R3 proved fail-passive behavior in source tests.</p>
+<p>R4 must prove it in the actual Advisor runtime.</p>
+<p>At minimum, runtime evidence must demonstrate both:</p>
+<section id="successful-production">
+<h3>Successful production<a class="headerlink" href="#successful-production" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Advisor remains active;</p></li>
+<li><p>FIN-02 artifact is created/refreshed;</p></li>
+<li><p>generated timestamp advances according to bounded cadence;</p></li>
+<li><p>PPL epoch/source/config identity remains coherent;</p></li>
+<li><p>financial reconciliation document passes the closed schema reader;</p></li>
+<li><p>API returns the artifact without recomputation.</p></li>
+</ul>
+</section>
+<section id="forced-controlled-observational-failure">
+<h3>Forced/controlled observational failure<a class="headerlink" href="#forced-controlled-observational-failure" title="Link to this heading">¶</a></h3>
+<p>A safe, reversible failure mode must be used to prove:</p>
+<ul class="simple">
+<li><p>FIN-02 producer returns/logs failure;</p></li>
+<li><p>Advisor cycle continues;</p></li>
+<li><p>service remains active;</p></li>
+<li><p>no order/execution authority changes;</p></li>
+<li><p>no PPL append occurs because of FIN-02 failure;</p></li>
+<li><p>simulator state is not changed by FIN-02;</p></li>
+<li><p>last valid artifact is not replaced by an invalid build result.</p></li>
+</ul>
+<p>The failure injection must not involve corrupting PPL or exchange state.</p>
+</section>
+</section>
+<section id="required-proof-track-f-f00-restart-source-config-epoch-governance">
+<h2>8. Required proof track F — F00 restart/source/config/epoch governance<a class="headerlink" href="#required-proof-track-f-f00-restart-source-config-epoch-governance" title="Link to this heading">¶</a></h2>
+<p>Runtime activation cannot silently violate F00 experiment governance.</p>
+<p>Before any restart or deployment, capture a pre-activation evidence bundle:</p>
+<ul class="simple">
+<li><p>active service MainPID;</p></li>
+<li><p>active source SHA evidence;</p></li>
+<li><p>worktree state;</p></li>
+<li><p>active F00/PPL epoch id;</p></li>
+<li><p>PPL EPOCH_CREATED source code SHA;</p></li>
+<li><p>PPL config snapshot hash;</p></li>
+<li><p>last PPL sequence;</p></li>
+<li><p>current PPL stream digest;</p></li>
+<li><p>current simulator quiescence evidence;</p></li>
+<li><p>existing FIN-02 artifact state, if any.</p></li>
+</ul>
+<p>Then classify the activation.</p>
+<section id="case-1-no-process-restart">
+<h3>Case 1 — no process restart<a class="headerlink" href="#case-1-no-process-restart" title="Link to this heading">¶</a></h3>
+<p>If activation can be proven without changing the active process:</p>
+<ul class="simple">
+<li><p>active source/config/epoch must remain bit-identical;</p></li>
+<li><p>runtime proof must explain how the new producer code is present without
+changing the process image.</p></li>
+</ul>
+<p>This case is expected to be uncommon and must not be asserted without evidence.</p>
+</section>
+<section id="case-2-governed-restart-deployment">
+<h3>Case 2 — governed restart/deployment<a class="headerlink" href="#case-2-governed-restart-deployment" title="Link to this heading">¶</a></h3>
+<p>If new FIN-02 source must be deployed into Advisor:</p>
+<ul class="simple">
+<li><p>restart requires explicit operator authorization;</p></li>
+<li><p>deployed Git SHA must be recorded;</p></li>
+<li><p>worktree must be clean or explicitly classified;</p></li>
+<li><p>process_instance_id / MainPID transition must be recorded;</p></li>
+<li><p>F00 config must be compared pre/post;</p></li>
+<li><p>active paper epoch handling must be explicit;</p></li>
+<li><p>no silent epoch rotation is allowed;</p></li>
+<li><p>if the governance contract requires a new epoch because source changed, that
+requirement must be followed rather than bypassed;</p></li>
+<li><p>if epoch continuity is permitted across a source-only observational change,
+that permission must be explicitly justified and recorded before restart.</p></li>
+</ul>
+<p>R4 must not decide this by convenience.</p>
+</section>
+</section>
+<section id="runtime-source-sha-versus-financial-semantic-identities">
+<h2>9. Runtime source SHA versus financial semantic identities<a class="headerlink" href="#runtime-source-sha-versus-financial-semantic-identities" title="Link to this heading">¶</a></h2>
+<p>R4 must preserve the identity separation certified in R1:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">active</span> <span class="n">F00</span><span class="o">/</span><span class="n">PPL</span> <span class="n">source</span> <span class="n">identity</span>
+<span class="o">!=</span> <span class="n">FIN</span><span class="o">-</span><span class="mi">01</span> <span class="n">certified</span> <span class="n">semantic</span> <span class="n">implementation</span> <span class="n">identity</span>
+<span class="o">!=</span> <span class="n">FIN</span><span class="o">-</span><span class="mi">02</span> <span class="n">reconciliation</span> <span class="n">implementation</span> <span class="n">identity</span>
+</pre></div>
+</div>
+<p>Deployment SHA is runtime evidence.</p>
+<p>It must not silently overwrite:</p>
+<ul class="simple">
+<li><p>FIN-01 certified semantic SHA;</p></li>
+<li><p>PPL EPOCH_CREATED source SHA;</p></li>
+<li><p>reconciliation code identity.</p></li>
+</ul>
+<p>Any mapping between repository/deployment SHA and one of these semantic
+identities must be explicit.</p>
+</section>
+<section id="runtime-reconciliation-code-identity">
+<h2>10. Runtime reconciliation-code identity<a class="headerlink" href="#runtime-reconciliation-code-identity" title="Link to this heading">¶</a></h2>
+<p>Before activation, R4 must define exactly what value is supplied as:</p>
+<p><code class="docutils literal notranslate"><span class="pre">reconciliation_code_sha</span></code></p>
+<p>The value must identify the FIN-02 reconciliation implementation actually
+executing.</p>
+<p>It must be:</p>
+<ul class="simple">
+<li><p>non-empty;</p></li>
+<li><p>reproducible from governed deployment evidence;</p></li>
+<li><p>distinct from the certified FIN-01 semantic implementation SHA;</p></li>
+<li><p>recorded in the produced artifact;</p></li>
+<li><p>traceable to the deployed source.</p></li>
+</ul>
+<p>No placeholder or test SHA is permitted in runtime evidence.</p>
+</section>
+<section id="valuation-evidence-activation">
+<h2>11. Valuation evidence activation<a class="headerlink" href="#valuation-evidence-activation" title="Link to this heading">¶</a></h2>
+<p>R2/R3 accept explicit valuation observations and never fetch marks themselves.</p>
+<p>R4 must identify the real source of valuation evidence, if enabled.</p>
+<p>Required proof:</p>
+<ul class="simple">
+<li><p>source object already exists in Advisor;</p></li>
+<li><p>FIN-02 does not instantiate a second market/exchange client;</p></li>
+<li><p>mark source id / venue / market type are explicit;</p></li>
+<li><p>source timestamp is evidence-backed;</p></li>
+<li><p>unavailable marks remain unavailable;</p></li>
+<li><p>no stale mark is relabeled fresh;</p></li>
+<li><p>valuation failure remains fail-passive.</p></li>
+</ul>
+<p>If no certified runtime valuation source is available, R4 must activate with
+missing valuation evidence rather than fabricate marks.</p>
+</section>
+<section id="external-account-evidence">
+<h2>12. External account evidence<a class="headerlink" href="#external-account-evidence" title="Link to this heading">¶</a></h2>
+<p>External real-account evidence is optional.</p>
+<p>R4 must not block PAPER financial reconciliation merely because real-account
+evidence is absent.</p>
+<p>If external evidence is connected:</p>
+<ul class="simple">
+<li><p>it must come from an already-existing read-only observer;</p></li>
+<li><p>FIN-02 must not instantiate a new exchange client;</p></li>
+<li><p>PAPER versus real account remains NOT_APPLICABLE as a subtraction;</p></li>
+<li><p>external evidence failure must not fail the PPL/FIN/simulator capture.</p></li>
+</ul>
+</section>
+<section id="required-source-tests-before-vps-activation">
+<h2>13. Required source tests before VPS activation<a class="headerlink" href="#required-source-tests-before-vps-activation" title="Link to this heading">¶</a></h2>
+<p>Before any runtime deployment, source tests must prove:</p>
+<ul class="simple">
+<li><p>exact caller placement contract;</p></li>
+<li><p>cadence skip/write behavior;</p></li>
+<li><p>no background thread;</p></li>
+<li><p>no new simulator/runtime/exchange construction;</p></li>
+<li><p>fail-passive caller wrapper;</p></li>
+<li><p>canonical producer/reader path equality;</p></li>
+<li><p>R1/R2/R3 semantic continuity;</p></li>
+<li><p>artifact closed-schema compatibility;</p></li>
+<li><p>producer failure cannot alter Advisor cycle result/control flow;</p></li>
+<li><p>no write outside the FIN-02 artifact writer.</p></li>
+</ul>
+<p>Full maintained CI and Semgrep must be green on the exact R4 source candidate
+HEAD before VPS activation.</p>
+</section>
+<section id="required-pre-restart-runtime-evidence">
+<h2>14. Required pre-restart runtime evidence<a class="headerlink" href="#required-pre-restart-runtime-evidence" title="Link to this heading">¶</a></h2>
+<p>Before a governed restart, record:</p>
+<ul class="simple">
+<li><p>UTC timestamp;</p></li>
+<li><p>hostname;</p></li>
+<li><p>service state;</p></li>
+<li><p>MainPID;</p></li>
+<li><p>ExecMainStartTimestamp;</p></li>
+<li><p>command line;</p></li>
+<li><p>deployed repository HEAD;</p></li>
+<li><p>worktree status;</p></li>
+<li><p>active PPL epoch id;</p></li>
+<li><p>PPL source SHA;</p></li>
+<li><p>PPL config hash;</p></li>
+<li><p>PPL last sequence;</p></li>
+<li><p>PPL stream digest;</p></li>
+<li><p>simulator cash;</p></li>
+<li><p>simulator open-position count;</p></li>
+<li><p>lifecycle transitions in flight;</p></li>
+<li><p>pending-order count;</p></li>
+<li><p>active FIN-02 artifact path;</p></li>
+<li><p>artifact hash/mtime if present.</p></li>
+</ul>
+<p>This becomes the immutable pre-activation comparison point.</p>
+</section>
+<section id="required-post-restart-runtime-evidence">
+<h2>15. Required post-restart runtime evidence<a class="headerlink" href="#required-post-restart-runtime-evidence" title="Link to this heading">¶</a></h2>
+<p>After restart/deployment, record:</p>
+<ul class="simple">
+<li><p>new MainPID/process instance;</p></li>
+<li><p>deployed source SHA;</p></li>
+<li><p>service active state;</p></li>
+<li><p>F00 config comparison;</p></li>
+<li><p>epoch continuity/rotation verdict;</p></li>
+<li><p>PPL last sequence and digest;</p></li>
+<li><p>simulator quiescence;</p></li>
+<li><p>FIN-02 producer first eligible run;</p></li>
+<li><p>FIN-02 artifact path;</p></li>
+<li><p>artifact SHA-256;</p></li>
+<li><p>artifact mtime;</p></li>
+<li><p>artifact schema validation;</p></li>
+<li><p>API read result;</p></li>
+<li><p>artifact freshness;</p></li>
+<li><p>reconciliation overall status;</p></li>
+<li><p>producer error state if any.</p></li>
+</ul>
+<p>No final verdict may rely only on journal text.</p>
+</section>
+<section id="controlled-fail-passive-runtime-proof">
+<h2>16. Controlled fail-passive runtime proof<a class="headerlink" href="#controlled-fail-passive-runtime-proof" title="Link to this heading">¶</a></h2>
+<p>R4 must include one reversible observational failure proof.</p>
+<p>Acceptable categories include:</p>
+<ul class="simple">
+<li><p>temporarily unwritable dedicated FIN-02 artifact target in an isolated test
+path;</p></li>
+<li><p>deliberately invalid dedicated FIN-02 output path in a controlled source/test
+activation;</p></li>
+<li><p>injected writer failure through a test-only/runtime-proof mechanism that
+cannot affect PPL or exchange state.</p></li>
+</ul>
+<p>The proof must demonstrate:</p>
+<ul class="simple">
+<li><p>failure observed;</p></li>
+<li><p>Advisor remains healthy;</p></li>
+<li><p>PPL authority remains healthy;</p></li>
+<li><p>no PPL event is attributable to the failed FIN-02 write;</p></li>
+<li><p>no simulator mutation is attributable to FIN-02;</p></li>
+<li><p>recovery on the next valid eligible refresh.</p></li>
+</ul>
+<p>Do not corrupt the canonical PPL store to test fail-passivity.</p>
+</section>
+<section id="documentation-requirements">
+<h2>17. Documentation requirements<a class="headerlink" href="#documentation-requirements" title="Link to this heading">¶</a></h2>
+<p>Every R4 execution step must be recorded in #247.</p>
+<p>At minimum record:</p>
+<ul class="simple">
+<li><p>exact source candidate HEAD;</p></li>
+<li><p>source test/CI evidence;</p></li>
+<li><p>operator authorization for any restart/deployment;</p></li>
+<li><p>pre-runtime evidence bundle;</p></li>
+<li><p>deployment/restart evidence;</p></li>
+<li><p>post-runtime evidence bundle;</p></li>
+<li><p>fail-passive proof;</p></li>
+<li><p>final R4 verdict.</p></li>
+</ul>
+<p>PR #254 must retain:</p>
+<ul class="simple">
+<li><p>certified R1 HEAD;</p></li>
+<li><p>certified R2 HEAD;</p></li>
+<li><p>certified R3 HEAD;</p></li>
+<li><p>R4 candidate/runtime HEAD;</p></li>
+<li><p>explicit statement that final FIN-02 certification is still separate.</p></li>
+</ul>
+</section>
+<section id="r4-stop-conditions">
+<h2>18. R4 stop conditions<a class="headerlink" href="#r4-stop-conditions" title="Link to this heading">¶</a></h2>
+<p>Stop and issue a remediation verdict if any of the following occurs:</p>
+<ul class="simple">
+<li><p>second active PPL writer cannot be excluded;</p></li>
+<li><p>PPL epoch/source/config governance becomes ambiguous;</p></li>
+<li><p>producer path differs from API reader path;</p></li>
+<li><p>FIN-02 failure propagates into Advisor cycle control flow;</p></li>
+<li><p>producer creates a second simulator/PPL runtime/exchange client;</p></li>
+<li><p>artifact schema becomes invalid;</p></li>
+<li><p>PPL or simulator state is mutated by FIN-02;</p></li>
+<li><p>active F00 source/config/epoch changes without governed authorization;</p></li>
+<li><p>runtime reconciliation code identity cannot be proven.</p></li>
+</ul>
+</section>
+<section id="r4-exit-criteria">
+<h2>19. R4 exit criteria<a class="headerlink" href="#r4-exit-criteria" title="Link to this heading">¶</a></h2>
+<p>R4 may be certified only when all six required proof tracks are complete:</p>
+<ol class="arabic simple">
+<li><p><strong>Caller placement</strong> — exact passive end-of-cycle production call site proven.</p></li>
+<li><p><strong>Cadence</strong> — bounded process-local cadence proven.</p></li>
+<li><p><strong>Artifact path</strong> — one canonical producer/reader path proven.</p></li>
+<li><p><strong>Single PPL writer</strong> — source + runtime exclusivity evidence proven.</p></li>
+<li><p><strong>Fail-passive runtime</strong> — successful and controlled-failure behavior proven.</p></li>
+<li><p><strong>F00 governance</strong> — restart/source/config/epoch handling explicitly
+authorized and evidenced.</p></li>
+</ol>
+<p>Target verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_R4_GOVERNED_RUNTIME_ACTIVATION_CERTIFIED</span></code></p>
+<p>R4 certification still does not automatically imply final FIN-02 closure.
+After R4, FIN-02 must receive one explicit final mission-level certification
+verdict against the complete FIN-00 → FIN-02 contract chain.</p>
+</section>
+<section id="source-side-implementation-boundary">
+<h2>20. Source-side implementation boundary<a class="headerlink" href="#source-side-implementation-boundary" title="Link to this heading">¶</a></h2>
+<p>The R4 source candidate introduces the runtime activation boundary without
+activating it.</p>
+<p>Implemented source components:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/financial_paths.py</span></code></p>
+<ul>
+<li><p>one neutral canonical artifact path contract;</p></li>
+<li><p>default <code class="docutils literal notranslate"><span class="pre">databases/financial_reconciliation_snapshot.json</span></code>;</p></li>
+<li><p>existing <code class="docutils literal notranslate"><span class="pre">FINANCIAL_RECONCILIATION_SNAPSHOT_PATH</span></code> override preserved;</p></li>
+<li><p>producer and API reader consume the same path contract.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/financial_runtime_writer.py</span></code></p>
+<ul>
+<li><p>activation OFF by default through <code class="docutils literal notranslate"><span class="pre">FIN02_RUNTIME_ENABLED</span></code>;</p></li>
+<li><p>explicit required provenance inputs when enabled;</p></li>
+<li><p>process-local 30-second default bounded cadence;</p></li>
+<li><p>cadence advances on failed eligible attempts, preventing retry bursts;</p></li>
+<li><p>no thread, simulator, PPL runtime or exchange-client construction;</p></li>
+<li><p>missing valuation/external evidence remains missing;</p></li>
+<li><p>R2 capture and R3 producer failures are returned as observational FAILED
+results rather than escaping into trading control flow.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code></p>
+<ul>
+<li><p>one bootstrap of the passive writer before the main loop;</p></li>
+<li><p>exact caller placement after the canonical operator snapshot attempt and
+before end-of-cycle watchdog completion;</p></li>
+<li><p>existing live <code class="docutils literal notranslate"><span class="pre">_virtual_portfolio</span></code> is injected;</p></li>
+<li><p>no new trading/runtime authority is constructed;</p></li>
+<li><p>defense-in-depth <code class="docutils literal notranslate"><span class="pre">try/except</span></code> prevents observer failure from escaping the
+Advisor cycle.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/financial_institute/test_fin_02_r4_runtime_activation_source.py</span></code></p>
+<ul>
+<li><p>disabled-by-default activation;</p></li>
+<li><p>mandatory explicit provenance;</p></li>
+<li><p>canonical producer/reader path equality;</p></li>
+<li><p>first-write / cadence-skip / next-eligible-write behavior;</p></li>
+<li><p>no retry burst after failure;</p></li>
+<li><p>producer/capture failure passivity;</p></li>
+<li><p>no background or authority constructors;</p></li>
+<li><p>source assertion for exact Advisor end-of-cycle placement.</p></li>
+</ul>
+</li>
+</ul>
+<p>Runtime remains explicitly unstarted:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ADVISOR_RESTART=NO</span></code>
+<code class="docutils literal notranslate"><span class="pre">VPS_DEPLOYMENT=NO</span></code>
+<code class="docutils literal notranslate"><span class="pre">ACTIVE_F00_MUTATION=NO</span></code>
+<code class="docutils literal notranslate"><span class="pre">RUNTIME_PRODUCER_ACTIVATION=NO</span></code></p>
+<p>The source candidate must receive exact-HEAD maintained CI and Semgrep evidence
+before any runtime activation can be considered.  Runtime tracks D/E/F remain
+separate and require the pre-activation evidence bundle plus explicit operator
+authorization before any restart or deployment.</p>
+</section>
+<section id="source-side-forensic-findings">
+<h2>20. Source-side forensic findings<a class="headerlink" href="#source-side-forensic-findings" title="Link to this heading">¶</a></h2>
+<p>R4 source audit identified one existing dormant integration rather than a need
+for a new caller.</p>
+<section id="bootstrap">
+<h3>Bootstrap<a class="headerlink" href="#bootstrap" title="Link to this heading">¶</a></h3>
+<p>In <code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, FIN-02 bootstrap:</p>
+<ul class="simple">
+<li><p>imports <code class="docutils literal notranslate"><span class="pre">build_financial_runtime_writer_from_env(...)</span></code>;</p></li>
+<li><p>constructs no simulator, PPL runtime or exchange client;</p></li>
+<li><p>returns <code class="docutils literal notranslate"><span class="pre">None</span></code> when <code class="docutils literal notranslate"><span class="pre">FIN02_RUNTIME_ENABLED</span></code> is absent/false;</p></li>
+<li><p>catches configuration/bootstrap failure and leaves the observer disabled.</p></li>
+</ul>
+<p>Runtime activation is therefore OFF by default.</p>
+</section>
+<section id="exact-caller">
+<h3>Exact caller<a class="headerlink" href="#exact-caller" title="Link to this heading">¶</a></h3>
+<p>The single Advisor caller is located in the end-of-cycle observational block:</p>
+<p><code class="docutils literal notranslate"><span class="pre">_fin02_runtime_writer.maybe_refresh(_virtual_portfolio)</span></code></p>
+<p>It executes:</p>
+<ul class="simple">
+<li><p>after the canonical operator snapshot block;</p></li>
+<li><p>after decision/execution work for the cycle;</p></li>
+<li><p>before the existing watchdog end-of-cycle marker;</p></li>
+<li><p>inside a defensive <code class="docutils literal notranslate"><span class="pre">try/except</span></code>.</p></li>
+</ul>
+<p>The caller passes exactly one positional runtime object:
+the already-existing <code class="docutils literal notranslate"><span class="pre">_virtual_portfolio</span></code>.</p>
+<p>It passes no valuation observer, no external-account observation and no second
+runtime object.</p>
+</section>
+<section id="cadence">
+<h3>Cadence<a class="headerlink" href="#cadence" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">FinancialReconciliationRuntimeWriter</span></code> owns process-local cadence with:</p>
+<ul class="simple">
+<li><p>default interval: 30 seconds;</p></li>
+<li><p>monotonic clock for eligibility;</p></li>
+<li><p>wall clock only for observation timestamps;</p></li>
+<li><p>cadence advanced on every eligible attempt, including failure;</p></li>
+<li><p>no retry burst after failure/delay;</p></li>
+<li><p>no background thread.</p></li>
+</ul>
+<p>R4 source hardening now rejects a configured interval &lt;= 0.
+Enabled runtime cadence must therefore be finite and strictly positive.</p>
+</section>
+<section id="artifact-path">
+<h3>Artifact path<a class="headerlink" href="#artifact-path" title="Link to this heading">¶</a></h3>
+<p>Producer and API reader share:</p>
+<p><code class="docutils literal notranslate"><span class="pre">observability.financial_paths</span></code></p>
+<p>Canonical default:</p>
+<p><code class="docutils literal notranslate"><span class="pre">databases/financial_reconciliation_snapshot.json</span></code></p>
+<p>Override:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FINANCIAL_RECONCILIATION_SNAPSHOT_PATH</span></code></p>
+<p>R4 source hardening now rejects an empty/whitespace-only override instead of
+allowing it to collapse to the current directory.</p>
+</section>
+</section>
+<section id="source-side-proof-tests">
+<h2>21. Source-side proof tests<a class="headerlink" href="#source-side-proof-tests" title="Link to this heading">¶</a></h2>
+<p>Dedicated source tests:</p>
+<p><code class="docutils literal notranslate"><span class="pre">tests/financial_institute/test_fin_02_r4_runtime_activation_source.py</span></code></p>
+<p>prove:</p>
+<ul class="simple">
+<li><p>disabled-by-default activation;</p></li>
+<li><p>explicit provenance required when enabled;</p></li>
+<li><p>shared producer/reader path contract;</p></li>
+<li><p>first eligible write then cadence skip;</p></li>
+<li><p>next eligible write only after interval;</p></li>
+<li><p>failed attempt advances cadence and does not burst;</p></li>
+<li><p>producer failure returns FAILED rather than raising;</p></li>
+<li><p>no background thread / simulator / PPL-runtime / ccxt constructor in the
+runtime writer;</p></li>
+<li><p>Advisor caller ordering at the end-of-cycle boundary;</p></li>
+<li><p>defensive outer fail-passive wrapper;</p></li>
+<li><p>AST proof that the Advisor caller passes exactly one argument:
+<code class="docutils literal notranslate"><span class="pre">_virtual_portfolio</span></code>;</p></li>
+<li><p>AST proof that the runtime writer imports no exchange, MexcSimulator or
+PPLAuthorityRuntime module;</p></li>
+<li><p>enabled runtime rejects zero/negative/non-finite cadence;</p></li>
+<li><p>empty artifact-path override fails closed.</p></li>
+</ul>
+</section>
+<section id="source-side-certification-boundary">
+<h2>22. Source-side certification boundary<a class="headerlink" href="#source-side-certification-boundary" title="Link to this heading">¶</a></h2>
+<p>Source-side certification may conclude only:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_R4_SOURCE_ACTIVATION_READY</span></code></p>
+<p>This verdict means:</p>
+<ul class="simple">
+<li><p>caller placement is source-proven;</p></li>
+<li><p>cadence is source-proven;</p></li>
+<li><p>fail-passive wiring is source-proven;</p></li>
+<li><p>canonical path contract is source-proven;</p></li>
+<li><p>source CI is green.</p></li>
+</ul>
+<p>It does <strong>not</strong> mean:</p>
+<ul class="simple">
+<li><p>runtime enabled;</p></li>
+<li><p>VPS deployed;</p></li>
+<li><p>Advisor restarted;</p></li>
+<li><p>second-writer exclusivity proven at runtime;</p></li>
+<li><p>F00 epoch/source/config governance completed;</p></li>
+<li><p>fail-passive behavior proven in the real process.</p></li>
+</ul>
+<p>The full R4 verdict remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_R4_GOVERNED_RUNTIME_ACTIVATION_CERTIFIED</span></code></p>
+<p>and requires the VPS/runtime evidence defined earlier in this contract.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">FIN-02R4 — Governed Runtime Activation Proof</a><ul>
+<li><a class="reference internal" href="#mission">1. Mission</a></li>
+<li><a class="reference internal" href="#absolute-authority-boundary">2. Absolute authority boundary</a></li>
+<li><a class="reference internal" href="#required-proof-track-a-real-passive-caller-placement">3. Required proof track A — real passive caller placement</a></li>
+<li><a class="reference internal" href="#required-proof-track-b-bounded-cadence">4. Required proof track B — bounded cadence</a></li>
+<li><a class="reference internal" href="#required-proof-track-c-canonical-artifact-path">5. Required proof track C — canonical artifact path</a></li>
+<li><a class="reference internal" href="#required-proof-track-d-single-active-ppl-writer">6. Required proof track D — single active PPL writer</a></li>
+<li><a class="reference internal" href="#required-proof-track-e-fail-passive-behavior-in-the-real-process">7. Required proof track E — fail-passive behavior in the real process</a><ul>
+<li><a class="reference internal" href="#successful-production">Successful production</a></li>
+<li><a class="reference internal" href="#forced-controlled-observational-failure">Forced/controlled observational failure</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#required-proof-track-f-f00-restart-source-config-epoch-governance">8. Required proof track F — F00 restart/source/config/epoch governance</a><ul>
+<li><a class="reference internal" href="#case-1-no-process-restart">Case 1 — no process restart</a></li>
+<li><a class="reference internal" href="#case-2-governed-restart-deployment">Case 2 — governed restart/deployment</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#runtime-source-sha-versus-financial-semantic-identities">9. Runtime source SHA versus financial semantic identities</a></li>
+<li><a class="reference internal" href="#runtime-reconciliation-code-identity">10. Runtime reconciliation-code identity</a></li>
+<li><a class="reference internal" href="#valuation-evidence-activation">11. Valuation evidence activation</a></li>
+<li><a class="reference internal" href="#external-account-evidence">12. External account evidence</a></li>
+<li><a class="reference internal" href="#required-source-tests-before-vps-activation">13. Required source tests before VPS activation</a></li>
+<li><a class="reference internal" href="#required-pre-restart-runtime-evidence">14. Required pre-restart runtime evidence</a></li>
+<li><a class="reference internal" href="#required-post-restart-runtime-evidence">15. Required post-restart runtime evidence</a></li>
+<li><a class="reference internal" href="#controlled-fail-passive-runtime-proof">16. Controlled fail-passive runtime proof</a></li>
+<li><a class="reference internal" href="#documentation-requirements">17. Documentation requirements</a></li>
+<li><a class="reference internal" href="#r4-stop-conditions">18. R4 stop conditions</a></li>
+<li><a class="reference internal" href="#r4-exit-criteria">19. R4 exit criteria</a></li>
+<li><a class="reference internal" href="#source-side-implementation-boundary">20. Source-side implementation boundary</a></li>
+<li><a class="reference internal" href="#source-side-forensic-findings">20. Source-side forensic findings</a><ul>
+<li><a class="reference internal" href="#bootstrap">Bootstrap</a></li>
+<li><a class="reference internal" href="#exact-caller">Exact caller</a></li>
+<li><a class="reference internal" href="#cadence">Cadence</a></li>
+<li><a class="reference internal" href="#artifact-path">Artifact path</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#source-side-proof-tests">21. Source-side proof tests</a></li>
+<li><a class="reference internal" href="#source-side-certification-boundary">22. Source-side certification boundary</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

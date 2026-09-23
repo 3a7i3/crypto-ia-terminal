@@ -1,0 +1,665 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>FIN-02 — Reconciliation &amp; Financial Cockpit Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/FIN_02_RECONCILIATION_FINANCIAL_COCKPIT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/FIN_02_RECONCILIATION_FINANCIAL_COCKPIT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="fin-02-reconciliation-financial-cockpit-contract">
+<h1>FIN-02 — Reconciliation &amp; Financial Cockpit Contract<a class="headerlink" href="#fin-02-reconciliation-financial-cockpit-contract" title="Link to this heading">¶</a></h1>
+<p>Status: <strong>SOURCE IMPLEMENTATION CANDIDATE</strong></p>
+<p>Parent architecture: #150
+Mission: #247
+Governance: #148
+Dependencies:</p>
+<ul class="simple">
+<li><p>FIN-00 — certified</p></li>
+<li><p>FIN-01 — certified</p></li>
+<li><p>PPL-RECOVERY-01 — certified</p></li>
+</ul>
+<p>Baseline:
+<code class="docutils literal notranslate"><span class="pre">main&#64;ab7b73597e98e2962b1650449b3d60d4fb51054f</span></code></p>
+<p>Runtime provenance sub-contract:
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/FIN_02_R1_RUNTIME_PROVENANCE.md</span></code></p>
+<p>Coherent passive capture sub-contract:
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/FIN_02_R2_COHERENT_PASSIVE_CAPTURE.md</span></code></p>
+<p>Passive producer sub-contract:
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/FIN_02_R3_PASSIVE_PRODUCER.md</span></code></p>
+<p>Governed runtime activation proof:
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/FIN_02_R4_GOVERNED_RUNTIME_ACTIVATION_PROOF.md</span></code></p>
+<p>R1 rule:
+PPL/F00 source identity, certified FIN-01 implementation identity and FIN-02
+reconciliation implementation identity are separate provenance dimensions and
+must never be silently substituted for one another.</p>
+<section id="mission">
+<h2>1. Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
+<p>FIN-02 reconciles and exposes financial truth without silent correction.</p>
+<p>The operator surface must answer:</p>
+<ul class="simple">
+<li><p>what FIN projects;</p></li>
+<li><p>what PPL durably says happened;</p></li>
+<li><p>what the PAPER simulator currently observes;</p></li>
+<li><p>what external read-only observations exist when applicable;</p></li>
+<li><p>which facts agree;</p></li>
+<li><p>which differ within explicit tolerance;</p></li>
+<li><p>which diverge;</p></li>
+<li><p>which remain unresolved or semantically non-comparable.</p></li>
+</ul>
+<p>Target verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_RECONCILIATION_COCKPIT_CERTIFIED</span></code></p>
+</section>
+<section id="authority-boundary">
+<h2>2. Authority boundary<a class="headerlink" href="#authority-boundary" title="Link to this heading">¶</a></h2>
+<p>FIN-02 is observational.</p>
+<p>It does not:</p>
+<ul class="simple">
+<li><p>append PPL events;</p></li>
+<li><p>alter FIN ledger balances;</p></li>
+<li><p>release/reserve capital;</p></li>
+<li><p>modify simulator state;</p></li>
+<li><p>submit/cancel orders;</p></li>
+<li><p>call an exchange to repair a delta;</p></li>
+<li><p>tune strategy/risk/sizing/execution;</p></li>
+<li><p>infer missing marks;</p></li>
+<li><p>replace UNKNOWN with zero.</p></li>
+</ul>
+<p>Reconciliation evidence can inform an operator. It cannot auto-correct accounting.</p>
+</section>
+<section id="source-flow">
+<h2>3. Source flow<a class="headerlink" href="#source-flow" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PPL durable lifecycle
+        ↓
+FIN-01 FinancialSnapshot
+        ↓
+FIN-02 reconciliation engine
+   ↙          ↓             ↘
+PPL replay   MEXC_SIM    exchange/API observation
+              read-only      read-only / when applicable
+        ↓
+FinancialReconciliationSnapshot
+        ↓
+atomic JSON presentation artifact
+        ↓
+GET /api/operator/v1/financial-reconciliation
+        ↓
+Financial Cockpit
+</pre></div>
+</div>
+<p>API/UI must not recompute financial truth.</p>
+</section>
+<section id="reconciliation-statuses">
+<h2>4. Reconciliation statuses<a class="headerlink" href="#reconciliation-statuses" title="Link to this heading">¶</a></h2>
+<p>Closed vocabulary inherited from FIN-00:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">EXACT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WITHIN_TOLERANCE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DIVERGENT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p></li>
+</ul>
+<p>Delta sign is always:</p>
+<p><code class="docutils literal notranslate"><span class="pre">observed</span> <span class="pre">-</span> <span class="pre">projected</span></code></p>
+<p>A delta never creates a posting.</p>
+</section>
+<section id="comparability">
+<h2>5. Comparability<a class="headerlink" href="#comparability" title="Link to this heading">¶</a></h2>
+<p>FIN-02 adds an orthogonal comparability classification:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMPARABLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NON_COMPARABLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">NON_COMPARABLE</span></code> and <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> evidence remains visible but is
+excluded from the aggregate reconciliation verdict.</p>
+<p><code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code> is material unresolved evidence and therefore prevents an
+aggregate certified result.</p>
+</section>
+<section id="explicit-tolerance">
+<h2>6. Explicit tolerance<a class="headerlink" href="#explicit-tolerance" title="Link to this heading">¶</a></h2>
+<p>No hidden epsilon exists.</p>
+<p>Policy carries:</p>
+<ul class="simple">
+<li><p>absolute tolerance;</p></li>
+<li><p>relative tolerance;</p></li>
+<li><p>stale-after TTL.</p></li>
+</ul>
+<p>The FIN-00 formula is used:</p>
+<p><code class="docutils literal notranslate"><span class="pre">abs(observed</span> <span class="pre">-</span> <span class="pre">projected)</span> <span class="pre">&lt;=</span> <span class="pre">max(abs_tol,</span> <span class="pre">rel_tol</span> <span class="pre">*</span> <span class="pre">max(abs(observed),</span> <span class="pre">abs(projected)))</span></code></p>
+<p>Exact zero delta remains <code class="docutils literal notranslate"><span class="pre">EXACT</span></code>.</p>
+<p>A non-zero delta inside explicit policy is <code class="docutils literal notranslate"><span class="pre">WITHIN_TOLERANCE</span></code>.</p>
+<p>A known live delta outside policy is <code class="docutils literal notranslate"><span class="pre">DIVERGENT</span></code>.</p>
+</section>
+<section id="freshness">
+<h2>7. Freshness<a class="headerlink" href="#freshness" title="Link to this heading">¶</a></h2>
+<p>Observation freshness:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LIVE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STALE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></p></li>
+</ul>
+<p>A stale value may be displayed with its raw delta but cannot certify the
+reconciliation record.</p>
+<p>Future-dated observations are UNAVAILABLE, not silently clamped to LIVE.</p>
+</section>
+<section id="fin-ppl-semantic-boundary">
+<h2>8. FIN ↔ PPL semantic boundary<a class="headerlink" href="#fin-ppl-semantic-boundary" title="Link to this heading">¶</a></h2>
+<p>Directly comparable:</p>
+<ul class="simple">
+<li><p>cash available;</p></li>
+<li><p>capital reserved;</p></li>
+<li><p>capital unresolved;</p></li>
+<li><p>fees paid;</p></li>
+<li><p>open-position count;</p></li>
+<li><p>settled-position count;</p></li>
+<li><p>unresolved-position count.</p></li>
+</ul>
+<p>FIN <code class="docutils literal notranslate"><span class="pre">realized_pnl</span></code> and PPL lifecycle <code class="docutils literal notranslate"><span class="pre">realized_pnl</span></code> are deliberately
+<code class="docutils literal notranslate"><span class="pre">NON_COMPARABLE</span></code> while their recognition semantics differ.</p>
+<p>FIN recognizes charged fees when they become durable financial facts.</p>
+<p>PPL lifecycle realized PnL recognizes trade-level lifecycle outcome at close.</p>
+<p>Displaying both is required. Subtracting them and calling the result a financial
+divergence is forbidden.</p>
+</section>
+<section id="coherent-capture-boundary">
+<h2>9. Coherent capture boundary<a class="headerlink" href="#coherent-capture-boundary" title="Link to this heading">¶</a></h2>
+<p>FIN-02 runtime evidence must originate from one R2-certified passive capture.</p>
+<p>Required lock order:</p>
+<p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM._lock</span> <span class="pre">-&gt;</span> <span class="pre">PPLAuthorityRuntime._lock</span></code></p>
+<p>The capture must:</p>
+<ul class="simple">
+<li><p>use the PPL authority runtime already owned by the simulator;</p></li>
+<li><p>freeze PPL events and simulator accounting inside one simulator critical section;</p></li>
+<li><p>require PPL runtime READY;</p></li>
+<li><p>prove simulator generation stability;</p></li>
+<li><p>require zero lifecycle transitions in flight;</p></li>
+<li><p>preserve simulator/PPL divergence rather than hiding it;</p></li>
+<li><p>accept valuation evidence only as explicit caller-supplied observations.</p></li>
+</ul>
+<p>No separate PPL runtime may be injected into the capture boundary.</p>
+</section>
+<section id="passive-producer-boundary">
+<h2>10. Passive producer boundary<a class="headerlink" href="#passive-producer-boundary" title="Link to this heading">¶</a></h2>
+<p>FIN-02 artifact production must satisfy the R3 passive producer contract.</p>
+<p>The source flow is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">R2</span> <span class="pre">capture</span> <span class="pre">-&gt;</span> <span class="pre">FIN-01</span> <span class="pre">snapshot</span> <span class="pre">-&gt;</span> <span class="pre">FIN-02</span> <span class="pre">reconciliation</span> <span class="pre">-&gt;</span> <span class="pre">atomic</span> <span class="pre">artifact</span></code></p>
+<p>R3 must:</p>
+<ul class="simple">
+<li><p>derive FIN context only from certified R1 provenance;</p></li>
+<li><p>reverify FIN_CONTEXT_V1 before projection;</p></li>
+<li><p>use R2 capture time for valuation_as_of;</p></li>
+<li><p>use explicit generated_at for reconciliation freshness;</p></li>
+<li><p>preserve the existing closed artifact schema;</p></li>
+<li><p>convert ordinary build/path/write failures into a fail-passive result;</p></li>
+<li><p>have no production Advisor call site during source certification.</p></li>
+</ul>
+</section>
+<section id="simulator-reconciliation">
+<h2>11. Simulator reconciliation<a class="headerlink" href="#simulator-reconciliation" title="Link to this heading">¶</a></h2>
+<p>A simulator observation is read under the simulator’s existing lock and exposes:</p>
+<ul class="simple">
+<li><p>cash available;</p></li>
+<li><p>reserved principal derived from live position principals;</p></li>
+<li><p>exact open trade identities;</p></li>
+<li><p>pending-order count;</p></li>
+<li><p>lifecycle transitions in flight;</p></li>
+<li><p>observation timestamp/provenance.</p></li>
+</ul>
+<p>No mutation method is called.</p>
+<p>The observation is not certifiable unless pending orders and in-flight
+transitions are both explicitly known.</p>
+<p>Exact trade identity is compared, not symbol-only membership.</p>
+</section>
+<section id="unreconciled-capital">
+<h2>12. Unreconciled capital<a class="headerlink" href="#unreconciled-capital" title="Link to this heading">¶</a></h2>
+<p>FIN-02 must not sum multiple correlated deltas and label the sum as missing
+capital.</p>
+<p>The single designated PAPER capital reconciliation metric is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">book_capital_at_cost</span></code></p>
+<p>Projected FIN side:</p>
+<p><code class="docutils literal notranslate"><span class="pre">cash_available</span> <span class="pre">+</span> <span class="pre">capital_reserved</span> <span class="pre">+</span> <span class="pre">capital_unresolved</span></code></p>
+<p>Observed simulator side, only when unresolved FIN capital is zero:</p>
+<p><code class="docutils literal notranslate"><span class="pre">simulator_cash</span> <span class="pre">+</span> <span class="pre">simulator_reserved_principal</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">unreconciled_capital</span> <span class="pre">=</span> <span class="pre">abs(observed</span> <span class="pre">-</span> <span class="pre">projected)</span></code></p>
+<p>This is reconciliation evidence, not an asset and not an automatic adjustment.</p>
+<p>If the simulator observation is absent/stale/unavailable or FIN contains
+unresolved capital, <code class="docutils literal notranslate"><span class="pre">unreconciled_capital</span></code> is unavailable rather than invented.</p>
+</section>
+<section id="paper-versus-real-exchange">
+<h2>13. PAPER versus real exchange<a class="headerlink" href="#paper-versus-real-exchange" title="Link to this heading">¶</a></h2>
+<p>Current FIN-02 scope is PAPER.</p>
+<p>A real exchange/account observation may be displayed read-only, but PAPER and
+real-account capital are separate accounting scopes.</p>
+<p>Therefore:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PAPER_FINANCIAL_SNAPSHOT</span> <span class="pre">-</span> <span class="pre">REAL_EXCHANGE_ACCOUNT</span></code></p>
+<p>is <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code>.</p>
+<p>No PAPER-vs-real cash/equity delta may be used as reconciliation capital.</p>
+<p>Future FIN-04 may define TESTNET/REAL Treasury reconciliation under a separate
+certified accounting scope.</p>
+</section>
+<section id="valuation-and-equity">
+<h2>14. Valuation and equity<a class="headerlink" href="#valuation-and-equity" title="Link to this heading">¶</a></h2>
+<p>FIN-02 transports FIN-01 valuation truth unchanged.</p>
+<p>If marks are unavailable:</p>
+<ul class="simple">
+<li><p>valuation status remains <code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code>;</p></li>
+<li><p>unrealized PnL remains null when not certifiable;</p></li>
+<li><p>certified equity remains null.</p></li>
+</ul>
+<p>UNKNOWN != ZERO.</p>
+<p>The cockpit must visibly distinguish unresolved/unavailable equity from numeric
+zero equity.</p>
+</section>
+<section id="presentation-artifact">
+<h2>15. Presentation artifact<a class="headerlink" href="#presentation-artifact" title="Link to this heading">¶</a></h2>
+<p>Canonical artifact default:</p>
+<p><code class="docutils literal notranslate"><span class="pre">databases/financial_reconciliation_snapshot.json</span></code></p>
+<p>Schema:
+<code class="docutils literal notranslate"><span class="pre">1.0.0</span></code></p>
+<p>Product:
+<code class="docutils literal notranslate"><span class="pre">FIN02FinancialCockpit</span></code></p>
+<p>Domain:
+<code class="docutils literal notranslate"><span class="pre">financial_reconciliation</span></code></p>
+<p>Authority:
+<code class="docutils literal notranslate"><span class="pre">FINANCIAL_OBSERVATION</span></code></p>
+<p>Monetary Decimal values are serialized as decimal strings, not JSON floats.</p>
+<p>The artifact binds:</p>
+<ul class="simple">
+<li><p>FIN snapshot identity;</p></li>
+<li><p>FIN-02R1 runtime provenance identity;</p></li>
+<li><p>certified FIN-01 source identity;</p></li>
+<li><p>PPL/F00 epoch source identity and configuration binding;</p></li>
+<li><p>explicit FIN-02 reconciliation code SHA, distinct from the FIN-01 code SHA;</p></li>
+<li><p>PPL source-stream digest;</p></li>
+<li><p>source sequence;</p></li>
+<li><p>FIN/source/config provenance;</p></li>
+<li><p>financial values;</p></li>
+<li><p>reconciliation policy/status;</p></li>
+<li><p>observation digests;</p></li>
+<li><p>every reconciliation record and provenance.</p></li>
+</ul>
+<p>Writes are atomic and own only this presentation artifact.</p>
+</section>
+<section id="api-boundary">
+<h2>16. API boundary<a class="headerlink" href="#api-boundary" title="Link to this heading">¶</a></h2>
+<p>Endpoint:</p>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/financial-reconciliation</span></code></p>
+<p>The API:</p>
+<ul class="simple">
+<li><p>validates a closed schema;</p></li>
+<li><p>adds only reader-authored artifact freshness;</p></li>
+<li><p>does not import the FIN ledger/reconciliation engine;</p></li>
+<li><p>does not read PPL JSONL;</p></li>
+<li><p>does not instantiate MexcSimulator;</p></li>
+<li><p>does not call an exchange;</p></li>
+<li><p>does not recompute PnL/equity/deltas;</p></li>
+<li><p>returns structured 503 when evidence is absent/invalid.</p></li>
+</ul>
+</section>
+<section id="cockpit-boundary">
+<h2>17. Cockpit boundary<a class="headerlink" href="#cockpit-boundary" title="Link to this heading">¶</a></h2>
+<p>The Financial domain exposes:</p>
+<ul class="simple">
+<li><p>cash available;</p></li>
+<li><p>reserved/deployed capital;</p></li>
+<li><p>certified equity or UNAVAILABLE;</p></li>
+<li><p>realized/unrealized PnL;</p></li>
+<li><p>fees/funding;</p></li>
+<li><p>unresolved capital;</p></li>
+<li><p>unreconciled capital;</p></li>
+<li><p>divergence/unresolved counts;</p></li>
+<li><p>per-record projected/observed/delta/status;</p></li>
+<li><p>provenance;</p></li>
+<li><p>freshness;</p></li>
+<li><p>epoch/source identities.</p></li>
+</ul>
+<p>The browser must not perform financial arithmetic.</p>
+</section>
+<section id="exit-gates">
+<h2>18. Exit gates<a class="headerlink" href="#exit-gates" title="Link to this heading">¶</a></h2>
+<p>Source:</p>
+<ul class="simple">
+<li><p>deterministic reconciliation identity;</p></li>
+<li><p>exact/tolerance/divergence semantics;</p></li>
+<li><p>stale/unavailable fail-closed semantics;</p></li>
+<li><p>semantic NON_COMPARABLE proof;</p></li>
+<li><p>no double-counted unreconciled capital;</p></li>
+<li><p>simulator exact identity comparison;</p></li>
+<li><p>PAPER/real scope isolation;</p></li>
+<li><p>passive atomic producer;</p></li>
+<li><p>closed-schema API;</p></li>
+<li><p>frontend no-fabrication behavior;</p></li>
+<li><p>maintained backend/frontend/cross-stack CI.</p></li>
+</ul>
+<p>Runtime:</p>
+<ul class="simple">
+<li><p>FIN-02R1 runtime provenance contract satisfied;</p></li>
+<li><p>FIN-02R2 coherent passive capture contract satisfied;</p></li>
+<li><p>FIN-02R3 passive producer contract satisfied;</p></li>
+<li><p>FIN-02R4 governed runtime activation proof satisfied;</p></li>
+<li><p>active F00 source/config/epoch preserved until an explicit governed runtime activation step;</p></li>
+<li><p>coherent PPL/FIN/simulator snapshot produced;</p></li>
+<li><p>API transport fidelity;</p></li>
+<li><p>browser transport/render fidelity;</p></li>
+<li><p>freshness refresh;</p></li>
+<li><p>no Advisor/PPL/strategy/risk/sizing/execution mutation attributable to FIN-02.</p></li>
+</ul>
+<p>Final verdict only after required source + runtime evidence:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FIN_02_RECONCILIATION_COCKPIT_CERTIFIED</span></code></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">FIN-02 — Reconciliation &amp; Financial Cockpit Contract</a><ul>
+<li><a class="reference internal" href="#mission">1. Mission</a></li>
+<li><a class="reference internal" href="#authority-boundary">2. Authority boundary</a></li>
+<li><a class="reference internal" href="#source-flow">3. Source flow</a></li>
+<li><a class="reference internal" href="#reconciliation-statuses">4. Reconciliation statuses</a></li>
+<li><a class="reference internal" href="#comparability">5. Comparability</a></li>
+<li><a class="reference internal" href="#explicit-tolerance">6. Explicit tolerance</a></li>
+<li><a class="reference internal" href="#freshness">7. Freshness</a></li>
+<li><a class="reference internal" href="#fin-ppl-semantic-boundary">8. FIN ↔ PPL semantic boundary</a></li>
+<li><a class="reference internal" href="#coherent-capture-boundary">9. Coherent capture boundary</a></li>
+<li><a class="reference internal" href="#passive-producer-boundary">10. Passive producer boundary</a></li>
+<li><a class="reference internal" href="#simulator-reconciliation">11. Simulator reconciliation</a></li>
+<li><a class="reference internal" href="#unreconciled-capital">12. Unreconciled capital</a></li>
+<li><a class="reference internal" href="#paper-versus-real-exchange">13. PAPER versus real exchange</a></li>
+<li><a class="reference internal" href="#valuation-and-equity">14. Valuation and equity</a></li>
+<li><a class="reference internal" href="#presentation-artifact">15. Presentation artifact</a></li>
+<li><a class="reference internal" href="#api-boundary">16. API boundary</a></li>
+<li><a class="reference internal" href="#cockpit-boundary">17. Cockpit boundary</a></li>
+<li><a class="reference internal" href="#exit-gates">18. Exit gates</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
