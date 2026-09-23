@@ -1,0 +1,13 @@
+{
+  "action": "identity",
+  "exit_code": 0,
+  "finished_at_utc": "2026-09-22T06:27:52Z",
+  "github_run_id": "35694928251",
+  "request_id": "FIN02-R4-PRE-IDENTITY-20260922T0630Z",
+  "request_sha256": "cb55df2e6153661dc44fc3ffa60e686d1fa1afd04635903d4cab9fa39e8dd9ef",
+  "schema_version": 1,
+  "source_sha": "847e2fbd8676a6cae4830c59bbf55724fda94f55",
+  "started_at_utc": "2026-09-22T06:27:49Z",
+  "stderr": "",
+  "stdout": "claude-audit\ncrypto-advisor-2\nuid=1003(claude-audit) gid=1004(claude-audit) groups=1004(claude-audit)\n"
+}

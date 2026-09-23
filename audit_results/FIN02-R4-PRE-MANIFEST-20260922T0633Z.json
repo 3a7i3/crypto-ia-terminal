@@ -1,0 +1,13 @@
+{
+  "action": "snapshot_manifest",
+  "exit_code": 0,
+  "finished_at_utc": "2026-09-22T06:29:06Z",
+  "github_run_id": "35695012772",
+  "request_id": "FIN02-R4-PRE-MANIFEST-20260922T0633Z",
+  "request_sha256": "2135b165e977fd5d789b7ce5ba129aac77a860e1d00f7d5967fbf2e1b0a06977",
+  "schema_version": 1,
+  "source_sha": "45bdbb0f24d4c58f1e30d9c2c6e71768cf0e32d6",
+  "started_at_utc": "2026-09-22T06:29:03Z",
+  "stderr": "",
+  "stdout": "schema_version=1\nsnapshot_format=git_worktree\nsnapshot_path=/srv/claude-audit/repo\ncreated_at_utc=2026-09-01T19:09:19Z\nsource_kind=github_commit\nsource_repository=https://github.com/3a7i3/crypto-ia-terminal.git\nsource_sha=c2eb9586dc682d9be6b907b5cc19265528432181\nsource_tree_sha=ae554a4b5344becf728b1d9a2b7eec02c96e8ef8\nsource_commit_time=2026-09-01T11:10:21-07:00\nbranch=main\nremote_tracking_ref=origin/main\nworktree_clean=true\ntracked_file_count=2421\ntracked_symlink_count=0\ntracked_gitlink_count=0\nsanitized_paths_count=0\nsanitized_paths=none\nproduction_runtime_source_accessed=false\nowner=root\ngroup=claude-audit\ndirectory_mode=0550\nregular_file_mode=0440\nexecutable_file_mode=0550\nbuilder_path=/usr/local/sbin/claude-audit-snapshot-build\nbuilder_sha256=66de4203106a2a90c32a88f9baa3f037c5e33e3bd243e03ea7fba870d0e6aa9b\nprevious_snapshot_path=/srv/claude-audit/repo.pre-snapshot-20260901T190919Z\n"
+}
