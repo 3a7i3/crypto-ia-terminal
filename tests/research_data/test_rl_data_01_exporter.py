@@ -446,7 +446,16 @@ def test_ppl_event_schema_must_match_authority_manifest(tmp_path):
         json.loads(line)
         for line in files["epoch_path"].read_text(encoding="utf-8").splitlines()
     ]
-    records[0]["schema_version"] = 1
+    for record in records:
+        record["schema_version"] = 1
+        if record["event_type"] == "POSITION_OPENED":
+            for field in (
+                "tp_price",
+                "sl_price",
+                "timeout_at",
+                "recovery_eligible_until",
+            ):
+                record["payload"].pop(field, None)
     _write_jsonl(files["epoch_path"], records)
 
     with pytest.raises(SourceValidationError, match="event schema_version mismatch"):
