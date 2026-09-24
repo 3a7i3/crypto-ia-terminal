@@ -608,3 +608,24 @@ def test_config_rejects_secret_like_parameter_even_with_valid_internal_hash(tmp_
     with pytest.raises(SourceValidationError, match="secret-like parameter keys"):
         export_paper_dataset(_request(files, tmp_path / "research"))
 
+def test_dataset_id_ignores_explanatory_reason_text_when_statuses_are_unchanged(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    statuses_a = _statuses()
+    statuses_b = dict(statuses_a)
+    statuses_b["dip"] = SourceStatus(
+        status="NOT_AVAILABLE",
+        reason="same governed status, different explanatory wording",
+        evidence=("different-extraction-note",),
+    )
+
+    a = export_paper_dataset(
+        _request(files, tmp_path / "research-a", statuses=statuses_a)
+    )
+    b = export_paper_dataset(
+        _request(files, tmp_path / "research-b", statuses=statuses_b)
+    )
+
+    assert a.source_boundary_id == b.source_boundary_id
+    assert a.dataset_id == b.dataset_id
+    assert a.manifest["components"]["dip"]["reason"] != b.manifest["components"]["dip"]["reason"]
+
