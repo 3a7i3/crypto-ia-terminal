@@ -47,6 +47,43 @@ _SOURCE_DOMAIN = "PAPER"
 _SOURCE_AUTHORITY = "PPL_AUTHORITY"
 _F00_ROLE = "F00_EXPERIMENT"
 _F00_CONFIG_SCHEMA = "F00_EXPERIMENT_CONFIG_V1"
+_F00_CONFIG_FIELDS = frozenset(
+    {
+        "snapshot_schema",
+        "paper_epoch_id",
+        "runtime_source_sha",
+        "prestart_environment_files_in_precedence_order",
+        "activation_overlay",
+        "prestart_guard",
+        "material_parameter_count",
+        "parameters",
+        "snapshot_sha256",
+    }
+)
+_F00_ACTIVATION_OVERLAY_FIELDS = frozenset(
+    {
+        "path",
+        "sha256",
+        "allowed_keys",
+        "overrides",
+        "must_not_be_wired_before_owner_authorization",
+    }
+)
+_F00_SECRET_SEGMENTS = frozenset(
+    {
+        "KEY",
+        "SECRET",
+        "TOKEN",
+        "PASSWORD",
+        "PASSWD",
+        "PRIVATE",
+        "CREDENTIAL",
+        "WEBHOOK",
+        "CHAT",
+        "SMTP",
+        "EMAIL",
+    }
+)
 
 _ALLOWED_COMPONENT_STATES = frozenset(
     {
@@ -211,6 +248,23 @@ def _require_sha256(value: Any, *, field_name: str) -> str:
     return value
 
 
+def _is_secret_like_parameter(key: str) -> bool:
+    parts = {part for part in re.split(r"[^A-Za-z0-9]+", key.upper()) if part}
+    if parts & _F00_SECRET_SEGMENTS:
+        return True
+    upper = key.upper()
+    return any(
+        marker in upper
+        for marker in (
+            "API_KEY",
+            "API_SECRET",
+            "ACCESS_TOKEN",
+            "BOT_TOKEN",
+            "PRIVATE_KEY",
+        )
+    )
+
+
 def _require_regular_file(path: Path) -> os.stat_result:
     try:
         info = path.lstat()
@@ -301,6 +355,34 @@ def _validate_declared_statuses(
 def _epoch_file_path(root: Path, paper_epoch_id: str) -> Path:
     digest = hashlib.sha256(paper_epoch_id.encode("utf-8")).hexdigest()
     return root / "epochs" / f"{digest}.jsonl"
+
+
+def _paths_overlap(left: Path, right: Path) -> bool:
+    left_resolved = left.expanduser().resolve(strict=False)
+    right_resolved = right.expanduser().resolve(strict=False)
+    return (
+        left_resolved == right_resolved
+        or left_resolved in right_resolved.parents
+        or right_resolved in left_resolved.parents
+    )
+
+
+def _validate_output_separation(request: PaperExportRequest) -> None:
+    output_root = Path(request.output_root)
+    protected_roots = {
+        Path(request.ppl_store_root),
+        Path(request.experiment_manifest_path).parent,
+        Path(request.experiment_config_path).parent,
+        *(Path(path).parent for path in request.decision_packet_paths),
+    }
+    if request.decision_identity_journal_path is not None:
+        protected_roots.add(Path(request.decision_identity_journal_path).parent)
+    for protected in protected_roots:
+        if _paths_overlap(output_root, protected):
+            raise SourceValidationError(
+                "output_root overlaps source storage: "
+                f"output_root={output_root}, protected={protected}"
+            )
 
 
 def _load_ppl_readonly(
@@ -420,6 +502,12 @@ def _load_experiment_config(
     doc = _strict_json_loads(snapshot.raw, source=path)
     if not isinstance(doc, dict):
         raise SourceValidationError("experiment config must be a JSON object")
+    if frozenset(doc) != _F00_CONFIG_FIELDS:
+        missing = sorted(_F00_CONFIG_FIELDS - frozenset(doc))
+        extra = sorted(frozenset(doc) - _F00_CONFIG_FIELDS)
+        raise SourceValidationError(
+            f"experiment config fields mismatch: missing={missing}, extra={extra}"
+        )
 
     if doc.get("snapshot_schema") != _F00_CONFIG_SCHEMA:
         raise SourceValidationError("unsupported experiment config snapshot_schema")
@@ -440,9 +528,26 @@ def _load_experiment_config(
     _require_sha40(
         doc.get("runtime_source_sha"), field_name="experiment_config.runtime_source_sha"
     )
+    env_files = doc.get("prestart_environment_files_in_precedence_order")
+    if not isinstance(env_files, list) or not all(
+        isinstance(item, str) and item for item in env_files
+    ):
+        raise SourceValidationError(
+            "experiment config prestart environment files must be non-empty strings"
+        )
+
     parameters = doc.get("parameters")
     if not isinstance(parameters, dict):
         raise SourceValidationError("experiment config parameters must be an object")
+    secret_like = sorted(
+        key
+        for key in parameters
+        if not isinstance(key, str) or _is_secret_like_parameter(key)
+    )
+    if secret_like:
+        raise SourceValidationError(
+            f"experiment config contains secret-like parameter keys: {secret_like}"
+        )
     count = doc.get("material_parameter_count")
     if not isinstance(count, int) or isinstance(count, bool) or count != len(parameters):
         raise SourceValidationError(
@@ -454,13 +559,47 @@ def _load_experiment_config(
     overlay = doc.get("activation_overlay")
     if not isinstance(overlay, dict):
         raise SourceValidationError("experiment config activation_overlay missing")
+    if frozenset(overlay) != _F00_ACTIVATION_OVERLAY_FIELDS:
+        missing = sorted(_F00_ACTIVATION_OVERLAY_FIELDS - frozenset(overlay))
+        extra = sorted(frozenset(overlay) - _F00_ACTIVATION_OVERLAY_FIELDS)
+        raise SourceValidationError(
+            "experiment config activation_overlay fields mismatch: "
+            f"missing={missing}, extra={extra}"
+        )
+    if not isinstance(overlay.get("path"), str) or not overlay["path"]:
+        raise SourceValidationError("experiment config activation overlay path missing")
     _require_sha256(
         overlay.get("sha256"), field_name="experiment_config.activation_overlay.sha256"
     )
+    if overlay.get("allowed_keys") != ["PB_MAX_POSITIONS"]:
+        raise SourceValidationError(
+            "experiment config activation overlay allowed_keys mismatch"
+        )
+    if overlay.get("must_not_be_wired_before_owner_authorization") is not True:
+        raise SourceValidationError(
+            "experiment config activation overlay owner-authorization guard missing"
+        )
     overrides = overlay.get("overrides")
     if not isinstance(overrides, dict) or set(overrides) != {"PB_MAX_POSITIONS"}:
         raise SourceValidationError(
             "experiment config activation overlay must only override PB_MAX_POSITIONS"
+        )
+    try:
+        planned_pb = int(overrides["PB_MAX_POSITIONS"])
+    except (TypeError, ValueError) as exc:
+        raise SourceValidationError(
+            "experiment config activation PB_MAX_POSITIONS must be an integer"
+        ) from exc
+    if planned_pb < 1:
+        raise SourceValidationError(
+            "experiment config activation PB_MAX_POSITIONS must be >= 1"
+        )
+    pb_parameter = parameters.get("PB_MAX_POSITIONS")
+    if not isinstance(pb_parameter, dict) or str(pb_parameter.get("value")) != str(
+        overrides["PB_MAX_POSITIONS"]
+    ):
+        raise SourceValidationError(
+            "experiment config PB_MAX_POSITIONS parameter/overlay mismatch"
         )
 
     return snapshot, doc
@@ -829,6 +968,7 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
         request.decision_packet_paths
     ):
         raise SourceValidationError("decision_packet_paths contains duplicates")
+    _validate_output_separation(request)
 
     ppl_snapshot, events, projection = _load_ppl_readonly(
         Path(request.ppl_store_root), request.paper_epoch_id
