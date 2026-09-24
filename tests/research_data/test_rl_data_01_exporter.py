@@ -328,6 +328,8 @@ def test_success_exports_exact_authoritative_bytes_and_certified_optional_subset
     )
     assert manifest["dataset_id"] == result.dataset_id
     assert manifest["source_boundary_id"] == result.source_boundary_id
+    assert manifest["source_boundary_identity"]["source_first_timestamp"] == 1.0
+    assert manifest["source_boundary_identity"]["source_last_timestamp"] == 20.0
     assert manifest["completeness_status"] == "COMPLETE"
     assert manifest["components"]["dip"]["status"] == "NOT_AVAILABLE"
     assert manifest["components"]["regret"]["status"] == "UNRESOLVED_PROVENANCE"
