@@ -485,6 +485,8 @@ def _load_manifest(
     epoch = ppl_projection.epoch
     if epoch is None:
         raise SourceValidationError("PPL projection has no epoch")
+    if epoch.created_at != manifest.created_at:
+        raise SourceValidationError("PPL/manifest created_at mismatch")
     if epoch.initial_virtual_capital != manifest.initial_virtual_capital:
         raise SourceValidationError("PPL/manifest initial capital mismatch")
     if epoch.code_sha != manifest.code_sha:
@@ -977,6 +979,17 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
         paper_epoch_id=request.paper_epoch_id,
         ppl_projection=projection,
     )
+    schema_mismatches = [
+        (event.sequence, event.schema_version)
+        for event in events
+        if event.schema_version != authority_manifest.ppl_event_schema_version
+    ]
+    if schema_mismatches:
+        raise SourceValidationError(
+            "PPL event schema_version mismatch with authority manifest: "
+            f"expected={authority_manifest.ppl_event_schema_version}, "
+            f"mismatches={schema_mismatches}"
+        )
     config_snapshot, config_doc = _load_experiment_config(
         Path(request.experiment_config_path),
         paper_epoch_id=request.paper_epoch_id,
