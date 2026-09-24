@@ -118,6 +118,13 @@ Chaîne : `trade_analysis/observatory.py` valide les symboles contre le catalogu
 Futures public, non stubé par ces deux tests (les 11 autres du fichier passent).
 En isolation : mêmes 2 échecs → ce n'est **pas** un effet d'ordre.
 
+**Confirmation croisée (2026-09-24 09:03 UTC)** : sur le commit
+`f92200cade545b2353358c1f239e278d13a56bca` (ce même audit, contenu strictement
+documentaire), le job GitHub Actions `TEST REGRESSION GATE` est **vert**, alors
+que le même corpus sur le même arbre donne 2 échecs dans un conteneur sans
+accès à MEXC. Le résultat du gate dépend donc bien de la joignabilité de
+`contract.mexc.com`, et non du code testé.
+
 **Impact** : le corpus canonique (`pytest -m "not performance and not slow"`)
 mesure partiellement la disponibilité de `contract.mexc.com`. Un « TEST
 REGRESSION: 6386 passed » n'est donc pas rejouable hors ligne, ce qui affaiblit
