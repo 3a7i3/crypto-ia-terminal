@@ -12,7 +12,14 @@ import json
 import sys
 from pathlib import Path
 
-from research_data.operator import (
+# Running this file as `python scripts/rl_data_01_export.py` sets sys.path[0]
+# to scripts/, not the repository root.  Add the source root explicitly so the
+# offline CLI resolves the in-repo research_data package from any working dir.
+_REPO_SOURCE_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_SOURCE_ROOT))
+
+from research_data.operator import (  # noqa: E402
     OperatorError,
     OperatorExportRequest,
     export_from_clean_repo,
