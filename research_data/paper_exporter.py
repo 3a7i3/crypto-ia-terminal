@@ -1007,3 +1007,44 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
         _write_new_bytes(
             tmp / "authoritative" / "ppl_events.jsonl",
             ppl_snapshot.raw,
+        )
+        _write_new_bytes(
+            tmp / "authoritative" / "f00_experiment_manifest.json",
+            manifest_snapshot.raw,
+        )
+        _write_new_bytes(
+            tmp / "authoritative" / "f00_experiment_config.json",
+            config_snapshot.raw,
+        )
+        if decision_packet_bytes is not None and journal_bytes is not None:
+            _write_new_bytes(
+                tmp / "optional" / "decision_packets.jsonl",
+                decision_packet_bytes,
+            )
+            _write_new_bytes(
+                tmp / "optional" / "decision_identity_records.jsonl",
+                journal_bytes,
+            )
+        _write_new_bytes(tmp / "manifest.json", _manifest_bytes(manifest))
+
+        _verify_full_file_unchanged(ppl_snapshot)
+        _verify_full_file_unchanged(manifest_snapshot)
+        _verify_full_file_unchanged(config_snapshot)
+        for source in decision_sources:
+            _verify_full_file_unchanged(source)
+        if journal_snapshot is not None:
+            _verify_prefix_unchanged(journal_snapshot)
+
+        if target.exists():
+            raise DatasetExistsError(f"immutable dataset already exists: {target}")
+        os.rename(tmp, target)
+    except Exception:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+
+    return ExportResult(
+        dataset_id=dataset_id,
+        source_boundary_id=source_boundary_id,
+        dataset_path=target,
+        manifest=manifest,
+    )
