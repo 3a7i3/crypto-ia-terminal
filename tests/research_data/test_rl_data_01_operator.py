@@ -128,3 +128,16 @@ def test_load_source_statuses_rejects_duplicate_json_key(tmp_path):
 
     with pytest.raises(OperatorError, match="duplicate JSON key"):
         load_source_statuses(path)
+
+
+def test_repository_f00_status_contract_is_loadable():
+    repo_root = Path(__file__).resolve().parents[2]
+    path = repo_root / "docs" / "contracts" / "RL_DATA_01_F00_SOURCE_STATUSES.json"
+
+    statuses = load_source_statuses(path)
+
+    assert statuses["dip"].status == "NOT_AVAILABLE"
+    assert statuses["dip"].reason == "NOT_STARTED"
+    assert statuses["regret"].status == "UNRESOLVED_PROVENANCE"
+    assert statuses["rejection_store"].status == "UNBOUND"
+    assert statuses["admission_ledger"].status == "UNBOUND"
