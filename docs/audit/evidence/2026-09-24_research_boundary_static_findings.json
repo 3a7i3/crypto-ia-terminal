@@ -1,0 +1,325 @@
+{
+ "files_scanned": 51,
+ "counts": {
+  "evidence_erasure": 75,
+  "nondeterminism": 44,
+  "nonfinite_json": 6,
+  "runtime_coupling": 24,
+  "silent_except": 6
+ },
+ "findings": {
+  "evidence_erasure": [
+   "core/decision_packet.py:319: .get(..., 0) masque UNKNOWN",
+   "core/decision_packet.py:320: .get(..., 0.0) masque UNKNOWN",
+   "core/decision_packet.py:321: .get(..., 0.0) masque UNKNOWN",
+   "core/decision_packet.py:368: .get(..., 0.0) masque UNKNOWN",
+   "core/decision_packet.py:818: .get(..., 0.0) masque UNKNOWN",
+   "core/decision_packet.py:829: .get(..., 0.0) masque UNKNOWN",
+   "core/decision_packet.py:835: .get(..., 0.0) masque UNKNOWN",
+   "core/decision_packet.py:836: .get(..., 0.0) masque UNKNOWN",
+   "core/decision_packet.py:849: .get(..., 0.0) masque UNKNOWN",
+   "dip/modules/decision_replay.py:103: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:129: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:137: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:138: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:152: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:163: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:164: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:165: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:166: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:167: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:168: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:169: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:170: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:182: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:183: .get(..., 0) masque UNKNOWN",
+   "market_data/replay_engine.py:271: `... or 0.0` masque UNKNOWN",
+   "market_data/replay_engine.py:276: .get(..., 0.0) masque UNKNOWN",
+   "market_data/replay_engine.py:277: .get(..., 0.0) masque UNKNOWN",
+   "market_data/replay_engine.py:278: .get(..., 0.0) masque UNKNOWN",
+   "paper_trading/dataset_validator.py:501: `... or 0.0` masque UNKNOWN",
+   "paper_trading/dataset_validator.py:507: `... or 0.0` masque UNKNOWN",
+   "paper_trading/dataset_validator.py:521: `... or 0.0` masque UNKNOWN",
+   "paper_trading/dataset_validator.py:543: `... or 0.0` masque UNKNOWN",
+   "paper_trading/dataset_validator.py:544: `... or 0.0` masque UNKNOWN",
+   "paper_trading/engine.py:146: .get(..., 0.0) masque UNKNOWN",
+   "paper_trading/legacy_ppl_bridge.py:665: `... or 0` masque UNKNOWN",
+   "paper_trading/mexc_simulator.py:1275: `... or 0` masque UNKNOWN",
+   "paper_trading/mexc_simulator.py:472: `... or 0` masque UNKNOWN",
+   "paper_trading/mexc_simulator.py:473: `... or 0` masque UNKNOWN",
+   "paper_trading/mexc_simulator.py:549: `... or 0` masque UNKNOWN",
+   "paper_trading/paper_portfolio_ledger.py:650: .get(..., 0) masque UNKNOWN",
+   "paper_trading/paper_portfolio_view.py:81: `... or 0.0` masque UNKNOWN",
+   "paper_trading/recorder.py:548: `... or 0` masque UNKNOWN",
+   "paper_trading/status.py:33: .get(..., 0) masque UNKNOWN",
+   "paper_trading/status.py:37: .get(..., 0) masque UNKNOWN",
+   "paper_trading/status.py:68: .get(..., 0) masque UNKNOWN",
+   "paper_trading/status.py:84: `... or 0` masque UNKNOWN",
+   "paper_trading/virtual_portfolio.py:227: `... or 0` masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:207: .get(..., 0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:220: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:224: .get(..., 0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:226: .get(..., 0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:227: .get(..., 0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:230: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:231: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:232: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:233: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:240: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:241: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:242: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:243: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:255: .get(..., 0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:258: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:269: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:270: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:271: .get(..., 0.0) masque UNKNOWN",
+   "quant_hedge_ai/agents/execution/trade_replay.py:281: .get(..., 0.0) masque UNKNOWN",
+   "scripts/counterfactual_replay.py:100: `... or 0.0` masque UNKNOWN",
+   "scripts/counterfactual_replay.py:101: `... or 0` masque UNKNOWN",
+   "scripts/counterfactual_replay.py:344: `... or 0` masque UNKNOWN",
+   "scripts/counterfactual_replay.py:344: `... or 0` masque UNKNOWN",
+   "scripts/counterfactual_replay.py:77: .get(..., 0.0) masque UNKNOWN",
+   "scripts/counterfactual_replay.py:90: .get(..., 0.0) masque UNKNOWN",
+   "scripts/counterfactual_replay.py:90: .get(..., 0.0) masque UNKNOWN",
+   "scripts/counterfactual_replay.py:91: .get(..., 0.0) masque UNKNOWN",
+   "scripts/counterfactual_replay.py:99: `... or 0.0` masque UNKNOWN"
+  ],
+  "nondeterminism": [
+   "core/decision_packet.py:400: uuid.uuid4()",
+   "core/decision_packet.py:545: datetime.utcnow()",
+   "core/decision_packet.py:647: datetime.utcnow()",
+   "core/decision_packet.py:806: uuid.uuid4()",
+   "core/decision_packet.py:810: datetime.utcnow()",
+   "dip/modules/counterfactual.py:321: uuid.uuid4()",
+   "dip/modules/counterfactual.py:332: now_us()",
+   "dip/modules/counterfactual.py:380: uuid.uuid4()",
+   "dip/modules/counterfactual.py:389: now_us()",
+   "dip/modules/decision_replay.py:130: now_us()",
+   "dip/modules/decision_replay.py:139: now_us()",
+   "dip/modules/decision_replay.py:203: now_us()",
+   "market_data/replay_engine.py:203: time.monotonic()",
+   "market_data/replay_engine.py:234: time.monotonic()",
+   "paper_trading/admission_types.py:133: datetime.now()",
+   "paper_trading/admission_types.py:134: uuid.uuid4()",
+   "paper_trading/admission_types.py:204: time.time()",
+   "paper_trading/admission_types.py:229: time.time()",
+   "paper_trading/dataset_validator.py:453: datetime.now()",
+   "paper_trading/engine.py:181: time.time()",
+   "paper_trading/engine.py:202: time.time()",
+   "paper_trading/engine.py:210: uuid.uuid4()",
+   "paper_trading/engine.py:219: time.time()",
+   "paper_trading/engine.py:247: time.time()",
+   "paper_trading/ledger.py:161: time.time()",
+   "paper_trading/ledger.py:56: time.time()",
+   "paper_trading/mexc_simulator.py:1011: uuid.uuid4()",
+   "paper_trading/mexc_simulator.py:1063: time.time()",
+   "paper_trading/mexc_simulator.py:1159: time.time()",
+   "paper_trading/mexc_simulator.py:1290: time.time()",
+   "paper_trading/mexc_simulator.py:1346: time.time()",
+   "paper_trading/mexc_simulator.py:1403: time.time()",
+   "paper_trading/mexc_simulator.py:233: time.time()",
+   "paper_trading/mexc_simulator.py:272: time.time()",
+   "paper_trading/mexc_simulator.py:355: time.time()",
+   "paper_trading/mexc_simulator.py:511: time.time()",
+   "paper_trading/mexc_simulator.py:717: uuid.uuid4()",
+   "paper_trading/mexc_simulator.py:893: uuid.uuid4()",
+   "paper_trading/mexc_simulator.py:965: uuid.uuid4()",
+   "paper_trading/recorder.py:333: time.time()",
+   "paper_trading/recorder.py:383: time.time()",
+   "paper_trading/virtual_portfolio.py:174: uuid.uuid4()",
+   "paper_trading/virtual_portfolio.py:268: time.time()",
+   "src/backtest/engine.py:91: time.time()"
+  ],
+  "nonfinite_json": [
+   "core/decision_packet.py:283: json dump sans allow_nan=False",
+   "market_data/replay_engine.py:299: json dump sans allow_nan=False",
+   "paper_trading/admission_ledger.py:38: json dump sans allow_nan=False",
+   "paper_trading/dataset_validator.py:636: json dump sans allow_nan=False",
+   "paper_trading/engine.py:269: json dump sans allow_nan=False",
+   "paper_trading/recorder.py:620: json dump sans allow_nan=False"
+  ],
+  "runtime_coupling": [
+   "dip/modules/counterfactual.py:22: importe dip.core.store",
+   "dip/modules/counterfactual.py:22: importe dip.core.store.DIPStore",
+   "dip/modules/decision_replay.py:16: importe dip.core.store",
+   "dip/modules/decision_replay.py:16: importe dip.core.store.DIPStore",
+   "financial_institute/recovery.py:28: importe paper_trading.durable_event_store",
+   "financial_institute/recovery.py:28: importe paper_trading.durable_event_store.DurableEventStore",
+   "paper_trading/legacy_ppl_bridge.py:25: importe paper_trading.durable_event_store",
+   "paper_trading/legacy_ppl_bridge.py:25: importe paper_trading.durable_event_store.AppendResult",
+   "paper_trading/legacy_ppl_bridge.py:25: importe paper_trading.durable_event_store.DurableEventStore",
+   "paper_trading/paper_portfolio_view.py:31: importe paper_trading.mexc_simulator",
+   "paper_trading/paper_portfolio_view.py:31: importe paper_trading.mexc_simulator.MexcSimulator",
+   "paper_trading/ppl_authority_gate.py:12: importe paper_trading.durable_event_store",
+   "paper_trading/ppl_authority_gate.py:12: importe paper_trading.durable_event_store.DurableEventStore",
+   "paper_trading/ppl_authority_runtime.py:24: importe paper_trading.durable_event_store",
+   "paper_trading/ppl_authority_runtime.py:24: importe paper_trading.durable_event_store.AppendResult",
+   "paper_trading/ppl_authority_runtime.py:24: importe paper_trading.durable_event_store.DurableEventStore",
+   "paper_trading/ppl_authority_runtime.py:24: importe paper_trading.durable_event_store.EpochNotFoundError",
+   "paper_trading/ppl_capital.py:17: importe paper_trading.durable_event_store",
+   "paper_trading/ppl_capital.py:17: importe paper_trading.durable_event_store.DurableEventStore",
+   "paper_trading/ppl_shadow.py:24: importe paper_trading.durable_event_store",
+   "paper_trading/ppl_shadow.py:24: importe paper_trading.durable_event_store.AppendResult",
+   "paper_trading/ppl_shadow.py:24: importe paper_trading.durable_event_store.AppendStatus",
+   "paper_trading/ppl_shadow.py:24: importe paper_trading.durable_event_store.DurableEventStore",
+   "paper_trading/ppl_shadow.py:24: importe paper_trading.durable_event_store.EpochNotFoundError"
+  ],
+  "silent_except": [
+   "core/decision_packet.py:615: except large silencieux",
+   "dip/modules/counterfactual.py:409: except large silencieux",
+   "paper_trading/admission_ledger.py:75: except large silencieux",
+   "paper_trading/engine.py:270: except large silencieux",
+   "paper_trading/recorder.py:438: except large silencieux",
+   "quant_hedge_ai/agents/execution/trade_replay.py:320: except large silencieux"
+  ]
+ },
+ "per_file": {
+  "core/decision_packet.py": {
+   "nonfinite_json": 1,
+   "nondeterminism": 5,
+   "silent_except": 1,
+   "evidence_erasure": 9
+  },
+  "core/lifecycle.py": {},
+  "dip/modules/counterfactual.py": {
+   "runtime_coupling": 2,
+   "silent_except": 1,
+   "nondeterminism": 4
+  },
+  "dip/modules/decision_replay.py": {
+   "runtime_coupling": 2,
+   "evidence_erasure": 1,
+   "nondeterminism": 3
+  },
+  "financial_institute/__init__.py": {},
+  "financial_institute/ledger.py": {},
+  "financial_institute/models.py": {},
+  "financial_institute/ppl_adapter.py": {},
+  "financial_institute/reconciliation.py": {},
+  "financial_institute/recovery.py": {
+   "runtime_coupling": 2
+  },
+  "financial_institute/runtime_provenance.py": {},
+  "financial_institute/semantics.py": {},
+  "financial_institute/snapshot.py": {},
+  "financial_institute/valuation.py": {},
+  "market_data/replay_engine.py": {
+   "nondeterminism": 2,
+   "evidence_erasure": 18,
+   "nonfinite_json": 1
+  },
+  "paper_trading/__init__.py": {},
+  "paper_trading/admission_ledger.py": {
+   "nonfinite_json": 1,
+   "silent_except": 1
+  },
+  "paper_trading/admission_policy.py": {},
+  "paper_trading/admission_types.py": {
+   "nondeterminism": 4
+  },
+  "paper_trading/dataset_validator.py": {
+   "evidence_erasure": 5,
+   "nonfinite_json": 1,
+   "nondeterminism": 1
+  },
+  "paper_trading/durable_event_store.py": {},
+  "paper_trading/engine.py": {
+   "silent_except": 1,
+   "evidence_erasure": 1,
+   "nondeterminism": 5,
+   "nonfinite_json": 1
+  },
+  "paper_trading/ledger.py": {
+   "nondeterminism": 2
+  },
+  "paper_trading/ledger_events.py": {},
+  "paper_trading/legacy_ppl_bridge.py": {
+   "runtime_coupling": 3,
+   "evidence_erasure": 1
+  },
+  "paper_trading/mexc_simulator.py": {
+   "nondeterminism": 13,
+   "evidence_erasure": 4
+  },
+  "paper_trading/paper_authority.py": {},
+  "paper_trading/paper_epoch.py": {},
+  "paper_trading/paper_portfolio_ledger.py": {
+   "evidence_erasure": 1
+  },
+  "paper_trading/paper_portfolio_view.py": {
+   "runtime_coupling": 2,
+   "evidence_erasure": 1
+  },
+  "paper_trading/portfolio_status.py": {},
+  "paper_trading/ppl_authority_gate.py": {
+   "runtime_coupling": 2
+  },
+  "paper_trading/ppl_authority_runtime.py": {
+   "runtime_coupling": 4
+  },
+  "paper_trading/ppl_capital.py": {
+   "runtime_coupling": 2
+  },
+  "paper_trading/ppl_compatibility.py": {},
+  "paper_trading/ppl_recovery.py": {},
+  "paper_trading/ppl_shadow.py": {
+   "runtime_coupling": 5
+  },
+  "paper_trading/recorder.py": {
+   "nondeterminism": 2,
+   "nonfinite_json": 1,
+   "silent_except": 1,
+   "evidence_erasure": 1
+  },
+  "paper_trading/sandbox_validator.py": {},
+  "paper_trading/status.py": {
+   "evidence_erasure": 4
+  },
+  "paper_trading/virtual_portfolio.py": {
+   "nondeterminism": 2,
+   "evidence_erasure": 1
+  },
+  "quant_hedge_ai/agents/execution/trade_replay.py": {
+   "evidence_erasure": 19,
+   "silent_except": 1
+  },
+  "quant_hedge_ai/agents/quant/backtest_lab.py": {},
+  "scripts/counterfactual_replay.py": {
+   "evidence_erasure": 9
+  },
+  "src/backtest/__init__.py": {},
+  "src/backtest/data_feed.py": {},
+  "src/backtest/engine.py": {
+   "nondeterminism": 1
+  },
+  "src/backtest/market_generator.py": {},
+  "src/backtest/metrics.py": {},
+  "src/backtest/mexc_feed.py": {},
+  "src/backtest/walk_forward.py": {}
+ },
+ "package_cycles": {
+  "core": [
+   [
+    "core.decision_packet",
+    "core.lifecycle"
+   ]
+  ],
+  "dip": [],
+  "financial_institute": [],
+  "market_data": [],
+  "paper_trading": [],
+  "quant_hedge_ai": [],
+  "scripts": [],
+  "src": [
+   [
+    "src.analytics",
+    "src.backtest"
+   ],
+   [
+    "src.analytics",
+    "src.risk"
+   ]
+  ]
+ }
+}
