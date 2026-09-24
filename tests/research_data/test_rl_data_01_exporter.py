@@ -531,3 +531,80 @@ def test_optional_decision_layer_can_be_explicitly_not_included(tmp_path):
         == "NOT_INCLUDED"
     )
     assert not (result.dataset_path / "optional").exists()
+
+def _rewrite_config_with_valid_internal_hash(path: Path, mutate) -> None:
+    config = json.loads(path.read_text(encoding="utf-8"))
+    mutate(config)
+    payload = dict(config)
+    payload.pop("snapshot_sha256", None)
+    config["snapshot_sha256"] = hashlib.sha256(_canonical(payload)).hexdigest()
+    _write_json(path, config)
+
+
+def test_output_root_must_not_overlap_source_storage(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    output = files["source"] / "research_data"
+
+    with pytest.raises(SourceValidationError, match="output_root overlaps source storage"):
+        export_paper_dataset(_request(files, output))
+
+    assert not output.exists()
+
+
+def test_config_rejects_unknown_top_level_field_even_with_valid_internal_hash(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+
+    _rewrite_config_with_valid_internal_hash(
+        files["config_path"],
+        lambda config: config.__setitem__("unexpected_future_field", "value"),
+    )
+
+    with pytest.raises(SourceValidationError, match="experiment config fields mismatch"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
+def test_config_rejects_activation_keys_drift_even_with_valid_internal_hash(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+
+    def mutate(config):
+        config["activation_overlay"]["allowed_keys"] = [
+            "PB_MAX_POSITIONS",
+            "SIGNAL_MIN_SCORE",
+        ]
+
+    _rewrite_config_with_valid_internal_hash(files["config_path"], mutate)
+
+    with pytest.raises(SourceValidationError, match="allowed_keys mismatch"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
+def test_config_rejects_non_positive_activation_even_with_valid_internal_hash(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+
+    def mutate(config):
+        config["activation_overlay"]["overrides"]["PB_MAX_POSITIONS"] = "0"
+        config["parameters"]["PB_MAX_POSITIONS"]["value"] = "0"
+
+    _rewrite_config_with_valid_internal_hash(files["config_path"], mutate)
+
+    with pytest.raises(SourceValidationError, match="must be >= 1"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
+def test_config_rejects_secret_like_parameter_even_with_valid_internal_hash(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+
+    def mutate(config):
+        config["parameters"]["MEXC_API_KEY"] = {
+            "value": "must-not-export",
+            "provenance": "EXPLICIT_ENVIRONMENT_FILE",
+            "source": "secret.env",
+            "callsites": [],
+        }
+        config["material_parameter_count"] = len(config["parameters"])
+
+    _rewrite_config_with_valid_internal_hash(files["config_path"], mutate)
+
+    with pytest.raises(SourceValidationError, match="secret-like parameter keys"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
