@@ -430,6 +430,16 @@ def test_manifest_epoch_mismatch_fails_closed(tmp_path):
         export_paper_dataset(_request(files, tmp_path / "research"))
 
 
+def test_manifest_digest_shape_mismatch_fails_closed(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    manifest = json.loads(files["manifest_path"].read_text(encoding="utf-8"))
+    manifest["config_snapshot_hash"] = "not-a-sha256"
+    _write_json(files["manifest_path"], manifest)
+
+    with pytest.raises(SourceValidationError, match="manifest.config_snapshot_hash"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
 def test_config_internal_snapshot_hash_mismatch_fails_closed(tmp_path):
     files = _fixture(tmp_path / "fixture")
     config = json.loads(files["config_path"].read_text(encoding="utf-8"))
