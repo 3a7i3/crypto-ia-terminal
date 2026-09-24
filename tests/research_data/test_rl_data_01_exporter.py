@@ -430,6 +430,29 @@ def test_manifest_epoch_mismatch_fails_closed(tmp_path):
         export_paper_dataset(_request(files, tmp_path / "research"))
 
 
+def test_manifest_created_at_mismatch_fails_closed(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    manifest = json.loads(files["manifest_path"].read_text(encoding="utf-8"))
+    manifest["created_at"] = 2.0
+    _write_json(files["manifest_path"], manifest)
+
+    with pytest.raises(SourceValidationError, match="created_at mismatch"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
+def test_ppl_event_schema_must_match_authority_manifest(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    records = [
+        json.loads(line)
+        for line in files["epoch_path"].read_text(encoding="utf-8").splitlines()
+    ]
+    records[0]["schema_version"] = 1
+    _write_jsonl(files["epoch_path"], records)
+
+    with pytest.raises(SourceValidationError, match="event schema_version mismatch"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
 def test_manifest_digest_shape_mismatch_fails_closed(tmp_path):
     files = _fixture(tmp_path / "fixture")
     manifest = json.loads(files["manifest_path"].read_text(encoding="utf-8"))
@@ -628,4 +651,3 @@ def test_dataset_id_ignores_explanatory_reason_text_when_statuses_are_unchanged(
     assert a.source_boundary_id == b.source_boundary_id
     assert a.dataset_id == b.dataset_id
     assert a.manifest["components"]["dip"]["reason"] != b.manifest["components"]["dip"]["reason"]
-
