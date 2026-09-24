@@ -390,6 +390,15 @@ def _load_manifest(
         )
     if manifest.paper_epoch_id != paper_epoch_id:
         raise SourceValidationError("F00 manifest paper_epoch_id mismatch")
+    _require_sha40(manifest.code_sha, field_name="manifest.code_sha")
+    _require_sha256(
+        manifest.config_snapshot_hash,
+        field_name="manifest.config_snapshot_hash",
+    )
+    _require_sha256(
+        manifest.legacy_boundary_sha256,
+        field_name="manifest.legacy_boundary_sha256",
+    )
 
     epoch = ppl_projection.epoch
     if epoch is None:
@@ -998,5 +1007,3 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
         _write_new_bytes(
             tmp / "authoritative" / "ppl_events.jsonl",
             ppl_snapshot.raw,
-        )
-        _write_new_bytes(
