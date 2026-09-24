@@ -1,0 +1,41 @@
+{
+  "admission_ledger": {
+    "evidence": [
+      "A3 audit: 19268 records scanned",
+      "experiment_id fields: 0",
+      "paper_epoch_id fields: 0",
+      "packet_id fields: 0",
+      "trace_id fields: 0"
+    ],
+    "reason": "records carry no experiment_id, paper_epoch_id, packet_id or trace_id; cycle_id alone is not a globally unique F00 identity",
+    "status": "UNBOUND"
+  },
+  "dip": {
+    "evidence": [
+      "project tree: no dip.sqlite or *dip*.sqlite* store",
+      "Advisor environment: no DIP_* override",
+      "databases/observation/runtime_provenance_snapshot.json: dip.status=NOT_STARTED"
+    ],
+    "reason": "NOT_STARTED",
+    "status": "NOT_AVAILABLE"
+  },
+  "regret": {
+    "evidence": [
+      "A3 audit: 524152 records scanned",
+      "experiment_id=None for all audited records",
+      "source_authority=None for all audited records",
+      "paper_epoch_id=None for all audited records"
+    ],
+    "reason": "historical Regret v2 records do not carry an explicit certified F00 authority binding",
+    "status": "UNRESOLVED_PROVENANCE"
+  },
+  "rejection_store": {
+    "evidence": [
+      "A3 audit: 1066814 records scanned",
+      "experiment_id=None for all audited records",
+      "explicit F00 experiment matches: 0"
+    ],
+    "reason": "historical RejectionStore records have no explicit F00 experiment binding; date/cycle/symbol attribution is forbidden",
+    "status": "UNBOUND"
+  }
+}
