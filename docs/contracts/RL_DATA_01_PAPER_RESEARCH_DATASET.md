@@ -120,6 +120,8 @@ containing at minimum:
 - `source_event_count`;
 - `source_first_sequence`;
 - `source_last_sequence`;
+- `source_first_timestamp`;
+- `source_last_timestamp`;
 - `legacy_boundary_sha256`;
 - `legacy_event_count`.
 
