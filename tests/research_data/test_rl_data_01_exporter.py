@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -660,3 +661,105 @@ def test_dataset_id_ignores_explanatory_reason_text_when_statuses_are_unchanged(
     assert a.source_boundary_id == b.source_boundary_id
     assert a.dataset_id == b.dataset_id
     assert a.manifest["components"]["dip"]["reason"] != b.manifest["components"]["dip"]["reason"]
+
+
+# ---------------------------------------------------------------------------
+# Parite semantique du validateur F00 possede par Research.
+#
+# Le validateur pur de research_data remplace l'appel au module d'autorite
+# runtime PAPER. Ces tests prouvent qu'AUCUNE validation scientifique du
+# contrat F00 n'a ete affaiblie par ce remplacement.
+# ---------------------------------------------------------------------------
+
+
+def _mutated_manifest_export(tmp_path, mutate):
+    files = _fixture(tmp_path / "fixture")
+    manifest = json.loads(files["manifest_path"].read_text(encoding="utf-8"))
+    mutate(manifest)
+    _write_json(files["manifest_path"], manifest)
+    return files
+
+
+@pytest.mark.parametrize(
+    "mutate, expected",
+    [
+        # role d'epoque exact
+        (lambda m: m.__setitem__("epoch_role", "PPL_AUTHORITY_TRANSITION"),
+         "requires epoch_role=F00_EXPERIMENT"),
+        (lambda m: m.__setitem__("epoch_role", "UNKNOWN"),
+         "requires epoch_role=F00_EXPERIMENT"),
+        # schema de manifest attendu
+        (lambda m: m.__setitem__("manifest_schema_version", 1),
+         "must use schema v2"),
+        # schema d'evenement PPL attendu
+        (lambda m: m.__setitem__("ppl_event_schema_version", 1),
+         "PPL event schema must be v2"),
+        # predecessor_authority_epoch_id requis pour F00
+        (lambda m: m.__setitem__("predecessor_authority_epoch_id", ""),
+         "requires predecessor_authority_epoch_id"),
+        (lambda m: m.__setitem__("predecessor_authority_epoch_id", EPOCH),
+         "must differ from predecessor authority epoch"),
+        (lambda m: m.__setitem__("predecessor_authority_epoch_id", 7),
+         "must be a string"),
+        # predecessor SHADOW incompatible avec le contrat F00 courant
+        (lambda m: m.__setitem__("predecessor_shadow_epoch_id", "SHADOW-001"),
+         "fields mismatch"),
+        # champs manquants / surnumeraires
+        (lambda m: m.pop("legacy_boundary_sha256"), "fields mismatch"),
+        (lambda m: m.__setitem__("unexpected_field", 1), "fields mismatch"),
+        # legacy_event_count entier non negatif
+        (lambda m: m.__setitem__("legacy_event_count", -1),
+         "non-negative integer"),
+        (lambda m: m.__setitem__("legacy_event_count", 1.5),
+         "non-negative integer"),
+        (lambda m: m.__setitem__("legacy_event_count", True),
+         "non-negative integer"),
+        # created_at valide
+        (lambda m: m.__setitem__("created_at", "1.0"), "created_at must be numeric"),
+        (lambda m: m.__setitem__("created_at", True), "created_at must be numeric"),
+        # initial_virtual_capital valide
+        (lambda m: m.__setitem__("initial_virtual_capital", 0),
+         "initial_virtual_capital must be > 0"),
+        (lambda m: m.__setitem__("initial_virtual_capital", -10.0),
+         "initial_virtual_capital must be > 0"),
+        (lambda m: m.__setitem__("initial_virtual_capital", "100"),
+         "initial_virtual_capital must be numeric"),
+        # chaines d'identite non vides
+        (lambda m: m.__setitem__("code_sha", "   "), "code_sha must be a non-empty"),
+        (lambda m: m.__setitem__("config_snapshot_hash", ""),
+         "config_snapshot_hash must be a non-empty"),
+        (lambda m: m.__setitem__("legacy_boundary_sha256", 42),
+         "legacy_boundary_sha256 must be a non-empty"),
+        # formes de digests exactes (SHA-40 / SHA-256)
+        (lambda m: m.__setitem__("code_sha", "a" * 39),
+         "manifest.code_sha must be a lowercase 40-hex"),
+        (lambda m: m.__setitem__("code_sha", "A" * 40),
+         "manifest.code_sha must be a lowercase 40-hex"),
+        (lambda m: m.__setitem__("legacy_boundary_sha256", "z" * 64),
+         "manifest.legacy_boundary_sha256 must be a lowercase SHA-256"),
+    ],
+)
+def test_f00_manifest_semantic_parity_fails_closed(tmp_path, mutate, expected):
+    files = _mutated_manifest_export(tmp_path, mutate)
+    with pytest.raises(SourceValidationError, match=re.escape(expected)):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+    assert not (tmp_path / "research" / "datasets").exists()
+
+
+def test_f00_manifest_non_finite_values_are_never_coerced_to_zero(tmp_path):
+    """NaN/Infinity restent des refus, jamais des zeros silencieux."""
+
+    files = _fixture(tmp_path / "fixture")
+    raw = files["manifest_path"].read_text(encoding="utf-8")
+    files["manifest_path"].write_text(
+        raw.replace('"created_at": 1.0', '"created_at": NaN'), encoding="utf-8"
+    )
+    with pytest.raises(SourceValidationError):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
+def test_f00_manifest_must_be_a_json_object(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    files["manifest_path"].write_text("[]", encoding="utf-8")
+    with pytest.raises(SourceValidationError, match="must be a JSON object"):
+        export_paper_dataset(_request(files, tmp_path / "research"))

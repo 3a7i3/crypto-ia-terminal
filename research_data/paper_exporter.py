@@ -5,7 +5,9 @@ This module is deliberately offline and source-path explicit.
 Safety properties:
 - no production path defaults;
 - no environment lookup;
-- no service/runtime imports;
+- no service/runtime imports (research_data never imports
+  paper_trading.ppl_authority_runtime: the F00 manifest contract is re-stated
+  here as a pure, deterministic, explicit-path Research-owned validator);
 - no DurableEventStore lock acquisition because load_epoch opens a writable lock;
 - source files are read-only inputs;
 - output is written only below the caller-supplied Research root;
@@ -22,6 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -35,10 +38,6 @@ from typing import Any, Mapping, Sequence
 from paper_trading import durable_event_store as ppl_wire
 from paper_trading.ledger_events import LedgerEvent, LedgerEventType
 from paper_trading.paper_portfolio_ledger import project
-from paper_trading.ppl_authority_runtime import (
-    AuthorityManifestError,
-    load_authority_manifest,
-)
 
 _SOURCE_BOUNDARY_SCHEMA = "RL_DATA_01_SOURCE_BOUNDARY_V1"
 _DATASET_SCHEMA_VERSION = 1
@@ -451,6 +450,145 @@ def _load_ppl_readonly(
     return snapshot, tuple(events), projection
 
 
+_F00_MANIFEST_SCHEMA_VERSION = 2
+_F00_PPL_EVENT_SCHEMA_VERSION = 2
+_F00_MANIFEST_FIELDS = frozenset(
+    {
+        "manifest_schema_version",
+        "paper_epoch_id",
+        "created_at",
+        "initial_virtual_capital",
+        "code_sha",
+        "config_snapshot_hash",
+        "legacy_boundary_sha256",
+        "legacy_event_count",
+        "epoch_role",
+        "ppl_event_schema_version",
+        "predecessor_authority_epoch_id",
+    }
+)
+
+
+@dataclass(frozen=True)
+class _F00AuthorityManifest:
+    """Research-owned, read-only view of a certified F00 authority manifest.
+
+    This is a pure value object. It performs no I/O, no environment lookup and
+    no service discovery, and it never grants PAPER authority: RL-DATA-01 reads
+    a manifest strictly to validate the one-way PAPER -> Research boundary.
+    """
+
+    paper_epoch_id: str
+    created_at: float
+    initial_virtual_capital: float
+    code_sha: str
+    config_snapshot_hash: str
+    legacy_boundary_sha256: str
+    legacy_event_count: int
+    predecessor_authority_epoch_id: str
+    epoch_role: str
+    ppl_event_schema_version: int
+    manifest_schema_version: int
+
+
+def _manifest_field_error(message: str) -> SourceValidationError:
+    return SourceValidationError(f"F00 manifest invalid: {message}")
+
+
+def _require_manifest_finite(doc: Mapping[str, Any], name: str) -> float:
+    value = doc.get(name)
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise _manifest_field_error(f"{name} must be numeric")
+    value = float(value)
+    if not math.isfinite(value):
+        raise _manifest_field_error(f"{name} must be finite")
+    return value
+
+
+def _parse_f00_authority_manifest(doc: Mapping[str, Any]) -> _F00AuthorityManifest:
+    """Validate an already-read F00 manifest document, purely.
+
+    The document must come from the bytes already snapshotted and hashed by the
+    caller, so the validated content is exactly the content fingerprinted in the
+    source boundary. No second read of the source file occurs here.
+    """
+
+    role = doc.get("epoch_role")
+    if role != _F00_ROLE:
+        raise SourceValidationError(
+            f"RL-DATA-01 requires epoch_role={_F00_ROLE}, got {role!r}"
+        )
+    if doc.get("manifest_schema_version") != _F00_MANIFEST_SCHEMA_VERSION:
+        raise _manifest_field_error(
+            "F00 experiment authority manifest must use schema v2"
+        )
+    if frozenset(doc) != _F00_MANIFEST_FIELDS:
+        missing = sorted(_F00_MANIFEST_FIELDS - frozenset(doc))
+        extra = sorted(frozenset(doc) - _F00_MANIFEST_FIELDS)
+        raise _manifest_field_error(
+            f"authority manifest fields mismatch: missing={missing}, extra={extra}"
+        )
+
+    for name in (
+        "paper_epoch_id",
+        "code_sha",
+        "config_snapshot_hash",
+        "legacy_boundary_sha256",
+    ):
+        value = doc.get(name)
+        if not isinstance(value, str) or not value.strip():
+            raise _manifest_field_error(f"{name} must be a non-empty string")
+
+    predecessor = doc.get("predecessor_authority_epoch_id")
+    if not isinstance(predecessor, str):
+        raise _manifest_field_error(
+            "predecessor_authority_epoch_id must be a string"
+        )
+    if not predecessor.strip():
+        raise _manifest_field_error(
+            "F00 experiment authority manifest requires "
+            "predecessor_authority_epoch_id"
+        )
+    if predecessor == doc["paper_epoch_id"]:
+        raise _manifest_field_error(
+            "experiment epoch must differ from predecessor authority epoch"
+        )
+
+    if doc.get("ppl_event_schema_version") != _F00_PPL_EVENT_SCHEMA_VERSION:
+        raise _manifest_field_error("authoritative PPL event schema must be v2")
+
+    legacy_event_count = doc.get("legacy_event_count")
+    if (
+        not isinstance(legacy_event_count, int)
+        or isinstance(legacy_event_count, bool)
+        or legacy_event_count < 0
+    ):
+        raise _manifest_field_error(
+            "legacy_event_count must be a non-negative integer"
+        )
+
+    created_at = _require_manifest_finite(doc, "created_at")
+    initial_virtual_capital = _require_manifest_finite(
+        doc, "initial_virtual_capital"
+    )
+    if initial_virtual_capital <= 0:
+        raise _manifest_field_error("initial_virtual_capital must be > 0")
+
+    return _F00AuthorityManifest(
+        paper_epoch_id=doc["paper_epoch_id"],
+        created_at=created_at,
+        initial_virtual_capital=initial_virtual_capital,
+        code_sha=doc["code_sha"],
+        config_snapshot_hash=doc["config_snapshot_hash"],
+        legacy_boundary_sha256=doc["legacy_boundary_sha256"],
+        legacy_event_count=legacy_event_count,
+        predecessor_authority_epoch_id=predecessor,
+        epoch_role=_F00_ROLE,
+        ppl_event_schema_version=_F00_PPL_EVENT_SCHEMA_VERSION,
+        manifest_schema_version=_F00_MANIFEST_SCHEMA_VERSION,
+    )
+
+
 def _load_manifest(
     path: Path,
     *,
@@ -461,15 +599,8 @@ def _load_manifest(
     raw_doc = _strict_json_loads(snapshot.raw, source=path)
     if not isinstance(raw_doc, dict):
         raise SourceValidationError("F00 manifest must be a JSON object")
-    try:
-        manifest = load_authority_manifest(path)
-    except AuthorityManifestError as exc:
-        raise SourceValidationError(f"F00 manifest invalid: {exc}") from exc
+    manifest = _parse_f00_authority_manifest(raw_doc)
 
-    if manifest.epoch_role != _F00_ROLE:
-        raise SourceValidationError(
-            f"RL-DATA-01 requires epoch_role={_F00_ROLE}, got {manifest.epoch_role!r}"
-        )
     if manifest.paper_epoch_id != paper_epoch_id:
         raise SourceValidationError("F00 manifest paper_epoch_id mismatch")
     _require_sha40(manifest.code_sha, field_name="manifest.code_sha")
