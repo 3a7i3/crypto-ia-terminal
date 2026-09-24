@@ -896,7 +896,6 @@ def _dataset_identity_document(
             {
                 "name": name,
                 "status": status_value.status,
-                "reason": status_value.reason,
             }
         )
 
