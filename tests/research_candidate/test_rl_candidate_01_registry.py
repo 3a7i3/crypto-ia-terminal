@@ -486,12 +486,18 @@ def test_research_only_candidate_cannot_enter_shadow_ready() -> None:
     }
     candidate["proposal"]["components"] = [feature]
     candidate["candidate_config_hash"] = "NOT_AVAILABLE"
+    candidate["evaluation_plan"]["evaluation_methods"] = [
+        "DESCRIPTIVE_COMPARISON"
+    ]
+    candidate["evaluation_plan"]["dataset_requirements"] = [
+        _exact_requirement(role="EVALUATION")
+    ]
     candidate["candidate_id"] = compute_candidate_id(candidate)
     validate_candidate(
-            candidate,
-            evidence_catalog=_catalog(),
-            baseline_material_config=BASE_MATERIAL_CONFIG,
-        )
+        candidate,
+        evidence_catalog=_catalog(),
+        baseline_material_config=BASE_MATERIAL_CONFIG,
+    )
 
     cid = candidate["candidate_id"]
     events = [
