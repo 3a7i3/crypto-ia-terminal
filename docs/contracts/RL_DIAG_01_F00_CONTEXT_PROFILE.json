@@ -66,13 +66,18 @@
     "features.mtf": "LSE MTF component score, max 40",
     "features.mtf_strength": "LSE MTF directional strength",
     "features.conviction_size_factor": "ConvictionEngine advisory size multiplier",
-    "features.os_size_usd": "OrderSizer final USD size"
+    "features.os_size_usd": "DecisionPacket sizing-context field. On exact F00 runtime source c8dae319442bf751336ff22fd7c6257bb6d69783, advisor_loop overwrites this field from capital_engine.allocate().size_usd before packet persistence. It is not authoritative PPL principal and must not be labeled executed size."
   },
   "restrictions": [
     "Do not collapse packet.regime and features.regime.",
     "Do not treat constant features as explanatory.",
     "Do not infer causality from N=13 associations.",
-    "PPL remains authoritative for entry/TP/SL/fees/PnL."
+    "Do not equate features.os_size_usd with authoritative PAPER/PPL principal.",
+    "PPL remains authoritative for entry/TP/SL/fees/PnL/principal."
   ],
+  "semantic_correction": {
+    "status": "SUPERSEDES_EARLIER_ORDER_SIZER_LABEL",
+    "reason": "A5 exact-source trace proved that the persisted F00 field is written from capital_engine allocation on the active advisor path and is decoupled from MexcSimulator PAPER principal."
+  },
   "next_gate": "A4_FACTUAL_PERFORMANCE_ATTRIBUTION_KERNEL"
 }
