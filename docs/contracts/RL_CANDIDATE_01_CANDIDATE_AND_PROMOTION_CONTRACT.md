@@ -202,6 +202,7 @@ Normative schema identifiers:
 - `candidate_schema = RL_CANDIDATE_V1`
 - `candidate_identity_schema = rl-candidate-01.identity.v1`
 - `evaluation_identity_schema = rl-candidate-01.evaluation-identity.v1`
+- `evaluation_result_schema = RL_CANDIDATE_EVALUATION_V1`
 - `candidate_event_identity_schema = rl-candidate-01.event-identity.v1`
 - `promotion_request_schema = RL_CANDIDATE_PROMOTION_REQUEST_V1`
 - `promotion_request_identity_schema = rl-candidate-01.promotion-request-identity.v1`
@@ -723,6 +724,45 @@ A numeric `delta` is valid only when baseline and candidate values were produced
 under the same declared metric semantics, comparable population definition and
 compatible evidence world. Otherwise `delta` MUST be `NOT_COMPARABLE`, not
 zero and not an inferred number.
+
+### 13.1 Evaluation result artifact
+
+A governed evaluation result is immutable and uses:
+
+`evaluation_result_schema = RL_CANDIDATE_EVALUATION_V1`
+
+Required fields:
+
+- `evaluation_result_schema`;
+- `evaluation_run_id`;
+- full `evaluation_run_identity`;
+- `candidate_id`;
+- `dataset_id`;
+- `source_boundary_id`;
+- `dataset_evidence_role`;
+- `run_status`;
+- `metrics[]`;
+- `known_limitations[]`;
+- `generated_at_utc`.
+
+Allowed `run_status` values:
+
+- `COMPLETE`
+- `PARTIAL`
+- `FAILED`
+
+The artifact validator MUST recompute:
+
+`evaluation_run_id = SHA256(canonical evaluation_run_identity)`
+
+and reject any identity/provenance mismatch.
+
+`generated_at_utc` is publication provenance only and does not participate in
+the scientific run identity.
+
+A numeric metric delta MUST equal candidate_value - baseline_value under the same
+metric row. If comparability is not established, `delta` is
+`NOT_COMPARABLE`.
 
 ---
 
