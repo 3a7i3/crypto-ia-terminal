@@ -294,6 +294,93 @@ def project_candidate_states(
                 f"{new} transition requires exact evidence_refs"
             )
 
+        if new == "REPLAYED":
+            if evaluation_catalog is None:
+                raise RegistryError(
+                    "REPLAYED requires a governed evaluation_run_id catalog"
+                )
+            governed = []
+            for ref in event["evidence_refs"]:
+                record = evaluation_catalog.get(ref)
+                if not isinstance(record, dict):
+                    continue
+                if record.get("evaluation_run_id") != ref:
+                    raise RegistryError(
+                        "evaluation catalog key does not match evaluation_run_id"
+                    )
+                if record.get("candidate_id") != candidate_id:
+                    raise RegistryError(
+                        "evaluation evidence belongs to a different candidate"
+                    )
+                governed.append(record)
+            if not governed:
+                raise RegistryError(
+                    "REPLAYED requires at least one governed evaluation_run_id"
+                )
+
+        if new == "QUALIFIED":
+            if evaluation_catalog is None:
+                raise RegistryError(
+                    "QUALIFIED requires governed evaluation evidence"
+                )
+
+            allow_discovery = bool(
+                candidates[candidate_id]
+                .get("evaluation_plan", {})
+                .get("data_reuse_policy", {})
+                .get("allow_discovery_as_validation", False)
+            )
+
+            referenced: list[Mapping[str, Any]] = []
+            for ref in event["evidence_refs"]:
+                record = evaluation_catalog.get(ref)
+                if not isinstance(record, dict):
+                    continue
+                if record.get("evaluation_run_id") != ref:
+                    raise RegistryError(
+                        "evaluation catalog key does not match evaluation_run_id"
+                    )
+                if record.get("candidate_id") != candidate_id:
+                    raise RegistryError(
+                        "qualification evidence belongs to a different candidate"
+                    )
+                blockers = record.get("unresolved_blockers", [])
+                if not isinstance(blockers, list):
+                    raise RegistryError(
+                        "evaluation unresolved_blockers must be a list"
+                    )
+                referenced.append(record)
+
+            independent = [
+                record
+                for record in referenced
+                if record.get("dataset_evidence_role") in {"EVALUATION", "VALIDATION"}
+                or (
+                    allow_discovery
+                    and record.get("dataset_evidence_role") == "DISCOVERY"
+                )
+            ]
+
+            blocked = [
+                record
+                for record in independent
+                if record.get("unresolved_blockers")
+            ]
+            if blocked:
+                raise RegistryError(
+                    "qualification evidence has unresolved evaluation blockers"
+                )
+
+            eligible = [
+                record
+                for record in independent
+                if record.get("qualification_eligible") is True
+            ]
+            if not eligible:
+                raise RegistryError(
+                    "QUALIFIED requires eligible independent evaluation evidence"
+                )
+
         evaluations = _matching_evaluation_records(
             candidate_id=candidate_id,
             evidence_refs=event["evidence_refs"],
@@ -424,6 +511,23 @@ def publish_candidate(
 ) -> PublicationResult:
     """Write one immutable candidate artifact or prove identical idempotency."""
 
+    proposal_components = candidate.get("proposal", {}).get("components", [])
+    requires_material_config = (
+        candidate.get("candidate_class") == "CONFIG"
+        or (
+            candidate.get("candidate_class") == "HYBRID"
+            and any(
+                isinstance(component, dict)
+                and str(component.get("kind", "")).startswith("CONFIG_")
+                for component in proposal_components
+            )
+        )
+    )
+    if requires_material_config and baseline_material_config is None:
+        raise RegistryError(
+            "candidate publication requires baseline material config"
+        )
+
     try:
         if _requires_material_config(candidate) and baseline_material_config is None:
             raise CandidateValidationError(
@@ -511,6 +615,23 @@ def validate_promotion_request(
     baseline_material_config: Mapping[str, Any] | None = None,
     actor_boundary: str = "RL_CANDIDATE",
 ) -> str:
+    proposal_components = candidate.get("proposal", {}).get("components", [])
+    requires_material_config = (
+        candidate.get("candidate_class") == "CONFIG"
+        or (
+            candidate.get("candidate_class") == "HYBRID"
+            and any(
+                isinstance(component, dict)
+                and str(component.get("kind", "")).startswith("CONFIG_")
+                for component in proposal_components
+            )
+        )
+    )
+    if requires_material_config and baseline_material_config is None:
+        raise RegistryError(
+            "promotion validation requires baseline material config"
+        )
+
     try:
         if _requires_material_config(candidate) and baseline_material_config is None:
             raise CandidateValidationError(
