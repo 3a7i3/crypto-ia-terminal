@@ -114,6 +114,18 @@ def _sorted_unique_strings(
     return value
 
 
+def _requires_material_config(candidate: Mapping[str, Any]) -> bool:
+    if candidate.get("candidate_class") == "CONFIG":
+        return True
+    if candidate.get("candidate_class") != "HYBRID":
+        return False
+    return any(
+        isinstance(component, Mapping)
+        and str(component.get("kind", "")).startswith("CONFIG_")
+        for component in candidate.get("proposal", {}).get("components", [])
+    )
+
+
 def _matching_evaluation_records(
     *,
     candidate_id: str,
@@ -220,14 +232,19 @@ def project_candidate_states(
         if candidate.get("candidate_id") != candidate_id:
             raise RegistryError("candidate map key does not match candidate_id")
         try:
+            baseline_material_config = (
+                None
+                if baseline_material_configs is None
+                else baseline_material_configs.get(candidate_id)
+            )
+            if _requires_material_config(candidate) and baseline_material_config is None:
+                raise CandidateValidationError(
+                    "CONFIG/HYBRID registry projection requires baseline material config"
+                )
             validate_candidate(
                 candidate,
                 known_candidate_ids=known_ids,
-                baseline_material_config=(
-                    None
-                    if baseline_material_configs is None
-                    else baseline_material_configs.get(candidate_id)
-                ),
+                baseline_material_config=baseline_material_config,
             )
         except CandidateValidationError as exc:
             raise RegistryError(f"invalid candidate {candidate_id}: {exc}") from exc
@@ -408,6 +425,10 @@ def publish_candidate(
     """Write one immutable candidate artifact or prove identical idempotency."""
 
     try:
+        if _requires_material_config(candidate) and baseline_material_config is None:
+            raise CandidateValidationError(
+                "CONFIG/HYBRID publication requires baseline material config"
+            )
         candidate_id = validate_candidate(
             candidate,
             evidence_catalog=evidence_catalog,
@@ -491,6 +512,10 @@ def validate_promotion_request(
     actor_boundary: str = "RL_CANDIDATE",
 ) -> str:
     try:
+        if _requires_material_config(candidate) and baseline_material_config is None:
+            raise CandidateValidationError(
+                "CONFIG/HYBRID promotion validation requires baseline material config"
+            )
         validate_candidate(
             candidate,
             baseline_material_config=baseline_material_config,
