@@ -12,6 +12,7 @@ from research_candidate import (
     CandidateValidationError,
     RegistryError,
     canonical_json_bytes,
+    compute_candidate_config_hash,
     compute_candidate_id,
     compute_evaluation_run_id,
     compute_event_id,
@@ -28,11 +29,35 @@ BOUNDARY_ID = "2" * 64
 RESEARCH_RUN_ID = "3" * 64
 DIAG_RUN_ID = "4" * 64
 BASE_CONFIG_HASH = "5" * 64
-CANDIDATE_CONFIG_HASH = "6" * 64
 BASE_SOURCE_SHA = "a" * 40
 EVAL_CODE_SHA = "b" * 40
 EVAL_CONFIG_HASH = "7" * 64
 EPOCH = "TEST-EPOCH"
+
+BASE_MATERIAL_CONFIG = {
+    "MEXC_SIM_MAX_POSITION_USD": {
+        "value": "10",
+        "value_type": "float",
+    },
+    "PB_MAX_POSITIONS": {
+        "value": "2",
+        "value_type": "int",
+    },
+}
+
+CONFIG_COMPONENT = {
+    "kind": "CONFIG_SET",
+    "path": "MEXC_SIM_MAX_POSITION_USD",
+    "old_value": "10",
+    "new_value": "20",
+    "value_type": "float",
+    "materiality": "SIZING",
+}
+
+CANDIDATE_CONFIG_HASH = compute_candidate_config_hash(
+    BASE_MATERIAL_CONFIG,
+    {"components": [CONFIG_COMPONENT]},
+)
 
 
 def _requirement(payload: dict[str, Any]) -> dict[str, Any]:
@@ -112,16 +137,7 @@ def _candidate(
         },
         "candidate_config_hash": candidate_config_hash,
         "proposal": {
-            "components": [
-                {
-                    "kind": "CONFIG_SET",
-                    "path": "MEXC_SIM_MAX_POSITION_USD",
-                    "old_value": "10",
-                    "new_value": "20",
-                    "value_type": "float",
-                    "materiality": "SIZING",
-                }
-            ]
+            "components": [copy.deepcopy(CONFIG_COMPONENT)]
         },
         "hypothesis": {
             "question": "Does a unified sizing experiment change outcomes?",
