@@ -8,6 +8,7 @@ import pytest
 
 from research_candidate import (
     CANDIDATE_SCHEMA,
+    EVALUATION_RESULT_SCHEMA,
     PROMOTION_REQUEST_SCHEMA,
     CandidateValidationError,
     RegistryError,
@@ -18,9 +19,11 @@ from research_candidate import (
     compute_event_id,
     compute_promotion_request_id,
     dataset_requirement_id,
+    evaluation_run_identity,
     project_candidate_states,
     publish_candidate,
     validate_candidate,
+    validate_evaluation_result,
     validate_promotion_request,
 )
 
@@ -978,3 +981,98 @@ def test_qualification_rejects_unresolved_evaluation_blocker() -> None:
             baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
             evaluation_catalog=evaluation_catalog,
         )
+
+
+
+def _evaluation_result(candidate: dict[str, Any]) -> dict[str, Any]:
+    req = _exact_requirement()
+    kwargs = dict(
+        candidate=candidate,
+        dataset_id=DATASET_ID,
+        source_boundary_id=BOUNDARY_ID,
+        satisfied_dataset_requirement_id=req["requirement_id"],
+        dataset_evidence_role="DISCOVERY",
+        dataset_source_domain="PAPER",
+        dataset_source_authority="PPL_AUTHORITY",
+        evaluation_engine_code_sha=EVAL_CODE_SHA,
+        evaluation_method_version="FACTUAL_BINDING_CHECK_V1",
+        evaluation_config_hash=EVAL_CONFIG_HASH,
+        population_definition="POSITION_CLOSED_FOR_PERFORMANCE",
+        metric_semantics_version="METRICS_V1",
+    )
+    identity = evaluation_run_identity(**kwargs)
+    run_id = compute_evaluation_run_id(**kwargs)
+    return {
+        "evaluation_result_schema": EVALUATION_RESULT_SCHEMA,
+        "evaluation_run_id": run_id,
+        "evaluation_run_identity": identity,
+        "candidate_id": candidate["candidate_id"],
+        "dataset_id": DATASET_ID,
+        "source_boundary_id": BOUNDARY_ID,
+        "dataset_evidence_role": "DISCOVERY",
+        "run_status": "COMPLETE",
+        "metrics": [
+            {
+                "metric_name": "net_realized_pnl_usd",
+                "metric_semantics_version": "METRICS_V1",
+                "dataset_id": DATASET_ID,
+                "population_definition": "POSITION_CLOSED_FOR_PERFORMANCE",
+                "n": 13,
+                "value": 1.2,
+                "evidence_status": "COMPLETE",
+                "statistical_strength": "LOW_SAMPLE",
+                "baseline_value": 1.0,
+                "candidate_value": 1.2,
+                "delta": 0.2,
+                "derivation": "synthetic fixture arithmetic",
+            }
+        ],
+        "known_limitations": [
+            "FIXTURE_ONLY",
+            "LOW_SAMPLE",
+        ],
+        "generated_at_utc": "2026-09-25T23:00:00Z",
+    }
+
+
+def test_evaluation_result_identity_and_metric_provenance_validate() -> None:
+    candidate = _candidate()
+    result = _evaluation_result(candidate)
+
+    assert validate_evaluation_result(
+        result,
+        candidate=candidate,
+    ) == result["evaluation_run_id"]
+
+
+def test_evaluation_result_identity_tampering_fails_closed() -> None:
+    candidate = _candidate()
+    result = _evaluation_result(candidate)
+    result["evaluation_run_identity"]["dataset_id"] = "e" * 64
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="evaluation_run_id does not match",
+    ):
+        validate_evaluation_result(result, candidate=candidate)
+
+
+def test_evaluation_metric_delta_must_match_candidate_minus_baseline() -> None:
+    candidate = _candidate()
+    result = _evaluation_result(candidate)
+    result["metrics"][0]["delta"] = 99.0
+
+    with pytest.raises(CandidateValidationError, match="metric.delta does not equal"):
+        validate_evaluation_result(result, candidate=candidate)
+
+
+def test_evaluation_metric_dataset_must_match_run_dataset() -> None:
+    candidate = _candidate()
+    result = _evaluation_result(candidate)
+    result["metrics"][0]["dataset_id"] = "f" * 64
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="metric dataset_id differs",
+    ):
+        validate_evaluation_result(result, candidate=candidate)
