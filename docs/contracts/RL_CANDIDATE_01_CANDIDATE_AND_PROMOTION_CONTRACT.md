@@ -132,9 +132,8 @@ advance to `REPLAYED` until an exact implementation identity exists.
 
 Because the candidate artifact is immutable, a candidate created with
 `proposed_source_sha = NOT_IMPLEMENTED` is never mutated later to insert a SHA.
-Implementation creates a successor candidate with a new candidate_id and an
-explicit `supersedes_candidate_id` provenance reference to the proposal-only
-candidate.
+Implementation creates a successor candidate with a new candidate_id and places
+the proposal-only candidate_id in `lineage.supersedes_candidate_ids[]`.
 
 ### 3.3 FEATURE
 
