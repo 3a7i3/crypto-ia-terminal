@@ -559,6 +559,7 @@ def validate_candidate(
     *,
     evidence_catalog: Mapping[str, set[str]] | None = None,
     known_candidate_ids: set[str] | None = None,
+    baseline_material_config: Mapping[str, Any] | None = None,
 ) -> str:
     if candidate.get("candidate_schema") != CANDIDATE_SCHEMA:
         raise CandidateValidationError("unsupported candidate_schema")
@@ -594,13 +595,18 @@ def validate_candidate(
         for component in _mapping(candidate, "proposal").get("components", [])
         if isinstance(component, dict)
     )
-    if candidate_class == "CONFIG" or (
+    requires_projected_config = candidate_class == "CONFIG" or (
         candidate_class == "HYBRID" and has_config_component
-    ):
+    )
+    if requires_projected_config:
         _sha256_value(
             candidate_config_hash,
             field="candidate_config_hash",
         )
+        if baseline_material_config is None:
+            raise CandidateValidationError(
+                "CONFIG/HYBRID candidate validation requires baseline_material_config"
+            )
     elif candidate_config_hash != "NOT_AVAILABLE":
         _sha256_value(
             candidate_config_hash,
@@ -613,6 +619,16 @@ def validate_candidate(
         proposal,
         baseline_source_sha=baseline["source_code_sha"],
     )
+
+    if requires_projected_config:
+        expected_config_hash = compute_candidate_config_hash(
+            baseline_material_config,
+            proposal,
+        )
+        if candidate_config_hash != expected_config_hash:
+            raise CandidateValidationError(
+                "candidate_config_hash does not match projected material config"
+            )
 
     hypothesis = _mapping(candidate, "hypothesis")
     _validate_hypothesis(hypothesis)
@@ -679,11 +695,14 @@ def evaluation_run_identity(
     source_boundary_id: str,
     satisfied_dataset_requirement_id: str,
     dataset_evidence_role: str,
+    dataset_source_domain: str,
+    dataset_source_authority: str,
     evaluation_engine_code_sha: str,
     evaluation_method_version: str,
     evaluation_config_hash: str,
     population_definition: str,
     metric_semantics_version: str,
+    future_requirement_binding_verified: bool = False,
 ) -> dict[str, Any]:
     candidate_id = _sha256_value(candidate.get("candidate_id"), field="candidate_id")
     _sha256_value(dataset_id, field="dataset_id")
@@ -694,8 +713,55 @@ def evaluation_run_identity(
     )
     if dataset_evidence_role not in EVIDENCE_ROLES:
         raise CandidateValidationError("unsupported dataset_evidence_role")
+    if not isinstance(dataset_source_domain, str) or not dataset_source_domain:
+        raise CandidateValidationError("dataset_source_domain must be non-empty")
+    if not isinstance(dataset_source_authority, str) or not dataset_source_authority:
+        raise CandidateValidationError("dataset_source_authority must be non-empty")
     _sha40_value(evaluation_engine_code_sha, field="evaluation_engine_code_sha")
     _sha256_value(evaluation_config_hash, field="evaluation_config_hash")
+    for name, value in (
+        ("evaluation_method_version", evaluation_method_version),
+        ("population_definition", population_definition),
+        ("metric_semantics_version", metric_semantics_version),
+    ):
+        if not isinstance(value, str) or not value:
+            raise CandidateValidationError(f"{name} must be non-empty")
+
+    requirements = candidate.get("evaluation_plan", {}).get("dataset_requirements")
+    if not isinstance(requirements, list):
+        raise CandidateValidationError("candidate evaluation_plan dataset_requirements missing")
+    matches = [
+        item
+        for item in requirements
+        if isinstance(item, dict)
+        and item.get("requirement_id") == satisfied_dataset_requirement_id
+    ]
+    if len(matches) != 1:
+        raise CandidateValidationError(
+            "satisfied_dataset_requirement_id must resolve exactly one requirement"
+        )
+    requirement = matches[0]
+    if requirement.get("evidence_role") != dataset_evidence_role:
+        raise CandidateValidationError("dataset evidence role does not satisfy requirement")
+    if requirement.get("source_domain") != dataset_source_domain:
+        raise CandidateValidationError("dataset source domain does not satisfy requirement")
+    if requirement.get("source_authority") != dataset_source_authority:
+        raise CandidateValidationError("dataset source authority does not satisfy requirement")
+
+    if requirement.get("kind") == "EXACT_DATASET":
+        if requirement.get("dataset_id") != dataset_id:
+            raise CandidateValidationError("dataset_id does not satisfy exact requirement")
+        if requirement.get("source_boundary_id") != source_boundary_id:
+            raise CandidateValidationError(
+                "source_boundary_id does not satisfy exact requirement"
+            )
+    elif requirement.get("kind") == "FUTURE_DATASET_REQUIREMENT":
+        if future_requirement_binding_verified is not True:
+            raise CandidateValidationError(
+                "future dataset requirement needs external source/config binding proof"
+            )
+    else:
+        raise CandidateValidationError("unsupported satisfied dataset requirement kind")
 
     return {
         "evaluation_identity_schema": EVALUATION_IDENTITY_SCHEMA,
@@ -715,3 +781,128 @@ def evaluation_run_identity(
 
 def compute_evaluation_run_id(**kwargs: Any) -> str:
     return sha256_json(evaluation_run_identity(**kwargs))
+
+
+_SECRET_SEGMENTS = frozenset(
+    {"KEY", "SECRET", "TOKEN", "PASSWORD", "PASSWD", "PRIVATE", "CREDENTIAL"}
+)
+
+
+def _secret_like_material_key(key: str) -> bool:
+    parts = {part for part in re.split(r"[^A-Za-z0-9]+", key.upper()) if part}
+    if parts & _SECRET_SEGMENTS:
+        return True
+    upper = key.upper()
+    return any(
+        marker in upper
+        for marker in ("API_KEY", "API_SECRET", "ACCESS_TOKEN", "PRIVATE_KEY")
+    )
+
+
+def normalize_material_config(
+    material_config: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    if not isinstance(material_config, Mapping):
+        raise CandidateValidationError("material config must be an object")
+
+    normalized: dict[str, dict[str, Any]] = {}
+    for key in sorted(material_config):
+        if not isinstance(key, str) or not key:
+            raise CandidateValidationError("material config keys must be non-empty strings")
+        if _secret_like_material_key(key):
+            raise CandidateValidationError(f"secret-like material key is forbidden: {key}")
+        record = material_config[key]
+        if not isinstance(record, Mapping):
+            raise CandidateValidationError(
+                f"material config record {key!r} must be an object"
+            )
+        if "value" not in record:
+            raise CandidateValidationError(f"material config {key!r} is missing value")
+        value_type = record.get("value_type")
+        if not isinstance(value_type, str) or not value_type:
+            raise CandidateValidationError(
+                f"material config {key!r} requires value_type"
+            )
+        canonical_json_bytes(record["value"])
+        normalized[key] = {
+            "value": record["value"],
+            "value_type": value_type,
+        }
+    return normalized
+
+
+def project_material_config(
+    baseline_material_config: Mapping[str, Any],
+    proposal: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    projected = normalize_material_config(baseline_material_config)
+    components = _list(proposal, "components")
+
+    for component in components:
+        if not isinstance(component, Mapping):
+            raise CandidateValidationError("proposal component must be an object")
+        kind = component.get("kind")
+        if kind not in CONFIG_OPS:
+            continue
+
+        _validate_config_component(component)
+        path = str(component["path"])
+        if _secret_like_material_key(path):
+            raise CandidateValidationError(f"secret-like config path is forbidden: {path}")
+        value_type = str(component["value_type"])
+
+        if kind == "CONFIG_SET":
+            if path not in projected:
+                raise CandidateValidationError(
+                    f"CONFIG_SET baseline path does not exist: {path}"
+                )
+            current = projected[path]
+            if current["value"] != component["old_value"]:
+                raise CandidateValidationError(
+                    f"CONFIG_SET old_value mismatch for {path}"
+                )
+            if current["value_type"] != value_type:
+                raise CandidateValidationError(
+                    f"CONFIG_SET value_type mismatch for {path}"
+                )
+            canonical_json_bytes(component["new_value"])
+            projected[path] = {
+                "value": component["new_value"],
+                "value_type": value_type,
+            }
+
+        elif kind == "CONFIG_ADD":
+            if path in projected:
+                raise CandidateValidationError(
+                    f"CONFIG_ADD path already exists: {path}"
+                )
+            canonical_json_bytes(component["new_value"])
+            projected[path] = {
+                "value": component["new_value"],
+                "value_type": value_type,
+            }
+
+        elif kind == "CONFIG_REMOVE":
+            if path not in projected:
+                raise CandidateValidationError(
+                    f"CONFIG_REMOVE baseline path does not exist: {path}"
+                )
+            current = projected[path]
+            if current["value"] != component["old_value"]:
+                raise CandidateValidationError(
+                    f"CONFIG_REMOVE old_value mismatch for {path}"
+                )
+            if current["value_type"] != value_type:
+                raise CandidateValidationError(
+                    f"CONFIG_REMOVE value_type mismatch for {path}"
+                )
+            del projected[path]
+
+    return {key: projected[key] for key in sorted(projected)}
+
+
+def compute_candidate_config_hash(
+    baseline_material_config: Mapping[str, Any],
+    proposal: Mapping[str, Any],
+) -> str:
+    return sha256_json(project_material_config(baseline_material_config, proposal))
