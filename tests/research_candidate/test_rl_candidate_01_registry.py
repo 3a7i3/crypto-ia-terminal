@@ -517,3 +517,95 @@ def test_rl_candidate_boundary_cannot_authorize_or_execute_promotion() -> None:
                 candidate=candidate,
                 candidate_state="QUALIFIED",
             )
+
+
+
+def test_config_candidate_requires_exact_candidate_config_hash() -> None:
+    candidate = _candidate()
+    candidate["candidate_config_hash"] = "NOT_AVAILABLE"
+    candidate["candidate_id"] = compute_candidate_id(candidate)
+
+    with pytest.raises(CandidateValidationError, match="candidate_config_hash"):
+        validate_candidate(candidate, evidence_catalog=_catalog())
+
+
+def test_dataset_requirement_id_tampering_fails_closed() -> None:
+    candidate = _candidate()
+    candidate["evaluation_plan"]["dataset_requirements"][0]["requirement_id"] = "f" * 64
+    candidate["candidate_id"] = compute_candidate_id(candidate)
+
+    with pytest.raises(CandidateValidationError, match="requirement_id mismatch"):
+        validate_candidate(candidate, evidence_catalog=_catalog())
+
+
+def test_forward_registry_transition_requires_evidence() -> None:
+    candidate = _candidate()
+    cid = candidate["candidate_id"]
+
+    event = _event(
+        cid,
+        sequence=1,
+        ordinal=1,
+        previous="CANDIDATE",
+        new="REPLAYED",
+        evidence=[],
+        reason="EVALUATION_COMPLETED",
+    )
+
+    with pytest.raises(RegistryError, match="requires exact evidence_refs"):
+        project_candidate_states({cid: candidate}, [event])
+
+
+def test_promotion_rejects_source_or_config_identity_drift() -> None:
+    candidate = _candidate()
+    request = _promotion_request(candidate)
+
+    source_drift = copy.deepcopy(request)
+    source_drift["target_source_sha"] = "c" * 40
+    source_drift["promotion_request_id"] = compute_promotion_request_id(source_drift)
+
+    with pytest.raises(RegistryError, match="target_source_sha"):
+        validate_promotion_request(
+            source_drift,
+            candidate=candidate,
+            candidate_state="QUALIFIED",
+        )
+
+    config_drift = copy.deepcopy(request)
+    config_drift["target_config_hash"] = "d" * 64
+    config_drift["promotion_request_id"] = compute_promotion_request_id(config_drift)
+
+    with pytest.raises(RegistryError, match="target_config_hash"):
+        validate_promotion_request(
+            config_drift,
+            candidate=candidate,
+            candidate_state="QUALIFIED",
+        )
+
+
+def test_promotion_rejects_proposal_without_implemented_source() -> None:
+    candidate = _candidate()
+    candidate["candidate_class"] = "STRATEGY"
+    candidate["target_domains"] = ["SIZING"]
+    candidate["proposal"]["components"] = [
+        {
+            "kind": "CODE_PATCH",
+            "baseline_source_sha": BASE_SOURCE_SHA,
+            "proposed_source_sha": "NOT_IMPLEMENTED",
+            "changed_paths": ["core/sizing_policy.py"],
+            "patch_sha256": "NOT_IMPLEMENTED",
+            "semantic_domain": "SIZING",
+        }
+    ]
+    candidate["candidate_config_hash"] = CANDIDATE_CONFIG_HASH
+    candidate["candidate_id"] = compute_candidate_id(candidate)
+    validate_candidate(candidate, evidence_catalog=_catalog())
+
+    request = _promotion_request(candidate)
+
+    with pytest.raises(RegistryError, match="no exact implemented source"):
+        validate_promotion_request(
+            request,
+            candidate=candidate,
+            candidate_state="QUALIFIED",
+        )
