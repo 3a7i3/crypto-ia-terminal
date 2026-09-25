@@ -603,10 +603,6 @@ def validate_candidate(
             candidate_config_hash,
             field="candidate_config_hash",
         )
-        if baseline_material_config is None:
-            raise CandidateValidationError(
-                "CONFIG/HYBRID candidate validation requires baseline_material_config"
-            )
     elif candidate_config_hash != "NOT_AVAILABLE":
         _sha256_value(
             candidate_config_hash,
@@ -620,7 +616,7 @@ def validate_candidate(
         baseline_source_sha=baseline["source_code_sha"],
     )
 
-    if requires_projected_config:
+    if requires_projected_config and baseline_material_config is not None:
         expected_config_hash = compute_candidate_config_hash(
             baseline_material_config,
             proposal,
