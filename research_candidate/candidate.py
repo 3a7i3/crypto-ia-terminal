@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from datetime import datetime, timezone
 from typing import Any, Mapping, Sequence
@@ -15,6 +16,7 @@ from typing import Any, Mapping, Sequence
 CANDIDATE_SCHEMA = "RL_CANDIDATE_V1"
 CANDIDATE_IDENTITY_SCHEMA = "rl-candidate-01.identity.v1"
 EVALUATION_IDENTITY_SCHEMA = "rl-candidate-01.evaluation-identity.v1"
+EVALUATION_RESULT_SCHEMA = "RL_CANDIDATE_EVALUATION_V1"
 CANDIDATE_EVENT_IDENTITY_SCHEMA = "rl-candidate-01.event-identity.v1"
 PROMOTION_REQUEST_SCHEMA = "RL_CANDIDATE_PROMOTION_REQUEST_V1"
 PROMOTION_REQUEST_IDENTITY_SCHEMA = "rl-candidate-01.promotion-request-identity.v1"
@@ -783,6 +785,179 @@ def evaluation_run_identity(
 
 def compute_evaluation_run_id(**kwargs: Any) -> str:
     return sha256_json(evaluation_run_identity(**kwargs))
+
+
+_EVIDENCE_STATUS = frozenset(
+    {"COMPLETE", "PARTIAL", "NOT_AVAILABLE", "NOT_APPLICABLE", "UNRESOLVED"}
+)
+_STATISTICAL_STRENGTH = frozenset(
+    {"DESCRIPTIVE_ONLY", "LOW_SAMPLE", "ADEQUATE_FOR_DECLARED_TEST", "NOT_EVALUATED"}
+)
+_EVALUATION_RUN_STATUS = frozenset({"COMPLETE", "PARTIAL", "FAILED"})
+
+
+def _metric_scalar(value: Any, *, field: str) -> Any:
+    if value is None or isinstance(value, str):
+        return value
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise CandidateValidationError(f"{field} must be numeric, string status, or null")
+    result = float(value)
+    if not math.isfinite(result):
+        raise CandidateValidationError(f"{field} must be finite")
+    return result
+
+
+def validate_metric_result(
+    metric: Mapping[str, Any],
+    *,
+    expected_dataset_id: str | None = None,
+    expected_population_definition: str | None = None,
+) -> None:
+    _string(metric, "metric_name")
+    _string(metric, "metric_semantics_version")
+    dataset_id = _sha256_value(metric.get("dataset_id"), field="metric.dataset_id")
+    population = _string(metric, "population_definition")
+
+    n = metric.get("n")
+    if not isinstance(n, int) or isinstance(n, bool) or n < 0:
+        raise CandidateValidationError("metric.n must be an integer >= 0")
+
+    evidence_status = _string(metric, "evidence_status")
+    if evidence_status not in _EVIDENCE_STATUS:
+        raise CandidateValidationError("unsupported metric evidence_status")
+
+    strength = _string(metric, "statistical_strength")
+    if strength not in _STATISTICAL_STRENGTH:
+        raise CandidateValidationError("unsupported metric statistical_strength")
+
+    value = _metric_scalar(metric.get("value"), field="metric.value")
+    baseline = _metric_scalar(
+        metric.get("baseline_value"),
+        field="metric.baseline_value",
+    )
+    candidate_value = _metric_scalar(
+        metric.get("candidate_value"),
+        field="metric.candidate_value",
+    )
+    delta = metric.get("delta")
+
+    if isinstance(delta, bool):
+        raise CandidateValidationError("metric.delta must not be boolean")
+    if isinstance(delta, (int, float)):
+        delta_value = float(delta)
+        if not math.isfinite(delta_value):
+            raise CandidateValidationError("metric.delta must be finite")
+        if not isinstance(baseline, float) or not isinstance(candidate_value, float):
+            raise CandidateValidationError(
+                "numeric metric.delta requires numeric baseline_value and candidate_value"
+            )
+        expected_delta = candidate_value - baseline
+        if not math.isclose(delta_value, expected_delta, rel_tol=1e-12, abs_tol=1e-12):
+            raise CandidateValidationError(
+                "metric.delta does not equal candidate_value - baseline_value"
+            )
+    elif delta not in {None, "NOT_COMPARABLE"}:
+        raise CandidateValidationError(
+            "metric.delta must be numeric, NOT_COMPARABLE, or null"
+        )
+
+    if evidence_status == "NOT_AVAILABLE" and isinstance(value, float):
+        raise CandidateValidationError(
+            "NOT_AVAILABLE metric must not publish a numeric value"
+        )
+
+    _string(metric, "derivation")
+
+    if expected_dataset_id is not None and dataset_id != expected_dataset_id:
+        raise CandidateValidationError("metric dataset_id differs from evaluation dataset")
+    if (
+        expected_population_definition is not None
+        and population != expected_population_definition
+    ):
+        raise CandidateValidationError(
+            "metric population_definition differs from evaluation population"
+        )
+
+
+def validate_evaluation_result(
+    result: Mapping[str, Any],
+    *,
+    candidate: Mapping[str, Any],
+) -> str:
+    if result.get("evaluation_result_schema") != EVALUATION_RESULT_SCHEMA:
+        raise CandidateValidationError("unsupported evaluation_result_schema")
+
+    identity = _mapping(result, "evaluation_run_identity")
+    if identity.get("evaluation_identity_schema") != EVALUATION_IDENTITY_SCHEMA:
+        raise CandidateValidationError("unsupported evaluation_run_identity schema")
+
+    expected_run_id = sha256_json(identity)
+    actual_run_id = _sha256_value(
+        result.get("evaluation_run_id"),
+        field="evaluation_run_id",
+    )
+    if actual_run_id != expected_run_id:
+        raise CandidateValidationError(
+            "evaluation_run_id does not match evaluation_run_identity"
+        )
+
+    candidate_id = _sha256_value(
+        result.get("candidate_id"),
+        field="evaluation_result.candidate_id",
+    )
+    if candidate_id != candidate.get("candidate_id"):
+        raise CandidateValidationError("evaluation result candidate_id mismatch")
+    if identity.get("candidate_id") != candidate_id:
+        raise CandidateValidationError("evaluation identity candidate_id mismatch")
+
+    dataset_id = _sha256_value(
+        result.get("dataset_id"),
+        field="evaluation_result.dataset_id",
+    )
+    source_boundary_id = _sha256_value(
+        result.get("source_boundary_id"),
+        field="evaluation_result.source_boundary_id",
+    )
+    if identity.get("dataset_id") != dataset_id:
+        raise CandidateValidationError("evaluation identity dataset_id mismatch")
+    if identity.get("source_boundary_id") != source_boundary_id:
+        raise CandidateValidationError(
+            "evaluation identity source_boundary_id mismatch"
+        )
+
+    role = _string(result, "dataset_evidence_role")
+    if role not in EVIDENCE_ROLES:
+        raise CandidateValidationError("unsupported evaluation result evidence role")
+    if identity.get("dataset_evidence_role") != role:
+        raise CandidateValidationError("evaluation identity evidence role mismatch")
+
+    run_status = _string(result, "run_status")
+    if run_status not in _EVALUATION_RUN_STATUS:
+        raise CandidateValidationError("unsupported evaluation run_status")
+
+    metrics = _list(result, "metrics")
+    if not metrics or any(not isinstance(metric, dict) for metric in metrics):
+        raise CandidateValidationError("evaluation metrics must be a non-empty list")
+
+    population = identity.get("population_definition")
+    if not isinstance(population, str) or not population:
+        raise CandidateValidationError(
+            "evaluation identity population_definition must be non-empty"
+        )
+    for metric in metrics:
+        validate_metric_result(
+            metric,
+            expected_dataset_id=dataset_id,
+            expected_population_definition=population,
+        )
+
+    _sorted_unique_strings(
+        result.get("known_limitations"),
+        field="evaluation_result.known_limitations",
+        nonempty=True,
+    )
+    _utc_timestamp(result.get("generated_at_utc"), field="generated_at_utc")
+    return actual_run_id
 
 
 _SECRET_SEGMENTS = frozenset(
