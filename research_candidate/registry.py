@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -163,7 +164,13 @@ def _validate_event_shape(event: Mapping[str, Any]) -> None:
     if detail is not None and not isinstance(detail, str):
         raise RegistryError("event.reason_detail must be a string or null")
 
-    _require_string(event.get("timestamp_utc"), field="event.timestamp_utc")
+    timestamp = _require_string(event.get("timestamp_utc"), field="event.timestamp_utc")
+    try:
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise RegistryError("event.timestamp_utc is not valid ISO-8601") from exc
+    if dt.tzinfo is None or dt.utcoffset() != timezone.utc.utcoffset(dt):
+        raise RegistryError("event.timestamp_utc must be UTC")
 
     expected = compute_event_id(event)
     actual = _require_sha256(event.get("event_id"), field="event.event_id")
@@ -235,6 +242,11 @@ def project_candidate_states(
         new = str(event["new_state"])
         if new not in LEGAL_TRANSITIONS[current]:
             raise RegistryError(f"illegal transition {current} -> {new}")
+
+        if new in {"REPLAYED", "SHADOW_READY", "QUALIFIED"} and not event["evidence_refs"]:
+            raise RegistryError(
+                f"{new} transition requires exact evidence_refs"
+            )
 
         if domains[candidate_id] == ("RESEARCH_ONLY",) and new in {
             "SHADOW_READY",
@@ -403,14 +415,50 @@ def validate_promotion_request(
     if request.get("target_environment") != "PAPER_NEW_EPOCH":
         raise RegistryError("promotion target must be PAPER_NEW_EPOCH")
 
-    _require_sha40(
+    target_source_sha = _require_sha40(
         request.get("target_source_sha"),
         field="promotion_request.target_source_sha",
     )
-    _require_sha256(
+    target_config_hash = _require_sha256(
         request.get("target_config_hash"),
         field="promotion_request.target_config_hash",
     )
+
+    components = candidate.get("proposal", {}).get("components", [])
+    proposed_source_shas = {
+        component.get("proposed_source_sha")
+        for component in components
+        if isinstance(component, dict) and component.get("kind") == "CODE_PATCH"
+    }
+    if "NOT_IMPLEMENTED" in proposed_source_shas:
+        raise RegistryError(
+            "candidate has no exact implemented source identity for promotion"
+        )
+    implemented = {value for value in proposed_source_shas if isinstance(value, str)}
+    if len(implemented) > 1:
+        raise RegistryError(
+            "candidate CODE_PATCH components disagree on proposed source SHA"
+        )
+    expected_source_sha = (
+        next(iter(implemented))
+        if implemented
+        else candidate.get("baseline", {}).get("source_code_sha")
+    )
+    if target_source_sha != expected_source_sha:
+        raise RegistryError(
+            "promotion target_source_sha does not match candidate source identity"
+        )
+
+    candidate_config_hash = candidate.get("candidate_config_hash")
+    if candidate_config_hash == "NOT_AVAILABLE":
+        raise RegistryError(
+            "candidate_config_hash is NOT_AVAILABLE; promotion requires a successor "
+            "candidate with exact material config identity"
+        )
+    if target_config_hash != candidate_config_hash:
+        raise RegistryError(
+            "promotion target_config_hash does not match candidate_config_hash"
+        )
 
     baseline_epoch = _require_string(
         request.get("baseline_epoch"),
