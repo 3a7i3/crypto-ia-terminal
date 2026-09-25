@@ -130,6 +130,12 @@ A STRATEGY candidate MUST bind:
 A prose-only strategy proposal may exist in `CANDIDATE` state, but it may not
 advance to `REPLAYED` until an exact implementation identity exists.
 
+Because the candidate artifact is immutable, a candidate created with
+`proposed_source_sha = NOT_IMPLEMENTED` is never mutated later to insert a SHA.
+Implementation creates a successor candidate with a new candidate_id and an
+explicit `supersedes_candidate_id` provenance reference to the proposal-only
+candidate.
+
 ### 3.3 FEATURE
 
 A new or modified Research/decision feature whose semantics are explicitly
@@ -293,6 +299,20 @@ It MUST NOT be invented from filenames or informal strategy labels.
 For a config proposal, the baseline parameter value MUST be evidence-bound.
 
 For a code proposal, the baseline source SHA MUST be exact.
+
+For a CONFIG/HYBRID candidate derived from the current F00 material parameter
+surface, the canonical baseline config identity is the immutable F00 experiment
+configuration snapshot:
+
+- `config_identity_kind = EXPERIMENT_CONFIG_SNAPSHOT`
+- snapshot SHA-256:
+  `aa8c20e8acd1ad489da7572c6d35c2d5e37fcd265c0ef292035dbb2c8bbd83e6`
+
+The PPL epoch-birth `config_snapshot_hash`
+`6a86a11b201778602eaa4575fbbdfde6dc253760b528cb79b72145d4ac417aae`
+remains valid epoch provenance, but MUST NOT be substituted for the full frozen
+258-parameter experiment-config identity when the candidate changes that material
+surface.
 
 ---
 
@@ -510,7 +530,7 @@ A candidate MUST define its evaluation plan before evaluation results exist.
 Required fields:
 
 - evaluation method(s);
-- required dataset identities;
+- dataset requirements;
 - dataset evidence roles;
 - population definition;
 - primary metric semantics;
@@ -520,6 +540,26 @@ Required fields:
 - missing-evidence behavior;
 - determinism requirements;
 - data-reuse policy.
+
+Each dataset requirement MUST be one of:
+
+1. `EXACT_DATASET`
+   - exact dataset_id;
+   - source_boundary_id;
+   - expected source domain/authority;
+   - evidence role.
+
+2. `FUTURE_DATASET_REQUIREMENT`
+   - deterministic requirement_id;
+   - expected source domain/authority;
+   - evidence role;
+   - required relation to the candidate (for example NEW_PAPER_EPOCH);
+   - required source/config binding;
+   - minimum population/evidence conditions;
+   - no invented future dataset_id.
+
+The evaluation plan identity binds the requirement specification. The later
+`evaluation_run_id` binds the exact dataset_id that fulfilled it.
 
 Allowed dataset evidence roles:
 
@@ -567,6 +607,7 @@ Required identity fields:
 - `evaluation_identity_schema`
 - `candidate_id`
 - exact dataset/source-boundary identities;
+- satisfied dataset requirement_id;
 - dataset evidence role;
 - exact evaluation engine code SHA;
 - evaluation method/version;
@@ -679,6 +720,11 @@ No transition may skip a required forward state. In particular:
 - `CANDIDATE → QUALIFIED` is illegal;
 - `REPLAYED → QUALIFIED` is illegal;
 - `SHADOW_READY → PROMOTED_TO_NEW_EPOCH` is illegal.
+
+A candidate whose target domain is exclusively `RESEARCH_ONLY` is
+non-promotable in V1. It may progress to `REPLAYED`, then must terminate as
+`DORMANT`, `REJECTED` or `RETIRED`; it cannot enter `SHADOW_READY`,
+`QUALIFIED` or `PROMOTED_TO_NEW_EPOCH`.
 
 ### 15.1 CANDIDATE
 
@@ -799,14 +845,22 @@ research_candidate/
 Canonical event fields:
 
 - event_id;
-- sequence;
+- registry_sequence;
+- candidate_transition_ordinal;
 - candidate_id;
 - event_type;
 - previous_state;
 - new_state;
 - evidence_refs[];
-- reason;
+- reason_code;
+- reason_detail;
 - timestamp_utc.
+
+`registry_sequence` is globally monotonic within the registry publication
+stream.
+
+`candidate_transition_ordinal` starts at 1 for each candidate and is contiguous
+within that candidate's lifecycle.
 
 `event_id` MUST be deterministic.
 
@@ -836,7 +890,8 @@ There is no "where feasible" exception in V1.
 
 The registry MUST fail closed on:
 
-- duplicate sequence;
+- duplicate/regressing `registry_sequence`;
+- duplicate/gapped/regressing `candidate_transition_ordinal` for one candidate;
 - duplicate event_id;
 - illegal state transition;
 - unknown candidate_id;
@@ -1040,11 +1095,15 @@ RC1 requires all of the following to be explicit and non-ambiguous:
 - baseline source/config identity kind;
 - candidate classes and diff semantics;
 - hypothesis falsifiability;
+- exact-vs-future dataset requirement semantics;
 - discovery/evaluation/validation evidence roles;
 - anti-self-validation / data-reuse policy;
+- proposal-only → implemented successor semantics;
 - deterministic evaluation_run_id;
 - metric comparability/delta rules;
 - explicit legal lifecycle transition graph;
+- RESEARCH_ONLY non-promotable lifecycle;
+- global registry sequence vs per-candidate transition ordinal;
 - deterministic lifecycle event_id;
 - deterministic promotion_request_id;
 - promotion-request state/authorization boundary;
