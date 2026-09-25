@@ -198,6 +198,17 @@ then the candidate MUST NOT be classified as `RESEARCH_ONLY`.
 
 The canonical candidate artifact is an immutable JSON document.
 
+Normative schema identifiers:
+
+- `candidate_schema = RL_CANDIDATE_V1`
+- `candidate_identity_schema = rl-candidate-01.identity.v1`
+- `evaluation_identity_schema = rl-candidate-01.evaluation-identity.v1`
+- `candidate_event_identity_schema = rl-candidate-01.event-identity.v1`
+- `promotion_request_schema = RL_CANDIDATE_PROMOTION_REQUEST_V1`
+- `promotion_request_identity_schema = rl-candidate-01.promotion-request-identity.v1`
+
+Unknown schema identifiers fail closed.
+
 Logical path:
 
 `research_candidate/candidates/<candidate_id>/candidate.json`
@@ -217,6 +228,7 @@ candidate_id
 candidate_class
 target_domains
 parents
+lineage
 baseline
 proposal
 hypothesis
@@ -225,6 +237,14 @@ known_limitations
 promotion_policy
 created_at_utc
 ```
+
+`lineage` is an object containing:
+
+- `supersedes_candidate_ids[]`
+- `derived_from_candidate_ids[]`
+
+Both arrays are sorted, unique and may be empty. Every referenced candidate must
+exist in the governed registry. Lineage participates in candidate identity.
 
 `created_at_utc` is provenance metadata and MUST NOT participate in
 `candidate_id`.
@@ -360,6 +380,20 @@ Canonical record:
 
 A candidate with `NOT_IMPLEMENTED` code identity may remain `CANDIDATE` only.
 
+When both source SHAs exist, `patch_sha256` is computed from the exact raw bytes
+of:
+
+```text
+git diff --binary --no-color --no-ext-diff <baseline_source_sha> <proposed_source_sha> -- <sorted changed_paths>
+```
+
+executed against the pinned repository object database.
+
+The changed path list is sorted and unique before invocation.
+
+Any inability to materialize either Git object fails closed. No editor-generated
+or manually reformatted diff may substitute for this canonical patch digest.
+
 ### 8.3 FEATURE diff
 
 Canonical record binds:
@@ -391,6 +425,7 @@ candidate_identity = {
   candidate_class,
   target_domains,
   parents,
+  lineage,
   baseline,
   proposal,
   hypothesis_identity,
@@ -1091,6 +1126,9 @@ RC1 requires all of the following to be explicit and non-ambiguous:
 
 - candidate identity fields and canonical serialization;
 - canonical hypothesis/evaluation subdocuments;
+- normative schema identifiers;
+- candidate lineage/successor semantics;
+- canonical CODE_PATCH digest;
 - idempotent duplicate creation behavior;
 - baseline source/config identity kind;
 - candidate classes and diff semantics;
