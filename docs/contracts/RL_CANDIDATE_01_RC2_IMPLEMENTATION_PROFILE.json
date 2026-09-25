@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "mission": "RL-CANDIDATE-01",
+  "gate": "RC2_REGISTRY_AND_VALIDATOR_IMPLEMENTATION",
+  "status": "SOURCE_IMPLEMENTED_CI_PENDING",
+  "stack_base_head": "35febd7d392071feaac3f79fea454b6f106bedf8",
+  "rc1_certified_head": "81775c9226df997309dff79076819eb206249ec5",
+  "rc2_head": "80f90ec659a6291d4c0320675809af6bba1753e6",
+  "implementation": {
+    "package": "research_candidate",
+    "candidate_validation": true,
+    "candidate_identity_determinism": true,
+    "material_config_projection": true,
+    "candidate_config_hash_recomputation": true,
+    "exact_and_future_dataset_requirements": true,
+    "evaluation_identity_validation": true,
+    "evaluation_result_validation": true,
+    "immutable_candidate_publication": true,
+    "event_sourced_registry_projection": true,
+    "governed_evaluation_evidence_for_replayed": true,
+    "independent_evaluation_required_for_qualification": true,
+    "promotion_request_validation": true,
+    "research_only_non_promotable": true,
+    "runtime_ppl_exchange_boundary_static_tests": true
+  },
+  "declared_tests": {
+    "registry_and_validator_tests": 31,
+    "static_boundary_tests": 3,
+    "total": 34
+  },
+  "contract_addendum": "docs/contracts/RL_CANDIDATE_01_RC1A_SCHEMA_COMPLETENESS.json",
+  "ci_mirror_pr": 265,
+  "candidate_creation_authorized": false,
+  "substantive_candidate_created": false,
+  "runtime_mutation": false,
+  "next_gate": "RC2_EXACT_HEAD_TEST_AND_REPOSITORY_CI"
+}
