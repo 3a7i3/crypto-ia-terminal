@@ -5,6 +5,7 @@ from .candidate import (
     CANDIDATE_IDENTITY_SCHEMA,
     CANDIDATE_SCHEMA,
     EVALUATION_IDENTITY_SCHEMA,
+    EVALUATION_RESULT_SCHEMA,
     PROMOTION_REQUEST_IDENTITY_SCHEMA,
     PROMOTION_REQUEST_SCHEMA,
     CandidateValidationError,
@@ -18,6 +19,8 @@ from .candidate import (
     project_material_config,
     sha256_json,
     validate_candidate,
+    validate_evaluation_result,
+    validate_metric_result,
 )
 from .registry import (
     CANDIDATE_STATES,
@@ -41,6 +44,7 @@ __all__ = [
     "CANDIDATE_SCHEMA",
     "CANDIDATE_STATES",
     "EVALUATION_IDENTITY_SCHEMA",
+    "EVALUATION_RESULT_SCHEMA",
     "LEGAL_TRANSITIONS",
     "PROMOTION_REQUEST_IDENTITY_SCHEMA",
     "PROMOTION_REQUEST_SCHEMA",
@@ -65,5 +69,7 @@ __all__ = [
     "publish_candidate",
     "sha256_json",
     "validate_candidate",
+    "validate_evaluation_result",
+    "validate_metric_result",
     "validate_promotion_request",
 ]
