@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "mission": "RL-CANDIDATE-01",
+  "gate": "RC1_CANDIDATE_CONTRACT_REVIEW",
+  "verdict": "PASS",
+  "stack_base_head": "35febd7d392071feaac3f79fea454b6f106bedf8",
+  "reviewed_head": "db2719c592e1465defabe4acacc5a12c751f1ce4",
+  "scope": {
+    "changed_files": 1,
+    "contract_only": true,
+    "candidate_created": false,
+    "runtime_mutation": false
+  },
+  "resolved_findings": [
+    {
+      "id": "RC1-F01",
+      "topic": "baseline_config_identity",
+      "resolution": "Added config_identity_kind and bound current F00 CONFIG/HYBRID baseline to the immutable 258-parameter experiment-config snapshot; distinguished it from the PPL epoch-birth config hash."
+    },
+    {
+      "id": "RC1-F02",
+      "topic": "canonical_subdocuments_and_idempotency",
+      "resolution": "Defined canonical hypothesis/evaluation subdocuments and identical-vs-conflicting duplicate candidate creation behavior."
+    },
+    {
+      "id": "RC1-F03",
+      "topic": "future_dataset_identity",
+      "resolution": "Introduced EXACT_DATASET versus FUTURE_DATASET_REQUIREMENT so prospective validation can be frozen without inventing a future dataset_id."
+    },
+    {
+      "id": "RC1-F04",
+      "topic": "anti_self_validation",
+      "resolution": "Separated DISCOVERY/EVALUATION/VALIDATION roles and prohibited silent qualification on the same F00 evidence that generated the hypothesis."
+    },
+    {
+      "id": "RC1-F05",
+      "topic": "evaluation_identity",
+      "resolution": "Defined deterministic evaluation_run_id and explicit comparability rules for metric deltas."
+    },
+    {
+      "id": "RC1-F06",
+      "topic": "immutable_strategy_successor",
+      "resolution": "Defined proposal-only NOT_IMPLEMENTED strategy candidates as immutable and required a successor candidate with lineage when implementation identity later exists."
+    },
+    {
+      "id": "RC1-F07",
+      "topic": "code_patch_identity",
+      "resolution": "Defined canonical CODE_PATCH digest from pinned Git objects and sorted changed paths."
+    },
+    {
+      "id": "RC1-F08",
+      "topic": "lifecycle_state_machine",
+      "resolution": "Defined exact legal transitions, illegal skips, terminal states and RESEARCH_ONLY non-promotable behavior."
+    },
+    {
+      "id": "RC1-F09",
+      "topic": "registry_event_identity",
+      "resolution": "Separated global registry_sequence from per-candidate candidate_transition_ordinal and made event_id fully deterministic."
+    },
+    {
+      "id": "RC1-F10",
+      "topic": "promotion_request_identity",
+      "resolution": "Defined deterministic promotion_request_id, request states and the boundary that only a separate owner/promotion mission may authorize/execute promotion."
+    },
+    {
+      "id": "RC1-F11",
+      "topic": "schema_identifiers",
+      "resolution": "Frozen normative candidate/evaluation/event/promotion schema identifiers; unknown schemas fail closed."
+    },
+    {
+      "id": "RC1-F12",
+      "topic": "candidate_lineage",
+      "resolution": "Added canonical lineage arrays participating in candidate identity and removed ambiguous singular successor terminology."
+    }
+  ],
+  "normative_checks": {
+    "candidate_identity_deterministic": true,
+    "candidate_creation_idempotent": true,
+    "parent_evidence_exact": true,
+    "future_dataset_requirement_supported": true,
+    "anti_self_validation_enforced": true,
+    "evaluation_identity_deterministic": true,
+    "lifecycle_graph_explicit": true,
+    "event_identity_deterministic": true,
+    "promotion_identity_deterministic": true,
+    "new_epoch_only_promotion": true,
+    "f00_a5_limitation_preserved": true,
+    "runtime_ppl_exchange_non_mutation": true
+  },
+  "candidate_creation_authorized": false,
+  "next_gate": "RC2_REGISTRY_AND_VALIDATOR_IMPLEMENTATION"
+}
