@@ -184,6 +184,7 @@ def project_candidate_states(
     candidates: Mapping[str, Mapping[str, Any]],
     events: Sequence[Mapping[str, Any]],
     *,
+    baseline_material_configs: Mapping[str, Mapping[str, Any]] | None = None,
     allow_external_promotion: bool = False,
 ) -> dict[str, str]:
     """Project candidate states from immutable artifacts + ordered registry events."""
@@ -199,6 +200,11 @@ def project_candidate_states(
             validate_candidate(
                 candidate,
                 known_candidate_ids=known_ids,
+                baseline_material_config=(
+                    None
+                    if baseline_material_configs is None
+                    else baseline_material_configs.get(candidate_id)
+                ),
             )
         except CandidateValidationError as exc:
             raise RegistryError(f"invalid candidate {candidate_id}: {exc}") from exc
@@ -302,6 +308,7 @@ def publish_candidate(
     *,
     evidence_catalog: Mapping[str, set[str]] | None = None,
     known_candidate_ids: set[str] | None = None,
+    baseline_material_config: Mapping[str, Any] | None = None,
 ) -> PublicationResult:
     """Write one immutable candidate artifact or prove identical idempotency."""
 
@@ -310,6 +317,7 @@ def publish_candidate(
             candidate,
             evidence_catalog=evidence_catalog,
             known_candidate_ids=known_candidate_ids,
+            baseline_material_config=baseline_material_config,
         )
     except CandidateValidationError as exc:
         raise RegistryError(str(exc)) from exc
@@ -384,8 +392,17 @@ def validate_promotion_request(
     *,
     candidate: Mapping[str, Any],
     candidate_state: str,
+    baseline_material_config: Mapping[str, Any] | None = None,
     actor_boundary: str = "RL_CANDIDATE",
 ) -> str:
+    try:
+        validate_candidate(
+            candidate,
+            baseline_material_config=baseline_material_config,
+        )
+    except CandidateValidationError as exc:
+        raise RegistryError(f"invalid promotion candidate: {exc}") from exc
+
     if request.get("promotion_request_schema") != PROMOTION_REQUEST_SCHEMA:
         raise RegistryError("unsupported promotion_request_schema")
 
