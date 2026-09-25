@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "mission": "RL-DIAG-01",
+  "gate": "A3_1_METADATA_AND_CHAIN_PROFILE",
+  "verdict": "PASS",
+  "dataset_id": "4ea633a6a4e2ee0bc01a6fe855526d7c42451883ec0b6f3914cf21ea8e91cc8b",
+  "source_boundary_id": "2e6b478cd0cead58c1bcf25c168254b0a63daaa2722c6c108613eb81e283812e",
+  "source_tree_sha256_before": "9da1356f226db94edfc47267c01a01c333bb3e172fd62a6374b25b1cddb12009",
+  "source_tree_sha256_after": "9da1356f226db94edfc47267c01a01c333bb3e172fd62a6374b25b1cddb12009",
+  "source_bytes_unchanged": true,
+  "source_file_population_unchanged": true,
+  "worktree_clean": true,
+  "hash_chain_integrity": {
+    "valid": 13,
+    "invalid": 0,
+    "lifecycle_state": {"EXECUTION_PENDING": 13}
+  },
+  "metadata": {
+    "distinct_top_level_keys": 15,
+    "complete_discriminating": {
+      "conviction_score": {"min": 63.7, "max": 76.3},
+      "conviction_size_factor": {"min": 0.6, "max": 1.0},
+      "conviction_level_local": {"high": 10, "medium": 3},
+      "signal_raw": {"BUY": 12, "SELL": 1},
+      "conviction_dimensions.signal": {"min": 64.0, "max": 78.0},
+      "conviction_dimensions.mtf": {"min": 71.5, "max": 98.8},
+      "conviction_dimensions.regime": {"min": 55.0, "max": 95.0},
+      "mtf_tfs": "complete 5-timeframe categorical map on all 13 packets"
+    },
+    "complete_non_discriminating": {
+      "lse_actionable": {"true": 13},
+      "mtf_confirmed": {"true": 13},
+      "conviction_dimensions.memory": {"min": 50.0, "max": 50.0},
+      "conviction_dimensions.quality": {"min": 49.2, "max": 49.2},
+      "risk_conditions.drawdown_ok": {"true": 13},
+      "risk_conditions.regime_allowed": {"true": 13},
+      "risk_conditions.session_active": {"true": 13},
+      "risk_conditions.signal_confirmed": {"true": 13},
+      "risk_conditions.signal_score": {"true": 13},
+      "pb_warnings": {"nonempty": 0},
+      "risk_failed": {"nonempty": 0},
+      "risk_warnings": {"nonempty": 0}
+    },
+    "missing": {
+      "pb_size_factor": 13
+    }
+  },
+  "semantic_notes": [
+    "metadata.conviction_score is a composite ConvictionEngine score and is distinct from packet.confidence.",
+    "metadata.conviction_dimensions.mtf is a normalized conviction dimension and is distinct from features.mtf raw LSE component score.",
+    "metadata.conviction_dimensions.regime is a conviction dimension score and is distinct from both packet.regime and features.regime.",
+    "mtf_confirmed and all risk_conditions are true for every admitted F00 packet and are therefore integrity/admission facts, not discriminating outcome features.",
+    "risk_failed/risk_warnings/pb_warnings are empty on all 13 admitted packets and cannot explain within-population performance differences.",
+    "Missing metadata.pb_size_factor is not a defect because features.pb_size_factor is present 13/13 and was separately profiled."
+  ],
+  "next_gate": "A4_FACTUAL_PERFORMANCE_ATTRIBUTION_KERNEL"
+}

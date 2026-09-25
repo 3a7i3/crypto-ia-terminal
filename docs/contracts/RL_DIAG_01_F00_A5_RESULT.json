@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "mission": "RL-DIAG-01",
+  "gate": "A5_SIZING_TRANSLATION_AND_INCOHERENCE_AUDIT",
+  "verdict": "PASS",
+  "classification": "EXPLAINED_DUAL_PATH_SIMULATOR_AUTO_SIZE",
+  "exact_f00_runtime_source_sha": "c8dae319442bf751336ff22fd7c6257bb6d69783",
+  "frozen_experiment_snapshot_sha256": "aa8c20e8acd1ad489da7572c6d35c2d5e37fcd265c0ef292035dbb2c8bbd83e6",
+  "dataset_id": "4ea633a6a4e2ee0bc01a6fe855526d7c42451883ec0b6f3914cf21ea8e91cc8b",
+  "source_boundary_id": "2e6b478cd0cead58c1bcf25c168254b0a63daaa2722c6c108613eb81e283812e",
+  "frozen_parameters": {
+    "MEXC_SIM_MAX_POSITION_USD": {
+      "value": 10.0,
+      "provenance": "EXPLICIT_ENVIRONMENT_FILE",
+      "source": ".env",
+      "callsite": "paper_trading/mexc_simulator.py:56"
+    },
+    "MEXC_SIM_CAPITAL": {
+      "value": 1000.0,
+      "provenance": "EXPLICIT_ENVIRONMENT_FILE",
+      "source": ".env",
+      "note": "Under PPL_AUTHORITY, simulator capital is bound from authoritative PPL state; this env value is not the sizing capital authority for the F00 OPEN path."
+    },
+    "EXEC_MAX_ORDER_USD": {
+      "value": 50.0,
+      "provenance": "EXPLICIT_ENVIRONMENT_FILE",
+      "source": ".env"
+    },
+    "PB_MAX_POSITIONS": {
+      "value": 2,
+      "provenance": "EXPLICIT_ENVIRONMENT_FILE",
+      "source": "databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.admission.env"
+    },
+    "PAPER_LIFECYCLE_AUTHORITY": "PPL_AUTHORITY",
+    "PAPER_TRADING_ENABLED": true
+  },
+  "decision_path": {
+    "decision_packet_sizing_context_range_usd": [30.0, 37.5],
+    "paper_call_qty_usd": 0.0,
+    "decision_size_forwarded_to_paper": false
+  },
+  "authoritative_paper_formula": "principal = min((PPL_available_cash * 0.15), MEXC_SIM_MAX_POSITION_USD) because qty_usd=0.0",
+  "real_f00_reconciliation": {
+    "open_count": 13,
+    "formula_match_count": 13,
+    "ppl_principal_values_usd": [10.0],
+    "ppl_cash_before_min_usd": 989.99,
+    "ppl_cash_before_max_usd": 1000.0,
+    "all_auto_15pct_above_cap": true,
+    "dataset_unchanged": true,
+    "snapshot_unchanged": true,
+    "worktree_clean": true
+  },
+  "scientific_interpretation": {
+    "financial_incoherence": false,
+    "accounting_incoherence": false,
+    "unresolved_translation": false,
+    "separate_semantic_quantities": true,
+    "governed_simulator_cap_explains_principal": true,
+    "f00_validates_decision_sizing_effect_on_pnl": false,
+    "reason": "All 13 authoritative PAPER principals were fixed at the 10-USDT simulator cap. DecisionPacket/CapitalEngine sizing context varied but was not forwarded to the PAPER simulator."
+  },
+  "research_consequence": "F00 performance diagnostics may associate DecisionPacket sizing context with outcomes descriptively, but may not claim that varying execution size caused or contributed financially to those outcomes.",
+  "candidate_question": "Should a future governed PAPER candidate unify or explicitly reconcile decision sizing authority with PAPER simulator principal sizing?",
+  "non_authorizations": [
+    "No retroactive F00 mutation.",
+    "No current runtime sizing change.",
+    "No burn-in authorization.",
+    "No TESTNET/LIVE or exchange-write authorization."
+  ],
+  "next_gate": "A5_EXACT_HEAD_REGRESSION_AFTER_SEMANTIC_CORRECTION"
+}

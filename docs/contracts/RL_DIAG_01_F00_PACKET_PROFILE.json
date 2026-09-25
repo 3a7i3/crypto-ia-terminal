@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "mission": "RL-DIAG-01",
+  "gate": "A2_REAL_F00_DECISION_PACKET_FIELD_PROFILE",
+  "verdict": "PASS",
+  "upstream": {
+    "dataset_id": "4ea633a6a4e2ee0bc01a6fe855526d7c42451883ec0b6f3914cf21ea8e91cc8b",
+    "source_boundary_id": "2e6b478cd0cead58c1bcf25c168254b0a63daaa2722c6c108613eb81e283812e",
+    "paper_epoch_id": "F00-EPOCH-01-20260920T084335Z",
+    "rl_replay_head": "0e6c38de211192fadfd2f1470df468afdc92f666",
+    "decision_packet_component_sha256": "cab875c1a7313c028351edd42410f2e780ecb33e59f3c4e583d566ea8413c170"
+  },
+  "source_non_mutation": {
+    "tree_sha256_before": "540bcf382db65d529277b4f82940f4432514edbcfeb0e5e250c86126df3742b5",
+    "tree_sha256_after": "540bcf382db65d529277b4f82940f4432514edbcfeb0e5e250c86126df3742b5",
+    "source_file_count": 6,
+    "source_bytes_unchanged": true,
+    "source_file_population_unchanged": true,
+    "worktree_clean": true
+  },
+  "population": {
+    "ppl_open_count": 13,
+    "ppl_unique_decision_ids": 13,
+    "packet_record_count": 13,
+    "packet_id_present": 13,
+    "packet_id_unique": 13,
+    "packet_id_set_match": true,
+    "symbol_match": "13/13",
+    "side_match": "13/13",
+    "entry_price_match": "0/13",
+    "interpretation": "entry_price_match=0/13 is not a demonstrated incoherence: DecisionPacket.entry_price is null in all 13 records while PPL carries the authoritative entry price."
+  },
+  "structural_shape": {
+    "distinct_top_level_keysets": 1,
+    "keyset_count": 13
+  },
+  "fields": {
+    "packet_id": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "empty": 0,
+      "unique": 13
+    },
+    "symbol": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "empty": 0,
+      "distinct": 12,
+      "ppl_match": "13/13"
+    },
+    "timeframe": {
+      "status": "COMPLETE_CONSTANT",
+      "present": 13,
+      "null": 0,
+      "values": {
+        "1h": 13
+      }
+    },
+    "side": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "values": {
+        "LONG": 12,
+        "SHORT": 1
+      },
+      "ppl_match": "13/13"
+    },
+    "regime": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "values": {
+        "RANGE": 4,
+        "TREND_BULL": 9
+      }
+    },
+    "confidence": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "min": 69,
+      "max": 88
+    },
+    "confidence_raw": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "min": 64,
+      "max": 78
+    },
+    "adjusted_confidence": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "min": 69,
+      "max": 88
+    },
+    "expected_value": {
+      "status": "PRESENT_DEFAULT_ONLY_NOT_DIAGNOSTICALLY_QUALIFIED",
+      "present": 13,
+      "null": 0,
+      "min": 0,
+      "max": 0
+    },
+    "risk_score": {
+      "status": "PRESENT_DEFAULT_ONLY_NOT_DIAGNOSTICALLY_QUALIFIED",
+      "present": 13,
+      "null": 0,
+      "min": 0,
+      "max": 0
+    },
+    "allocation_pct": {
+      "status": "PRESENT_DEFAULT_ONLY_NOT_DIAGNOSTICALLY_QUALIFIED",
+      "present": 13,
+      "null": 0,
+      "min": 0,
+      "max": 0
+    },
+    "conviction": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "values": {
+        "HIGH": 10,
+        "MEDIUM": 3
+      }
+    },
+    "entry_price": {
+      "status": "NOT_AVAILABLE_IN_DECISION_PACKET",
+      "present": 13,
+      "null": 13
+    },
+    "stop_loss": {
+      "status": "NOT_AVAILABLE_IN_DECISION_PACKET",
+      "present": 13,
+      "null": 13
+    },
+    "take_profit": {
+      "status": "NOT_AVAILABLE_IN_DECISION_PACKET",
+      "present": 13,
+      "null": 13
+    },
+    "r_multiple": {
+      "status": "NOT_AVAILABLE_IN_DECISION_PACKET",
+      "present": 13,
+      "null": 13
+    },
+    "state_history": {
+      "status": "PARTIAL_REQUIRES_SUBPROFILE",
+      "present": 13,
+      "null": 0,
+      "empty": 0
+    },
+    "reasoning": {
+      "status": "PARTIAL_REQUIRES_SUBPROFILE",
+      "present": 13,
+      "null": 0,
+      "empty": 0
+    },
+    "features": {
+      "status": "PARTIAL_REQUIRES_SUBPROFILE",
+      "present": 13,
+      "null": 0,
+      "empty": 0
+    },
+    "metadata.trace_id": {
+      "status": "COMPLETE",
+      "present": 13,
+      "null": 0,
+      "empty": 0,
+      "unique": 13
+    }
+  },
+  "scientific_notes": [
+    "Field presence is not sufficient to establish semantic usefulness.",
+    "Fields that are zero for all 13 records and whose DecisionPacket schema default is 0.0 are not promoted as meaningful diagnostics.",
+    "DecisionPacket geometry fields are null for all 13 records; PPL remains authoritative for entry/TP/SL geometry.",
+    "N=13 remains a small descriptive population and is not a profitability certification."
+  ],
+  "next_gate": "A3_DECISION_CONTEXT_SUBPROFILE_AND_ATTRIBUTION_CONTRACT"
+}
