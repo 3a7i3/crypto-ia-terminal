@@ -329,16 +329,20 @@ def _validate_proposal(
         raise CandidateValidationError("proposal.components contains duplicates")
 
     kinds = {str(item.get("kind")) for item in components}
+    categories = set()
     for component in components:
         kind = component.get("kind")
         if kind in CONFIG_OPS:
+            categories.add("CONFIG")
             _validate_config_component(component)
         elif kind == "CODE_PATCH":
+            categories.add("STRATEGY")
             _validate_code_component(
                 component,
                 baseline_source_sha=baseline_source_sha,
             )
         elif kind == "FEATURE_SPEC":
+            categories.add("FEATURE")
             _validate_feature_component(component)
         else:
             raise CandidateValidationError(f"unsupported proposal component kind {kind!r}")
@@ -349,8 +353,10 @@ def _validate_proposal(
         raise CandidateValidationError("STRATEGY candidate requires CODE_PATCH only")
     if candidate_class == "FEATURE" and kinds != {"FEATURE_SPEC"}:
         raise CandidateValidationError("FEATURE candidate requires FEATURE_SPEC only")
-    if candidate_class == "HYBRID" and len(kinds) < 2:
-        raise CandidateValidationError("HYBRID candidate requires at least two component kinds")
+    if candidate_class == "HYBRID" and len(categories) < 2:
+        raise CandidateValidationError(
+            "HYBRID candidate requires at least two semantic component categories"
+        )
 
 
 def _validate_hypothesis(hypothesis: Mapping[str, Any]) -> None:
@@ -447,6 +453,15 @@ def _validate_evaluation_plan(
     requirements = _list(evaluation_plan, "dataset_requirements")
     if not requirements or any(not isinstance(item, dict) for item in requirements):
         raise CandidateValidationError("evaluation_plan.dataset_requirements must be non-empty")
+    requirement_bytes = [canonical_json_bytes(item) for item in requirements]
+    if requirement_bytes != sorted(requirement_bytes):
+        raise CandidateValidationError(
+            "evaluation_plan.dataset_requirements must be canonically sorted"
+        )
+    if len(set(requirement_bytes)) != len(requirement_bytes):
+        raise CandidateValidationError(
+            "evaluation_plan.dataset_requirements contains duplicates"
+        )
     for requirement in requirements:
         _validate_dataset_requirement(
             requirement,
@@ -484,9 +499,12 @@ def _validate_evaluation_plan(
         raise CandidateValidationError(
             "data_reuse_policy.allow_discovery_as_validation must be boolean"
         )
-    if allow and not isinstance(policy.get("justification"), str):
+    if allow and (
+        not isinstance(policy.get("justification"), str)
+        or not policy["justification"].strip()
+    ):
         raise CandidateValidationError(
-            "allowing discovery as validation requires a justification"
+            "allowing discovery as validation requires a non-empty justification"
         )
 
     for requirement in requirements:
@@ -523,6 +541,7 @@ def candidate_identity_document(candidate: Mapping[str, Any]) -> dict[str, Any]:
         "parents": candidate["parents"],
         "lineage": candidate["lineage"],
         "baseline": candidate["baseline"],
+        "candidate_config_hash": candidate["candidate_config_hash"],
         "proposal": candidate["proposal"],
         "hypothesis_identity": candidate["hypothesis"],
         "evaluation_plan_identity": candidate["evaluation_plan"],
@@ -568,6 +587,25 @@ def validate_candidate(
     baseline = _mapping(candidate, "baseline")
     _validate_baseline(baseline)
 
+    candidate_config_hash = candidate.get("candidate_config_hash")
+    has_config_component = any(
+        component.get("kind") in CONFIG_OPS
+        for component in _mapping(candidate, "proposal").get("components", [])
+        if isinstance(component, dict)
+    )
+    if candidate_class == "CONFIG" or (
+        candidate_class == "HYBRID" and has_config_component
+    ):
+        _sha256_value(
+            candidate_config_hash,
+            field="candidate_config_hash",
+        )
+    elif candidate_config_hash != "NOT_AVAILABLE":
+        _sha256_value(
+            candidate_config_hash,
+            field="candidate_config_hash",
+        )
+
     proposal = _mapping(candidate, "proposal")
     _validate_proposal(
         candidate_class,
@@ -577,6 +615,16 @@ def validate_candidate(
 
     hypothesis = _mapping(candidate, "hypothesis")
     _validate_hypothesis(hypothesis)
+
+    if domains == ["RESEARCH_ONLY"]:
+        for component in proposal["components"]:
+            if (
+                component.get("kind") == "FEATURE_SPEC"
+                and component.get("affects_population_or_capital") is True
+            ):
+                raise CandidateValidationError(
+                    "RESEARCH_ONLY feature cannot affect population or capital"
+                )
 
     evaluation_plan = _mapping(candidate, "evaluation_plan")
     _validate_evaluation_plan(
