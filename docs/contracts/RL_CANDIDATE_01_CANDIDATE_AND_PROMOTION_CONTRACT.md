@@ -591,7 +591,12 @@ Required fields:
 
 Each dataset requirement MUST be one of:
 
+Every dataset requirement carries:
+
+`requirement_id = SHA256(canonical requirement object excluding requirement_id)`
+
 1. `EXACT_DATASET`
+   - deterministic requirement_id;
    - exact dataset_id;
    - source_boundary_id;
    - expected source domain/authority;
@@ -606,8 +611,9 @@ Each dataset requirement MUST be one of:
    - minimum population/evidence conditions;
    - no invented future dataset_id.
 
-The evaluation plan identity binds the requirement specification. The later
-`evaluation_run_id` binds the exact dataset_id that fulfilled it.
+The evaluation plan identity binds each requirement specification and its
+deterministic requirement_id. The later `evaluation_run_id` binds the exact
+dataset_id plus the exact requirement_id that it fulfilled.
 
 Allowed dataset evidence roles:
 
@@ -1147,6 +1153,7 @@ RC1 requires all of the following to be explicit and non-ambiguous:
 - required candidate_config_hash placement/identity semantics;
 - candidate classes and diff semantics;
 - hypothesis falsifiability;
+- deterministic requirement_id for exact and future dataset requirements;
 - exact-vs-future dataset requirement semantics;
 - discovery/evaluation/validation evidence roles;
 - anti-self-validation / data-reuse policy;
