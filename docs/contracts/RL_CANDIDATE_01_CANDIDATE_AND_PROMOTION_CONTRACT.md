@@ -229,6 +229,7 @@ target_domains
 parents
 lineage
 baseline
+candidate_config_hash
 proposal
 hypothesis
 evaluation_plan
@@ -426,6 +427,7 @@ candidate_identity = {
   parents,
   lineage,
   baseline,
+  candidate_config_hash,
   proposal,
   hypothesis_identity,
   evaluation_plan_identity,
@@ -523,6 +525,18 @@ If the candidate does not define a complete projected config:
 `candidate_config_hash = NOT_AVAILABLE`
 
 No placeholder hash is allowed.
+
+`candidate_config_hash` is a required top-level candidate field and participates
+in `candidate_identity`.
+
+For `CONFIG` candidates, and for `HYBRID` candidates containing any CONFIG
+component, `candidate_config_hash` MUST be a valid SHA-256 and MUST NOT be
+`NOT_AVAILABLE`.
+
+For STRATEGY/FEATURE candidates with no complete projected material config, the
+explicit `NOT_AVAILABLE` state is permitted, but such a candidate cannot pass a
+promotion gate requiring an exact target config hash until that target config is
+separately materialized and bound by a successor candidate or promotion evidence.
 
 ---
 
@@ -1130,6 +1144,7 @@ RC1 requires all of the following to be explicit and non-ambiguous:
 - canonical CODE_PATCH digest;
 - idempotent duplicate creation behavior;
 - baseline source/config identity kind;
+- required candidate_config_hash placement/identity semantics;
 - candidate classes and diff semantics;
 - hypothesis falsifiability;
 - exact-vs-future dataset requirement semantics;
