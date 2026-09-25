@@ -226,8 +226,16 @@ def test_candidate_identity_is_deterministic_and_timestamp_independent() -> None
     b = _candidate(created_at="2026-09-26T01:00:00Z")
 
     assert a["candidate_id"] == b["candidate_id"]
-    assert validate_candidate(a, evidence_catalog=_catalog()) == a["candidate_id"]
-    assert validate_candidate(b, evidence_catalog=_catalog()) == b["candidate_id"]
+    assert validate_candidate(
+        a,
+        evidence_catalog=_catalog(),
+        baseline_material_config=BASE_MATERIAL_CONFIG,
+    ) == a["candidate_id"]
+    assert validate_candidate(
+        b,
+        evidence_catalog=_catalog(),
+        baseline_material_config=BASE_MATERIAL_CONFIG,
+    ) == b["candidate_id"]
 
 
 def test_candidate_config_hash_participates_in_candidate_identity() -> None:
@@ -256,7 +264,11 @@ def test_discovery_dataset_cannot_silently_be_validation() -> None:
         CandidateValidationError,
         match="discovery evidence cannot silently be reused as validation",
     ):
-        validate_candidate(candidate, evidence_catalog=_catalog())
+        validate_candidate(
+            candidate,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
 
 def test_parent_evidence_must_exist_in_catalog() -> None:
@@ -265,7 +277,11 @@ def test_parent_evidence_must_exist_in_catalog() -> None:
     catalog["diagnostic_run_ids"] = set()
 
     with pytest.raises(CandidateValidationError, match="unknown parent evidence"):
-        validate_candidate(candidate, evidence_catalog=catalog)
+        validate_candidate(
+            candidate,
+            evidence_catalog=catalog,
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
 
 def test_proposal_components_require_canonical_order() -> None:
@@ -284,7 +300,11 @@ def test_proposal_components_require_canonical_order() -> None:
     candidate["candidate_id"] = compute_candidate_id(candidate)
 
     with pytest.raises(CandidateValidationError, match="canonically"):
-        validate_candidate(candidate, evidence_catalog=_catalog())
+        validate_candidate(
+            candidate,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
 
 def test_publish_candidate_is_write_once_and_idempotent(tmp_path: Path) -> None:
@@ -294,6 +314,7 @@ def test_publish_candidate_is_write_once_and_idempotent(tmp_path: Path) -> None:
         tmp_path,
         candidate,
         evidence_catalog=_catalog(),
+        baseline_material_config=BASE_MATERIAL_CONFIG,
     )
     second = publish_candidate(
         tmp_path,
@@ -312,10 +333,20 @@ def test_same_identity_with_different_artifact_bytes_fails_closed(tmp_path: Path
 
     assert a["candidate_id"] == b["candidate_id"]
 
-    publish_candidate(tmp_path, a, evidence_catalog=_catalog())
+    publish_candidate(
+        tmp_path,
+        a,
+        evidence_catalog=_catalog(),
+        baseline_material_config=BASE_MATERIAL_CONFIG,
+    )
 
     with pytest.raises(RegistryError, match="CANDIDATE_ID_COLLISION_OR_CORRUPTION"):
-        publish_candidate(tmp_path, b, evidence_catalog=_catalog())
+        publish_candidate(
+            tmp_path,
+            b,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
 
 def test_evaluation_identity_is_deterministic() -> None:
@@ -328,6 +359,8 @@ def test_evaluation_identity_is_deterministic() -> None:
         source_boundary_id=BOUNDARY_ID,
         satisfied_dataset_requirement_id=req["requirement_id"],
         dataset_evidence_role="DISCOVERY",
+        dataset_source_domain="PAPER",
+        dataset_source_authority="PPL_AUTHORITY",
         evaluation_engine_code_sha=EVAL_CODE_SHA,
         evaluation_method_version="FACTUAL_BINDING_CHECK_V1",
         evaluation_config_hash=EVAL_CONFIG_HASH,
@@ -372,7 +405,11 @@ def test_registry_projects_only_legal_contiguous_transitions() -> None:
         ),
     ]
 
-    state = project_candidate_states({cid: candidate}, events)
+    state = project_candidate_states(
+        {cid: candidate},
+        events,
+        baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+    )
     assert state[cid] == "QUALIFIED"
 
 
@@ -390,7 +427,11 @@ def test_registry_rejects_state_skip_and_ordinal_gap() -> None:
         reason="INVALID_SKIP",
     )
     with pytest.raises(RegistryError, match="illegal transition"):
-        project_candidate_states({cid: candidate}, [skip])
+        project_candidate_states(
+            {cid: candidate},
+            [skip],
+            baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+        )
 
     replayed = _event(
         cid,
@@ -402,7 +443,11 @@ def test_registry_rejects_state_skip_and_ordinal_gap() -> None:
         reason="EVALUATION_COMPLETED",
     )
     with pytest.raises(RegistryError, match="candidate_transition_ordinal"):
-        project_candidate_states({cid: candidate}, [replayed])
+        project_candidate_states(
+            {cid: candidate},
+            [replayed],
+            baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+        )
 
 
 def test_research_only_candidate_cannot_enter_shadow_ready() -> None:
@@ -423,7 +468,11 @@ def test_research_only_candidate_cannot_enter_shadow_ready() -> None:
     candidate["proposal"]["components"] = [feature]
     candidate["candidate_config_hash"] = "NOT_AVAILABLE"
     candidate["candidate_id"] = compute_candidate_id(candidate)
-    validate_candidate(candidate, evidence_catalog=_catalog())
+    validate_candidate(
+            candidate,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
     cid = candidate["candidate_id"]
     events = [
@@ -491,11 +540,13 @@ def test_promotion_request_requires_qualified_new_epoch_and_is_deterministic() -
         request,
         candidate=candidate,
         candidate_state="QUALIFIED",
+        baseline_material_config=BASE_MATERIAL_CONFIG,
     )
     second = validate_promotion_request(
         request,
         candidate=candidate,
         candidate_state="QUALIFIED",
+        baseline_material_config=BASE_MATERIAL_CONFIG,
     )
 
     assert first == second == request["promotion_request_id"]
@@ -505,6 +556,7 @@ def test_promotion_request_requires_qualified_new_epoch_and_is_deterministic() -
             request,
             candidate=candidate,
             candidate_state="SHADOW_READY",
+            baseline_material_config=BASE_MATERIAL_CONFIG,
         )
 
     same_epoch = copy.deepcopy(request)
@@ -515,6 +567,7 @@ def test_promotion_request_requires_qualified_new_epoch_and_is_deterministic() -
             same_epoch,
             candidate=candidate,
             candidate_state="QUALIFIED",
+            baseline_material_config=BASE_MATERIAL_CONFIG,
         )
 
 
@@ -532,6 +585,7 @@ def test_rl_candidate_boundary_cannot_authorize_or_execute_promotion() -> None:
                 changed,
                 candidate=candidate,
                 candidate_state="QUALIFIED",
+                baseline_material_config=BASE_MATERIAL_CONFIG,
             )
 
 
@@ -542,7 +596,11 @@ def test_config_candidate_requires_exact_candidate_config_hash() -> None:
     candidate["candidate_id"] = compute_candidate_id(candidate)
 
     with pytest.raises(CandidateValidationError, match="candidate_config_hash"):
-        validate_candidate(candidate, evidence_catalog=_catalog())
+        validate_candidate(
+            candidate,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
 
 def test_dataset_requirement_id_tampering_fails_closed() -> None:
@@ -551,7 +609,11 @@ def test_dataset_requirement_id_tampering_fails_closed() -> None:
     candidate["candidate_id"] = compute_candidate_id(candidate)
 
     with pytest.raises(CandidateValidationError, match="requirement_id mismatch"):
-        validate_candidate(candidate, evidence_catalog=_catalog())
+        validate_candidate(
+            candidate,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
 
 def test_forward_registry_transition_requires_evidence() -> None:
@@ -569,7 +631,11 @@ def test_forward_registry_transition_requires_evidence() -> None:
     )
 
     with pytest.raises(RegistryError, match="requires exact evidence_refs"):
-        project_candidate_states({cid: candidate}, [event])
+        project_candidate_states(
+            {cid: candidate},
+            [event],
+            baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+        )
 
 
 def test_promotion_rejects_source_or_config_identity_drift() -> None:
@@ -585,6 +651,7 @@ def test_promotion_rejects_source_or_config_identity_drift() -> None:
             source_drift,
             candidate=candidate,
             candidate_state="QUALIFIED",
+            baseline_material_config=BASE_MATERIAL_CONFIG,
         )
 
     config_drift = copy.deepcopy(request)
@@ -596,6 +663,7 @@ def test_promotion_rejects_source_or_config_identity_drift() -> None:
             config_drift,
             candidate=candidate,
             candidate_state="QUALIFIED",
+            baseline_material_config=BASE_MATERIAL_CONFIG,
         )
 
 
@@ -615,7 +683,11 @@ def test_promotion_rejects_proposal_without_implemented_source() -> None:
     ]
     candidate["candidate_config_hash"] = CANDIDATE_CONFIG_HASH
     candidate["candidate_id"] = compute_candidate_id(candidate)
-    validate_candidate(candidate, evidence_catalog=_catalog())
+    validate_candidate(
+            candidate,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
 
     request = _promotion_request(candidate)
 
@@ -624,4 +696,5 @@ def test_promotion_rejects_proposal_without_implemented_source() -> None:
             request,
             candidate=candidate,
             candidate_state="QUALIFIED",
+            baseline_material_config=BASE_MATERIAL_CONFIG,
         )
