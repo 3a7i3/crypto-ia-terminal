@@ -265,11 +265,24 @@ A candidate is meaningless without an explicit baseline.
 Required `baseline` fields:
 
 - `source_code_sha`
+- `config_identity_kind`
 - `config_hash`
 - `paper_epoch_id` when derived from PAPER;
 - `strategy_id` if and only if a canonical certified strategy identity exists;
 - `baseline_semantics_version`
 - `baseline_population_definition`
+
+Allowed `config_identity_kind` values:
+
+- `EXPERIMENT_CONFIG_SNAPSHOT`
+- `PROJECTED_MATERIAL_CONFIG`
+- `NOT_AVAILABLE`
+
+The kind is mandatory because an epoch-birth config hash and a later immutable
+full experiment-configuration snapshot are not interchangeable identities.
+For a CONFIG/HYBRID candidate, the baseline config identity MUST resolve the
+material parameter surface being changed. A candidate MUST NOT use a convenient
+hash merely because it belongs to the same PAPER epoch.
 
 If no canonical strategy_id exists, the field MUST be:
 
@@ -398,6 +411,36 @@ Invariant:
 same parents + same baseline + same proposal + same hypothesis/evaluation
 semantics ⇒ same `candidate_id`.
 
+### 9.1 Canonical subdocument identities
+
+The following embedded scientific subdocuments MUST themselves be canonical JSON
+objects before they participate in `candidate_identity`:
+
+- `parents`
+- `baseline`
+- `proposal`
+- `hypothesis_identity`
+- `evaluation_plan_identity`
+
+`hypothesis_identity` is the complete hypothesis document from section 11 with
+human presentation-only fields removed.
+
+`evaluation_plan_identity` is the complete predeclared evaluation plan from
+section 12 with runtime/publication metadata removed.
+
+No implementation may substitute ad-hoc hashes of prose snippets for these
+canonical subdocuments.
+
+### 9.2 Idempotent duplicate creation
+
+If `candidate_id` already exists:
+
+- identical canonical candidate bytes ⇒ return `ALREADY_EXISTS_IDENTICAL`;
+- different bytes under the same candidate_id ⇒ fail closed with
+  `CANDIDATE_ID_COLLISION_OR_CORRUPTION`.
+
+Candidate creation MUST NOT overwrite the existing artifact.
+
 ---
 
 ## 10. Candidate config hash
@@ -405,6 +448,12 @@ semantics ⇒ same `candidate_id`.
 For candidates that produce a complete projected configuration:
 
 `candidate_config_hash = SHA256(canonical projected material config)`
+
+The canonical projected material config contains only deterministic,
+non-secret material parameter key/value/type semantics. File paths, callsites,
+environment-file ordering, timestamps and provenance annotations do not enter
+this semantic config hash unless the contract version explicitly makes them
+part of parameter meaning.
 
 Rules:
 
@@ -462,13 +511,35 @@ Required fields:
 
 - evaluation method(s);
 - required dataset identities;
+- dataset evidence roles;
 - population definition;
 - primary metric semantics;
 - guardrail metric semantics;
 - minimum sample/evidence requirement;
 - comparison baseline;
 - missing-evidence behavior;
-- determinism requirements.
+- determinism requirements;
+- data-reuse policy.
+
+Allowed dataset evidence roles:
+
+- `DISCOVERY`
+- `EVALUATION`
+- `VALIDATION`
+
+A dataset/run that materially generated the candidate hypothesis is
+`DISCOVERY` evidence.
+
+The same evidence MAY be replayed for implementation/debugging and may produce a
+`REPLAYED` state, but it MUST NOT be silently relabeled as independent
+`VALIDATION` evidence.
+
+Unless a candidate's predeclared scientific test explicitly justifies otherwise,
+`QUALIFIED` requires evaluation evidence not used to generate the hypothesis.
+
+For the current F00-derived candidates, the F00 N=13 dataset is DISCOVERY
+evidence. F00 alone therefore cannot qualify a candidate whose hypothesis was
+derived from RL-DIAG over that same F00 population.
 
 Allowed V1 evaluation modes:
 
@@ -484,6 +555,36 @@ candidate remains unevaluated for that claim.
 
 Missing market-path evidence MUST NOT be replaced with synthetic prices unless a
 separately certified SYNTHETIC dataset is explicitly declared.
+
+### 12.1 Deterministic evaluation identity
+
+Every governed evaluation has:
+
+`evaluation_run_id = SHA256(canonical evaluation_run_identity)`
+
+Required identity fields:
+
+- `evaluation_identity_schema`
+- `candidate_id`
+- exact dataset/source-boundary identities;
+- dataset evidence role;
+- exact evaluation engine code SHA;
+- evaluation method/version;
+- evaluation config hash;
+- population definition;
+- baseline identity;
+- metric-semantics version.
+
+Excluded from identity:
+
+- timestamp;
+- host/PID;
+- absolute paths;
+- wall-clock duration;
+- UI/publication metadata.
+
+Same scientific inputs and semantics MUST produce the same
+`evaluation_run_id`.
 
 ---
 
@@ -523,6 +624,11 @@ Allowed statistical strength values inherit RL-DIAG:
 
 No aggregate score may hide unavailable guardrails.
 
+A numeric `delta` is valid only when baseline and candidate values were produced
+under the same declared metric semantics, comparable population definition and
+compatible evidence world. Otherwise `delta` MUST be `NOT_COMPARABLE`, not
+zero and not an inferred number.
+
 ---
 
 ## 14. Known limitations
@@ -546,15 +652,33 @@ A candidate with no known limitations is invalid.
 
 ## 15. Candidate lifecycle
 
-Canonical state machine:
+Canonical forward path:
 
 `CANDIDATE → REPLAYED → SHADOW_READY → QUALIFIED → PROMOTED_TO_NEW_EPOCH`
+
+Explicit legal transition graph:
+
+- `CANDIDATE → REPLAYED | REJECTED | DORMANT | RETIRED`
+- `REPLAYED → SHADOW_READY | REJECTED | DORMANT | RETIRED`
+- `SHADOW_READY → QUALIFIED | REJECTED | DORMANT | RETIRED`
+- `QUALIFIED → PROMOTED_TO_NEW_EPOCH | REJECTED | DORMANT | RETIRED`
+- `PROMOTED_TO_NEW_EPOCH → RETIRED`
 
 Terminal/non-promoting states:
 
 - `REJECTED`
 - `DORMANT`
 - `RETIRED`
+
+`REJECTED`, `DORMANT` and `RETIRED` have no outgoing transition in V1.
+Reactivation requires a new candidate_id whose parent evidence explicitly
+references the dormant/rejected/retired candidate as provenance.
+
+No transition may skip a required forward state. In particular:
+
+- `CANDIDATE → QUALIFIED` is illegal;
+- `REPLAYED → QUALIFIED` is illegal;
+- `SHADOW_READY → PROMOTED_TO_NEW_EPOCH` is illegal.
 
 ### 15.1 CANDIDATE
 
@@ -598,6 +722,8 @@ Requirements:
 - primary metric condition satisfied under its declared semantics;
 - every mandatory guardrail satisfied;
 - sample/evidence minimum satisfied;
+- the predeclared data-reuse policy is satisfied;
+- independent EVALUATION/VALIDATION evidence exists when required by section 12;
 - no unresolved safety/provenance blocker;
 - qualification evidence immutable.
 
@@ -682,8 +808,31 @@ Canonical event fields:
 - reason;
 - timestamp_utc.
 
-`event_id` is deterministic from candidate_id + event semantics + exact evidence
-refs where feasible.
+`event_id` MUST be deterministic.
+
+Canonical event identity fields:
+
+- event identity schema;
+- candidate_id;
+- transition ordinal for that candidate;
+- event_type;
+- previous_state;
+- new_state;
+- sorted exact evidence_refs;
+- machine-readable reason_code.
+
+Then:
+
+`event_id = SHA256(canonical event identity)`
+
+The following do not participate:
+
+- timestamp_utc;
+- free-text reason_detail;
+- operator identity;
+- storage path.
+
+There is no "where feasible" exception in V1.
 
 The registry MUST fail closed on:
 
@@ -719,6 +868,41 @@ Required fields:
 - required preflight checks;
 - status.
 
+Allowed promotion-request states:
+
+- `REQUESTED`
+- `READY_FOR_AUTHORIZATION`
+- `AUTHORIZED`
+- `EXECUTED`
+- `REJECTED`
+- `CANCELLED`
+
+RL-CANDIDATE may construct and validate a request through
+`READY_FOR_AUTHORIZATION`.
+
+Only a separate owner/promotion mission may record `AUTHORIZED` and execute the
+runtime preflight/cutover.
+
+`promotion_request_id` is deterministic:
+
+`promotion_request_id = SHA256(canonical promotion_request_identity)`
+
+Identity fields:
+
+- promotion request schema;
+- candidate_id;
+- exact qualification evidence refs;
+- target environment;
+- target source SHA;
+- target config hash;
+- baseline epoch;
+- requested new epoch identity/intent;
+- rollback-boundary identity;
+- preflight-contract version.
+
+Status, timestamps and operator identity do not participate in
+`promotion_request_id`.
+
 Allowed V1 target environment:
 
 `PAPER_NEW_EPOCH`
@@ -747,7 +931,9 @@ A promotion request MUST fail closed unless all are true:
 8. target is a new explicit experimental boundary;
 9. operator authorization is separately recorded;
 10. runtime preflight is performed by the future promotion mission, not by this
-    registry.
+    registry;
+11. qualification evidence satisfies the candidate's declared data-reuse policy;
+12. no DISCOVERY-only evidence is counted as independent validation.
 
 Even with all conditions satisfied, RL-CANDIDATE-01 itself does not execute the
 promotion.
@@ -842,21 +1028,40 @@ candidate creation/promotion workflows be used.
 
 ---
 
-## 24. Immediate next gate
+## 24. RC1 contract review criteria
 
 `RC1_CANDIDATE_CONTRACT_REVIEW`
 
-This gate must verify:
+RC1 requires all of the following to be explicit and non-ambiguous:
 
-- identity fields;
-- canonical serialization;
-- candidate classes;
-- diff semantics;
-- hypothesis schema;
-- evaluation semantics;
-- lifecycle state machine;
-- promotion boundary;
-- F00/A5 limitations;
-- hard non-mutation boundary.
+- candidate identity fields and canonical serialization;
+- canonical hypothesis/evaluation subdocuments;
+- idempotent duplicate creation behavior;
+- baseline source/config identity kind;
+- candidate classes and diff semantics;
+- hypothesis falsifiability;
+- discovery/evaluation/validation evidence roles;
+- anti-self-validation / data-reuse policy;
+- deterministic evaluation_run_id;
+- metric comparability/delta rules;
+- explicit legal lifecycle transition graph;
+- deterministic lifecycle event_id;
+- deterministic promotion_request_id;
+- promotion-request state/authorization boundary;
+- new-epoch-only promotion invariant;
+- F00/A5 sizing limitation;
+- hard runtime/PPL/exchange non-mutation boundary.
 
 No actual candidate is created at RC1.
+
+RC1 PASS authorizes implementation of the registry/validators only.
+It does NOT authorize creation of a substantive strategy/config/feature
+candidate.
+
+## 25. Post-RC1 gate
+
+After RC1 PASS:
+
+`RC2_REGISTRY_AND_VALIDATOR_IMPLEMENTATION`
+
+RC2 implements and tests the contract without creating a substantive candidate.
