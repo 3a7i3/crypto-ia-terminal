@@ -698,7 +698,7 @@ def diagnose_factual_dataset(
         },
         "packet_os_size_usd": {
             "status": "CONTEXT_ONLY",
-            "reason": "OrderSizer output is kept distinct from authoritative PPL principal",
+            "reason": "DecisionPacket sizing context is kept distinct from authoritative PPL principal; A5 proves the exact F00 PAPER path used an independent MexcSimulator auto-size branch",
         },
     }
 
