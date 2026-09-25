@@ -265,10 +265,10 @@ def test_discovery_dataset_cannot_silently_be_validation() -> None:
         match="discovery evidence cannot silently be reused as validation",
     ):
         validate_candidate(
-            candidate,
-            evidence_catalog=_catalog(),
-            baseline_material_config=BASE_MATERIAL_CONFIG,
-        )
+        candidate,
+        evidence_catalog=_catalog(),
+        baseline_material_config=BASE_MATERIAL_CONFIG,
+    )
 
 
 def test_parent_evidence_must_exist_in_catalog() -> None:
@@ -320,6 +320,7 @@ def test_publish_candidate_is_write_once_and_idempotent(tmp_path: Path) -> None:
         tmp_path,
         candidate,
         evidence_catalog=_catalog(),
+        baseline_material_config=BASE_MATERIAL_CONFIG,
     )
 
     assert first.disposition == "CREATED"
