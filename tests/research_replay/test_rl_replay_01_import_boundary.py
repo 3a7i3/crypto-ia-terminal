@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 import research_replay.factual as factual
+import research_replay.publication as publication
 
 _FORBIDDEN_IMPORT_PREFIXES = (
     "paper_trading.durable_event_store",
@@ -31,10 +32,8 @@ def _module_imports(path: Path) -> set[str]:
     return imports
 
 
-def test_factual_replay_has_no_forbidden_runtime_imports() -> None:
-    path = Path(factual.__file__).resolve()
+def _assert_no_forbidden_imports(path: Path) -> None:
     imports = _module_imports(path)
-
     violations = sorted(
         imported
         for imported in imports
@@ -46,10 +45,8 @@ def test_factual_replay_has_no_forbidden_runtime_imports() -> None:
     assert violations == []
 
 
-def test_factual_replay_source_contains_no_runtime_mutation_symbols() -> None:
-    path = Path(factual.__file__).resolve()
+def _assert_no_runtime_mutation_symbols(path: Path) -> None:
     source = path.read_text(encoding="utf-8")
-
     forbidden_symbols = (
         "DurableEventStore",
         "PPLAuthorityRuntime",
@@ -62,3 +59,19 @@ def test_factual_replay_source_contains_no_runtime_mutation_symbols() -> None:
     )
     hits = [symbol for symbol in forbidden_symbols if symbol in source]
     assert hits == []
+
+
+def test_factual_replay_has_no_forbidden_runtime_imports() -> None:
+    _assert_no_forbidden_imports(Path(factual.__file__).resolve())
+
+
+def test_publication_has_no_forbidden_runtime_imports() -> None:
+    _assert_no_forbidden_imports(Path(publication.__file__).resolve())
+
+
+def test_factual_replay_source_contains_no_runtime_mutation_symbols() -> None:
+    _assert_no_runtime_mutation_symbols(Path(factual.__file__).resolve())
+
+
+def test_publication_source_contains_no_runtime_mutation_symbols() -> None:
+    _assert_no_runtime_mutation_symbols(Path(publication.__file__).resolve())
