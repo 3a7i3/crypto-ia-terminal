@@ -619,12 +619,29 @@ def validate_candidate(
 
     if domains == ["RESEARCH_ONLY"]:
         for component in proposal["components"]:
-            if (
-                component.get("kind") == "FEATURE_SPEC"
-                and component.get("affects_population_or_capital") is True
-            ):
+            if component.get("kind") != "FEATURE_SPEC":
+                raise CandidateValidationError(
+                    "RESEARCH_ONLY candidate may contain FEATURE_SPEC components only"
+                )
+            if component.get("affects_population_or_capital") is True:
                 raise CandidateValidationError(
                     "RESEARCH_ONLY feature cannot affect population or capital"
+                )
+    else:
+        domain_set = set(domains)
+        for component in proposal["components"]:
+            kind = component.get("kind")
+            if kind in CONFIG_OPS and component.get("materiality") not in domain_set:
+                raise CandidateValidationError(
+                    "CONFIG component materiality must be declared in target_domains"
+                )
+            if kind == "CODE_PATCH" and component.get("semantic_domain") not in domain_set:
+                raise CandidateValidationError(
+                    "CODE_PATCH semantic_domain must be declared in target_domains"
+                )
+            if kind == "FEATURE_SPEC" and "FEATURE_PIPELINE" not in domain_set:
+                raise CandidateValidationError(
+                    "FEATURE_SPEC requires FEATURE_PIPELINE target domain"
                 )
 
     evaluation_plan = _mapping(candidate, "evaluation_plan")
