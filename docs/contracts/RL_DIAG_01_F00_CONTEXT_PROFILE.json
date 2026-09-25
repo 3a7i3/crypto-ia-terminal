@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "mission": "RL-DIAG-01",
+  "gate": "A3_DECISION_CONTEXT_SUBPROFILE",
+  "verdict": "PASS",
+  "dataset_id": "4ea633a6a4e2ee0bc01a6fe855526d7c42451883ec0b6f3914cf21ea8e91cc8b",
+  "source_boundary_id": "2e6b478cd0cead58c1bcf25c168254b0a63daaa2722c6c108613eb81e283812e",
+  "decision_packet_component_sha256": "cab875c1a7313c028351edd42410f2e780ecb33e59f3c4e583d566ea8413c170",
+  "source_tree_hash_method": "canonical JSON array of path/bytes/sha256 objects",
+  "source_tree_sha256_before": "9da1356f226db94edfc47267c01a01c333bb3e172fd62a6374b25b1cddb12009",
+  "source_tree_sha256_after": "9da1356f226db94edfc47267c01a01c333bb3e172fd62a6374b25b1cddb12009",
+  "worktree_clean": true,
+  "state_history": {
+    "packets": 13,
+    "transitions_per_packet": 5,
+    "total_transitions": 65,
+    "path_status": "COMPLETE_UNIFORM_NON_DISCRIMINATING",
+    "duration_ms_min": 0.0,
+    "duration_ms_max": 188.0
+  },
+  "reasoning": {
+    "packets": 13,
+    "entries": 100,
+    "entries_per_packet_min": 7,
+    "entries_per_packet_max": 8,
+    "severity": {"INFO": 100},
+    "nonzero_confidence_impacts": 74,
+    "confidence_impact_min": -3.0,
+    "confidence_impact_max": 5.0,
+    "categories": {
+      "signal_quality": 26,
+      "trend_alignment": 22,
+      "portfolio_exposure": 13,
+      "portfolio_concentration": 13,
+      "portfolio_correlation": 13,
+      "sizing": 13
+    }
+  },
+  "features": {
+    "packets": 13,
+    "keys_per_packet": 15,
+    "partial_keys": [],
+    "discriminating": [
+      "conviction_size_factor",
+      "mtf",
+      "mtf_strength",
+      "os_size_usd",
+      "pb_capital_available",
+      "pb_exposure_pct",
+      "pb_symbol_pct",
+      "regime"
+    ],
+    "complete_but_constant": [
+      "data_quality",
+      "memory",
+      "os_kelly",
+      "pb_corr_risk",
+      "pb_leverage_weighted",
+      "pb_size_factor",
+      "risk_drawdown_pct"
+    ]
+  },
+  "semantic_notes": {
+    "packet.regime": "categorical market regime class",
+    "features.regime": "LSE regime component score 0-25",
+    "features.mtf": "LSE MTF component score, max 40",
+    "features.mtf_strength": "LSE MTF directional strength",
+    "features.conviction_size_factor": "ConvictionEngine advisory size multiplier",
+    "features.os_size_usd": "OrderSizer final USD size"
+  },
+  "restrictions": [
+    "Do not collapse packet.regime and features.regime.",
+    "Do not treat constant features as explanatory.",
+    "Do not infer causality from N=13 associations.",
+    "PPL remains authoritative for entry/TP/SL/fees/PnL."
+  ],
+  "next_gate": "A4_FACTUAL_PERFORMANCE_ATTRIBUTION_KERNEL"
+}
