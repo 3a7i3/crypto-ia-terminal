@@ -398,6 +398,14 @@ def _validate_dataset_requirement(
     _string(requirement, "source_domain")
     _string(requirement, "source_authority")
 
+    expected = dataset_requirement_id(requirement)
+    actual = _sha256_value(
+        requirement.get("requirement_id"),
+        field="dataset_requirement.requirement_id",
+    )
+    if actual != expected:
+        raise CandidateValidationError("dataset requirement_id mismatch")
+
     if kind == "EXACT_DATASET":
         _sha256_value(requirement.get("dataset_id"), field="dataset_requirement.dataset_id")
         _sha256_value(
@@ -405,13 +413,6 @@ def _validate_dataset_requirement(
             field="dataset_requirement.source_boundary_id",
         )
     elif kind == "FUTURE_DATASET_REQUIREMENT":
-        expected = dataset_requirement_id(requirement)
-        actual = _sha256_value(
-            requirement.get("requirement_id"),
-            field="dataset_requirement.requirement_id",
-        )
-        if actual != expected:
-            raise CandidateValidationError("future dataset requirement_id mismatch")
         _string(requirement, "required_relation")
         if not isinstance(requirement.get("required_source_config_binding"), dict):
             raise CandidateValidationError(
