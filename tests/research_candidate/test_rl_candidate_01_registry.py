@@ -406,10 +406,28 @@ def test_registry_projects_only_legal_contiguous_transitions() -> None:
         ),
     ]
 
+    evaluation_catalog = {
+        "8" * 64: {
+            "evaluation_run_id": "8" * 64,
+            "candidate_id": cid,
+            "dataset_evidence_role": "DISCOVERY",
+            "qualification_eligible": False,
+            "unresolved_blockers": [],
+        },
+        "a" * 64: {
+            "evaluation_run_id": "a" * 64,
+            "candidate_id": cid,
+            "dataset_evidence_role": "VALIDATION",
+            "qualification_eligible": True,
+            "unresolved_blockers": [],
+        },
+    }
+
     state = project_candidate_states(
         {cid: candidate},
         events,
         baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+        evaluation_catalog=evaluation_catalog,
     )
     assert state[cid] == "QUALIFIED"
 
@@ -497,8 +515,22 @@ def test_research_only_candidate_cannot_enter_shadow_ready() -> None:
         ),
     ]
 
+    evaluation_catalog = {
+        "8" * 64: {
+            "evaluation_run_id": "8" * 64,
+            "candidate_id": cid,
+            "dataset_evidence_role": "DISCOVERY",
+            "qualification_eligible": False,
+            "unresolved_blockers": [],
+        }
+    }
+
     with pytest.raises(RegistryError, match="RESEARCH_ONLY"):
-        project_candidate_states({cid: candidate}, events)
+        project_candidate_states(
+            {cid: candidate},
+            events,
+            evaluation_catalog=evaluation_catalog,
+        )
 
 
 def _promotion_request(candidate: dict[str, Any]) -> dict[str, Any]:
