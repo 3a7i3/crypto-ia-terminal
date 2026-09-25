@@ -737,3 +737,244 @@ def test_promotion_rejects_proposal_without_implemented_source() -> None:
             candidate_state="QUALIFIED",
             baseline_material_config=BASE_MATERIAL_CONFIG,
         )
+
+
+def test_candidate_config_hash_must_match_projected_material_config() -> None:
+    candidate = _candidate(candidate_config_hash="d" * 64)
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="candidate_config_hash does not match projected material config",
+    ):
+        validate_candidate(
+            candidate,
+            evidence_catalog=_catalog(),
+            baseline_material_config=BASE_MATERIAL_CONFIG,
+        )
+
+
+def test_config_candidate_publication_requires_bound_baseline_material_config(
+    tmp_path: Path,
+) -> None:
+    candidate = _candidate()
+
+    with pytest.raises(
+        RegistryError,
+        match="publication requires baseline material config",
+    ):
+        publish_candidate(
+            tmp_path,
+            candidate,
+            evidence_catalog=_catalog(),
+        )
+
+
+def test_evaluation_identity_rejects_wrong_exact_dataset_binding() -> None:
+    candidate = _candidate()
+    req = _exact_requirement()
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="dataset_id does not satisfy exact requirement",
+    ):
+        compute_evaluation_run_id(
+            candidate=candidate,
+            dataset_id="e" * 64,
+            source_boundary_id=BOUNDARY_ID,
+            satisfied_dataset_requirement_id=req["requirement_id"],
+            dataset_evidence_role="DISCOVERY",
+            dataset_source_domain="PAPER",
+            dataset_source_authority="PPL_AUTHORITY",
+            evaluation_engine_code_sha=EVAL_CODE_SHA,
+            evaluation_method_version="FACTUAL_BINDING_CHECK_V1",
+            evaluation_config_hash=EVAL_CONFIG_HASH,
+            population_definition="POSITION_CLOSED_FOR_PERFORMANCE",
+            metric_semantics_version="METRICS_V1",
+        )
+
+
+def test_evaluation_identity_rejects_requirement_role_drift() -> None:
+    candidate = _candidate()
+    req = _exact_requirement()
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="evidence role does not satisfy requirement",
+    ):
+        compute_evaluation_run_id(
+            candidate=candidate,
+            dataset_id=DATASET_ID,
+            source_boundary_id=BOUNDARY_ID,
+            satisfied_dataset_requirement_id=req["requirement_id"],
+            dataset_evidence_role="VALIDATION",
+            dataset_source_domain="PAPER",
+            dataset_source_authority="PPL_AUTHORITY",
+            evaluation_engine_code_sha=EVAL_CODE_SHA,
+            evaluation_method_version="FACTUAL_BINDING_CHECK_V1",
+            evaluation_config_hash=EVAL_CONFIG_HASH,
+            population_definition="POSITION_CLOSED_FOR_PERFORMANCE",
+            metric_semantics_version="METRICS_V1",
+        )
+
+
+def test_future_evaluation_requires_external_source_config_binding_proof() -> None:
+    candidate = _candidate()
+    req = _future_requirement()
+
+    with pytest.raises(
+        CandidateValidationError,
+        match="external source/config binding proof",
+    ):
+        compute_evaluation_run_id(
+            candidate=candidate,
+            dataset_id="8" * 64,
+            source_boundary_id="9" * 64,
+            satisfied_dataset_requirement_id=req["requirement_id"],
+            dataset_evidence_role="VALIDATION",
+            dataset_source_domain="PAPER",
+            dataset_source_authority="PPL_AUTHORITY",
+            evaluation_engine_code_sha=EVAL_CODE_SHA,
+            evaluation_method_version="NEW_EPOCH_VALIDATION_V1",
+            evaluation_config_hash=EVAL_CONFIG_HASH,
+            population_definition="POSITION_CLOSED_FOR_PERFORMANCE",
+            metric_semantics_version="METRICS_V1",
+        )
+
+
+def test_qualification_rejects_discovery_only_evidence() -> None:
+    candidate = _candidate()
+    cid = candidate["candidate_id"]
+
+    events = [
+        _event(
+            cid,
+            sequence=1,
+            ordinal=1,
+            previous="CANDIDATE",
+            new="REPLAYED",
+            evidence=["8" * 64],
+            reason="EVALUATION_COMPLETED",
+        ),
+        _event(
+            cid,
+            sequence=2,
+            ordinal=2,
+            previous="REPLAYED",
+            new="SHADOW_READY",
+            evidence=["9" * 64],
+            reason="SHADOW_READINESS_CERTIFIED",
+        ),
+        _event(
+            cid,
+            sequence=3,
+            ordinal=3,
+            previous="SHADOW_READY",
+            new="QUALIFIED",
+            evidence=["8" * 64],
+            reason="QUALIFICATION_PASSED",
+        ),
+    ]
+
+    evaluation_catalog = {
+        "8" * 64: {
+            "evaluation_run_id": "8" * 64,
+            "candidate_id": cid,
+            "dataset_evidence_role": "DISCOVERY",
+            "qualification_eligible": True,
+            "unresolved_blockers": [],
+        }
+    }
+
+    with pytest.raises(
+        RegistryError,
+        match="eligible independent evaluation evidence",
+    ):
+        project_candidate_states(
+            {cid: candidate},
+            events,
+            baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+            evaluation_catalog=evaluation_catalog,
+        )
+
+
+def test_replayed_rejects_arbitrary_unregistered_evidence_hash() -> None:
+    candidate = _candidate()
+    cid = candidate["candidate_id"]
+
+    event = _event(
+        cid,
+        sequence=1,
+        ordinal=1,
+        previous="CANDIDATE",
+        new="REPLAYED",
+        evidence=["e" * 64],
+        reason="EVALUATION_COMPLETED",
+    )
+
+    with pytest.raises(RegistryError, match="governed evaluation_run_id"):
+        project_candidate_states(
+            {cid: candidate},
+            [event],
+            baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+            evaluation_catalog={},
+        )
+
+
+def test_qualification_rejects_unresolved_evaluation_blocker() -> None:
+    candidate = _candidate()
+    cid = candidate["candidate_id"]
+
+    events = [
+        _event(
+            cid,
+            sequence=1,
+            ordinal=1,
+            previous="CANDIDATE",
+            new="REPLAYED",
+            evidence=["8" * 64],
+            reason="EVALUATION_COMPLETED",
+        ),
+        _event(
+            cid,
+            sequence=2,
+            ordinal=2,
+            previous="REPLAYED",
+            new="SHADOW_READY",
+            evidence=["9" * 64],
+            reason="SHADOW_READINESS_CERTIFIED",
+        ),
+        _event(
+            cid,
+            sequence=3,
+            ordinal=3,
+            previous="SHADOW_READY",
+            new="QUALIFIED",
+            evidence=["a" * 64],
+            reason="QUALIFICATION_PASSED",
+        ),
+    ]
+
+    evaluation_catalog = {
+        "8" * 64: {
+            "evaluation_run_id": "8" * 64,
+            "candidate_id": cid,
+            "dataset_evidence_role": "DISCOVERY",
+            "qualification_eligible": False,
+            "unresolved_blockers": [],
+        },
+        "a" * 64: {
+            "evaluation_run_id": "a" * 64,
+            "candidate_id": cid,
+            "dataset_evidence_role": "VALIDATION",
+            "qualification_eligible": True,
+            "unresolved_blockers": ["MISSING_GUARDRAIL"],
+        },
+    }
+
+    with pytest.raises(RegistryError, match="unresolved evaluation blockers"):
+        project_candidate_states(
+            {cid: candidate},
+            events,
+            baseline_material_configs={cid: BASE_MATERIAL_CONFIG},
+            evaluation_catalog=evaluation_catalog,
+        )
