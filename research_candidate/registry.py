@@ -114,6 +114,27 @@ def _sorted_unique_strings(
     return value
 
 
+def _matching_evaluation_records(
+    *,
+    candidate_id: str,
+    evidence_refs: Sequence[str],
+    evaluation_catalog: Mapping[str, Mapping[str, Any]] | None,
+) -> list[Mapping[str, Any]]:
+    if evaluation_catalog is None:
+        return []
+    matches: list[Mapping[str, Any]] = []
+    for ref in evidence_refs:
+        record = evaluation_catalog.get(ref)
+        if not isinstance(record, Mapping):
+            continue
+        if record.get("evaluation_run_id") != ref:
+            raise RegistryError("evaluation catalog key does not match evaluation_run_id")
+        if record.get("candidate_id") != candidate_id:
+            raise RegistryError("evaluation evidence belongs to another candidate")
+        matches.append(record)
+    return matches
+
+
 def candidate_event_identity(event: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "candidate_event_identity_schema": CANDIDATE_EVENT_IDENTITY_SCHEMA,
@@ -185,6 +206,8 @@ def project_candidate_states(
     events: Sequence[Mapping[str, Any]],
     *,
     baseline_material_configs: Mapping[str, Mapping[str, Any]] | None = None,
+    evaluation_catalog: Mapping[str, Mapping[str, Any]] | None = None,
+    promotion_catalog: Mapping[str, Mapping[str, Any]] | None = None,
     allow_external_promotion: bool = False,
 ) -> dict[str, str]:
     """Project candidate states from immutable artifacts + ordered registry events."""
@@ -254,6 +277,45 @@ def project_candidate_states(
                 f"{new} transition requires exact evidence_refs"
             )
 
+        evaluations = _matching_evaluation_records(
+            candidate_id=candidate_id,
+            evidence_refs=event["evidence_refs"],
+            evaluation_catalog=evaluation_catalog,
+        )
+
+        if new == "REPLAYED" and not evaluations:
+            raise RegistryError(
+                "REPLAYED transition requires a governed evaluation_run_id"
+            )
+
+        if new == "QUALIFIED":
+            if not evaluations:
+                raise RegistryError(
+                    "QUALIFIED transition requires governed evaluation evidence"
+                )
+            policy = candidates[candidate_id]["evaluation_plan"]["data_reuse_policy"]
+            allow_discovery = policy.get("allow_discovery_as_validation") is True
+            eligible = [
+                record
+                for record in evaluations
+                if record.get("qualification_eligible") is True
+                and (
+                    record.get("dataset_evidence_role") in {"EVALUATION", "VALIDATION"}
+                    or (
+                        allow_discovery
+                        and record.get("dataset_evidence_role") == "DISCOVERY"
+                    )
+                )
+            ]
+            if not eligible:
+                raise RegistryError(
+                    "QUALIFIED transition lacks eligible independent evaluation evidence"
+                )
+            if any(record.get("unresolved_blockers") for record in eligible):
+                raise RegistryError(
+                    "QUALIFIED transition has unresolved evaluation blockers"
+                )
+
         if domains[candidate_id] == ("RESEARCH_ONLY",) and new in {
             "SHADOW_READY",
             "QUALIFIED",
@@ -275,6 +337,39 @@ def project_candidate_states(
                 raise RegistryError(
                     "PROMOTED_TO_NEW_EPOCH requires PROMOTION_EXECUTED reason_code"
                 )
+            if promotion_catalog is None:
+                raise RegistryError(
+                    "PROMOTED_TO_NEW_EPOCH requires external promotion catalog"
+                )
+            executed = []
+            for ref in event["evidence_refs"]:
+                request = promotion_catalog.get(ref)
+                if not isinstance(request, Mapping):
+                    continue
+                if request.get("promotion_request_id") != ref:
+                    raise RegistryError(
+                        "promotion catalog key does not match promotion_request_id"
+                    )
+                if request.get("candidate_id") != candidate_id:
+                    raise RegistryError("promotion evidence belongs to another candidate")
+                if request.get("status") == "EXECUTED":
+                    executed.append(request)
+            if len(executed) != 1:
+                raise RegistryError(
+                    "PROMOTED_TO_NEW_EPOCH requires exactly one EXECUTED promotion request"
+                )
+            request = executed[0]
+            if request.get("target_environment") != "PAPER_NEW_EPOCH":
+                raise RegistryError("executed promotion target is not PAPER_NEW_EPOCH")
+            new_epoch = request.get("requested_new_epoch")
+            if not isinstance(new_epoch, dict):
+                raise RegistryError("executed promotion lacks new epoch binding")
+            if (
+                new_epoch.get("kind") == "EXACT_NEW_EPOCH"
+                and new_epoch.get("paper_epoch_id")
+                == candidates[candidate_id].get("baseline", {}).get("paper_epoch_id")
+            ):
+                raise RegistryError("executed promotion reuses baseline PAPER epoch")
 
         states[candidate_id] = new
         ordinals[candidate_id] = expected_ordinal
