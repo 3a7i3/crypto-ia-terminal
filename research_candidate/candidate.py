@@ -661,6 +661,12 @@ def validate_candidate(
         evaluation_plan,
         parent_dataset_ids=set(parents["dataset_ids"]),
     )
+    if domains == ["RESEARCH_ONLY"]:
+        forbidden_methods = {"SHADOW", "NEW_PAPER_EPOCH"}
+        if forbidden_methods & set(evaluation_plan["evaluation_methods"]):
+            raise CandidateValidationError(
+                "RESEARCH_ONLY candidate cannot declare SHADOW or NEW_PAPER_EPOCH evaluation"
+            )
 
     limitations = _sorted_unique_strings(
         candidate.get("known_limitations"),
