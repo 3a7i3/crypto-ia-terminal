@@ -110,8 +110,9 @@ describe("App", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByTestId("tab-portfolio"));
+    fireEvent.click(screen.getByTestId("tab-paper"));
     expect(screen.getByTestId("portfolio-view")).toBeInTheDocument();
+    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("NOT REAL MONEY");
 
     fireEvent.click(screen.getByTestId("tab-decisions"));
     expect(screen.getByTestId("decisions-view")).toBeInTheDocument();
@@ -128,9 +129,10 @@ describe("App", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
+    fireEvent.click(screen.getByTestId("tab-paper"));
     fireEvent.click(screen.getByTestId("tab-ppl"));
     await waitFor(() => expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Legacy PAPER"));
-    expect(screen.getByTestId("ppl-domain-badge")).toHaveTextContent("PPL SHADOW");
+    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("PAPER SCIENCE");
     expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("678.46");
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/ppl-comparison", { method: "GET" });
@@ -151,6 +153,7 @@ describe("App", () => {
     // Canonical snapshot + MARKET subrouter fetch.
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
+    fireEvent.click(screen.getByTestId("tab-system"));
     fireEvent.click(screen.getByTestId("tab-scores"));
     expect(screen.getByTestId("not-exposed-label")).toHaveTextContent("NOT_EXPOSED");
     const text = screen.getByTestId("not-exposed-view").textContent ?? "";
