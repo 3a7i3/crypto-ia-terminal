@@ -7,7 +7,7 @@ on:
       - audit_requests/**
       - audit_results/**
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master , "web-rl-01-three-domain-contract"]
   workflow_dispatch:
 
 # Le CI de validation ne doit jamais recevoir un jeton d'écriture.

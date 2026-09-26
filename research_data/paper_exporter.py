@@ -6,8 +6,9 @@ Safety properties:
 - no production path defaults;
 - no environment lookup;
 - no service/runtime imports (research_data never imports
-  paper_trading.ppl_authority_runtime: the F00 manifest contract is re-stated
-  here as a pure, deterministic, explicit-path Research-owned validator);
+  paper_trading.ppl_authority_runtime: accepted scientific manifest contracts
+  are re-stated here as pure, deterministic, explicit-path Research-owned
+  validators);
 - no DurableEventStore lock acquisition because load_epoch opens a writable lock;
 - source files are read-only inputs;
 - output is written only below the caller-supplied Research root;
@@ -45,8 +46,10 @@ _DERIVATION = "PAPER_EXPORT"
 _SOURCE_DOMAIN = "PAPER"
 _SOURCE_AUTHORITY = "PPL_AUTHORITY"
 _F00_ROLE = "F00_EXPERIMENT"
+_BURN_IN_ROLE = "BURN_IN_EXPERIMENT"
 _F00_CONFIG_SCHEMA = "F00_EXPERIMENT_CONFIG_V1"
-_F00_CONFIG_FIELDS = frozenset(
+_BURN_IN_CONFIG_SCHEMA = "BURN_IN_EXPERIMENT_CONFIG_V1"
+_EXPERIMENT_CONFIG_FIELDS = frozenset(
     {
         "snapshot_schema",
         "paper_epoch_id",
@@ -59,7 +62,7 @@ _F00_CONFIG_FIELDS = frozenset(
         "snapshot_sha256",
     }
 )
-_F00_ACTIVATION_OVERLAY_FIELDS = frozenset(
+_ACTIVATION_OVERLAY_FIELDS = frozenset(
     {
         "path",
         "sha256",
@@ -68,7 +71,7 @@ _F00_ACTIVATION_OVERLAY_FIELDS = frozenset(
         "must_not_be_wired_before_owner_authorization",
     }
 )
-_F00_SECRET_SEGMENTS = frozenset(
+_EXPERIMENT_SECRET_SEGMENTS = frozenset(
     {
         "KEY",
         "SECRET",
@@ -249,7 +252,7 @@ def _require_sha256(value: Any, *, field_name: str) -> str:
 
 def _is_secret_like_parameter(key: str) -> bool:
     parts = {part for part in re.split(r"[^A-Za-z0-9]+", key.upper()) if part}
-    if parts & _F00_SECRET_SEGMENTS:
+    if parts & _EXPERIMENT_SECRET_SEGMENTS:
         return True
     upper = key.upper()
     return any(
@@ -451,8 +454,9 @@ def _load_ppl_readonly(
 
 
 _F00_MANIFEST_SCHEMA_VERSION = 2
-_F00_PPL_EVENT_SCHEMA_VERSION = 2
-_F00_MANIFEST_FIELDS = frozenset(
+_BURN_IN_MANIFEST_SCHEMA_VERSION = 3
+_PPL_EVENT_SCHEMA_VERSION = 2
+_SCIENTIFIC_MANIFEST_FIELDS = frozenset(
     {
         "manifest_schema_version",
         "paper_epoch_id",
@@ -470,13 +474,8 @@ _F00_MANIFEST_FIELDS = frozenset(
 
 
 @dataclass(frozen=True)
-class _F00AuthorityManifest:
-    """Research-owned, read-only view of a certified F00 authority manifest.
-
-    This is a pure value object. It performs no I/O, no environment lookup and
-    no service discovery, and it never grants PAPER authority: RL-DATA-01 reads
-    a manifest strictly to validate the one-way PAPER -> Research boundary.
-    """
+class _ScientificAuthorityManifest:
+    """Research-owned read-only view of an accepted scientific PAPER manifest."""
 
     paper_epoch_id: str
     created_at: float
@@ -491,42 +490,50 @@ class _F00AuthorityManifest:
     manifest_schema_version: int
 
 
-def _manifest_field_error(message: str) -> SourceValidationError:
-    return SourceValidationError(f"F00 manifest invalid: {message}")
+def _manifest_field_error(
+    message: str, *, label: str = "F00"
+) -> SourceValidationError:
+    return SourceValidationError(f"{label} manifest invalid: {message}")
 
 
-def _require_manifest_finite(doc: Mapping[str, Any], name: str) -> float:
+def _require_manifest_finite(
+    doc: Mapping[str, Any], name: str, *, label: str = "F00"
+) -> float:
     value = doc.get(name)
     if not isinstance(value, (int, float)) or isinstance(value, bool):
-        raise _manifest_field_error(f"{name} must be numeric")
+        raise _manifest_field_error(f"{name} must be numeric", label=label)
     value = float(value)
     if not math.isfinite(value):
-        raise _manifest_field_error(f"{name} must be finite")
+        raise _manifest_field_error(f"{name} must be finite", label=label)
     return value
 
 
-def _parse_f00_authority_manifest(doc: Mapping[str, Any]) -> _F00AuthorityManifest:
-    """Validate an already-read F00 manifest document, purely.
-
-    The document must come from the bytes already snapshotted and hashed by the
-    caller, so the validated content is exactly the content fingerprinted in the
-    source boundary. No second read of the source file occurs here.
-    """
+def _parse_scientific_authority_manifest(
+    doc: Mapping[str, Any],
+    *,
+    expected_role: str,
+    expected_schema_version: int,
+    label: str,
+) -> _ScientificAuthorityManifest:
+    """Validate one explicitly supported scientific authority manifest."""
 
     role = doc.get("epoch_role")
-    if role != _F00_ROLE:
+    if role != expected_role:
         raise SourceValidationError(
-            f"RL-DATA-01 requires epoch_role={_F00_ROLE}, got {role!r}"
+            f"RL-DATA-01 requires epoch_role={expected_role}, got {role!r}"
         )
-    if doc.get("manifest_schema_version") != _F00_MANIFEST_SCHEMA_VERSION:
+    if doc.get("manifest_schema_version") != expected_schema_version:
         raise _manifest_field_error(
-            "F00 experiment authority manifest must use schema v2"
+            f"{label} experiment authority manifest must use "
+            f"schema v{expected_schema_version}",
+            label=label,
         )
-    if frozenset(doc) != _F00_MANIFEST_FIELDS:
-        missing = sorted(_F00_MANIFEST_FIELDS - frozenset(doc))
-        extra = sorted(frozenset(doc) - _F00_MANIFEST_FIELDS)
+    if frozenset(doc) != _SCIENTIFIC_MANIFEST_FIELDS:
+        missing = sorted(_SCIENTIFIC_MANIFEST_FIELDS - frozenset(doc))
+        extra = sorted(frozenset(doc) - _SCIENTIFIC_MANIFEST_FIELDS)
         raise _manifest_field_error(
-            f"authority manifest fields mismatch: missing={missing}, extra={extra}"
+            f"authority manifest fields mismatch: missing={missing}, extra={extra}",
+            label=label,
         )
 
     for name in (
@@ -537,25 +544,31 @@ def _parse_f00_authority_manifest(doc: Mapping[str, Any]) -> _F00AuthorityManife
     ):
         value = doc.get(name)
         if not isinstance(value, str) or not value.strip():
-            raise _manifest_field_error(f"{name} must be a non-empty string")
+            raise _manifest_field_error(
+                f"{name} must be a non-empty string", label=label
+            )
 
     predecessor = doc.get("predecessor_authority_epoch_id")
     if not isinstance(predecessor, str):
         raise _manifest_field_error(
-            "predecessor_authority_epoch_id must be a string"
+            "predecessor_authority_epoch_id must be a string", label=label
         )
     if not predecessor.strip():
         raise _manifest_field_error(
-            "F00 experiment authority manifest requires "
-            "predecessor_authority_epoch_id"
+            f"{label} experiment authority manifest requires "
+            "predecessor_authority_epoch_id",
+            label=label,
         )
     if predecessor == doc["paper_epoch_id"]:
         raise _manifest_field_error(
-            "experiment epoch must differ from predecessor authority epoch"
+            "experiment epoch must differ from predecessor authority epoch",
+            label=label,
         )
 
-    if doc.get("ppl_event_schema_version") != _F00_PPL_EVENT_SCHEMA_VERSION:
-        raise _manifest_field_error("authoritative PPL event schema must be v2")
+    if doc.get("ppl_event_schema_version") != _PPL_EVENT_SCHEMA_VERSION:
+        raise _manifest_field_error(
+            "authoritative PPL event schema must be v2", label=label
+        )
 
     legacy_event_count = doc.get("legacy_event_count")
     if (
@@ -564,17 +577,19 @@ def _parse_f00_authority_manifest(doc: Mapping[str, Any]) -> _F00AuthorityManife
         or legacy_event_count < 0
     ):
         raise _manifest_field_error(
-            "legacy_event_count must be a non-negative integer"
+            "legacy_event_count must be a non-negative integer", label=label
         )
 
-    created_at = _require_manifest_finite(doc, "created_at")
+    created_at = _require_manifest_finite(doc, "created_at", label=label)
     initial_virtual_capital = _require_manifest_finite(
-        doc, "initial_virtual_capital"
+        doc, "initial_virtual_capital", label=label
     )
     if initial_virtual_capital <= 0:
-        raise _manifest_field_error("initial_virtual_capital must be > 0")
+        raise _manifest_field_error(
+            "initial_virtual_capital must be > 0", label=label
+        )
 
-    return _F00AuthorityManifest(
+    return _ScientificAuthorityManifest(
         paper_epoch_id=doc["paper_epoch_id"],
         created_at=created_at,
         initial_virtual_capital=initial_virtual_capital,
@@ -583,9 +598,31 @@ def _parse_f00_authority_manifest(doc: Mapping[str, Any]) -> _F00AuthorityManife
         legacy_boundary_sha256=doc["legacy_boundary_sha256"],
         legacy_event_count=legacy_event_count,
         predecessor_authority_epoch_id=predecessor,
-        epoch_role=_F00_ROLE,
-        ppl_event_schema_version=_F00_PPL_EVENT_SCHEMA_VERSION,
-        manifest_schema_version=_F00_MANIFEST_SCHEMA_VERSION,
+        epoch_role=expected_role,
+        ppl_event_schema_version=_PPL_EVENT_SCHEMA_VERSION,
+        manifest_schema_version=expected_schema_version,
+    )
+
+
+def _parse_f00_authority_manifest(
+    doc: Mapping[str, Any],
+) -> _ScientificAuthorityManifest:
+    return _parse_scientific_authority_manifest(
+        doc,
+        expected_role=_F00_ROLE,
+        expected_schema_version=_F00_MANIFEST_SCHEMA_VERSION,
+        label="F00",
+    )
+
+
+def _parse_burn_in_authority_manifest(
+    doc: Mapping[str, Any],
+) -> _ScientificAuthorityManifest:
+    return _parse_scientific_authority_manifest(
+        doc,
+        expected_role=_BURN_IN_ROLE,
+        expected_schema_version=_BURN_IN_MANIFEST_SCHEMA_VERSION,
+        label="burn-in",
     )
 
 
@@ -598,11 +635,20 @@ def _load_manifest(
     snapshot = _read_regular_file(path)
     raw_doc = _strict_json_loads(snapshot.raw, source=path)
     if not isinstance(raw_doc, dict):
-        raise SourceValidationError("F00 manifest must be a JSON object")
-    manifest = _parse_f00_authority_manifest(raw_doc)
+        raise SourceValidationError("scientific authority manifest must be a JSON object")
+    role = raw_doc.get("epoch_role")
+    if role == _BURN_IN_ROLE:
+        manifest = _parse_burn_in_authority_manifest(raw_doc)
+        manifest_label = "burn-in"
+    else:
+        # Preserve the certified F00 fail-closed behavior for F00 and unknown roles.
+        manifest = _parse_f00_authority_manifest(raw_doc)
+        manifest_label = "F00"
 
     if manifest.paper_epoch_id != paper_epoch_id:
-        raise SourceValidationError("F00 manifest paper_epoch_id mismatch")
+        raise SourceValidationError(
+            f"{manifest_label} manifest paper_epoch_id mismatch"
+        )
     _require_sha40(manifest.code_sha, field_name="manifest.code_sha")
     _require_sha256(
         manifest.config_snapshot_hash,
@@ -629,21 +675,32 @@ def _load_manifest(
 
 
 def _load_experiment_config(
-    path: Path, *, paper_epoch_id: str
+    path: Path, *, paper_epoch_id: str, epoch_role: str
 ) -> tuple[_FileSnapshot, Mapping[str, Any]]:
     snapshot = _read_regular_file(path)
     doc = _strict_json_loads(snapshot.raw, source=path)
     if not isinstance(doc, dict):
         raise SourceValidationError("experiment config must be a JSON object")
-    if frozenset(doc) != _F00_CONFIG_FIELDS:
-        missing = sorted(_F00_CONFIG_FIELDS - frozenset(doc))
-        extra = sorted(frozenset(doc) - _F00_CONFIG_FIELDS)
+    if frozenset(doc) != _EXPERIMENT_CONFIG_FIELDS:
+        missing = sorted(_EXPERIMENT_CONFIG_FIELDS - frozenset(doc))
+        extra = sorted(frozenset(doc) - _EXPERIMENT_CONFIG_FIELDS)
         raise SourceValidationError(
             f"experiment config fields mismatch: missing={missing}, extra={extra}"
         )
 
-    if doc.get("snapshot_schema") != _F00_CONFIG_SCHEMA:
-        raise SourceValidationError("unsupported experiment config snapshot_schema")
+    expected_schema = {
+        _F00_ROLE: _F00_CONFIG_SCHEMA,
+        _BURN_IN_ROLE: _BURN_IN_CONFIG_SCHEMA,
+    }.get(epoch_role)
+    if expected_schema is None:
+        raise SourceValidationError(
+            f"unsupported experiment config epoch_role={epoch_role!r}"
+        )
+    if doc.get("snapshot_schema") != expected_schema:
+        raise SourceValidationError(
+            "unsupported experiment config snapshot_schema: "
+            f"expected={expected_schema!r}, got={doc.get('snapshot_schema')!r}"
+        )
     if doc.get("paper_epoch_id") != paper_epoch_id:
         raise SourceValidationError("experiment config paper_epoch_id mismatch")
 
@@ -692,9 +749,9 @@ def _load_experiment_config(
     overlay = doc.get("activation_overlay")
     if not isinstance(overlay, dict):
         raise SourceValidationError("experiment config activation_overlay missing")
-    if frozenset(overlay) != _F00_ACTIVATION_OVERLAY_FIELDS:
-        missing = sorted(_F00_ACTIVATION_OVERLAY_FIELDS - frozenset(overlay))
-        extra = sorted(frozenset(overlay) - _F00_ACTIVATION_OVERLAY_FIELDS)
+    if frozenset(overlay) != _ACTIVATION_OVERLAY_FIELDS:
+        missing = sorted(_ACTIVATION_OVERLAY_FIELDS - frozenset(overlay))
+        extra = sorted(frozenset(overlay) - _ACTIVATION_OVERLAY_FIELDS)
         raise SourceValidationError(
             "experiment config activation_overlay fields mismatch: "
             f"missing={missing}, extra={extra}"
@@ -1124,6 +1181,7 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
     config_snapshot, config_doc = _load_experiment_config(
         Path(request.experiment_config_path),
         paper_epoch_id=request.paper_epoch_id,
+        epoch_role=authority_manifest.epoch_role,
     )
 
     boundary_doc = _source_boundary_document(
@@ -1164,6 +1222,21 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
     )
     dataset_id = _sha256_bytes(_canonical_json_bytes(dataset_identity_doc))
 
+    if authority_manifest.epoch_role == _F00_ROLE:
+        experiment_manifest_component = "f00_experiment_manifest"
+        experiment_config_component = "f00_experiment_config"
+        experiment_manifest_filename = "f00_experiment_manifest.json"
+        experiment_config_filename = "f00_experiment_config.json"
+    elif authority_manifest.epoch_role == _BURN_IN_ROLE:
+        experiment_manifest_component = "burn_in_experiment_manifest"
+        experiment_config_component = "burn_in_experiment_config"
+        experiment_manifest_filename = "burn_in_experiment_manifest.json"
+        experiment_config_filename = "burn_in_experiment_config.json"
+    else:  # Defensive: the manifest parser already fails closed.
+        raise SourceValidationError(
+            f"unsupported scientific epoch_role={authority_manifest.epoch_role!r}"
+        )
+
     components: dict[str, Any] = {
         "ppl_events": {
             "authority_class": "AUTHORITATIVE_CORE",
@@ -1171,13 +1244,13 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
             "record_count": len(events),
             "sha256": ppl_snapshot.sha256,
         },
-        "f00_experiment_manifest": {
+        experiment_manifest_component: {
             "authority_class": "AUTHORITATIVE_CORE",
             "status": "COMPLETE",
             "record_count": 1,
             "sha256": manifest_snapshot.sha256,
         },
-        "f00_experiment_config": {
+        experiment_config_component: {
             "authority_class": "AUTHORITATIVE_CORE",
             "status": "COMPLETE",
             "record_count": 1,
@@ -1292,11 +1365,11 @@ def export_paper_dataset(request: PaperExportRequest) -> ExportResult:
             ppl_snapshot.raw,
         )
         _write_new_bytes(
-            tmp / "authoritative" / "f00_experiment_manifest.json",
+            tmp / "authoritative" / experiment_manifest_filename,
             manifest_snapshot.raw,
         )
         _write_new_bytes(
-            tmp / "authoritative" / "f00_experiment_config.json",
+            tmp / "authoritative" / experiment_config_filename,
             config_snapshot.raw,
         )
         if decision_packet_bytes is not None and journal_bytes is not None:
