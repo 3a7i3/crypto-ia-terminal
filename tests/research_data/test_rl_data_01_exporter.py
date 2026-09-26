@@ -849,3 +849,310 @@ def test_rb3_f00_output_names_remain_backward_compatible(tmp_path):
     assert not (authoritative / "burn_in_experiment_manifest.json").exists()
     assert not (authoritative / "burn_in_experiment_config.json").exists()
 
+# ---------------------------------------------------------------------------
+# RB4 — immutable accumulating capture and final burn-in designation.
+# ---------------------------------------------------------------------------
+
+
+def _tree_bytes(root: Path) -> dict[str, bytes]:
+    return {
+        str(path.relative_to(root)): path.read_bytes()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def _append_closed_lifecycle(files: dict[str, Path]) -> None:
+    events = (
+        make_position_opened_event(
+            event_id="ev-4",
+            paper_epoch_id=EPOCH,
+            sequence=4,
+            timestamp=30.0,
+            trade_id="trade-2",
+            symbol="ETH/USDT",
+            side="LONG",
+            principal=10.0,
+            entry_price=100.0,
+            entry_fee=0.01,
+            decision_id="packet-2",
+            schema_version=2,
+            tp_price=120.0,
+            sl_price=90.0,
+            timeout_at=100.0,
+            recovery_eligible_until=200.0,
+        ),
+        make_position_closed_event(
+            event_id="ev-5",
+            paper_epoch_id=EPOCH,
+            sequence=5,
+            timestamp=40.0,
+            trade_id="trade-2",
+            exit_price=105.0,
+            exit_fee=0.01,
+            decision_id=None,
+            schema_version=2,
+        ),
+    )
+    with files["epoch_path"].open("ab") as handle:
+        for event in events:
+            handle.write(ppl_wire._canonical_line(event))
+
+
+def _burn_in_capture_request(
+    files: dict[str, Path], output_root: Path, *, extracted_at: str
+) -> PaperExportRequest:
+    return replace(
+        _request(files, output_root, extracted_at=extracted_at),
+        decision_packet_paths=(),
+        decision_identity_journal_path=None,
+    )
+
+
+def test_rb4_accumulating_capture_and_finalization_are_immutable(tmp_path):
+    from research_data.burn_in_finalization import (
+        BurnInQuiescence,
+        designate_final_burn_in_dataset,
+    )
+
+    files = _fixture(tmp_path / "fixture")
+    _promote_fixture_identity_to_burn_in(files)
+    source_before = _source_bytes(files)
+
+    first = export_paper_dataset(
+        _burn_in_capture_request(
+            files,
+            tmp_path / "research-a",
+            extracted_at="2026-09-26T03:30:00Z",
+        )
+    )
+    second = export_paper_dataset(
+        _burn_in_capture_request(
+            files,
+            tmp_path / "research-b",
+            extracted_at="2026-09-26T04:00:00Z",
+        )
+    )
+
+    assert first.source_boundary_id == second.source_boundary_id
+    assert first.dataset_id == second.dataset_id
+    assert _source_bytes(files) == source_before
+
+    first_bytes = _tree_bytes(first.dataset_path)
+    second_bytes = _tree_bytes(second.dataset_path)
+
+    _append_closed_lifecycle(files)
+    source_after_deliberate_append = _source_bytes(files)
+
+    final_capture = export_paper_dataset(
+        _burn_in_capture_request(
+            files,
+            tmp_path / "research-c",
+            extracted_at="2026-09-26T05:00:00Z",
+        )
+    )
+    assert final_capture.source_boundary_id != first.source_boundary_id
+    assert final_capture.dataset_id != first.dataset_id
+    assert final_capture.manifest["source_boundary_identity"][
+        "source_event_count"
+    ] == 5
+    assert final_capture.manifest["source_boundary_identity"][
+        "source_last_sequence"
+    ] == 5
+
+    final_capture_bytes = _tree_bytes(final_capture.dataset_path)
+    result = designate_final_burn_in_dataset(
+        dataset_path=final_capture.dataset_path,
+        designation_root=tmp_path / "research-finalization",
+        quiescence=BurnInQuiescence(
+            authority_process_stopped=True,
+            pending_order_count=0,
+            lifecycle_transitions_in_flight=0,
+        ),
+        designated_at_utc="2026-09-26T05:10:00Z",
+        protected_roots=(files["source"],),
+    )
+
+    assert result.document["designation"] == "FINAL_BURN_IN_DATASET"
+    assert result.document["dataset_id"] == final_capture.dataset_id
+    assert result.document["source_boundary_id"] == final_capture.source_boundary_id
+    assert result.document["source_event_count"] == 5
+    assert result.document["source_last_sequence"] == 5
+    assert result.document["closed_lifecycle_count"] == 2
+    assert result.document["unresolved_lifecycle_count"] == 0
+    assert result.document["open_lifecycle_count"] == 0
+    assert result.designation_path.is_file()
+
+    assert _tree_bytes(first.dataset_path) == first_bytes
+    assert _tree_bytes(second.dataset_path) == second_bytes
+    assert _tree_bytes(final_capture.dataset_path) == final_capture_bytes
+    assert _source_bytes(files) == source_after_deliberate_append
+
+
+def test_rb4_final_designation_id_ignores_publication_time(tmp_path):
+    from research_data.burn_in_finalization import (
+        BurnInQuiescence,
+        designate_final_burn_in_dataset,
+    )
+
+    files = _fixture(tmp_path / "fixture")
+    _promote_fixture_identity_to_burn_in(files)
+    capture = export_paper_dataset(
+        _burn_in_capture_request(
+            files,
+            tmp_path / "research",
+            extracted_at="2026-09-26T03:30:00Z",
+        )
+    )
+    quiescence = BurnInQuiescence(
+        authority_process_stopped=True,
+        pending_order_count=0,
+        lifecycle_transitions_in_flight=0,
+    )
+    first = designate_final_burn_in_dataset(
+        dataset_path=capture.dataset_path,
+        designation_root=tmp_path / "final-a",
+        quiescence=quiescence,
+        designated_at_utc="2026-09-26T04:00:00Z",
+    )
+    second = designate_final_burn_in_dataset(
+        dataset_path=capture.dataset_path,
+        designation_root=tmp_path / "final-b",
+        quiescence=quiescence,
+        designated_at_utc="2026-09-27T04:00:00Z",
+    )
+
+    assert first.designation_id == second.designation_id
+    assert first.document["designated_at_utc"] != second.document["designated_at_utc"]
+
+
+def test_rb4_final_designation_is_write_once_and_rejects_non_quiescence(tmp_path):
+    from research_data.burn_in_finalization import (
+        BurnInQuiescence,
+        BurnInQuiescenceError,
+        FinalDesignationExistsError,
+        designate_final_burn_in_dataset,
+    )
+
+    files = _fixture(tmp_path / "fixture")
+    _promote_fixture_identity_to_burn_in(files)
+    capture = export_paper_dataset(
+        _burn_in_capture_request(
+            files,
+            tmp_path / "research",
+            extracted_at="2026-09-26T03:30:00Z",
+        )
+    )
+    root = tmp_path / "final"
+
+    with pytest.raises(BurnInQuiescenceError):
+        designate_final_burn_in_dataset(
+            dataset_path=capture.dataset_path,
+            designation_root=root,
+            quiescence=BurnInQuiescence(
+                authority_process_stopped=False,
+                pending_order_count=0,
+                lifecycle_transitions_in_flight=0,
+            ),
+            designated_at_utc="2026-09-26T04:00:00Z",
+        )
+
+    quiescence = BurnInQuiescence(
+        authority_process_stopped=True,
+        pending_order_count=0,
+        lifecycle_transitions_in_flight=0,
+    )
+    designate_final_burn_in_dataset(
+        dataset_path=capture.dataset_path,
+        designation_root=root,
+        quiescence=quiescence,
+        designated_at_utc="2026-09-26T04:00:00Z",
+    )
+    with pytest.raises(FinalDesignationExistsError):
+        designate_final_burn_in_dataset(
+            dataset_path=capture.dataset_path,
+            designation_root=root,
+            quiescence=quiescence,
+            designated_at_utc="2026-09-27T04:00:00Z",
+        )
+
+
+def test_rb4_finalizer_rejects_f00_and_dataset_tampering(tmp_path):
+    from research_data.burn_in_finalization import (
+        BurnInDatasetValidationError,
+        BurnInQuiescence,
+        designate_final_burn_in_dataset,
+    )
+
+    f00_files = _fixture(tmp_path / "f00")
+    f00_capture = export_paper_dataset(
+        replace(
+            _request(f00_files, tmp_path / "research-f00"),
+            decision_packet_paths=(),
+            decision_identity_journal_path=None,
+        )
+    )
+    quiescence = BurnInQuiescence(
+        authority_process_stopped=True,
+        pending_order_count=0,
+        lifecycle_transitions_in_flight=0,
+    )
+    with pytest.raises(BurnInDatasetValidationError):
+        designate_final_burn_in_dataset(
+            dataset_path=f00_capture.dataset_path,
+            designation_root=tmp_path / "final-f00",
+            quiescence=quiescence,
+            designated_at_utc="2026-09-26T04:00:00Z",
+        )
+
+    files = _fixture(tmp_path / "burn")
+    _promote_fixture_identity_to_burn_in(files)
+    capture = export_paper_dataset(
+        _burn_in_capture_request(
+            files,
+            tmp_path / "research-burn",
+            extracted_at="2026-09-26T03:30:00Z",
+        )
+    )
+    ppl_copy = capture.dataset_path / "authoritative" / "ppl_events.jsonl"
+    ppl_copy.write_bytes(ppl_copy.read_bytes() + b"\n")
+
+    with pytest.raises(BurnInDatasetValidationError):
+        designate_final_burn_in_dataset(
+            dataset_path=capture.dataset_path,
+            designation_root=tmp_path / "final-tampered",
+            quiescence=quiescence,
+            designated_at_utc="2026-09-26T04:00:00Z",
+        )
+
+
+def test_rb4_finalizer_rejects_research_output_under_protected_paper_root(tmp_path):
+    from research_data.burn_in_finalization import (
+        BurnInFinalizationError,
+        BurnInQuiescence,
+        designate_final_burn_in_dataset,
+    )
+
+    files = _fixture(tmp_path / "fixture")
+    _promote_fixture_identity_to_burn_in(files)
+    capture = export_paper_dataset(
+        _burn_in_capture_request(
+            files,
+            tmp_path / "research",
+            extracted_at="2026-09-26T03:30:00Z",
+        )
+    )
+
+    with pytest.raises(BurnInFinalizationError, match="protected PAPER/runtime root"):
+        designate_final_burn_in_dataset(
+            dataset_path=capture.dataset_path,
+            designation_root=files["source"] / "research-finalization",
+            quiescence=BurnInQuiescence(
+                authority_process_stopped=True,
+                pending_order_count=0,
+                lifecycle_transitions_in_flight=0,
+            ),
+            designated_at_utc="2026-09-26T04:00:00Z",
+            protected_roots=(files["source"],),
+        )
+
