@@ -28,6 +28,7 @@ try {
   assert(response?.ok(), "frontend navigation failed");
 
   await page.getByTestId("overview-view").waitFor({ state: "visible" });
+  await page.getByTestId("tab-paper").click();
   await page.getByTestId("tab-finance").click();
   await page.getByTestId("financial-reconciliation-view").waitFor({ state: "visible" });
   await page

@@ -2,9 +2,9 @@
 
 Status: SOURCE CONTRACT V1 / implementation pending
 
-Parent: #237  
-Governance: #148  
-Mission: #248  
+Parent: #237
+Governance: #148
+Mission: #248
 Upstream: #238 RL-DATA-01 + #239 RL-REPLAY-01
 
 Certified upstream identities:

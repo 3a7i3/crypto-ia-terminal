@@ -2,9 +2,9 @@
 
 Status: SOURCE CONTRACT V1 / candidate creation NOT YET AUTHORIZED
 
-Parent architecture: #237  
-Governance: #148  
-Mission: #240  
+Parent architecture: #237
+Governance: #148
+Mission: #240
 Upstream:
 - #238 — `RL_DATA_01_SOURCE_CERTIFIED`
 - #239 — `RL_REPLAY_01_SOURCE_CERTIFIED`

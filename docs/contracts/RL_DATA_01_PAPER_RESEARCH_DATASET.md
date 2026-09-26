@@ -2,9 +2,9 @@
 
 Status: SOURCE CONTRACT V1 / implementation pending
 
-Parent: #237  
-Governance: #148  
-Mission: #238  
+Parent: #237
+Governance: #148
+Mission: #238
 Draft implementation PR: #243
 
 Reference source baseline:

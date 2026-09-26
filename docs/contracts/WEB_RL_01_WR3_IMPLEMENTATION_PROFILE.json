@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "mission": "WEB-RL-01",
+  "gate": "WR3_FRONTEND_THREE_DOMAIN_NAVIGATION_AND_RESEARCH_VIEW",
+  "status": "SOURCE_IMPLEMENTED_CI_PENDING",
+  "stack_base_head": "7294d9b03b682a35edec919215375e3be49d372c",
+  "implementation_head": "607a68b5a85feea7a697e4b6209c99d4d0c6a4e0",
+  "navigation": [
+    "OVERVIEW",
+    "MARKET_OBSERVATORY",
+    "PAPER_SCIENCE",
+    "RESEARCH_LAB",
+    "SYSTEM_GOVERNANCE"
+  ],
+  "paper_subviews": [
+    "PORTFOLIO",
+    "DECISIONS",
+    "PPL_COMPARISON",
+    "FINANCIAL_RECONCILIATION"
+  ],
+  "research_frontend": {
+    "strict_payload_validator": true,
+    "get_only_client": true,
+    "non_authoritative_banner": true,
+    "provenance_visible": true,
+    "low_sample_visible": true,
+    "not_available_visible": true,
+    "empty_candidate_registry_honest": true,
+    "paper_research_population_mixing": false,
+    "scientific_metric_recomputation": false,
+    "mobile_responsive_layout": true
+  },
+  "focused_frontend_tests_declared": 5,
+  "cross_stack_research_test_declared": 1,
+  "runtime_deployment": false,
+  "next_gate": "WR4_CROSS_STACK_VISUAL_AND_EXACT_HEAD_CI"
+}

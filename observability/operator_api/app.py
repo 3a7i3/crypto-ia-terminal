@@ -45,6 +45,11 @@ from observability.operator_api.ppl_comparison_reader import (
     PplComparisonSnapshotReader,
 )
 from observability.operator_api.reader import SafeSnapshotReader, SnapshotReadResult
+from observability.operator_api.research_lab_reader import (
+    DEFAULT_RESEARCH_LAB_SNAPSHOT_PATH,
+    ResearchLabReadResult,
+    ResearchLabSnapshotReader,
+)
 
 app = FastAPI(
     title="Crypto AI Terminal — Operator API (read-only)",
@@ -62,6 +67,7 @@ _reader = SafeSnapshotReader()
 _market_reader = MarketSnapshotReader()
 _ppl_comparison_reader = PplComparisonSnapshotReader()
 _financial_reconciliation_reader = FinancialReconciliationSnapshotReader()
+_research_lab_reader = ResearchLabSnapshotReader()
 
 
 def configure_reader(
@@ -149,6 +155,20 @@ def get_financial_reconciliation_reader() -> FinancialReconciliationSnapshotRead
     return _financial_reconciliation_reader
 
 
+def configure_research_lab_reader(
+    path: Path = DEFAULT_RESEARCH_LAB_SNAPSHOT_PATH,
+) -> ResearchLabSnapshotReader:
+    """Replace the WEB-RL presentation reader without touching Research state."""
+
+    global _research_lab_reader
+    _research_lab_reader = ResearchLabSnapshotReader(path=path)
+    return _research_lab_reader
+
+
+def get_research_lab_reader() -> ResearchLabSnapshotReader:
+    return _research_lab_reader
+
+
 def _envelope(result: SnapshotReadResult) -> Dict[str, Any]:
     snap = result.snapshot or {}
     return {
@@ -200,6 +220,16 @@ def _ppl_comparison_failure_response(
 def _financial_reconciliation_failure_response(
     result: FinancialReconciliationReadResult,
 ) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error_code": result.error_code,
+            "error_message": result.error_message,
+        },
+    )
+
+
+def _research_lab_failure_response(result: ResearchLabReadResult) -> JSONResponse:
     return JSONResponse(
         status_code=503,
         content={
@@ -333,6 +363,21 @@ def get_market() -> Any:
     return payload
 
 
+@app.get("/api/operator/v1/research-lab")
+def get_research_lab() -> Any:
+    """Return only the validated WEB-RL Research presentation artifact.
+
+    This route never reads Research source datasets/JSONL, never instantiates
+    replay/diagnostic/candidate engines, and never recomputes scientific metrics.
+    """
+
+    result = get_research_lab_reader().read()
+    if not result.ok:
+        return _research_lab_failure_response(result)
+
+    return dict(result.snapshot or {})
+
+
 __all__ = [
     "app",
     "configure_reader",
@@ -343,4 +388,6 @@ __all__ = [
     "get_ppl_comparison_reader",
     "configure_financial_reconciliation_reader",
     "get_financial_reconciliation_reader",
+    "configure_research_lab_reader",
+    "get_research_lab_reader",
 ]
