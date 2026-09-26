@@ -2,9 +2,9 @@
 
 Status: SOURCE CONTRACT V1 / implementation in progress
 
-Parent: #237  
-Governance: #148  
-Mission: #239  
+Parent: #237
+Governance: #148
+Mission: #239
 Depends on: #238 / PR #243
 
 Certified upstream implementation:
