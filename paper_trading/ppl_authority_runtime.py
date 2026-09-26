@@ -44,11 +44,14 @@ from paper_trading.ppl_recovery import (
 
 _TRANSITION_MANIFEST_SCHEMA_VERSION = 1
 _EXPERIMENT_MANIFEST_SCHEMA_VERSION = 2
+_BURN_IN_MANIFEST_SCHEMA_VERSION = 3
 _PPL_EVENT_SCHEMA_VERSION = 2
 _TRANSITION_EPOCH_ROLE = "PPL_AUTHORITY_TRANSITION"
 _EXPERIMENT_EPOCH_ROLE = "F00_EXPERIMENT"
+_BURN_IN_EPOCH_ROLE = "BURN_IN_EXPERIMENT"
 _TRANSITION_EVENT_DOMAIN = "PPL-02E-R4-AUTHORITY-V1"
 _EXPERIMENT_EVENT_DOMAIN = "F00-EPOCH-AUTHORITY-V1"
+_BURN_IN_EVENT_DOMAIN = "BURN-IN-EPOCH-AUTHORITY-V1"
 
 _MANIFEST_COMMON_FIELDS = frozenset(
     {
@@ -68,6 +71,9 @@ _TRANSITION_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
     "predecessor_shadow_epoch_id"
 }
 _EXPERIMENT_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
+    "predecessor_authority_epoch_id"
+}
+_BURN_IN_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
     "predecessor_authority_epoch_id"
 }
 
@@ -155,10 +161,28 @@ class AuthorityEpochManifest:
                 raise ValueError(
                     "experiment epoch must differ from predecessor authority epoch"
                 )
+        elif self.epoch_role == _BURN_IN_EPOCH_ROLE:
+            if self.manifest_schema_version != _BURN_IN_MANIFEST_SCHEMA_VERSION:
+                raise ValueError("burn-in experiment authority manifest must use schema v3")
+            if self.predecessor_shadow_epoch_id:
+                raise ValueError(
+                    "burn-in experiment authority manifest must not carry "
+                    "predecessor_shadow_epoch_id"
+                )
+            if not self.predecessor_authority_epoch_id.strip():
+                raise ValueError(
+                    "burn-in experiment authority manifest requires "
+                    "predecessor_authority_epoch_id"
+                )
+            if self.predecessor_authority_epoch_id == self.paper_epoch_id:
+                raise ValueError(
+                    "burn-in epoch must differ from predecessor authority epoch"
+                )
         else:
             raise ValueError(
                 "unsupported epoch_role; expected "
-                f"{_TRANSITION_EPOCH_ROLE!r} or {_EXPERIMENT_EPOCH_ROLE!r}"
+                f"{_TRANSITION_EPOCH_ROLE!r}, {_EXPERIMENT_EPOCH_ROLE!r}, "
+                f"or {_BURN_IN_EPOCH_ROLE!r}"
             )
 
         if self.ppl_event_schema_version != _PPL_EVENT_SCHEMA_VERSION:
@@ -291,6 +315,39 @@ def build_experiment_manifest(
     )
 
 
+def build_burn_in_experiment_manifest(
+    *,
+    paper_epoch_id: str,
+    created_at: float,
+    initial_virtual_capital: float,
+    code_sha: str,
+    config_snapshot_hash: str,
+    legacy_log_bytes: bytes,
+    quiescence: EpochRotationQuiescence,
+    predecessor_authority_epoch_id: str,
+) -> AuthorityEpochManifest:
+    """Build an explicit burn-in experiment manifest at a proven stopped boundary."""
+
+    if not quiescence.quiescent:
+        raise AuthorityManifestError(
+            "burn-in epoch rotation requires stopped authority process, "
+            "zero open positions, zero pending orders and zero lifecycle "
+            "transition in flight"
+        )
+    return AuthorityEpochManifest(
+        paper_epoch_id=paper_epoch_id,
+        created_at=created_at,
+        initial_virtual_capital=initial_virtual_capital,
+        code_sha=code_sha,
+        config_snapshot_hash=config_snapshot_hash,
+        legacy_boundary_sha256=hashlib.sha256(legacy_log_bytes).hexdigest(),
+        legacy_event_count=_count_nonempty_lines(legacy_log_bytes),
+        predecessor_authority_epoch_id=predecessor_authority_epoch_id,
+        epoch_role=_BURN_IN_EPOCH_ROLE,
+        manifest_schema_version=_BURN_IN_MANIFEST_SCHEMA_VERSION,
+    )
+
+
 def write_authority_manifest(
     path: os.PathLike[str] | str,
     manifest: AuthorityEpochManifest,
@@ -316,6 +373,10 @@ def write_authority_manifest(
             manifest.predecessor_shadow_epoch_id
         )
     elif manifest.epoch_role == _EXPERIMENT_EPOCH_ROLE:
+        payload["predecessor_authority_epoch_id"] = (
+            manifest.predecessor_authority_epoch_id
+        )
+    elif manifest.epoch_role == _BURN_IN_EPOCH_ROLE:
         payload["predecessor_authority_epoch_id"] = (
             manifest.predecessor_authority_epoch_id
         )
@@ -379,6 +440,16 @@ def load_authority_manifest(path: os.PathLike[str] | str) -> AuthorityEpochManif
                 "predecessor_authority_epoch_id", ""
             )
         }
+    elif (
+        role == _BURN_IN_EPOCH_ROLE
+        and manifest_schema == _BURN_IN_MANIFEST_SCHEMA_VERSION
+    ):
+        expected_fields = _BURN_IN_MANIFEST_FIELDS
+        predecessor_kwargs = {
+            "predecessor_authority_epoch_id": data.get(
+                "predecessor_authority_epoch_id", ""
+            )
+        }
     else:
         raise AuthorityManifestError(
             "unsupported authority manifest role/schema combination"
@@ -412,6 +483,8 @@ def _event_domain_and_prefix(
         return _TRANSITION_EVENT_DOMAIN, "ppl02e"
     if manifest.epoch_role == _EXPERIMENT_EPOCH_ROLE:
         return _EXPERIMENT_EVENT_DOMAIN, "f00"
+    if manifest.epoch_role == _BURN_IN_EPOCH_ROLE:
+        return _BURN_IN_EVENT_DOMAIN, "burnin"
     raise PPLAuthorityRuntimeError(
         f"unsupported authority event domain for role={manifest.epoch_role!r}"
     )
