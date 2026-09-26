@@ -420,7 +420,12 @@ Target:
 
 `RB3_BURNIN_EPOCH_IDENTITY_CERTIFIED`
 
-Status: `SOURCE_IMPLEMENTED — CERTIFICATION PENDING`.
+Status: `RB3_BURNIN_EPOCH_IDENTITY_CERTIFIED`.
+
+Certification requires the dedicated `RL-BURNIN Source Proof` gate to be
+SUCCESS on the exact RB3 head. The exact certified SHA and workflow run are
+recorded in #242 / #148 governance evidence; this contract does not authorize
+runtime creation of the represented burn-in epoch.
 
 ### RB4 — CAPTURE / FINALIZATION
 
