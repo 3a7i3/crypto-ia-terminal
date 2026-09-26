@@ -6,8 +6,9 @@ Safety properties:
 - no production path defaults;
 - no environment lookup;
 - no service/runtime imports (research_data never imports
-  paper_trading.ppl_authority_runtime: the F00 manifest contract is re-stated
-  here as a pure, deterministic, explicit-path Research-owned validator);
+  paper_trading.ppl_authority_runtime: accepted scientific manifest contracts
+  are re-stated here as pure, deterministic, explicit-path Research-owned
+  validators);
 - no DurableEventStore lock acquisition because load_epoch opens a writable lock;
 - source files are read-only inputs;
 - output is written only below the caller-supplied Research root;
@@ -48,7 +49,7 @@ _F00_ROLE = "F00_EXPERIMENT"
 _BURN_IN_ROLE = "BURN_IN_EXPERIMENT"
 _F00_CONFIG_SCHEMA = "F00_EXPERIMENT_CONFIG_V1"
 _BURN_IN_CONFIG_SCHEMA = "BURN_IN_EXPERIMENT_CONFIG_V1"
-_F00_CONFIG_FIELDS = frozenset(
+_EXPERIMENT_CONFIG_FIELDS = frozenset(
     {
         "snapshot_schema",
         "paper_epoch_id",
@@ -61,7 +62,7 @@ _F00_CONFIG_FIELDS = frozenset(
         "snapshot_sha256",
     }
 )
-_F00_ACTIVATION_OVERLAY_FIELDS = frozenset(
+_ACTIVATION_OVERLAY_FIELDS = frozenset(
     {
         "path",
         "sha256",
@@ -70,7 +71,7 @@ _F00_ACTIVATION_OVERLAY_FIELDS = frozenset(
         "must_not_be_wired_before_owner_authorization",
     }
 )
-_F00_SECRET_SEGMENTS = frozenset(
+_EXPERIMENT_SECRET_SEGMENTS = frozenset(
     {
         "KEY",
         "SECRET",
@@ -251,7 +252,7 @@ def _require_sha256(value: Any, *, field_name: str) -> str:
 
 def _is_secret_like_parameter(key: str) -> bool:
     parts = {part for part in re.split(r"[^A-Za-z0-9]+", key.upper()) if part}
-    if parts & _F00_SECRET_SEGMENTS:
+    if parts & _EXPERIMENT_SECRET_SEGMENTS:
         return True
     upper = key.upper()
     return any(
@@ -454,7 +455,7 @@ def _load_ppl_readonly(
 
 _F00_MANIFEST_SCHEMA_VERSION = 2
 _BURN_IN_MANIFEST_SCHEMA_VERSION = 3
-_F00_PPL_EVENT_SCHEMA_VERSION = 2
+_PPL_EVENT_SCHEMA_VERSION = 2
 _SCIENTIFIC_MANIFEST_FIELDS = frozenset(
     {
         "manifest_schema_version",
@@ -564,7 +565,7 @@ def _parse_scientific_authority_manifest(
             label=label,
         )
 
-    if doc.get("ppl_event_schema_version") != _F00_PPL_EVENT_SCHEMA_VERSION:
+    if doc.get("ppl_event_schema_version") != _PPL_EVENT_SCHEMA_VERSION:
         raise _manifest_field_error(
             "authoritative PPL event schema must be v2", label=label
         )
@@ -598,7 +599,7 @@ def _parse_scientific_authority_manifest(
         legacy_event_count=legacy_event_count,
         predecessor_authority_epoch_id=predecessor,
         epoch_role=expected_role,
-        ppl_event_schema_version=_F00_PPL_EVENT_SCHEMA_VERSION,
+        ppl_event_schema_version=_PPL_EVENT_SCHEMA_VERSION,
         manifest_schema_version=expected_schema_version,
     )
 
@@ -623,6 +624,7 @@ def _parse_burn_in_authority_manifest(
         expected_schema_version=_BURN_IN_MANIFEST_SCHEMA_VERSION,
         label="burn-in",
     )
+
 
 def _load_manifest(
     path: Path,
@@ -679,9 +681,9 @@ def _load_experiment_config(
     doc = _strict_json_loads(snapshot.raw, source=path)
     if not isinstance(doc, dict):
         raise SourceValidationError("experiment config must be a JSON object")
-    if frozenset(doc) != _F00_CONFIG_FIELDS:
-        missing = sorted(_F00_CONFIG_FIELDS - frozenset(doc))
-        extra = sorted(frozenset(doc) - _F00_CONFIG_FIELDS)
+    if frozenset(doc) != _EXPERIMENT_CONFIG_FIELDS:
+        missing = sorted(_EXPERIMENT_CONFIG_FIELDS - frozenset(doc))
+        extra = sorted(frozenset(doc) - _EXPERIMENT_CONFIG_FIELDS)
         raise SourceValidationError(
             f"experiment config fields mismatch: missing={missing}, extra={extra}"
         )
@@ -747,9 +749,9 @@ def _load_experiment_config(
     overlay = doc.get("activation_overlay")
     if not isinstance(overlay, dict):
         raise SourceValidationError("experiment config activation_overlay missing")
-    if frozenset(overlay) != _F00_ACTIVATION_OVERLAY_FIELDS:
-        missing = sorted(_F00_ACTIVATION_OVERLAY_FIELDS - frozenset(overlay))
-        extra = sorted(frozenset(overlay) - _F00_ACTIVATION_OVERLAY_FIELDS)
+    if frozenset(overlay) != _ACTIVATION_OVERLAY_FIELDS:
+        missing = sorted(_ACTIVATION_OVERLAY_FIELDS - frozenset(overlay))
+        extra = sorted(frozenset(overlay) - _ACTIVATION_OVERLAY_FIELDS)
         raise SourceValidationError(
             "experiment config activation_overlay fields mismatch: "
             f"missing={missing}, extra={extra}"
