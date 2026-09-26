@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.cri_calculator import (  # noqa: E402
     default_trades_path,
     load_clean_trades,
+    require_resolved_pnl_usd,
     trades_provenance,
 )
 
@@ -235,15 +236,16 @@ def _compute_trade_stats(trades: list[dict]) -> TradeStats:
         return TradeStats()
 
     pnl_pcts = [_safe_float(t.get("pnl_pct", 0)) for t in trades]
-    pnl_usds = [_safe_float(t.get("pnl_usd", 0)) for t in trades]
+    pnl_usds = [require_resolved_pnl_usd(t) for t in trades]
     durations = [_safe_float(t.get("duration_s", 0)) for t in trades]
 
     # Win/loss classifie sur pnl_usd (net de frais + slippage), pas pnl_pct
     # (brut, mouvement de prix seul). Un trade gross-positif peut etre
     # net-negatif une fois les couts d'execution deduits (cf. mexc_simulator
     # ._close_position : pnl_usd = qty_usd*gross_pct - fee - fee_entry).
-    # Meme convention que MexcSimulator._close_position (win = pnl_usd >= 0).
-    wins = [u for u in pnl_usds if u >= 0]
+    # ACC-01: a realized zero is breakeven, not a win. Missing PnL has already
+    # failed closed through require_resolved_pnl_usd().
+    wins = [u for u in pnl_usds if u > 0]
     losses = [u for u in pnl_usds if u < 0]
 
     total_gain = sum(p for p in pnl_usds if p > 0)
