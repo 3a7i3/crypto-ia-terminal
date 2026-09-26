@@ -24,6 +24,22 @@ STATISTICAL_STRENGTH = frozenset(
 )
 RESEARCH_STATES = frozenset({"AVAILABLE", "EMPTY"})
 CANDIDATE_CLASSES = frozenset({"CONFIG", "STRATEGY", "FEATURE", "HYBRID"})
+CANDIDATE_TARGET_DOMAINS = frozenset(
+    {
+        "SIGNAL",
+        "STRATEGY",
+        "REGIME",
+        "GATE",
+        "RISK",
+        "SIZING",
+        "EXECUTION",
+        "FEATURE_PIPELINE",
+        "RESEARCH_ONLY",
+    }
+)
+CANDIDATE_EVALUATION_STATUSES = frozenset(
+    {"NOT_EVALUATED", "EVALUATED", "BLOCKED"}
+)
 CANDIDATE_STATES = frozenset(
     {
         "CANDIDATE",
@@ -326,15 +342,18 @@ def _valid_candidate_registry(doc: Any, *, artifact_refs: set[str]) -> bool:
         if (
             not isinstance(row["target_domains"], list)
             or not row["target_domains"]
-            or any(not _nonempty(value) for value in row["target_domains"])
+            or any(value not in CANDIDATE_TARGET_DOMAINS for value in row["target_domains"])
             or len(row["target_domains"]) != len(set(row["target_domains"]))
         ):
+            return False
+        if "RESEARCH_ONLY" in row["target_domains"] and len(row["target_domains"]) != 1:
             return False
         if row["lifecycle_state"] not in CANDIDATE_STATES:
             return False
         refs = row["parent_evidence_refs"]
         if (
             not isinstance(refs, list)
+            or not refs
             or any(ref not in artifact_refs for ref in refs)
             or len(refs) != len(set(refs))
         ):
@@ -347,11 +366,12 @@ def _valid_candidate_registry(doc: Any, *, artifact_refs: set[str]) -> bool:
             return False
         if not _nonempty(row["hypothesis_summary"]):
             return False
-        if not _nonempty(row["evaluation_status"]):
+        if row["evaluation_status"] not in CANDIDATE_EVALUATION_STATUSES:
             return False
         limitations = row["known_limitations"]
         if (
             not isinstance(limitations, list)
+            or not limitations
             or any(not _nonempty(value) for value in limitations)
         ):
             return False
