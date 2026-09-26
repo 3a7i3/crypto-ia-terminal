@@ -1,47 +1,65 @@
-# ROADMAP — Crypto AI Terminal
+# ROADMAP — Crypto AI Terminal (document historique)
 
-> Dernière mise à jour : 2026-07-17
-> Statut global : **Époque V4 active** — burn-in paper sur univers épinglé
-> de **135 paires** (ADR-0017, N compte depuis `2026-07-17T01:30Z`) +
-> **couche d'observation marché complet MEXC** (ADR-0016 : ~3224 paires
-> spot+perp toutes les 15 min, radar quotidien, horizons R2).
+> ⚠️ **Ce fichier n'est plus une source de vérité opérationnelle.**
+>
+> Révision forensique : 2026-09-26.
+>
+> L'autorité de feuille de route courante est
+> **[#148 — MASTER ROADMAP](https://github.com/3a7i3/crypto-ia-terminal/issues/148)**.
+> La mission active est pointée par `CURRENT_TASK.md`.
+> Les règles invariantes et les frontières d'autorité sont dans `CLAUDE.md`.
+>
+> Ce document est conservé comme **vue d'ensemble historique** des phases
+> P1-P13 et de la migration d'architecture. Tout énoncé d'« état courant »
+> qu'il contenait a été daté et archivé ci-dessous.
 
 ---
 
-## État courant — Époque V4 (2026-07-17)
+## Navigation canonique
 
-**Ce qui tourne en production (VPS GCP, systemd) :**
+```
+#148  MASTER ROADMAP  ← autorité de priorisation
+  │
+  ├─ F00 certifié — F00_FINAL_SCIENTIFIC_EXPERIMENT_CERTIFIED
+  │    époque F00-EPOCH-01-20260920T084335Z
+  │
+  └─ Research Infrastructure (#237 RL-ARCH-00)
+       ├─ #238  RL-DATA-01      ✅ SOURCE CERTIFIED
+       ├─ #239  RL-REPLAY-01    ✅ SOURCE CERTIFIED / CLOSED
+       ├─ #248  RL-DIAG-01      ✅ SOURCE CERTIFIED / CLOSED
+       ├─ #240  RL-CANDIDATE-01 🟡 ACTIVE  (PR #264 draft, #265 miroir CI)
+       ├─ #241  WEB-RL-01       ⏳
+       └─ #242  RL-BURNIN-01    ⏳
+```
 
-| Composant | Cadence | Rôle |
+| Document | Rôle |
+|---|---|
+| [#148](https://github.com/3a7i3/crypto-ia-terminal/issues/148) | feuille de route et priorités courantes |
+| `CLAUDE.md` | règles constitutionnelles + frontières d'autorité PAPER/PPL/Research |
+| `CURRENT_TASK.md` | pointeur vers la mission GitHub active |
+| `BUGS.md` | dette technique suivie |
+| `ROADMAP.md` (ce fichier) | historique des phases livrées |
+
+---
+
+## ⚠️ Énoncés archivés — ne plus appliquer
+
+Les sections d'état suivantes, présentes dans les révisions antérieures de ce
+fichier, sont **périmées** et remplacées par #148 :
+
+| Énoncé archivé (daté 2026-07-17 et antérieur) | Statut | Remplacé par |
 |---|---|---|
-| `crypto-advisor` (moteur) | cycle ~5,5 min | trade paper 135 paires épinglées, seuils par régime inchangés |
-| `crypto-watchdog` | continu | surveillance moteur (alerte seule) |
-| `crypto-market-observer` | 15 min | pouls tickers spot+perp complet → `databases/observation/` |
-| `crypto-market-radar` (R1) | 06:00 UTC | shortlist top 200 liquide/tradable |
-| `crypto-market-horizons` (R2) | 06:15 UTC | qualité 15m/1h/4h par palier (top 50/100/200) |
+| « Statut global : Époque V4 active — burn-in paper sur univers épinglé de 135 paires » | **SUPERSEDED** | époque F00 `F00-EPOCH-01-20260920T084335Z` ; burn-in ⛔ NOT AUTHORIZED (#148) |
+| « État actuel — Burn-in paper trading (ALPHA_DISCOVERY_100) », baseline BurnIn V3 | **SUPERSEDED** | F00 certifié, population PPL 27 événements (#148) |
+| « Prochaines étapes (ordre décidé par l'opérateur 2026-07-17) » : scanner top-K, migration Hetzner, suivi V4, ADR-0014 | **STALE** | priorités de #148 |
+| « Priorités immédiates » : surveiller burn-in → 100 trades → BURNIN_CALIBRATION_V3 → prelive_gate | **SUPERSEDED** | chaîne `#240 → #241 → #242` |
+| « Gate live trading — Phase 1 / Phase 2 / Phase 3 » | **SUPERSEDED** | ordre canonique `PAPER → TESTNET → capital minuscule` (#148 PHASE F, §36-37) ; TESTNET/LIVE ⛔ NOT AUTHORIZED |
+| « VPS GCP 34.171.188.99 — PID 49742 RUNNING » et commandes ssh associées | **STALE** | infrastructure et PID non vérifiables depuis ce document |
+| « Bloqueur levé (2026-06-15)… ETA 100 trades ~37h » | **SUPERSEDED** | F00 a produit 13 OPEN / 13 CLOSE, puis certification finale |
 
-**Jalons récents** : ADR-0015 (univers épinglé), ADR-0016 (observation
-totale, phases R1+R2), ADR-0017 (époque V4 + paliers, palier 1 = 135
-paires activé le 17/07, V3 archivée à N=49), sonde de débit
-(`tools/throughput_probe.py`), sonde de charge (`tools/scan_load_probe.py`,
-1,10 s/paire mesuré), panneaux Telegram agrégés, runbook de restauration
-(`docs/runbook-restauration-vps.md`) + sauvegarde données 16 Mo hors VPS.
-
-**Prochaines étapes (ordre décidé par l'opérateur 2026-07-17) :**
-
-1. **Chantier scanner rotation top-K** (`docs/design/scanner-500-paires.md`,
-   étage B) — condition d'accès aux paliers 500 puis 1000 paires
-   (aujourd'hui : 18 min/cycle à 1000, mesuré). Livraison derrière flag
-   `SCANNER_TOPK_ENABLED` + test d'équivalence sur l'univers courant.
-2. **Migration d'instance** (Mathieu) : Hetzner CPX31 ou équivalent
-   (4 vCPU / 8 Go / 80 Go, Ubuntu 22.04+) → restauration par le runbook.
-   Fallback impératif : bascule facturation GCP avant ~2026-08-05
-   (fin de l'essai = arrêt de la VM par Google).
-3. **Suivi époque V4** : WR/PF/N sur le grand univers (rapports quotidiens
-   R1/R2 + throughput_probe) ; paliers 500/1000 par révision ADR-0017 une
-   fois le top-K livré.
-4. **ADR-0014** (proposé, en attente) : brancher ranker/meta-strategy sur
-   les données MexcSim — décision opérateur séparée.
+L'univers de 135 paires est conservé ci-dessous comme jalon ADR-0017. État
+certifié le plus récent : **135 configurés, 125 valides, 10 rejetés**, avec
+dérive runtime à remédier (#148 § OPS-C / MARKET-UNIVERSE-01).
 
 ---
 
@@ -59,7 +77,7 @@ paires activé le 17/07, V3 archivée à N=49), sonde de débit
 
 ---
 
-## RÉCAP P1-P13 (état 2026-06-14)
+## RÉCAP P1-P13 (état figé au 2026-06-14)
 
 | Phase | Livré | Statut | Date |
 |-------|-------|--------|------|
@@ -81,30 +99,25 @@ paires activé le 17/07, V3 archivée à N=49), sonde de débit
 | Telegram 3-bots | portfolio_bot PnL simplifié, QuantCrpto_bot 3-niveaux 100+ paires, Intel bot 6h NL | ✅ LIVRÉ | 2026-06-15 |
 | Infra observabilité | dataset_integrity_gate, runtime_validator 8 checks, prelive_gate 6 gates | ✅ LIVRÉ | 2026-06-15 |
 
-12 couches décisionnelles actives. VPS GCP 34.171.188.99 — systemd crypto-advisor PID 49742 RUNNING (2026-06-15).
+---
+
+## Jalons d'époque et d'univers (historique ADR)
+
+| Jalon | Contenu |
+|---|---|
+| ADR-0011 / 0012 | bornes `CLEAN_DATA_SINCE` v1→v3, contamination SEC-01 |
+| ADR-0015 | univers épinglé burn-in |
+| ADR-0016 | observation marché MEXC complet (~3224 paires spot+perp, 15 min), radar R1, horizons R2 |
+| ADR-0017 | époque V4 + paliers ; palier 1 = 135 paires activé le 2026-07-17 ; V3 (28 paires, N=49) archivée |
+| ADR-0018 | séparation capital scientifique / observation exchange |
+| ADR-0019 → 0021 | autorisation d'ordre pré-réseau, soumission déterministe idempotente, provenance domaine d'exécution |
+
+Outils de mesure associés : `tools/throughput_probe.py`,
+`tools/scan_load_probe.py`, runbook `docs/runbook-restauration-vps.md`.
 
 ---
 
-## État actuel — Burn-in paper trading (ALPHA_DISCOVERY_100)
-
-**Règle souveraine** : GEL TOTAL architecture tant que < 100 trades paper fermés ET C5==False.
-Aucun tuning de GATE_MIN_SCORE_OVERRIDE, PB_MIN_POSITION_USD, ni de paramètre de trading.
-
-### Baseline BurnIn V3 (2026-06-12)
-
-| KPI | Valeur |
-|-----|--------|
-| Signaux évalués | 2332 sur 447h |
-| Pass rate gate | 51.2% (≈2.7 signaux/h autorisés) |
-| Rejets RiskGate | 1138 |
-| Trades paper fermés | **0** (bloqueur : `PAPER_TRADING_ENABLED` absent .env VPS) |
-
-**Bloqueur levé (2026-06-15)** : commit `b249857` déployé, VPS actif PID 49742, paper trading en cours.
-ETA 100 trades : ~37h après activation (2.7 signaux/h autorisés, position SOL/USDT ouverte).
-
----
-
-## Migration Architecture V2 (P1 canonique)
+## Migration Architecture V2 (P1 canonique) — état 2026-06
 
 Objectif : réduire de 89 dossiers → <40, pipeline dict-free, SSoT par verticale.
 
@@ -116,13 +129,7 @@ Objectif : réduire de 89 dossiers → <40, pipeline dict-free, SSoT par vertica
 | Kill Switch | ✅ | ✅ | ⏳ | ⏳ |
 | Regime Detector | ✅ | ✅ | ✅ | ⏳ |
 
-Prochaine verticale : **Event Bus** (`src/events/event_bus.py` → `event_bus/bus.py`).
-
----
-
-## Dettes techniques actives
-
-### CFG-P2 — Migration config SSoT (non bloquant burn-in)
+## Dettes techniques historiques — CFG-P2
 
 | ID | Description | Statut |
 |----|-------------|--------|
@@ -132,89 +139,20 @@ Prochaine verticale : **Event Bus** (`src/events/event_bus.py` → `event_bus/bu
 | CFG-P2-05 | Supprimer config/telegram_config.json (obsolète) | ⏳ |
 | CFG-P2-06 | Migrer quant_hedge_ai/runtime_config.py → PortfolioSettings | ⏳ |
 
-### Architecture V2 P1 — Tests intégration restants
-
-- Event Bus : runtime câblage + tests intégration
-- Execution Engine : tests intégration
-- Kill Switch : tests intégration
-- Decision Layer : renommages legacy différés
-
----
-
-## Gate live trading — Ce qui manque
-
-Le système est architecturalement validé. La progression vers le trading réel suit 3 phases disciplinées.
-
-### Phase 1 — API réelles en lecture seule (prochaine étape)
-
-**Validation** : `python scripts/prelive_gate.py` — 6 gates (A→F). Verdict GO requis.
-
-**Pré-requis à valider avant Phase 1 :**
-
-- [x] `PAPER_TRADING_ENABLED=true` déployé sur VPS (2026-06-15)
-- [ ] 100 trades paper fermés accumulés (ETA ~37h depuis 2026-06-15)
-- [ ] C5 == True (PF > 1.5, Sharpe > 1.0, WR > 45%, MaxDD < 10%)
-- [ ] BURNIN_CALIBRATION_V3 exécuté : score floor optimal, symbol whitelist, PF/expectancy par régime
-- [ ] prelive_gate.py → verdict GO (6/6 gates)
-- [ ] Zéro FATAL et zéro invariant violation sur la période burn-in
-
-**Action Phase 1 :**
-- Connexion MEXC API réelle en lecture seule (sans permission trading)
-- Validation : carnet, positions, portefeuille, marchés — infra sur données réelles
-
-### Phase 2 — Spot réel petit capital (50-100 USD)
-
-**Pré-requis supplémentaires :**
-- [ ] Phase 1 stable ≥ 7 jours sans interruption non planifiée
-- [ ] PortfolioBrain validé sur données live (pas seulement paper)
-- [ ] P10-F RUNNING stable (pas de basculement DEGRADED fréquent)
-- [ ] RegretEngine données réelles : missed_win_rate et patterns confirmés
-- [ ] CFG-P2 dettes comblées (config SSoT sur tous les modules runtime)
-- [ ] Architecture V2 migration complète (Event Bus + tests intégration)
-
-**Symboles Phase 2 :** BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT — sans levier.
-
-### Phase 3 — Futures réels (horizon lointain)
-
-- Seulement après Phase 2 stable plusieurs semaines
-- Levier fixe faible (×2 ou ×3) — jamais dynamique au départ
-- Ne pas discuter avant Phase 2 validée
-
----
-
-## Priorités immédiates (ordre)
-
-1. **Surveiller burn-in** : atteindre 100 trades paper fermés, vérifier C5 (PF>1.5, Sharpe>1.0)
-2. **Exécuter BURNIN_CALIBRATION_V3** (`scripts/burnin_calibration_v3.py`) dès 100 trades
-3. **Lancer prelive_gate.py** : `python scripts/prelive_gate.py` — 6 gates GO requis pour Phase 2
-4. **CFG-P2-02→06** : câbler modules runtime sur config SSoT (non bloquant burn-in)
-5. **Event Bus** : migration + tests intégration (prochaine verticale P1)
-
-### Commandes de suivi quotidien
-
-```bash
-# Vérifier état VPS
-ssh -i ~/.ssh/gcp_key mathieuhasard111@34.171.188.99 "journalctl -u crypto-advisor -n 20 --no-pager"
-
-# Certification pré-démarrage
-python scripts/runtime_validator.py
-
-# Gate pré-live (post-100 trades)
-python scripts/prelive_gate.py
-
-# Validation dataset
-python scripts/validate_trade_dataset.py
-```
+Ces dettes n'ont pas été revalidées lors de la revue du 2026-09-26 ; leur
+statut `⏳` est repris tel quel de la révision de juin 2026.
 
 ---
 
 ## Invariants permanents
 
 - Permissions Spot et Futures séparées sur l'exchange
-- Ne jamais activer permission "Retrait" pour un bot
-- Levier dynamique interdit avant Phase 3 et validation complète
-- Aucun tuning paramètre trading avant 100 trades ET C5==True
-- GEL architecture pendant burn-in
+- Ne jamais activer permission « Retrait » pour un bot
+- Levier dynamique interdit avant validation complète
+- Aucun tuning de paramètre trading hors mission explicitement dédiée
+- Gel architectural pendant toute expérience active
+
+Ces invariants sont repris et font foi dans `CLAUDE.md`.
 
 ---
 
@@ -222,11 +160,9 @@ python scripts/validate_trade_dataset.py
 
 | Fichier | Rôle |
 |---------|------|
-| `ROADMAP.md` | Vision globale et état |
-| `core/advisor_loop.py` | Point d'entrée principal |
-| `tests/root/test_boot_system.py` | Validation boot (122/122) |
-| `scripts/burnin_calibration_v3.py` | Calibration post-100 trades |
-| `scripts/prelive_gate.py` | Gate validation 6 conditions pré-live |
-| `scripts/runtime_validator.py` | Certification pré-démarrage 8 checks |
-| `CANONICAL_COMPONENTS.md` | Tableau migration V2 |
-| `scripts/deploy_vps.sh` | Auto-deploy git → VPS |
+| `core/advisor_loop.py` | point d'entrée principal |
+| `tests/root/test_boot_system.py` | validation boot |
+| `scripts/prelive_gate.py` | gate validation pré-live |
+| `scripts/runtime_validator.py` | certification pré-démarrage |
+| `CANONICAL_COMPONENTS.md` | tableau migration V2 |
+| `scripts/deploy_vps.sh` | déploiement délibéré (jamais automatique) |
