@@ -1155,4 +1155,3 @@ def test_rb4_finalizer_rejects_research_output_under_protected_paper_root(tmp_pa
             designated_at_utc="2026-09-26T04:00:00Z",
             protected_roots=(files["source"],),
         )
-
