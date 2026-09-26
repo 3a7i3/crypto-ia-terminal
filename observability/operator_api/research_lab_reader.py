@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-from observability.research_lab_snapshot import validate_research_lab_snapshot
+from observability.research_lab_schema import validate_research_lab_snapshot
 
 DEFAULT_RESEARCH_LAB_SNAPSHOT_PATH = Path(
     "databases/research_presentation/research_lab_snapshot.json"
