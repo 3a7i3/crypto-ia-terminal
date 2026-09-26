@@ -763,3 +763,89 @@ def test_f00_manifest_must_be_a_json_object(tmp_path):
     files["manifest_path"].write_text("[]", encoding="utf-8")
     with pytest.raises(SourceValidationError, match="must be a JSON object"):
         export_paper_dataset(_request(files, tmp_path / "research"))
+
+# ---------------------------------------------------------------------------
+# RB3 — explicit BURN_IN_EXPERIMENT support.
+# F00 behavior above remains the backward-compatibility baseline.
+# ---------------------------------------------------------------------------
+
+
+def _promote_fixture_identity_to_burn_in(files: dict[str, Path]) -> None:
+    manifest = json.loads(files["manifest_path"].read_text(encoding="utf-8"))
+    manifest["epoch_role"] = "BURN_IN_EXPERIMENT"
+    manifest["manifest_schema_version"] = 3
+    _write_json(files["manifest_path"], manifest)
+
+    _rewrite_config_with_valid_internal_hash(
+        files["config_path"],
+        lambda config: config.__setitem__(
+            "snapshot_schema", "BURN_IN_EXPERIMENT_CONFIG_V1"
+        ),
+    )
+
+
+def test_rb3_burn_in_role_exports_with_distinct_authoritative_names(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    _promote_fixture_identity_to_burn_in(files)
+    before = _source_bytes(files)
+
+    result = export_paper_dataset(_request(files, tmp_path / "research"))
+
+    authoritative = result.dataset_path / "authoritative"
+    assert (authoritative / "burn_in_experiment_manifest.json").read_bytes() == (
+        before[files["manifest_path"]]
+    )
+    assert (authoritative / "burn_in_experiment_config.json").read_bytes() == (
+        before[files["config_path"]]
+    )
+    assert not (authoritative / "f00_experiment_manifest.json").exists()
+    assert not (authoritative / "f00_experiment_config.json").exists()
+
+    assert result.manifest["authoritative_manifest"]["epoch_role"] == (
+        "BURN_IN_EXPERIMENT"
+    )
+    assert result.manifest["authoritative_manifest"]["manifest_schema_version"] == 3
+    assert result.manifest["components"]["burn_in_experiment_manifest"][
+        "status"
+    ] == "COMPLETE"
+    assert result.manifest["components"]["burn_in_experiment_config"][
+        "status"
+    ] == "COMPLETE"
+    assert _source_bytes(files) == before
+
+
+def test_rb3_burn_in_role_rejects_f00_manifest_schema(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    manifest = json.loads(files["manifest_path"].read_text(encoding="utf-8"))
+    manifest["epoch_role"] = "BURN_IN_EXPERIMENT"
+    # Deliberately retain F00 manifest schema v2.
+    _write_json(files["manifest_path"], manifest)
+
+    with pytest.raises(SourceValidationError, match="must use schema v3"):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
+def test_rb3_burn_in_role_rejects_f00_config_schema(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    manifest = json.loads(files["manifest_path"].read_text(encoding="utf-8"))
+    manifest["epoch_role"] = "BURN_IN_EXPERIMENT"
+    manifest["manifest_schema_version"] = 3
+    _write_json(files["manifest_path"], manifest)
+
+    with pytest.raises(
+        SourceValidationError,
+        match="BURN_IN_EXPERIMENT_CONFIG_V1",
+    ):
+        export_paper_dataset(_request(files, tmp_path / "research"))
+
+
+def test_rb3_f00_output_names_remain_backward_compatible(tmp_path):
+    files = _fixture(tmp_path / "fixture")
+    result = export_paper_dataset(_request(files, tmp_path / "research"))
+    authoritative = result.dataset_path / "authoritative"
+
+    assert (authoritative / "f00_experiment_manifest.json").exists()
+    assert (authoritative / "f00_experiment_config.json").exists()
+    assert not (authoritative / "burn_in_experiment_manifest.json").exists()
+    assert not (authoritative / "burn_in_experiment_config.json").exists()
+
