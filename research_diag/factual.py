@@ -702,6 +702,17 @@ def diagnose_factual_dataset(
         },
     }
 
+    if dataset.manifest.get("authoritative_manifest", {}).get("epoch_role") == "BURN_IN_EXPERIMENT":
+        # RB5: historical F00 forensic findings are not evidence about a new
+        # burn-in. Preserve the limitations without silently transferring them.
+        limitations["mark_to_market"]["reason"] = (
+            "burn-in dataset has no certified complete mark-price trajectory"
+        )
+        limitations["packet_os_size_usd"]["reason"] = (
+            "DecisionPacket sizing context remains distinct from authoritative PPL principal; "
+            "the burn-in dataset alone does not establish the runtime sizing mechanism"
+        )
+
     return FactualAttributionResult(
         diagnostic_run_id=diagnostic_run_id,
         diagnostic_run_identity=identity,

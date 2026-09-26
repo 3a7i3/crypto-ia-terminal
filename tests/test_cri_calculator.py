@@ -184,12 +184,11 @@ class TestBalanceScore:
         trades += [_close(_AFTER, -1.0, 70) for _ in range(150)]
         assert balance_score(trades) == 100.0
 
-    def test_net_pnl_used_not_gross(self):
-        """pnl_usd=0 compte comme gagnant (>=0), coherent avec
-        mexc_simulator.py (wins = pnl_usd >= 0)."""
+    def test_zero_net_pnl_is_breakeven_not_winner(self):
+        """ACC-01: pnl_usd=0.0 is a resolved breakeven, never a fabricated win."""
         trades = [_close(_AFTER, 0.0, 70), _close(_AFTER, -1.0, 70)]
-        # 1 win (pnl=0), 1 loss -> min(1,1,150)=1 -> 100*1/150
-        assert balance_score(trades) == 100.0 * 1 / 150
+        # 0 wins, 1 loss; breakeven does not improve the balance score.
+        assert balance_score(trades) == 0.0
 
 
 class TestComputeCriIntegration:

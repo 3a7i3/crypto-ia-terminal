@@ -5,7 +5,7 @@ name: WEB-02 PPL Comparator Visual Proof
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "web-rl-01-three-domain-contract"]
   push:
     branches: [main]
   workflow_dispatch:

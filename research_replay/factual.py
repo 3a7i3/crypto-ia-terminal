@@ -339,20 +339,37 @@ def validate_dataset(dataset_root: str | Path) -> ValidatedDataset:
         relative_path="authoritative/ppl_events.jsonl",
         digest_field="sha256",
     )
-    _validate_component(
-        root,
-        manifest,
-        component_name="f00_experiment_manifest",
-        relative_path="authoritative/f00_experiment_manifest.json",
-        digest_field="sha256",
-    )
-    _validate_component(
-        root,
-        manifest,
-        component_name="f00_experiment_config",
-        relative_path="authoritative/f00_experiment_config.json",
-        digest_field="sha256",
-    )
+    # RB5: preserve the certified F00 wire format while explicitly accepting
+    # the burn-in format. Never fall back to F00 names for an unknown role.
+    authority = manifest.get("authoritative_manifest", {})
+    role = authority.get("epoch_role") if isinstance(authority, dict) else None
+    burn_in = "burn_in_experiment_manifest" in manifest.get("components", {})
+    if burn_in or role == "BURN_IN_EXPERIMENT":
+        from research_data.burn_in_finalization import (
+            BurnInDatasetValidationError,
+            _validate_dataset,
+        )
+
+        try:
+            _validate_dataset(root)
+        except BurnInDatasetValidationError as exc:
+            raise DatasetValidationError(str(exc)) from exc
+        prefix = "burn_in_experiment"
+    elif role in (None, "F00_EXPERIMENT"):
+        # Historical RL-DATA fixtures omit authoritative_manifest; retaining
+        # their F00 component validation does not admit a burn-in fallback.
+        prefix = "f00_experiment"
+    else:
+        raise DatasetValidationError(f"unsupported scientific epoch role: {role!r}")
+    for suffix in ("manifest", "config"):
+        component_name = f"{prefix}_{suffix}"
+        _validate_component(
+            root,
+            manifest,
+            component_name=component_name,
+            relative_path=f"authoritative/{component_name}.json",
+            digest_field="sha256",
+        )
 
     for component_name, relative_path in (
         ("decision_packets", "optional/decision_packets.jsonl"),

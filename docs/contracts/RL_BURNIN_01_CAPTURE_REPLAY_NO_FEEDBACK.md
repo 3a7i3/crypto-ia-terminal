@@ -506,3 +506,62 @@ Next work:
 5. only then consider `RL_BURNIN_NO_FEEDBACK_CERTIFIED`.
 
 Burn-in remains NOT AUTHORIZED.
+
+## 13. RB4/RB5 implemented source boundary and certification limits
+
+RB2 debt is closed on main at `b20a815e47e27f6bc55ed64b874f40684ef140f1`.
+This branch composes that certified HERM-02/ACC-01 source by a non-destructive
+merge. The upstream WEB-RL stack remains the PR base; #271 stays draft/unmerged.
+
+RB4 provides `research_data.burn_in_finalization`:
+
+- validates explicit burn-in role/version, dataset envelope, source boundary,
+  copied manifest/config/PPL and optional evidence fingerprints;
+- rejects changed code/config identities even when outer IDs are recomputed;
+- requires typed quiescence evidence and zero open positions;
+- writes one final designation per epoch **within the designated registry**;
+- refuses replacement by a later capture and never rewrites prefix datasets;
+- rejects output overlap and a symlinked finalization directory.
+
+RB5 adds explicit burn-in component selection to RL-REPLAY and reuses the
+existing factual replay/diagnostic/candidate algorithms. F00 component names
+and historical output semantics remain supported. F00-specific forensic
+conclusions are not presented as evidence about a new burn-in.
+
+The canonical burn-in publication entry point is
+`research_data.burn_in_research.BurnInResearchWorkspace`. It requires an explicit
+Research output root and protected PAPER/runtime roots. Before publication it
+validates the dataset and rejects overlap with the dataset, protected roots,
+declared source parents and pre-existing output symlinks. It only reads the
+Research copies; original source paths are exclusion metadata, never opened.
+Candidates must bind to the same immutable dataset/epoch and frozen code/config
+provenance; publishing one grants no execution authority. The existing promotion
+validator rejects same-epoch targets and Research-side AUTHORIZED/EXECUTED states.
+Missing DecisionPacket evidence fails diagnostics closed before publication.
+
+The integrated synthetic proof covers capture → replay → diagnostic → candidate,
+scientific identity stability independent of publication time, changed code/config
+identity, future-only promotion validation, finalization and byte-identical PAPER
+inputs/captures. HERM-02 and ACC-01 tests run in the same composition matrix.
+
+Limits (SOURCE PROOF, not RUNTIME PROOF):
+
+- quiescence is explicit owner-provided evidence; this offline code does not stop,
+  discover or inspect a service, nor prove that a live source will never append;
+- finality is governed per explicit registry; using another registry is not an
+  implicit revocation or replacement of a designation in the first;
+- roots must be operator-controlled, complete and stable while used. This is an
+  application/API contract, not an OS sandbox against arbitrary Python code,
+  concurrent hostile filesystem changes or a caller bypassing the canonical API;
+- future deployment requires separately verified filesystem permissions,
+  quiescence evidence and owner authorization. No deployment is performed here.
+
+RB6 expands existing offline PR workflow branch filters to the WEB-RL stack base
+so the full source surface can materialize on #271. No test, threshold or gate is
+removed or weakened. Exact SHA, run IDs, conclusions and final verdict belong to
+#242/#148 governance evidence, after all required checks pass. A local test pass
+or the targeted source workflow alone is not final certification.
+
+Rollback: before any separately authorized deployment, reverting the #242 source
+commits removes these capabilities; preserve all existing F00/PPL/Research data.
+No real epoch or dataset is created by this source-only certification.

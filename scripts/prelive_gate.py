@@ -45,6 +45,7 @@ from dotenv import load_dotenv  # noqa: E402
 from tools.cri_calculator import (  # noqa: E402
     default_trades_path,
     load_clean_trades,
+    require_resolved_pnl_usd,
     trades_provenance,
 )
 
@@ -123,7 +124,7 @@ def _compute_metrics(closes: list[dict]) -> dict:
     if not closes:
         return {}
     n = len(closes)
-    pnls = [float(c.get("pnl_usd", 0) or 0) for c in closes]
+    pnls = [require_resolved_pnl_usd(c) for c in closes]
     wins = [p for p in pnls if p > 0]
     losses = [p for p in pnls if p < 0]
 

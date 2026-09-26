@@ -6,10 +6,16 @@ on:
       - ".github/workflows/rl-burnin-source-proof.yml"
       - "paper_trading/ppl_authority_runtime.py"
       - "research_data/**"
+      - "research_replay/**"
+      - "research_diag/**"
+      - "research_candidate/**"
       - "scripts/f00_experiment_config_freeze.py"
       - "scripts/burn_in_experiment_config_freeze.py"
       - "tests/paper_trading/test_rb3_burn_in_epoch_identity.py"
       - "tests/research_data/**"
+      - "tests/research_replay/**"
+      - "tests/research_diag/**"
+      - "tests/research_candidate/**"
       - "tests/test_f00_experiment_config_freeze.py"
       - "tests/test_rb3_burn_in_config_freeze.py"
       - "docs/contracts/RL_BURNIN_01_CAPTURE_REPLAY_NO_FEEDBACK.md"
@@ -17,10 +23,16 @@ on:
     paths:
       - "paper_trading/ppl_authority_runtime.py"
       - "research_data/**"
+      - "research_replay/**"
+      - "research_diag/**"
+      - "research_candidate/**"
       - "scripts/f00_experiment_config_freeze.py"
       - "scripts/burn_in_experiment_config_freeze.py"
       - "tests/paper_trading/test_rb3_burn_in_epoch_identity.py"
       - "tests/research_data/**"
+      - "tests/research_replay/**"
+      - "tests/research_diag/**"
+      - "tests/research_candidate/**"
       - "tests/test_f00_experiment_config_freeze.py"
       - "tests/test_rb3_burn_in_config_freeze.py"
       - "docs/contracts/RL_BURNIN_01_CAPTURE_REPLAY_NO_FEEDBACK.md"
@@ -35,7 +47,7 @@ concurrency:
 
 jobs:
   rb3-source-proof:
-    name: "RB3 BURN-IN IDENTITY SOURCE PROOF"
+    name: "RB3-RB5 BURN-IN SOURCE PROOF"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -64,11 +76,13 @@ jobs:
             scripts/f00_experiment_config_freeze.py \
             scripts/burn_in_experiment_config_freeze.py
 
-      - name: Run RB3 and backward-compatibility proofs
+      - name: Run burn-in composition and backward-compatibility proofs
         run: |
           pytest -q \
             tests/paper_trading/test_epoch_01_r1_manifest_rotation.py \
             tests/paper_trading/test_rb3_burn_in_epoch_identity.py \
             tests/test_f00_experiment_config_freeze.py \
             tests/test_rb3_burn_in_config_freeze.py \
-            tests/research_data/test_rl_data_01_exporter.py
+            tests/research_data tests/research_replay tests/research_diag tests/research_candidate \
+            tests/test_herm_02_test_persistence_isolation.py \
+            tests/test_acc_01_unresolved_accounting.py tests/test_cri_calculator.py

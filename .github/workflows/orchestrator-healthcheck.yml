@@ -11,7 +11,7 @@ on:
       - audit_requests/**
       - audit_results/**
   pull_request:
-    branches: [ main ]
+    branches: [ main , "web-rl-01-three-domain-contract"]
   workflow_dispatch:
 
 permissions:

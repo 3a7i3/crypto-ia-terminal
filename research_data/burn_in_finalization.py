@@ -51,6 +51,13 @@ class BurnInQuiescence:
     pending_order_count: int
     lifecycle_transitions_in_flight: int
 
+    def __post_init__(self) -> None:
+        if type(self.authority_process_stopped) is not bool:
+            raise BurnInQuiescenceError("authority_process_stopped must be boolean")
+        for value in (self.pending_order_count, self.lifecycle_transitions_in_flight):
+            if type(value) is not int or value < 0:
+                raise BurnInQuiescenceError("quiescence counters must be non-negative integers")
+
     @property
     def quiescent(self) -> bool:
         return (
@@ -181,6 +188,17 @@ def _validate_dataset(
     manifest_raw = _require_regular_file(manifest_path)
     dataset_manifest = _strict_json(manifest_raw, source=manifest_path)
 
+    for key, expected_value in {
+        "dataset_schema_version": 1,
+        "derivation": "PAPER_EXPORT",
+        "source_domain": "PAPER",
+        "source_authority": "PPL_AUTHORITY",
+        "completeness_status": "COMPLETE",
+    }.items():
+        actual = dataset_manifest.get(key)
+        if type(actual) is not type(expected_value) or actual != expected_value:
+            raise BurnInDatasetValidationError(f"invalid dataset {key}")
+
     dataset_id = dataset_manifest.get("dataset_id")
     source_boundary_id = dataset_manifest.get("source_boundary_id")
     paper_epoch_id = dataset_manifest.get("paper_epoch_id")
@@ -200,6 +218,8 @@ def _validate_dataset(
         )
     if _sha256(_canonical_json_bytes(identity)) != dataset_id:
         raise BurnInDatasetValidationError("dataset_id does not match dataset_identity")
+    if dataset_path.name != dataset_id:
+        raise BurnInDatasetValidationError("dataset directory name differs from dataset_id")
     if _sha256(_canonical_json_bytes(boundary)) != source_boundary_id:
         raise BurnInDatasetValidationError(
             "source_boundary_id does not match source_boundary_identity"
@@ -251,6 +271,15 @@ def _validate_dataset(
         )
 
     expected = {
+        "identity_schema": exporter._SOURCE_BOUNDARY_SCHEMA,
+        "source_domain": "PAPER",
+        "source_authority": "PPL_AUTHORITY",
+        "paper_epoch_id": paper_epoch_id,
+        "ppl_birth_code_sha": authority_manifest.code_sha,
+        "ppl_semantic_config_snapshot_hash": authority_manifest.config_snapshot_hash,
+        "experiment_runtime_source_sha": config_doc["runtime_source_sha"],
+        "legacy_boundary_sha256": authority_manifest.legacy_boundary_sha256,
+        "legacy_event_count": authority_manifest.legacy_event_count,
         "manifest_file_sha256": manifest_snapshot.sha256,
         "experiment_config_file_sha256": config_snapshot.sha256,
         "experiment_config_snapshot_sha256": config_doc["snapshot_sha256"],
@@ -270,10 +299,14 @@ def _validate_dataset(
         raise BurnInDatasetValidationError(
             f"dataset source boundary fingerprint mismatch: {mismatches}"
         )
+    if set(boundary) != set(expected):
+        raise BurnInDatasetValidationError("source boundary field set mismatch")
 
     components = dataset_manifest.get("components")
     if not isinstance(components, dict):
         raise BurnInDatasetValidationError("dataset components are missing")
+    if any(name.startswith("f00_experiment_") for name in components):
+        raise BurnInDatasetValidationError("mixed F00/burn-in authority components")
     expected_components = {
         "ppl_events": _sha256(ppl_raw),
         "burn_in_experiment_manifest": manifest_snapshot.sha256,
@@ -281,10 +314,53 @@ def _validate_dataset(
     }
     for name, digest in expected_components.items():
         component = components.get(name)
-        if not isinstance(component, dict) or component.get("sha256") != digest:
+        if (
+            not isinstance(component, dict)
+            or component.get("sha256") != digest
+            or component.get("status") != "COMPLETE"
+            or component.get("authority_class") != "AUTHORITATIVE_CORE"
+            or component.get("record_count") != (len(events) if name == "ppl_events" else 1)
+        ):
             raise BurnInDatasetValidationError(
                 f"dataset component fingerprint mismatch: {name}"
             )
+
+    identity_components = identity.get("components")
+    if not isinstance(identity_components, list):
+        raise BurnInDatasetValidationError("dataset identity components missing")
+    seen = set()
+    for item in identity_components:
+        if not isinstance(item, dict) or item.get("name") in seen:
+            raise BurnInDatasetValidationError("invalid or duplicate identity component")
+        name = item.get("name")
+        seen.add(name)
+        if name == "authoritative_core":
+            if item != {
+                "name": name, "status": "COMPLETE", "source_boundary_id": source_boundary_id
+            }:
+                raise BurnInDatasetValidationError("authoritative identity binding mismatch")
+            continue
+        component = components.get(name)
+        if not isinstance(component, dict):
+            raise BurnInDatasetValidationError("missing identity-bound component")
+        if any(component.get(k) != v for k, v in item.items() if k != "name"):
+            raise BurnInDatasetValidationError("component differs from dataset identity")
+        if name in {"decision_packets", "decision_identity_records"}:
+            path = dataset_path / "optional" / f"{name}.jsonl"
+            if item.get("status") == "COMPLETE":
+                raw = _require_regular_file(path)
+                if (
+                    _sha256(raw) != item.get("canonical_subset_sha256")
+                    or len(raw.splitlines()) != item.get("record_count")
+                ):
+                    raise BurnInDatasetValidationError("optional component fingerprint mismatch")
+            elif path.exists():
+                raise BurnInDatasetValidationError("unavailable optional component has a file")
+    if seen != {
+        "authoritative_core", "decision_packets", "decision_identity_records",
+        "dip", "regret", "rejection_store", "admission_ledger",
+    }:
+        raise BurnInDatasetValidationError("dataset identity component set mismatch")
 
     return dataset_manifest, ppl_raw, events, projection
 
@@ -324,8 +400,10 @@ def designate_final_burn_in_dataset(
 
     if not isinstance(quiescence, BurnInQuiescence):
         raise TypeError("quiescence must be BurnInQuiescence")
-    if not isinstance(designated_at_utc, str) or not designated_at_utc.strip():
-        raise BurnInFinalizationError("designated_at_utc is required")
+    try:
+        exporter._validate_extracted_at(designated_at_utc)
+    except exporter.SourceValidationError as exc:
+        raise BurnInFinalizationError(str(exc)) from exc
 
     dataset_path = Path(dataset_path).resolve()
     designation_root = Path(designation_root).resolve()
@@ -340,6 +418,9 @@ def designate_final_burn_in_dataset(
             )
 
     dataset_manifest, ppl_before, events, projection = _validate_dataset(dataset_path)
+    for source in dataset_manifest["extraction_provenance"]["sources"]:
+        if _paths_overlap(designation_root, Path(source["path"]).parent):
+            raise BurnInFinalizationError("designation_root overlaps declared PAPER source")
     if not quiescence.quiescent:
         raise BurnInQuiescenceError(
             "final designation requires stopped authority process, zero pending "
@@ -386,7 +467,12 @@ def designate_final_burn_in_dataset(
         "designation_id": designation_id,
         "designated_at_utc": designated_at_utc,
     }
-    target = designation_root / "finalizations" / f"{designation_id}.json"
+    # One final boundary per epoch in this governed registry. A later prefix
+    # cannot silently supersede a final designation by obtaining another ID.
+    epoch_key = _sha256(dataset_manifest["paper_epoch_id"].encode("utf-8"))
+    target = designation_root / "finalizations" / f"{epoch_key}.json"
+    if target.parent.is_symlink():
+        raise BurnInFinalizationError("finalizations directory must not be a symlink")
     encoded = json.dumps(
         document,
         ensure_ascii=False,
@@ -400,7 +486,9 @@ def designate_final_burn_in_dataset(
         ppl_after = _require_regular_file(
             dataset_path / "authoritative" / "ppl_events.jsonl"
         )
-        _validate_dataset(dataset_path)
+        after_manifest, _, _, _ = _validate_dataset(dataset_path)
+        if after_manifest != dataset_manifest:
+            raise BurnInDatasetValidationError("dataset manifest changed during designation")
     except Exception:
         try:
             target.unlink(missing_ok=True)
