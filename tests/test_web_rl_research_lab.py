@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -23,6 +26,15 @@ CONFIG_HASH = "5" * 64
 ARTIFACT_SHA = "6" * 64
 RESEARCH_SHA = "a" * 40
 BUILDER_SHA = "b" * 40
+
+
+@pytest.fixture(autouse=True)
+def _restore_research_reader():
+    original_path = api_app.get_research_lab_reader().path
+    try:
+        yield
+    finally:
+        api_app.configure_research_lab_reader(path=original_path)
 
 
 def _metric(
@@ -344,3 +356,99 @@ def test_research_api_read_does_not_modify_presentation_artifact(tmp_path: Path)
 
     assert target.read_bytes() == before
     assert target.stat().st_mtime_ns == before_mtime
+
+
+
+def test_candidate_row_rejects_unknown_target_domain() -> None:
+    doc = _valid_snapshot()
+    doc["provenance"]["source_artifacts"].append(
+        {
+            "artifact_ref": "candidate-1",
+            "artifact_type": "RL_CANDIDATE",
+            "sha256": "7" * 64,
+        }
+    )
+    doc["candidate_registry"] = {
+        "candidate_count": 1,
+        "rows": [
+            {
+                "candidate_id": "8" * 64,
+                "candidate_class": "CONFIG",
+                "target_domains": ["INVENTED_DOMAIN"],
+                "lifecycle_state": "CANDIDATE",
+                "parent_evidence_refs": ["candidate-1"],
+                "source_code_sha": RESEARCH_SHA,
+                "config_hash": CONFIG_HASH,
+                "hypothesis_summary": "fixture",
+                "evaluation_status": "NOT_EVALUATED",
+                "known_limitations": ["FIXTURE_ONLY"],
+            }
+        ],
+    }
+    assert validate_research_lab_snapshot(doc) is False
+
+
+def test_candidate_row_rejects_invented_evaluation_status() -> None:
+    doc = _valid_snapshot()
+    doc["provenance"]["source_artifacts"].append(
+        {
+            "artifact_ref": "candidate-1",
+            "artifact_type": "RL_CANDIDATE",
+            "sha256": "7" * 64,
+        }
+    )
+    doc["candidate_registry"] = {
+        "candidate_count": 1,
+        "rows": [
+            {
+                "candidate_id": "8" * 64,
+                "candidate_class": "CONFIG",
+                "target_domains": ["SIZING"],
+                "lifecycle_state": "CANDIDATE",
+                "parent_evidence_refs": ["candidate-1"],
+                "source_code_sha": RESEARCH_SHA,
+                "config_hash": CONFIG_HASH,
+                "hypothesis_summary": "fixture",
+                "evaluation_status": "BETTER_THAN_BASELINE",
+                "known_limitations": ["FIXTURE_ONLY"],
+            }
+        ],
+    }
+    assert validate_research_lab_snapshot(doc) is False
+
+
+def test_fresh_api_import_does_not_import_research_publisher_or_engines(tmp_path: Path) -> None:
+    repo_root = str(Path(__file__).resolve().parents[1])
+    script = f"""
+import sys
+sys.path.insert(0, {repo_root!r})
+import observability.operator_api.app  # noqa: F401
+forbidden = [
+    "observability.research_lab_snapshot",
+    "research_data",
+    "research_replay",
+    "research_diag",
+    "research_candidate",
+]
+loaded = [
+    name for name in sys.modules
+    if any(name == prefix or name.startswith(prefix + ".") for prefix in forbidden)
+]
+if loaded:
+    raise SystemExit("forbidden imports: " + ",".join(sorted(loaded)))
+print("CLEAN")
+"""
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "PYTHONDONTWRITEBYTECODE": "1",
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert result.stdout.strip() == "CLEAN"
