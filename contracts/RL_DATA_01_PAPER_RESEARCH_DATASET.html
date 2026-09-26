@@ -1,0 +1,1093 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>RL-DATA-01 — PAPER → Research Dataset &amp; Provenance Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/RL_DATA_01_PAPER_RESEARCH_DATASET.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/RL_DATA_01_PAPER_RESEARCH_DATASET.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="rl-data-01-paper-research-dataset-provenance-contract">
+<h1>RL-DATA-01 — PAPER → Research Dataset &amp; Provenance Contract<a class="headerlink" href="#rl-data-01-paper-research-dataset-provenance-contract" title="Link to this heading">¶</a></h1>
+<p>Status: SOURCE CONTRACT V1 / implementation pending</p>
+<p>Parent: #237
+Governance: #148
+Mission: #238
+Draft implementation PR: #243</p>
+<p>Reference source baseline:</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;98082ef01e8bef93f86fe5e4d1d2af48dddec53e</span></code></p>
+<p>Certified F00 experiment:</p>
+<p><code class="docutils literal notranslate"><span class="pre">F00-EPOCH-01-20260920T084335Z</span></code></p>
+<p>Final F00 verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">F00_FINAL_SCIENTIFIC_EXPERIMENT_CERTIFIED</span></code></p>
+<hr class="docutils" />
+<section id="mission">
+<h2>1. Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
+<p>RL-DATA-01 creates the canonical one-way scientific boundary from PAPER into
+Research Lab.</p>
+<p>The direction is strictly:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PAPER</span> <span class="pre">FACTS</span> <span class="pre">→</span> <span class="pre">IMMUTABLE</span> <span class="pre">RESEARCH</span> <span class="pre">DATASET</span></code></p>
+<p>Never:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RESEARCH</span> <span class="pre">→</span> <span class="pre">ACTIVE</span> <span class="pre">PAPER</span> <span class="pre">MUTATION</span></code></p>
+<p>Research may consume certified PAPER evidence, derive replay/diagnostic artifacts,
+and produce hypotheses, but it never becomes a PAPER lifecycle authority.</p>
+<p>This contract is intentionally fail-closed:</p>
+<ul class="simple">
+<li><p>missing evidence is represented;</p></li>
+<li><p>unresolved provenance is preserved;</p></li>
+<li><p>unavailable systems are not converted to empty datasets;</p></li>
+<li><p>no timestamp-only, cycle-only, symbol-only, or filename-date heuristic may
+promote a record into a certified F00 population.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="authority-hierarchy">
+<h2>2. Authority hierarchy<a class="headerlink" href="#authority-hierarchy" title="Link to this heading">¶</a></h2>
+<p>RL-DATA-01 distinguishes four source classes.</p>
+<section id="authoritative-core">
+<h3>2.1 AUTHORITATIVE_CORE<a class="headerlink" href="#authoritative-core" title="Link to this heading">¶</a></h3>
+<p>Only these sources define the scientific PAPER boundary:</p>
+<ol class="arabic simple">
+<li><p>PPL durable F00 event stream;</p></li>
+<li><p>F00 experiment manifest;</p></li>
+<li><p>F00 experiment configuration freeze.</p></li>
+</ol>
+<p>These sources define experiment identity and lifecycle facts.</p>
+</section>
+<section id="derived-certified">
+<h3>2.2 DERIVED_CERTIFIED<a class="headerlink" href="#derived-certified" title="Link to this heading">¶</a></h3>
+<p>Derived evidence may accompany the dataset but cannot override AUTHORITATIVE_CORE:</p>
+<ul class="simple">
+<li><p>FIN-01 deterministic financial interpretation;</p></li>
+<li><p>FIN-02 reconciliation certification;</p></li>
+<li><p>bounded Legacy compatibility projection when explicitly exported.</p></li>
+</ul>
+</section>
+<section id="optional-certified">
+<h3>2.3 OPTIONAL_CERTIFIED<a class="headerlink" href="#optional-certified" title="Link to this heading">¶</a></h3>
+<p>Optional evidence is admissible only when exact causal provenance is proven.</p>
+<p>For F00 v1 this includes:</p>
+<ul class="simple">
+<li><p>the exact 13 DecisionPacket records selected by PPL OPEN packet IDs;</p></li>
+<li><p>the exact 13 DecisionIdentityJournal records selected through the certified
+packet → trace bridge.</p></li>
+</ul>
+</section>
+<section id="explicitly-unavailable-or-unbound">
+<h3>2.4 EXPLICITLY_UNAVAILABLE_OR_UNBOUND<a class="headerlink" href="#explicitly-unavailable-or-unbound" title="Link to this heading">¶</a></h3>
+<p>These sources are not silently dropped and not represented as zero:</p>
+<ul class="simple">
+<li><p>DIP: NOT_STARTED / NOT_AVAILABLE;</p></li>
+<li><p>Regret v2: UNRESOLVED_PROVENANCE;</p></li>
+<li><p>RejectionStore: UNBOUND;</p></li>
+<li><p>AdmissionLedger: UNBOUND.</p></li>
+</ul>
+<p>Their status must appear explicitly in the Research manifest.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="two-level-immutable-identity-model">
+<h2>3. Two-level immutable identity model<a class="headerlink" href="#two-level-immutable-identity-model" title="Link to this heading">¶</a></h2>
+<p>A PAPER scientific boundary and a Research export artifact are not the same
+identity.</p>
+<p>RL-DATA-01 therefore defines two deterministic identifiers.</p>
+<section id="source-boundary-id">
+<h3>3.1 <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code><a class="headerlink" href="#source-boundary-id" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code> identifies the authoritative PAPER scientific boundary.</p>
+<p>It must be deterministically derived from a canonical JSON identity document
+containing at minimum:</p>
+<ul class="simple">
+<li><p>identity schema version;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_domain</span> <span class="pre">=</span> <span class="pre">PAPER</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_authority</span> <span class="pre">=</span> <span class="pre">PPL_AUTHORITY</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">manifest_file_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_birth_code_sha</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_semantic_config_snapshot_hash</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_config_file_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_config_snapshot_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_runtime_source_sha</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_stream_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_event_count</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_first_sequence</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_last_sequence</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_first_timestamp</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_last_timestamp</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">legacy_boundary_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">legacy_event_count</span></code>.</p></li>
+</ul>
+<p>Canonicalization rule:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">UTF</span><span class="o">-</span><span class="mi">8</span> <span class="n">JSON</span>
+<span class="n">sort_keys</span> <span class="o">=</span> <span class="n">true</span>
+<span class="n">separators</span> <span class="o">=</span> <span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">)</span>
+<span class="n">no</span> <span class="n">insignificant</span> <span class="n">whitespace</span>
+<span class="n">SHA</span><span class="o">-</span><span class="mi">256</span> <span class="n">over</span> <span class="n">canonical</span> <span class="nb">bytes</span>
+</pre></div>
+</div>
+<p>The following MUST NOT participate in <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>:</p>
+<ul class="simple">
+<li><p>extraction timestamp;</p></li>
+<li><p>absolute VPS path;</p></li>
+<li><p>hostname;</p></li>
+<li><p>mutable live-journal SHA;</p></li>
+<li><p>file mtime;</p></li>
+<li><p>FIN-02 freshness/generated timestamp;</p></li>
+<li><p>invocation ID;</p></li>
+<li><p>process PID.</p></li>
+</ul>
+<p>Those values are operational/extraction provenance, not scientific-boundary
+identity.</p>
+</section>
+<section id="dataset-id">
+<h3>3.2 <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code><a class="headerlink" href="#dataset-id" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">dataset_id</span></code> identifies one immutable Research export artifact.</p>
+<p>It must be deterministically derived from a canonical dataset identity document
+containing:</p>
+<ul class="simple">
+<li><p>dataset schema version;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">derivation</span> <span class="pre">=</span> <span class="pre">PAPER_EXPORT</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>;</p></li>
+<li><p>exact ordered list of included Research components;</p></li>
+<li><p>canonical subset digest for each included component;</p></li>
+<li><p>record count for each included component;</p></li>
+<li><p>explicit component status;</p></li>
+<li><p>Research exporter code SHA.</p></li>
+</ul>
+<p>Required behavior:</p>
+<ul class="simple">
+<li><p>same PAPER boundary + same included component bytes/semantics + same exporter
+code identity ⇒ same <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p>same PAPER boundary + changed optional component content ⇒ same
+<code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>, different <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p>changed PPL source stream ⇒ different <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code> and different
+<code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="certified-f00-authoritative-boundary">
+<h2>4. Certified F00 authoritative boundary<a class="headerlink" href="#certified-f00-authoritative-boundary" title="Link to this heading">¶</a></h2>
+<section id="ppl-event-stream">
+<h3>4.1 PPL event stream<a class="headerlink" href="#ppl-event-stream" title="Link to this heading">¶</a></h3>
+<p>Canonical physical source:</p>
+<p><code class="docutils literal notranslate"><span class="pre">databases/ppl_authority/store/epochs/9b265710c1d5ebe6ccaf8d301deafea6812e73cfa4c8ea1666714452f14fea8c.jsonl</span></code></p>
+<p>Certified properties:</p>
+<ul class="simple">
+<li><p>event count: 27;</p></li>
+<li><p>first sequence: 1;</p></li>
+<li><p>last sequence: 27;</p></li>
+<li><p>EPOCH_CREATED: 1;</p></li>
+<li><p>POSITION_OPENED: 13;</p></li>
+<li><p>POSITION_CLOSED: 13;</p></li>
+<li><p>POSITION_UNRESOLVED: 0;</p></li>
+<li><p>open residual: 0;</p></li>
+<li><p>unresolved residual: 0.</p></li>
+</ul>
+<p>Certified SHA-256:</p>
+<p><code class="docutils literal notranslate"><span class="pre">50220fdfd4a75d219795db518d77ab6c6574883eb74a6a8db9e26a6d8cf729b2</span></code></p>
+<p>The exporter must preserve original event identities and event content. It must not
+rewrite or normalize source facts into a semantically different event stream.</p>
+</section>
+<section id="f00-experiment-manifest">
+<h3>4.2 F00 experiment manifest<a class="headerlink" href="#f00-experiment-manifest" title="Link to this heading">¶</a></h3>
+<p>Canonical source:</p>
+<p><code class="docutils literal notranslate"><span class="pre">databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.manifest.json</span></code></p>
+<p>Raw file SHA-256:</p>
+<p><code class="docutils literal notranslate"><span class="pre">1d7a3386b2eb2ec7a0f253500ecd2431379c45047698b33f84ae0e08644553af</span></code></p>
+<p>Certified semantic fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">manifest_schema_version</span> <span class="pre">=</span> <span class="pre">2</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">epoch_role</span> <span class="pre">=</span> <span class="pre">F00_EXPERIMENT</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span> <span class="pre">=</span> <span class="pre">F00-EPOCH-01-20260920T084335Z</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">created_at</span> <span class="pre">=</span> <span class="pre">1789893816.0022893</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial_virtual_capital</span> <span class="pre">=</span> <span class="pre">1000.0</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">code_sha</span> <span class="pre">=</span> <span class="pre">11e955d15cd1ea7ef75988943c978f3eb3a8006b</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config_snapshot_hash</span> <span class="pre">=</span> <span class="pre">6a86a11b201778602eaa4575fbbdfde6dc253760b528cb79b72145d4ac417aae</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">legacy_boundary_sha256</span> <span class="pre">=</span> <span class="pre">f44b2df8deb950cb2e026193f31d3089d27e5ee08d58dfda753e6041d3462f42</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">legacy_event_count</span> <span class="pre">=</span> <span class="pre">2364</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">predecessor_authority_epoch_id</span> <span class="pre">=</span> <span class="pre">PPL02E-AUTH-002-20260919T055150Z</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_event_schema_version</span> <span class="pre">=</span> <span class="pre">2</span></code>.</p></li>
+</ul>
+</section>
+<section id="f00-experiment-configuration-freeze">
+<h3>4.3 F00 experiment configuration freeze<a class="headerlink" href="#f00-experiment-configuration-freeze" title="Link to this heading">¶</a></h3>
+<p>Canonical source:</p>
+<p><code class="docutils literal notranslate"><span class="pre">databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.experiment-config.json</span></code></p>
+<p>Raw file SHA-256:</p>
+<p><code class="docutils literal notranslate"><span class="pre">0054f00325aae069bc9a972851d4436a885bae73605f9b53a7d323a56170b35c</span></code></p>
+<p>Internal deterministic snapshot SHA-256:</p>
+<p><code class="docutils literal notranslate"><span class="pre">aa8c20e8acd1ad489da7572c6d35c2d5e37fcd265c0ef292035dbb2c8bbd83e6</span></code></p>
+<p>Frozen runtime source SHA:</p>
+<p><code class="docutils literal notranslate"><span class="pre">c8dae319442bf751336ff22fd7c6257bb6d69783</span></code></p>
+<p>Material parameter count:</p>
+<p><code class="docutils literal notranslate"><span class="pre">258</span></code></p>
+<p>Frozen prestart guard:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=0</span></code></p>
+<p>Frozen activation overlay:</p>
+<ul class="simple">
+<li><p>path:
+<code class="docutils literal notranslate"><span class="pre">databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.admission.env</span></code></p></li>
+<li><p>SHA-256:
+<code class="docutils literal notranslate"><span class="pre">0f33c91d5d14cdd5bd6a0845853c854dc5f3772fd74a29b288bc113888cb205e</span></code></p></li>
+<li><p>frozen override:
+<code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=2</span></code>.</p></li>
+</ul>
+</section>
+<section id="identity-fields-must-remain-distinct">
+<h3>4.4 Identity fields must remain distinct<a class="headerlink" href="#identity-fields-must-remain-distinct" title="Link to this heading">¶</a></h3>
+<p>The following identifiers are different concepts and MUST NOT be collapsed into
+generic <code class="docutils literal notranslate"><span class="pre">source_sha</span></code> or <code class="docutils literal notranslate"><span class="pre">config_hash</span></code> fields:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">manifest_file_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_birth_code_sha</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_semantic_config_snapshot_hash</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_config_file_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_config_snapshot_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_runtime_source_sha</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_stream_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">research_exporter_code_sha</span></code>.</p></li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="optional-certified-decision-evidence">
+<h2>5. Optional certified decision evidence<a class="headerlink" href="#optional-certified-decision-evidence" title="Link to this heading">¶</a></h2>
+<section id="canonical-causal-key">
+<h3>5.1 Canonical causal key<a class="headerlink" href="#canonical-causal-key" title="Link to this heading">¶</a></h3>
+<p>For the certified F00 OPEN population, source inspection and runtime evidence
+prove:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PPL</span> <span class="pre">POSITION_OPENED.decision_id</span> <span class="pre">==</span> <span class="pre">DecisionPacket.packet_id</span></code></p>
+<p>All 13 OPEN events carry a unique non-null <code class="docutils literal notranslate"><span class="pre">decision_id</span></code>.</p>
+<p>Some CLOSE events carry <code class="docutils literal notranslate"><span class="pre">decision_id=None</span></code>. Those missing values are preserved
+as missing. CLOSE remains lifecycle-linked to OPEN by exact <code class="docutils literal notranslate"><span class="pre">trade_id</span></code>.</p>
+<p>No CLOSE decision ID is inferred.</p>
+</section>
+<section id="decisionpacket-subset">
+<h3>5.2 DecisionPacket subset<a class="headerlink" href="#decisionpacket-subset" title="Link to this heading">¶</a></h3>
+<p>Selection rule:</p>
+<ul class="simple">
+<li><p>collect the 13 PPL OPEN <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> values;</p></li>
+<li><p>select DecisionPacket records by exact <code class="docutils literal notranslate"><span class="pre">packet_id</span></code> equality only;</p></li>
+<li><p>fail if any ID is missing or duplicated.</p></li>
+</ul>
+<p>Certified F00 evidence:</p>
+<ul class="simple">
+<li><p>matched packet IDs: 13/13;</p></li>
+<li><p>missing: none;</p></li>
+<li><p>duplicates: none;</p></li>
+<li><p>all 13 carry non-empty <code class="docutils literal notranslate"><span class="pre">metadata.trace_id</span></code>.</p></li>
+</ul>
+<p>Canonical Research subset SHA-256, computed from the 13 original DecisionPacket
+records sorted by <code class="docutils literal notranslate"><span class="pre">packet_id</span></code> using canonical JSON:</p>
+<p><code class="docutils literal notranslate"><span class="pre">cab875c1a7313c028351edd42410f2e780ecb33e59f3c4e583d566ea8413c170</span></code></p>
+<p>Physical source shards:</p>
+<section id="id1">
+<h4>2026-09-20<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">databases/decision_packets_2026-09-20.jsonl</span></code></p>
+<ul class="simple">
+<li><p>matched F00 records: 2;</p></li>
+<li><p>total rows: 2793;</p></li>
+<li><p>bytes: 12516523;</p></li>
+<li><p>SHA-256:
+<code class="docutils literal notranslate"><span class="pre">59ca17c017ac7f4d35c7b99ff0a69f9b376ea7af4dd1ec5ad757539e4d3c70c8</span></code>.</p></li>
+</ul>
+</section>
+<section id="id2">
+<h4>2026-09-21<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">databases/decision_packets_2026-09-21.jsonl</span></code></p>
+<ul class="simple">
+<li><p>matched F00 records: 7;</p></li>
+<li><p>total rows: 18972;</p></li>
+<li><p>bytes: 83706178;</p></li>
+<li><p>SHA-256:
+<code class="docutils literal notranslate"><span class="pre">59467a52681e376bdb87505f0c90ef8828938e967bf5d3555d371fb93f8464ac</span></code>.</p></li>
+</ul>
+</section>
+<section id="id3">
+<h4>2026-09-22<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">databases/decision_packets_2026-09-22.jsonl</span></code></p>
+<ul class="simple">
+<li><p>matched F00 records: 4;</p></li>
+<li><p>total rows: 15453;</p></li>
+<li><p>bytes: 66811259;</p></li>
+<li><p>SHA-256:
+<code class="docutils literal notranslate"><span class="pre">a840d4ae31a0e9a0e2a50e0374a9612aecd6fbb17015f04d39b7a2ac4956c593</span></code>.</p></li>
+</ul>
+<p>The physical shard hashes are extraction provenance. The canonical 13-record
+subset digest identifies the optional Research component.</p>
+</section>
+</section>
+<section id="decisionidentityjournal-bridge">
+<h3>5.3 DecisionIdentityJournal bridge<a class="headerlink" href="#decisionidentityjournal-bridge" title="Link to this heading">¶</a></h3>
+<p>Direct equality is invalid:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PPL</span> <span class="pre">packet_id</span> <span class="pre">!=</span> <span class="pre">DecisionIdentityJournal.decision_id</span></code></p>
+<p>Fresh audit result:</p>
+<ul class="simple">
+<li><p>direct PPL OPEN ID matches in DecisionIdentityJournal: 0/13.</p></li>
+</ul>
+<p>The certified bridge is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PPL</span> <span class="pre">decision_id</span> <span class="pre">(=</span> <span class="pre">packet_id)</span></code>
+→ <code class="docutils literal notranslate"><span class="pre">DecisionPacket.packet_id</span></code>
+→ <code class="docutils literal notranslate"><span class="pre">DecisionPacket.metadata.trace_id</span></code>
+→ <code class="docutils literal notranslate"><span class="pre">DecisionIdentityJournal.decision_id</span></code></p>
+<p>Fresh audit proved:</p>
+<ul class="simple">
+<li><p>packet matches: 13/13;</p></li>
+<li><p>unique trace IDs: 13;</p></li>
+<li><p>trace→journal matches: 13/13;</p></li>
+<li><p>missing: none;</p></li>
+<li><p>duplicates: none;</p></li>
+<li><p>symbol mismatch: 0;</p></li>
+<li><p>cycle mismatch: 0;</p></li>
+<li><p>journal bad JSON: 0;</p></li>
+<li><p>stored payload-digest failures: 0.</p></li>
+</ul>
+<p>Canonical Research subset SHA-256 over the 13 original journal records sorted by
+<code class="docutils literal notranslate"><span class="pre">decision_id</span></code>:</p>
+<p><code class="docutils literal notranslate"><span class="pre">98aab51a987c49c0f5cf6bd230de98363313bffed8becf2d861248d3579608c9</span></code></p>
+<p>The full live journal is append-only and continues to grow. Its whole-file SHA is
+therefore extraction provenance only and MUST NOT participate in <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>.</p>
+<p>Audit-time fingerprint:</p>
+<ul class="simple">
+<li><p>path:
+<code class="docutils literal notranslate"><span class="pre">databases/decision_identity_journal.jsonl</span></code></p></li>
+<li><p>bytes:
+<code class="docutils literal notranslate"><span class="pre">87263259</span></code></p></li>
+<li><p>SHA-256 at audit:
+<code class="docutils literal notranslate"><span class="pre">4a21711cc3116e9adca73b2e3a71c983db280ae8bd1a0cbe771e81a0ff78430d</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="explicit-unavailable-and-unresolved-sources">
+<h2>6. Explicit unavailable and unresolved sources<a class="headerlink" href="#explicit-unavailable-and-unresolved-sources" title="Link to this heading">¶</a></h2>
+<section id="dip">
+<h3>6.1 DIP<a class="headerlink" href="#dip" title="Link to this heading">¶</a></h3>
+<p>Dataset status:</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<p>Reason:</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Certified evidence:</p>
+<ul class="simple">
+<li><p>no <code class="docutils literal notranslate"><span class="pre">dip.sqlite</span></code>, <code class="docutils literal notranslate"><span class="pre">dip.sqlite-*</span></code>, or other <code class="docutils literal notranslate"><span class="pre">*dip*.sqlite*</span></code> file existed
+under the project tree;</p></li>
+<li><p>no <code class="docutils literal notranslate"><span class="pre">DIP_*</span></code> environment override existed in the Advisor process;</p></li>
+<li><p>canonical S-03D runtime provenance snapshot exposed:</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">{&quot;status&quot;:&quot;NOT_STARTED&quot;}</span></code></p>
+<p>The Research export MUST NOT create an empty DIP dataset and MUST NOT initialize
+DIP as a side effect.</p>
+</section>
+<section id="regret-v2">
+<h3>6.2 Regret v2<a class="headerlink" href="#regret-v2" title="Link to this heading">¶</a></h3>
+<p>Dataset status:</p>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED_PROVENANCE</span></code></p>
+<p>Fresh source audit:</p>
+<ul class="simple">
+<li><p>records scanned: 524152;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_id=None</span></code>: all;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_authority=None</span></code>: all;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id=None</span></code>: all;</p></li>
+<li><p>explicit F00 matches: 0.</p></li>
+</ul>
+<p>No date/cycle/symbol attribution is allowed.</p>
+</section>
+<section id="rejectionstore">
+<h3>6.3 RejectionStore<a class="headerlink" href="#rejectionstore" title="Link to this heading">¶</a></h3>
+<p>Dataset status:</p>
+<p><code class="docutils literal notranslate"><span class="pre">UNBOUND</span></code></p>
+<p>Fresh source audit:</p>
+<ul class="simple">
+<li><p>records scanned: 1066814;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_id=None</span></code>: all;</p></li>
+<li><p>explicit F00 experiment matches: 0.</p></li>
+</ul>
+<p>Rejection records may later become Research-eligible only through a separately
+certified exact packet provenance contract.</p>
+</section>
+<section id="admissionledger">
+<h3>6.4 AdmissionLedger<a class="headerlink" href="#admissionledger" title="Link to this heading">¶</a></h3>
+<p>Dataset status:</p>
+<p><code class="docutils literal notranslate"><span class="pre">UNBOUND</span></code></p>
+<p>Fresh source audit:</p>
+<ul class="simple">
+<li><p>records scanned: 19268;</p></li>
+<li><p>records carrying <code class="docutils literal notranslate"><span class="pre">experiment_id</span></code>: 0;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>: 0;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">packet_id</span></code>: 0;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trace_id</span></code>: 0.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">cycle_id</span></code> is not globally unique and cannot certify F00 membership.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="fin-semantics">
+<h2>7. FIN semantics<a class="headerlink" href="#fin-semantics" title="Link to this heading">¶</a></h2>
+<p>FIN is derived financial interpretation, not PPL lifecycle authority.</p>
+<p>Certified F00 references:</p>
+<ul class="simple">
+<li><p>FIN-01 source SHA:
+<code class="docutils literal notranslate"><span class="pre">c639ac397122929769be2a1ce7654e3a1bc24cfe</span></code>;</p></li>
+<li><p>deterministic certified FIN snapshot ID:
+<code class="docutils literal notranslate"><span class="pre">e7bc4f1c4c4fa7b32e58d03f565a252404546165371dce3bc10e9c12e7b142f5</span></code>;</p></li>
+<li><p>FIN-02 source SHA:
+<code class="docutils literal notranslate"><span class="pre">71fd89d7197164f4b9b45e8e497c753b771eddcf</span></code>;</p></li>
+<li><p>final reconciliation:
+<code class="docutils literal notranslate"><span class="pre">WITHIN_TOLERANCE</span></code>.</p></li>
+</ul>
+<p>The mutable live file
+<code class="docutils literal notranslate"><span class="pre">databases/financial_reconciliation_snapshot.json</span></code>
+MUST NOT participate in <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code> or <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>.</p>
+<p>A future Research-owned financial derivative may be exported as a separate
+component with its own deterministic digest.</p>
+</section>
+<hr class="docutils" />
+<section id="legacy-compatibility-semantics">
+<h2>8. Legacy compatibility semantics<a class="headerlink" href="#legacy-compatibility-semantics" title="Link to this heading">¶</a></h2>
+<p>The complete mixed <code class="docutils literal notranslate"><span class="pre">databases/paper_trades.jsonl</span></code> file is not the canonical F00
+Research population.</p>
+<p>Certified lineage:</p>
+<ul class="simple">
+<li><p>immutable historical prefix rows: 2364;</p></li>
+<li><p>historical prefix SHA-256:
+<code class="docutils literal notranslate"><span class="pre">f44b2df8deb950cb2e026193f31d3089d27e5ee08d58dfda753e6041d3462f42</span></code>;</p></li>
+<li><p>final compatibility rows: 2390;</p></li>
+<li><p>F00 downstream projection rows: 26;</p></li>
+<li><p>exact composition: 13 OPEN + 13 CLOSE;</p></li>
+<li><p>row equality with deterministic PPL compatibility projection: TRUE.</p></li>
+</ul>
+<p>For v1, the manifest’s Legacy boundary fingerprint/count is sufficient lineage.</p>
+<p>If a Legacy projection is exported later, it must be a distinct DERIVED component
+with an explicitly bounded deterministic digest.</p>
+</section>
+<hr class="docutils" />
+<section id="target-physical-layout">
+<h2>9. Target physical layout<a class="headerlink" href="#target-physical-layout" title="Link to this heading">¶</a></h2>
+<p>V1 logical layout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">research_data</span><span class="o">/</span>
+  <span class="n">datasets</span><span class="o">/</span>
+    <span class="o">&lt;</span><span class="n">dataset_id</span><span class="o">&gt;/</span>
+      <span class="n">manifest</span><span class="o">.</span><span class="n">json</span>
+      <span class="n">authoritative</span><span class="o">/</span>
+        <span class="n">ppl_events</span><span class="o">.</span><span class="n">jsonl</span>
+        <span class="n">f00_experiment_manifest</span><span class="o">.</span><span class="n">json</span>
+        <span class="n">f00_experiment_config</span><span class="o">.</span><span class="n">json</span>
+      <span class="n">optional</span><span class="o">/</span>
+        <span class="n">decision_packets</span><span class="o">.</span><span class="n">jsonl</span>
+        <span class="n">decision_identity_records</span><span class="o">.</span><span class="n">jsonl</span>
+</pre></div>
+</div>
+<p>The exporter MUST write only to Research-owned storage.</p>
+<p>It MUST NOT write to:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">databases/ppl_authority/</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">databases/paper_trades.jsonl</span></code>;</p></li>
+<li><p>DecisionPacket source shards;</p></li>
+<li><p>DecisionIdentityJournal;</p></li>
+<li><p>FIN runtime snapshots;</p></li>
+<li><p>DIP/Regret/Rejection/Admission source stores.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="manifest-model">
+<h2>10. Manifest model<a class="headerlink" href="#manifest-model" title="Link to this heading">¶</a></h2>
+<p>The Research manifest must contain at minimum:</p>
+<section id="identity">
+<h3>Identity<a class="headerlink" href="#identity" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dataset_schema_version</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">derivation</span> <span class="pre">=</span> <span class="pre">PAPER_EXPORT</span></code>.</p></li>
+</ul>
+</section>
+<section id="authority">
+<h3>Authority<a class="headerlink" href="#authority" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">source_domain</span> <span class="pre">=</span> <span class="pre">PAPER</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_authority</span> <span class="pre">=</span> <span class="pre">PPL_AUTHORITY</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>.</p></li>
+</ul>
+</section>
+<section id="authoritative-source-identities">
+<h3>Authoritative source identities<a class="headerlink" href="#authoritative-source-identities" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">manifest_file_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_birth_code_sha</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_semantic_config_snapshot_hash</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_config_file_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_config_snapshot_sha256</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">experiment_runtime_source_sha</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppl_stream_sha256</span></code>;</p></li>
+<li><p>PPL event count and sequence range;</p></li>
+<li><p>Legacy boundary SHA/count.</p></li>
+</ul>
+</section>
+<section id="components">
+<h3>Components<a class="headerlink" href="#components" title="Link to this heading">¶</a></h3>
+<p>For every component:</p>
+<ul class="simple">
+<li><p>logical role;</p></li>
+<li><p>authority class;</p></li>
+<li><p>status;</p></li>
+<li><p>record count;</p></li>
+<li><p>canonical component digest when present;</p></li>
+<li><p>source references/fingerprints;</p></li>
+<li><p>selection rule;</p></li>
+<li><p>unresolved reason when applicable.</p></li>
+</ul>
+</section>
+<section id="extraction-provenance">
+<h3>Extraction provenance<a class="headerlink" href="#extraction-provenance" title="Link to this heading">¶</a></h3>
+<p>Outside deterministic identity inputs:</p>
+<ul class="simple">
+<li><p>extraction timestamp UTC;</p></li>
+<li><p>logical/physical source paths;</p></li>
+<li><p>source sizes/counts;</p></li>
+<li><p>whole-file SHA at extraction when useful;</p></li>
+<li><p>exporter invocation information;</p></li>
+<li><p>exact exporter code SHA.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="completeness-doctrine">
+<h2>11. Completeness doctrine<a class="headerlink" href="#completeness-doctrine" title="Link to this heading">¶</a></h2>
+<p>Allowed component states include at minimum:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PARTIAL</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED_PROVENANCE</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNBOUND</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code>.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, <code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code>, <code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span></code>, and <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code> are never
+equivalent to numeric zero.</p>
+<p>Overall dataset <code class="docutils literal notranslate"><span class="pre">completeness_status</span></code> is evaluated against the declared REQUIRED
+v1 components.</p>
+<p>For v1:</p>
+<p>Required:</p>
+<ul class="simple">
+<li><p>PPL event stream;</p></li>
+<li><p>F00 experiment manifest;</p></li>
+<li><p>F00 experiment config.</p></li>
+</ul>
+<p>Optional-certified:</p>
+<ul class="simple">
+<li><p>DecisionPacket subset;</p></li>
+<li><p>DecisionIdentityJournal subset.</p></li>
+</ul>
+<p>Declared unavailable/unbound:</p>
+<ul class="simple">
+<li><p>DIP;</p></li>
+<li><p>Regret;</p></li>
+<li><p>RejectionStore;</p></li>
+<li><p>AdmissionLedger.</p></li>
+</ul>
+<p>Therefore the dataset may be <code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code> for its declared v1 scope while still
+recording explicit optional-source limitations.</p>
+</section>
+<hr class="docutils" />
+<section id="deterministic-export-rules">
+<h2>12. Deterministic export rules<a class="headerlink" href="#deterministic-export-rules" title="Link to this heading">¶</a></h2>
+<p>The exporter must:</p>
+<ol class="arabic simple">
+<li><p>select exactly one PPL epoch;</p></li>
+<li><p>load and validate the matching F00 manifest;</p></li>
+<li><p>verify manifest epoch identity;</p></li>
+<li><p>verify raw manifest SHA;</p></li>
+<li><p>verify exact PPL stream SHA;</p></li>
+<li><p>verify contiguous sequence range;</p></li>
+<li><p>validate source event count;</p></li>
+<li><p>load and validate the matching experiment-config freeze;</p></li>
+<li><p>preserve all distinct code/config identities;</p></li>
+<li><p>compute deterministic <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>;</p></li>
+<li><p>optionally resolve F00 DecisionPackets by exact PPL OPEN packet IDs;</p></li>
+<li><p>require exactly one DecisionPacket per selected packet ID;</p></li>
+<li><p>resolve journal records only through DecisionPacket trace IDs;</p></li>
+<li><p>verify DecisionIdentityJournal <code class="docutils literal notranslate"><span class="pre">payload_digest</span></code>;</p></li>
+<li><p>compute canonical optional subset digests;</p></li>
+<li><p>encode unavailable/unbound source states explicitly;</p></li>
+<li><p>compute deterministic <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p>write only to Research-owned storage.</p></li>
+</ol>
+<p>The exporter must fail closed on:</p>
+<ul class="simple">
+<li><p>malformed JSON;</p></li>
+<li><p>truncated PPL;</p></li>
+<li><p>duplicate sequence;</p></li>
+<li><p>sequence gap;</p></li>
+<li><p>epoch mismatch;</p></li>
+<li><p>SHA mismatch;</p></li>
+<li><p>missing required authoritative artifact;</p></li>
+<li><p>DecisionPacket duplicate for a selected F00 packet;</p></li>
+<li><p>ambiguous trace bridge;</p></li>
+<li><p>journal payload-digest mismatch;</p></li>
+<li><p>attempted output overwrite with different bytes;</p></li>
+<li><p>source mutation detected during export.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="source-mutation-guard">
+<h2>13. Source-mutation guard<a class="headerlink" href="#source-mutation-guard" title="Link to this heading">¶</a></h2>
+<p>RL-DATA-01 must prove that export is non-perturbative.</p>
+<p>At minimum, before and after export it must compare:</p>
+<ul class="simple">
+<li><p>authoritative PPL SHA;</p></li>
+<li><p>F00 manifest SHA;</p></li>
+<li><p>F00 experiment-config SHA;</p></li>
+<li><p>any source shard fingerprint consumed by the optional decision component.</p></li>
+</ul>
+<p>Any source digest drift during one export invocation must fail the export.</p>
+<p>Append-only live sources such as DecisionIdentityJournal require a bounded selection
+model. Their whole-file digest may change after extraction; the exported subset
+identity must remain deterministic.</p>
+</section>
+<hr class="docutils" />
+<section id="metric-provenance-contract">
+<h2>14. Metric provenance contract<a class="headerlink" href="#metric-provenance-contract" title="Link to this heading">¶</a></h2>
+<p>No Research metric is scientific unless it points to its population.</p>
+<p>Derived metrics must include at minimum:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">research_run_id</span></code>;</p></li>
+<li><p>strategy/candidate identity when applicable;</p></li>
+<li><p>Research code SHA;</p></li>
+<li><p>Research config hash;</p></li>
+<li><p>derivation/method;</p></li>
+<li><p>population filters;</p></li>
+<li><p>sample size;</p></li>
+<li><p>timestamp.</p></li>
+</ul>
+<p>PAPER authority metrics and Research-derived metrics must never be implicitly
+summed or merged.</p>
+</section>
+<hr class="docutils" />
+<section id="testing-requirements">
+<h2>15. Testing requirements<a class="headerlink" href="#testing-requirements" title="Link to this heading">¶</a></h2>
+<p>RL-DATA-01 source certification must prove:</p>
+<ol class="arabic simple">
+<li><p>exact F00 epoch selection;</p></li>
+<li><p>deterministic <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>;</p></li>
+<li><p>deterministic <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p>exact authoritative SHA capture;</p></li>
+<li><p>exact event-count/sequence boundary;</p></li>
+<li><p>manifest/config semantic identity checks;</p></li>
+<li><p>read-only source behavior;</p></li>
+<li><p>deterministic re-export of identical boundary;</p></li>
+<li><p>changed source boundary ⇒ changed IDs;</p></li>
+<li><p>optional DecisionPacket 1:1 selection;</p></li>
+<li><p>packet→trace→journal 1:1 bridge;</p></li>
+<li><p>DecisionIdentity payload digest validation;</p></li>
+<li><p>explicit NOT_STARTED/UNBOUND/UNRESOLVED states;</p></li>
+<li><p>malformed/corrupt/truncated source fail-closed behavior;</p></li>
+<li><p>tests use temporary isolated fixtures;</p></li>
+<li><p>no active runtime/VPS deployment;</p></li>
+<li><p>no source-file mutation.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="runtime-and-deployment-boundary">
+<h2>16. Runtime and deployment boundary<a class="headerlink" href="#runtime-and-deployment-boundary" title="Link to this heading">¶</a></h2>
+<p>This mission authorizes source development only.</p>
+<p>It does NOT authorize:</p>
+<ul class="simple">
+<li><p>active VPS deployment of the Research exporter;</p></li>
+<li><p>PPL mutation;</p></li>
+<li><p>PAPER compatibility mutation;</p></li>
+<li><p>new PAPER epoch;</p></li>
+<li><p>F00 reopening;</p></li>
+<li><p>Watchdog activation;</p></li>
+<li><p>burn-in;</p></li>
+<li><p>TESTNET/LIVE;</p></li>
+<li><p>exchange writes;</p></li>
+<li><p>strategy/signal/risk/sizing changes;</p></li>
+<li><p>FIN-03 capital allocation.</p></li>
+</ul>
+<p>Any future deployment must undergo a separate read-only/non-perturbation review.</p>
+</section>
+<hr class="docutils" />
+<section id="certified-source-audit-results">
+<h2>17. Certified source-audit results<a class="headerlink" href="#certified-source-audit-results" title="Link to this heading">¶</a></h2>
+<p>A1:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_SOURCE_AUDIT_A1</span> <span class="pre">=</span> <span class="pre">PASS_WITH_CONTRACT_REALIGNMENT_REQUIRED</span></code></p>
+<p>A2:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_SOURCE_AUDIT_A2</span> <span class="pre">=</span> <span class="pre">PASS</span></code></p>
+<p>A3.1:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_A3_1_DECISION_BOUNDARY</span> <span class="pre">=</span> <span class="pre">PASS</span></code></p>
+<p>A3.2:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_A3_2_PACKET_TRACE_JOURNAL</span> <span class="pre">=</span> <span class="pre">PASS</span></code></p>
+<p>A3.3:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_A3_3_DIP</span> <span class="pre">=</span> <span class="pre">PASS_AS_NOT_STARTED</span></code></p>
+<p>A4:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_A4_DECISION_EVIDENCE_FREEZE</span> <span class="pre">=</span> <span class="pre">PASS</span></code></p>
+<p>A5:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_A5_V1_SOURCE_CONTRACT_SPECIFIED</span> <span class="pre">=</span> <span class="pre">PASS</span></code></p>
+<p>Overall source audit:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_SOURCE_AUDIT_COMPLETE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="target-mission-verdict">
+<h2>18. Target mission verdict<a class="headerlink" href="#target-mission-verdict" title="Link to this heading">¶</a></h2>
+<p>The implementation is not yet certified by this document.</p>
+<p>After exporter implementation, tests, deterministic replay/export proof, and
+source-mutation proof, the target verdict remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_SOURCE_CERTIFIED</span></code></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">RL-DATA-01 — PAPER → Research Dataset &amp; Provenance Contract</a><ul>
+<li><a class="reference internal" href="#mission">1. Mission</a></li>
+<li><a class="reference internal" href="#authority-hierarchy">2. Authority hierarchy</a><ul>
+<li><a class="reference internal" href="#authoritative-core">2.1 AUTHORITATIVE_CORE</a></li>
+<li><a class="reference internal" href="#derived-certified">2.2 DERIVED_CERTIFIED</a></li>
+<li><a class="reference internal" href="#optional-certified">2.3 OPTIONAL_CERTIFIED</a></li>
+<li><a class="reference internal" href="#explicitly-unavailable-or-unbound">2.4 EXPLICITLY_UNAVAILABLE_OR_UNBOUND</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#two-level-immutable-identity-model">3. Two-level immutable identity model</a><ul>
+<li><a class="reference internal" href="#source-boundary-id">3.1 <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code></a></li>
+<li><a class="reference internal" href="#dataset-id">3.2 <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#certified-f00-authoritative-boundary">4. Certified F00 authoritative boundary</a><ul>
+<li><a class="reference internal" href="#ppl-event-stream">4.1 PPL event stream</a></li>
+<li><a class="reference internal" href="#f00-experiment-manifest">4.2 F00 experiment manifest</a></li>
+<li><a class="reference internal" href="#f00-experiment-configuration-freeze">4.3 F00 experiment configuration freeze</a></li>
+<li><a class="reference internal" href="#identity-fields-must-remain-distinct">4.4 Identity fields must remain distinct</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#optional-certified-decision-evidence">5. Optional certified decision evidence</a><ul>
+<li><a class="reference internal" href="#canonical-causal-key">5.1 Canonical causal key</a></li>
+<li><a class="reference internal" href="#decisionpacket-subset">5.2 DecisionPacket subset</a><ul>
+<li><a class="reference internal" href="#id1">2026-09-20</a></li>
+<li><a class="reference internal" href="#id2">2026-09-21</a></li>
+<li><a class="reference internal" href="#id3">2026-09-22</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#decisionidentityjournal-bridge">5.3 DecisionIdentityJournal bridge</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#explicit-unavailable-and-unresolved-sources">6. Explicit unavailable and unresolved sources</a><ul>
+<li><a class="reference internal" href="#dip">6.1 DIP</a></li>
+<li><a class="reference internal" href="#regret-v2">6.2 Regret v2</a></li>
+<li><a class="reference internal" href="#rejectionstore">6.3 RejectionStore</a></li>
+<li><a class="reference internal" href="#admissionledger">6.4 AdmissionLedger</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fin-semantics">7. FIN semantics</a></li>
+<li><a class="reference internal" href="#legacy-compatibility-semantics">8. Legacy compatibility semantics</a></li>
+<li><a class="reference internal" href="#target-physical-layout">9. Target physical layout</a></li>
+<li><a class="reference internal" href="#manifest-model">10. Manifest model</a><ul>
+<li><a class="reference internal" href="#identity">Identity</a></li>
+<li><a class="reference internal" href="#authority">Authority</a></li>
+<li><a class="reference internal" href="#authoritative-source-identities">Authoritative source identities</a></li>
+<li><a class="reference internal" href="#components">Components</a></li>
+<li><a class="reference internal" href="#extraction-provenance">Extraction provenance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#completeness-doctrine">11. Completeness doctrine</a></li>
+<li><a class="reference internal" href="#deterministic-export-rules">12. Deterministic export rules</a></li>
+<li><a class="reference internal" href="#source-mutation-guard">13. Source-mutation guard</a></li>
+<li><a class="reference internal" href="#metric-provenance-contract">14. Metric provenance contract</a></li>
+<li><a class="reference internal" href="#testing-requirements">15. Testing requirements</a></li>
+<li><a class="reference internal" href="#runtime-and-deployment-boundary">16. Runtime and deployment boundary</a></li>
+<li><a class="reference internal" href="#certified-source-audit-results">17. Certified source-audit results</a></li>
+<li><a class="reference internal" href="#target-mission-verdict">18. Target mission verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

@@ -1,0 +1,915 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>RL-REPLAY-01 — Deterministic Offline PAPER Replay Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/RL_REPLAY_01_OFFLINE_REPLAY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/RL_REPLAY_01_OFFLINE_REPLAY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="rl-replay-01-deterministic-offline-paper-replay-contract">
+<h1>RL-REPLAY-01 — Deterministic Offline PAPER Replay Contract<a class="headerlink" href="#rl-replay-01-deterministic-offline-paper-replay-contract" title="Link to this heading">¶</a></h1>
+<p>Status: SOURCE CONTRACT V1 / implementation in progress</p>
+<p>Parent: #237
+Governance: #148
+Mission: #239
+Depends on: #238 / PR #243</p>
+<p>Certified upstream implementation:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DATA_01_SOURCE_CERTIFIED</span></code></p>
+<p>Stack base:</p>
+<p><code class="docutils literal notranslate"><span class="pre">8ad566de7521402c34a240b14fa9a036893c5ca3</span></code></p>
+<p>Certified F00 Research input:</p>
+<ul class="simple">
+<li><p>dataset_id:
+<code class="docutils literal notranslate"><span class="pre">4ea633a6a4e2ee0bc01a6fe855526d7c42451883ec0b6f3914cf21ea8e91cc8b</span></code></p></li>
+<li><p>source_boundary_id:
+<code class="docutils literal notranslate"><span class="pre">2e6b478cd0cead58c1bcf25c168254b0a63daaa2722c6c108613eb81e283812e</span></code></p></li>
+<li><p>PPL SHA-256:
+<code class="docutils literal notranslate"><span class="pre">50220fdfd4a75d219795db518d77ab6c6574883eb74a6a8db9e26a6d8cf729b2</span></code></p></li>
+<li><p>DecisionPacket canonical subset SHA-256:
+<code class="docutils literal notranslate"><span class="pre">cab875c1a7313c028351edd42410f2e780ecb33e59f3c4e583d566ea8413c170</span></code></p></li>
+<li><p>DecisionIdentity canonical subset SHA-256:
+<code class="docutils literal notranslate"><span class="pre">98aab51a987c49c0f5cf6bd230de98363313bffed8becf2d861248d3579608c9</span></code></p></li>
+</ul>
+<hr class="docutils" />
+<section id="mission">
+<h2>1. Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
+<p>RL-REPLAY-01 creates the canonical Research-side replay boundary over immutable
+RL-DATA datasets.</p>
+<p>The direction is strictly:</p>
+<p><code class="docutils literal notranslate"><span class="pre">IMMUTABLE</span> <span class="pre">PAPER</span> <span class="pre">EXPORT</span> <span class="pre">→</span> <span class="pre">OFFLINE</span> <span class="pre">RESEARCH</span> <span class="pre">REPLAY</span> <span class="pre">→</span> <span class="pre">RESEARCH</span> <span class="pre">RESULT</span></code></p>
+<p>Never:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RESEARCH</span> <span class="pre">REPLAY</span> <span class="pre">→</span> <span class="pre">ACTIVE</span> <span class="pre">PAPER/PPL</span> <span class="pre">MUTATION</span></code></p>
+<p>The replay engine is non-authoritative. It reconstructs and derives from
+certified facts; it does not create new PAPER facts.</p>
+</section>
+<hr class="docutils" />
+<section id="scientific-worlds">
+<h2>2. Scientific worlds<a class="headerlink" href="#scientific-worlds" title="Link to this heading">¶</a></h2>
+<p>RL-REPLAY-01 distinguishes three output classes.</p>
+<section id="factual-baseline">
+<h3>2.1 FACTUAL_BASELINE<a class="headerlink" href="#factual-baseline" title="Link to this heading">¶</a></h3>
+<p>A deterministic re-projection of facts already present in the immutable dataset.</p>
+<p>It may:</p>
+<ul class="simple">
+<li><p>validate the dataset;</p></li>
+<li><p>decode PPL events;</p></li>
+<li><p>replay the exact lifecycle;</p></li>
+<li><p>derive quantities that the certified PPL contract already defines from exact
+stored facts;</p></li>
+<li><p>compute Research metrics over that exact population.</p></li>
+</ul>
+<p>It may not:</p>
+<ul class="simple">
+<li><p>regenerate signals;</p></li>
+<li><p>invent fills;</p></li>
+<li><p>choose a different trade population;</p></li>
+<li><p>reinterpret missing evidence as zero.</p></li>
+</ul>
+</section>
+<section id="research-derivative">
+<h3>2.2 RESEARCH_DERIVATIVE<a class="headerlink" href="#research-derivative" title="Link to this heading">¶</a></h3>
+<p>A metric or attribution computed from the factual baseline.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>N closed trades;</p></li>
+<li><p>win rate over closed trades;</p></li>
+<li><p>Profit Factor over closed-trade net PnL;</p></li>
+<li><p>expectancy over closed-trade net PnL;</p></li>
+<li><p>close-to-close realized-equity drawdown.</p></li>
+</ul>
+<p>These are Research outputs, not PAPER authority.</p>
+</section>
+<section id="counterfactual">
+<h3>2.3 COUNTERFACTUAL<a class="headerlink" href="#counterfactual" title="Link to this heading">¶</a></h3>
+<p>A simulated alternate-world result.</p>
+<p>Every counterfactual must:</p>
+<ul class="simple">
+<li><p>declare its method;</p></li>
+<li><p>declare its evidence requirements;</p></li>
+<li><p>use a distinct candidate/config identity;</p></li>
+<li><p>be labelled COUNTERFACTUAL;</p></li>
+<li><p>never be presented as observed PAPER fact.</p></li>
+</ul>
+<p>If required evidence is absent, the engine must fail closed with an explicit
+status. It must not improvise an alternate world.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="certified-rl-data-v1-evidence-boundary">
+<h2>3. Certified RL-DATA v1 evidence boundary<a class="headerlink" href="#certified-rl-data-v1-evidence-boundary" title="Link to this heading">¶</a></h2>
+<p>RL-DATA v1 contains:</p>
+<ul class="simple">
+<li><p>authoritative PPL event stream;</p></li>
+<li><p>F00 experiment manifest;</p></li>
+<li><p>F00 experiment configuration freeze;</p></li>
+<li><p>exact F00 DecisionPacket subset;</p></li>
+<li><p>exact F00 DecisionIdentity subset.</p></li>
+</ul>
+<p>RL-DATA v1 does not contain a complete certified:</p>
+<ul class="simple">
+<li><p>OHLCV trajectory;</p></li>
+<li><p>tick/trade/order-book market trajectory;</p></li>
+<li><p>DIP decision graph/store;</p></li>
+<li><p>F00-bound Regret population;</p></li>
+<li><p>F00-bound RejectionStore population;</p></li>
+<li><p>F00-bound AdmissionLedger population;</p></li>
+<li><p>persisted FIN event stream;</p></li>
+<li><p>valuation/mark-price time series.</p></li>
+</ul>
+<p>Therefore a general strategy/market counterfactual is not reconstructible from
+the certified dataset alone.</p>
+<p>Missing evidence is not permission to synthesize evidence.</p>
+</section>
+<hr class="docutils" />
+<section id="canonical-factual-replay-kernel">
+<h2>4. Canonical factual replay kernel<a class="headerlink" href="#canonical-factual-replay-kernel" title="Link to this heading">¶</a></h2>
+<p>The canonical lifecycle replay kernel is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading.ledger_events.LedgerEvent</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading.paper_portfolio_ledger.project()</span></code>.</p></li>
+</ul>
+<p>These surfaces are accepted because they are:</p>
+<ul class="simple">
+<li><p>deterministic;</p></li>
+<li><p>side-effect free;</p></li>
+<li><p>filesystem independent;</p></li>
+<li><p>network independent;</p></li>
+<li><p>one-epoch fail-closed;</p></li>
+<li><p>strict about event ordering, duplicates and illegal transitions;</p></li>
+<li><p>explicit about unresolved positions.</p></li>
+</ul>
+<p>The Research layer owns strict dataset decoding and validation around this pure
+kernel.</p>
+<p>RL-REPLAY must not instantiate a durable PAPER store to replay a Research
+dataset.</p>
+</section>
+<hr class="docutils" />
+<section id="existing-replay-surfaces-classification">
+<h2>5. Existing replay surfaces classification<a class="headerlink" href="#existing-replay-surfaces-classification" title="Link to this heading">¶</a></h2>
+<section id="reusable">
+<h3>REUSABLE<a class="headerlink" href="#reusable" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>PPL immutable event model;</p></li>
+<li><p>PPL pure <code class="docutils literal notranslate"><span class="pre">project()</span></code> replay.</p></li>
+</ul>
+</section>
+<section id="adapter-required">
+<h3>ADAPTER_REQUIRED<a class="headerlink" href="#adapter-required" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>FIN <code class="docutils literal notranslate"><span class="pre">adapt_ppl_stream()</span></code> and <code class="docutils literal notranslate"><span class="pre">project_financial_ledger()</span></code>:
+deterministic, but only when an explicit certified <code class="docutils literal notranslate"><span class="pre">FinancialContext</span></code> is
+supplied;</p></li>
+<li><p>BT-00 <code class="docutils literal notranslate"><span class="pre">src.backtest.engine.BacktestEngine</span></code>:
+useful no-lookahead lifecycle reference, but it requires market candles and
+strategy execution inputs absent from RL-DATA v1 and contains wall-clock
+metadata;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">market_data.replay_engine.ReplayEngine</span></code>:
+useful only for a future separately-certified Market Observatory dataset;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BacktestLab</span></code>:
+useful research reference, but simplified/hard-coded and not a canonical
+replay of this PAPER population.</p></li>
+</ul>
+</section>
+<section id="forbidden-as-canonical-rl-replay-v1-input-engine">
+<h3>FORBIDDEN AS CANONICAL RL-REPLAY V1 INPUT/ENGINE<a class="headerlink" href="#forbidden-as-canonical-rl-replay-v1-input-engine" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>DIP DecisionReplayEngine;</p></li>
+<li><p>DIP CounterfactualEngine;</p></li>
+<li><p>legacy <code class="docutils literal notranslate"><span class="pre">scripts/counterfactual_replay.py</span></code>;</p></li>
+<li><p>legacy <code class="docutils literal notranslate"><span class="pre">TradeReplaySystem</span></code>.</p></li>
+</ul>
+<p>Reasons include one or more of:</p>
+<ul class="simple">
+<li><p>mutable live stores;</p></li>
+<li><p>missing F00 binding;</p></li>
+<li><p>absent certified source population;</p></li>
+<li><p>wall-clock/UUID identities;</p></li>
+<li><p>heuristic joins;</p></li>
+<li><p>fabricated/approximate PnL impact;</p></li>
+<li><p>missing-value-to-zero behavior.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="dataset-validation-before-replay">
+<h2>6. Dataset validation before replay<a class="headerlink" href="#dataset-validation-before-replay" title="Link to this heading">¶</a></h2>
+<p>A factual replay must validate at minimum:</p>
+<ol class="arabic simple">
+<li><p>dataset root exists and is a directory;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">manifest.json</span></code> is valid strict JSON;</p></li>
+<li><p>dataset directory identity equals manifest <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code> is present;</p></li>
+<li><p>derivation is <code class="docutils literal notranslate"><span class="pre">PAPER_EXPORT</span></code>;</p></li>
+<li><p>source domain is <code class="docutils literal notranslate"><span class="pre">PAPER</span></code>;</p></li>
+<li><p>source authority is <code class="docutils literal notranslate"><span class="pre">PPL_AUTHORITY</span></code>;</p></li>
+<li><p>PPL component status is COMPLETE;</p></li>
+<li><p>authoritative PPL file digest equals manifest digest;</p></li>
+<li><p>authoritative manifest/config digests equal manifest component digests;</p></li>
+<li><p>optional included component digests equal their declared canonical digests;</p></li>
+<li><p>no required component is silently missing;</p></li>
+<li><p>PPL stream parses with no malformed line, duplicate key or non-finite JSON;</p></li>
+<li><p>decoded event count equals declared count;</p></li>
+<li><p>replay validates one exact epoch and contiguous sequence.</p></li>
+</ol>
+<p>Validation failures abort the run before any result publication.</p>
+</section>
+<hr class="docutils" />
+<section id="deterministic-research-run-identity">
+<h2>7. Deterministic Research run identity<a class="headerlink" href="#deterministic-research-run-identity" title="Link to this heading">¶</a></h2>
+<p>One replay run has two identities:</p>
+<ol class="arabic simple">
+<li><p>immutable source dataset identity;</p></li>
+<li><p>deterministic Research run identity.</p></li>
+</ol>
+<p>The canonical <code class="docutils literal notranslate"><span class="pre">research_run_identity</span></code> document contains:</p>
+<ul class="simple">
+<li><p>replay identity schema version;</p></li>
+<li><p>run_kind;</p></li>
+<li><p>dataset_id;</p></li>
+<li><p>source_boundary_id;</p></li>
+<li><p>paper_epoch_id;</p></li>
+<li><p>Research replay engine code SHA;</p></li>
+<li><p>replay method identifier/version;</p></li>
+<li><p>deterministic replay config hash;</p></li>
+<li><p>exact population selection;</p></li>
+<li><p>source experiment provenance identities needed by the method;</p></li>
+<li><p>candidate_config_hash when applicable;</p></li>
+<li><p>counterfactual-spec digest when applicable.</p></li>
+</ul>
+<p>Canonical serialization:</p>
+<ul class="simple">
+<li><p>UTF-8 JSON;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sort_keys=true</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">separators=(&quot;,&quot;,</span> <span class="pre">&quot;:&quot;)</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allow_nan=false</span></code>;</p></li>
+<li><p>SHA-256 over canonical bytes.</p></li>
+</ul>
+<p>Then:</p>
+<p><code class="docutils literal notranslate"><span class="pre">research_run_id</span> <span class="pre">=</span> <span class="pre">SHA256(canonical</span> <span class="pre">research_run_identity)</span></code></p>
+<p>The following must not participate:</p>
+<ul class="simple">
+<li><p>execution timestamp;</p></li>
+<li><p>elapsed runtime;</p></li>
+<li><p>hostname;</p></li>
+<li><p>PID;</p></li>
+<li><p>absolute source path;</p></li>
+<li><p>absolute output path;</p></li>
+<li><p>file mtime;</p></li>
+<li><p>terminal/UI metadata.</p></li>
+</ul>
+<p>Required invariant:</p>
+<p>same dataset + same replay code + same replay configuration + same population +
+same method ⇒ same research_run_id.</p>
+</section>
+<hr class="docutils" />
+<section id="replay-configuration-identity">
+<h2>8. Replay configuration identity<a class="headerlink" href="#replay-configuration-identity" title="Link to this heading">¶</a></h2>
+<p>The replay configuration must itself be deterministic.</p>
+<p>At minimum it identifies:</p>
+<ul class="simple">
+<li><p>replay schema version;</p></li>
+<li><p>replay method;</p></li>
+<li><p>metric semantic version;</p></li>
+<li><p>population policy;</p></li>
+<li><p>drawdown definition;</p></li>
+<li><p>financial interpretation mode;</p></li>
+<li><p>counterfactual mode;</p></li>
+<li><p>candidate configuration identity when applicable.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">replay_config_hash</span></code> is SHA-256 over canonical JSON.</p>
+<p>No runtime environment default may silently alter replay semantics.</p>
+</section>
+<hr class="docutils" />
+<section id="factual-lifecycle-result">
+<h2>9. Factual lifecycle result<a class="headerlink" href="#factual-lifecycle-result" title="Link to this heading">¶</a></h2>
+<p>For every trade lifecycle, the baseline result may expose:</p>
+<ul class="simple">
+<li><p>trade_id;</p></li>
+<li><p>symbol;</p></li>
+<li><p>side;</p></li>
+<li><p>OPEN event_id;</p></li>
+<li><p>OPEN sequence;</p></li>
+<li><p>OPEN timestamp;</p></li>
+<li><p>decision_id from OPEN;</p></li>
+<li><p>principal;</p></li>
+<li><p>entry_price;</p></li>
+<li><p>entry_fee;</p></li>
+<li><p>schema-v2 replay terms when present;</p></li>
+<li><p>resolution status;</p></li>
+<li><p>CLOSE or UNRESOLVED event identity when present;</p></li>
+<li><p>resolution sequence/timestamp;</p></li>
+<li><p>exit_price and exit_fee when closed;</p></li>
+<li><p>unresolved reason when unresolved;</p></li>
+<li><p>derived gross PnL when closed;</p></li>
+<li><p>derived net realized PnL when closed.</p></li>
+</ul>
+<p>No close, price, fee or PnL may be inferred for an unresolved lifecycle.</p>
+</section>
+<hr class="docutils" />
+<section id="terminal-factual-state">
+<h2>10. Terminal factual state<a class="headerlink" href="#terminal-factual-state" title="Link to this heading">¶</a></h2>
+<p>Required terminal fields:</p>
+<ul class="simple">
+<li><p>paper_epoch_id;</p></li>
+<li><p>initial_virtual_capital;</p></li>
+<li><p>source_event_count;</p></li>
+<li><p>last_source_sequence;</p></li>
+<li><p>available_cash;</p></li>
+<li><p>reserved_principal;</p></li>
+<li><p>unresolved_capital;</p></li>
+<li><p>realized_pnl;</p></li>
+<li><p>fees_paid;</p></li>
+<li><p>open_position_count;</p></li>
+<li><p>closed_trade_count;</p></li>
+<li><p>unresolved_position_count.</p></li>
+</ul>
+<p>For the certified F00 dataset, the replay must reconcile with the already
+certified PPL terminal state before source certification can be claimed.</p>
+</section>
+<hr class="docutils" />
+<section id="metric-semantics">
+<h2>11. Metric semantics<a class="headerlink" href="#metric-semantics" title="Link to this heading">¶</a></h2>
+<p>All metrics here are Research derivatives and must carry provenance.</p>
+<section id="population">
+<h3>11.1 Population<a class="headerlink" href="#population" title="Link to this heading">¶</a></h3>
+<p>Unless explicitly stated otherwise, performance metrics operate on
+<code class="docutils literal notranslate"><span class="pre">POSITION_CLOSED</span></code> lifecycles only.</p>
+<p>UNRESOLVED is not a zero-PnL closed trade.</p>
+</section>
+<section id="n">
+<h3>11.2 N<a class="headerlink" href="#n" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">=</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">closed</span> <span class="pre">trade</span> <span class="pre">lifecycles</span></code>.</p>
+</section>
+<section id="win-rate">
+<h3>11.3 Win Rate<a class="headerlink" href="#win-rate" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">WR</span> <span class="pre">=</span> <span class="pre">count(net_realized_pnl</span> <span class="pre">&gt;</span> <span class="pre">0)</span> <span class="pre">/</span> <span class="pre">N</span></code>.</p>
+<p>A zero-PnL trade is not a win.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">N=0</span></code>, status is NOT_AVAILABLE.</p>
+</section>
+<section id="profit-factor">
+<h3>11.4 Profit Factor<a class="headerlink" href="#profit-factor" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PF</span> <span class="pre">=</span> <span class="pre">sum(positive</span> <span class="pre">net_realized_pnl)</span> <span class="pre">/</span> <span class="pre">abs(sum(negative</span> <span class="pre">net_realized_pnl))</span></code>.</p>
+<p>Rules:</p>
+<ul class="simple">
+<li><p>N=0 ⇒ NOT_AVAILABLE;</p></li>
+<li><p>no losses + at least one win ⇒ POSITIVE_INFINITY status;</p></li>
+<li><p>no wins + losses ⇒ 0 is a valid numeric PF;</p></li>
+<li><p>non-finite JSON numbers are forbidden.</p></li>
+</ul>
+<p>Infinity must be represented by an explicit status/value model rather than raw
+JSON Infinity.</p>
+</section>
+<section id="expectancy">
+<h3>11.5 Expectancy<a class="headerlink" href="#expectancy" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">expectancy_usd</span> <span class="pre">=</span> <span class="pre">sum(net_realized_pnl)</span> <span class="pre">/</span> <span class="pre">N</span></code>.</p>
+<p>N=0 ⇒ NOT_AVAILABLE.</p>
+</section>
+<section id="drawdown">
+<h3>11.6 Drawdown<a class="headerlink" href="#drawdown" title="Link to this heading">¶</a></h3>
+<p>RL-DATA v1 contains no certified mark-price trajectory.</p>
+<p>Therefore V1 must not claim general mark-to-market <code class="docutils literal notranslate"><span class="pre">MaxDD</span></code>.</p>
+<p>Allowed V1 metric:</p>
+<p><code class="docutils literal notranslate"><span class="pre">realized_close_to_close_max_drawdown</span></code></p>
+<p>computed from:</p>
+<p>initial capital + cumulative closed-trade net realized PnL in source resolution
+order.</p>
+<p>Its scope must be visible in field name and manifest.</p>
+</section>
+<section id="sharpe">
+<h3>11.7 Sharpe<a class="headerlink" href="#sharpe" title="Link to this heading">¶</a></h3>
+<p>Sharpe is not a required RL-REPLAY v1 factual metric.</p>
+<p>It belongs in #248 unless:</p>
+<ul class="simple">
+<li><p>return population;</p></li>
+<li><p>observation frequency;</p></li>
+<li><p>annualization convention;</p></li>
+<li><p>risk-free-rate assumption;</p></li>
+<li><p>missing-value treatment</p></li>
+</ul>
+<p>are all explicitly versioned and provenance-bound.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="counterfactual-capability-matrix">
+<h2>12. Counterfactual capability matrix<a class="headerlink" href="#counterfactual-capability-matrix" title="Link to this heading">¶</a></h2>
+<section id="supported-now">
+<h3>SUPPORTED NOW<a class="headerlink" href="#supported-now" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>deterministic factual PPL replay;</p></li>
+<li><p>deterministic re-projection of the same factual lifecycle;</p></li>
+<li><p>descriptive attribution/filtering that makes no alternate-execution claim.</p></li>
+</ul>
+</section>
+<section id="id1">
+<h3>ADAPTER_REQUIRED<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>deterministic FIN interpretation with explicit certified FinancialContext;</p></li>
+<li><p>arithmetic fee-only scenario over observed executions, only if the scenario
+cannot change selection/execution/lifecycle and is labelled COUNTERFACTUAL.</p></li>
+</ul>
+</section>
+<section id="not-available-from-rl-data-v1">
+<h3>NOT AVAILABLE FROM RL-DATA V1<a class="headerlink" href="#not-available-from-rl-data-v1" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>alternate signal generation;</p></li>
+<li><p>alternate entry timing;</p></li>
+<li><p>alternate exit timing;</p></li>
+<li><p>alternate TP/SL/timeout path;</p></li>
+<li><p>alternate market-regime path;</p></li>
+<li><p>alternate sizing that changes later capital/admission;</p></li>
+<li><p>max-position alternate-world PnL;</p></li>
+<li><p>rejected-trade opportunity PnL;</p></li>
+<li><p>gate-removal PnL;</p></li>
+<li><p>DIP graph counterfactual;</p></li>
+<li><p>market-impact/slippage counterfactual requiring unseen market observations.</p></li>
+</ul>
+<p>Requests for these capabilities must return an explicit evidence limitation.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="research-result-manifest">
+<h2>13. Research result manifest<a class="headerlink" href="#research-result-manifest" title="Link to this heading">¶</a></h2>
+<p>Every published run contains at minimum:</p>
+<ul class="simple">
+<li><p>result schema version;</p></li>
+<li><p>research_run_id;</p></li>
+<li><p>run_kind;</p></li>
+<li><p>run status;</p></li>
+<li><p>dataset_id;</p></li>
+<li><p>source_boundary_id;</p></li>
+<li><p>paper_epoch_id;</p></li>
+<li><p>Research code SHA;</p></li>
+<li><p>replay_config_hash;</p></li>
+<li><p>replay method/version;</p></li>
+<li><p>population definition;</p></li>
+<li><p>source code/config identities;</p></li>
+<li><p>candidate_config_hash when applicable;</p></li>
+<li><p>derivation;</p></li>
+<li><p>terminal state;</p></li>
+<li><p>metric values + semantic/status metadata;</p></li>
+<li><p>output component SHA-256 digests;</p></li>
+<li><p>explicit evidence limitations;</p></li>
+<li><p>generated_at_utc as non-identity provenance.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="target-output-layout">
+<h2>14. Target output layout<a class="headerlink" href="#target-output-layout" title="Link to this heading">¶</a></h2>
+<p>Logical V1 layout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">research_replay</span><span class="o">/</span>
+  <span class="n">runs</span><span class="o">/</span>
+    <span class="o">&lt;</span><span class="n">research_run_id</span><span class="o">&gt;/</span>
+      <span class="n">manifest</span><span class="o">.</span><span class="n">json</span>
+      <span class="n">lifecycle</span><span class="o">.</span><span class="n">jsonl</span>
+      <span class="n">terminal_state</span><span class="o">.</span><span class="n">json</span>
+      <span class="n">metrics</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>The implementation package lives separately from output storage.</p>
+<p>Output publication is immutable:</p>
+<ul class="simple">
+<li><p>no overwrite of an existing different run;</p></li>
+<li><p>repeated same run identity with identical bytes is a deterministic replay
+proof, not a mutable update.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="runtime-import-boundary">
+<h2>15. Runtime/import boundary<a class="headerlink" href="#runtime-import-boundary" title="Link to this heading">¶</a></h2>
+<p>Canonical RL-REPLAY source must not import or invoke:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading.durable_event_store.DurableEventStore</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading.ppl_authority_runtime</span></code>;</p></li>
+<li><p>Advisor loop/runtime orchestration;</p></li>
+<li><p>MexcSimulator mutation paths;</p></li>
+<li><p>live execution engine/exchange adapters;</p></li>
+<li><p>systemd/service control;</p></li>
+<li><p>DIPStore;</p></li>
+<li><p>Telegram notifiers;</p></li>
+<li><p>HTTP/WebSocket clients.</p></li>
+</ul>
+<p>No module import may:</p>
+<ul class="simple">
+<li><p>create a PAPER lock;</p></li>
+<li><p>initialize a live store;</p></li>
+<li><p>write a database;</p></li>
+<li><p>start a thread;</p></li>
+<li><p>inspect process environment to change scientific semantics;</p></li>
+<li><p>touch network/runtime services.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fail-closed-doctrine">
+<h2>16. Fail-closed doctrine<a class="headerlink" href="#fail-closed-doctrine" title="Link to this heading">¶</a></h2>
+<p>RL-REPLAY must fail closed on:</p>
+<ul class="simple">
+<li><p>dataset ID mismatch;</p></li>
+<li><p>source-boundary mismatch;</p></li>
+<li><p>component digest mismatch;</p></li>
+<li><p>malformed JSON;</p></li>
+<li><p>duplicate JSON keys;</p></li>
+<li><p>NaN/Infinity;</p></li>
+<li><p>missing required component;</p></li>
+<li><p>PPL epoch mismatch;</p></li>
+<li><p>PPL sequence gap/regression;</p></li>
+<li><p>duplicate event ID;</p></li>
+<li><p>illegal lifecycle transition;</p></li>
+<li><p>missing OPEN for CLOSE;</p></li>
+<li><p>ambiguous trade identity;</p></li>
+<li><p>unsupported replay schema;</p></li>
+<li><p>attempted unsupported counterfactual;</p></li>
+<li><p>attempted result overwrite with different bytes.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="test-requirements">
+<h2>17. Test requirements<a class="headerlink" href="#test-requirements" title="Link to this heading">¶</a></h2>
+<p>Before source certification, isolated tests must prove at minimum:</p>
+<ol class="arabic simple">
+<li><p>valid RL-DATA fixture loads;</p></li>
+<li><p>corrupted component digest is rejected;</p></li>
+<li><p>malformed JSON is rejected;</p></li>
+<li><p>duplicate JSON keys are rejected;</p></li>
+<li><p>non-finite values are rejected;</p></li>
+<li><p>factual PPL replay is deterministic;</p></li>
+<li><p>event order/lifecycle corruption fails closed;</p></li>
+<li><p>repeated identical run yields same research_run_id;</p></li>
+<li><p>changed dataset changes research_run_id;</p></li>
+<li><p>changed replay config changes research_run_id;</p></li>
+<li><p>generated_at/path/hostname do not change research_run_id;</p></li>
+<li><p>terminal PPL state reconciles;</p></li>
+<li><p>lifecycle outputs are deterministic;</p></li>
+<li><p>PF/WR/expectancy semantics preserve NOT_AVAILABLE;</p></li>
+<li><p>unresolved lifecycle is never counted as zero-PnL close;</p></li>
+<li><p>drawdown is explicitly close-to-close realized drawdown;</p></li>
+<li><p>unsupported market/strategy counterfactual fails closed;</p></li>
+<li><p>no forbidden runtime imports;</p></li>
+<li><p>no source dataset mutation;</p></li>
+<li><p>immutable result publication/no overwrite.</p></li>
+</ol>
+<p>Repository-wide CI follows isolated proof.</p>
+</section>
+<hr class="docutils" />
+<section id="source-only-boundary">
+<h2>18. Source-only boundary<a class="headerlink" href="#source-only-boundary" title="Link to this heading">¶</a></h2>
+<p>This mission does not authorize:</p>
+<ul class="simple">
+<li><p>merge of PR #243;</p></li>
+<li><p>deployment to the active Advisor runtime;</p></li>
+<li><p>PPL/PAPER mutation;</p></li>
+<li><p>new epoch;</p></li>
+<li><p>burn-in;</p></li>
+<li><p>Watchdog activation;</p></li>
+<li><p>TESTNET/LIVE;</p></li>
+<li><p>exchange writes;</p></li>
+<li><p>FIN-03;</p></li>
+<li><p>strategy/risk/sizing production changes.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="target-verdict">
+<h2>19. Target verdict<a class="headerlink" href="#target-verdict" title="Link to this heading">¶</a></h2>
+<p>After implementation, isolated tests, deterministic real-dataset replay proof,
+source non-perturbation proof and repository CI, the target verdict is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_REPLAY_01_SOURCE_CERTIFIED</span></code></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">RL-REPLAY-01 — Deterministic Offline PAPER Replay Contract</a><ul>
+<li><a class="reference internal" href="#mission">1. Mission</a></li>
+<li><a class="reference internal" href="#scientific-worlds">2. Scientific worlds</a><ul>
+<li><a class="reference internal" href="#factual-baseline">2.1 FACTUAL_BASELINE</a></li>
+<li><a class="reference internal" href="#research-derivative">2.2 RESEARCH_DERIVATIVE</a></li>
+<li><a class="reference internal" href="#counterfactual">2.3 COUNTERFACTUAL</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#certified-rl-data-v1-evidence-boundary">3. Certified RL-DATA v1 evidence boundary</a></li>
+<li><a class="reference internal" href="#canonical-factual-replay-kernel">4. Canonical factual replay kernel</a></li>
+<li><a class="reference internal" href="#existing-replay-surfaces-classification">5. Existing replay surfaces classification</a><ul>
+<li><a class="reference internal" href="#reusable">REUSABLE</a></li>
+<li><a class="reference internal" href="#adapter-required">ADAPTER_REQUIRED</a></li>
+<li><a class="reference internal" href="#forbidden-as-canonical-rl-replay-v1-input-engine">FORBIDDEN AS CANONICAL RL-REPLAY V1 INPUT/ENGINE</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#dataset-validation-before-replay">6. Dataset validation before replay</a></li>
+<li><a class="reference internal" href="#deterministic-research-run-identity">7. Deterministic Research run identity</a></li>
+<li><a class="reference internal" href="#replay-configuration-identity">8. Replay configuration identity</a></li>
+<li><a class="reference internal" href="#factual-lifecycle-result">9. Factual lifecycle result</a></li>
+<li><a class="reference internal" href="#terminal-factual-state">10. Terminal factual state</a></li>
+<li><a class="reference internal" href="#metric-semantics">11. Metric semantics</a><ul>
+<li><a class="reference internal" href="#population">11.1 Population</a></li>
+<li><a class="reference internal" href="#n">11.2 N</a></li>
+<li><a class="reference internal" href="#win-rate">11.3 Win Rate</a></li>
+<li><a class="reference internal" href="#profit-factor">11.4 Profit Factor</a></li>
+<li><a class="reference internal" href="#expectancy">11.5 Expectancy</a></li>
+<li><a class="reference internal" href="#drawdown">11.6 Drawdown</a></li>
+<li><a class="reference internal" href="#sharpe">11.7 Sharpe</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#counterfactual-capability-matrix">12. Counterfactual capability matrix</a><ul>
+<li><a class="reference internal" href="#supported-now">SUPPORTED NOW</a></li>
+<li><a class="reference internal" href="#id1">ADAPTER_REQUIRED</a></li>
+<li><a class="reference internal" href="#not-available-from-rl-data-v1">NOT AVAILABLE FROM RL-DATA V1</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#research-result-manifest">13. Research result manifest</a></li>
+<li><a class="reference internal" href="#target-output-layout">14. Target output layout</a></li>
+<li><a class="reference internal" href="#runtime-import-boundary">15. Runtime/import boundary</a></li>
+<li><a class="reference internal" href="#fail-closed-doctrine">16. Fail-closed doctrine</a></li>
+<li><a class="reference internal" href="#test-requirements">17. Test requirements</a></li>
+<li><a class="reference internal" href="#source-only-boundary">18. Source-only boundary</a></li>
+<li><a class="reference internal" href="#target-verdict">19. Target verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

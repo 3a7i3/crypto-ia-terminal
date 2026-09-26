@@ -1,0 +1,836 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>RL-DIAG-01 — Performance Attribution &amp; Incoherence Diagnostics Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/RL_DIAG_01_PERFORMANCE_DIAGNOSTICS.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/RL_DIAG_01_PERFORMANCE_DIAGNOSTICS.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="rl-diag-01-performance-attribution-incoherence-diagnostics-contract">
+<h1>RL-DIAG-01 — Performance Attribution &amp; Incoherence Diagnostics Contract<a class="headerlink" href="#rl-diag-01-performance-attribution-incoherence-diagnostics-contract" title="Link to this heading">¶</a></h1>
+<p>Status: SOURCE CONTRACT V1 / implementation pending</p>
+<p>Parent: #237
+Governance: #148
+Mission: #248
+Upstream: #238 RL-DATA-01 + #239 RL-REPLAY-01</p>
+<p>Certified upstream identities:</p>
+<ul class="simple">
+<li><p>RL-DATA head: <code class="docutils literal notranslate"><span class="pre">8ad566de7521402c34a240b14fa9a036893c5ca3</span></code></p></li>
+<li><p>RL-REPLAY head: <code class="docutils literal notranslate"><span class="pre">0e6c38de211192fadfd2f1470df468afdc92f666</span></code></p></li>
+<li><p>dataset_id: <code class="docutils literal notranslate"><span class="pre">4ea633a6a4e2ee0bc01a6fe855526d7c42451883ec0b6f3914cf21ea8e91cc8b</span></code></p></li>
+<li><p>source_boundary_id: <code class="docutils literal notranslate"><span class="pre">2e6b478cd0cead58c1bcf25c168254b0a63daaa2722c6c108613eb81e283812e</span></code></p></li>
+<li><p>factual research_run_id: <code class="docutils literal notranslate"><span class="pre">225368c15b6848936caf7fbd4433b8f713ef1333d547047c6bb55bd0777847ed</span></code></p></li>
+<li><p>certified factual CLOSED population: <code class="docutils literal notranslate"><span class="pre">N=13</span></code></p></li>
+</ul>
+<hr class="docutils" />
+<section id="mission">
+<h2>1. Mission<a class="headerlink" href="#mission" title="Link to this heading">¶</a></h2>
+<p>RL-DIAG-01 explains the certified factual Research result without mutating PAPER.</p>
+<p>Canonical direction:</p>
+<p><code class="docutils literal notranslate"><span class="pre">IMMUTABLE</span> <span class="pre">RESEARCH</span> <span class="pre">RESULT</span> <span class="pre">→</span> <span class="pre">PROVENANCE-BOUND</span> <span class="pre">DIAGNOSTICS</span></code></p>
+<p>Never:</p>
+<p><code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC</span> <span class="pre">RESULT</span> <span class="pre">→</span> <span class="pre">ACTIVE</span> <span class="pre">PAPER/F00</span> <span class="pre">MUTATION</span></code></p>
+<p>The diagnostic layer is descriptive and analytical. It does not own lifecycle,
+capital, admission, execution, strategy promotion, burn-in authority or exchange
+write authority.</p>
+</section>
+<hr class="docutils" />
+<section id="scientific-status-model">
+<h2>2. Scientific status model<a class="headerlink" href="#scientific-status-model" title="Link to this heading">¶</a></h2>
+<p>Every diagnostic output MUST carry two independent classifications.</p>
+<section id="evidence-status">
+<h3>2.1 Evidence status<a class="headerlink" href="#evidence-status" title="Link to this heading">¶</a></h3>
+<p>Allowed values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PARTIAL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p></li>
+</ul>
+<p>Evidence status answers:</p>
+<blockquote>
+<div><p>Does the certified dataset contain enough provenance-bound evidence to compute
+this quantity under the declared definition?</p>
+</div></blockquote>
+</section>
+<section id="statistical-strength">
+<h3>2.2 Statistical strength<a class="headerlink" href="#statistical-strength" title="Link to this heading">¶</a></h3>
+<p>Allowed values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DESCRIPTIVE_ONLY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LOW_SAMPLE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ADEQUATE_FOR_DECLARED_TEST</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_EVALUATED</span></code></p></li>
+</ul>
+<p>Evidence completeness MUST NOT be confused with statistical confidence.</p>
+<p>Example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">realized_pnl_by_symbol</span> <span class="pre">=</span> <span class="pre">COMPLETE</span> <span class="pre">evidence</span> <span class="pre">/</span> <span class="pre">LOW_SAMPLE</span></code></p>
+<p>is valid for the F00 N=13 population.</p>
+<p>A COMPLETE metric over N=13 is not a profitability certification.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="canonical-population">
+<h2>3. Canonical population<a class="headerlink" href="#canonical-population" title="Link to this heading">¶</a></h2>
+<p>The default v1 performance population is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">POSITION_CLOSED_FOR_PERFORMANCE</span></code></p>
+<p>It contains only exact factual PPL lifecycles with:</p>
+<ul class="simple">
+<li><p>one certified POSITION_OPENED;</p></li>
+<li><p>one certified POSITION_CLOSED;</p></li>
+<li><p>exact trade_id linkage;</p></li>
+<li><p>non-fabricated entry/exit prices;</p></li>
+<li><p>non-fabricated entry/exit fees.</p></li>
+</ul>
+<p>UNRESOLVED lifecycles are never converted to zero-PnL observations.</p>
+<p>OPEN residuals are never silently dropped from lifecycle integrity diagnostics.</p>
+<p>The current certified F00 factual population contains:</p>
+<ul class="simple">
+<li><p>source events: 27;</p></li>
+<li><p>CLOSED lifecycles: 13;</p></li>
+<li><p>OPEN residual: 0;</p></li>
+<li><p>UNRESOLVED residual: 0.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="provenance-requirements">
+<h2>4. Provenance requirements<a class="headerlink" href="#provenance-requirements" title="Link to this heading">¶</a></h2>
+<p>Every published diagnostic result MUST identify at minimum:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dataset_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>;</p></li>
+<li><p>upstream factual <code class="docutils literal notranslate"><span class="pre">research_run_id</span></code>;</p></li>
+<li><p>RL-DIAG code SHA;</p></li>
+<li><p>diagnostic contract/schema version;</p></li>
+<li><p>population definition;</p></li>
+<li><p>record/sample count;</p></li>
+<li><p>derivation;</p></li>
+<li><p>evidence status;</p></li>
+<li><p>statistical strength.</p></li>
+</ul>
+<p>If a diagnostic consumes the optional DecisionPacket component, it MUST also
+record the exact component digest and the field-profile evidence used to establish
+availability.</p>
+<p>No metric may be detached from its source population identity.</p>
+</section>
+<hr class="docutils" />
+<section id="complete-diagnostics-supported-by-authoritative-ppl">
+<h2>5. COMPLETE diagnostics supported by authoritative PPL<a class="headerlink" href="#complete-diagnostics-supported-by-authoritative-ppl" title="Link to this heading">¶</a></h2>
+<p>The following families are supported by the current certified factual lifecycle
+without requiring optional market evidence.</p>
+<section id="lifecycle-integrity">
+<h3>5.1 Lifecycle integrity<a class="headerlink" href="#lifecycle-integrity" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>OPEN/CLOSE/UNRESOLVED counts;</p></li>
+<li><p>duplicate/missing lifecycle resolution checks;</p></li>
+<li><p>source sequence monotonicity;</p></li>
+<li><p>trade_id linkage;</p></li>
+<li><p>open residual count;</p></li>
+<li><p>unresolved residual count;</p></li>
+<li><p>source event population reconciliation.</p></li>
+</ul>
+</section>
+<section id="realized-financial-attribution">
+<h3>5.2 Realized financial attribution<a class="headerlink" href="#realized-financial-attribution" title="Link to this heading">¶</a></h3>
+<p>Per CLOSED lifecycle:</p>
+<ul class="simple">
+<li><p>principal;</p></li>
+<li><p>entry_price;</p></li>
+<li><p>exit_price;</p></li>
+<li><p>entry_fee;</p></li>
+<li><p>exit_fee;</p></li>
+<li><p>total fees;</p></li>
+<li><p>gross realized PnL;</p></li>
+<li><p>net realized PnL;</p></li>
+<li><p>realized return on principal.</p></li>
+</ul>
+<p>Aggregations may be produced by exact factual dimensions:</p>
+<ul class="simple">
+<li><p>symbol;</p></li>
+<li><p>side LONG/SHORT;</p></li>
+<li><p>UTC open date/hour bucket;</p></li>
+<li><p>UTC close date/hour bucket;</p></li>
+<li><p>declared holding-duration bucket;</p></li>
+<li><p>declared principal/size bucket.</p></li>
+</ul>
+<p>Any bucket definition MUST be deterministic and included in diagnostic config
+identity.</p>
+</section>
+<section id="position-geometry">
+<h3>5.3 Position geometry<a class="headerlink" href="#position-geometry" title="Link to this heading">¶</a></h3>
+<p>For schema-v2 POSITION_OPENED events:</p>
+<ul class="simple">
+<li><p>take-profit price;</p></li>
+<li><p>stop-loss price;</p></li>
+<li><p>timeout_at;</p></li>
+<li><p>recovery_eligible_until;</p></li>
+<li><p>entry-to-TP distance;</p></li>
+<li><p>entry-to-SL distance;</p></li>
+<li><p>initial reward/risk geometry;</p></li>
+<li><p>holding duration;</p></li>
+<li><p>close-before/after-timeout timing relation.</p></li>
+</ul>
+<p>These are geometry/timing facts only. They do NOT prove the market touched TP/SL
+or that a timeout caused the close.</p>
+</section>
+<section id="factual-performance-metrics">
+<h3>5.4 Factual performance metrics<a class="headerlink" href="#factual-performance-metrics" title="Link to this heading">¶</a></h3>
+<p>Supported over the exact CLOSED population:</p>
+<ul class="simple">
+<li><p>trade count;</p></li>
+<li><p>win count / loss count / flat count;</p></li>
+<li><p>win rate;</p></li>
+<li><p>gross profit;</p></li>
+<li><p>gross loss;</p></li>
+<li><p>Profit Factor;</p></li>
+<li><p>expectancy;</p></li>
+<li><p>average win;</p></li>
+<li><p>average loss;</p></li>
+<li><p>payoff ratio where denominator is valid;</p></li>
+<li><p>median trade PnL;</p></li>
+<li><p>realized PnL distribution summaries;</p></li>
+<li><p>realized close-to-close drawdown under the certified RL-REPLAY definition;</p></li>
+<li><p>cumulative realized equity from initial capital + ordered closed-trade net PnL.</p></li>
+</ul>
+<p>Metric denominator-zero cases MUST remain explicit states, never fabricated
+finite values.</p>
+</section>
+<section id="concentration-descriptive-fragility">
+<h3>5.5 Concentration / descriptive fragility<a class="headerlink" href="#concentration-descriptive-fragility" title="Link to this heading">¶</a></h3>
+<p>Supported descriptive diagnostics include:</p>
+<ul class="simple">
+<li><p>top-k trade contribution to total realized PnL;</p></li>
+<li><p>symbol concentration;</p></li>
+<li><p>side concentration;</p></li>
+<li><p>time-bucket concentration;</p></li>
+<li><p>principal concentration;</p></li>
+<li><p>winner concentration;</p></li>
+<li><p>loser concentration;</p></li>
+<li><p>leave-one-trade-out realized PnL sensitivity;</p></li>
+<li><p>leave-one-trade-out PF/expectancy sensitivity when mathematically defined.</p></li>
+</ul>
+<p>These remain <code class="docutils literal notranslate"><span class="pre">DESCRIPTIVE_ONLY</span></code> / <code class="docutils literal notranslate"><span class="pre">LOW_SAMPLE</span></code> for N=13.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="partial-diagnostics">
+<h2>6. PARTIAL diagnostics<a class="headerlink" href="#partial-diagnostics" title="Link to this heading">¶</a></h2>
+<p>PARTIAL means some certified evidence exists, but a full scientific interpretation
+requires additional semantics or field-completeness proof.</p>
+<section id="decisionpacket-contextual-attribution">
+<h3>6.1 DecisionPacket contextual attribution<a class="headerlink" href="#decisionpacket-contextual-attribution" title="Link to this heading">¶</a></h3>
+<p>The certified optional DecisionPacket component contains exactly 13 packet records
+selected by exact PPL OPEN decision_id == packet_id.</p>
+<p>The source DecisionPacket schema can carry:</p>
+<ul class="simple">
+<li><p>timeframe;</p></li>
+<li><p>regime;</p></li>
+<li><p>confidence;</p></li>
+<li><p>confidence_raw;</p></li>
+<li><p>adjusted_confidence;</p></li>
+<li><p>expected_value;</p></li>
+<li><p>risk_score;</p></li>
+<li><p>allocation_pct;</p></li>
+<li><p>conviction;</p></li>
+<li><p>entry_price;</p></li>
+<li><p>stop_loss;</p></li>
+<li><p>take_profit;</p></li>
+<li><p>r_multiple;</p></li>
+<li><p>state_history;</p></li>
+<li><p>source_agents;</p></li>
+<li><p>reasoning;</p></li>
+<li><p>features;</p></li>
+<li><p>metadata.</p></li>
+</ul>
+<p>RL-DIAG MUST NOT assume these fields are scientifically usable merely because the
+class schema defines them.</p>
+<p>Before any field is promoted to COMPLETE for the real F00 dataset, a READ-ONLY
+field-profile MUST establish, over the exact 13 exported packet records:</p>
+<ul class="simple">
+<li><p>present_count;</p></li>
+<li><p>null_count;</p></li>
+<li><p>empty_count;</p></li>
+<li><p>UNKNOWN/default count where applicable;</p></li>
+<li><p>type consistency;</p></li>
+<li><p>distinct categorical values where safe;</p></li>
+<li><p>numeric finite-value count;</p></li>
+<li><p>packet_id uniqueness;</p></li>
+<li><p>exact packet_id linkage back to the 13 PPL OPEN records.</p></li>
+</ul>
+<p>No heuristic field recovery is allowed.</p>
+</section>
+<section id="entry-exit-quality">
+<h3>6.2 Entry/exit quality<a class="headerlink" href="#entry-exit-quality" title="Link to this heading">¶</a></h3>
+<p>Available:</p>
+<ul class="simple">
+<li><p>initial entry/TP/SL geometry;</p></li>
+<li><p>realized close price;</p></li>
+<li><p>holding time;</p></li>
+<li><p>realized PnL.</p></li>
+</ul>
+<p>Unavailable path evidence prevents full execution-quality claims.</p>
+<p>Therefore v1 may describe realized entry/exit geometry, but MUST NOT label it
+MFE, MAE, slippage, adverse selection or optimal exit quality.</p>
+</section>
+<section id="sharpe">
+<h3>6.3 Sharpe<a class="headerlink" href="#sharpe" title="Link to this heading">¶</a></h3>
+<p>Current RL-DATA v1 has no certified continuous mark-to-market equity series and
+RL-REPLAY intentionally leaves Sharpe NOT_AVAILABLE.</p>
+<p>RL-DIAG may later define a non-annualized trade-return dispersion statistic if:</p>
+<ul class="simple">
+<li><p>return definition is explicit;</p></li>
+<li><p>population is explicit;</p></li>
+<li><p>sample frequency is declared as per-trade rather than time-periodic;</p></li>
+<li><p>no annualization is implied;</p></li>
+<li><p>N is exposed;</p></li>
+<li><p>statistical strength remains LOW_SAMPLE for N=13.</p></li>
+</ul>
+<p>Annualized/time-series Sharpe remains NOT_AVAILABLE for current F00 v1.</p>
+</section>
+<section id="turnover">
+<h3>6.4 Turnover<a class="headerlink" href="#turnover" title="Link to this heading">¶</a></h3>
+<p>A deterministic principal-deployment proxy may be defined from the sum of opened
+principal relative to a declared capital denominator.</p>
+<p>It MUST be named as a proxy and MUST NOT be silently presented as conventional
+NAV/time-weighted portfolio turnover.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="not-available-diagnostics-for-current-f00-v1">
+<h2>7. NOT_AVAILABLE diagnostics for current F00 v1<a class="headerlink" href="#not-available-diagnostics-for-current-f00-v1" title="Link to this heading">¶</a></h2>
+<p>The following MUST fail closed unless a future certified dataset adds the required
+evidence.</p>
+<section id="market-path-dependent-diagnostics">
+<h3>7.1 Market-path dependent diagnostics<a class="headerlink" href="#market-path-dependent-diagnostics" title="Link to this heading">¶</a></h3>
+<p>NOT_AVAILABLE:</p>
+<ul class="simple">
+<li><p>mark-to-market equity trajectory;</p></li>
+<li><p>mark-to-market MaxDD;</p></li>
+<li><p>MFE;</p></li>
+<li><p>MAE;</p></li>
+<li><p>intratrade excursion;</p></li>
+<li><p>certified bid/ask spread at entry/exit;</p></li>
+<li><p>slippage versus certified reference quote;</p></li>
+<li><p>adverse-selection trajectory;</p></li>
+<li><p>latency-to-price-impact attribution;</p></li>
+<li><p>path-dependent execution quality.</p></li>
+</ul>
+<p>Reason:</p>
+<p>RL-DATA v1 contains no certified complete market trajectory bound to the F00
+population.</p>
+</section>
+<section id="exit-cause-attribution">
+<h3>7.2 Exit-cause attribution<a class="headerlink" href="#exit-cause-attribution" title="Link to this heading">¶</a></h3>
+<p>POSITION_CLOSED authoritative payload contains only:</p>
+<ul class="simple">
+<li><p>exit_price;</p></li>
+<li><p>exit_fee.</p></li>
+</ul>
+<p>No canonical close-cause field exists.</p>
+<p>Therefore RL-DIAG MUST NOT infer:</p>
+<ul class="simple">
+<li><p>TP close;</p></li>
+<li><p>SL close;</p></li>
+<li><p>TIMEOUT close;</p></li>
+<li><p>recovery close;</p></li>
+<li><p>manual/other close</p></li>
+</ul>
+<p>from price proximity or timestamp heuristics.</p>
+</section>
+<section id="rejected-opportunity-blocker-analysis">
+<h3>7.3 Rejected-opportunity / blocker analysis<a class="headerlink" href="#rejected-opportunity-blocker-analysis" title="Link to this heading">¶</a></h3>
+<p>Current source statuses:</p>
+<ul class="simple">
+<li><p>DIP = <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span> <span class="pre">/</span> <span class="pre">NOT_STARTED</span></code>;</p></li>
+<li><p>Regret = <code class="docutils literal notranslate"><span class="pre">UNRESOLVED_PROVENANCE</span></code>;</p></li>
+<li><p>RejectionStore = <code class="docutils literal notranslate"><span class="pre">UNBOUND</span></code>;</p></li>
+<li><p>AdmissionLedger = <code class="docutils literal notranslate"><span class="pre">UNBOUND</span></code>.</p></li>
+</ul>
+<p>The certified optional decision population contains the 13 OPEN packet identities,
+not a certified full rejected-opportunity universe.</p>
+<p>Therefore NOT_AVAILABLE:</p>
+<ul class="simple">
+<li><p>first_blocker distribution for all F00 candidates;</p></li>
+<li><p>all_blockers distribution for all F00 candidates;</p></li>
+<li><p>gate suppression rate;</p></li>
+<li><p>rejection funnel;</p></li>
+<li><p>missed-opportunity population;</p></li>
+<li><p>blocker opportunity cost;</p></li>
+<li><p>counterfactual PnL of rejected trades.</p></li>
+</ul>
+<p>Date/cycle/symbol heuristic attribution is forbidden.</p>
+</section>
+<section id="general-strategy-counterfactuals">
+<h3>7.4 General strategy counterfactuals<a class="headerlink" href="#general-strategy-counterfactuals" title="Link to this heading">¶</a></h3>
+<p>NOT_AVAILABLE for current F00 v1:</p>
+<ul class="simple">
+<li><p>candidate strategy market replay;</p></li>
+<li><p>alternative entry/exit rule PnL;</p></li>
+<li><p>alternative blocker/gate PnL;</p></li>
+<li><p>alternative sizing PnL requiring unobserved path data.</p></li>
+</ul>
+<p>No synthetic market trajectory, fill or missing decision graph may be created.</p>
+</section>
+<section id="strategy-attribution">
+<h3>7.5 Strategy attribution<a class="headerlink" href="#strategy-attribution" title="Link to this heading">¶</a></h3>
+<p>No canonical <code class="docutils literal notranslate"><span class="pre">strategy_id</span></code> is part of the authoritative PPL lifecycle contract.</p>
+<p>Strategy attribution remains NOT_AVAILABLE unless an exact certified field in an
+included Research component is separately demonstrated and bound.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="incoherence-diagnostics">
+<h2>8. Incoherence diagnostics<a class="headerlink" href="#incoherence-diagnostics" title="Link to this heading">¶</a></h2>
+<p>RL-DIAG v1 may detect only incoherences supported by certified evidence.</p>
+<p>Allowed examples:</p>
+<ul class="simple">
+<li><p>lifecycle count mismatch;</p></li>
+<li><p>duplicate trade_id;</p></li>
+<li><p>OPEN without resolution;</p></li>
+<li><p>resolution without OPEN;</p></li>
+<li><p>terminal state vs lifecycle record disagreement;</p></li>
+<li><p>sum of closed net PnL != terminal realized_pnl;</p></li>
+<li><p>fee sum != terminal fees_paid;</p></li>
+<li><p>source event count != manifest count;</p></li>
+<li><p>PPL symbol/side/entry fields disagreeing with an exact-linked DecisionPacket
+field when that packet field has first been certified COMPLETE;</p></li>
+<li><p>DecisionPacket packet_id / trace bridge integrity failures.</p></li>
+</ul>
+<p>Cross-system disagreement MUST be reported as an observation with both sources
+and authorities. RL-DIAG must not choose a new runtime authority.</p>
+</section>
+<hr class="docutils" />
+<section id="diagnostic-output-model">
+<h2>9. Diagnostic output model<a class="headerlink" href="#diagnostic-output-model" title="Link to this heading">¶</a></h2>
+<p>A v1 diagnostic bundle SHOULD separate:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">summary.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trade_attribution.jsonl</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">concentration.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">incoherences.jsonl</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">capability_matrix.json</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">manifest.json</span></code></p></li>
+</ol>
+<p>The output is Research-owned and immutable.</p>
+<p>A future deterministic <code class="docutils literal notranslate"><span class="pre">diagnostic_run_id</span></code> MUST bind:</p>
+<ul class="simple">
+<li><p>upstream factual research_run_id;</p></li>
+<li><p>RL-DIAG code SHA;</p></li>
+<li><p>diagnostic config hash;</p></li>
+<li><p>population definition;</p></li>
+<li><p>capability/semantics version.</p></li>
+</ul>
+<p>Publication timestamp and absolute filesystem path MUST NOT affect scientific
+identity.</p>
+</section>
+<hr class="docutils" />
+<section id="hard-safety-boundary">
+<h2>10. Hard safety boundary<a class="headerlink" href="#hard-safety-boundary" title="Link to this heading">¶</a></h2>
+<p>RL-DIAG source MUST NOT:</p>
+<ul class="simple">
+<li><p>import service/systemd control;</p></li>
+<li><p>start/stop/restart Advisor or Watchdog;</p></li>
+<li><p>append PPL events;</p></li>
+<li><p>write PAPER/legacy ledgers;</p></li>
+<li><p>mutate RL-DATA datasets;</p></li>
+<li><p>mutate RL-REPLAY published runs;</p></li>
+<li><p>call exchange write APIs;</p></li>
+<li><p>alter strategies;</p></li>
+<li><p>alter gates;</p></li>
+<li><p>alter risk parameters;</p></li>
+<li><p>alter sizing;</p></li>
+<li><p>create a new PAPER epoch;</p></li>
+<li><p>authorize burn-in;</p></li>
+<li><p>authorize TESTNET/LIVE.</p></li>
+</ul>
+<p>Static tests MUST enforce forbidden-import and forbidden-mutation boundaries.</p>
+</section>
+<hr class="docutils" />
+<section id="a2-field-profile-gate">
+<h2>11. A2 field-profile gate<a class="headerlink" href="#a2-field-profile-gate" title="Link to this heading">¶</a></h2>
+<p>Before contextual DecisionPacket diagnostics are implemented, execute a
+READ-ONLY field-profile against:</p>
+<p><code class="docutils literal notranslate"><span class="pre">optional/decision_packets.jsonl</span></code></p>
+<p>inside the certified dataset.</p>
+<p>The profiler MUST:</p>
+<ul class="simple">
+<li><p>validate the dataset first through the certified RL-REPLAY validation path;</p></li>
+<li><p>read only the exact included component;</p></li>
+<li><p>never discover live source shards;</p></li>
+<li><p>never read mutable runtime databases directly;</p></li>
+<li><p>emit only aggregate field-completeness evidence;</p></li>
+<li><p>never rewrite the dataset;</p></li>
+<li><p>preserve source bytes exactly;</p></li>
+<li><p>keep the worktree clean.</p></li>
+</ul>
+<p>Required profile fields for A2:</p>
+<ul class="simple">
+<li><p>packet_id;</p></li>
+<li><p>symbol;</p></li>
+<li><p>timeframe;</p></li>
+<li><p>side;</p></li>
+<li><p>regime;</p></li>
+<li><p>confidence;</p></li>
+<li><p>confidence_raw;</p></li>
+<li><p>adjusted_confidence;</p></li>
+<li><p>expected_value;</p></li>
+<li><p>risk_score;</p></li>
+<li><p>allocation_pct;</p></li>
+<li><p>conviction;</p></li>
+<li><p>entry_price;</p></li>
+<li><p>stop_loss;</p></li>
+<li><p>take_profit;</p></li>
+<li><p>r_multiple;</p></li>
+<li><p>state_history;</p></li>
+<li><p>reasoning;</p></li>
+<li><p>features;</p></li>
+<li><p>metadata.trace_id.</p></li>
+</ul>
+<p>A field may move from PARTIAL to COMPLETE only after the real 13-record profile
+supports that promotion.</p>
+</section>
+<hr class="docutils" />
+<section id="current-governed-verdict">
+<h2>12. Current governed verdict<a class="headerlink" href="#current-governed-verdict" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DIAG_01_A1_FORENSIC_CAPABILITY_AUDIT</span> <span class="pre">=</span> <span class="pre">PASS_WITH_EXPLICIT_LIMITS</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">RL_DIAG_01_A2_SOURCE_CONTRACT</span> <span class="pre">=</span> <span class="pre">SPECIFIED</span></code></p>
+<p>Next gate:</p>
+<p><code class="docutils literal notranslate"><span class="pre">A2_REAL_F00_DECISION_PACKET_FIELD_PROFILE</span></code></p>
+<p>No performance-diagnostic implementation is authorized before that profile is
+reviewed.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">RL-DIAG-01 — Performance Attribution &amp; Incoherence Diagnostics Contract</a><ul>
+<li><a class="reference internal" href="#mission">1. Mission</a></li>
+<li><a class="reference internal" href="#scientific-status-model">2. Scientific status model</a><ul>
+<li><a class="reference internal" href="#evidence-status">2.1 Evidence status</a></li>
+<li><a class="reference internal" href="#statistical-strength">2.2 Statistical strength</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#canonical-population">3. Canonical population</a></li>
+<li><a class="reference internal" href="#provenance-requirements">4. Provenance requirements</a></li>
+<li><a class="reference internal" href="#complete-diagnostics-supported-by-authoritative-ppl">5. COMPLETE diagnostics supported by authoritative PPL</a><ul>
+<li><a class="reference internal" href="#lifecycle-integrity">5.1 Lifecycle integrity</a></li>
+<li><a class="reference internal" href="#realized-financial-attribution">5.2 Realized financial attribution</a></li>
+<li><a class="reference internal" href="#position-geometry">5.3 Position geometry</a></li>
+<li><a class="reference internal" href="#factual-performance-metrics">5.4 Factual performance metrics</a></li>
+<li><a class="reference internal" href="#concentration-descriptive-fragility">5.5 Concentration / descriptive fragility</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#partial-diagnostics">6. PARTIAL diagnostics</a><ul>
+<li><a class="reference internal" href="#decisionpacket-contextual-attribution">6.1 DecisionPacket contextual attribution</a></li>
+<li><a class="reference internal" href="#entry-exit-quality">6.2 Entry/exit quality</a></li>
+<li><a class="reference internal" href="#sharpe">6.3 Sharpe</a></li>
+<li><a class="reference internal" href="#turnover">6.4 Turnover</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#not-available-diagnostics-for-current-f00-v1">7. NOT_AVAILABLE diagnostics for current F00 v1</a><ul>
+<li><a class="reference internal" href="#market-path-dependent-diagnostics">7.1 Market-path dependent diagnostics</a></li>
+<li><a class="reference internal" href="#exit-cause-attribution">7.2 Exit-cause attribution</a></li>
+<li><a class="reference internal" href="#rejected-opportunity-blocker-analysis">7.3 Rejected-opportunity / blocker analysis</a></li>
+<li><a class="reference internal" href="#general-strategy-counterfactuals">7.4 General strategy counterfactuals</a></li>
+<li><a class="reference internal" href="#strategy-attribution">7.5 Strategy attribution</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#incoherence-diagnostics">8. Incoherence diagnostics</a></li>
+<li><a class="reference internal" href="#diagnostic-output-model">9. Diagnostic output model</a></li>
+<li><a class="reference internal" href="#hard-safety-boundary">10. Hard safety boundary</a></li>
+<li><a class="reference internal" href="#a2-field-profile-gate">11. A2 field-profile gate</a></li>
+<li><a class="reference internal" href="#current-governed-verdict">12. Current governed verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
