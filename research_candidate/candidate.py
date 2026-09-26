@@ -11,7 +11,7 @@ import json
 import math
 import re
 from datetime import datetime, timezone
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 CANDIDATE_SCHEMA = "RL_CANDIDATE_V1"
 CANDIDATE_IDENTITY_SCHEMA = "rl-candidate-01.identity.v1"

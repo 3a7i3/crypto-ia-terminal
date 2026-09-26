@@ -302,7 +302,9 @@ def test_proposal_components_require_canonical_order() -> None:
     candidate["proposal"]["components"] = components
     candidate["candidate_id"] = compute_candidate_id(candidate)
 
-    with pytest.raises(CandidateValidationError, match="canonically"):
+    with pytest.raises(
+        CandidateValidationError, match="sorted by canonical component JSON bytes"
+    ):
         validate_candidate(
             candidate,
             evidence_catalog=_catalog(),

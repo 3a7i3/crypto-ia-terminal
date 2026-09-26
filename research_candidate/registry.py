@@ -17,8 +17,6 @@ from .candidate import (
     PROMOTION_REQUEST_IDENTITY_SCHEMA,
     PROMOTION_REQUEST_SCHEMA,
     CandidateValidationError,
-    canonical_json_bytes,
-    compute_candidate_id,
     sha256_json,
     validate_candidate,
 )
