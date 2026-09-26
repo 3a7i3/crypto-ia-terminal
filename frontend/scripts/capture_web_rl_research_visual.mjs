@@ -41,13 +41,18 @@ try {
     "NON-AUTHORITATIVE",
     "RESEARCH_NON_AUTHORITATIVE",
     "LOW_SAMPLE",
-    "annualized_sharpe",
     "NOT_AVAILABLE",
     "No certified time-series/annualized return basis.",
     "No substantive candidate",
   ]) {
     assert(text.includes(required), `WEB-RL evidence missing: ${required}`);
   }
+
+  const metricLabels = await page.locator(".research-metric-label").allTextContents();
+  assert(
+    metricLabels.includes("annualized_sharpe"),
+    "WEB-RL evidence missing metric label: annualized_sharpe",
+  );
 
   assert(
     (await page.getByTestId("research-metric-card").count()) >= 5,

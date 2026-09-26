@@ -2,8 +2,8 @@
 
 Status: SOURCE CONTRACT V1 / WR1 REVIEW
 
-Mission: #241  
-Parent architecture: #237  
+Mission: #241
+Parent architecture: #237
 Governance: #148
 
 Certified upstream:
