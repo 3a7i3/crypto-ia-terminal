@@ -164,6 +164,29 @@ def _safe_float(value: object, default: float = 0.0) -> float:
         return default
 
 
+def require_resolved_pnl_usd(record: dict) -> float:
+    """Return one explicit finite realized PnL or fail closed.
+
+    ACC-01: missing/UNRESOLVED PnL is scientific state, never numeric zero.
+    """
+    value = record.get("pnl_usd")
+    if value is None or str(record.get("evidence_status") or "").upper() == "UNRESOLVED":
+        raise ScientificDatasetUnavailableError(
+            "resolved CLOSED-performance record requires pnl_usd"
+        )
+    try:
+        pnl = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ScientificDatasetUnavailableError(
+            "resolved CLOSED-performance pnl_usd must be numeric"
+        ) from exc
+    if not math.isfinite(pnl):
+        raise ScientificDatasetUnavailableError(
+            "resolved CLOSED-performance pnl_usd must be finite"
+        )
+    return pnl
+
+
 def default_trades_path() -> Path:
     """Chemin canonique du journal de paper trades.
 
@@ -209,6 +232,12 @@ def _exclusion_reason(
     # silently mixed back into that Legacy population.
     if source_authority == "PPL":
         return "ppl_outside_legacy_population"
+
+    if (
+        str(record.get("evidence_status") or "").upper() == "UNRESOLVED"
+        or record.get("pnl_usd") is None
+    ):
+        return "legacy_unresolved_outcome"
 
     if ts < CLEAN_DATA_SINCE_ACTIVE:
         return "anterieur_borne_canonique"
@@ -401,8 +430,10 @@ def drift_score(trades: list[dict]) -> float:
 
 
 def balance_score(trades: list[dict]) -> float:
-    wins = sum(1 for t in trades if (t.get("pnl_usd") or 0) >= 0)
-    losses = sum(1 for t in trades if (t.get("pnl_usd") or 0) < 0)
+    pnls = [require_resolved_pnl_usd(t) for t in trades]
+    # ACC-01: exact zero is a resolved breakeven outcome, not a win.
+    wins = sum(1 for pnl in pnls if pnl > 0)
+    losses = sum(1 for pnl in pnls if pnl < 0)
     return 100.0 * min(wins, losses, BALANCE_TARGET) / BALANCE_TARGET
 
 
