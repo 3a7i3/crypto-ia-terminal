@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "BURNIN-PREFLIGHT-01-SERVICES-20260926A",
+  "request_id": "BURNIN-QUIESCE-01-VERIFY-20260926A",
   "action": "service_matrix",
-  "requested_at_utc": "2026-09-26T06:00:00Z"
+  "requested_at_utc": "2026-09-26T06:07:00Z"
 }
