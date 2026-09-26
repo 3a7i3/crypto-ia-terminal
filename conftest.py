@@ -57,7 +57,7 @@ _SCIENTIFIC_DATA_GUARD_BASELINE_PATH = (
 # (ex: observability/json_logger.py::LOG_ROOT, rejection_store.py::_DEFAULT_DIR).
 # setdefault() : ne écrase pas une valeur déjà positionnée par l'environnement
 # d'exécution (CI, VPS...).
-os.environ.setdefault("OBS_LOG_ROOT", tempfile.mkdtemp(prefix="pytest_obs_logs_"))
+os.environ["OBS_LOG_ROOT"] = tempfile.mkdtemp(prefix="pytest_obs_logs_")
 
 # T1-HERM-01-R1 : affectation INCONDITIONNELLE (pas de setdefault()).
 # infra/wallet_sync.py et paper_trading/dataset_validator.py lisent
@@ -98,56 +98,27 @@ for _name, _relative in {
 }.items():
     os.environ[_name] = str(_pytest_persistence_dir / _relative)
 
-os.environ.setdefault(
-    "REJECTION_STORE_DIR", os.path.join(_pytest_data_dir, "rejections")
-)
+os.environ["REJECTION_STORE_DIR"] = os.path.join(_pytest_data_dir, "rejections")
 os.environ.setdefault(
     "COLD_START_REPORT_DIR", os.path.join(_pytest_data_dir, "cold_start_reports")
 )
 os.environ.setdefault(
     "BLACK_BOX_PATH", os.path.join(_pytest_data_dir, "black_box.jsonl")
 )
-os.environ.setdefault(
-    # S-03B: BB_PATH est le nom canonique lu par
-    # quant_hedge_ai/agents/intelligence/black_box.py::BlackBox (et, depuis
-    # S-03B, par cold_start/warmup_report.py) — BLACK_BOX_PATH ci-dessus
-    # n'isolait donc jamais les instances réelles de BlackBox construites
-    # sans chemin explicite pendant les tests (seul cold_start/
-    # warmup_invariants.py lisait BLACK_BOX_PATH). Les deux variables
-    # restent posées pour ne retirer aucune isolation existante.
-    "BB_PATH", os.path.join(_pytest_data_dir, "black_box.jsonl")
+# HERM-02: BB_PATH is read by the real BlackBox implementation. Ambient
+# operator/CI/VPS values must never survive into pytest collection.
+os.environ["BB_PATH"] = os.path.join(_pytest_data_dir, "black_box.jsonl")
+os.environ["LMI_DIR"] = os.path.join(
+    tempfile.mkdtemp(prefix="pytest_lmi_"), "lmi"
 )
-os.environ.setdefault(
-    "LMI_DIR", os.path.join(tempfile.mkdtemp(prefix="pytest_lmi_"), "lmi")
+# HERM-02: pre-collection persistence isolation must override ambient paths.
+os.environ["ORDER_INTENT_JOURNAL_PATH"] = os.path.join(
+    tempfile.mkdtemp(prefix="pytest_order_intent_journal_"),
+    "order_intent_journal.jsonl",
 )
-os.environ.setdefault(
-    # O-02W-PRE-T1-E REM-B-R1, Correction G: order_intent_protocol.py's
-    # durable journal path is a module-level constant
-    # (execution_engine.py::_DEFAULT_ORDER_INTENT_JOURNAL_PATH), same
-    # DS-001 freeze-at-import hazard as OBS_LOG_ROOT/BLACK_BOX_PATH above.
-    # This MUST live here (root conftest.py, evaluated before collection)
-    # rather than in a tests/-scoped conftest.py: any test file outside
-    # tests/ (e.g. quant_hedge_ai/agents/execution/test_*.py) is not
-    # covered by a tests/conftest.py, so the module constant would freeze
-    # to the real production default (databases/order_intent_journal.jsonl)
-    # and every such test run would durably pollute that file — this was
-    # confirmed to actually happen during R1 development.
-    "ORDER_INTENT_JOURNAL_PATH",
-    os.path.join(
-        tempfile.mkdtemp(prefix="pytest_order_intent_journal_"),
-        "order_intent_journal.jsonl",
-    ),
-)
-os.environ.setdefault(
-    # O-02W-PRE-T1-E REM-B-R1.1, Blocker A: decision_identity.py's durable
-    # journal path is a module-level constant, same DS-001 freeze-at-import
-    # hazard as ORDER_INTENT_JOURNAL_PATH immediately above — identical
-    # reasoning, identical fix.
-    "DECISION_IDENTITY_JOURNAL_PATH",
-    os.path.join(
-        tempfile.mkdtemp(prefix="pytest_decision_identity_journal_"),
-        "decision_identity_journal.jsonl",
-    ),
+os.environ["DECISION_IDENTITY_JOURNAL_PATH"] = os.path.join(
+    tempfile.mkdtemp(prefix="pytest_decision_identity_journal_"),
+    "decision_identity_journal.jsonl",
 )
 
 
@@ -202,6 +173,7 @@ def _isolate_cold_start_persistence(monkeypatch, tmp_path):
     Applied automatically to every test in the project.
     """
     monkeypatch.setenv("BLACK_BOX_PATH", str(tmp_path / "black_box_test.jsonl"))
+    monkeypatch.setenv("BB_PATH", str(tmp_path / "black_box_test.jsonl"))
     monkeypatch.setenv("COLD_START_REPORT_DIR", str(tmp_path / "cold_start_reports"))
 
     import cold_start.bypass_detector as _bpd
