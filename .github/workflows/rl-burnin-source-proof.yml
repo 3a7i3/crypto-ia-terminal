@@ -60,6 +60,7 @@ jobs:
           python -m py_compile \
             paper_trading/ppl_authority_runtime.py \
             research_data/paper_exporter.py \
+            research_data/burn_in_finalization.py \
             scripts/f00_experiment_config_freeze.py \
             scripts/burn_in_experiment_config_freeze.py
 
