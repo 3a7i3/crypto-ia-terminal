@@ -1,0 +1,118 @@
+{
+ "generated_from": "npm audit --json (frontend/, 2026-09-24)",
+ "metadata": {
+  "info": 0,
+  "low": 2,
+  "moderate": 4,
+  "high": 4,
+  "critical": 1,
+  "total": 11
+ },
+ "production_tree_vulnerabilities": 0,
+ "note": "`npm audit --omit=dev` retourne 0 vulnerabilite : les 11 findings sont dev/build-only.",
+ "packages": [
+  {
+   "package": "vitest",
+   "severity": "critical",
+   "direct": true,
+   "fix_available": "vitest",
+   "advisories": [
+    "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+    "When Vitest UI server is listening, arbitrary file can be read and executed"
+   ]
+  },
+  {
+   "package": "browserslist",
+   "severity": "high",
+   "direct": false,
+   "fix_available": true,
+   "advisories": [
+    "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+    "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)"
+   ]
+  },
+  {
+   "package": "nanoid",
+   "severity": "high",
+   "direct": false,
+   "fix_available": true,
+   "advisories": [
+    "nanoid: custom generators can loop indefinitely when size is zero",
+    "nanoid: non-secure generators can loop indefinitely with negative size"
+   ]
+  },
+  {
+   "package": "postcss",
+   "severity": "high",
+   "direct": true,
+   "fix_available": true,
+   "advisories": [
+    "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+    "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset"
+   ]
+  },
+  {
+   "package": "vite",
+   "severity": "high",
+   "direct": true,
+   "fix_available": "vite",
+   "advisories": [
+    "Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling",
+    "launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows",
+    "vite: `server.fs.deny` bypass on Windows alternate paths"
+   ]
+  },
+  {
+   "package": "@vitest/mocker",
+   "severity": "moderate",
+   "direct": false,
+   "fix_available": "vitest",
+   "advisories": [
+    "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock"
+   ]
+  },
+  {
+   "package": "baseline-browser-mapping",
+   "severity": "moderate",
+   "direct": false,
+   "fix_available": true,
+   "advisories": [
+    "baseline-browser-mapping process termination on invalid input causes denial of service"
+   ]
+  },
+  {
+   "package": "esbuild",
+   "severity": "moderate",
+   "direct": false,
+   "fix_available": "vite",
+   "advisories": [
+    "esbuild enables any website to send any requests to the development server and read the response"
+   ]
+  },
+  {
+   "package": "vite-node",
+   "severity": "moderate",
+   "direct": false,
+   "fix_available": "vitest",
+   "advisories": []
+  },
+  {
+   "package": "@babel/core",
+   "severity": "low",
+   "direct": false,
+   "fix_available": true,
+   "advisories": [
+    "@babel/core: Arbitrary File Read via sourceMappingURL Comment"
+   ]
+  },
+  {
+   "package": "postcss-selector-parser",
+   "severity": "low",
+   "direct": false,
+   "fix_available": true,
+   "advisories": [
+    "postcss-selector-parser allows denial of service through uncontrolled AST recursion"
+   ]
+  }
+ ]
+}
