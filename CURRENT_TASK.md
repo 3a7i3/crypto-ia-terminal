@@ -1,23 +1,54 @@
 # CURRENT_TASK
 
-## Focus actuel
+> Dernière mise à jour : 2026-09-26
+> Cette page est un **pointeur**, pas une source de vérité.
 
-P10 — Evolutionary Architecture (vision)
+## Autorité de la feuille de route
 
-## Contexte utile
+**[#148 — MASTER ROADMAP](https://github.com/3a7i3/crypto-ia-terminal/issues/148)**
+est la seule autorité de priorisation courante.
 
-- P9 fermé (2026-05-26) : SystemHealthMonitor, BehavioralDriftDetector, SelfMonitoringLoop, AnomalyGovernance, PerformanceSupervisor, PortfolioIntelligence — 64/64 tests
-- anara_context v1.5 : 52 modules indexés, topologie complète
-- Branch active : feat/stack-unification
-- Tests totaux : 1627+ verts avant démarrage P10
+Ce fichier ne duplique pas #148 : en cas de divergence, **#148 gagne**.
 
-## Composants P10 (vision)
+## Mission active
 
-1. **HyperparameterOptimizer** — boucle externe teste variations, conserve les meilleures
-2. **StrategyGenerator** — exploration combinaisons indicateurs → conservation par régime
-3. **EpisodicMemory** — configurations gagnantes rejouées sur contextes similaires
-4. **RLPolicyEngine** — politique allocation apprise par RL, récompense = Sharpe glissant
+**[#240 — RL-CANDIDATE-01](https://github.com/3a7i3/crypto-ia-terminal/issues/240)**
+— Candidate Registry & Promotion Boundary.
 
-## Notes
+| Élément | Valeur |
+|---|---|
+| PR canonique | [#264](https://github.com/3a7i3/crypto-ia-terminal/pull/264) — DRAFT |
+| Miroir CI | [#265](https://github.com/3a7i3/crypto-ia-terminal/pull/265) — **DO NOT MERGE** |
+| État | `RC1 PASS / RC1A PASS / RC2 SOURCE IMPLEMENTED / CI PENDING` |
+| Gate courante | `RC2_EXACT_HEAD_TEST_AND_REPOSITORY_CI` |
+| Création de candidat | `CANDIDATE_CREATION_AUTHORIZED = NO` |
 
-Cette page doit rester courte, concrete et orientée exécution.
+## Chaîne Research canonique
+
+```
+F00 certifié
+  └─ Research Infrastructure (#237 RL-ARCH-00)
+       ├─ #238  RL-DATA-01      ✅ SOURCE CERTIFIED
+       ├─ #239  RL-REPLAY-01    ✅ SOURCE CERTIFIED / CLOSED
+       ├─ #248  RL-DIAG-01      ✅ SOURCE CERTIFIED / CLOSED
+       ├─ #240  RL-CANDIDATE-01 🟡 ACTIVE
+       ├─ #241  WEB-RL-01       ⏳
+       └─ #242  RL-BURNIN-01    ⏳
+```
+
+Séquence aval non négociable : `#240 → #241 → #242`.
+
+## Non-autorisations permanentes de la phase courante
+
+⛔ merge de #264 / #265 vers `main`
+⛔ création d'un candidat substantiel avant certification RC2
+⛔ mutation runtime stratégie / signal / risk / sizing
+⛔ burn-in, nouvelle époque PAPER, activation Watchdog
+⛔ TESTNET, LIVE, écritures exchange
+
+## Historique
+
+Le contenu précédent de cette page (P10 Evolutionary Architecture, branche
+`feat/stack-unification`) décrivait un focus de mai 2026 sans rapport avec la
+chaîne Research courante. Il est retiré comme **STALE** — voir `ROADMAP.md`
+pour l'historique des phases P1-P13.
