@@ -56,7 +56,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByTestId("tab-portfolio"));
+    fireEvent.click(screen.getByTestId("tab-paper"));
     expect(screen.getByTestId("portfolio-view")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("tab-decisions"));
@@ -90,7 +90,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId("tab-portfolio"));
+    fireEvent.click(screen.getByTestId("tab-paper"));
     const text = screen.getByTestId("portfolio-view").textContent ?? "";
     expect(text).toMatch(/UNAVAILABLE/);
   });
@@ -202,6 +202,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
 
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("tab-paper"));
     fireEvent.click(screen.getByTestId("tab-ppl"));
 
     await waitFor(() =>
