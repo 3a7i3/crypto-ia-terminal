@@ -164,31 +164,34 @@ Required before final #242 certification:
 
 or an equivalently explicit certified verdict closing #268.
 
-### B3 — future burn-in epoch identity is not yet representable explicitly
+### B3 — future burn-in epoch identity
 
-Current PPL authority manifests accept only:
+RB3 implements an explicit burn-in identity candidate without reusing F00
+semantics:
 
-- `PPL_AUTHORITY_TRANSITION`;
-- `F00_EXPERIMENT`.
+- `epoch_role=BURN_IN_EXPERIMENT`;
+- authority manifest schema v3;
+- PPL event schema v2;
+- predecessor authority epoch required;
+- event-identity domain `BURN-IN-EPOCH-AUTHORITY-V1`;
+- event-id prefix `burnin-`;
+- config snapshot schema `BURN_IN_EXPERIMENT_CONFIG_V1`.
 
-The experiment builder and schema are F00-specific, and RL-DATA v1 explicitly
-requires `epoch_role=F00_EXPERIMENT`.
+Backward compatibility is structural and explicit:
 
-Therefore #242 MUST NOT claim that a future burn-in epoch has a frozen,
-machine-verifiable experiment identity until one of the following is certified:
+- v1 / `PPL_AUTHORITY_TRANSITION` remains accepted unchanged;
+- v2 / `F00_EXPERIMENT` remains accepted unchanged;
+- F00 continues to use `F00-EPOCH-AUTHORITY-V1` and the `f00-` prefix;
+- the F00 config CLI still defaults to `F00_EXPERIMENT_CONFIG_V1`;
+- RL-DATA accepts only explicitly enumerated scientific role/schema pairs.
 
-1. an explicit burn-in experiment role/schema is added; or
-2. governance deliberately defines burn-in as an `F00_EXPERIMENT` role and
-   proves that this reuse is semantically correct.
+The deterministic F00 config-freeze engine is reused through an explicit
+snapshot-schema parameter. The burn-in wrapper adds semantic identity only; it
+does not duplicate configuration-discovery, secret-filtering, hashing,
+immutability or drift-validation algorithms.
 
-A silent semantic reuse is forbidden.
-
-Preferred target:
-
-`BURN_IN_EXPERIMENT`
-
-with an explicit manifest/schema contract that preserves backward compatibility
-with the certified F00 manifest.
+This section describes the implemented source candidate. It is not a PASS
+claim until RB3 source tests and exact-head governance evidence are complete.
 
 ---
 
@@ -404,9 +407,20 @@ Target:
 PASS requires an explicit, backward-compatible representation of a future
 burn-in experiment manifest/config identity.
 
+Implemented source candidate:
+
+- `BURN_IN_EXPERIMENT` / manifest v3;
+- `BURN_IN_EXPERIMENT_CONFIG_V1`;
+- distinct burn-in event domain/prefix;
+- explicit RL-DATA role/schema validation;
+- F00 v2 output names preserved for backward compatibility;
+- burn-in Research exports use distinct authoritative file/component names.
+
 Target:
 
 `RB3_BURNIN_EPOCH_IDENTITY_CERTIFIED`
+
+Status: `SOURCE_IMPLEMENTED — CERTIFICATION PENDING`.
 
 ### RB4 — CAPTURE / FINALIZATION
 
@@ -471,19 +485,19 @@ Current A1 disposition:
 
 `RL_BURNIN_01 = ACTIVE / RB1 FORENSIC COMPLETE / REMEDIATION REQUIRED`
 
-Current blockers:
+Current prerequisite status:
 
-- #267 HERM-02;
-- #268 ACC-01;
-- explicit future burn-in epoch identity/schema.
+- #267 HERM-02 — CLOSED / certified;
+- #268 ACC-01 — CLOSED / certified;
+- `RB2_PRE_BURNIN_DEBT_CLOSED`;
+- RB3 explicit burn-in identity — source candidate implemented, certification pending.
 
 Next work:
 
-1. certify #267;
-2. certify #268;
-3. return to #242 RB3 and implement the explicit burn-in experiment identity;
-4. prove capture/replay/no-feedback on isolated fixtures;
-5. exact-head CI;
-6. only then consider the final #242 verdict.
+1. close RB3 source proof on the exact candidate head;
+2. prove RB4 immutable prefix capture/finalization on isolated fixtures;
+3. prove RB5 replay/no-feedback and future-epoch-only promotion;
+4. run RB6 exact-head CI on the final composed source;
+5. only then consider `RL_BURNIN_NO_FEEDBACK_CERTIFIED`.
 
 Burn-in remains NOT AUTHORIZED.
