@@ -487,9 +487,12 @@ def build_snapshot_payload(
     paper_epoch_id: str,
     activation_path: Path,
     activation_bytes: bytes,
+    snapshot_schema: str = SNAPSHOT_SCHEMA,
 ) -> dict[str, Any]:
     if not paper_epoch_id:
         raise ConfigFreezeError("paper_epoch_id is required")
+    if not isinstance(snapshot_schema, str) or not snapshot_schema.strip():
+        raise ConfigFreezeError("snapshot_schema is required")
 
     runtime_source_sha = _require_clean_repo(repo_root)
     prestart_explicit, prestart_source = _effective_explicit(env_files, repo_root)
@@ -568,7 +571,7 @@ def build_snapshot_payload(
     env_refs = [_normalise_path(path, repo_root) for path in env_files]
 
     return {
-        "snapshot_schema": SNAPSHOT_SCHEMA,
+        "snapshot_schema": snapshot_schema,
         "paper_epoch_id": paper_epoch_id,
         "runtime_source_sha": runtime_source_sha,
         "prestart_environment_files_in_precedence_order": env_refs,
@@ -628,6 +631,7 @@ def capture(
     output: Path,
     activation_output: Path,
     activation_pb_max_positions: int,
+    snapshot_schema: str = SNAPSHOT_SCHEMA,
 ) -> dict[str, Any]:
     if output.exists():
         raise ConfigFreezeError(
@@ -646,6 +650,7 @@ def capture(
         paper_epoch_id=paper_epoch_id,
         activation_path=activation_output,
         activation_bytes=activation_bytes,
+        snapshot_schema=snapshot_schema,
     )
     document = _snapshot_document(payload)
     encoded = json.dumps(
@@ -668,7 +673,12 @@ def capture(
     return document
 
 
-def validate(*, repo_root: Path, snapshot_path: Path) -> dict[str, Any]:
+def validate(
+    *,
+    repo_root: Path,
+    snapshot_path: Path,
+    snapshot_schema: str = SNAPSHOT_SCHEMA,
+) -> dict[str, Any]:
     try:
         document = json.loads(snapshot_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -686,9 +696,10 @@ def validate(*, repo_root: Path, snapshot_path: Path) -> dict[str, Any]:
             f"snapshot content hash mismatch: stored={stored_hash} "
             f"actual={actual_stored_hash}"
         )
-    if document.get("snapshot_schema") != SNAPSHOT_SCHEMA:
+    if document.get("snapshot_schema") != snapshot_schema:
         raise ConfigFreezeError(
-            f"unsupported snapshot schema: {document.get('snapshot_schema')!r}"
+            f"unsupported snapshot schema: {document.get('snapshot_schema')!r}; "
+            f"expected {snapshot_schema!r}"
         )
 
     env_refs = document.get("prestart_environment_files_in_precedence_order")
@@ -738,6 +749,7 @@ def validate(*, repo_root: Path, snapshot_path: Path) -> dict[str, Any]:
         paper_epoch_id=paper_epoch_id,
         activation_path=activation_path,
         activation_bytes=activation_bytes,
+        snapshot_schema=snapshot_schema,
     )
     current_hash = snapshot_sha256(current)
     if current != document or current_hash != stored_hash:
