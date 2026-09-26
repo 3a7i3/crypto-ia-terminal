@@ -274,7 +274,7 @@ product
 domain
 authority
 generated_at_utc
-source_code_sha
+presentation_builder_source_sha
 research_state
 provenance
 population
@@ -298,15 +298,18 @@ Unknown top-level fields fail closed in V1.
 
 ## 8. Provenance envelope
 
-Every Research Lab snapshot MUST carry:
+Every Research Lab snapshot MUST carry one explicit `primary_context`.
 
-- `dataset_id`
-- `source_boundary_id`
+The V1 primary context contains exactly one:
+
+- `dataset_id`;
+- `source_boundary_id`;
 - `paper_epoch_id` when applicable;
-- `research_run_id`
+- `research_run_id`;
 - `diagnostic_run_id` when applicable;
-- `source_code_sha`
-- `config_hash` when certified;
+- `research_source_code_sha`;
+- `research_config_hash` when certified;
+- `presentation_builder_source_sha`;
 - `population_definition`
 - `n`
 - `evidence_status`
@@ -315,6 +318,18 @@ Every Research Lab snapshot MUST carry:
 
 A Research metric MUST NOT be displayed without sufficient provenance to
 identify its scientific population.
+
+`research_source_code_sha` identifies the scientific code that produced the
+Research evidence.
+
+`presentation_builder_source_sha` identifies only the passive Web presentation
+builder. These SHAs are different semantic identities and MUST NOT be
+substituted for one another.
+
+V1 does not aggregate multiple dataset populations into one primary context.
+If several datasets/runs are presented in a future version, each metric group
+must carry its own complete provenance and no combined performance total may be
+computed.
 
 The UI may collapse provenance visually, but the evidence must remain
 expandable/inspectable.
@@ -353,8 +368,18 @@ Allowed statistical-strength values:
 - `ADEQUATE_FOR_DECLARED_TEST`
 - `NOT_EVALUATED`
 
+Metric value semantics are fail-closed:
+
+- `COMPLETE` or `PARTIAL`: `value` may be a producer-authored finite
+  numeric/string fact compatible with the metric schema;
+- `NOT_AVAILABLE`, `NOT_APPLICABLE`, or `UNRESOLVED`: `value = null`
+  unless the contract for that specific metric explicitly permits a
+  non-numeric explanatory value.
+
+A non-finite numeric value is invalid.
+
 If a metric is not scientifically available, the UI MUST render the explicit
-status.
+status and reason.
 
 It MUST NOT substitute:
 
@@ -604,6 +629,34 @@ Output is one atomic/immutable-at-publication presentation snapshot.
 
 The builder does not modify its source artifacts.
 
+The presentation builder MUST NOT recompute scientific performance facts.
+
+Forbidden builder computations include:
+
+- PnL;
+- WR;
+- PF;
+- expectancy;
+- Sharpe;
+- drawdown;
+- fees/funding/slippage;
+- attribution totals;
+- candidate metric deltas;
+- qualification verdicts.
+
+The builder may perform presentation-only structural operations such as:
+
+- validating schema/identity;
+- selecting explicitly requested producer-authored fields;
+- preserving producer-authored ordering or applying deterministic display
+  ordering;
+- counting rows only when the count is labeled as a presentation inventory
+  count, not a scientific population metric;
+- writing atomic JSON.
+
+Scientific metric values and scientific deltas must already exist in the
+certified source artifact.
+
 ---
 
 ## 19. API boundary
@@ -736,7 +789,11 @@ Research Lab has explicit states:
 - `EMPTY`
 - `UNAVAILABLE`
 - `MALFORMED`
-- `STALE` when a freshness policy is scientifically meaningful.
+- `STALE` only when a presentation-currency policy is explicitly defined.
+
+Offline Research evidence does not become scientifically invalid merely because
+wall-clock time passes. `generated_at_utc` is publication provenance, not a
+performance-validity clock.
 
 `EMPTY` means a valid Research artifact with no candidate/evaluation rows.
 
@@ -801,19 +858,22 @@ WR1 PASS requires explicit, non-ambiguous definitions for:
 2. authority labels;
 3. overview non-aggregation rule;
 4. Research presentation artifact boundary;
-5. provenance envelope;
-6. metric evidence wrapper;
-7. current F00 capability/NOT_AVAILABLE constraints;
-8. A5 sizing semantics;
-9. candidate lifecycle display semantics;
-10. baseline/candidate comparison rule;
-11. UNKNOWN/UNRESOLVED doctrine;
-12. no-scientific-formulas-in-React rule;
-13. strict GET-only API reader boundary;
-14. strict frontend validator boundary;
-15. responsive domain visual identity;
-16. empty/unavailable Research states;
-17. hard non-authorizations.
+5. single-population V1 primary context;
+6. research-source SHA vs presentation-builder SHA separation;
+7. provenance envelope;
+8. metric evidence wrapper and null semantics;
+9. current F00 capability/NOT_AVAILABLE constraints;
+10. A5 sizing semantics;
+11. candidate lifecycle display semantics;
+12. baseline/candidate comparison rule;
+13. UNKNOWN/UNRESOLVED doctrine;
+14. no-scientific-formulas-in-React rule;
+15. no-scientific-formulas-in-presentation-builder rule;
+16. strict GET-only API reader boundary;
+17. strict frontend validator boundary;
+18. responsive domain visual identity;
+19. empty/unavailable Research states;
+20. hard non-authorizations.
 
 WR1 PASS authorizes source implementation only.
 
