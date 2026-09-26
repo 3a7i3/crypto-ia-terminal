@@ -1,0 +1,88 @@
+name: RL-BURNIN Source Proof
+
+on:
+  push:
+    paths:
+      - ".github/workflows/rl-burnin-source-proof.yml"
+      - "paper_trading/ppl_authority_runtime.py"
+      - "research_data/**"
+      - "research_replay/**"
+      - "research_diag/**"
+      - "research_candidate/**"
+      - "scripts/f00_experiment_config_freeze.py"
+      - "scripts/burn_in_experiment_config_freeze.py"
+      - "tests/paper_trading/test_rb3_burn_in_epoch_identity.py"
+      - "tests/research_data/**"
+      - "tests/research_replay/**"
+      - "tests/research_diag/**"
+      - "tests/research_candidate/**"
+      - "tests/test_f00_experiment_config_freeze.py"
+      - "tests/test_rb3_burn_in_config_freeze.py"
+      - "docs/contracts/RL_BURNIN_01_CAPTURE_REPLAY_NO_FEEDBACK.md"
+  pull_request:
+    paths:
+      - "paper_trading/ppl_authority_runtime.py"
+      - "research_data/**"
+      - "research_replay/**"
+      - "research_diag/**"
+      - "research_candidate/**"
+      - "scripts/f00_experiment_config_freeze.py"
+      - "scripts/burn_in_experiment_config_freeze.py"
+      - "tests/paper_trading/test_rb3_burn_in_epoch_identity.py"
+      - "tests/research_data/**"
+      - "tests/research_replay/**"
+      - "tests/research_diag/**"
+      - "tests/research_candidate/**"
+      - "tests/test_f00_experiment_config_freeze.py"
+      - "tests/test_rb3_burn_in_config_freeze.py"
+      - "docs/contracts/RL_BURNIN_01_CAPTURE_REPLAY_NO_FEEDBACK.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rl-burnin-source-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rb3-source-proof:
+    name: "RB3-RB5 BURN-IN SOURCE PROOF"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BINANCE_TESTNET: "true"
+      MARKET_SCANNER_SYNTHETIC: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install CI dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Compile RB3 source surfaces
+        run: |
+          python -m py_compile \
+            paper_trading/ppl_authority_runtime.py \
+            research_data/paper_exporter.py \
+            research_data/burn_in_finalization.py \
+            scripts/f00_experiment_config_freeze.py \
+            scripts/burn_in_experiment_config_freeze.py
+
+      - name: Run burn-in composition and backward-compatibility proofs
+        run: |
+          pytest -q \
+            tests/paper_trading/test_epoch_01_r1_manifest_rotation.py \
+            tests/paper_trading/test_rb3_burn_in_epoch_identity.py \
+            tests/test_f00_experiment_config_freeze.py \
+            tests/test_rb3_burn_in_config_freeze.py \
+            tests/research_data tests/research_replay tests/research_diag tests/research_candidate \
+            tests/test_herm_02_test_persistence_isolation.py \
+            tests/test_acc_01_unresolved_accounting.py tests/test_cri_calculator.py

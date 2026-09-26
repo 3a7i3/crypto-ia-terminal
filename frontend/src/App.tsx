@@ -1,7 +1,7 @@
 // ── App.tsx — read-only operator cockpit ───────────────────────────────────
-// Overview/Portfolio/Decisions/System share one coherent canonical advisor
-// snapshot. WEB-01-MARKET is the explicit O-02W-B §12 cross-process exception:
-// MarketView consumes only the separate read-only CryptoRadar MARKET artifact.
+// WEB-RL-01 separates five navigation surfaces and three scientific domains:
+// MARKET OBSERVATORY / PAPER SCIENCE / RESEARCH LAB.
+// Existing producer authority remains unchanged.
 
 import React, { useState } from "react";
 import "./tokens.css";
@@ -16,68 +16,78 @@ import { SystemView } from "./views/SystemView";
 import { MarketView } from "./views/MarketView";
 import { PplComparisonView } from "./views/PplComparisonView";
 import { FinancialReconciliationView } from "./views/FinancialReconciliationView";
+import { ResearchLabView } from "./views/ResearchLabView";
 import { NotExposedView } from "./views/NotExposedView";
 
-type Tab = "overview" | "portfolio" | "decisions" | "system" | "market" | "ppl" | "finance" | "scores";
+type Domain = "overview" | "market" | "paper" | "research" | "system";
+type PaperView = "portfolio" | "decisions" | "ppl" | "finance";
+type SystemSubview = "health" | "scores";
 
-const TABS: { id: Tab; label: string; glyph: string }[] = [
-  { id: "overview", label: "Overview", glyph: "◉" },
-  { id: "portfolio", label: "Portfolio", glyph: "▣" },
-  { id: "decisions", label: "Decisions", glyph: "≡" },
-  { id: "system", label: "System", glyph: "⚙" },
-  { id: "market", label: "Market", glyph: "↗" },
-  { id: "ppl", label: "PPL Compare", glyph: "⇄" },
-  { id: "finance", label: "Financial", glyph: "¤" },
-  { id: "scores", label: "Scores", glyph: "◈" },
+const DOMAINS: { id: Domain; label: string; glyph: string; testId: string }[] = [
+  { id: "overview", label: "Overview", glyph: "◉", testId: "tab-overview" },
+  { id: "market", label: "Market Observatory", glyph: "↗", testId: "tab-market" },
+  { id: "paper", label: "Paper Science", glyph: "▣", testId: "tab-paper" },
+  { id: "research", label: "Research Lab", glyph: "◇", testId: "tab-research" },
+  { id: "system", label: "System / Governance", glyph: "⚙", testId: "tab-system" },
+];
+
+const PAPER_VIEWS: { id: PaperView; label: string; glyph: string; testId: string }[] = [
+  { id: "portfolio", label: "Portfolio", glyph: "▣", testId: "tab-portfolio" },
+  { id: "decisions", label: "Decisions", glyph: "≡", testId: "tab-decisions" },
+  { id: "ppl", label: "PPL Compare", glyph: "⇄", testId: "tab-ppl" },
+  { id: "finance", label: "Financial", glyph: "¤", testId: "tab-finance" },
 ];
 
 const Header: React.FC<{
   mode: string | null | undefined;
   lastFetchedAt: number | null;
-  activeTab: Tab;
-  onTabChange: (t: Tab) => void;
-}> = ({ mode, lastFetchedAt, activeTab, onTabChange }) => (
+  activeDomain: Domain;
+  onDomainChange: (domain: Domain) => void;
+}> = ({ mode, lastFetchedAt, activeDomain, onDomainChange }) => (
   <header className="operator-header">
     <div className="operator-header-row">
       <div className="operator-brand-group">
         <span className="operator-brand">
           CRYPTO<span className="operator-brand-accent">AI</span>
         </span>
-        {activeTab === "market" ? (
+        {activeDomain === "market" ? (
           <span className="domain-badge domain-badge-market" data-testid="market-domain-badge">
             <span className="domain-dot" aria-hidden="true" />
-            MARKET
+            MARKET OBSERVATORY
           </span>
-        ) : activeTab === "ppl" ? (
-          <span className="domain-badge domain-badge-ppl" data-testid="ppl-domain-badge">
+        ) : activeDomain === "paper" ? (
+          <span className="domain-badge domain-badge-paper" data-testid="paper-domain-badge">
             <span className="domain-dot" aria-hidden="true" />
-            PPL SHADOW
+            PAPER SCIENCE
           </span>
-        ) : activeTab === "finance" ? (
-          <span className="domain-badge domain-badge-fin" data-testid="finance-domain-badge">
+        ) : activeDomain === "research" ? (
+          <span className="domain-badge domain-badge-research" data-testid="research-header-domain-badge">
             <span className="domain-dot" aria-hidden="true" />
-            FIN
+            RESEARCH LAB
+          </span>
+        ) : activeDomain === "system" ? (
+          <span className="domain-badge domain-badge-system" data-testid="system-domain-badge">
+            <span className="domain-dot" aria-hidden="true" />
+            SYSTEM
           </span>
         ) : (
           <ModeBadge mode={mode} />
         )}
       </div>
 
-      <nav className="operator-nav" aria-label="Operator views">
-        {TABS.map((tab) => {
-          const active = tab.id === activeTab;
+      <nav className="operator-nav" aria-label="Operator domains">
+        {DOMAINS.map((domain) => {
+          const active = domain.id === activeDomain;
           return (
             <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              key={domain.id}
+              onClick={() => onDomainChange(domain.id)}
               className={`operator-tab${active ? " operator-tab-active" : ""}`}
               aria-current={active ? "page" : undefined}
-              data-testid={`tab-${tab.id}`}
+              data-testid={domain.testId}
             >
-              <span className="operator-tab-glyph" aria-hidden="true">
-                {tab.glyph}
-              </span>
-              <span>{tab.label}</span>
+              <span className="operator-tab-glyph" aria-hidden="true">{domain.glyph}</span>
+              <span>{domain.label}</span>
             </button>
           );
         })}
@@ -88,6 +98,31 @@ const Header: React.FC<{
       </span>
     </div>
   </header>
+);
+
+const PaperSubnav: React.FC<{
+  active: PaperView;
+  onChange: (view: PaperView) => void;
+}> = ({ active, onChange }) => (
+  <nav className="operator-subnav" aria-label="Paper Science views" data-testid="paper-subnav">
+    {PAPER_VIEWS.map((view) => (
+      <button
+        key={view.id}
+        onClick={() => onChange(view.id)}
+        className={`operator-subtab${active === view.id ? " operator-subtab-active" : ""}`}
+        data-testid={view.testId}
+      >
+        <span aria-hidden="true">{view.glyph}</span>
+        <span>{view.label}</span>
+      </button>
+    ))}
+  </nav>
+);
+
+const PaperBanner: React.FC = () => (
+  <div className="paper-domain-banner" data-testid="paper-domain-banner">
+    PAPER SCIENCE · ACTIVE EXPERIMENT · NOT REAL MONEY
+  </div>
 );
 
 const MarketCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
@@ -134,51 +169,97 @@ const PplCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
 };
 
 const App: React.FC = () => {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [domain, setDomain] = useState<Domain>("overview");
+  const [paperView, setPaperView] = useState<PaperView>("portfolio");
+  const [systemSubview, setSystemSubview] = useState<SystemSubview>("health");
   const snapshotState = useOperatorSnapshot();
 
   const activeSnapshot = snapshotState.status === "success" ? snapshotState.snapshot : null;
-  const lastFetchedAt = snapshotState.status === "success" ? snapshotState.fetchedAt : snapshotState.lastSuccess?.fetchedAt ?? null;
+  const lastFetchedAt = snapshotState.status === "success"
+    ? snapshotState.fetchedAt
+    : snapshotState.lastSuccess?.fetchedAt ?? null;
   const mode = activeSnapshot?.portfolio.mode;
-  const marketActive = tab === "market";
-  const pplActive = tab === "ppl";
-  const financeActive = tab === "finance";
-  const independentDomainActive = marketActive || pplActive || financeActive;
+
+  const independentDomainActive =
+    domain === "market" ||
+    domain === "research" ||
+    (domain === "paper" && (paperView === "ppl" || paperView === "finance"));
+
+  const canonicalRequired =
+    domain === "overview" ||
+    domain === "system" ||
+    (domain === "paper" && (paperView === "portfolio" || paperView === "decisions"));
 
   return (
     <div className="operator-shell">
-      <Header mode={mode} lastFetchedAt={lastFetchedAt} activeTab={tab} onTabChange={setTab} />
+      <Header
+        mode={mode}
+        lastFetchedAt={lastFetchedAt}
+        activeDomain={domain}
+        onDomainChange={setDomain}
+      />
       {!independentDomainActive && <SnapshotStatusBanner state={snapshotState} />}
 
       <main className="operator-main">
-        {marketActive ? (
+        {domain === "market" ? (
           <>
             <MarketCanonicalContext state={snapshotState} />
             <MarketView />
           </>
-        ) : pplActive ? (
+        ) : domain === "research" ? (
+          <ResearchLabView />
+        ) : domain === "paper" ? (
           <>
-            <PplCanonicalContext state={snapshotState} />
-            <PplComparisonView />
+            <PaperBanner />
+            <PaperSubnav active={paperView} onChange={setPaperView} />
+            {paperView === "ppl" ? (
+              <>
+                <PplCanonicalContext state={snapshotState} />
+                <PplComparisonView />
+              </>
+            ) : paperView === "finance" ? (
+              <FinancialReconciliationView />
+            ) : !activeSnapshot ? (
+              <div className="canonical-unresolved" data-testid="no-snapshot">
+                Canonical snapshot unavailable — PAPER SCIENCE is UNRESOLVED until a validated snapshot is available.
+              </div>
+            ) : paperView === "portfolio" ? (
+              <PortfolioView snapshot={activeSnapshot} />
+            ) : (
+              <DecisionsView snapshot={activeSnapshot} />
+            )}
           </>
-        ) : financeActive ? (
-          <FinancialReconciliationView />
-        ) : !activeSnapshot ? (
-          <div
-            className="canonical-unresolved"
-            data-testid="no-snapshot"
-          >
+        ) : canonicalRequired && !activeSnapshot ? (
+          <div className="canonical-unresolved" data-testid="no-snapshot">
             Canonical snapshot unavailable — this domain is UNRESOLVED until a validated snapshot is available.
           </div>
-        ) : (
+        ) : domain === "overview" && activeSnapshot ? (
+          <OverviewView snapshot={activeSnapshot} />
+        ) : domain === "system" && activeSnapshot ? (
           <>
-            {tab === "overview" && <OverviewView snapshot={activeSnapshot} />}
-            {tab === "portfolio" && <PortfolioView snapshot={activeSnapshot} />}
-            {tab === "decisions" && <DecisionsView snapshot={activeSnapshot} />}
-            {tab === "system" && <SystemView snapshot={activeSnapshot} />}
-            {tab === "scores" && <NotExposedView title="Scores" />}
+            <nav className="operator-subnav" aria-label="System / Governance views">
+              <button
+                className={`operator-subtab${systemSubview === "health" ? " operator-subtab-active" : ""}`}
+                onClick={() => setSystemSubview("health")}
+                data-testid="tab-system-health"
+              >
+                System Health
+              </button>
+              <button
+                className={`operator-subtab${systemSubview === "scores" ? " operator-subtab-active" : ""}`}
+                onClick={() => setSystemSubview("scores")}
+                data-testid="tab-scores"
+              >
+                Scores
+              </button>
+            </nav>
+            {systemSubview === "health" ? (
+              <SystemView snapshot={activeSnapshot} />
+            ) : (
+              <NotExposedView title="Scores" />
+            )}
           </>
-        )}
+        ) : null}
       </main>
     </div>
   );

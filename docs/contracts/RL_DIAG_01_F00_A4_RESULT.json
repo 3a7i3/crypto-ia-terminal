@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "mission": "RL-DIAG-01",
+  "gate": "A4_REAL_F00_FACTUAL_ATTRIBUTION",
+  "verdict": "PASS",
+  "source_head": "7d2e53d0d7021bae9cf65d47c9a1557e56358913",
+  "dataset_id": "4ea633a6a4e2ee0bc01a6fe855526d7c42451883ec0b6f3914cf21ea8e91cc8b",
+  "source_boundary_id": "2e6b478cd0cead58c1bcf25c168254b0a63daaa2722c6c108613eb81e283812e",
+  "paper_epoch_id": "F00-EPOCH-01-20260920T084335Z",
+  "upstream_research_run_id": "225368c15b6848936caf7fbd4433b8f713ef1333d547047c6bb55bd0777847ed",
+  "diagnostic_run_id_recomputed_from_frozen_identity": "05c6fb19ca60a94ca1f12f71a4a6e4052dc3f862f7e1d0aee1a1ab04c70234f8",
+  "diagnostic_config_hash": "05d9233e274d129212f049ce4716b9946d3c84a3d51886a388707bbd314ce782",
+  "population": {
+    "n": 13,
+    "wins": 8,
+    "losses": 5,
+    "flats": 0,
+    "win_rate": 0.6153846153846154,
+    "net_realized_pnl_usd": 1.863570581569077,
+    "gross_profit_usd_from_trade_rows": 2.6091662754931657,
+    "gross_loss_usd_from_trade_rows": -0.7455956939240885,
+    "profit_factor_from_trade_rows": 3.4994384983114095,
+    "expectancy_usd_from_trade_rows": 0.1433515831976213,
+    "statistical_strength": "LOW_SAMPLE_DESCRIPTIVE_ONLY"
+  },
+  "categorical_attribution_derived_from_trade_rows": {
+    "by_regime": {
+      "TREND_BULL": {
+        "n": 9,
+        "wins": 6,
+        "losses": 3,
+        "win_rate": 0.6666666666666666,
+        "net_realized_pnl_usd": 1.9707128645572642,
+        "profit_factor": 6.471591134739442,
+        "expectancy_usd": 0.21896809606191825
+      },
+      "RANGE": {
+        "n": 4,
+        "wins": 2,
+        "losses": 2,
+        "win_rate": 0.5,
+        "net_realized_pnl_usd": -0.10714228298818732,
+        "profit_factor": 0.7220144196001933,
+        "expectancy_usd": -0.02678557074704683
+      }
+    },
+    "by_conviction": {
+      "HIGH": {
+        "n": 10,
+        "wins": 6,
+        "losses": 4,
+        "net_realized_pnl_usd": 1.757676380848547,
+        "profit_factor": 4.066383390191291
+      },
+      "MEDIUM": {
+        "n": 3,
+        "wins": 2,
+        "losses": 1,
+        "net_realized_pnl_usd": 0.1058942007205301,
+        "profit_factor": 1.6142803857183003
+      }
+    },
+    "by_side": {
+      "LONG": {
+        "n": 12,
+        "wins": 8,
+        "losses": 4,
+        "net_realized_pnl_usd": 2.0766070652777944,
+        "profit_factor": 4.89929800376187
+      },
+      "SHORT": {
+        "n": 1,
+        "wins": 0,
+        "losses": 1,
+        "net_realized_pnl_usd": -0.21303648370871742
+      }
+    }
+  },
+  "winner_loser_context_derived_from_trade_rows": {
+    "packet_adjusted_confidence": {
+      "winner_mean": 79.875,
+      "loser_mean": 79.0
+    },
+    "conviction_score": {
+      "winner_mean": 70.0875,
+      "loser_mean": 70.04
+    },
+    "features_mtf": {
+      "winner_mean": 24.935,
+      "loser_mean": 26.857999999999997
+    },
+    "features_mtf_strength": {
+      "winner_mean": 0.247,
+      "loser_mean": 0.343
+    },
+    "packet_os_size_usd_context": {
+      "winner_mean": 35.255,
+      "loser_mean": 34.5
+    }
+  },
+  "concentration": {
+    "largest_absolute_trade_share": 0.28171635738926415,
+    "largest_winner": {
+      "symbol": "BTW/USDT",
+      "trade_id": "7B9357EF-F",
+      "net_realized_pnl_usd": 0.9450913219322631
+    },
+    "largest_loser": {
+      "symbol": "UB/USDT",
+      "trade_id": "49709303-4",
+      "net_realized_pnl_usd": -0.2831841133913161
+    },
+    "leave_one_out_net_pnl_min_usd": 0.918479259636814,
+    "leave_one_out_net_pnl_max_usd": 2.1467546949603933
+  },
+  "source_non_mutation": {
+    "tree_sha256_before": "9da1356f226db94edfc47267c01a01c333bb3e172fd62a6374b25b1cddb12009",
+    "tree_sha256_after": "9da1356f226db94edfc47267c01a01c333bb3e172fd62a6374b25b1cddb12009",
+    "source_bytes_unchanged": true,
+    "source_file_population_unchanged": true,
+    "worktree_clean": true
+  },
+  "limitations": [
+    "N=13; all associations are descriptive only.",
+    "No causal inference.",
+    "No mark-to-market trajectory.",
+    "No MFE/MAE/slippage/adverse-selection evidence.",
+    "No canonical close cause.",
+    "No provenance-bound rejected-opportunity population.",
+    "OrderSizer os_size_usd remains context-only and is not equated with authoritative PPL principal."
+  ],
+  "next_gate": "A5_SIZING_TRANSLATION_AND_INCOHERENCE_AUDIT"
+}

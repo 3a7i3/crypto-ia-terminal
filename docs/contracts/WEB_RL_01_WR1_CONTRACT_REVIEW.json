@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "mission": "WEB-RL-01",
+  "gate": "WR1_THREE_DOMAIN_CONTRACT_REVIEW",
+  "verdict": "PASS",
+  "stack_base_head": "7294d9b03b682a35edec919215375e3be49d372c",
+  "reviewed_head": "34869bbc92856da41061b40eeada9325b917131e",
+  "scope": {
+    "changed_files": 1,
+    "contract_only": true,
+    "frontend_mutation": false,
+    "api_mutation": false,
+    "runtime_mutation": false
+  },
+  "resolved_findings": [
+    {
+      "id": "WR1-F01",
+      "topic": "research_vs_presentation_source_sha",
+      "resolution": "Separated research_source_code_sha from presentation_builder_source_sha."
+    },
+    {
+      "id": "WR1-F02",
+      "topic": "multi_population_mixing",
+      "resolution": "V1 binds one explicit primary_context and forbids aggregate performance totals across multiple datasets."
+    },
+    {
+      "id": "WR1-F03",
+      "topic": "metric_null_semantics",
+      "resolution": "NOT_AVAILABLE/NOT_APPLICABLE/UNRESOLVED fail closed to null unless a metric-specific contract explicitly permits explanatory non-numeric content."
+    },
+    {
+      "id": "WR1-F04",
+      "topic": "presentation_builder_scope",
+      "resolution": "Presentation builder may structurally project certified evidence but may not recompute PnL, WR, PF, expectancy, Sharpe, DD, costs, attribution, deltas or qualification."
+    },
+    {
+      "id": "WR1-F05",
+      "topic": "offline_research_freshness",
+      "resolution": "Publication time is provenance only; offline Research evidence does not become scientifically invalid merely because wall-clock time passes."
+    }
+  ],
+  "normative_checks": {
+    "three_domain_identity": true,
+    "authority_labels": true,
+    "overview_non_aggregation": true,
+    "research_presentation_artifact_boundary": true,
+    "single_population_primary_context": true,
+    "source_sha_semantics_separated": true,
+    "metric_evidence_wrapper": true,
+    "f00_capability_limits_preserved": true,
+    "a5_sizing_semantics_preserved": true,
+    "candidate_non_authority": true,
+    "unknown_not_zero": true,
+    "no_scientific_formulas_in_react": true,
+    "no_scientific_formulas_in_builder": true,
+    "get_only_api_boundary": true,
+    "strict_frontend_validation": true,
+    "deployment_not_authorized": true
+  },
+  "next_gate": "WR2_RESEARCH_PRESENTATION_SCHEMA_AND_READER"
+}

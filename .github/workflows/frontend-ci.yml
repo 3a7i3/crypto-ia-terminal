@@ -6,7 +6,7 @@ name: Frontend CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "web-rl-01-three-domain-contract"]
     paths:
       - "frontend/**"
       - ".github/workflows/frontend-ci.yml"

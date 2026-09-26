@@ -90,6 +90,7 @@ describe("App FIN-02 domain", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
+    fireEvent.click(screen.getByTestId("tab-paper"));
     fireEvent.click(screen.getByTestId("tab-finance"));
 
     await waitFor(() =>
@@ -97,7 +98,8 @@ describe("App FIN-02 domain", () => {
         "Financial Truth",
       ),
     );
-    expect(screen.getByTestId("finance-domain-badge")).toHaveTextContent("FIN");
+    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("PAPER SCIENCE");
+    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("NOT REAL MONEY");
     expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/operator/v1/financial-reconciliation",

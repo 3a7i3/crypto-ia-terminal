@@ -17,7 +17,7 @@ name: Cross-Stack Compatibility Gate
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "web-rl-01-three-domain-contract"]
   push:
     branches: [main]
 
@@ -69,6 +69,7 @@ jobs:
           python -m tests.cross_stack.generate_fixtures --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_market_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_ppl_comparison_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_research_lab_fixture --out frontend/.cross-stack-fixtures
 
       - name: Frontend cross-stack compatibility test
         working-directory: frontend

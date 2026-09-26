@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "mission": "RL-DIAG-01",
+  "gate": "A5_SIZING_TRANSLATION_AND_INCOHERENCE_AUDIT",
+  "status": "SOURCE_PATH_TRACED_CONFIG_WITNESS_PENDING",
+  "exact_f00_runtime_source_sha": "c8dae319442bf751336ff22fd7c6257bb6d69783",
+  "frozen_experiment_snapshot_sha256": "aa8c20e8acd1ad489da7572c6d35c2d5e37fcd265c0ef292035dbb2c8bbd83e6",
+  "frozen_experiment_snapshot_path": "databases/ppl_authority/F00-EPOCH-01-20260920T084335Z.experiment-config.json",
+  "decision_sizing_path": [
+    {
+      "stage": "analyze_symbol_input",
+      "fact": "order_size_usd enters analyze_symbol as a mutable decision-pipeline sizing value; default 50.0 when caller does not override it"
+    },
+    {
+      "stage": "meta_strategy",
+      "fact": "meta_engine.effective_order_size may replace order_size_usd"
+    },
+    {
+      "stage": "portfolio_brain",
+      "fact": "pb_verdict.size_factor may multiply order_size_usd"
+    },
+    {
+      "stage": "capital_engine",
+      "fact": "capital_engine.allocate(base_size_usd=order_size_usd, ...) may replace order_size_usd with allocation.size_usd"
+    },
+    {
+      "stage": "decision_packet_persistence_context",
+      "fact": "when allocation is positive, advisor_loop writes DecisionPacket.features['os_size_usd'] = round(allocation.size_usd, 2) and transitions the packet to EXECUTION_PENDING"
+    },
+    {
+      "stage": "post_packet_decision_scaling",
+      "fact": "ExecutiveOverride and V2 arbitration may further scale order_size_usd after the DecisionPacket os_size_usd field has been written"
+    }
+  ],
+  "authoritative_paper_sizing_path": [
+    {
+      "stage": "advisor_to_mexc_simulator",
+      "fact": "the F00 PAPER call uses _virtual_portfolio.place_market_order(..., qty_usd=0.0, ...)",
+      "interpretation": "decision-pipeline order_size_usd is not forwarded to PAPER simulator sizing"
+    },
+    {
+      "stage": "ppl_authority_capital",
+      "fact": "MexcSimulator.start() under PPL_AUTHORITY binds PPL and sets self._capital = state.available_cash; MEXC_SIM_CAPITAL is not the capital authority in this branch"
+    },
+    {
+      "stage": "mexc_simulator_auto_size",
+      "fact": "size = min(order.qty_usd or (self._capital * 0.15), _MAX_POSITION_USD)"
+    },
+    {
+      "stage": "mexc_simulator_cap",
+      "fact": "_MAX_POSITION_USD = float(os.getenv('MEXC_SIM_MAX_POSITION_USD', '25.0')) at module import"
+    },
+    {
+      "stage": "ppl_commit",
+      "fact": "PPLAuthorityRuntime.commit_open(..., principal=size, ...) receives simulator-computed size"
+    },
+    {
+      "stage": "post_commit_capital_sync",
+      "fact": "simulator self._capital is replaced by authoritative projection.available_cash after commit_open"
+    }
+  ],
+  "certified_observations": {
+    "f00_initial_virtual_capital_usd": 1000.0,
+    "first_open_principal_usd": 10.0,
+    "all_13_ppl_principals_usd": 10.0,
+    "decision_packet_os_size_usd_min": 30.0,
+    "decision_packet_os_size_usd_max": 37.5
+  },
+  "preliminary_classification": {
+    "direct_30_to_37_5_to_10_clamp": "FALSE",
+    "dual_sizing_paths": "PROVEN",
+    "decision_packet_os_size_is_executed_principal": "FALSE",
+    "ppl_principal_authority": "MEXC_SIMULATOR_AUTO_SIZE_UNDER_PPL_AUTHORITY",
+    "exact_reason_for_10_usd": "DIRECT_FROZEN_CONFIG_WITNESS_PENDING"
+  },
+  "mathematical_implication_pending_direct_witness": {
+    "statement": "With qty_usd=0.0 and PPL available cash materially above 66.67 USDT, a 10.0-USDT principal implies the simulator cap active in-process was 10.0 USDT.",
+    "required_direct_evidence": "Read MEXC_SIM_MAX_POSITION_USD from the immutable F00 experiment-config snapshot and verify its snapshot hash/source SHA."
+  },
+  "scientific_boundary": [
+    "Do not call the difference a bug before the frozen config is read.",
+    "Do not use current runtime environment as a substitute for frozen F00 configuration.",
+    "Do not equate DecisionPacket os_size_usd with PPL principal.",
+    "No runtime/config mutation is authorized by A5."
+  ],
+  "next_gate": "A5_FROZEN_CONFIG_DIRECT_WITNESS"
+}

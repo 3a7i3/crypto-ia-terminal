@@ -32,6 +32,7 @@ try {
   assert(response?.ok(), `frontend navigation failed: ${response?.status() ?? "no-response"}`);
 
   await page.getByTestId("overview-view").waitFor({ state: "visible" });
+  await page.getByTestId("tab-paper").click();
   await page.getByTestId("tab-ppl").click();
   await page.getByTestId("ppl-comparison-view").waitFor({ state: "visible" });
   await page.getByTestId("ppl-comparison-row").first().waitFor({ state: "visible" });

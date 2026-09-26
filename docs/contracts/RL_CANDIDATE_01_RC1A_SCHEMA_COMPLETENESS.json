@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "mission": "RL-CANDIDATE-01",
+  "gate": "RC1A_SCHEMA_COMPLETENESS_ADDENDUM",
+  "verdict": "PASS",
+  "parent_rc1_head": "81775c9226df997309dff79076819eb206249ec5",
+  "reviewed_branch_head": "943e7c92014270eee36b279d4ad967d4334aafa8",
+  "reason": "RC2 implementation surfaced two schema-linkage omissions in the RC1 text. They were normalized before RC2 certification.",
+  "normalizations": [
+    {
+      "topic": "candidate_config_hash",
+      "resolution": "candidate_config_hash is a required top-level field, participates in candidate_identity, and CONFIG/HYBRID-with-CONFIG candidates require an exact projected material-config SHA-256."
+    },
+    {
+      "topic": "dataset_requirement_id",
+      "resolution": "Every EXACT_DATASET and FUTURE_DATASET_REQUIREMENT carries a deterministic requirement_id; evaluation identity binds the exact satisfied requirement."
+    }
+  ],
+  "implementation_hardening": [
+    "CONFIG projection recomputes candidate_config_hash from explicit non-secret material config values.",
+    "Evaluation identity validates exact requirement role/domain/authority and exact-dataset binding.",
+    "Future dataset evaluation requires external source/config binding proof.",
+    "Target-domain semantics are checked against actual proposal components."
+  ],
+  "scope_change": false,
+  "safety_boundary_change": false,
+  "candidate_creation_authorized": false,
+  "next_gate": "RC2_REGISTRY_AND_VALIDATOR_IMPLEMENTATION"
+}
