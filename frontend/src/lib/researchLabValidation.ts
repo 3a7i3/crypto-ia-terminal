@@ -251,8 +251,11 @@ export function validateResearchLabSnapshot(x: unknown): x is ResearchLabSnapsho
   if (!obj(x.candidate_registry) || !exactKeys(x.candidate_registry, ["candidate_count", "rows"])) return false;
   if (!nonNegativeInt(x.candidate_registry.candidate_count) || !Array.isArray(x.candidate_registry.rows)) return false;
   if (x.candidate_registry.candidate_count !== x.candidate_registry.rows.length) return false;
-  if (!x.candidate_registry.rows.every((row) => candidateRow(row, refs))) return false;
-  const candidateIds = x.candidate_registry.rows.map((row) => row.candidate_id);
+  const candidateIds: string[] = [];
+  for (const row of x.candidate_registry.rows) {
+    if (!candidateRow(row, refs)) return false;
+    candidateIds.push(row.candidate_id);
+  }
   if (new Set(candidateIds).size !== candidateIds.length) return false;
 
   if (!Array.isArray(x.limitations) || x.limitations.length === 0 || !x.limitations.every(nonempty)) return false;
