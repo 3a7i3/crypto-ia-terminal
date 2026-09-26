@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "mission": "WEB-RL-01",
+  "gate": "WR2_RESEARCH_PRESENTATION_SCHEMA_AND_READER",
+  "status": "SOURCE_IMPLEMENTED_CI_PENDING",
+  "stack_base_head": "7294d9b03b682a35edec919215375e3be49d372c",
+  "implementation_head": "607a68b5a85feea7a697e4b6209c99d4d0c6a4e0",
+  "implementation": {
+    "pure_closed_schema_validator": true,
+    "offline_atomic_publisher": true,
+    "api_reader_import_write_free": true,
+    "get_only_api_route": "/api/operator/v1/research-lab",
+    "direct_jsonl_access": false,
+    "research_engine_instantiation": false,
+    "scientific_metric_recomputation": false,
+    "not_available_zero_substitution": false,
+    "single_primary_population_context": true,
+    "research_vs_presentation_source_sha_separated": true
+  },
+  "focused_python_tests_declared": 24,
+  "runtime_deployment": false,
+  "next_gate": "WR2_EXACT_HEAD_CI"
+}
