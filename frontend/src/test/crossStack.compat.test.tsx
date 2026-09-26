@@ -19,6 +19,7 @@ import App from "../App";
 import { validateOperatorSnapshot } from "../lib/snapshotValidation";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
 import { validatePplComparisonSnapshot } from "../lib/pplComparisonValidation";
+import { validateResearchLabSnapshot } from "../lib/researchLabValidation";
 import type { OperatorSnapshot, ApiStructuredError } from "../types";
 
 const FIXTURES_DIR =
@@ -218,4 +219,53 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
       { method: "GET" },
     );
   });
+
+  it("I WEB-RL: exact Research publisher/API JSON remains non-authoritative and renders explicit evidence gaps", async () => {
+    const canonical = loadFixture("A_minimal_canonical");
+    const research = loadFixture("I_research_lab");
+    expect(canonical.http_status).toBe(200);
+    expect(research.http_status).toBe(200);
+    expect(validateOperatorSnapshot(canonical.body)).toBe(true);
+    expect(validateResearchLabSnapshot(research.body)).toBe(true);
+    expect(research._proof?.producer_authority).toBe("RESEARCH_NON_AUTHORITATIVE");
+    expect(research._proof?.artifact_is_regular_file).toBe(true);
+    expect(research._proof?.population_n).toBe(13);
+    expect(research._proof?.candidate_count).toBe(0);
+
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/operator/v1/research-lab") {
+        return Promise.resolve(jsonResponse(research.body, 200));
+      }
+      if (url === "/api/operator/v1/snapshot") {
+        return Promise.resolve(jsonResponse(canonical.body, 200));
+      }
+      return Promise.resolve(jsonResponse({ error_code: "UNEXPECTED_TEST_URL" }, 404));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("tab-research"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("research-domain-banner")).toHaveTextContent(
+        "NON-AUTHORITATIVE",
+      ),
+    );
+    const view = screen.getByTestId("research-lab-view");
+    expect(view).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE");
+    expect(view).toHaveTextContent("LOW_SAMPLE");
+    expect(view).toHaveTextContent("annualized_sharpe");
+    expect(view).toHaveTextContent("NOT_AVAILABLE");
+    expect(view).toHaveTextContent("No certified time-series/annualized return basis.");
+    expect(screen.getByTestId("research-candidate-empty")).toHaveTextContent(
+      "No substantive candidate",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/operator/v1/research-lab",
+      { method: "GET" },
+    );
+  });
+
 });
