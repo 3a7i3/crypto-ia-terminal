@@ -1,0 +1,1055 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>WEB-DIR-01 / D1 — UX and Product Navigation Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/WEB_DIR_01_D1_NAVIGATION_CONTRACT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/WEB_DIR_01_D1_NAVIGATION_CONTRACT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="web-dir-01-d1-ux-and-product-navigation-contract">
+<h1>WEB-DIR-01 / D1 — UX and Product Navigation Contract<a class="headerlink" href="#web-dir-01-d1-ux-and-product-navigation-contract" title="Link to this heading">¶</a></h1>
+<p><strong>Mission:</strong> WEB-DIR-01 / D1<br />
+<strong>Parent issue:</strong> #288<br />
+<strong>Active roadmap:</strong> #285<br />
+<strong>Burn-in immutability guard:</strong> #286<br />
+<strong>Related UX mission:</strong> #283<br />
+<strong>Related forensic mission:</strong> #287<br />
+<strong>Future agent economy:</strong> #284<br />
+<strong>Baseline source:</strong> <code class="docutils literal notranslate"><span class="pre">116634be0d3c015cce1cfa58be7da7255414fbfd</span></code><br />
+<strong>Date:</strong> 2026-09-27 UTC<br />
+<strong>Status:</strong> CONTRACT DEFINED — NOT SOURCE CERTIFIED — NOT RUNTIME CERTIFIED</p>
+<section id="purpose">
+<h2>1. Purpose<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>Define the product navigation, page architecture, UI boundaries, data
+availability semantics, API needs, tests, and first implementation scope for
+three clearly separated surfaces in one canonical application:</p>
+<ul class="simple">
+<li><p>PAPER LIVE;</p></li>
+<li><p>DIRECTION;</p></li>
+<li><p>RESEARCH.</p></li>
+</ul>
+<p>This document creates no runtime authority and authorizes no deployment.</p>
+</section>
+<section id="constitutional-boundary">
+<h2>2. Constitutional boundary<a class="headerlink" href="#constitutional-boundary" title="Link to this heading">¶</a></h2>
+<p>The active burn-in remains immutable:</p>
+<ul class="simple">
+<li><p>epoch: <code class="docutils literal notranslate"><span class="pre">BURN-IN-EPOCH-01-20260926T064144Z</span></code>;</p></li>
+<li><p>runtime source: <code class="docutils literal notranslate"><span class="pre">116634be0d3c015cce1cfa58be7da7255414fbfd</span></code>;</p></li>
+<li><p>config hash:
+<code class="docutils literal notranslate"><span class="pre">9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4</span></code>;</p></li>
+<li><p>admission: <code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=2</span></code>;</p></li>
+<li><p>scientific T0: <code class="docutils literal notranslate"><span class="pre">2026-09-27T03:06:03.086973Z</span></code>.</p></li>
+</ul>
+<p>This mission MUST NOT:</p>
+<ul class="simple">
+<li><p>modify strategy, signals, calibration, thresholds, risk, or sizing;</p></li>
+<li><p>modify PPL or FIN authoritative state;</p></li>
+<li><p>modify the epoch, manifest, experiment config, or initial capital;</p></li>
+<li><p>restart Advisor or modify production systemd;</p></li>
+<li><p>enable Watchdog, FIN-02 runtime, TESTNET, or LIVE;</p></li>
+<li><p>write to an exchange;</p></li>
+<li><p>apply a Research candidate to the active epoch;</p></li>
+<li><p>grant an autonomous agent merge or deployment authority.</p></li>
+</ul>
+<p>The UI is a presentation and governance surface. It never becomes a source of
+scientific truth.</p>
+</section>
+<section id="verified-source-baseline">
+<h2>3. Verified source baseline<a class="headerlink" href="#verified-source-baseline" title="Link to this heading">¶</a></h2>
+<p>Inspection of <code class="docutils literal notranslate"><span class="pre">main&#64;116634be0d3c015cce1cfa58be7da7255414fbfd</span></code>
+establishes the following SOURCE facts:</p>
+<ol class="arabic simple">
+<li><p>The canonical frontend is React 18 + TypeScript + Vite under <code class="docutils literal notranslate"><span class="pre">frontend/</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/App.tsx</span></code> uses local React state for domain and subview
+selection. It does not expose product routes.</p></li>
+<li><p>No routing dependency is declared in <code class="docutils literal notranslate"><span class="pre">frontend/package.json</span></code>.</p></li>
+<li><p>The current domains are Overview, Market Observatory, Paper Science,
+Research Lab, and System / Governance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/scripts/web01_local_frontend_server.mjs</span></code> already serves
+<code class="docutils literal notranslate"><span class="pre">index.html</span></code> as a fallback for non-API frontend paths.</p></li>
+<li><p>The fallback never applies to <code class="docutils literal notranslate"><span class="pre">/api/*</span></code> or <code class="docutils literal notranslate"><span class="pre">/healthz</span></code>.</p></li>
+<li><p>The frontend server permits only GET and HEAD.</p></li>
+<li><p>The Operator API is read-only and exposes existing governed projections.</p></li>
+<li><p>No atomic Direction projection exists today.</p></li>
+</ol>
+<section id="d2-router-decision">
+<h3>3.1 D2 router decision<a class="headerlink" href="#d2-router-decision" title="Link to this heading">¶</a></h3>
+<p>D2 MUST use <code class="docutils literal notranslate"><span class="pre">react-router-dom</span></code> with browser-history routing
+(<code class="docutils literal notranslate"><span class="pre">BrowserRouter</span></code>, declarative routes, <code class="docutils literal notranslate"><span class="pre">Navigate</span></code>, <code class="docutils literal notranslate"><span class="pre">Link</span></code>/<code class="docutils literal notranslate"><span class="pre">NavLink</span></code>).</p>
+<p>Rationale:</p>
+<ul class="simple">
+<li><p>the product requires real URLs, deep links, refresh, and browser back/forward;</p></li>
+<li><p>the existing production frontend server already provides a safe non-API SPA
+fallback;</p></li>
+<li><p>a hand-written History API router would duplicate established routing,
+matching, accessibility, and test behavior;</p></li>
+<li><p>hash routing would weaken the canonical product URL contract.</p></li>
+</ul>
+<p>The exact dependency version MUST be resolved and locked in the D2 package
+lock, tested with the repository’s React 18/Vite/TypeScript baseline, and
+reported as D2 SOURCE evidence. D1 does not modify dependencies.</p>
+<p>These are SOURCE PROOFS. This document makes no new RUNTIME claim.</p>
+</section>
+</section>
+<section id="product-language">
+<h2>4. Product language<a class="headerlink" href="#product-language" title="Link to this heading">¶</a></h2>
+<section id="paper-live">
+<h3>4.1 PAPER LIVE<a class="headerlink" href="#paper-live" title="Link to this heading">¶</a></h3>
+<p>PAPER LIVE means:</p>
+<blockquote>
+<div><p>real market data + real machine decisions + PAPER financial execution.</p>
+</div></blockquote>
+<p>It does not mean:</p>
+<ul class="simple">
+<li><p>fake market data;</p></li>
+<li><p>a toy market simulator;</p></li>
+<li><p>exchange order execution;</p></li>
+<li><p>TESTNET;</p></li>
+<li><p>REAL trading.</p></li>
+</ul>
+<p>The existing label <code class="docutils literal notranslate"><span class="pre">Paper</span> <span class="pre">Science</span></code> may remain as a scientific subdomain or
+supporting label, but the primary product surface is <code class="docutils literal notranslate"><span class="pre">PAPER</span> <span class="pre">LIVE</span></code>.</p>
+</section>
+<section id="direction">
+<h3>4.2 DIRECTION<a class="headerlink" href="#direction" title="Link to this heading">¶</a></h3>
+<p>DIRECTION is a separate owner/governance product surface. It is not:</p>
+<ul class="simple">
+<li><p>a PAPER tab;</p></li>
+<li><p>an Overview card;</p></li>
+<li><p>a modal;</p></li>
+<li><p>a side panel;</p></li>
+<li><p>a scientific authority;</p></li>
+<li><p>a deployment console.</p></li>
+</ul>
+</section>
+<section id="research">
+<h3>4.3 RESEARCH<a class="headerlink" href="#research" title="Link to this heading">¶</a></h3>
+<p>RESEARCH is offline/non-authoritative analysis. Its permanent visible marker is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RESEARCH</span> <span class="pre">NON-AUTORITAIRE</span></code></p>
+<p>Allowed flow:</p>
+<p><code class="docutils literal notranslate"><span class="pre">PAPER</span> <span class="pre">-&gt;</span> <span class="pre">DATASET</span> <span class="pre">-&gt;</span> <span class="pre">RESEARCH</span> <span class="pre">-&gt;</span> <span class="pre">CANDIDATE</span> <span class="pre">-&gt;</span> <span class="pre">FUTURE</span> <span class="pre">EPOCH</span></code></p>
+<p>Forbidden flow:</p>
+<p><code class="docutils literal notranslate"><span class="pre">RESEARCH</span> <span class="pre">-&gt;</span> <span class="pre">ACTIVE</span> <span class="pre">PAPER</span> <span class="pre">EPOCH</span></code></p>
+</section>
+</section>
+<section id="canonical-route-architecture">
+<h2>5. Canonical route architecture<a class="headerlink" href="#canonical-route-architecture" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/
+└── redirect -&gt; /paper-live
+
+/paper-live
+├── /paper-live/overview
+├── /paper-live/market
+├── /paper-live/portfolio
+├── /paper-live/decisions
+├── /paper-live/lifecycle
+├── /paper-live/finance
+└── /paper-live/events
+
+/direction
+├── /direction/decisions      [future]
+├── /direction/agents         [future]
+├── /direction/bounties       [future]
+└── /direction/economy        [future]
+
+/research
+├── /research/datasets        [future]
+├── /research/replay          [future]
+├── /research/diagnostics     [future]
+├── /research/candidates      [future]
+└── /research/arena           [future]
+</pre></div>
+</div>
+<section id="route-behavior">
+<h3>5.1 Route behavior<a class="headerlink" href="#route-behavior" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> MUST redirect deterministically to <code class="docutils literal notranslate"><span class="pre">/paper-live</span></code>.</p></li>
+<li><p>Direct deep links and browser refresh MUST work.</p></li>
+<li><p>Browser back/forward navigation MUST work.</p></li>
+<li><p>Unknown frontend routes MUST render an explicit safe <code class="docutils literal notranslate"><span class="pre">NotFoundView</span></code>; they
+MUST NOT silently redirect.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NotFoundView</span></code> MUST preserve the requested URL for diagnosis, perform no
+scientific data fetch of its own, and provide links to <code class="docutils literal notranslate"><span class="pre">/paper-live</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/direction</span></code>, and <code class="docutils literal notranslate"><span class="pre">/research</span></code>.</p></li>
+<li><p>The static SPA server may return <code class="docutils literal notranslate"><span class="pre">index.html</span></code> with HTTP 200 for an unknown
+frontend path; the client-level NOT FOUND state is therefore the canonical
+behavior for this local application.</p></li>
+<li><p>API paths MUST never enter the SPA fallback.</p></li>
+<li><p>Route selection MUST NOT alter scientific data or authority.</p></li>
+</ul>
+</section>
+<section id="cross-surface-navigation">
+<h3>5.2 Cross-surface navigation<a class="headerlink" href="#cross-surface-navigation" title="Link to this heading">¶</a></h3>
+<p>From PAPER LIVE:</p>
+<p><code class="docutils literal notranslate"><span class="pre">[</span> <span class="pre">Ouvrir</span> <span class="pre">Direction</span> <span class="pre">-&gt;</span> <span class="pre">]</span></code></p>
+<p>From DIRECTION:</p>
+<p><code class="docutils literal notranslate"><span class="pre">[</span> <span class="pre">&lt;-</span> <span class="pre">Retour</span> <span class="pre">à</span> <span class="pre">PAPER</span> <span class="pre">LIVE</span> <span class="pre">]</span></code></p>
+<p>The return control MUST be:</p>
+<ul class="simple">
+<li><p>visible without opening a menu;</p></li>
+<li><p>available on desktop and mobile;</p></li>
+<li><p>at least 44 CSS pixels in its interactive dimension;</p></li>
+<li><p>keyboard reachable;</p></li>
+<li><p>unambiguous;</p></li>
+<li><p>present at the top of the Direction surface.</p></li>
+</ul>
+<p>DIRECTION and RESEARCH MUST have distinct visual identities from PAPER LIVE.</p>
+</section>
+</section>
+<section id="route-and-authority-matrix">
+<h2>6. Route and authority matrix<a class="headerlink" href="#route-and-authority-matrix" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Route</p></th>
+<th class="head"><p>Shell</p></th>
+<th class="head"><p>Initial view</p></th>
+<th class="head"><p>Existing source</p></th>
+<th class="head"><p>Authority rule</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/paper-live</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></p></td>
+<td><p>overview</p></td>
+<td><p>canonical snapshot</p></td>
+<td><p>presentation only</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/paper-live/market</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></p></td>
+<td><p>current Market view</p></td>
+<td><p>market snapshot</p></td>
+<td><p>observational telemetry</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/paper-live/portfolio</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></p></td>
+<td><p>current Portfolio view</p></td>
+<td><p>canonical snapshot</p></td>
+<td><p>render producer values</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/paper-live/decisions</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></p></td>
+<td><p>current Decisions view</p></td>
+<td><p>canonical snapshot</p></td>
+<td><p>preserve per-field authority</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/paper-live/lifecycle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></p></td>
+<td><p>current PPL comparison view</p></td>
+<td><p>PPL comparison snapshot</p></td>
+<td><p>observational projection</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/paper-live/finance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></p></td>
+<td><p>current FIN view</p></td>
+<td><p>financial reconciliation</p></td>
+<td><p>financial observation</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/paper-live/events</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></p></td>
+<td><p>placeholder</p></td>
+<td><p>none</p></td>
+<td><p>NON DÉPLOYÉ</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DirectionShell</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DirectionOverview</span></code></p></td>
+<td><p>existing GET projections initially</p></td>
+<td><p>no recomputation, no mutation</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/research</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ResearchShell</span></code></p></td>
+<td><p>current Research Lab view</p></td>
+<td><p>Research Lab snapshot</p></td>
+<td><p>RESEARCH_NON_AUTHORITATIVE</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="component-architecture">
+<h2>7. Component architecture<a class="headerlink" href="#component-architecture" title="Link to this heading">¶</a></h2>
+<section id="approuter">
+<h3>7.1 <code class="docutils literal notranslate"><span class="pre">AppRouter</span></code><a class="headerlink" href="#approuter" title="Link to this heading">¶</a></h3>
+<p>Responsibilities:</p>
+<ul class="simple">
+<li><p>route matching;</p></li>
+<li><p>safe redirect from <code class="docutils literal notranslate"><span class="pre">/</span></code>;</p></li>
+<li><p>safe not-found handling;</p></li>
+<li><p>shell selection.</p></li>
+</ul>
+<p>Forbidden responsibilities:</p>
+<ul class="simple">
+<li><p>metric calculation;</p></li>
+<li><p>state reconciliation;</p></li>
+<li><p>direct JSONL/database access;</p></li>
+<li><p>exchange access;</p></li>
+<li><p>mutation requests.</p></li>
+</ul>
+</section>
+<section id="paperliveshell">
+<h3>7.2 <code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code><a class="headerlink" href="#paperliveshell" title="Link to this heading">¶</a></h3>
+<p>Contains:</p>
+<ul class="simple">
+<li><p>PAPER LIVE identity;</p></li>
+<li><p>navigation to Overview, Market, Portfolio, Decisions, Lifecycle, Finance,
+and Events;</p></li>
+<li><p>a visible <code class="docutils literal notranslate"><span class="pre">Ouvrir</span> <span class="pre">Direction</span> <span class="pre">-&gt;</span></code> action;</p></li>
+<li><p>the explicit explanation that execution is PAPER.</p></li>
+</ul>
+<p>It reuses existing views rather than copying them.</p>
+</section>
+<section id="directionshell">
+<h3>7.3 <code class="docutils literal notranslate"><span class="pre">DirectionShell</span></code><a class="headerlink" href="#directionshell" title="Link to this heading">¶</a></h3>
+<p>Contains:</p>
+<ul class="simple">
+<li><p>permanent DIRECTION identity;</p></li>
+<li><p>permanent <code class="docutils literal notranslate"><span class="pre">&lt;-</span> <span class="pre">Retour</span> <span class="pre">à</span> <span class="pre">PAPER</span> <span class="pre">LIVE</span></code> action;</p></li>
+<li><p>owner-oriented layout;</p></li>
+<li><p>presentation and governance links only.</p></li>
+</ul>
+<p>It MUST NOT expose a control whose click directly merges, deploys, restarts,
+changes an epoch, or mutates PAPER.</p>
+</section>
+<section id="researchshell">
+<h3>7.4 <code class="docutils literal notranslate"><span class="pre">ResearchShell</span></code><a class="headerlink" href="#researchshell" title="Link to this heading">¶</a></h3>
+<p>Contains:</p>
+<ul class="simple">
+<li><p>permanent <code class="docutils literal notranslate"><span class="pre">RESEARCH</span> <span class="pre">NON-AUTORITAIRE</span></code> marker;</p></li>
+<li><p>current Research Lab view at the first stage;</p></li>
+<li><p>future Research-only navigation.</p></li>
+</ul>
+</section>
+<section id="directionoverview">
+<h3>7.5 <code class="docutils literal notranslate"><span class="pre">DirectionOverview</span></code><a class="headerlink" href="#directionoverview" title="Link to this heading">¶</a></h3>
+<p>Top-level reading order:</p>
+<ol class="arabic simple">
+<li><p>global state;</p></li>
+<li><p>active experiment / burn-in;</p></li>
+<li><p>operator decisions requiring attention;</p></li>
+<li><p>market summary;</p></li>
+<li><p>Research summary;</p></li>
+<li><p>agents and bounties;</p></li>
+<li><p>AIC economy and real costs;</p></li>
+<li><p>security, debt, and incidents;</p></li>
+<li><p>detailed provenance.</p></li>
+</ol>
+</section>
+<section id="honestavailabilitycard">
+<h3>7.6 <code class="docutils literal notranslate"><span class="pre">HonestAvailabilityCard</span></code><a class="headerlink" href="#honestavailabilitycard" title="Link to this heading">¶</a></h3>
+<p>Allowed display states include:</p>
+<ul class="simple">
+<li><p>governed producer value;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DISPONIBLE</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code>.</p></li>
+</ul>
+<p>No unavailable state may be rendered as numeric zero.</p>
+</section>
+</section>
+<section id="direction-level-one-design">
+<h2>8. Direction level-one design<a class="headerlink" href="#direction-level-one-design" title="Link to this heading">¶</a></h2>
+<section id="global-state-banner">
+<h3>8.1 Global state banner<a class="headerlink" href="#global-state-banner" title="Link to this heading">¶</a></h3>
+<p>May show only governed facts such as:</p>
+<ul class="simple">
+<li><p>source/snapshot identity;</p></li>
+<li><p>mode;</p></li>
+<li><p>freshness;</p></li>
+<li><p>runtime evidence status;</p></li>
+<li><p>system-health projection.</p></li>
+</ul>
+<p>A synthetic global status MUST NOT be inferred in React. Until a governed
+producer defines it, display <code class="docutils literal notranslate"><span class="pre">INCONNU</span></code>.</p>
+</section>
+<section id="active-experiment">
+<h3>8.2 Active experiment<a class="headerlink" href="#active-experiment" title="Link to this heading">¶</a></h3>
+<p>Priority fields when producer-authored and available:</p>
+<ul class="simple">
+<li><p>epoch;</p></li>
+<li><p>OPEN / CLOSED / UNRESOLVED counts;</p></li>
+<li><p>population;</p></li>
+<li><p>available cash;</p></li>
+<li><p>reserved principal;</p></li>
+<li><p>realized PnL;</p></li>
+<li><p>fees;</p></li>
+<li><p>reconciliation status.</p></li>
+</ul>
+<p>PF, WR, expectancy, and maximum drawdown appear only when supplied by a
+governed scientific producer with population and evidence status.</p>
+</section>
+<section id="market">
+<h3>8.3 Market<a class="headerlink" href="#market" title="Link to this heading">¶</a></h3>
+<p>May summarize the existing observational projection:</p>
+<ul class="simple">
+<li><p>universe size;</p></li>
+<li><p>freshness;</p></li>
+<li><p>regime;</p></li>
+<li><p>opportunity counts;</p></li>
+<li><p>CryptoRadar provenance.</p></li>
+</ul>
+<p>It MUST remain labelled <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code>.</p>
+</section>
+<section id="id1">
+<h3>8.4 Research<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<p>May summarize:</p>
+<ul class="simple">
+<li><p>dataset_id;</p></li>
+<li><p>source_boundary_id;</p></li>
+<li><p>paper_epoch_id;</p></li>
+<li><p>research run;</p></li>
+<li><p>population N;</p></li>
+<li><p>evidence status;</p></li>
+<li><p>candidate count and states.</p></li>
+</ul>
+<p>It MUST remain visibly non-authoritative.</p>
+</section>
+<section id="operator-decision-queue">
+<h3>8.5 Operator decision queue<a class="headerlink" href="#operator-decision-queue" title="Link to this heading">¶</a></h3>
+<p>Until a governed producer exists:</p>
+<p><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code></p>
+<p>No fake decisions or demonstration actions may appear as real data.</p>
+</section>
+<section id="agents-bounties-aic-and-real-costs">
+<h3>8.6 Agents, bounties, AIC, and real costs<a class="headerlink" href="#agents-bounties-aic-and-real-costs" title="Link to this heading">¶</a></h3>
+<p>The product architecture may reserve these cards, but every unavailable block
+MUST display <code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>.</p>
+</section>
+<section id="security-debt-and-incidents">
+<h3>8.7 Security, debt, and incidents<a class="headerlink" href="#security-debt-and-incidents" title="Link to this heading">¶</a></h3>
+<p>Until dedicated governed projections exist, display <code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>. The
+forensic inventory from #287 MUST NOT be silently converted into runtime
+truth.</p>
+</section>
+<section id="responsive-behavior">
+<h3>8.8 Responsive behavior<a class="headerlink" href="#responsive-behavior" title="Link to this heading">¶</a></h3>
+<p>At mobile widths:</p>
+<ul class="simple">
+<li><p>cards stack in one column;</p></li>
+<li><p>the PAPER return control remains at the top;</p></li>
+<li><p>level-one Direction uses no wide horizontal table;</p></li>
+<li><p>actions use touch-safe target sizes;</p></li>
+<li><p>scientific details move to accordions or secondary pages;</p></li>
+<li><p>identity and authority markers remain visible.</p></li>
+</ul>
+</section>
+</section>
+<section id="information-available-from-current-apis">
+<h2>9. Information available from current APIs<a class="headerlink" href="#information-available-from-current-apis" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Endpoint</p></th>
+<th class="head"><p>Currently contractually available</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/snapshot</span></code></p></td>
+<td><p>snapshot identity, cycle, timestamps, source SHA/evidence, mode, portfolio, decisions, system health, freshness</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/market</span></code></p></td>
+<td><p>CryptoRadar identity, universe, regime, opportunities, freshness, observational authority</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/ppl-comparison</span></code></p></td>
+<td><p>epoch, exposed PPL events, position/closed groups, comparison/authority status, freshness</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/financial-reconciliation</span></code></p></td>
+<td><p>cash, reserved/deployed capital, realized/unrealized PnL status, fees, funding status, lifecycle counts, reconciliation, source/config identities</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/research-lab</span></code></p></td>
+<td><p>dataset/source boundary/run identities, N, evidence strength, producer metrics, candidates, limitations</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Schema availability does not prove that a current value is populated. The UI
+MUST preserve the exact producer status.</p>
+</section>
+<section id="information-that-is-not-deployed">
+<h2>10. Information that is not deployed<a class="headerlink" href="#information-that-is-not-deployed" title="Link to this heading">¶</a></h2>
+<p>The following have no governed product projection today:</p>
+<ul class="simple">
+<li><p>Agent Registry;</p></li>
+<li><p>Bounty Registry;</p></li>
+<li><p>operator decision queue;</p></li>
+<li><p>proposed-evolution workflow;</p></li>
+<li><p>Economy Ledger;</p></li>
+<li><p>AIC supply, Treasury, pools, and wallets;</p></li>
+<li><p>economy hash-chain state;</p></li>
+<li><p>consolidated real costs over 24h/7d/30d;</p></li>
+<li><p>unified event center;</p></li>
+<li><p>consolidated incidents;</p></li>
+<li><p>consolidated security/debt projection;</p></li>
+<li><p>Strategy Arena;</p></li>
+<li><p>Model Broker.</p></li>
+</ul>
+<p>These blocks display <code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>.</p>
+<p>Scientific metrics whose engine exists but whose evidence is missing use the
+producer’s exact unavailable status, not <code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>.</p>
+</section>
+<section id="api-contracts">
+<h2>11. API contracts<a class="headerlink" href="#api-contracts" title="Link to this heading">¶</a></h2>
+<section id="d1d3">
+<h3>11.1 D1–D3<a class="headerlink" href="#d1d3" title="Link to this heading">¶</a></h3>
+<p>No new endpoint is required to introduce product routes and shells. Existing
+GET projections remain unchanged.</p>
+</section>
+<section id="future-direction-projection">
+<h3>11.2 Future Direction projection<a class="headerlink" href="#future-direction-projection" title="Link to this heading">¶</a></h3>
+<p>Before Direction is declared an atomic owner cockpit, define a separate
+contract for a possible:</p>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/direction</span></code></p>
+<p>Minimum rules:</p>
+<ul class="simple">
+<li><p>GET-only;</p></li>
+<li><p>versioned schema;</p></li>
+<li><p>producer-authored atomic projection;</p></li>
+<li><p>generated_at and freshness;</p></li>
+<li><p>evidence and provenance per block;</p></li>
+<li><p>explicit availability status per block;</p></li>
+<li><p>no metric recomputation in React;</p></li>
+<li><p>no direct frontend reads of runtime files;</p></li>
+<li><p>no PPL writer, exchange client, or secret dependency;</p></li>
+<li><p>no mutation method;</p></li>
+<li><p>no direct authority to merge, deploy, restart, or accept into an active
+epoch.</p></li>
+</ul>
+<p>This endpoint is outside the D1 PR and requires a separate mission.</p>
+</section>
+</section>
+<section id="required-tests-for-implementation-phases">
+<h2>12. Required tests for implementation phases<a class="headerlink" href="#required-tests-for-implementation-phases" title="Link to this heading">¶</a></h2>
+<section id="routing">
+<h3>12.1 Routing<a class="headerlink" href="#routing" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> redirects to <code class="docutils literal notranslate"><span class="pre">/paper-live</span></code>;</p></li>
+<li><p>deep-link rendering for <code class="docutils literal notranslate"><span class="pre">/paper-live</span></code>, <code class="docutils literal notranslate"><span class="pre">/direction</span></code>, and <code class="docutils literal notranslate"><span class="pre">/research</span></code>;</p></li>
+<li><p>direct refresh works for each product route;</p></li>
+<li><p>browser back/forward works;</p></li>
+<li><p>PAPER opens Direction;</p></li>
+<li><p>Direction returns to PAPER LIVE;</p></li>
+<li><p>unknown route behavior is explicit and tested.</p></li>
+</ul>
+</section>
+<section id="authority-and-mutation-boundary">
+<h3>12.2 Authority and mutation boundary<a class="headerlink" href="#authority-and-mutation-boundary" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Direction and Research issue no mutation request;</p></li>
+<li><p>frontend requests remain GET-only;</p></li>
+<li><p>no direct JSONL/database/exchange read is introduced;</p></li>
+<li><p>Research retains its non-authoritative marker;</p></li>
+<li><p>PAPER LIVE never claims exchange execution;</p></li>
+<li><p>existing API and health paths never receive SPA fallback.</p></li>
+</ul>
+</section>
+<section id="semantic-truth">
+<h3>12.3 Semantic truth<a class="headerlink" href="#semantic-truth" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p>future capabilities render <code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>;</p></li>
+<li><p>Direction performs no cross-endpoint scientific recomputation;</p></li>
+<li><p>missing governed global health renders <code class="docutils literal notranslate"><span class="pre">INCONNU</span></code>.</p></li>
+</ul>
+</section>
+<section id="quality">
+<h3>12.4 Quality<a class="headerlink" href="#quality" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>existing Vitest suite;</p></li>
+<li><p>existing cross-stack compatibility tests;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">run</span> <span class="pre">build</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">test</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">run</span> <span class="pre">test:runtime</span></code>;</p></li>
+<li><p>keyboard and focus tests;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aria-current</span></code> and landmark labels;</p></li>
+<li><p>desktop, tablet, and mobile screenshots;</p></li>
+<li><p>before/after visual comparison.</p></li>
+</ul>
+</section>
+</section>
+<section id="first-pr-scope">
+<h2>13. First PR scope<a class="headerlink" href="#first-pr-scope" title="Link to this heading">¶</a></h2>
+<p>The D1 PR is documentation-only.</p>
+<p>Included:</p>
+<ul class="simple">
+<li><p>this canonical contract;</p></li>
+<li><p>route/shell/source/authority matrix;</p></li>
+<li><p>Direction level-one design;</p></li>
+<li><p>availability rules;</p></li>
+<li><p>API requirements;</p></li>
+<li><p>test requirements;</p></li>
+<li><p>burn-in non-impact proof;</p></li>
+<li><p>links to #285, #286, #288, #283, #287, and #284.</p></li>
+</ul>
+<p>Excluded:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/*</span></code>;</p></li>
+<li><p>npm dependency changes;</p></li>
+<li><p>Operator API changes;</p></li>
+<li><p>Python runtime code;</p></li>
+<li><p>PPL, FIN, or Research producer code;</p></li>
+<li><p>configuration or manifests;</p></li>
+<li><p>systemd;</p></li>
+<li><p>VPS commands;</p></li>
+<li><p>service restart;</p></li>
+<li><p>deployment;</p></li>
+<li><p>TESTNET/LIVE;</p></li>
+<li><p>exchange writes.</p></li>
+</ul>
+</section>
+<section id="d2-and-d3-entry-gates">
+<h2>14. D2 and D3 entry gates<a class="headerlink" href="#d2-and-d3-entry-gates" title="Link to this heading">¶</a></h2>
+<p>D2 may start only after D1 review confirms:</p>
+<ul class="simple">
+<li><p>routes and redirect policy;</p></li>
+<li><p>route library choice;</p></li>
+<li><p>safe not-found policy;</p></li>
+<li><p>authority and availability vocabulary;</p></li>
+<li><p>no-impact boundary.</p></li>
+</ul>
+<p>D3 may start only after D2 proves:</p>
+<ul class="simple">
+<li><p>deep-link and refresh behavior;</p></li>
+<li><p>API fallback separation;</p></li>
+<li><p>existing-view reuse;</p></li>
+<li><p>no mutation path;</p></li>
+<li><p>passing navigation tests.</p></li>
+</ul>
+</section>
+<section id="non-impact-proof-for-d1">
+<h2>15. Non-impact proof for D1<a class="headerlink" href="#non-impact-proof-for-d1" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Protected element</p></th>
+<th class="head"><p>D1 effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>runtime source <code class="docutils literal notranslate"><span class="pre">116634be...</span></code></p></td>
+<td><p>unchanged</p></td>
+</tr>
+<tr class="row-odd"><td><p>active epoch</p></td>
+<td><p>unchanged</p></td>
+</tr>
+<tr class="row-even"><td><p>config hash</p></td>
+<td><p>unchanged</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=2</span></code></p></td>
+<td><p>unchanged</p></td>
+</tr>
+<tr class="row-even"><td><p>PPL authority/ledger</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-odd"><td><p>FIN</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-even"><td><p>Advisor process</p></td>
+<td><p>no command, no restart</p></td>
+</tr>
+<tr class="row-odd"><td><p>production systemd</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-even"><td><p>Watchdog</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-odd"><td><p>TESTNET/LIVE</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-even"><td><p>exchange</p></td>
+<td><p>no read/write added</p></td>
+</tr>
+<tr class="row-odd"><td><p>Research feedback</p></td>
+<td><p>no promotion or active-epoch mutation</p></td>
+</tr>
+<tr class="row-even"><td><p>modified source surface</p></td>
+<td><p>one documentation file only</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="rollback">
+<h2>16. Rollback<a class="headerlink" href="#rollback" title="Link to this heading">¶</a></h2>
+<p>Before merge, rollback is branch/PR deletion or PR closure.</p>
+<p>After merge, rollback is a documentation-only revert of the contract commit.
+No runtime rollback is applicable because D1 changes no executable code,
+configuration, service, data, or authority.</p>
+</section>
+<section id="d1-acceptance-criteria">
+<h2>17. D1 acceptance criteria<a class="headerlink" href="#d1-acceptance-criteria" title="Link to this heading">¶</a></h2>
+<p>D1 may be marked SOURCE CERTIFIED only after:</p>
+<ol class="arabic simple">
+<li><p>this file is reviewed;</p></li>
+<li><p>PR diff proves documentation-only scope;</p></li>
+<li><p>the base SHA is recorded;</p></li>
+<li><p>no executable/config/runtime file changed;</p></li>
+<li><p>#288 records the PR and verdict;</p></li>
+<li><p>#285 is synchronized;</p></li>
+<li><p>CI status is reported exactly.</p></li>
+</ol>
+<p>Until then, the correct status is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D1_CONTRACT_DEFINED</span></code></p>
+<p>The target D1 source verdict is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D1_CONTRACT_SOURCE_CERTIFIED</span></code></p>
+<p>There is no D1 runtime verdict because D1 contains no runtime change.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">WEB-DIR-01 / D1 — UX and Product Navigation Contract</a><ul>
+<li><a class="reference internal" href="#purpose">1. Purpose</a></li>
+<li><a class="reference internal" href="#constitutional-boundary">2. Constitutional boundary</a></li>
+<li><a class="reference internal" href="#verified-source-baseline">3. Verified source baseline</a><ul>
+<li><a class="reference internal" href="#d2-router-decision">3.1 D2 router decision</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#product-language">4. Product language</a><ul>
+<li><a class="reference internal" href="#paper-live">4.1 PAPER LIVE</a></li>
+<li><a class="reference internal" href="#direction">4.2 DIRECTION</a></li>
+<li><a class="reference internal" href="#research">4.3 RESEARCH</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#canonical-route-architecture">5. Canonical route architecture</a><ul>
+<li><a class="reference internal" href="#route-behavior">5.1 Route behavior</a></li>
+<li><a class="reference internal" href="#cross-surface-navigation">5.2 Cross-surface navigation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#route-and-authority-matrix">6. Route and authority matrix</a></li>
+<li><a class="reference internal" href="#component-architecture">7. Component architecture</a><ul>
+<li><a class="reference internal" href="#approuter">7.1 <code class="docutils literal notranslate"><span class="pre">AppRouter</span></code></a></li>
+<li><a class="reference internal" href="#paperliveshell">7.2 <code class="docutils literal notranslate"><span class="pre">PaperLiveShell</span></code></a></li>
+<li><a class="reference internal" href="#directionshell">7.3 <code class="docutils literal notranslate"><span class="pre">DirectionShell</span></code></a></li>
+<li><a class="reference internal" href="#researchshell">7.4 <code class="docutils literal notranslate"><span class="pre">ResearchShell</span></code></a></li>
+<li><a class="reference internal" href="#directionoverview">7.5 <code class="docutils literal notranslate"><span class="pre">DirectionOverview</span></code></a></li>
+<li><a class="reference internal" href="#honestavailabilitycard">7.6 <code class="docutils literal notranslate"><span class="pre">HonestAvailabilityCard</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#direction-level-one-design">8. Direction level-one design</a><ul>
+<li><a class="reference internal" href="#global-state-banner">8.1 Global state banner</a></li>
+<li><a class="reference internal" href="#active-experiment">8.2 Active experiment</a></li>
+<li><a class="reference internal" href="#market">8.3 Market</a></li>
+<li><a class="reference internal" href="#id1">8.4 Research</a></li>
+<li><a class="reference internal" href="#operator-decision-queue">8.5 Operator decision queue</a></li>
+<li><a class="reference internal" href="#agents-bounties-aic-and-real-costs">8.6 Agents, bounties, AIC, and real costs</a></li>
+<li><a class="reference internal" href="#security-debt-and-incidents">8.7 Security, debt, and incidents</a></li>
+<li><a class="reference internal" href="#responsive-behavior">8.8 Responsive behavior</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#information-available-from-current-apis">9. Information available from current APIs</a></li>
+<li><a class="reference internal" href="#information-that-is-not-deployed">10. Information that is not deployed</a></li>
+<li><a class="reference internal" href="#api-contracts">11. API contracts</a><ul>
+<li><a class="reference internal" href="#d1d3">11.1 D1–D3</a></li>
+<li><a class="reference internal" href="#future-direction-projection">11.2 Future Direction projection</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#required-tests-for-implementation-phases">12. Required tests for implementation phases</a><ul>
+<li><a class="reference internal" href="#routing">12.1 Routing</a></li>
+<li><a class="reference internal" href="#authority-and-mutation-boundary">12.2 Authority and mutation boundary</a></li>
+<li><a class="reference internal" href="#semantic-truth">12.3 Semantic truth</a></li>
+<li><a class="reference internal" href="#quality">12.4 Quality</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#first-pr-scope">13. First PR scope</a></li>
+<li><a class="reference internal" href="#d2-and-d3-entry-gates">14. D2 and D3 entry gates</a></li>
+<li><a class="reference internal" href="#non-impact-proof-for-d1">15. Non-impact proof for D1</a></li>
+<li><a class="reference internal" href="#rollback">16. Rollback</a></li>
+<li><a class="reference internal" href="#d1-acceptance-criteria">17. D1 acceptance criteria</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
