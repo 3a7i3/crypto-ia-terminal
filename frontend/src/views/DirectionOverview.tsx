@@ -1,6 +1,10 @@
 import React from "react";
 import { useFinancialReconciliation } from "../lib/financialReconciliationClient";
 import type { FinancialReconciliationState } from "../lib/financialReconciliationClient";
+import { useMarketSnapshot } from "../lib/marketClient";
+import type { MarketState } from "../lib/marketClient";
+import { useResearchLabSnapshot } from "../lib/researchLabClient";
+import type { ResearchLabState } from "../lib/researchLabClient";
 import { useOperatorSnapshot } from "../lib/snapshotClient";
 import type { SnapshotState } from "../lib/snapshotClient";
 import type { ObservedValue } from "../lib/observedValue";
@@ -20,7 +24,12 @@ function observed(value: ObservedValue<unknown>): string {
   return String(value.value);
 }
 
-function apiError(state: Extract<SnapshotState | FinancialReconciliationState, { status: "api_error" }>): string {
+type DirectionApiErrorState = Extract<
+  SnapshotState | FinancialReconciliationState | MarketState | ResearchLabState,
+  { status: "api_error" }
+>;
+
+function apiError(state: DirectionApiErrorState): string {
   return state.error.error_code ?? state.error.error_message ?? `HTTP ${state.httpStatus}`;
 }
 
@@ -126,9 +135,97 @@ const ActiveExperimentCard: React.FC<{ state: FinancialReconciliationState }> = 
   );
 };
 
+const MarketCard: React.FC<{ state: MarketState }> = ({ state }) => {
+  if (state.status === "loading") {
+    return <article className="direction-card direction-card-governed" data-testid="direction-market-card"><h3>Marché</h3><strong>CHARGEMENT</strong><p>Lecture de CryptoRadar en observation.</p></article>;
+  }
+  if (state.status === "api_error") {
+    return <article className="direction-card direction-card-governed direction-card-error" data-testid="direction-market-card"><h3>Marché</h3><strong>ERREUR SOURCE</strong><p>{apiError(state)}</p></article>;
+  }
+  if (state.status === "transport_error") {
+    return <article className="direction-card direction-card-governed direction-card-error" data-testid="direction-market-card"><h3>Marché</h3><strong>ERREUR TRANSPORT / CONTRAT</strong><p>{state.message}</p></article>;
+  }
+
+  const s = state.snapshot;
+  return (
+    <article className="direction-card direction-card-governed" data-testid="direction-market-card">
+      <div className="direction-card-heading">
+        <h3>Marché</h3>
+        <span className="direction-card-badge">{s.authority}</span>
+      </div>
+      <dl className="direction-fact-grid">
+        <div><dt>Mode</dt><dd>{s.mode}</dd></div>
+        <div><dt>Fraîcheur</dt><dd>{s.freshness_classification}</dd></div>
+        <div><dt>Fenêtre</dt><dd>{s.window_hours}h</dd></div>
+        <div><dt>Packets observés</dt><dd>{s.packets_observed}</dd></div>
+        <div><dt>Régime marché</dt><dd>{s.market_regime ?? "NOT_AVAILABLE"}</dd></div>
+        <div><dt>Univers</dt><dd>{s.universe_size}</dd></div>
+        <div><dt>Actionable observés</dt><dd>{s.actionable_count}</dd></div>
+        <div><dt>Watchlist</dt><dd>{s.watchlist_count}</dd></div>
+      </dl>
+      <p className="direction-boundary">Actionable = observation uniquement. Cette carte ne crée aucune permission de trade.</p>
+      <details className="direction-provenance">
+        <summary>Voir provenance</summary>
+        <dl className="direction-fact-grid">
+          <div><dt>Produit</dt><dd>{s.product}</dd></div>
+          <div><dt>Autorité</dt><dd>{s.authority}</dd></div>
+          <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
+          <div><dt>Source mise à jour</dt><dd>{s.source_updated_at_utc ?? "NOT_AVAILABLE"}</dd></div>
+          <div><dt>Âge snapshot</dt><dd>{s.snapshot_age_s}s</dd></div>
+        </dl>
+      </details>
+    </article>
+  );
+};
+
+const ResearchCard: React.FC<{ state: ResearchLabState }> = ({ state }) => {
+  if (state.status === "loading") {
+    return <article className="direction-card direction-card-governed" data-testid="direction-research-card"><h3>Research</h3><strong>CHARGEMENT</strong><p>Lecture de la projection Research non autoritaire.</p></article>;
+  }
+  if (state.status === "api_error") {
+    return <article className="direction-card direction-card-governed direction-card-error" data-testid="direction-research-card"><h3>Research</h3><strong>ERREUR SOURCE</strong><p>{apiError(state)}</p></article>;
+  }
+  if (state.status === "transport_error") {
+    return <article className="direction-card direction-card-governed direction-card-error" data-testid="direction-research-card"><h3>Research</h3><strong>ERREUR TRANSPORT / CONTRAT</strong><p>{state.message}</p></article>;
+  }
+
+  const s = state.snapshot;
+  const p = s.provenance.primary_context;
+  return (
+    <article className="direction-card direction-card-governed" data-testid="direction-research-card">
+      <div className="direction-card-heading">
+        <h3>Research</h3>
+        <span className="direction-card-badge">RESEARCH NON-AUTORITAIRE</span>
+      </div>
+      <dl className="direction-fact-grid">
+        <div><dt>État Research</dt><dd>{s.research_state}</dd></div>
+        <div><dt>Population dataset N</dt><dd>{s.population.n}</dd></div>
+        <div><dt>Evidence</dt><dd>{s.population.evidence_status}</dd></div>
+        <div><dt>Force statistique</dt><dd>{s.population.statistical_strength}</dd></div>
+        <div><dt>Candidats</dt><dd>{s.candidate_registry.candidate_count}</dd></div>
+        <div><dt>Autorité</dt><dd>{s.authority}</dd></div>
+      </dl>
+      <p className="direction-boundary">Les faits Research décrivent leur dataset uniquement et ne remplissent jamais les métriques PAPER actives.</p>
+      <details className="direction-provenance">
+        <summary>Voir provenance</summary>
+        <dl className="direction-fact-grid">
+          <div><dt>Dataset</dt><dd>{p.dataset_id}</dd></div>
+          <div><dt>Source boundary</dt><dd>{p.source_boundary_id}</dd></div>
+          <div><dt>Epoch PAPER référencée</dt><dd>{p.paper_epoch_id ?? "NOT_AVAILABLE"}</dd></div>
+          <div><dt>Research run</dt><dd>{p.research_run_id}</dd></div>
+          <div><dt>Diagnostic run</dt><dd>{p.diagnostic_run_id ?? "NOT_AVAILABLE"}</dd></div>
+          <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
+        </dl>
+      </details>
+    </article>
+  );
+};
+
 export const DirectionOverview: React.FC = () => {
   const operatorState = useOperatorSnapshot();
   const financialState = useFinancialReconciliation();
+  const marketState = useMarketSnapshot();
+  const researchState = useResearchLabSnapshot();
 
   return (
     <div className="direction-stack" data-testid="direction-view">
@@ -140,6 +237,11 @@ export const DirectionOverview: React.FC = () => {
       <section className="direction-primary-grid" aria-label="Synthèse gouvernée Direction">
         <GlobalStateCard state={operatorState} />
         <ActiveExperimentCard state={financialState} />
+      </section>
+
+      <section className="direction-primary-grid" aria-label="Observatoires Direction">
+        <MarketCard state={marketState} />
+        <ResearchCard state={researchState} />
       </section>
 
       <section className="direction-grid" aria-label="Capacités Direction futures">
