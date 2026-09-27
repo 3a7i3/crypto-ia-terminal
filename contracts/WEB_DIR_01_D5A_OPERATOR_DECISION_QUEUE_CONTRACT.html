@@ -1,0 +1,754 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>WEB-DIR-01 / D5A — Operator Decision Queue Governance Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/WEB_DIR_01_D5A_OPERATOR_DECISION_QUEUE_CONTRACT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/WEB_DIR_01_D5A_OPERATOR_DECISION_QUEUE_CONTRACT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="web-dir-01-d5a-operator-decision-queue-governance-contract">
+<h1>WEB-DIR-01 / D5A — Operator Decision Queue Governance Contract<a class="headerlink" href="#web-dir-01-d5a-operator-decision-queue-governance-contract" title="Link to this heading">¶</a></h1>
+<p><strong>Mission:</strong> #307<br />
+<strong>Parent:</strong> #288<br />
+<strong>Active roadmap:</strong> #285<br />
+<strong>Burn-in guard:</strong> #286<br />
+<strong>Agent Economy architecture:</strong> #284<br />
+<strong>Forensic consolidation:</strong> #287<br />
+<strong>D4 baseline:</strong> <code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D4_FINAL_SOURCE_CERTIFIED</span></code><br />
+<strong>Source baseline:</strong> <code class="docutils literal notranslate"><span class="pre">3fe983ded551b3d42347a4e5fff56af33acc0837</span></code><br />
+<strong>Date:</strong> 2026-09-27 UTC<br />
+<strong>Status:</strong> CONTRACT DEFINED — NO PRODUCER — NO RUNTIME AUTHORITY</p>
+<section id="purpose">
+<h2>1. Purpose<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>Define the future <strong>Operator Decision Queue</strong> before any producer, mutation API,
+or interactive owner workflow is implemented.</p>
+<p>Mandatory future chain:</p>
+<p><code class="docutils literal notranslate"><span class="pre">evidence/source</span> <span class="pre">-&gt;</span> <span class="pre">governed</span> <span class="pre">decision</span> <span class="pre">candidate</span> <span class="pre">-&gt;</span> <span class="pre">OperatorDecision</span> <span class="pre">-&gt;</span> <span class="pre">human</span> <span class="pre">action</span> <span class="pre">-&gt;</span> <span class="pre">governed</span> <span class="pre">workflow</span> <span class="pre">state</span> <span class="pre">-&gt;</span> <span class="pre">separate</span> <span class="pre">future</span> <span class="pre">gate</span></code></p>
+<p>Never:</p>
+<p><code class="docutils literal notranslate"><span class="pre">queue</span> <span class="pre">click</span> <span class="pre">-&gt;</span> <span class="pre">active</span> <span class="pre">PAPER/runtime</span> <span class="pre">mutation</span></code></p>
+<p>The queue is not the trading decision pipeline, a strategy/execution queue,
+the cold-start pending-decision invariant, an agent task queue, or a raw
+GitHub PR/Issue mirror.</p>
+</section>
+<section id="current-source-finding">
+<h2>2. Current source finding<a class="headerlink" href="#current-source-finding" title="Link to this heading">¶</a></h2>
+<p>No governed Operator Decision Queue producer exists at this baseline.</p>
+<p>Explicit non-equivalents:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/decision-pipeline</span></code> = trading decision-pipeline
+observation, not human governance;</p></li>
+<li><p>cold-start <code class="docutils literal notranslate"><span class="pre">decision_queue</span></code> = startup safety invariant, not owner governance;</p></li>
+<li><p>#287 forensic findings = evidence/inventory, not runtime decision truth.</p></li>
+</ul>
+<p>Until a governed producer exists:</p>
+<p><code class="docutils literal notranslate"><span class="pre">Operator</span> <span class="pre">Decision</span> <span class="pre">Queue</span> <span class="pre">=</span> <span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code></p>
+<p>No fake rows, synthetic counts, inferred priorities, fabricated reviewers, or
+pretend mutation actions may appear.</p>
+</section>
+<section id="authority-model">
+<h2>3. Authority model<a class="headerlink" href="#authority-model" title="Link to this heading">¶</a></h2>
+<p>Future workflow projection may present item existence, status, provenance,
+evidence, and prior human actions.</p>
+<p>Recommended future presentation authority label:</p>
+<p><code class="docutils literal notranslate"><span class="pre">GOVERNANCE_WORKFLOW_PRESENTATION</span></code></p>
+<p>This label is reserved only; it is not active today.</p>
+<p>Decision authority is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">HUMAN_OPERATOR</span></code></p>
+<p>Human acceptance still cannot bypass CI, review, branch protection, runtime
+gates, epoch gates, deployment gates, security controls, or TESTNET/LIVE
+authorization.</p>
+</section>
+<section id="operatordecision-minimum-schema">
+<h2>4. OperatorDecision minimum schema<a class="headerlink" href="#operatordecision-minimum-schema" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>OperatorDecision
+- decision_id
+- schema_version
+- decision_type
+- title
+- summary
+- status
+- priority
+- created_at_utc
+- updated_at_utc
+- source
+- authority
+- evidence
+- proposed_change
+- risk
+- validation
+- rollback
+- human_decision
+- version
+</pre></div>
+</div>
+<p>Missing governed values remain unavailable; React never synthesizes them.</p>
+</section>
+<section id="identity-and-provenance">
+<h2>5. Identity and provenance<a class="headerlink" href="#identity-and-provenance" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">decision_id</span></code> is globally unique and immutable.</p>
+<p>Minimum source block:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>source
+- source_type
+- source_id
+- source_ref
+- source_sha
+- source_generated_at_utc
+- producer
+- producer_authority
+</pre></div>
+</div>
+<p>Future candidate sources may include certified registries for:</p>
+<ul class="simple">
+<li><p>Proposed Evolutions;</p></li>
+<li><p>Problems;</p></li>
+<li><p>Bounties;</p></li>
+<li><p>Research Candidates;</p></li>
+<li><p>Security/Debt;</p></li>
+<li><p>Incidents;</p></li>
+<li><p>Architecture migrations;</p></li>
+<li><p>Runtime-change requests.</p></li>
+</ul>
+<p>These producers do not all exist today.</p>
+<p>The queue MUST NOT silently infer canonical decisions from raw GitHub,
+Telegram, logs, JSONL, databases, exchange state, #287 inventory, or free-form
+LLM output.</p>
+</section>
+<section id="decision-types">
+<h2>6. Decision types<a class="headerlink" href="#decision-types" title="Link to this heading">¶</a></h2>
+<p>Reserved future types:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PROPOSED_EVOLUTION</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BOUNTY_RESULT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RESEARCH_CANDIDATE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SECURITY_FINDING</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_CHANGE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">INCIDENT_FOLLOWUP</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_CHANGE_REQUEST</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COST_GOVERNANCE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OTHER_GOVERNED</span></code></p></li>
+</ul>
+<p>Reservation is not proof that any producer is deployed.</p>
+</section>
+<section id="canonical-queue-statuses">
+<h2>7. Canonical queue statuses<a class="headerlink" href="#canonical-queue-statuses" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TO_VALIDATE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TO_READ</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BLOCKED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TO_PLAN</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REMEDIATION_REQUESTED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ACCEPTED_FOR_FUTURE_GATE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REFUSED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SUPERSEDED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CLOSED</span></code></p></li>
+</ul>
+<p>French UI labels may map to:
+À VALIDER, À LIRE, BLOQUÉ, À PLANIFIER, REMÉDIATION DEMANDÉE,
+ACCEPTÉ POUR GATE FUTURE, REFUSÉ, REMPLACÉ, CLOS.</p>
+<p>Machine status remains canonical.</p>
+</section>
+<section id="priority">
+<h2>8. Priority<a class="headerlink" href="#priority" title="Link to this heading">¶</a></h2>
+<p>Producer-authored only:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CRITICAL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HIGH</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MEDIUM</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LOW</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code></p></li>
+</ul>
+<p>React MUST NOT derive priority from colour, PnL, comments, agent opinion, or
+GitHub labels without a future explicit contract.</p>
+</section>
+<section id="evidence-requirements">
+<h2>9. Evidence requirements<a class="headerlink" href="#evidence-requirements" title="Link to this heading">¶</a></h2>
+<p>Any item requiring accept/refuse needs inspectable evidence.</p>
+<p>Minimum block:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>evidence
+- evidence_status
+- evidence_refs[]
+- source_hashes[]
+- tests
+- ci
+- review
+- limitations[]
+</pre></div>
+</div>
+<p>For code/change proposals, where applicable:
+branch, PR, candidate/source SHA, diff, artifacts, rollback, risk, expected
+benefit, measured benefit when available, and governed cost when available.</p>
+<p>Missing evidence remains missing.</p>
+</section>
+<section id="human-actions">
+<h2>10. Human actions<a class="headerlink" href="#human-actions" title="Link to this heading">¶</a></h2>
+<p>Reserved workflow actions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OPEN_EVIDENCE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OPEN_DIFF</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OPEN_PREVIEW</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REQUEST_REMEDIATION</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REFUSE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PLAN</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ACCEPT_FOR_FUTURE_GATE</span></code></p></li>
+</ul>
+<p>Inspection actions may be read-only.</p>
+</section>
+<section id="absolute-side-effect-boundary">
+<h2>11. Absolute side-effect boundary<a class="headerlink" href="#absolute-side-effect-boundary" title="Link to this heading">¶</a></h2>
+<p>These are NOT queue actions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MERGE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DEPLOY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RESTART_ADVISOR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHANGE_SYSTEMD</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHANGE_EPOCH</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHANGE_CONFIG</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHANGE_PB_MAX_POSITIONS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHANGE_STRATEGY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHANGE_RISK</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CHANGE_SIZING</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WRITE_PPL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PROMOTE_RESEARCH_TO_ACTIVE_EPOCH</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENABLE_WATCHDOG</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENABLE_TESTNET</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ENABLE_LIVE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WRITE_EXCHANGE</span></code></p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">ACCEPT_FOR_FUTURE_GATE</span></code> means only that an item may proceed to a separately
+governed next gate. It never means “apply now”.</p>
+</section>
+<section id="active-burn-in-rule">
+<h2>12. Active burn-in rule<a class="headerlink" href="#active-burn-in-rule" title="Link to this heading">¶</a></h2>
+<p>For active epoch:</p>
+<p><code class="docutils literal notranslate"><span class="pre">BURN-IN-EPOCH-01-20260926T064144Z</span></code></p>
+<p>Allowed:</p>
+<p><code class="docutils literal notranslate"><span class="pre">active</span> <span class="pre">PAPER</span> <span class="pre">facts</span> <span class="pre">-&gt;</span> <span class="pre">evidence</span> <span class="pre">-&gt;</span> <span class="pre">candidate</span> <span class="pre">-&gt;</span> <span class="pre">OperatorDecision</span> <span class="pre">-&gt;</span> <span class="pre">future</span> <span class="pre">gate</span></code></p>
+<p>Forbidden:</p>
+<p><code class="docutils literal notranslate"><span class="pre">OperatorDecision</span> <span class="pre">-&gt;</span> <span class="pre">active</span> <span class="pre">PAPER</span> <span class="pre">mutation</span></code></p>
+<p>#286 remains superior.</p>
+</section>
+<section id="relationship-to-agent-economy">
+<h2>13. Relationship to Agent Economy<a class="headerlink" href="#relationship-to-agent-economy" title="Link to this heading">¶</a></h2>
+<p>#284 defines:</p>
+<p><code class="docutils literal notranslate"><span class="pre">CANDIDATE_PROBLEM</span> <span class="pre">-&gt;</span> <span class="pre">VERIFIED_PROBLEM</span> <span class="pre">-&gt;</span> <span class="pre">BOUNTY_OPEN</span> <span class="pre">-&gt;</span> <span class="pre">CLAIMED</span> <span class="pre">-&gt;</span> <span class="pre">WORKING</span> <span class="pre">-&gt;</span> <span class="pre">SUBMITTED</span> <span class="pre">-&gt;</span> <span class="pre">REVIEW</span> <span class="pre">-&gt;</span> <span class="pre">VALIDATED</span> <span class="pre">-&gt;</span> <span class="pre">HUMAN_DECISION</span> <span class="pre">-&gt;</span> <span class="pre">ACCEPTED/REJECTED</span></code></p>
+<p>The queue may eventually present the <code class="docutils literal notranslate"><span class="pre">HUMAN_DECISION</span></code> boundary.</p>
+<p>It MUST NOT collapse earlier lifecycle stages into an operator decision.</p>
+<p>Agents may propose, provide evidence, and review. They may never create their
+own human acceptance, merge, deploy, or buy authority through AIC/reputation.</p>
+</section>
+<section id="human-decision-audit-event">
+<h2>14. Human-decision audit event<a class="headerlink" href="#human-decision-audit-event" title="Link to this heading">¶</a></h2>
+<p>A future state-changing action must create an auditable event:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>OperatorDecisionEvent
+- event_id
+- decision_id
+- event_type
+- actor_type = HUMAN_OPERATOR
+- actor_ref
+- occurred_at_utc
+- previous_status
+- new_status
+- expected_version
+- reason
+- evidence_refs[]
+- event_hash
+</pre></div>
+</div>
+<p>Exact cryptographic implementation is deferred, but prior actions must remain
+inspectable.</p>
+</section>
+<section id="concurrency-and-idempotency">
+<h2>15. Concurrency and idempotency<a class="headerlink" href="#concurrency-and-idempotency" title="Link to this heading">¶</a></h2>
+<p>Future writes MUST provide:</p>
+<ul class="simple">
+<li><p>versioned decision state;</p></li>
+<li><p>expected-version or equivalent optimistic concurrency;</p></li>
+<li><p>unique action/event identity;</p></li>
+<li><p>idempotent duplicate handling or explicit rejection;</p></li>
+<li><p>stale-action fail-closed behavior;</p></li>
+<li><p>no silent last-write-wins overwrite.</p></li>
+</ul>
+</section>
+<section id="future-api-separation">
+<h2>16. Future API separation<a class="headerlink" href="#future-api-separation" title="Link to this heading">¶</a></h2>
+<p>D5A creates no endpoint.</p>
+<p>Candidate future read endpoint:</p>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/operator-decisions</span></code></p>
+<p>Future response must be versioned and include product/domain/authority,
+generated_at, freshness, availability, exact status counts, ordered items,
+provenance, and limitations.</p>
+<p>A future human action API requires a separate mission/security contract.
+Candidate shape only:</p>
+<p><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/operator/v1/operator-decisions/{decision_id}/actions</span></code></p>
+<p>D5A does NOT authorize it.</p>
+<p>Future write contract must cover authenticated human identity, authorization,
+CSRF/session controls as applicable, expected version, idempotency key, audit
+event, valid state transition, and explicit no-runtime-side-effect guarantees.</p>
+</section>
+<section id="availability-semantics">
+<h2>17. Availability semantics<a class="headerlink" href="#availability-semantics" title="Link to this heading">¶</a></h2>
+<section id="non-deploye">
+<h3><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code><a class="headerlink" href="#non-deploye" title="Link to this heading">¶</a></h3>
+<p>No governed queue producer exists. This is the current state.</p>
+</section>
+<section id="explicit-zero">
+<h3>Explicit zero<a class="headerlink" href="#explicit-zero" title="Link to this heading">¶</a></h3>
+<p>Only a certified producer emitting queue availability and decision_count=0 may
+create a real empty queue.</p>
+</section>
+<section id="not-available">
+<h3><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code><a class="headerlink" href="#not-available" title="Link to this heading">¶</a></h3>
+<p>Producer exists; optional requested field unavailable.</p>
+</section>
+<section id="unknown">
+<h3><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code><a class="headerlink" href="#unknown" title="Link to this heading">¶</a></h3>
+<p>Producer cannot establish state.</p>
+</section>
+<section id="blocked">
+<h3><code class="docutils literal notranslate"><span class="pre">BLOCKED</span></code><a class="headerlink" href="#blocked" title="Link to this heading">¶</a></h3>
+<p>A concrete governed decision exists but lacks a prerequisite.</p>
+<p>These states are never interchangeable.</p>
+</section>
+</section>
+<section id="ordering-and-filters">
+<h2>18. Ordering and filters<a class="headerlink" href="#ordering-and-filters" title="Link to this heading">¶</a></h2>
+<p>Canonical ordering belongs to the future producer, not React.</p>
+<p>Future ordering may use producer-authored priority, required_by_utc,
+created_at_utc, or sequence. Until defined, UI preserves producer order.</p>
+<p>Filters are presentation-only and may use exact status/type/source.</p>
+<p>No client-side governance score is authorized.</p>
+</section>
+<section id="level-one-direction-presentation">
+<h2>19. Level-one Direction presentation<a class="headerlink" href="#level-one-direction-presentation" title="Link to this heading">¶</a></h2>
+<p>Until D5B exists, current card remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">de</span> <span class="pre">décisions</span> <span class="pre">—</span> <span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code></p>
+<p>After a certified producer exists, Level 1 may show exact producer-authored
+availability/counts, highest priority, oldest pending timestamp, freshness,
+and action-required count.</p>
+<p>Detailed evidence must be accessible before any state-changing human action.</p>
+</section>
+<section id="mobile-and-accessibility">
+<h2>20. Mobile and accessibility<a class="headerlink" href="#mobile-and-accessibility" title="Link to this heading">¶</a></h2>
+<p>Future interactive D5 must preserve:</p>
+<ul class="simple">
+<li><p>touch-safe targets;</p></li>
+<li><p>no required horizontal table;</p></li>
+<li><p>status text not colour-only;</p></li>
+<li><p>keyboard navigation;</p></li>
+<li><p>explicit confirmation for state-changing actions;</p></li>
+<li><p>evidence accessible before accept/refuse;</p></li>
+<li><p>no hidden default action;</p></li>
+<li><p>no destructive visually dominant default.</p></li>
+</ul>
+</section>
+<section id="security-prerequisites-for-future-d5b-d5d">
+<h2>21. Security prerequisites for future D5B/D5D<a class="headerlink" href="#security-prerequisites-for-future-d5b-d5d" title="Link to this heading">¶</a></h2>
+<p>Before write actions exist:</p>
+<ul class="simple">
+<li><p>authenticated operator identity;</p></li>
+<li><p>authorization boundary;</p></li>
+<li><p>anti-replay/idempotency;</p></li>
+<li><p>auditability;</p></li>
+<li><p>input validation;</p></li>
+<li><p>no arbitrary URL/path execution;</p></li>
+<li><p>no command/shell passthrough;</p></li>
+<li><p>no secret exposure;</p></li>
+<li><p>no GitHub/deployment/exchange credential exposure to browser actions.</p></li>
+</ul>
+</section>
+<section id="d5-implementation-gates">
+<h2>22. D5 implementation gates<a class="headerlink" href="#d5-implementation-gates" title="Link to this heading">¶</a></h2>
+<section id="d5a-contract">
+<h3>D5A — Contract<a class="headerlink" href="#d5a-contract" title="Link to this heading">¶</a></h3>
+<p>Current mission.</p>
+<p>Target:
+<code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D5A_DECISION_QUEUE_CONTRACT_SOURCE_CERTIFIED</span></code></p>
+</section>
+<section id="d5b-governed-producer">
+<h3>D5B — Governed producer<a class="headerlink" href="#d5b-governed-producer" title="Link to this heading">¶</a></h3>
+<p>Blocked today. Separate source mission.</p>
+</section>
+<section id="d5c-read-only-direction-queue">
+<h3>D5C — Read-only Direction queue<a class="headerlink" href="#d5c-read-only-direction-queue" title="Link to this heading">¶</a></h3>
+<p>Only after D5B source certification.</p>
+</section>
+<section id="d5d-human-workflow-actions">
+<h3>D5D — Human workflow actions<a class="headerlink" href="#d5d-human-workflow-actions" title="Link to this heading">¶</a></h3>
+<p>Only after producer + authn/authz + auditable events + concurrency/idempotency
+contracts + separate human authorization.</p>
+</section>
+<section id="d5e-runtime-deployment-proof">
+<h3>D5E — Runtime/deployment proof<a class="headerlink" href="#d5e-runtime-deployment-proof" title="Link to this heading">¶</a></h3>
+<p>Separate mission. No source verdict implies deployment.</p>
+</section>
+</section>
+<section id="d5a-non-impact-proof">
+<h2>23. D5A non-impact proof<a class="headerlink" href="#d5a-non-impact-proof" title="Link to this heading">¶</a></h2>
+<p>D5A is documentation-only.</p>
+<p>It MUST NOT modify frontend executable source, Operator API, backend producers,
+Advisor, systemd, PPL, FIN, Research, Market, active epoch, config, risk,
+sizing, <code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS</span></code>, Watchdog, TESTNET, LIVE, or exchange access.</p>
+</section>
+<section id="acceptance-criteria">
+<h2>24. Acceptance criteria<a class="headerlink" href="#acceptance-criteria" title="Link to this heading">¶</a></h2>
+<p>D5A may be source-certified only when:</p>
+<ol class="arabic simple">
+<li><p>search confirms no existing governed owner queue producer;</p></li>
+<li><p>trading decision-pipeline, cold-start queue, and forensic findings are
+rejected as substitutes;</p></li>
+<li><p>lifecycle and authority boundaries are explicit;</p></li>
+<li><p>accept is separated from merge/deploy/runtime mutation;</p></li>
+<li><p>active burn-in mutation is prohibited;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code> is distinguished from explicit zero;</p></li>
+<li><p>read/write API responsibilities are separated;</p></li>
+<li><p>diff is documentation-only;</p></li>
+<li><p>exact base/head/tree are recorded;</p></li>
+<li><p>exact-head CI is reported;</p></li>
+<li><p>#307, #288, and #285 are synchronized;</p></li>
+<li><p>post-merge tree equality is verified.</p></li>
+</ol>
+</section>
+<section id="current-verdict">
+<h2>25. Current verdict<a class="headerlink" href="#current-verdict" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D5A_DECISION_QUEUE_CONTRACT_DEFINED</span></code></p>
+<p>No producer exists.<br />
+No queue is deployed.<br />
+No runtime authority is created.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">WEB-DIR-01 / D5A — Operator Decision Queue Governance Contract</a><ul>
+<li><a class="reference internal" href="#purpose">1. Purpose</a></li>
+<li><a class="reference internal" href="#current-source-finding">2. Current source finding</a></li>
+<li><a class="reference internal" href="#authority-model">3. Authority model</a></li>
+<li><a class="reference internal" href="#operatordecision-minimum-schema">4. OperatorDecision minimum schema</a></li>
+<li><a class="reference internal" href="#identity-and-provenance">5. Identity and provenance</a></li>
+<li><a class="reference internal" href="#decision-types">6. Decision types</a></li>
+<li><a class="reference internal" href="#canonical-queue-statuses">7. Canonical queue statuses</a></li>
+<li><a class="reference internal" href="#priority">8. Priority</a></li>
+<li><a class="reference internal" href="#evidence-requirements">9. Evidence requirements</a></li>
+<li><a class="reference internal" href="#human-actions">10. Human actions</a></li>
+<li><a class="reference internal" href="#absolute-side-effect-boundary">11. Absolute side-effect boundary</a></li>
+<li><a class="reference internal" href="#active-burn-in-rule">12. Active burn-in rule</a></li>
+<li><a class="reference internal" href="#relationship-to-agent-economy">13. Relationship to Agent Economy</a></li>
+<li><a class="reference internal" href="#human-decision-audit-event">14. Human-decision audit event</a></li>
+<li><a class="reference internal" href="#concurrency-and-idempotency">15. Concurrency and idempotency</a></li>
+<li><a class="reference internal" href="#future-api-separation">16. Future API separation</a></li>
+<li><a class="reference internal" href="#availability-semantics">17. Availability semantics</a><ul>
+<li><a class="reference internal" href="#non-deploye"><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code></a></li>
+<li><a class="reference internal" href="#explicit-zero">Explicit zero</a></li>
+<li><a class="reference internal" href="#not-available"><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></a></li>
+<li><a class="reference internal" href="#unknown"><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code></a></li>
+<li><a class="reference internal" href="#blocked"><code class="docutils literal notranslate"><span class="pre">BLOCKED</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ordering-and-filters">18. Ordering and filters</a></li>
+<li><a class="reference internal" href="#level-one-direction-presentation">19. Level-one Direction presentation</a></li>
+<li><a class="reference internal" href="#mobile-and-accessibility">20. Mobile and accessibility</a></li>
+<li><a class="reference internal" href="#security-prerequisites-for-future-d5b-d5d">21. Security prerequisites for future D5B/D5D</a></li>
+<li><a class="reference internal" href="#d5-implementation-gates">22. D5 implementation gates</a><ul>
+<li><a class="reference internal" href="#d5a-contract">D5A — Contract</a></li>
+<li><a class="reference internal" href="#d5b-governed-producer">D5B — Governed producer</a></li>
+<li><a class="reference internal" href="#d5c-read-only-direction-queue">D5C — Read-only Direction queue</a></li>
+<li><a class="reference internal" href="#d5d-human-workflow-actions">D5D — Human workflow actions</a></li>
+<li><a class="reference internal" href="#d5e-runtime-deployment-proof">D5E — Runtime/deployment proof</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#d5a-non-impact-proof">23. D5A non-impact proof</a></li>
+<li><a class="reference internal" href="#acceptance-criteria">24. Acceptance criteria</a></li>
+<li><a class="reference internal" href="#current-verdict">25. Current verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
