@@ -269,6 +269,11 @@ try {
   await page.getByTestId("direction-market-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-research-card").waitFor({ state: "visible" });
 
+  await page.getByTestId("direction-global-card").getByText("PAPER", { exact: true }).waitFor();
+  await page.getByTestId("direction-experiment-card").getByText("981.8435705815693 USDT", { exact: true }).waitFor();
+  await page.getByTestId("direction-market-card").getByText("OBSERVATIONAL_TELEMETRY", { exact: true }).first().waitFor();
+  await page.getByTestId("direction-research-card").getByText("RESEARCH_NON_AUTHORITATIVE", { exact: true }).waitFor();
+
   const shellText = await page.getByTestId("direction-shell").innerText();
   for (const required of [
     "DIRECTION",
