@@ -66,6 +66,24 @@ establishes the following SOURCE facts:
 8. The Operator API is read-only and exposes existing governed projections.
 9. No atomic Direction projection exists today.
 
+### 3.1 D2 router decision
+
+D2 MUST use `react-router-dom` with browser-history routing
+(`BrowserRouter`, declarative routes, `Navigate`, `Link`/`NavLink`).
+
+Rationale:
+
+- the product requires real URLs, deep links, refresh, and browser back/forward;
+- the existing production frontend server already provides a safe non-API SPA
+  fallback;
+- a hand-written History API router would duplicate established routing,
+  matching, accessibility, and test behavior;
+- hash routing would weaken the canonical product URL contract.
+
+The exact dependency version MUST be resolved and locked in the D2 package
+lock, tested with the repository's React 18/Vite/TypeScript baseline, and
+reported as D2 SOURCE evidence. D1 does not modify dependencies.
+
 These are SOURCE PROOFS. This document makes no new RUNTIME claim.
 
 ## 4. Product language
@@ -146,8 +164,14 @@ Forbidden flow:
 - `/` MUST redirect deterministically to `/paper-live`.
 - Direct deep links and browser refresh MUST work.
 - Browser back/forward navigation MUST work.
-- Unknown routes MUST render an explicit safe not-found state or follow an
-  explicitly tested deterministic redirect.
+- Unknown frontend routes MUST render an explicit safe `NotFoundView`; they
+  MUST NOT silently redirect.
+- `NotFoundView` MUST preserve the requested URL for diagnosis, perform no
+  scientific data fetch of its own, and provide links to `/paper-live`,
+  `/direction`, and `/research`.
+- The static SPA server may return `index.html` with HTTP 200 for an unknown
+  frontend path; the client-level NOT FOUND state is therefore the canonical
+  behavior for this local application.
 - API paths MUST never enter the SPA fallback.
 - Route selection MUST NOT alter scientific data or authority.
 
