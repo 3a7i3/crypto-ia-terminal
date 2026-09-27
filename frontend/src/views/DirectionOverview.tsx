@@ -33,6 +33,36 @@ function apiError(state: DirectionApiErrorState): string {
   return state.error.error_code ?? state.error.error_message ?? `HTTP ${state.httpStatus}`;
 }
 
+
+type ProvenanceStripProps = {
+  testId: string;
+  endpoint: string;
+  domain: string;
+  authority: string;
+  generatedAt: string;
+  freshness: string;
+  age: string;
+};
+
+const ProvenanceStrip: React.FC<ProvenanceStripProps> = ({
+  testId,
+  endpoint,
+  domain,
+  authority,
+  generatedAt,
+  freshness,
+  age,
+}) => (
+  <div className="direction-source-strip" data-testid={testId}>
+    <span><b>Source</b> {endpoint}</span>
+    <span><b>Domaine</b> {domain}</span>
+    <span><b>Autorité</b> {authority}</span>
+    <span><b>Produit à</b> {generatedAt}</span>
+    <span><b>Fraîcheur</b> {freshness}</span>
+    <span><b>Âge</b> {age}</span>
+  </div>
+);
+
 const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
   if (state.status === "loading") {
     return <article className="direction-card direction-card-governed" data-testid="direction-global-card"><h3>État global</h3><strong>CHARGEMENT</strong><p>Lecture du snapshot opérateur gouverné.</p></article>;
@@ -51,6 +81,15 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
         <h3>État global</h3>
         <span className="direction-card-badge">INCONNU</span>
       </div>
+      <ProvenanceStrip
+        testId="direction-provenance-global"
+        endpoint="/api/operator/v1/snapshot"
+        domain="canonical_advisor_presentation"
+        authority="PAR CHAMP · AUCUNE AUTORITÉ GLOBALE"
+        generatedAt={s.generated_at_utc}
+        freshness={s.freshness_classification}
+        age={s.snapshot_age_s === null ? "NOT_AVAILABLE" : `${s.snapshot_age_s}s`}
+      />
       <dl className="direction-fact-grid">
         <div><dt>Mode</dt><dd>{s.portfolio.mode}</dd></div>
         <div><dt>Runtime</dt><dd>{s.runtime_state}</dd></div>
@@ -66,6 +105,10 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
       <details className="direction-provenance">
         <summary>Voir provenance</summary>
         <dl className="direction-fact-grid">
+          <div><dt>Endpoint</dt><dd>/api/operator/v1/snapshot</dd></div>
+          <div><dt>Domaine</dt><dd>canonical_advisor_presentation</dd></div>
+          <div><dt>Snapshot ID</dt><dd>{s.snapshot_id}</dd></div>
+          <div><dt>Process instance ID</dt><dd>{s.process_instance_id}</dd></div>
           <div><dt>Runtime source SHA</dt><dd>{s.source_sha ?? "UNKNOWN"}</dd></div>
           <div><dt>Preuve SHA</dt><dd>{s.runtime_sha_evidence_status}</dd></div>
           <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
@@ -97,6 +140,15 @@ const ActiveExperimentCard: React.FC<{ state: FinancialReconciliationState }> = 
         <h3>Expérience active</h3>
         <span className="direction-card-badge">{s.freshness_classification}</span>
       </div>
+      <ProvenanceStrip
+        testId="direction-provenance-experiment"
+        endpoint="/api/operator/v1/financial-reconciliation"
+        domain={s.domain}
+        authority={s.authority}
+        generatedAt={s.generated_at_utc}
+        freshness={s.freshness_classification}
+        age={`${s.snapshot_age_s}s`}
+      />
       <div className="direction-epoch-id">{s.paper_epoch_id}</div>
       <dl className="direction-fact-grid">
         <div><dt>Cash disponible</dt><dd>{f.cash_available} {s.asset}</dd></div>
@@ -123,7 +175,15 @@ const ActiveExperimentCard: React.FC<{ state: FinancialReconciliationState }> = 
       <details className="direction-provenance">
         <summary>Voir provenance</summary>
         <dl className="direction-fact-grid">
+          <div><dt>Endpoint</dt><dd>/api/operator/v1/financial-reconciliation</dd></div>
+          <div><dt>Domaine</dt><dd>{s.domain}</dd></div>
+          <div><dt>Epoch ID</dt><dd>{s.paper_epoch_id}</dd></div>
+          <div><dt>Financial snapshot ID</dt><dd>{s.financial_snapshot_id}</dd></div>
+          <div><dt>Reconciliation ID</dt><dd>{s.reconciliation_id}</dd></div>
+          <div><dt>Source stream digest</dt><dd>{s.source_stream_digest}</dd></div>
           <div><dt>Source FIN</dt><dd>{s.source_code_sha}</dd></div>
+          <div><dt>FIN code SHA</dt><dd>{s.fin_code_sha}</dd></div>
+          <div><dt>Reconciliation code SHA</dt><dd>{s.reconciliation_code_sha}</dd></div>
           <div><dt>Config hash</dt><dd>{s.config_hash}</dd></div>
           <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
           <div><dt>Âge snapshot</dt><dd>{s.snapshot_age_s}s</dd></div>
@@ -153,6 +213,15 @@ const MarketCard: React.FC<{ state: MarketState }> = ({ state }) => {
         <h3>Marché</h3>
         <span className="direction-card-badge">{s.authority}</span>
       </div>
+      <ProvenanceStrip
+        testId="direction-provenance-market"
+        endpoint="/api/operator/v1/market"
+        domain={s.domain}
+        authority={s.authority}
+        generatedAt={s.generated_at_utc}
+        freshness={s.freshness_classification}
+        age={`${s.snapshot_age_s}s`}
+      />
       <dl className="direction-fact-grid">
         <div><dt>Mode</dt><dd>{s.mode}</dd></div>
         <div><dt>Fraîcheur</dt><dd>{s.freshness_classification}</dd></div>
@@ -167,6 +236,8 @@ const MarketCard: React.FC<{ state: MarketState }> = ({ state }) => {
       <details className="direction-provenance">
         <summary>Voir provenance</summary>
         <dl className="direction-fact-grid">
+          <div><dt>Endpoint</dt><dd>/api/operator/v1/market</dd></div>
+          <div><dt>Domaine</dt><dd>{s.domain}</dd></div>
           <div><dt>Produit</dt><dd>{s.product}</dd></div>
           <div><dt>Autorité</dt><dd>{s.authority}</dd></div>
           <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
@@ -197,6 +268,15 @@ const ResearchCard: React.FC<{ state: ResearchLabState }> = ({ state }) => {
         <h3>Research</h3>
         <span className="direction-card-badge">RESEARCH NON-AUTORITAIRE</span>
       </div>
+      <ProvenanceStrip
+        testId="direction-provenance-research"
+        endpoint="/api/operator/v1/research-lab"
+        domain={s.domain}
+        authority={s.authority}
+        generatedAt={s.generated_at_utc}
+        freshness="NOT_AVAILABLE"
+        age="NOT_AVAILABLE"
+      />
       <dl className="direction-fact-grid">
         <div><dt>État Research</dt><dd>{s.research_state}</dd></div>
         <div><dt>Population dataset N</dt><dd>{s.population.n}</dd></div>
@@ -209,11 +289,16 @@ const ResearchCard: React.FC<{ state: ResearchLabState }> = ({ state }) => {
       <details className="direction-provenance">
         <summary>Voir provenance</summary>
         <dl className="direction-fact-grid">
+          <div><dt>Endpoint</dt><dd>/api/operator/v1/research-lab</dd></div>
+          <div><dt>Domaine</dt><dd>{s.domain}</dd></div>
           <div><dt>Dataset</dt><dd>{p.dataset_id}</dd></div>
           <div><dt>Source boundary</dt><dd>{p.source_boundary_id}</dd></div>
           <div><dt>Epoch PAPER référencée</dt><dd>{p.paper_epoch_id ?? "NOT_AVAILABLE"}</dd></div>
           <div><dt>Research run</dt><dd>{p.research_run_id}</dd></div>
           <div><dt>Diagnostic run</dt><dd>{p.diagnostic_run_id ?? "NOT_AVAILABLE"}</dd></div>
+          <div><dt>Research source SHA</dt><dd>{p.research_source_code_sha}</dd></div>
+          <div><dt>Research config hash</dt><dd>{p.research_config_hash ?? "NOT_AVAILABLE"}</dd></div>
+          <div><dt>Presentation builder SHA</dt><dd>{s.presentation_builder_source_sha}</dd></div>
           <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
         </dl>
       </details>
@@ -234,6 +319,11 @@ export const DirectionOverview: React.FC = () => {
         <span className="direction-status-unknown">ÉTAT GLOBAL · INCONNU</span>
       </section>
 
+      <aside className="direction-federation-notice" data-testid="direction-federation-notice">
+        <strong>FÉDÉRÉ · NON ATOMIQUE</strong>
+        <span>4 sources indépendantes · aucun timestamp global · aucune fraîcheur globale · aucun état de santé global dérivé.</span>
+      </aside>
+
       <section className="direction-primary-grid" aria-label="Synthèse gouvernée Direction">
         <GlobalStateCard state={operatorState} />
         <ActiveExperimentCard state={financialState} />
@@ -248,7 +338,7 @@ export const DirectionOverview: React.FC = () => {
         {unavailable.map((label) => <article className="direction-card" key={label}><h3>{label}</h3><strong>NON DÉPLOYÉ</strong><p>Aucune projection gouvernée n’est disponible pour ce bloc.</p></article>)}
       </section>
 
-      <p className="direction-boundary">Les cartes Direction sont fédérées et peuvent avoir des temps d’observation différents. Direction ne crée aucune vérité scientifique et ne peut ni merger, ni déployer, ni modifier l’epoch PAPER active.</p>
+      <p className="direction-boundary">Les cartes Direction sont fédérées, non atomiques et conservent chacune leur propre temps d’observation et leur propre statut de fraîcheur. Direction ne crée aucune vérité scientifique, aucun timestamp global et aucune fraîcheur globale ; elle ne peut ni merger, ni déployer, ni modifier l’epoch PAPER active.</p>
     </div>
   );
 };

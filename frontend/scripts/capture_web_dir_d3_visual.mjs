@@ -280,6 +280,44 @@ try {
   await researchCard.getByText("Population dataset N", { exact: true }).waitFor();
   await researchCard.getByText("RESEARCH NON-AUTORITAIRE", { exact: true }).waitFor();
 
+  const federationNotice = page.getByTestId("direction-federation-notice");
+  await federationNotice.getByText("FÉDÉRÉ · NON ATOMIQUE", { exact: true }).waitFor();
+  const federationText = await federationNotice.innerText();
+  for (const required of ["aucun timestamp global", "aucune fraîcheur globale", "aucun état de santé global dérivé"]) {
+    assert(federationText.includes(required), `D4D federation boundary missing: ${required}`);
+  }
+
+  const globalProvenance = page.getByTestId("direction-provenance-global");
+  const experimentProvenance = page.getByTestId("direction-provenance-experiment");
+  const marketProvenance = page.getByTestId("direction-provenance-market");
+  const researchProvenance = page.getByTestId("direction-provenance-research");
+
+  for (const [locator, required] of [
+    [globalProvenance, ["/api/operator/v1/snapshot", "canonical_advisor_presentation", "AUCUNE AUTORITÉ GLOBALE"]],
+    [experimentProvenance, ["/api/operator/v1/financial-reconciliation", "FINANCIAL_OBSERVATION", "FRESH", "4.5s"]],
+    [marketProvenance, ["/api/operator/v1/market", "OBSERVATIONAL_TELEMETRY", "FRESH", "8s"]],
+    [researchProvenance, ["/api/operator/v1/research-lab", "RESEARCH_NON_AUTHORITATIVE", "NOT_AVAILABLE"]],
+  ]) {
+    const text = await locator.innerText();
+    for (const expected of required) {
+      assert(text.includes(expected), `D4D provenance strip missing: ${expected}`);
+    }
+  }
+
+  const globalDetails = await page.getByTestId("direction-global-card").locator("details").textContent();
+  const experimentDetails = await page.getByTestId("direction-experiment-card").locator("details").textContent();
+  const researchDetails = await researchCard.locator("details").textContent();
+  assert(globalDetails?.includes("visual-snapshot"), "D4D full snapshot identity is not inspectable");
+  assert(globalDetails?.includes("visual-instance"), "D4D full process instance identity is not inspectable");
+  assert(experimentDetails?.includes("9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4"), "D4D full FIN config hash is not inspectable");
+  assert(researchDetails?.includes("1".repeat(64)), "D4D full Research dataset id is not inspectable");
+  assert(researchDetails?.includes("2".repeat(64)), "D4D full Research source-boundary id is not inspectable");
+  assert(researchDetails?.includes("3".repeat(64)), "D4D full Research run id is not inspectable");
+  assert(researchDetails?.includes("4".repeat(64)), "D4D full diagnostic run id is not inspectable");
+  assert(researchDetails?.includes("5".repeat(64)), "D4D full Research config hash is not inspectable");
+  assert(researchDetails?.includes("a".repeat(40)), "D4D full Research source SHA is not inspectable");
+  assert(researchDetails?.includes("b".repeat(40)), "D4D full presentation-builder SHA is not inspectable");
+
   const shellText = await page.getByTestId("direction-shell").innerText();
   for (const required of [
     "DIRECTION",
@@ -294,7 +332,7 @@ try {
     "PF · NOT_AVAILABLE",
     "WR · NOT_AVAILABLE",
   ]) {
-    assert(shellText.includes(required), `D4C Direction evidence missing: ${required}`);
+    assert(shellText.includes(required), `D4D Direction evidence missing: ${required}`);
   }
 
   const futureCapabilities = page.locator('section[aria-label="Capacités Direction futures"]');
@@ -313,10 +351,10 @@ try {
     "GET /api/operator/v1/market",
     "GET /api/operator/v1/research-lab",
   ]);
-  assert(apiRequests.length >= 4, "Direction did not request all four governed D4B/D4C sources");
+  assert(apiRequests.length >= 4, "Direction did not request all four governed D4B/D4C/D4D sources");
   assert(
     apiRequests.every((request) => allowedRequests.has(request)),
-    `Direction requested an endpoint outside D4B/D4C: ${apiRequests.join(", ")}`,
+    `Direction requested an endpoint outside D4B/D4C/D4D: ${apiRequests.join(", ")}`,
   );
   assert(
     apiRequests.includes("GET /api/operator/v1/snapshot") &&
@@ -339,6 +377,11 @@ try {
   await page.waitForTimeout(150);
   assert(await returnControl.isVisible(), "mobile Direction return control is not visible");
   assert(await page.getByTestId("direction-authority-strip").isVisible(), "mobile authority strip is not visible");
+  assert(await page.getByTestId("direction-federation-notice").isVisible(), "mobile federation notice is not visible");
+  assert(await page.getByTestId("direction-provenance-global").isVisible(), "mobile Global provenance strip is not visible");
+  assert(await page.getByTestId("direction-provenance-experiment").isVisible(), "mobile Experiment provenance strip is not visible");
+  assert(await page.getByTestId("direction-provenance-market").isVisible(), "mobile Market provenance strip is not visible");
+  assert(await page.getByTestId("direction-provenance-research").isVisible(), "mobile Research provenance strip is not visible");
   const mobileHeaderPosition = await page.locator(".direction-header").evaluate(
     (element) => getComputedStyle(element).position,
   );
@@ -349,11 +392,11 @@ try {
   await assertNoOverflow(page, "mobile");
   await page.screenshot({ path: mobilePath, fullPage: true });
 
-  console.log(`WEB_DIR_D4C_VISUAL_DESKTOP=${desktopPath}`);
-  console.log(`WEB_DIR_D4C_VISUAL_MOBILE=${mobilePath}`);
-  console.log("WEB_DIR_D4C_GOVERNED_GETS=PASS");
-  console.log("WEB_DIR_D4C_NO_MUTATION_REQUESTS=PASS");
-  console.log("WEB_DIR_D4C_VISUAL_ASSERTIONS=PASS");
+  console.log(`WEB_DIR_D4D_VISUAL_DESKTOP=${desktopPath}`);
+  console.log(`WEB_DIR_D4D_VISUAL_MOBILE=${mobilePath}`);
+  console.log("WEB_DIR_D4D_GOVERNED_GETS=PASS");
+  console.log("WEB_DIR_D4D_NO_MUTATION_REQUESTS=PASS");
+  console.log("WEB_DIR_D4D_VISUAL_ASSERTIONS=PASS");
 } finally {
   await browser.close();
 }

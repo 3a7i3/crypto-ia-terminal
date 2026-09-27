@@ -156,7 +156,7 @@ function governedFetch(
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("WEB-DIR-01 D4B/D4C DirectionOverview", () => {
+describe("WEB-DIR-01 D4B/D4C/D4D DirectionOverview", () => {
   it("renders all four independent governed Direction cards with GET-only reads", async () => {
     const fetchMock = governedFetch();
     vi.stubGlobal("fetch", fetchMock);
@@ -209,6 +209,61 @@ describe("WEB-DIR-01 D4B/D4C DirectionOverview", () => {
       ]),
     );
     for (const call of fetchMock.mock.calls) expect(call[1]).toEqual({ method: "GET" });
+  });
+
+  it("keeps provenance and freshness independent per card with no global roll-up", async () => {
+    vi.stubGlobal("fetch", governedFetch());
+    render(<DirectionOverview />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("direction-provenance-market")).toHaveTextContent("OBSERVATIONAL_TELEMETRY"),
+    );
+
+    const federation = screen.getByTestId("direction-federation-notice");
+    expect(federation).toHaveTextContent("FÉDÉRÉ · NON ATOMIQUE");
+    expect(federation).toHaveTextContent("aucun timestamp global");
+    expect(federation).toHaveTextContent("aucune fraîcheur globale");
+    expect(federation).toHaveTextContent("aucun état de santé global dérivé");
+
+    const global = screen.getByTestId("direction-provenance-global");
+    expect(global).toHaveTextContent("/api/operator/v1/snapshot");
+    expect(global).toHaveTextContent("canonical_advisor_presentation");
+    expect(global).toHaveTextContent("AUCUNE AUTORITÉ GLOBALE");
+
+    const experiment = screen.getByTestId("direction-provenance-experiment");
+    expect(experiment).toHaveTextContent("/api/operator/v1/financial-reconciliation");
+    expect(experiment).toHaveTextContent("FINANCIAL_OBSERVATION");
+    expect(experiment).toHaveTextContent("FRESH");
+    expect(experiment).toHaveTextContent("4.5s");
+
+    const market = screen.getByTestId("direction-provenance-market");
+    expect(market).toHaveTextContent("/api/operator/v1/market");
+    expect(market).toHaveTextContent("market");
+    expect(market).toHaveTextContent("FRESH");
+    expect(market).toHaveTextContent("8s");
+
+    const research = screen.getByTestId("direction-provenance-research");
+    expect(research).toHaveTextContent("/api/operator/v1/research-lab");
+    expect(research).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE");
+    expect(research).toHaveTextContent("Fraîcheur NOT_AVAILABLE");
+    expect(research).toHaveTextContent("Âge NOT_AVAILABLE");
+
+    const globalCard = screen.getByTestId("direction-global-card");
+    const experimentCard = screen.getByTestId("direction-experiment-card");
+    const researchCard = screen.getByTestId("direction-research-card");
+
+    expect(globalCard).toHaveTextContent("Snapshot ID");
+    expect(globalCard).toHaveTextContent("Process instance ID");
+    expect(experimentCard).toHaveTextContent("Financial snapshot ID");
+    expect(experimentCard).toHaveTextContent("Reconciliation ID");
+    expect(experimentCard).toHaveTextContent("c".repeat(64));
+    expect(researchCard).toHaveTextContent("1".repeat(64));
+    expect(researchCard).toHaveTextContent("2".repeat(64));
+    expect(researchCard).toHaveTextContent("3".repeat(64));
+    expect(researchCard).toHaveTextContent("4".repeat(64));
+    expect(researchCard).toHaveTextContent("5".repeat(64));
+    expect(researchCard).toHaveTextContent("a".repeat(40));
+    expect(researchCard).toHaveTextContent("b".repeat(40));
   });
 
   it("preserves null realized PnL as evidence status instead of zero", async () => {
