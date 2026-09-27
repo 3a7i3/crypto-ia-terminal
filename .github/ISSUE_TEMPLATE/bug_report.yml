@@ -1,0 +1,97 @@
+name: Bug report
+description: Report a reproducible source or runtime defect with exact evidence.
+title: "[BUG] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Public repository notice
+
+        This issue is **not a paid bounty**. Payment exists only when the repository owner explicitly opens and labels a mission `BOUNTY_OPEN`.
+
+        Never publish API keys, tokens, passwords, private endpoints, personal data, exchange credentials, VPS credentials, or raw secret-bearing logs. Use the private security reporting link for sensitive vulnerabilities.
+
+        Keep **SOURCE PROOF** and **RUNTIME PROOF** separate. `UNRESOLVED != ZERO` and `NOT_AVAILABLE != ZERO`.
+  - type: dropdown
+    id: evidence_scope
+    attributes:
+      label: Evidence scope
+      description: Select the scope actually observed. Do not infer runtime behavior from source alone.
+      options:
+        - SOURCE PROOF only
+        - RUNTIME PROOF only
+        - SOURCE PROOF and RUNTIME PROOF
+        - UNKNOWN / not yet established
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: State exactly what was observed, including timestamps and identifiers where available.
+      placeholder: "Observed at ...; trace_id ...; event ...; exact output ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Describe the expected invariant or documented contract.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide safe, bounded reproduction steps. Do not request production mutation.
+    validations:
+      required: true
+  - type: input
+    id: source_sha
+    attributes:
+      label: Source SHA
+      description: Exact commit SHA, or NOT_AVAILABLE with an explanation below.
+      placeholder: "40-character SHA or NOT_AVAILABLE"
+    validations:
+      required: true
+  - type: input
+    id: epoch_id
+    attributes:
+      label: Epoch ID
+      description: Exact epoch ID when runtime evidence is involved; otherwise NOT_APPLICABLE.
+      placeholder: "Epoch ID or NOT_APPLICABLE"
+    validations:
+      required: true
+  - type: input
+    id: config_hash
+    attributes:
+      label: Config hash
+      description: Exact config hash when runtime evidence is involved; otherwise NOT_APPLICABLE.
+      placeholder: "Config hash or NOT_APPLICABLE"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and artefacts
+      description: Link non-sensitive logs, tests, screenshots, datasets, or prior issues. Redact secrets before posting.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Scientific and operational impact
+      description: Explain affected invariants, authority boundary, and whether the active burn-in could be involved.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety declaration
+      options:
+        - label: I did not include credentials, secrets, personal data, or private infrastructure details.
+          required: true
+        - label: I understand that this report grants no permission to modify an active PAPER epoch, deploy, restart services, or write to an exchange.
+          required: true
+        - label: I understand that opening or solving this issue creates no payment entitlement unless the owner explicitly declares a BOUNTY_OPEN contract.
+          required: true
