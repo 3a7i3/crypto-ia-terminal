@@ -1,0 +1,87 @@
+name: Governed mission proposal
+description: Propose a bounded improvement under MASTER ROADMAP II without claiming authority.
+title: "[PROPOSAL] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Governance boundary
+
+        Proposals are non-authoritative. PAPER produces facts; Research produces hypotheses.
+
+        Required flow: `PAPER → DATASET → RESEARCH → CANDIDATE → FUTURE EPOCH`.
+
+        Never propose `RESEARCH → ACTIVE PAPER EPOCH`. This issue is **not a bounty** unless the owner explicitly changes its lifecycle to `BOUNTY_OPEN`.
+  - type: input
+    id: parent
+    attributes:
+      label: Parent roadmap or mission
+      description: Every new mission must be linked to #285 or to a governed child mission.
+      placeholder: "#285"
+      value: "#285"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Candidate problem
+      description: Describe the observed problem without presenting an unverified hypothesis as fact.
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Existing proof
+      description: Separate SOURCE PROOF from RUNTIME PROOF and preserve exact SHAs, epoch IDs, config hashes, timestamps, trace IDs, and artefact hashes.
+      placeholder: |
+        SOURCE PROOF:
+        RUNTIME PROOF:
+        UNKNOWN / NOT_AVAILABLE:
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed bounded scope
+      description: Identify exact files or components, expected outputs, and exclusions.
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Intended target
+      options:
+        - Documentation only
+        - Source-only future change
+        - Research non-authoritative
+        - Future PAPER epoch candidate
+        - UNKNOWN / requires forensic
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Required tests and falsification criteria
+      description: Define what could disprove the proposal and what evidence is required before any PASS.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks, rollback, and authority boundary
+      description: Include security, scientific contamination, runtime and rollback considerations.
+    validations:
+      required: true
+  - type: checkboxes
+    id: guardrails
+    attributes:
+      label: Guardrails
+      options:
+        - label: This proposal does not authorize a change to the active burn-in epoch.
+          required: true
+        - label: This proposal does not authorize deployment, merge, restart, TESTNET, LIVE, exchange writes, or autonomous agent authority.
+          required: true
+        - label: UNKNOWN items will remain untouched until resolved.
+          required: true
+        - label: I understand that this proposal is unpaid unless the owner explicitly declares BOUNTY_OPEN with amount and acceptance terms.
+          required: true
