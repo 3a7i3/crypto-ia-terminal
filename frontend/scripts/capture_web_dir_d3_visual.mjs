@@ -165,6 +165,71 @@ const financialSnapshot = {
   freshness_classification: "FRESH",
 };
 
+const marketSnapshot = {
+  schema_version: "1.0.0",
+  product: "CryptoRadar",
+  domain: "market",
+  authority: "OBSERVATIONAL_TELEMETRY",
+  mode: "OBSERVATION",
+  generated_at_utc: "2026-09-27T20:00:00Z",
+  source_updated_at_utc: "2026-09-27T19:59:00Z",
+  window_hours: 24,
+  min_confidence: 65,
+  packets_observed: 86,
+  market_regime: "bull_trend",
+  universe_size: 33,
+  actionable_count: 4,
+  watchlist_count: 7,
+  top_opportunities: [],
+  snapshot_age_s: 8,
+  freshness_classification: "FRESH",
+};
+
+const researchSnapshot = {
+  schema_version: "1.0.0",
+  product: "ResearchLabSnapshot",
+  domain: "research_lab",
+  authority: "RESEARCH_NON_AUTHORITATIVE",
+  generated_at_utc: "2026-09-27T20:00:00Z",
+  presentation_builder_source_sha: "b".repeat(40),
+  research_state: "AVAILABLE",
+  provenance: {
+    primary_context: {
+      dataset_id: "1".repeat(64),
+      source_boundary_id: "2".repeat(64),
+      paper_epoch_id: "F00-EPOCH-01-20260920T084335Z",
+      research_run_id: "3".repeat(64),
+      diagnostic_run_id: "4".repeat(64),
+      research_source_code_sha: "a".repeat(40),
+      research_config_hash: "5".repeat(64),
+      presentation_builder_source_sha: "b".repeat(40),
+      population_definition: "POSITION_CLOSED_FOR_PERFORMANCE",
+      n: 13,
+      evidence_status: "COMPLETE",
+      statistical_strength: "LOW_SAMPLE",
+    },
+    source_artifacts: [
+      {
+        artifact_ref: "diag-a4",
+        artifact_type: "RL_DIAG_RESULT",
+        sha256: "6".repeat(64),
+      },
+    ],
+  },
+  population: {
+    population_definition: "POSITION_CLOSED_FOR_PERFORMANCE",
+    n: 13,
+    evidence_status: "COMPLETE",
+    statistical_strength: "LOW_SAMPLE",
+  },
+  performance: [],
+  risk_stability: [],
+  costs: [],
+  attribution: [],
+  candidate_registry: { candidate_count: 0, rows: [] },
+  limitations: ["N=13 / LOW_SAMPLE"],
+};
+
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -176,6 +241,12 @@ try {
   );
   await page.route("**/api/operator/v1/financial-reconciliation", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(financialSnapshot) }),
+  );
+  await page.route("**/api/operator/v1/market", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(marketSnapshot) }),
+  );
+  await page.route("**/api/operator/v1/research-lab", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(researchSnapshot) }),
   );
 
   page.on("request", (request) => {
@@ -195,6 +266,19 @@ try {
   await page.getByTestId("direction-authority-strip").waitFor({ state: "visible" });
   await page.getByTestId("direction-global-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-experiment-card").waitFor({ state: "visible" });
+  await page.getByTestId("direction-market-card").waitFor({ state: "visible" });
+  await page.getByTestId("direction-research-card").waitFor({ state: "visible" });
+
+  await page.getByTestId("direction-global-card").getByText("PAPER", { exact: true }).waitFor();
+  await page.getByTestId("direction-experiment-card").getByText("981.8435705815693 USDT", { exact: true }).waitFor();
+  const marketCard = page.getByTestId("direction-market-card");
+  const researchCard = page.getByTestId("direction-research-card");
+  await marketCard.getByText("OBSERVATIONAL_TELEMETRY", { exact: true }).first().waitFor();
+  await marketCard.getByText("Actionable observés", { exact: true }).waitFor();
+  await marketCard.getByText(/aucune permission de trade/).waitFor();
+  await researchCard.getByText("RESEARCH_NON_AUTHORITATIVE", { exact: true }).waitFor();
+  await researchCard.getByText("Population dataset N", { exact: true }).waitFor();
+  await researchCard.getByText("RESEARCH NON-AUTORITAIRE", { exact: true }).waitFor();
 
   const shellText = await page.getByTestId("direction-shell").innerText();
   for (const required of [
@@ -210,7 +294,7 @@ try {
     "PF · NOT_AVAILABLE",
     "WR · NOT_AVAILABLE",
   ]) {
-    assert(shellText.includes(required), `D4B Direction evidence missing: ${required}`);
+    assert(shellText.includes(required), `D4C Direction evidence missing: ${required}`);
   }
 
   const futureCapabilities = page.locator('section[aria-label="Capacités Direction futures"]');
@@ -226,15 +310,19 @@ try {
   const allowedRequests = new Set([
     "GET /api/operator/v1/snapshot",
     "GET /api/operator/v1/financial-reconciliation",
+    "GET /api/operator/v1/market",
+    "GET /api/operator/v1/research-lab",
   ]);
-  assert(apiRequests.length >= 2, "Direction did not request both governed D4B sources");
+  assert(apiRequests.length >= 4, "Direction did not request all four governed D4B/D4C sources");
   assert(
     apiRequests.every((request) => allowedRequests.has(request)),
-    `Direction requested an endpoint outside D4B: ${apiRequests.join(", ")}`,
+    `Direction requested an endpoint outside D4B/D4C: ${apiRequests.join(", ")}`,
   );
   assert(
     apiRequests.includes("GET /api/operator/v1/snapshot") &&
-      apiRequests.includes("GET /api/operator/v1/financial-reconciliation"),
+      apiRequests.includes("GET /api/operator/v1/financial-reconciliation") &&
+      apiRequests.includes("GET /api/operator/v1/market") &&
+      apiRequests.includes("GET /api/operator/v1/research-lab"),
     `Direction governed sources incomplete: ${apiRequests.join(", ")}`,
   );
   assert(mutationRequests.length === 0, `Direction issued mutation requests: ${mutationRequests.join(", ")}`);
@@ -261,11 +349,11 @@ try {
   await assertNoOverflow(page, "mobile");
   await page.screenshot({ path: mobilePath, fullPage: true });
 
-  console.log(`WEB_DIR_D4B_VISUAL_DESKTOP=${desktopPath}`);
-  console.log(`WEB_DIR_D4B_VISUAL_MOBILE=${mobilePath}`);
-  console.log("WEB_DIR_D4B_GOVERNED_GETS=PASS");
-  console.log("WEB_DIR_D4B_NO_MUTATION_REQUESTS=PASS");
-  console.log("WEB_DIR_D4B_VISUAL_ASSERTIONS=PASS");
+  console.log(`WEB_DIR_D4C_VISUAL_DESKTOP=${desktopPath}`);
+  console.log(`WEB_DIR_D4C_VISUAL_MOBILE=${mobilePath}`);
+  console.log("WEB_DIR_D4C_GOVERNED_GETS=PASS");
+  console.log("WEB_DIR_D4C_NO_MUTATION_REQUESTS=PASS");
+  console.log("WEB_DIR_D4C_VISUAL_ASSERTIONS=PASS");
 } finally {
   await browser.close();
 }
