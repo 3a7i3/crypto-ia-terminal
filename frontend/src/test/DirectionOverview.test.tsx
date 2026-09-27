@@ -116,7 +116,13 @@ function researchSnapshot() {
         evidence_status: "COMPLETE",
         statistical_strength: "LOW_SAMPLE",
       },
-      source_artifacts: [],
+      source_artifacts: [
+        {
+          artifact_ref: "diag-a4",
+          artifact_type: "RL_DIAG_RESULT",
+          sha256: "6".repeat(64),
+        },
+      ],
     },
     population: {
       population_definition: "POSITION_CLOSED_FOR_PERFORMANCE",
