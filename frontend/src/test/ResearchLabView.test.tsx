@@ -239,8 +239,10 @@ describe("WEB-RL Research Lab", () => {
     );
 
     fireEvent.click(screen.getByTestId("tab-overview"));
-    expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent(
-      "SNAPSHOT_MISSING",
+    await waitFor(() =>
+      expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent(
+        "SNAPSHOT_MISSING",
+      ),
     );
   });
 });
