@@ -143,10 +143,11 @@ function governedFetch(
   fin = financialSnapshot(),
   market = marketSnapshot(),
   research = researchSnapshot(),
+  operator = baseSnapshot(),
 ) {
   return vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.endsWith("/api/operator/v1/snapshot")) return Promise.resolve(response(baseSnapshot()));
+    if (url.endsWith("/api/operator/v1/snapshot")) return Promise.resolve(response(operator));
     if (url.endsWith("/api/operator/v1/financial-reconciliation")) return Promise.resolve(response(fin));
     if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(market));
     if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(research));
@@ -156,7 +157,7 @@ function governedFetch(
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("WEB-DIR-01 D4B/D4C/D4D DirectionOverview", () => {
+describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
   it("renders all four independent governed Direction cards with GET-only reads", async () => {
     const fetchMock = governedFetch();
     vi.stubGlobal("fetch", fetchMock);
@@ -264,6 +265,101 @@ describe("WEB-DIR-01 D4B/D4C/D4D DirectionOverview", () => {
     expect(researchCard).toHaveTextContent("5".repeat(64));
     expect(researchCard).toHaveTextContent("a".repeat(40));
     expect(researchCard).toHaveTextContent("b".repeat(40));
+  });
+
+  it("preserves CLAIMED_ONLY, null age, stale reason and global INCONNU without synthetic health", async () => {
+    const operator = baseSnapshot();
+    operator.runtime_sha_evidence_status = "CLAIMED_ONLY";
+    operator.snapshot_age_s = null;
+    operator.freshness_classification = "STALE";
+    operator.stale_reason = "SOURCE_TOO_OLD";
+    operator.system_health.health_level = { value: "CRITICAL", semantics: "PRESENT" };
+
+    vi.stubGlobal(
+      "fetch",
+      governedFetch(financialSnapshot(), marketSnapshot(), researchSnapshot(), operator),
+    );
+    render(<DirectionOverview />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("direction-global-card")).toHaveTextContent("CLAIMED_ONLY"),
+    );
+
+    const global = screen.getByTestId("direction-global-card");
+    const provenance = screen.getByTestId("direction-provenance-global");
+
+    expect(global).toHaveTextContent("INCONNU");
+    expect(global).toHaveTextContent("CRITICAL");
+    expect(global).toHaveTextContent("SOURCE_TOO_OLD");
+    expect(global).toHaveTextContent("Âge snapshotNOT_AVAILABLE");
+    expect(global).not.toHaveTextContent("VERIFIED");
+
+    expect(provenance).toHaveTextContent("Fraîcheur STALE");
+    expect(provenance).toHaveTextContent("Âge NOT_AVAILABLE");
+  });
+
+  it("treats an invalid HTTP 200 snapshot as a contract/transport error without erasing FIN", async () => {
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/operator/v1/snapshot")) {
+        return Promise.resolve(response({ schema_version: "broken" }));
+      }
+      if (url.endsWith("/api/operator/v1/financial-reconciliation")) {
+        return Promise.resolve(response(financialSnapshot()));
+      }
+      if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(marketSnapshot()));
+      if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(researchSnapshot()));
+      return Promise.reject(new Error("unexpected endpoint " + url));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DirectionOverview />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("direction-global-card")).toHaveTextContent(
+        "ERREUR TRANSPORT / CONTRAT",
+      ),
+    );
+    expect(screen.getByTestId("direction-experiment-card")).toHaveTextContent(
+      "981.8435705815693 USDT",
+    );
+    expect(screen.getByTestId("direction-market-card")).toHaveTextContent(
+      "OBSERVATIONAL_TELEMETRY",
+    );
+    expect(screen.getByTestId("direction-research-card")).toHaveTextContent(
+      "RESEARCH_NON_AUTHORITATIVE",
+    );
+  });
+
+  it("isolates a Research network failure and never upgrades another card into global health", async () => {
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/operator/v1/snapshot")) return Promise.resolve(response(baseSnapshot()));
+      if (url.endsWith("/api/operator/v1/financial-reconciliation")) {
+        return Promise.resolve(response(financialSnapshot()));
+      }
+      if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(marketSnapshot()));
+      if (url.endsWith("/api/operator/v1/research-lab")) {
+        return Promise.reject(new Error("research network unavailable"));
+      }
+      return Promise.reject(new Error("unexpected endpoint " + url));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DirectionOverview />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("direction-research-card")).toHaveTextContent(
+        "ERREUR TRANSPORT / CONTRAT",
+      ),
+    );
+    expect(screen.getByTestId("direction-global-card")).toHaveTextContent("INCONNU");
+    expect(screen.getByTestId("direction-experiment-card")).toHaveTextContent(
+      "981.8435705815693 USDT",
+    );
+    expect(screen.getByTestId("direction-market-card")).toHaveTextContent(
+      "OBSERVATIONAL_TELEMETRY",
+    );
   });
 
   it("preserves null realized PnL as evidence status instead of zero", async () => {
