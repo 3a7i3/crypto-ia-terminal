@@ -1101,3 +1101,32 @@
 
   .research-title { font-size: 14px; }
 }
+
+
+/* WEB-DIR-01 D4B — governed Direction level-one cards. */
+.direction-primary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.direction-card-governed { min-height: 240px; border-color: rgba(167, 139, 250, 0.26); }
+.direction-card-error { border-color: rgba(239, 68, 68, 0.28); }
+.direction-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.direction-card-heading h3 { margin: 0; }
+.direction-card-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid var(--bg-border); border-radius: 999px; background: var(--neutral-dim); color: var(--text-sec); font-family: var(--font-mono); font-size: 8px; font-weight: 800; letter-spacing: 0.06em; }
+.direction-epoch-id { margin: -2px 0 12px; overflow-wrap: anywhere; color: var(--violet); font-family: var(--font-mono); font-size: 10px; }
+.direction-fact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 12px; margin: 0; }
+.direction-fact-grid div { min-width: 0; padding: 8px 9px; border: 1px solid rgba(255,255,255,0.05); border-radius: var(--r-chip); background: rgba(255,255,255,0.015); }
+.direction-fact-grid dt { margin-bottom: 4px; color: var(--text-muted); font-family: var(--font-mono); font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+.direction-fact-grid dd { margin: 0; overflow-wrap: anywhere; color: var(--text-pri); font-family: var(--font-mono); font-size: 10px; line-height: 1.4; }
+.direction-warning { margin: 10px 0 0; padding: 8px 10px; border-left: 2px solid var(--warn); background: var(--warn-dim); color: var(--warn) !important; }
+.direction-not-available { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.direction-not-available span { padding: 4px 7px; border: 1px solid var(--bg-border); border-radius: 999px; background: var(--neutral-dim); color: var(--text-muted); font-family: var(--font-mono); font-size: 8px; }
+.direction-provenance { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--bg-border); }
+.direction-provenance summary { cursor: pointer; color: var(--violet); font-family: var(--font-mono); font-size: 9px; font-weight: 700; }
+.direction-provenance[open] summary { margin-bottom: 9px; }
+
+@media (max-width: 900px) {
+  .direction-primary-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .direction-fact-grid { grid-template-columns: 1fr; }
+  .direction-card-governed { min-height: 0; }
+}
