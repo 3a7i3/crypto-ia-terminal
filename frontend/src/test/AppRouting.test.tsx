@@ -41,7 +41,7 @@ describe("WEB-DIR-01-D2 product routing", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps Direction separate and labels unavailable capabilities NON DÉPLOYÉ", () => {
+  it("keeps Direction separate and fetches only its two D4B governed sources", async () => {
     window.history.replaceState({}, "", "/direction");
     render(<App />);
 
@@ -52,9 +52,15 @@ describe("WEB-DIR-01-D2 product routing", () => {
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("PRÉSENTATION");
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("LECTURE SEULE");
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("AUCUNE AUTORITÉ PAPER");
-    expect(screen.getAllByText("NON DÉPLOYÉ")).toHaveLength(6);
     expect(screen.getByText(/ÉTAT GLOBAL · INCONNU/)).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining([
+        "/api/operator/v1/snapshot",
+        "/api/operator/v1/financial-reconciliation",
+      ]),
+    );
   });
 
   it("returns from Direction to PAPER LIVE through the explicit operator control", async () => {
