@@ -271,8 +271,14 @@ try {
 
   await page.getByTestId("direction-global-card").getByText("PAPER", { exact: true }).waitFor();
   await page.getByTestId("direction-experiment-card").getByText("981.8435705815693 USDT", { exact: true }).waitFor();
-  await page.getByTestId("direction-market-card").getByText("OBSERVATIONAL_TELEMETRY", { exact: true }).first().waitFor();
-  await page.getByTestId("direction-research-card").getByText("RESEARCH_NON_AUTHORITATIVE", { exact: true }).waitFor();
+  const marketCard = page.getByTestId("direction-market-card");
+  const researchCard = page.getByTestId("direction-research-card");
+  await marketCard.getByText("OBSERVATIONAL_TELEMETRY", { exact: true }).first().waitFor();
+  await marketCard.getByText("Actionable observés", { exact: true }).waitFor();
+  await marketCard.getByText(/aucune permission de trade/).waitFor();
+  await researchCard.getByText("RESEARCH_NON_AUTHORITATIVE", { exact: true }).waitFor();
+  await researchCard.getByText("Population dataset N", { exact: true }).waitFor();
+  await researchCard.getByText("RESEARCH NON-AUTORITAIRE", { exact: true }).waitFor();
 
   const shellText = await page.getByTestId("direction-shell").innerText();
   for (const required of [
@@ -287,11 +293,6 @@ try {
     "981.8435705815693 USDT",
     "PF · NOT_AVAILABLE",
     "WR · NOT_AVAILABLE",
-    "OBSERVATIONAL_TELEMETRY",
-    "Actionable observés",
-    "RESEARCH NON-AUTORITAIRE",
-    "RESEARCH_NON_AUTHORITATIVE",
-    "Population dataset N",
   ]) {
     assert(shellText.includes(required), `D4C Direction evidence missing: ${required}`);
   }
