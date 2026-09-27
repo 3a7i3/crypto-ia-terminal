@@ -70,19 +70,88 @@ function financialSnapshot(realizedPnl: string | null = "0.048650677412971489312
   };
 }
 
-function governedFetch(fin = financialSnapshot()) {
+function marketSnapshot() {
+  return {
+    schema_version: "1.0.0",
+    product: "CryptoRadar",
+    domain: "market",
+    authority: "OBSERVATIONAL_TELEMETRY",
+    mode: "OBSERVATION",
+    generated_at_utc: "2026-09-27T20:00:00Z",
+    source_updated_at_utc: "2026-09-27T19:59:00Z",
+    window_hours: 24,
+    min_confidence: 65,
+    packets_observed: 86,
+    market_regime: "bull_trend",
+    universe_size: 33,
+    actionable_count: 4,
+    watchlist_count: 7,
+    top_opportunities: [],
+    snapshot_age_s: 8,
+    freshness_classification: "FRESH",
+  };
+}
+
+function researchSnapshot() {
+  return {
+    schema_version: "1.0.0",
+    product: "ResearchLabSnapshot",
+    domain: "research_lab",
+    authority: "RESEARCH_NON_AUTHORITATIVE",
+    generated_at_utc: "2026-09-27T20:00:00Z",
+    presentation_builder_source_sha: "b".repeat(40),
+    research_state: "AVAILABLE",
+    provenance: {
+      primary_context: {
+        dataset_id: "1".repeat(64),
+        source_boundary_id: "2".repeat(64),
+        paper_epoch_id: "F00-EPOCH-01-20260920T084335Z",
+        research_run_id: "3".repeat(64),
+        diagnostic_run_id: "4".repeat(64),
+        research_source_code_sha: "a".repeat(40),
+        research_config_hash: "5".repeat(64),
+        presentation_builder_source_sha: "b".repeat(40),
+        population_definition: "POSITION_CLOSED_FOR_PERFORMANCE",
+        n: 13,
+        evidence_status: "COMPLETE",
+        statistical_strength: "LOW_SAMPLE",
+      },
+      source_artifacts: [],
+    },
+    population: {
+      population_definition: "POSITION_CLOSED_FOR_PERFORMANCE",
+      n: 13,
+      evidence_status: "COMPLETE",
+      statistical_strength: "LOW_SAMPLE",
+    },
+    performance: [],
+    risk_stability: [],
+    costs: [],
+    attribution: [],
+    candidate_registry: { candidate_count: 0, rows: [] },
+    limitations: ["N=13 / LOW_SAMPLE"],
+  };
+}
+
+function governedFetch(
+  fin = financialSnapshot(),
+  market = marketSnapshot(),
+  research = researchSnapshot(),
+) {
   return vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith("/api/operator/v1/snapshot")) return Promise.resolve(response(baseSnapshot()));
     if (url.endsWith("/api/operator/v1/financial-reconciliation")) return Promise.resolve(response(fin));
+    if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(market));
+    if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(research));
     return Promise.reject(new Error("unexpected endpoint " + url));
   });
 }
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("WEB-DIR-01 D4B DirectionOverview", () => {
-  it("renders independent governed Global State and Active Experiment cards", async () => {
+describe("WEB-DIR-01 D4B/D4C DirectionOverview", () => {
+  it("renders all four independent governed Direction cards with GET-only reads", async () => {
     const fetchMock = governedFetch();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -90,9 +159,13 @@ describe("WEB-DIR-01 D4B DirectionOverview", () => {
 
     await waitFor(() => expect(screen.getByTestId("direction-global-card")).toHaveTextContent("PAPER"));
     await waitFor(() => expect(screen.getByTestId("direction-experiment-card")).toHaveTextContent("981.8435705815693 USDT"));
+    await waitFor(() => expect(screen.getByTestId("direction-market-card")).toHaveTextContent("OBSERVATIONAL_TELEMETRY"));
+    await waitFor(() => expect(screen.getByTestId("direction-research-card")).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE"));
 
     const global = screen.getByTestId("direction-global-card");
     const experiment = screen.getByTestId("direction-experiment-card");
+    const market = screen.getByTestId("direction-market-card");
+    const research = screen.getByTestId("direction-research-card");
 
     expect(global).toHaveTextContent("INCONNU");
     expect(global).toHaveTextContent("CURRENT_INSTANCE");
@@ -102,18 +175,31 @@ describe("WEB-DIR-01 D4B DirectionOverview", () => {
     expect(experiment).toHaveTextContent("BURN-IN-EPOCH-01-20260926T064144Z");
     expect(experiment).toHaveTextContent("20.0 USDT");
     expect(experiment).toHaveTextContent("0.02 USDT");
-    expect(experiment).toHaveTextContent("Positions OPEN");
-    expect(experiment).toHaveTextContent("2");
     expect(experiment).toHaveTextContent("Population · NOT_AVAILABLE");
     expect(experiment).toHaveTextContent("PF · NOT_AVAILABLE");
     expect(experiment).toHaveTextContent("WR · NOT_AVAILABLE");
-    expect(experiment).toHaveTextContent("Les deux statuts de réconciliation diffèrent");
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(market).toHaveTextContent("OBSERVATION");
+    expect(market).toHaveTextContent("bull_trend");
+    expect(market).toHaveTextContent("Actionable observés");
+    expect(market).toHaveTextContent("4");
+    expect(market).toHaveTextContent("aucune permission de trade");
+
+    expect(research).toHaveTextContent("RESEARCH NON-AUTORITAIRE");
+    expect(research).toHaveTextContent("Population dataset N");
+    expect(research).toHaveTextContent("13");
+    expect(research).toHaveTextContent("LOW_SAMPLE");
+    expect(research).toHaveTextContent("Candidats");
+    expect(research).toHaveTextContent("0");
+    expect(research).toHaveTextContent("ne remplissent jamais les métriques PAPER actives");
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
       expect.arrayContaining([
         "/api/operator/v1/snapshot",
         "/api/operator/v1/financial-reconciliation",
+        "/api/operator/v1/market",
+        "/api/operator/v1/research-lab",
       ]),
     );
     for (const call of fetchMock.mock.calls) expect(call[1]).toEqual({ method: "GET" });
@@ -129,25 +215,40 @@ describe("WEB-DIR-01 D4B DirectionOverview", () => {
     expect(screen.getByTestId("direction-experiment-card")).not.toHaveTextContent("PnL réalisé0");
   });
 
-  it("isolates one endpoint failure without fabricating or erasing the other card", async () => {
+  it("keeps Research zero candidates as an explicit producer zero without promoting Research into PAPER", async () => {
+    vi.stubGlobal("fetch", governedFetch());
+    render(<DirectionOverview />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("direction-research-card")).toHaveTextContent("Candidats"),
+    );
+    const research = screen.getByTestId("direction-research-card");
+    const experiment = screen.getByTestId("direction-experiment-card");
+    expect(research).toHaveTextContent("0");
+    expect(research).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE");
+    expect(experiment).toHaveTextContent("PF · NOT_AVAILABLE");
+    expect(experiment).toHaveTextContent("Population · NOT_AVAILABLE");
+  });
+
+  it("isolates a Market source failure without erasing Research or PAPER cards", async () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith("/api/operator/v1/snapshot")) {
-        return Promise.resolve(
-          response({ error_code: "SNAPSHOT_UNAVAILABLE", error_message: "missing" }, 503),
-        );
+      if (url.endsWith("/api/operator/v1/snapshot")) return Promise.resolve(response(baseSnapshot()));
+      if (url.endsWith("/api/operator/v1/financial-reconciliation")) return Promise.resolve(response(financialSnapshot()));
+      if (url.endsWith("/api/operator/v1/market")) {
+        return Promise.resolve(response({ error_code: "MARKET_SNAPSHOT_MISSING", error_message: "missing" }, 503));
       }
-      return Promise.resolve(response(financialSnapshot()));
+      if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(researchSnapshot()));
+      return Promise.reject(new Error("unexpected endpoint " + url));
     });
     vi.stubGlobal("fetch", fetchMock);
 
     render(<DirectionOverview />);
 
     await waitFor(() =>
-      expect(screen.getByTestId("direction-global-card")).toHaveTextContent("SNAPSHOT_UNAVAILABLE"),
+      expect(screen.getByTestId("direction-market-card")).toHaveTextContent("MARKET_SNAPSHOT_MISSING"),
     );
-    expect(screen.getByTestId("direction-experiment-card")).toHaveTextContent(
-      "981.8435705815693 USDT",
-    );
+    expect(screen.getByTestId("direction-research-card")).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE");
+    expect(screen.getByTestId("direction-experiment-card")).toHaveTextContent("981.8435705815693 USDT");
   });
 });
