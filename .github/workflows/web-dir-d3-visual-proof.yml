@@ -1,0 +1,70 @@
+name: WEB-DIR-01 Direction Visual Proof
+
+# WEB-DIR-01 / D3 — ephemeral browser proof for the source-only Direction
+# shell. This is not a VPS or production runtime certification. Direction is
+# opened directly and must perform no Operator API request or mutation.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-dir-d3-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  direction-visual-proof:
+    name: "WEB-DIR-01 D3 DIRECTION VISUAL PROOF"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend and Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Start ephemeral Vite app
+        working-directory: frontend
+        run: |
+          nohup npm run dev -- --host 127.0.0.1 >/tmp/web-dir-d3-vite.log 2>&1 &
+          echo $! >/tmp/web-dir-d3-vite.pid
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/direction >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/direction >/dev/null
+
+      - name: Capture and assert Direction visual proof
+        working-directory: frontend
+        run: node scripts/capture_web_dir_d3_visual.mjs
+
+      - name: Collect proof logs
+        if: always()
+        run: |
+          mkdir -p frontend/artifacts/web-dir-d3/runtime
+          cp /tmp/web-dir-d3-vite.log frontend/artifacts/web-dir-d3/runtime/vite.log 2>/dev/null || true
+
+      - name: Upload Direction visual proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dir-d3-direction-visual-proof
+          path: frontend/artifacts/web-dir-d3/
+          if-no-files-found: error
+          retention-days: 14
