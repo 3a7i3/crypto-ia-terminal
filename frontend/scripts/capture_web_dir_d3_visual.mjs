@@ -213,9 +213,14 @@ try {
     assert(shellText.includes(required), `D4B Direction evidence missing: ${required}`);
   }
 
+  const futureCapabilities = page.locator('section[aria-label="Capacités Direction futures"]');
   assert(
-    (await page.getByText("NON DÉPLOYÉ", { exact: true }).count()) === 8,
-    "Direction must expose six future capability placeholders plus Watchdog and critical-alert NON DÉPLOYÉ states",
+    (await futureCapabilities.getByText("NON DÉPLOYÉ", { exact: true }).count()) === 6,
+    "Direction must expose exactly six honest future capability placeholders",
+  );
+  assert(
+    (await page.getByTestId("direction-global-card").getByText("NON DÉPLOYÉ", { exact: true }).count()) === 2,
+    "Global State must keep Watchdog and critical alerts explicitly NON DÉPLOYÉ",
   );
 
   const allowedRequests = new Set([
