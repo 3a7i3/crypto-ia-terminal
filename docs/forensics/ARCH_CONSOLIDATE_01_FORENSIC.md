@@ -151,10 +151,12 @@ Key findings:
    alerts); the Telegram transport itself is retired last, only after App
    parity is demonstrated per bot.
 7. **Which servers/APIs still exist?** `observability/operator_api/app.py`
-   (canonical), `sdos_terminal/api/app.py` (parallel, unresolved),
-   `infra/api/api_server.py` (unresolved, no consumer found),
-   `visualization/api/quant_live_api.py` (data-provider module, canonical
-   producer for the Quant Observer bot) — see §4.
+   (canonical, API-01), `sdos_terminal/api/app.py` (parallel, unresolved,
+   API-02), `infra/api/api_server.py` (unresolved, no consumer found,
+   API-03), `visualization/api/quant_live_api.py` (data-provider module,
+   canonical producer for the Quant Observer bot, API-04),
+   `scripts/dashboard_api.py` (standalone CryptoRadar Web Dashboard API,
+   API-06, backing `crypto-dashboard.service`) — see §4.
 8. **Are there competing sources for the same info?** Yes: performance/PnL
    aggregation is computed in at least three places for Sim Bot commands
    instead of one shared `performance_breakdown.breakdown()`; ENL friction
@@ -179,12 +181,18 @@ Key findings:
 11. **Which dependencies still create an architecture parallel to
     engine→projection→Operator API→App?** (a) `sdos_terminal/` stack — its
     own API + its own frontend, sharing only the `visualization/api/`
-    producer with the canonical Quant Observer edge; (b) all four active
-    Telegram bots' direct producer paths (`capital_deployment/
-    command_center_bot.py`'s in-process closures, `radar_bot.py`'s direct
-    JSONL read, `sim_bot.py`'s own SQLite store, `quant_observer/bot.py`'s
+    producer with the canonical Quant Observer edge; (b) `scripts/
+    dashboard_api.py`'s standalone CryptoRadar Web Dashboard, a second
+    ungoverned aggregator over `decision_packets_*.jsonl` alongside
+    `radar_bot.py`'s; (c) the direct producer paths of the four Telegram
+    bots whose source and deployment are both confirmed
+    (`capital_deployment/command_center_bot.py`'s in-process closures,
+    `radar_bot.py`'s direct JSONL read, `quant_observer/bot.py`'s
     otherwise-canonical but Telegram-duplicated presentation of the same
-    `quant_live_api.py` data already available to the App).
+    `quant_live_api.py` data already available to the App, and
+    `paper_runner.py`'s isolated loop for `@PaperArena_bot`), plus a fifth,
+    `sim_bot.py`'s own SQLite store, whose bot identity/deployment is
+    itself still `UNKNOWN` (§12) rather than confirmed-active.
 *(Note: the source issue's prose does not enumerate a literal numbered list
 of 13 questions; items 12–13 below capture the two remaining distinct
 forensic questions implied by the issue text, beyond the 11 above.)*
@@ -381,7 +389,7 @@ document's own component list, not approximate.
 | MOVE | 0 | none identified with sufficient evidence in this pass — candidates would need VPS/runtime evidence first |
 | ARCHIVE | 5 | `_ARCHIVE_2026/` tree (pre-existing), legacy `.bat`/panel launchers, regime-detector shim, legacy kill-switch variants, `_ARCHIVE_2026/telegram_bot_duplicates_20260706` |
 | RETIRE | 1 | `src/telegram/exchange_sync.py` (zero imports, confirmed dead) |
-| UNKNOWN | 7 | WEB-02/API-02 (`sdos_terminal/`, one component across API+frontend), API-03 (`infra/api/api_server.py`), API-05 (`governance/status_dashboard.py`), `@Telemetrie_IA_bot`/`sim_bot.py` (identity+deployment; its Sim Bot run store is the same unresolved component, not counted twice), `crypto-market-snapshot.service`, WEB-04 (`infra/dashboards/__init__.py`) |
+| UNKNOWN | 6 | WEB-02/API-02 (`sdos_terminal/`, one component across API+frontend), API-03 (`infra/api/api_server.py`), API-05 (`governance/status_dashboard.py`), `@Telemetrie_IA_bot`/`sim_bot.py` (identity+deployment; its Sim Bot run store is the same unresolved component, not counted twice), `crypto-market-snapshot.service`, WEB-04 (`infra/dashboards/__init__.py`) |
 
 This corrects an earlier draft, which both called its totals "approximate"
 and listed exact counts — a contradiction. The counts above are exact given
@@ -512,7 +520,8 @@ is resolved (Wave 2 dependency).
 
 1. `ARCH-CONSOLIDATE-01a` — Remove `src/telegram/exchange_sync.py` (Wave 1).
 2. `ARCH-CONSOLIDATE-01b` — VPS-scoped audit-pack extension to resolve the
-   six unknowns in §12 (Wave 2), read-only, no code change to runtime logic.
+   runtime/VPS unknowns in §12 (Wave 2), read-only, no code change to
+   runtime logic.
 3. `ARCH-CONSOLIDATE-01c` — Update `docs/runbooks/SERVICE_MATRIX_AUDIT_PACK.md`
    fixed catalog to include the three currently-undocumented `.service` units
    and three `.timer` units (Wave 2, documentation-only).
