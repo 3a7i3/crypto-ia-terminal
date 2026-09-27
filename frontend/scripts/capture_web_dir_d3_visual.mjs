@@ -24,11 +24,159 @@ async function assertNoOverflow(page, label) {
   );
 }
 
+const operatorSnapshot = {
+  schema_version: "1.0.0",
+  snapshot_id: "visual-snapshot",
+  cycle: 42,
+  process_instance_id: "visual-instance",
+  generated_at_utc: "2026-09-27T20:00:00+00:00",
+  source_sha: "116634be0d3c015cce1cfa58be7da7255414fbfd",
+  worktree_state: "CLEAN",
+  deployment_evidence: {
+    status: "VERIFIED",
+    source: "visual-proof",
+    evidence_ref: "WEB-DIR-01-D4B",
+    observed_at_utc: "2026-09-27T20:00:00+00:00",
+  },
+  runtime_sha_evidence_status: "VERIFIED",
+  portfolio: {
+    domain: "portfolio_state",
+    observed_at_utc: "2026-09-27T20:00:00+00:00",
+    source: "visual-proof",
+    freshness: "FRESH",
+    status: "PRESENT",
+    schema_version: "1.0.0",
+    source_version: null,
+    evidence: {},
+    source_updated_at_utc: { value: null, semantics: "UNKNOWN" },
+    authority: "OBSERVATIONAL_TELEMETRY",
+    mode: "PAPER",
+    paper_equity_usd: { value: 1001.8635705815693, semantics: "PRESENT" },
+    paper_open_positions_count: { value: 2, semantics: "PRESENT" },
+    paper_unrealized_pnl_usd: { value: null, semantics: "UNAVAILABLE" },
+    paper_realized_pnl_usd: { value: 0, semantics: "ZERO" },
+    real_account_equity_usd: { value: null, semantics: "NOT_APPLICABLE" },
+    real_account_free_usd: { value: null, semantics: "NOT_APPLICABLE" },
+    real_account_stale: { value: null, semantics: "NOT_APPLICABLE" },
+    real_account_last_poll_utc: { value: null, semantics: "UNKNOWN" },
+    non_paper_wallet_balance_usd: { value: null, semantics: "NOT_APPLICABLE" },
+    capital_x_usd: { value: null, semantics: "NOT_APPLICABLE" },
+    open_positions: { value: [], semantics: "EMPTY" },
+  },
+  decision_pipeline: {
+    domain: "decision_pipeline",
+    observed_at_utc: "2026-09-27T20:00:00+00:00",
+    source: "visual-proof",
+    freshness: "FRESH",
+    status: "PRESENT",
+    schema_version: "1.0.0",
+    source_version: null,
+    evidence: {},
+    source_updated_at_utc: { value: null, semantics: "UNKNOWN" },
+    authority: "OBSERVATIONAL_TELEMETRY",
+    stages: [],
+    trade_allowed: { value: null, semantics: "UNKNOWN" },
+    first_blocker: { value: null, semantics: "UNKNOWN" },
+    per_symbol_decisions: [],
+  },
+  system_health: {
+    domain: "system_health",
+    observed_at_utc: "2026-09-27T20:00:00+00:00",
+    source: "visual-proof",
+    freshness: "FRESH",
+    status: "PRESENT",
+    schema_version: "1.0.0",
+    source_version: null,
+    evidence: {},
+    source_updated_at_utc: { value: null, semantics: "UNKNOWN" },
+    authority: "OBSERVATIONAL_TELEMETRY",
+    boot_alive: { value: true, semantics: "PRESENT" },
+    health_score: { value: null, semantics: "UNAVAILABLE" },
+    health_level: { value: "OBSERVED", semantics: "PRESENT" },
+    exchange_connectivity_healthy: { value: null, semantics: "UNAVAILABLE" },
+    exchange_latency_ms: { value: null, semantics: "UNAVAILABLE" },
+    module_statuses: {},
+  },
+  instance_relation: "CURRENT_INSTANCE",
+  runtime_state: "CURRENT",
+  stale_reason: null,
+  snapshot_age_s: 2.4,
+  freshness_classification: "FRESH",
+};
+
+const financialSnapshot = {
+  schema_version: "1.0.0",
+  product: "FIN02FinancialCockpit",
+  domain: "financial_reconciliation",
+  authority: "FINANCIAL_OBSERVATION",
+  generated_at_utc: "2026-09-27T20:00:00Z",
+  reconciliation_id: "r".repeat(64),
+  paper_epoch_id: "BURN-IN-EPOCH-01-20260926T064144Z",
+  financial_snapshot_id: "s".repeat(64),
+  reconciliation_code_sha: "r".repeat(40),
+  source_stream_digest: "p".repeat(64),
+  last_source_sequence: 3,
+  fin_schema_version: 1,
+  fin_code_sha: "f".repeat(40),
+  source_code_sha: "116634be0d3c015cce1cfa58be7da7255414fbfd",
+  config_hash: "9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4",
+  financial_model: "PAPER_LINEAR_PRINCIPAL_V1",
+  asset: "USDT",
+  financial: {
+    initial_epoch_capital: "1001.8635705815693",
+    cash_available: "981.8435705815693",
+    capital_reserved: "20.0",
+    capital_deployed: "20.0",
+    capital_unresolved: "0",
+    gross_realized_price_pnl: "0",
+    fees_paid: "0.02",
+    funding_net: null,
+    funding_status: "NOT_APPLICABLE",
+    funding_evidence_ref: null,
+    realized_pnl: null,
+    known_unrealized_pnl: "0",
+    unrealized_pnl: null,
+    certified_equity: null,
+    evidence_status: "UNRESOLVED",
+    reconciliation_status: "UNRESOLVED",
+    valuation_as_of: "1790540000.0",
+    valuation_statuses: ["UNAVAILABLE"],
+    open_position_count: 2,
+    settled_position_count: 0,
+    unresolved_position_count: 0,
+  },
+  reconciliation: {
+    overall_status: "DIVERGENT",
+    as_of: "1790540000.0",
+    unresolved_capital: "0",
+    unreconciled_capital: null,
+    policy: {
+      absolute_tolerance: "0.000000000001",
+      relative_tolerance: "0",
+      stale_after_s: "30",
+    },
+    ppl_observation_digest: "1".repeat(64),
+    simulator_observation_digest: null,
+    external_observation_digest: null,
+  },
+  sources: { ppl: {}, simulator: null, external: null },
+  records: [],
+  snapshot_age_s: 4.5,
+  freshness_classification: "FRESH",
+};
+
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const apiRequests = [];
   const mutationRequests = [];
+
+  await page.route("**/api/operator/v1/snapshot", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(operatorSnapshot) }),
+  );
+  await page.route("**/api/operator/v1/financial-reconciliation", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(financialSnapshot) }),
+  );
 
   page.on("request", (request) => {
     const url = new URL(request.url());
@@ -45,6 +193,8 @@ try {
 
   await page.getByTestId("direction-shell").waitFor({ state: "visible" });
   await page.getByTestId("direction-authority-strip").waitFor({ state: "visible" });
+  await page.getByTestId("direction-global-card").waitFor({ state: "visible" });
+  await page.getByTestId("direction-experiment-card").waitFor({ state: "visible" });
 
   const shellText = await page.getByTestId("direction-shell").innerText();
   for (const required of [
@@ -55,15 +205,33 @@ try {
     "LECTURE SEULE",
     "AUCUNE AUTORITÉ PAPER",
     "ÉTAT GLOBAL · INCONNU",
+    "BURN-IN-EPOCH-01-20260926T064144Z",
+    "981.8435705815693 USDT",
+    "PF · NOT_AVAILABLE",
+    "WR · NOT_AVAILABLE",
   ]) {
-    assert(shellText.includes(required), `D3 Direction evidence missing: ${required}`);
+    assert(shellText.includes(required), `D4B Direction evidence missing: ${required}`);
   }
 
   assert(
-    (await page.getByText("NON DÉPLOYÉ", { exact: true }).count()) === 6,
-    "Direction must expose exactly six honest NON DÉPLOYÉ capability cards",
+    (await page.getByText("NON DÉPLOYÉ", { exact: true }).count()) === 8,
+    "Direction must expose six future capability placeholders plus Watchdog and critical-alert NON DÉPLOYÉ states",
   );
-  assert(apiRequests.length === 0, `Direction unexpectedly requested runtime data: ${apiRequests.join(", ")}`);
+
+  const allowedRequests = new Set([
+    "GET /api/operator/v1/snapshot",
+    "GET /api/operator/v1/financial-reconciliation",
+  ]);
+  assert(apiRequests.length >= 2, "Direction did not request both governed D4B sources");
+  assert(
+    apiRequests.every((request) => allowedRequests.has(request)),
+    `Direction requested an endpoint outside D4B: ${apiRequests.join(", ")}`,
+  );
+  assert(
+    apiRequests.includes("GET /api/operator/v1/snapshot") &&
+      apiRequests.includes("GET /api/operator/v1/financial-reconciliation"),
+    `Direction governed sources incomplete: ${apiRequests.join(", ")}`,
+  );
   assert(mutationRequests.length === 0, `Direction issued mutation requests: ${mutationRequests.join(", ")}`);
 
   const returnControl = page.getByTestId("return-paper-live");
@@ -88,11 +256,11 @@ try {
   await assertNoOverflow(page, "mobile");
   await page.screenshot({ path: mobilePath, fullPage: true });
 
-  console.log(`WEB_DIR_D3_VISUAL_DESKTOP=${desktopPath}`);
-  console.log(`WEB_DIR_D3_VISUAL_MOBILE=${mobilePath}`);
-  console.log("WEB_DIR_D3_NO_API_REQUESTS=PASS");
-  console.log("WEB_DIR_D3_NO_MUTATION_REQUESTS=PASS");
-  console.log("WEB_DIR_D3_VISUAL_ASSERTIONS=PASS");
+  console.log(`WEB_DIR_D4B_VISUAL_DESKTOP=${desktopPath}`);
+  console.log(`WEB_DIR_D4B_VISUAL_MOBILE=${mobilePath}`);
+  console.log("WEB_DIR_D4B_GOVERNED_GETS=PASS");
+  console.log("WEB_DIR_D4B_NO_MUTATION_REQUESTS=PASS");
+  console.log("WEB_DIR_D4B_VISUAL_ASSERTIONS=PASS");
 } finally {
   await browser.close();
 }
