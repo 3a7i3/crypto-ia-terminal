@@ -47,6 +47,11 @@ describe("WEB-DIR-01-D2 product routing", () => {
 
     expect(screen.getByTestId("direction-shell")).toBeInTheDocument();
     expect(screen.queryByTestId("paper-live-shell")).toBeNull();
+    expect(screen.getByRole("heading", { name: "DIRECTION" })).toBeInTheDocument();
+    expect(screen.getByText("Synthèse, gouvernance et décisions humaines")).toBeInTheDocument();
+    expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("PRÉSENTATION");
+    expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("LECTURE SEULE");
+    expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("AUCUNE AUTORITÉ PAPER");
     expect(screen.getAllByText("NON DÉPLOYÉ")).toHaveLength(6);
     expect(screen.getByText(/ÉTAT GLOBAL · INCONNU/)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -56,7 +61,11 @@ describe("WEB-DIR-01-D2 product routing", () => {
     window.history.replaceState({}, "", "/direction");
     render(<App />);
 
-    fireEvent.click(screen.getByTestId("return-paper-live"));
+    const returnControl = screen.getByTestId("return-paper-live");
+    expect(returnControl).toHaveAttribute("href", "/paper-live");
+    returnControl.focus();
+    expect(returnControl).toHaveFocus();
+    fireEvent.click(returnControl);
 
     await waitFor(() => expect(screen.getByTestId("paper-live-shell")).toBeInTheDocument());
     expect(window.location.pathname).toBe("/paper-live");
