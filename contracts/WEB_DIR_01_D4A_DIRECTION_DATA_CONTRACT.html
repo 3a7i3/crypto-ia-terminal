@@ -1,0 +1,1052 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>WEB-DIR-01 / D4A — Direction Data and Authority Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/WEB_DIR_01_D4A_DIRECTION_DATA_CONTRACT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/WEB_DIR_01_D4A_DIRECTION_DATA_CONTRACT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="web-dir-01-d4a-direction-data-and-authority-contract">
+<h1>WEB-DIR-01 / D4A — Direction Data and Authority Contract<a class="headerlink" href="#web-dir-01-d4a-direction-data-and-authority-contract" title="Link to this heading">¶</a></h1>
+<p><strong>Mission:</strong> #294<br />
+<strong>Parent:</strong> #288<br />
+<strong>Active roadmap:</strong> #285<br />
+<strong>Related UX:</strong> #283<br />
+<strong>Burn-in guard:</strong> #286<br />
+<strong>Source baseline:</strong> <code class="docutils literal notranslate"><span class="pre">fa6f6cd15a7afc3f057355b17a431f8e809e55b2</span></code><br />
+<strong>Baseline tree:</strong> <code class="docutils literal notranslate"><span class="pre">dad88d768d6a952940d880a422f41fc9717aaf03</span></code><br />
+<strong>Date:</strong> 2026-09-27 UTC<br />
+<strong>Status:</strong> CONTRACT DEFINED — NOT SOURCE CERTIFIED — NOT RUNTIME CERTIFIED</p>
+<section id="purpose">
+<h2>1. Purpose<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>Define the exact data, authority, freshness, provenance, and absence semantics
+for Direction level-one cards before D4 adds executable presentation code.</p>
+<p>The required chain for every displayed fact is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">display</span> <span class="pre">field</span> <span class="pre">-&gt;</span> <span class="pre">endpoint</span> <span class="pre">-&gt;</span> <span class="pre">producer</span> <span class="pre">field</span> <span class="pre">-&gt;</span> <span class="pre">authority</span> <span class="pre">-&gt;</span> <span class="pre">freshness</span> <span class="pre">-&gt;</span> <span class="pre">absence/error</span> <span class="pre">state</span></code></p>
+<p>D4A is documentation-only. It creates no new data producer, endpoint, metric,
+runtime authority, or deployment permission.</p>
+</section>
+<section id="protected-boundary">
+<h2>2. Protected boundary<a class="headerlink" href="#protected-boundary" title="Link to this heading">¶</a></h2>
+<p>The active burn-in remains immutable:</p>
+<ul class="simple">
+<li><p>epoch: <code class="docutils literal notranslate"><span class="pre">BURN-IN-EPOCH-01-20260926T064144Z</span></code>;</p></li>
+<li><p>runtime source: <code class="docutils literal notranslate"><span class="pre">116634be0d3c015cce1cfa58be7da7255414fbfd</span></code>;</p></li>
+<li><p>config hash:
+<code class="docutils literal notranslate"><span class="pre">9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4</span></code>;</p></li>
+<li><p>admission: <code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=2</span></code>.</p></li>
+</ul>
+<p>D4 MUST NOT change or control strategy, signals, thresholds, risk, sizing,
+capital, epoch, manifest, PPL, FIN, Advisor, systemd, Watchdog, TESTNET, LIVE,
+Research promotion, or exchange access.</p>
+</section>
+<section id="verified-source-boundaries">
+<h2>3. Verified source boundaries<a class="headerlink" href="#verified-source-boundaries" title="Link to this heading">¶</a></h2>
+<section id="canonical-advisor-presentation">
+<h3>3.1 Canonical advisor presentation<a class="headerlink" href="#canonical-advisor-presentation" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/snapshot</span></code></p>
+<p>Provides one validated snapshot envelope containing:</p>
+<ul class="simple">
+<li><p>runtime/source identity evidence;</p></li>
+<li><p>portfolio presentation;</p></li>
+<li><p>decision-pipeline presentation;</p></li>
+<li><p>system-health presentation;</p></li>
+<li><p>reader-authored instance relation, runtime state, age, stale reason, and
+freshness classification.</p></li>
+</ul>
+<p>The endpoint is atomic only within its own envelope.</p>
+</section>
+<section id="financial-observation">
+<h3>3.2 Financial observation<a class="headerlink" href="#financial-observation" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/financial-reconciliation</span></code></p>
+<p>Provides one FIN-02 atomic presentation artifact plus reader-authored age and
+freshness. It is <code class="docutils literal notranslate"><span class="pre">FINANCIAL_OBSERVATION</span></code>, not execution authority.</p>
+</section>
+<section id="market-observation">
+<h3>3.3 Market observation<a class="headerlink" href="#market-observation" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/market</span></code></p>
+<p>Provides one CryptoRadar observational artifact. It is a separate process and
+observation boundary with authority <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code>.</p>
+</section>
+<section id="research-presentation">
+<h3>3.4 Research presentation<a class="headerlink" href="#research-presentation" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/research-lab</span></code></p>
+<p>Provides one Research presentation artifact with authority
+<code class="docutils literal notranslate"><span class="pre">RESEARCH_NON_AUTHORITATIVE</span></code>. It has its own dataset and run boundary.</p>
+</section>
+<section id="missing-direction-projection">
+<h3>3.5 Missing Direction projection<a class="headerlink" href="#missing-direction-projection" title="Link to this heading">¶</a></h3>
+<p>No <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/direction</span></code> atomic projection exists.</p>
+<p>D4B–D4D may build a federated page from independent cards, but MUST NOT:</p>
+<ul class="simple">
+<li><p>claim cross-card atomicity;</p></li>
+<li><p>derive one global timestamp;</p></li>
+<li><p>select the newest value across sources and call it canonical;</p></li>
+<li><p>derive a global health state;</p></li>
+<li><p>recompute scientific or financial metrics;</p></li>
+<li><p>hide disagreement, stale state, or source failure.</p></li>
+</ul>
+</section>
+</section>
+<section id="direction-page-model">
+<h2>4. Direction page model<a class="headerlink" href="#direction-page-model" title="Link to this heading">¶</a></h2>
+<p>Direction is a <strong>federated presentation surface</strong>, not an aggregate producer.</p>
+<p>Every governed card MUST display or make inspectable:</p>
+<ul class="simple">
+<li><p>its endpoint/domain;</p></li>
+<li><p>authority;</p></li>
+<li><p>producer timestamp;</p></li>
+<li><p>reader freshness when supplied;</p></li>
+<li><p>source identity/provenance;</p></li>
+<li><p>evidence or availability state;</p></li>
+<li><p>source-specific failure state.</p></li>
+</ul>
+<p>The page-level banner MUST say that cards may have different observation times.</p>
+</section>
+<section id="global-state-card-contract">
+<h2>5. Global state card contract<a class="headerlink" href="#global-state-card-contract" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Display</p></th>
+<th class="head"><p>Source field</p></th>
+<th class="head"><p>Authority/evidence</p></th>
+<th class="head"><p>Display rule</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Global machine state</p></td>
+<td><p>no producer</p></td>
+<td><p>none</p></td>
+<td><p>always <code class="docutils literal notranslate"><span class="pre">INCONNU</span></code>; never infer SAIN/ATTENTION/DÉGRADÉ/CRITIQUE</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mode</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.portfolio.mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.portfolio.authority</span></code></p></td>
+<td><p>render exact enum; <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> remains <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Runtime source SHA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.source_sha</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.runtime_sha_evidence_status</span></code></p></td>
+<td><p>show SHA with evidence status; <code class="docutils literal notranslate"><span class="pre">CLAIMED_ONLY</span></code> must not be styled as verified</p></td>
+</tr>
+<tr class="row-odd"><td><p>Worktree</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.worktree_state</span></code></p></td>
+<td><p>canonical envelope</p></td>
+<td><p>show <code class="docutils literal notranslate"><span class="pre">CLEAN</span></code>, <code class="docutils literal notranslate"><span class="pre">DIRTY</span></code>, or <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> exactly</p></td>
+</tr>
+<tr class="row-even"><td><p>Runtime state</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.runtime_state</span></code></p></td>
+<td><p>reader-authored</p></td>
+<td><p>show <code class="docutils literal notranslate"><span class="pre">CURRENT</span></code> or <code class="docutils literal notranslate"><span class="pre">LAST_KNOWN</span></code> exactly</p></td>
+</tr>
+<tr class="row-odd"><td><p>Instance relation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.instance_relation</span></code></p></td>
+<td><p>reader-authored</p></td>
+<td><p>show exact relation; no current-instance inference</p></td>
+</tr>
+<tr class="row-even"><td><p>Snapshot age</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.snapshot_age_s</span></code></p></td>
+<td><p>reader-authored</p></td>
+<td><p>render null as unavailable, never zero</p></td>
+</tr>
+<tr class="row-odd"><td><p>Snapshot freshness</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.freshness_classification</span></code></p></td>
+<td><p>reader-authored</p></td>
+<td><p>render exact value; do not invent thresholds in React</p></td>
+</tr>
+<tr class="row-even"><td><p>Stale reason</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.stale_reason</span></code></p></td>
+<td><p>reader-authored</p></td>
+<td><p>show when non-null; do not replace with a generic healthy state</p></td>
+</tr>
+<tr class="row-odd"><td><p>Advisor observation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.system_health.boot_alive</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ObservedValue&lt;boolean&gt;</span></code></p></td>
+<td><p>label as <code class="docutils literal notranslate"><span class="pre">boot_alive</span> <span class="pre">observation</span></code>; preserve semantics; do not broaden to service certification</p></td>
+</tr>
+<tr class="row-even"><td><p>Health level</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.system_health.health_level</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ObservedValue&lt;string&gt;</span></code></p></td>
+<td><p>show producer value/semantics only; do not convert to global state</p></td>
+</tr>
+<tr class="row-odd"><td><p>Watchdog</p></td>
+<td><p>no governed field</p></td>
+<td><p>none</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Critical alert count</p></td>
+<td><p>no governed field</p></td>
+<td><p>none</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>, never <code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="global-state-prohibition">
+<h3>5.1 Global-state prohibition<a class="headerlink" href="#global-state-prohibition" title="Link to this heading">¶</a></h3>
+<p>The card may show several producer-authored facts, but its headline remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ÉTAT</span> <span class="pre">GLOBAL</span> <span class="pre">·</span> <span class="pre">INCONNU</span></code></p>
+<p>until a governed producer defines a global status contract.</p>
+</section>
+</section>
+<section id="active-experiment-burn-in-card-contract">
+<h2>6. Active experiment / burn-in card contract<a class="headerlink" href="#active-experiment-burn-in-card-contract" title="Link to this heading">¶</a></h2>
+<p>FIN-02 is the preferred level-one source because it provides the active epoch,
+financial observation, lifecycle counts, source/config identities, evidence,
+and reconciliation in one atomic artifact.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Display</p></th>
+<th class="head"><p>FIN-02 field</p></th>
+<th class="head"><p>Rule</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Epoch</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code></p></td>
+<td><p>exact string</p></td>
+</tr>
+<tr class="row-odd"><td><p>Source SHA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">source_code_sha</span></code></p></td>
+<td><p>exact string; distinct from current app source</p></td>
+</tr>
+<tr class="row-even"><td><p>Config hash</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">config_hash</span></code></p></td>
+<td><p>exact string</p></td>
+</tr>
+<tr class="row-odd"><td><p>Generated at</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">generated_at_utc</span></code></p></td>
+<td><p>exact producer timestamp</p></td>
+</tr>
+<tr class="row-even"><td><p>Financial freshness</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">freshness_classification</span></code>, <code class="docutils literal notranslate"><span class="pre">snapshot_age_s</span></code></p></td>
+<td><p>exact reader evidence</p></td>
+</tr>
+<tr class="row-odd"><td><p>Open positions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.open_position_count</span></code></p></td>
+<td><p>producer integer; zero is valid when producer emits zero</p></td>
+</tr>
+<tr class="row-even"><td><p>Settled positions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.settled_position_count</span></code></p></td>
+<td><p>label <strong>Settled</strong>, not <code class="docutils literal notranslate"><span class="pre">POSITION_CLOSED</span></code>, unless a future producer defines equivalence</p></td>
+</tr>
+<tr class="row-odd"><td><p>Unresolved positions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.unresolved_position_count</span></code></p></td>
+<td><p>producer integer; never merge with missing data</p></td>
+</tr>
+<tr class="row-even"><td><p>Cash available</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.cash_available</span></code></p></td>
+<td><p>render decimal text without binary-float recomputation</p></td>
+</tr>
+<tr class="row-odd"><td><p>Capital reserved</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.capital_reserved</span></code></p></td>
+<td><p>render decimal text</p></td>
+</tr>
+<tr class="row-even"><td><p>Capital deployed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.capital_deployed</span></code></p></td>
+<td><p>render decimal text</p></td>
+</tr>
+<tr class="row-odd"><td><p>Capital unresolved</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.capital_unresolved</span></code></p></td>
+<td><p>render decimal text and status, never hide it</p></td>
+</tr>
+<tr class="row-even"><td><p>Realized PnL</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.realized_pnl</span></code></p></td>
+<td><p>if null, show <code class="docutils literal notranslate"><span class="pre">financial.evidence_status</span></code>; never substitute zero</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fees paid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.fees_paid</span></code></p></td>
+<td><p>render decimal text</p></td>
+</tr>
+<tr class="row-even"><td><p>Reconciliation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.reconciliation_status</span></code> and <code class="docutils literal notranslate"><span class="pre">reconciliation.overall_status</span></code></p></td>
+<td><p>show both if they differ; never collapse disagreement</p></td>
+</tr>
+<tr class="row-odd"><td><p>Unreconciled capital</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">reconciliation.unreconciled_capital</span></code></p></td>
+<td><p>null remains unavailable; never zero</p></td>
+</tr>
+<tr class="row-even"><td><p>Evidence status</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial.evidence_status</span></code></p></td>
+<td><p>exact producer status</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="active-experiment-fields-not-currently-governed">
+<h3>6.1 Active experiment fields not currently governed<a class="headerlink" href="#active-experiment-fields-not-currently-governed" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Requested display</p></th>
+<th class="head"><p>D4 status</p></th>
+<th class="head"><p>Reason</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Active burn-in population</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></td>
+<td><p>no authoritative active-experiment population field identified</p></td>
+</tr>
+<tr class="row-odd"><td><p>Profit factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></td>
+<td><p>not in FIN-02 active-experiment contract</p></td>
+</tr>
+<tr class="row-even"><td><p>Win rate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></td>
+<td><p>not in FIN-02 active-experiment contract</p></td>
+</tr>
+<tr class="row-odd"><td><p>Expectancy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></td>
+<td><p>not in FIN-02 active-experiment contract</p></td>
+</tr>
+<tr class="row-even"><td><p>Maximum drawdown</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></td>
+<td><p>not in FIN-02 active-experiment contract</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Research metrics MUST NOT fill these active-PAPER fields. Research may describe
+an immutable dataset only inside the Research card.</p>
+</section>
+<section id="ppl-comparison-boundary">
+<h3>6.2 PPL comparison boundary<a class="headerlink" href="#ppl-comparison-boundary" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/ppl-comparison</span></code> remains an observational comparison
+surface. D4 MUST NOT use its comparison summary as trade population or its
+comparison authority as PAPER financial authority.</p>
+</section>
+</section>
+<section id="market-card-contract">
+<h2>7. Market card contract<a class="headerlink" href="#market-card-contract" title="Link to this heading">¶</a></h2>
+<p>All Market values come from the same <code class="docutils literal notranslate"><span class="pre">MarketRadarSnapshot</span></code>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Display</p></th>
+<th class="head"><p>Market field</p></th>
+<th class="head"><p>Rule</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Product</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">product</span></code></p></td>
+<td><p>must remain <code class="docutils literal notranslate"><span class="pre">CryptoRadar</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Authority</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">authority</span></code></p></td>
+<td><p>permanently show <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Mode</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>show <code class="docutils literal notranslate"><span class="pre">OBSERVATION</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Generated at</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">generated_at_utc</span></code></p></td>
+<td><p>exact timestamp</p></td>
+</tr>
+<tr class="row-even"><td><p>Source updated at</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">source_updated_at_utc</span></code></p></td>
+<td><p>null remains unavailable</p></td>
+</tr>
+<tr class="row-odd"><td><p>Freshness</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">freshness_classification</span></code>, <code class="docutils literal notranslate"><span class="pre">snapshot_age_s</span></code></p></td>
+<td><p>exact reader evidence</p></td>
+</tr>
+<tr class="row-even"><td><p>Window</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">window_hours</span></code></p></td>
+<td><p>producer integer</p></td>
+</tr>
+<tr class="row-odd"><td><p>Packets observed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">packets_observed</span></code></p></td>
+<td><p>producer integer</p></td>
+</tr>
+<tr class="row-even"><td><p>Market regime</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">market_regime</span></code></p></td>
+<td><p>null remains unavailable</p></td>
+</tr>
+<tr class="row-odd"><td><p>Universe</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">universe_size</span></code></p></td>
+<td><p>producer integer</p></td>
+</tr>
+<tr class="row-even"><td><p>Actionable</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">actionable_count</span></code></p></td>
+<td><p>producer integer; observational, not execution permission</p></td>
+</tr>
+<tr class="row-odd"><td><p>Watchlist</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">watchlist_count</span></code></p></td>
+<td><p>producer integer</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>D4 must not convert <code class="docutils literal notranslate"><span class="pre">actionable_count</span></code> into orders, trade permission, or an
+execution forecast.</p>
+</section>
+<section id="research-card-contract">
+<h2>8. Research card contract<a class="headerlink" href="#research-card-contract" title="Link to this heading">¶</a></h2>
+<p>All Research values come from one <code class="docutils literal notranslate"><span class="pre">ResearchLabSnapshot</span></code> and remain visibly
+<code class="docutils literal notranslate"><span class="pre">RESEARCH</span> <span class="pre">NON-AUTORITAIRE</span></code>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Display</p></th>
+<th class="head"><p>Research field</p></th>
+<th class="head"><p>Rule</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Authority</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">authority</span></code></p></td>
+<td><p>permanently show <code class="docutils literal notranslate"><span class="pre">RESEARCH_NON_AUTHORITATIVE</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Research state</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">research_state</span></code></p></td>
+<td><p>exact <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code> or <code class="docutils literal notranslate"><span class="pre">EMPTY</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Generated at</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">generated_at_utc</span></code></p></td>
+<td><p>exact timestamp</p></td>
+</tr>
+<tr class="row-odd"><td><p>Dataset</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">provenance.primary_context.dataset_id</span></code></p></td>
+<td><p>exact identity</p></td>
+</tr>
+<tr class="row-even"><td><p>Source boundary</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">provenance.primary_context.source_boundary_id</span></code></p></td>
+<td><p>exact identity</p></td>
+</tr>
+<tr class="row-odd"><td><p>PAPER epoch reference</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">provenance.primary_context.paper_epoch_id</span></code></p></td>
+<td><p>null remains unavailable; reference is not feedback authority</p></td>
+</tr>
+<tr class="row-even"><td><p>Research run</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">provenance.primary_context.research_run_id</span></code></p></td>
+<td><p>exact identity</p></td>
+</tr>
+<tr class="row-odd"><td><p>Diagnostic run</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">provenance.primary_context.diagnostic_run_id</span></code></p></td>
+<td><p>null remains unavailable</p></td>
+</tr>
+<tr class="row-even"><td><p>Population N</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">population.n</span></code></p></td>
+<td><p>applies only to the Research dataset</p></td>
+</tr>
+<tr class="row-odd"><td><p>Evidence</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">population.evidence_status</span></code></p></td>
+<td><p>exact status</p></td>
+</tr>
+<tr class="row-even"><td><p>Statistical strength</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">population.statistical_strength</span></code></p></td>
+<td><p>exact status</p></td>
+</tr>
+<tr class="row-odd"><td><p>Candidates</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">candidate_registry.candidate_count</span></code></p></td>
+<td><p>producer integer; zero is valid when explicitly emitted</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Individual performance/risk/cost metrics may appear only when D4C defines an
+explicit named metric lookup with evidence status, statistical strength,
+population N, derivation, and source reference. Missing metric names are
+<code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>, never zero.</p>
+</section>
+<section id="capabilities-without-producers">
+<h2>9. Capabilities without producers<a class="headerlink" href="#capabilities-without-producers" title="Link to this heading">¶</a></h2>
+<p>These Direction blocks have no governed product projection and MUST remain
+<code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>:</p>
+<ul class="simple">
+<li><p>operator decision queue;</p></li>
+<li><p>Agent Registry;</p></li>
+<li><p>Bounty Registry;</p></li>
+<li><p>proposed-evolution workflow;</p></li>
+<li><p>AIC economy and wallets;</p></li>
+<li><p>Economy Ledger/hash chain;</p></li>
+<li><p>consolidated real costs;</p></li>
+<li><p>consolidated security/debt projection;</p></li>
+<li><p>consolidated incident registry.</p></li>
+</ul>
+<p>No demonstration number or fake row may appear as current fact.</p>
+</section>
+<section id="availability-semantics">
+<h2>10. Availability semantics<a class="headerlink" href="#availability-semantics" title="Link to this heading">¶</a></h2>
+<section id="producer-values">
+<h3>10.1 Producer values<a class="headerlink" href="#producer-values" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>explicit numeric <code class="docutils literal notranslate"><span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">ObservedValue(...,</span> <span class="pre">ZERO)</span></code> is a real zero;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNAVAILABLE</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">STALE</span></code> is still stale evidence, not current evidence and not absence;</p></li>
+<li><p>null must retain its producer-authored reason/status.</p></li>
+</ul>
+</section>
+<section id="product-availability">
+<h3>10.2 Product availability<a class="headerlink" href="#product-availability" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>no product/producer exists: <code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code>;</p></li>
+<li><p>product exists but a requested metric is absent: <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>;</p></li>
+<li><p>governed global status absent: <code class="docutils literal notranslate"><span class="pre">INCONNU</span></code>;</p></li>
+<li><p>endpoint artifact missing: show structured API error;</p></li>
+<li><p>invalid HTTP 200 body: show contract/transport error;</p></li>
+<li><p>network failure: show transport error;</p></li>
+<li><p>loading: show loading state, never a previous value as current unless the
+client explicitly labels it last-known/stale.</p></li>
+</ul>
+<p>French explanatory text may accompany exact machine statuses, but MUST NOT
+replace or soften them.</p>
+</section>
+</section>
+<section id="error-and-polling-contract">
+<h2>11. Error and polling contract<a class="headerlink" href="#error-and-polling-contract" title="Link to this heading">¶</a></h2>
+<p>Each independent client retains its current state machine:</p>
+<p><code class="docutils literal notranslate"><span class="pre">loading</span> <span class="pre">|</span> <span class="pre">success</span> <span class="pre">|</span> <span class="pre">api_error</span> <span class="pre">|</span> <span class="pre">transport_error</span></code></p>
+<p>Rules:</p>
+<ol class="arabic simple">
+<li><p>requests are GET-only;</p></li>
+<li><p>validation failure on HTTP 200 is a contract/transport error;</p></li>
+<li><p>one card failure does not fabricate values or erase evidence in another;</p></li>
+<li><p>one card success does not make the page globally healthy;</p></li>
+<li><p>polling intervals remain source-client concerns;</p></li>
+<li><p>D4 must not synchronize independent polls and call them atomic;</p></li>
+<li><p>error text must identify the failing domain.</p></li>
+</ol>
+</section>
+<section id="provenance-presentation">
+<h2>12. Provenance presentation<a class="headerlink" href="#provenance-presentation" title="Link to this heading">¶</a></h2>
+<p>Level one may abbreviate long identifiers, but the full value must remain
+accessible via details, copy control, or secondary inspection.</p>
+<p>Never abbreviate without access to the complete value for:</p>
+<ul class="simple">
+<li><p>source SHA;</p></li>
+<li><p>config hash;</p></li>
+<li><p>epoch ID;</p></li>
+<li><p>snapshot/dataset/source-boundary/run IDs;</p></li>
+<li><p>evidence refs;</p></li>
+<li><p>artifact hashes.</p></li>
+</ul>
+<p>Source SHA categories must be labelled distinctly:</p>
+<ul class="simple">
+<li><p>application source;</p></li>
+<li><p>runtime source evidence;</p></li>
+<li><p>FIN source code;</p></li>
+<li><p>Research source code;</p></li>
+<li><p>presentation-builder source.</p></li>
+</ul>
+</section>
+<section id="d4-implementation-sequence">
+<h2>13. D4 implementation sequence<a class="headerlink" href="#d4-implementation-sequence" title="Link to this heading">¶</a></h2>
+<section id="d4b-global-and-active-experiment">
+<h3>D4B — Global and active experiment<a class="headerlink" href="#d4b-global-and-active-experiment" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>add canonical snapshot and FIN-02 card adapters;</p></li>
+<li><p>preserve exact statuses and decimal text;</p></li>
+<li><p>keep global headline <code class="docutils literal notranslate"><span class="pre">INCONNU</span></code>;</p></li>
+<li><p>add domain-specific error states;</p></li>
+<li><p>no Market or Research request yet.</p></li>
+</ul>
+</section>
+<section id="d4c-market-and-research">
+<h3>D4C — Market and Research<a class="headerlink" href="#d4c-market-and-research" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>add independent Market and Research cards;</p></li>
+<li><p>keep permanent authority labels;</p></li>
+<li><p>prevent Research-to-PAPER metric leakage.</p></li>
+</ul>
+</section>
+<section id="d4d-cross-card-provenance">
+<h3>D4D — Cross-card provenance<a class="headerlink" href="#d4d-cross-card-provenance" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>make independent timestamps/freshness visible;</p></li>
+<li><p>add full-identity inspection;</p></li>
+<li><p>explicitly label the page non-atomic/federated.</p></li>
+</ul>
+</section>
+<section id="d4e-certification">
+<h3>D4E — Certification<a class="headerlink" href="#d4e-certification" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>semantic tests;</p></li>
+<li><p>request/mutation tests;</p></li>
+<li><p>desktop/mobile visual proof;</p></li>
+<li><p>exact CI reporting;</p></li>
+<li><p>source certification;</p></li>
+<li><p>still no deployment.</p></li>
+</ul>
+</section>
+</section>
+<section id="required-test-matrix">
+<h2>14. Required test matrix<a class="headerlink" href="#required-test-matrix" title="Link to this heading">¶</a></h2>
+<section id="global-state">
+<h3>Global state<a class="headerlink" href="#global-state" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>missing global producer renders <code class="docutils literal notranslate"><span class="pre">INCONNU</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CLAIMED_ONLY</span></code> is not rendered as verified;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, null age, and stale reason are preserved;</p></li>
+<li><p>no synthetic health aggregation.</p></li>
+</ul>
+</section>
+<section id="active-experiment">
+<h3>Active experiment<a class="headerlink" href="#active-experiment" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>decimal text remains exact;</p></li>
+<li><p>null realized PnL uses evidence status, not zero;</p></li>
+<li><p>unresolved capital remains visible;</p></li>
+<li><p>FIN reconciliation statuses are not collapsed;</p></li>
+<li><p>PF/WR/expectancy/drawdown/population remain <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>;</p></li>
+<li><p>Research data cannot populate active-PAPER metrics.</p></li>
+</ul>
+</section>
+<section id="market-and-research">
+<h3>Market and Research<a class="headerlink" href="#market-and-research" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Market remains <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code>;</p></li>
+<li><p>actionable market count never becomes trade permission;</p></li>
+<li><p>Research remains <code class="docutils literal notranslate"><span class="pre">RESEARCH_NON_AUTHORITATIVE</span></code>;</p></li>
+<li><p>Research N is labelled as dataset population;</p></li>
+<li><p>explicit candidate count zero may render zero;</p></li>
+<li><p>missing Research metric renders <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>.</p></li>
+</ul>
+</section>
+<section id="transport-and-authority">
+<h3>Transport and authority<a class="headerlink" href="#transport-and-authority" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>only documented GET endpoints are called;</p></li>
+<li><p>no POST/PUT/PATCH/DELETE;</p></li>
+<li><p>independent endpoint failures remain isolated;</p></li>
+<li><p>no direct JSONL/database/exchange read;</p></li>
+<li><p>no route or UI action mutates PAPER;</p></li>
+<li><p>no card claims cross-endpoint atomicity.</p></li>
+</ul>
+</section>
+<section id="quality">
+<h3>Quality<a class="headerlink" href="#quality" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>existing Vitest suite;</p></li>
+<li><p>cross-stack compatibility gate;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">run</span> <span class="pre">build</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">test</span> <span class="pre">--</span> <span class="pre">--run</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">run</span> <span class="pre">test:runtime</span></code>;</p></li>
+<li><p>desktop/mobile browser proof in D4E.</p></li>
+</ul>
+</section>
+</section>
+<section id="api-decision">
+<h2>15. API decision<a class="headerlink" href="#api-decision" title="Link to this heading">¶</a></h2>
+<p>D4A–D4E do not require a new endpoint.</p>
+<p>If a future product requirement demands an atomic Direction snapshot, it must
+be a separate producer/API mission with versioned schema, per-block provenance,
+availability, timestamp, authority, and fail-closed validation. React must not
+become that producer.</p>
+</section>
+<section id="d4a-non-impact-proof">
+<h2>16. D4A non-impact proof<a class="headerlink" href="#d4a-non-impact-proof" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Protected surface</p></th>
+<th class="head"><p>D4A effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>active runtime source</p></td>
+<td><p>unchanged</p></td>
+</tr>
+<tr class="row-odd"><td><p>epoch/config/admission</p></td>
+<td><p>unchanged</p></td>
+</tr>
+<tr class="row-even"><td><p>strategy/risk/sizing</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-odd"><td><p>PPL/FIN/Research producers</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-even"><td><p>Operator API</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-odd"><td><p>Advisor/systemd/Watchdog</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-even"><td><p>TESTNET/LIVE/exchange</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-odd"><td><p>frontend executable source</p></td>
+<td><p>untouched</p></td>
+</tr>
+<tr class="row-even"><td><p>deployment</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p>modified surface</p></td>
+<td><p>one documentation file</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="acceptance-and-verdict">
+<h2>17. Acceptance and verdict<a class="headerlink" href="#acceptance-and-verdict" title="Link to this heading">¶</a></h2>
+<p>D4A may be source-certified only after:</p>
+<ol class="arabic simple">
+<li><p>document review;</p></li>
+<li><p>documentation-only diff proof;</p></li>
+<li><p>exact base/head/tree recording;</p></li>
+<li><p>CI reported exactly;</p></li>
+<li><p>#294, #288, and #285 synchronization;</p></li>
+<li><p>explicit human merge authorization;</p></li>
+<li><p>post-merge tree equality verification.</p></li>
+</ol>
+<p>Current status:</p>
+<p><code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D4A_DATA_CONTRACT_DEFINED</span></code></p>
+<p>Target verdict:</p>
+<p><code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D4A_DATA_CONTRACT_SOURCE_CERTIFIED</span></code></p>
+<p>There is no D4A runtime verdict.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">WEB-DIR-01 / D4A — Direction Data and Authority Contract</a><ul>
+<li><a class="reference internal" href="#purpose">1. Purpose</a></li>
+<li><a class="reference internal" href="#protected-boundary">2. Protected boundary</a></li>
+<li><a class="reference internal" href="#verified-source-boundaries">3. Verified source boundaries</a><ul>
+<li><a class="reference internal" href="#canonical-advisor-presentation">3.1 Canonical advisor presentation</a></li>
+<li><a class="reference internal" href="#financial-observation">3.2 Financial observation</a></li>
+<li><a class="reference internal" href="#market-observation">3.3 Market observation</a></li>
+<li><a class="reference internal" href="#research-presentation">3.4 Research presentation</a></li>
+<li><a class="reference internal" href="#missing-direction-projection">3.5 Missing Direction projection</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#direction-page-model">4. Direction page model</a></li>
+<li><a class="reference internal" href="#global-state-card-contract">5. Global state card contract</a><ul>
+<li><a class="reference internal" href="#global-state-prohibition">5.1 Global-state prohibition</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#active-experiment-burn-in-card-contract">6. Active experiment / burn-in card contract</a><ul>
+<li><a class="reference internal" href="#active-experiment-fields-not-currently-governed">6.1 Active experiment fields not currently governed</a></li>
+<li><a class="reference internal" href="#ppl-comparison-boundary">6.2 PPL comparison boundary</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#market-card-contract">7. Market card contract</a></li>
+<li><a class="reference internal" href="#research-card-contract">8. Research card contract</a></li>
+<li><a class="reference internal" href="#capabilities-without-producers">9. Capabilities without producers</a></li>
+<li><a class="reference internal" href="#availability-semantics">10. Availability semantics</a><ul>
+<li><a class="reference internal" href="#producer-values">10.1 Producer values</a></li>
+<li><a class="reference internal" href="#product-availability">10.2 Product availability</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#error-and-polling-contract">11. Error and polling contract</a></li>
+<li><a class="reference internal" href="#provenance-presentation">12. Provenance presentation</a></li>
+<li><a class="reference internal" href="#d4-implementation-sequence">13. D4 implementation sequence</a><ul>
+<li><a class="reference internal" href="#d4b-global-and-active-experiment">D4B — Global and active experiment</a></li>
+<li><a class="reference internal" href="#d4c-market-and-research">D4C — Market and Research</a></li>
+<li><a class="reference internal" href="#d4d-cross-card-provenance">D4D — Cross-card provenance</a></li>
+<li><a class="reference internal" href="#d4e-certification">D4E — Certification</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#required-test-matrix">14. Required test matrix</a><ul>
+<li><a class="reference internal" href="#global-state">Global state</a></li>
+<li><a class="reference internal" href="#active-experiment">Active experiment</a></li>
+<li><a class="reference internal" href="#market-and-research">Market and Research</a></li>
+<li><a class="reference internal" href="#transport-and-authority">Transport and authority</a></li>
+<li><a class="reference internal" href="#quality">Quality</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#api-decision">15. API decision</a></li>
+<li><a class="reference internal" href="#d4a-non-impact-proof">16. D4A non-impact proof</a></li>
+<li><a class="reference internal" href="#acceptance-and-verdict">17. Acceptance and verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
