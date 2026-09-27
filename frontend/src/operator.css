@@ -649,7 +649,7 @@
 .not-found-view a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 12px; border: 1px solid var(--bg-border); border-radius: var(--r-chip); color: var(--text-sec); font-family: var(--font-mono); font-size: 10px; text-decoration: none; }
 @media (max-width: 900px) { .direction-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) {
-  .direction-header { position: relative; grid-template-columns: 1fr; align-items: stretch; gap: 10px; padding: 10px; }
+  .direction-header { position: sticky; grid-template-columns: 1fr; align-items: stretch; gap: 10px; padding: 10px; }
   .direction-return-nav, .direction-return-link { width: 100%; }
   .direction-return-link { justify-content: flex-start; }
   .direction-identity { padding: 4px 2px; }

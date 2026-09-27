@@ -78,6 +78,10 @@ try {
   await page.waitForTimeout(150);
   assert(await returnControl.isVisible(), "mobile Direction return control is not visible");
   assert(await page.getByTestId("direction-authority-strip").isVisible(), "mobile authority strip is not visible");
+  const mobileHeaderPosition = await page.locator(".direction-header").evaluate(
+    (element) => getComputedStyle(element).position,
+  );
+  assert(mobileHeaderPosition === "sticky", "mobile Direction header is not sticky");
   const mobileReturnBox = await returnControl.boundingBox();
   assert(mobileReturnBox !== null && mobileReturnBox.height >= 44, "mobile return control is smaller than 44px");
   assert(mobileReturnBox !== null && mobileReturnBox.width <= 390, "mobile return control exceeds viewport");
