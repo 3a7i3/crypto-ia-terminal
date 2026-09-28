@@ -374,30 +374,56 @@ class DurableGovernedStore:
         les deux opérations voient donc strictement le même état, quoi qu'il
         se passe sur une autre connexion pendant ce temps.
 
-        Retenue bornée sur `sqlite3.OperationalError` (`_OPEN_RETRY_ATTEMPTS`) :
+        Retenue bornée sur `sqlite3.DatabaseError` (`_OPEN_RETRY_ATTEMPTS`) :
         observé en CI (TEST REGRESSION GATE, PR #316, run 36374909495,
         check_run_id 108778642724 et 108778632585) — sous forte contention
         d'ouverture de connexion (suite complète, 6549+ tests dans le même
         processus), `self._connect()` peut échouer rapidement (verrou SQLite
-        transitoire ou pression sur les descripteurs de fichiers) avant même
-        d'atteindre `_verify_locked`. Sans retenue, cette erreur transitoire
-        était absorbée par le `except sqlite3.DatabaseError` fail-closed de
+        transitoire, pression sur les descripteurs de fichiers, ou glitch I/O
+        transitoire du système de fichiers du runner) avant même d'atteindre
+        `_verify_locked`. Sans retenue, cette erreur transitoire était
+        absorbée par le `except sqlite3.DatabaseError` fail-closed de
         `project()` et renvoyée comme `UNKNOWN`/`integrity_failure` — un faux
         négatif indiscernable d'une vraie corruption, et la cause du test
         `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique`
         constaté comme flaky (jamais atteint en isolation, seulement sous la
-        suite complète). La retenue ne s'applique qu'aux erreurs SQLite
-        transitoires : `CorruptedJournalError` (vraie corruption) n'est pas un
-        `sqlite3.OperationalError` et continue de remonter immédiatement,
-        sans aucun affaiblissement du fail-closed.
+        suite complète).
+
+        Correctif précédent (retenue sur `sqlite3.OperationalError` seul,
+        HEAD 85e9c23) INSUFFISANT — cause réelle prouvée par reproduction
+        ciblée (pas une hypothèse) : `sqlite3.OperationalError` n'est qu'UNE
+        sous-classe de `sqlite3.DatabaseError` (verrou, timeout, "unable to
+        open database file"). Une erreur SQLite transitoire d'un AUTRE type
+        de cette même hiérarchie (ex. `sqlite3.DatabaseError` nu, levé par
+        exemple sur un glitch I/O du système de fichiers du runner CI) n'est
+        PAS un `sqlite3.OperationalError` : elle traverse ce `except` sans
+        être retenue, remonte immédiatement hors de la boucle (zéro retry
+        tenté, quel que soit `_OPEN_RETRY_ATTEMPTS`), et est absorbée
+        silencieusement par le `except (..., sqlite3.DatabaseError, ...)`
+        fail-closed de `project()` — exactement le symptôme observé
+        (`injected["done"]` resté `False`, échec identique sur les 3 runs
+        CI malgré le correctif précédent, puisque ce correctif ne change
+        rien à une erreur qui ne passe jamais par le `except
+        sqlite3.OperationalError`). Reproduction : forcer `self._connect()`
+        à lever un `sqlite3.DatabaseError` nu (et non une de ses sous-classes)
+        au premier appel démontre, avec le code d'avant ce correctif, que
+        `project()` renvoie `UNKNOWN` après un seul appel à `_connect()`
+        (aucune retenue déclenchée) — reproduisant fidèlement le symptôme
+        CI sans deviner. La retenue ne s'applique qu'aux erreurs SQLite
+        transitoires : `CorruptedJournalError`/`IntegrityError` (vraie
+        corruption détectée par `_verify_locked`) sont une hiérarchie
+        d'exceptions entièrement distincte (`ValueError`, définie dans
+        `producer.py`), jamais une sous-classe de `sqlite3.DatabaseError` —
+        elles continuent de remonter immédiatement, sans aucun
+        affaiblissement du fail-closed, retenue ou pas.
         """
-        last_exc: sqlite3.OperationalError | None = None
+        last_exc: sqlite3.DatabaseError | None = None
         for attempt in range(_OPEN_RETRY_ATTEMPTS):
             if attempt:
                 time.sleep(_OPEN_RETRY_DELAY_SECONDS)
             try:
                 conn = self._connect()
-            except sqlite3.OperationalError as exc:
+            except sqlite3.DatabaseError as exc:
                 last_exc = exc
                 continue
             try:
@@ -410,7 +436,7 @@ class DurableGovernedStore:
                 finally:
                     conn.execute("COMMIT")
                 return tuple(json.loads(r[0]) for r in rows)
-            except sqlite3.OperationalError as exc:
+            except sqlite3.DatabaseError as exc:
                 last_exc = exc
                 continue
             finally:
