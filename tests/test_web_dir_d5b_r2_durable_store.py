@@ -9,15 +9,60 @@ from __future__ import annotations
 import sqlite3
 import threading
 from dataclasses import replace
+from datetime import datetime, timedelta, timezone
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from observability.operator_decisions.durable_store import (
     AvailabilityProof, CorruptedJournalError, DurableGovernedStore,
+    admission_approval_payload,
 )
 from observability.operator_decisions.producer import Candidate, ContractError
+from observability.operator_decisions.trust import (
+    ADMISSION_APPROVER, AVAILABILITY_AUTHORITY, TrustError, TrustPolicy,
+    sign_statement, trusted_key,
+)
 
 NOW = "2026-09-28T03:00:00Z"
+NOW_DT = datetime(2026, 9, 28, 3, 0, 0, tzinfo=timezone.utc)
+
+# --- Fixtures de confiance NON OPÉRATIONNELLES (ADR-0020 §4) -----------------
+# Clés générées à la volée pour ce module de test, jamais persistées, jamais
+# réutilisables hors test. Elles ne représentent AUCUNE autorité réelle.
+FIXTURE_NON_OPERATIONNELLE = True
+APPROVER_SK = Ed25519PrivateKey.generate()
+AUTHORITY_SK = Ed25519PrivateKey.generate()
+ROGUE_SK = Ed25519PrivateKey.generate()
+POLICY_VERSION = "fixture-policy-v1"
+APPROVER_KEY = trusted_key(
+    APPROVER_SK, "fixture-approver-1", ADMISSION_APPROVER,
+    "fixture:approbateur-problem", scopes=("problem-registry",),
+)
+AUTHORITY_KEY = trusted_key(
+    AUTHORITY_SK, "fixture-authority-1", AVAILABILITY_AUTHORITY,
+    "fixture:autorite-disponibilite",
+)
+
+
+def policy(**overrides) -> TrustPolicy:
+    base = dict(policy_version=POLICY_VERSION, keys=(APPROVER_KEY, AUTHORITY_KEY))
+    base.update(overrides)
+    return TrustPolicy(**base)
+
+
+class Clock:
+    """Horloge injectée et pilotable (ADR-0020 §9)."""
+
+    def __init__(self, now: datetime = NOW_DT):
+        self.now = now
+
+    def __call__(self) -> datetime:
+        return self.now
+
+
+def _iso(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def candidate(**overrides) -> Candidate:
@@ -40,20 +85,35 @@ def candidate(**overrides) -> Candidate:
     return Candidate(**base)
 
 
-def store(path) -> DurableGovernedStore:
-    return DurableGovernedStore(path, {"PROBLEM": "problem-registry"})
+def store(path, *, trust_policy: TrustPolicy | None = None, clock=None) -> DurableGovernedStore:
+    return DurableGovernedStore(
+        path, {"PROBLEM": "problem-registry"},
+        trust_policy=trust_policy or policy(), clock=clock or Clock(),
+    )
+
+
+def approval(c: Candidate, *, sk=APPROVER_SK, key_id="fixture-approver-1", **overrides):
+    fields = dict(
+        policy_version=POLICY_VERSION, approver_id="fixture:approbateur-problem",
+        approved_status="TO_PLAN", approved_priority="MEDIUM",
+        transfer_ref="transfert:problem-registry->operator-decision:1",
+        approval_id="approbation-1", issued_at_utc=_iso(NOW_DT - timedelta(minutes=1)),
+        expires_at_utc=_iso(NOW_DT + timedelta(minutes=30)),
+    )
+    payload_overrides = {k: overrides.pop(k) for k in list(overrides) if k not in fields}
+    fields.update(overrides)
+    payload = admission_approval_payload(c, **fields)
+    payload.update(payload_overrides)
+    return sign_statement(sk, key_id, payload)
 
 
 def proof(count: int) -> AvailabilityProof:
     return AvailabilityProof(True, "deploy-audit:sha256:abc", count, NOW)
 
 
-def admit(s: DurableGovernedStore, c: Candidate, command_id: str = "cmd-1") -> str:
-    return s.admit(
-        c, occurred_at_utc=NOW, approved_status="TO_PLAN",
-        approved_priority="HIGH", admission_approval_ref="gate:review-1",
-        command_id=command_id,
-    )
+def admit(s: DurableGovernedStore, c: Candidate, command_id: str = "cmd-1",
+          appr=None) -> str:
+    return s.admit(c, approval=appr or approval(c), command_id=command_id)
 
 
 # --- Admission atomique et idempotence -------------------------------------
@@ -479,3 +539,142 @@ def test_zero_ne_peut_jamais_etre_certifie_par_une_preuve_non_authentifiee(tmp_p
     assert view["availability"] == "UNKNOWN"
     assert view["decision_count"] is None
     assert "zéro non authentifié" in " ".join(view["limitations"])
+
+
+# --- Approbation signée liée au contenu (ADR-0020, étape 2) ------------------
+
+def _refus_sans_ecriture(s, c, appr, match=None):
+    with pytest.raises((TrustError, ContractError), match=match):
+        s.admit(c, approval=appr, command_id="cmd-refus")
+    assert s.events() == ()
+
+
+def test_approbation_avec_fausse_signature_refusee_sans_ecriture(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    forged = replace(approval(c), signature_hex="0" * 128)
+    _refus_sans_ecriture(s, c, forged, match="signature invalide")
+
+
+def test_approbation_signee_par_cle_inconnue_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c, sk=ROGUE_SK, key_id="cle-inconnue"),
+                         match="clé inconnue")
+
+
+def test_cle_hors_politique_avec_key_id_connu_ne_etablit_jamais_son_autorite(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c, sk=ROGUE_SK), match="signature invalide")
+
+
+def test_approbation_par_cle_revoquee_refusee(tmp_path):
+    s = store(tmp_path / "store.db",
+              trust_policy=policy(revoked_key_ids=frozenset({"fixture-approver-1"})))
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c), match="révoquée")
+
+
+def test_approbation_signee_par_le_mauvais_role_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    appr = approval(c, sk=AUTHORITY_SK, key_id="fixture-authority-1",
+                    approver_id="fixture:autorite-disponibilite")
+    _refus_sans_ecriture(s, c, appr, match="rôle incorrect")
+
+
+def test_approbation_par_approbateur_d_un_autre_proprietaire_refusee(tmp_path):
+    other = trusted_key(APPROVER_SK, "fixture-approver-1", ADMISSION_APPROVER,
+                        "fixture:approbateur-problem", scopes=("bounty-registry",))
+    s = store(tmp_path / "store.db", trust_policy=policy(keys=(other, AUTHORITY_KEY)))
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c), match="propriétaire")
+
+
+def test_approbation_liee_a_un_mauvais_proprietaire_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c, owner_registry="bounty-registry"),
+                         match="owner_registry")
+
+
+def test_candidat_substitue_apres_approbation_refuse(tmp_path):
+    s = store(tmp_path / "store.db")
+    appr = approval(candidate())
+    _refus_sans_ecriture(s, candidate(title="Titre substitué"), appr,
+                         match="candidate_fingerprint")
+
+
+def test_source_remplacee_revision_differente_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    appr = approval(candidate())  # approuvée pour owner_record_version=v1
+    _refus_sans_ecriture(s, candidate(owner_record_version="v2"), appr,
+                         match="owner_record_version")
+
+
+def test_source_obsolete_empreinte_de_contenu_differente_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    appr = approval(candidate())
+    _refus_sans_ecriture(s, candidate(source_sha="b" * 64), appr, match="source_sha")
+
+
+def test_priorite_auto_promue_par_l_approbation_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate(requested_priority="MEDIUM")
+    _refus_sans_ecriture(s, c, approval(c, approved_priority="CRITICAL"),
+                         match="auto-promue")
+
+
+def test_priorite_auto_promue_par_le_demandeur_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    appr = approval(candidate(requested_priority="MEDIUM"))
+    _refus_sans_ecriture(s, candidate(requested_priority="CRITICAL"), appr,
+                         match="candidate_fingerprint")
+
+
+def test_version_de_politique_inconnue_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c, policy_version="politique-v0"),
+                         match="version de politique")
+
+
+def test_approbation_expiree_refusee(tmp_path):
+    s = store(tmp_path / "store.db", clock=Clock(NOW_DT + timedelta(hours=2)))
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c), match="expiré")
+
+
+def test_approbateur_signe_different_de_l_identite_de_la_cle_refuse(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c, approver_id="usurpateur"), match="identité")
+
+
+def test_preuve_libre_non_signee_refusee_comme_approbation(tmp_path):
+    s = store(tmp_path / "store.db")
+    _refus_sans_ecriture(s, candidate(), {"approved": True}, match="énoncé signé requis")
+
+
+def test_statut_et_priorite_lus_depuis_l_approbation_verifiee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate(requested_priority="HIGH", requested_status="TO_VALIDATE")
+    admit(s, c, appr=approval(c, approved_status="TO_READ", approved_priority="LOW"))
+    (event,) = s.events()
+    assert event["new_status"] == "TO_READ"
+    assert event["approved_priority"] == "LOW"
+    assert event["approver_id"] == "fixture:approbateur-problem"
+    assert event["policy_version"] == POLICY_VERSION
+
+
+def test_politique_operationnelle_refusee_sans_autorite_reelle():
+    with pytest.raises(ContractError, match="aucune autorité"):
+        policy(operational=True)
+
+
+def test_une_identite_ne_peut_detenir_les_deux_roles():
+    dual = trusted_key(AUTHORITY_SK, "k2", AVAILABILITY_AUTHORITY,
+                       "fixture:approbateur-problem")
+    with pytest.raises(ContractError, match="deux rôles"):
+        policy(keys=(APPROVER_KEY, dual))

@@ -34,8 +34,9 @@ import sqlite3
 import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import Mapping
+from typing import Callable, Mapping
 from uuid import uuid4
 
 from observability.operator_decisions.producer import (
@@ -48,6 +49,14 @@ from observability.operator_decisions.producer import (
     _digest,
     _text,
     _utc,
+)
+from observability.operator_decisions.trust import (
+    ADMISSION_APPROVAL,
+    ADMISSION_APPROVER,
+    PRIORITY_RANK,
+    SignedStatement,
+    TrustError,
+    TrustPolicy,
 )
 
 SCHEMA_VERSION = "1.0.0"
@@ -80,6 +89,44 @@ class AvailabilityProof:
 
 class CorruptedJournalError(IntegrityError):
     """Le journal sur disque ne peut plus être vérifié : échec fermé."""
+
+
+def candidate_fingerprint(payload: Mapping) -> str:
+    """Empreinte canonique du candidat exact (tous champs, JSON trié)."""
+    return _digest(dict(payload))
+
+
+def admission_approval_payload(
+    candidate: Candidate, *, policy_version: str, approver_id: str,
+    approved_status: str, approved_priority: str, transfer_ref: str,
+    approval_id: str, issued_at_utc: str, expires_at_utc: str,
+) -> dict:
+    """Construit la charge d'une approbation d'admission (à signer HORS store).
+
+    Simple constructeur de données : une charge non signée n'a aucune
+    autorité. Seule `TrustPolicy.verify` (politique du constructeur du store)
+    lui en confère une.
+    """
+    return {
+        "statement_type": ADMISSION_APPROVAL,
+        "policy_version": policy_version,
+        "approval_id": approval_id,
+        "approver_id": approver_id,
+        "candidate_fingerprint": candidate_fingerprint(
+            GovernedProducer._payload(candidate)  # noqa: SLF001
+        ),
+        "owner_registry": candidate.owner_registry,
+        "source_type": candidate.source_type,
+        "source_id": candidate.source_id,
+        "owner_record_version": candidate.owner_record_version,
+        "source_sha": candidate.source_sha,
+        "decision_purpose": candidate.decision_purpose,
+        "approved_status": approved_status,
+        "approved_priority": approved_priority,
+        "transfer_ref": transfer_ref,
+        "issued_at_utc": issued_at_utc,
+        "expires_at_utc": expires_at_utc,
+    }
 
 
 _SCHEMA_SQL = """
@@ -120,10 +167,21 @@ class DurableGovernedStore:
     admissions conflictuelles sur la même clé sont rejetées.
     """
 
-    def __init__(self, db_path: str | Path, owners: Mapping[str, str]):
+    def __init__(
+        self, db_path: str | Path, owners: Mapping[str, str], *,
+        trust_policy: TrustPolicy, clock: Callable[[], datetime],
+    ):
         # Réutilise la validation du noyau R1 sans dupliquer la logique de
         # décision (gel architectural) : seule la persistance change.
         self._validator = GovernedProducer(dict(owners))
+        # Politique de confiance = configuration du VÉRIFICATEUR (ADR-0020
+        # §5) : fournie ici, jamais dans une requête.
+        if not isinstance(trust_policy, TrustPolicy):
+            raise ContractError("politique de confiance du vérificateur requise")
+        if not callable(clock):
+            raise ContractError("horloge injectée requise (ADR-0020 §9)")
+        self._policy = trust_policy
+        self._clock = clock
         self._db_path = str(db_path)
         self._lock = threading.Lock()
         self._init_schema()
@@ -212,12 +270,55 @@ class DurableGovernedStore:
             candidate.decision_purpose,
         )
 
-    def admit(
-        self, candidate: Candidate, *, occurred_at_utc: str,
-        approved_status: str, approved_priority: str,
-        admission_approval_ref: str, command_id: str,
-    ) -> str:
+    def _verify_approval(self, candidate: Candidate, payload: dict,
+                         approval: object) -> dict:
+        """Vérifie l'approbation signée contre la politique du constructeur.
+
+        Aucune écriture n'a lieu avant la fin de cette méthode : tout échec
+        lève `TrustError`/`ContractError` sans toucher au journal.
+        """
+        body, key = self._policy.verify(
+            approval, role=ADMISSION_APPROVER, statement_type=ADMISSION_APPROVAL,
+        )
+        self._policy.check_validity(body, self._clock())
+        if body.get("approver_id") != key.identity:
+            raise TrustError("l'approbateur signé ne correspond pas à l'identité de la clé")
+        if candidate.owner_registry not in key.scopes:
+            raise TrustError("approbateur non autorisé pour ce propriétaire source")
+        bindings = {
+            "owner_registry": candidate.owner_registry,
+            "source_type": candidate.source_type,
+            "source_id": candidate.source_id,
+            "owner_record_version": candidate.owner_record_version,
+            "source_sha": candidate.source_sha,
+            "decision_purpose": candidate.decision_purpose,
+            "candidate_fingerprint": candidate_fingerprint(payload),
+        }
+        for name, expected in bindings.items():
+            if body.get(name) != expected:
+                raise TrustError(
+                    f"approbation non liée au candidat présenté ({name}) : "
+                    "substitution, source remplacée ou obsolète"
+                )
+        status, priority = body.get("approved_status"), body.get("approved_priority")
+        if status not in INITIAL_STATUSES or priority not in PRIORITIES:
+            raise TrustError("statut ou priorité approuvé invalide")
+        if PRIORITY_RANK[priority] > PRIORITY_RANK[candidate.requested_priority]:
+            raise TrustError("priorité auto-promue au-delà de la demande du candidat")
+        _text(body.get("transfer_ref"), "transfer_ref")
+        _text(body.get("approval_id"), "approval_id")
+        return body
+
+    def admit(self, candidate: Candidate, *, approval: SignedStatement,
+              command_id: str) -> str:
         """Admission atomique et idempotente, y compris après redémarrage.
+
+        `approval` est une approbation signée par un `ADMISSION_APPROVER` de
+        la politique du constructeur ; statut et priorité approuvés sont lus
+        depuis elle (jamais depuis des arguments libres). Le seuil de
+        candidature D5B reste celui de `GovernedProducer._validate`.
+        L'admission gouvernée n'est PAS la décision humaine D5D (non
+        implémentée ici).
 
         `command_id` identifie la requête de l'appelant (pas la décision) :
         si l'appelant a perdu la réponse après un commit réussi (crash,
@@ -225,19 +326,18 @@ class DurableGovernedStore:
         la `decision_id` déjà committée sans dupliquer d'événement.
         """
         self._validator._validate(candidate)  # noqa: SLF001 (réutilisation intentionnelle)
-        _utc(occurred_at_utc)
-        _text(admission_approval_ref, "admission_approval_ref")
         _text(command_id, "command_id")
-        if approved_status not in INITIAL_STATUSES or approved_priority not in PRIORITIES:
-            raise ContractError("statut ou priorité approuvé invalide")
-
         payload = self._validator._payload(candidate)  # noqa: SLF001
+        body = self._verify_approval(candidate, payload, approval)
+        approved_status = body["approved_status"]
+        approved_priority = body["approved_priority"]
+        occurred_at_utc = self._clock().strftime("%Y-%m-%dT%H:%M:%SZ")
+        _utc(occurred_at_utc)
+
         key = self._key(candidate)
         key_hash = _digest(key)
         fingerprint = _digest({
-            "candidate": payload, "approved_status": approved_status,
-            "approved_priority": approved_priority,
-            "admission_approval_ref": admission_approval_ref,
+            "candidate": payload, "approval": approval.digest_material(),
         })
 
         with self._lock:
@@ -297,7 +397,11 @@ class DurableGovernedStore:
                         "new_status": approved_status,
                         "candidate_id": candidate.candidate_id,
                         "source_revision_ref": candidate.owner_record_version,
-                        "admission_approval_ref": admission_approval_ref,
+                        "admission_approval_ref": body["approval_id"],
+                        "approver_id": body["approver_id"],
+                        "policy_version": body["policy_version"],
+                        "transfer_ref": body["transfer_ref"],
+                        "approval": approval.digest_material(),
                         "approved_priority": approved_priority,
                         "requested_priority": candidate.requested_priority,
                         "evidence_refs": list(candidate.evidence_refs),
@@ -566,5 +670,5 @@ class DurableGovernedStore:
 
 __all__ = [
     "AvailabilityProof", "CorruptedJournalError", "DurableGovernedStore",
-    "SCHEMA_VERSION",
+    "SCHEMA_VERSION", "admission_approval_payload", "candidate_fingerprint",
 ]
