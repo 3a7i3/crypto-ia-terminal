@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
@@ -51,6 +52,12 @@ from observability.operator_decisions.producer import (
 
 SCHEMA_VERSION = "1.0.0"
 KNOWN_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION})
+
+# Retenue bornée pour `_read_events_verified` face à un `sqlite3.OperationalError`
+# transitoire (voir docstring de `_read_events_verified`) — pas un nouveau
+# comportement fonctionnel, une résilience I/O sur un chemin déjà fail-closed.
+_OPEN_RETRY_ATTEMPTS = 5
+_OPEN_RETRY_DELAY_SECONDS = 0.05
 
 
 @dataclass(frozen=True)
@@ -366,20 +373,50 @@ class DurableGovernedStore:
         (`BEGIN` en mode WAL) fixe l'instantané avant la première lecture ;
         les deux opérations voient donc strictement le même état, quoi qu'il
         se passe sur une autre connexion pendant ce temps.
+
+        Retenue bornée sur `sqlite3.OperationalError` (`_OPEN_RETRY_ATTEMPTS`) :
+        observé en CI (TEST REGRESSION GATE, PR #316, run 36374909495,
+        check_run_id 108778642724 et 108778632585) — sous forte contention
+        d'ouverture de connexion (suite complète, 6549+ tests dans le même
+        processus), `self._connect()` peut échouer rapidement (verrou SQLite
+        transitoire ou pression sur les descripteurs de fichiers) avant même
+        d'atteindre `_verify_locked`. Sans retenue, cette erreur transitoire
+        était absorbée par le `except sqlite3.DatabaseError` fail-closed de
+        `project()` et renvoyée comme `UNKNOWN`/`integrity_failure` — un faux
+        négatif indiscernable d'une vraie corruption, et la cause du test
+        `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique`
+        constaté comme flaky (jamais atteint en isolation, seulement sous la
+        suite complète). La retenue ne s'applique qu'aux erreurs SQLite
+        transitoires : `CorruptedJournalError` (vraie corruption) n'est pas un
+        `sqlite3.OperationalError` et continue de remonter immédiatement,
+        sans aucun affaiblissement du fail-closed.
         """
-        conn = self._connect()
-        try:
-            conn.execute("BEGIN")
+        last_exc: sqlite3.OperationalError | None = None
+        for attempt in range(_OPEN_RETRY_ATTEMPTS):
+            if attempt:
+                time.sleep(_OPEN_RETRY_DELAY_SECONDS)
             try:
-                rows = conn.execute(
-                    "SELECT payload_json FROM events ORDER BY sequence ASC"
-                ).fetchall()
-                self._verify_locked(conn)
+                conn = self._connect()
+            except sqlite3.OperationalError as exc:
+                last_exc = exc
+                continue
+            try:
+                conn.execute("BEGIN")
+                try:
+                    rows = conn.execute(
+                        "SELECT payload_json FROM events ORDER BY sequence ASC"
+                    ).fetchall()
+                    self._verify_locked(conn)
+                finally:
+                    conn.execute("COMMIT")
+                return tuple(json.loads(r[0]) for r in rows)
+            except sqlite3.OperationalError as exc:
+                last_exc = exc
+                continue
             finally:
-                conn.execute("COMMIT")
-            return tuple(json.loads(r[0]) for r in rows)
-        finally:
-            conn.close()
+                conn.close()
+        assert last_exc is not None  # noqa: S101 (garantie interne, pas un test)
+        raise last_exc
 
     def project(self, proof: AvailabilityProof | None = None) -> dict:
         """Reconstruit la projection à partir du journal seul (fail-closed)."""

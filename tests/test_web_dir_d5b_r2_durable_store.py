@@ -313,6 +313,28 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
     transaction fixé au début de `_read_events_verified` ne voit pas les
     écritures commitées après son démarrage, donc les données lues et
     vérifiées restent cohérentes entre elles.
+
+    Déterminisme de l'injection (pas un thread, pas de `sleep`/`Event.wait`) :
+    `corrupting_verify` remplace directement `_verify_locked` par
+    `monkeypatch.setattr`, donc l'appel `self._verify_locked(conn)` dans
+    `_read_events_verified` exécute la corruption de façon synchrone, dans le
+    même thread, au point exact voulu — il n'y a aucune fenêtre de timing à
+    gagner. Le flaking constaté en CI (TEST REGRESSION GATE, PR #316, run
+    36374909495, check_run_id 108778642724 et 108778632585, reproduit deux
+    fois sur le même HEAD b63bca8, en cascade avec les checks "test"
+    (108778642556) et "coveralls-upload" (108778642041)) ne venait donc pas
+    d'une course perdue par ce test, mais d'un `sqlite3.OperationalError`
+    transitoire pouvant survenir avant même d'atteindre `_verify_locked`
+    (ouverture de connexion sous forte contention I/O quand les 6549+ tests
+    tournent dans le même processus) : `project()` l'absorbait dans son
+    `except sqlite3.DatabaseError` fail-closed et renvoyait silencieusement
+    `UNKNOWN`, sans jamais appeler la version patchée — d'où
+    `injected["done"]` resté `False`. La correction structurelle est dans
+    `DurableGovernedStore._read_events_verified` (retenue bornée sur
+    `sqlite3.OperationalError`, jamais sur `CorruptedJournalError`) ; la
+    connexion corruptrice ci-dessous reçoit en plus son propre
+    `busy_timeout` généreux pour ne pas être elle-même la source d'un
+    `OperationalError` transitoire sous charge CI.
     """
     from observability.operator_decisions.durable_store import DurableGovernedStore
 
@@ -326,7 +348,8 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
     def corrupting_verify(conn):
         if not injected["done"]:
             injected["done"] = True
-            raw = sqlite3.connect(str(db), isolation_level=None)
+            raw = sqlite3.connect(str(db), isolation_level=None, timeout=30)
+            raw.execute("PRAGMA busy_timeout=30000")
             raw.execute("UPDATE events SET payload_json = '{}' WHERE sequence = 1")
             raw.close()
         return original_verify_locked(conn)
@@ -346,24 +369,50 @@ def test_admission_concurrente_pendant_une_projection_ne_produit_aucune_incohere
     boucle : quel que soit l'entrelacement réel, chaque projection doit
     rester interne cohérente (jamais de crash, et `decision_count` toujours
     égal à `len(items)` et à `as_of_event_version` quand `AVAILABLE`).
+
+    Ce test s'appuie sur de vrais threads (`threading.Thread`), mais ne
+    dépend d'aucune fenêtre de timing précise pour être valide : l'invariant
+    vérifié (cohérence interne d'une projection) doit tenir quel que soit
+    l'entrelacement réel, par construction — ce n'est pas un test qui essaie
+    de "gagner" une course. Le seul risque de flaking résiduel est le même
+    que celui diagnostiqué sur
+    `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique` :
+    un `sqlite3.OperationalError` transitoire (connexion/verrou) sous forte
+    contention réelle (10 admissions + 30 projections concurrentes, dans un
+    processus qui peut déjà tourner 6549+ tests). `_read_events_verified`
+    absorbe désormais ce cas par une retenue bornée côté production ; on
+    ajoute ici, uniquement côté test, une retenue bornée symétrique autour de
+    chaque opération pour ne jamais confondre cette contention transitoire
+    avec une vraie incohérence — sans jamais retenter après une `AssertionError`
+    (une vraie violation d'invariant doit rester fatale immédiatement).
     """
     db = tmp_path / "store.db"
     s0 = store(db)
     errors: list[Exception] = []
 
+    def _retrying(fn):
+        last_exc: sqlite3.OperationalError | None = None
+        for _attempt in range(5):
+            try:
+                return fn()
+            except sqlite3.OperationalError as exc:  # contention transitoire seulement
+                last_exc = exc
+                continue
+        raise last_exc
+
     def admit_many():
         try:
             for i in range(10):
-                admit(store(db), candidate(source_id=f"problem-{i}", candidate_id=f"cand-{i}"),
-                      command_id=f"cmd-{i}")
+                c = candidate(source_id=f"problem-{i}", candidate_id=f"cand-{i}")
+                _retrying(lambda c=c, i=i: admit(store(db), c, f"cmd-{i}"))
         except Exception as exc:  # pragma: no cover - diagnostic
             errors.append(exc)
 
     def project_many():
         try:
             for _ in range(30):
-                n = len(store(db).events())
-                view = store(db).project(proof(n))
+                n = _retrying(lambda: len(store(db).events()))
+                view = _retrying(lambda n=n: store(db).project(proof(n)))
                 if view["availability"] == "AVAILABLE":
                     assert view["decision_count"] == len(view["items"])
                     assert view["decision_count"] == view["as_of_event_version"]
