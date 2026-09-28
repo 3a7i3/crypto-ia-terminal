@@ -123,7 +123,25 @@ class DurableGovernedStore:
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self._db_path, timeout=30, isolation_level=None)
-        conn.execute("PRAGMA journal_mode=WAL")
+        # `busy_timeout` explicite (en plus de `timeout=` ci-dessus, qui règle
+        # la même chose côté wrapper Python) : le changement de mode journal
+        # ci-dessous exige un verrou exclusif bref, et sous forte contention
+        # (admissions concurrentes, ou suite de tests complète avec de
+        # nombreux threads SQLite actifs) l'échec observé en CI
+        # (`sqlite3.OperationalError: database is locked` sur cette ligne,
+        # cf. échec CI PR #316 sur TEST REGRESSION GATE) montre que la
+        # retenue par défaut peut ne pas suffire tant que le PRAGMA n'a pas
+        # explicitement son propre délai d'attente.
+        conn.execute("PRAGMA busy_timeout=30000")
+        # N'exécute le changement de mode que s'il est nécessaire : une fois
+        # la base déjà en WAL (cas de toute connexion après la première),
+        # réémettre `PRAGMA journal_mode=WAL` est un no-op côté résultat mais
+        # peut encore solliciter un verrou bref sur certaines versions de
+        # SQLite — l'éviter réduit la fenêtre de contention sans changer le
+        # comportement fonctionnel du prototype.
+        current_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+        if str(current_mode).lower() != "wal":
+            conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
 
