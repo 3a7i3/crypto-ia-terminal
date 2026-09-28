@@ -1,0 +1,1247 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>ARCH-CONSOLIDATE-01 — Forensic des surfaces Web, APIs, Telegram, services et code legacy - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/forensics/ARCH_CONSOLIDATE_01_FORENSIC.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/forensics/ARCH_CONSOLIDATE_01_FORENSIC.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="arch-consolidate-01-forensic-des-surfaces-web-apis-telegram-services-et-code-legacy">
+<h1>ARCH-CONSOLIDATE-01 — Forensic des surfaces Web, APIs, Telegram, services et code legacy<a class="headerlink" href="#arch-consolidate-01-forensic-des-surfaces-web-apis-telegram-services-et-code-legacy" title="Link to this heading">¶</a></h1>
+<p><strong>Mission</strong>: #287 (read-only forensic). Roadmap: #285. Garde-fou burn-in: #286.
+Observation runtime en cours: #282, epoch <code class="docutils literal notranslate"><span class="pre">BURN-IN-EPOCH-01-20260926T064144Z</span></code>.</p>
+<p><strong>Verdict</strong>: <code class="docutils literal notranslate"><span class="pre">ARCH_CONSOLIDATION_FORENSIC_SOURCE_READY</span></code> (see §17)</p>
+<p>This document is a static-evidence forensic inventory built from a read-only
+pass over the repository tree at the SHA recorded below. It does not certify
+runtime state (no VPS/systemd/process access was performed), and it makes no
+change to any runtime, config, service, or file besides itself.</p>
+<hr class="docutils" />
+<section id="executive-summary">
+<h2>1. Executive Summary<a class="headerlink" href="#executive-summary" title="Link to this heading">¶</a></h2>
+<p>The repository already carries a substantial amount of prior, still-current
+forensic and governance documentation (<code class="docutils literal notranslate"><span class="pre">docs/observability/TELEGRAM_BOT_REGISTRY.md</span></code>,
+<code class="docutils literal notranslate"><span class="pre">architecture/CANONICAL_COMPONENTS.md</span></code>, <code class="docutils literal notranslate"><span class="pre">docs/runbooks/SERVICE_MATRIX_AUDIT_PACK.md</span></code>,
+<code class="docutils literal notranslate"><span class="pre">docs/contracts/WEB_01_MARKET_CRYPTORADAR_CONTRACT.md</span></code>, <code class="docutils literal notranslate"><span class="pre">docs/architecture/</span> <span class="pre">TELEGRAM_ECOSYSTEM_MAP.md</span></code>, <code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_IDENTITY_REGISTRY.md</span></code>).
+This forensic <strong>synthesizes</strong> that existing evidence plus a fresh static pass,
+rather than re-deriving it from zero, and flags where prior documents disagree
+or leave gaps (notably the <code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> identity ambiguity, already
+marked unresolved in <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code>).</p>
+<p>Key findings:</p>
+<ul class="simple">
+<li><p><strong>One canonical web application exists in principle</strong>: the Operator Web App
+(<code class="docutils literal notranslate"><span class="pre">frontend/</span></code> React app + <code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code> FastAPI
+backend), fed by governed snapshot producers
+(<code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code>). This matches the target
+architecture <code class="docutils literal notranslate"><span class="pre">engine</span> <span class="pre">→</span> <span class="pre">projection/snapshot</span> <span class="pre">→</span> <span class="pre">Operator</span> <span class="pre">API</span> <span class="pre">→</span> <span class="pre">App</span></code> stated in
+#287/#285.</p></li>
+<li><p><strong>A standalone CryptoRadar web dashboard exists in source</strong>:
+<code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code> is a self-contained FastAPI+HTML application
+(own <code class="docutils literal notranslate"><span class="pre">/api/scan</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/signals</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/symbol/{symbol}</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/status</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/api/lmi/*</span></code> routes, own password-gated login page, default
+<code class="docutils literal notranslate"><span class="pre">DASHBOARD_PORT=8050</span></code>), declared by <code class="docutils literal notranslate"><span class="pre">scripts/systemd/crypto-dashboard.service</span></code>
+(<code class="docutils literal notranslate"><span class="pre">Description=CryptoRadar</span> <span class="pre">Web</span> <span class="pre">Dashboard</span></code>, <code class="docutils literal notranslate"><span class="pre">ExecStart=...</span> <span class="pre">scripts/dashboard_api.py</span></code>).
+It reads <code class="docutils literal notranslate"><span class="pre">databases/decision_packets_*.jsonl</span></code> directly and recomputes its
+own scan/signal statistics (<code class="docutils literal notranslate"><span class="pre">load_recent_packets()</span></code>, <code class="docutils literal notranslate"><span class="pre">compute_stats()</span></code>),
+independently of <code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code>. This corrects an
+earlier draft of this document, which stated no independent CryptoRadar
+site exists in source — that was wrong; only its live/deployed status on
+the VPS remains unproven (§12).</p></li>
+<li><p><strong>Five Telegram bots</strong> are documented with clear evidence in
+<code class="docutils literal notranslate"><span class="pre">docs/observability/TELEGRAM_BOT_REGISTRY.md</span></code>: <code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code> (Quant
+Observer), <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code> (Portfolio/Command Center), <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code>/CMVK/Sim Bot (identity unresolved, no systemd evidence),
+and <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code> (CryptoRadar). <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>
+is the implementation behind <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code>, not a sixth bot.</p></li>
+<li><p><strong>A second, separate FastAPI+React stack exists</strong>: <code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code> (its own
+<code class="docutils literal notranslate"><span class="pre">api/app.py</span></code>, its own <code class="docutils literal notranslate"><span class="pre">frontend/</span></code>). It is read-only (ADR-0007 compliant) and
+is referenced from exactly one production module
+(<code class="docutils literal notranslate"><span class="pre">observability/operator/domains/regret_state.py</span></code>) — insufficient evidence
+to determine whether it is a live parallel surface or a dormant
+research/debug tool. Classified <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>.</p></li>
+<li><p><strong>A third FastAPI surface</strong>, <code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code>, has no confirmed
+importers/consumers found in this pass and no matching systemd unit in
+<code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code>. Classified <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> pending VPS evidence.</p></li>
+<li><p><strong>Legacy Windows <code class="docutils literal notranslate"><span class="pre">.bat</span></code>/panel-based dashboards</strong> (Dash/Panel/Streamlit
+scripts under root, <code class="docutils literal notranslate"><span class="pre">infra/panels/</span></code>, <code class="docutils literal notranslate"><span class="pre">dashboard/alert_dashboard.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">launch_*.bat</span></code>) are pre-existing, largely Windows-desktop-era artifacts.
+<code class="docutils literal notranslate"><span class="pre">panel_test_report.txt</span></code> itself records these panels <strong>already failing</strong>
+(<code class="docutils literal notranslate"><span class="pre">ModuleNotFoundError:</span> <span class="pre">seaborn</span></code>) on 2026-04-29, which is direct evidence of
+reduced/no current runtime health for that surface, but <code class="docutils literal notranslate"><span class="pre">dashboard/</span> <span class="pre">alert_dashboard.py</span></code> (the audit-log reader) is still imported by
+<code class="docutils literal notranslate"><span class="pre">infra/panels/panel_ci_report.py</span></code>, <code class="docutils literal notranslate"><span class="pre">panel_http_test.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">core/orchestration/orchestrate_internal_panels.py</span></code>, and has a dedicated
+test — so it cannot be marked RETIRE outright; the wrapping Windows
+panel launchers around it are a different, more clearly legacy layer.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code></strong> already holds a prior generation of retired code,
+including <code class="docutils literal notranslate"><span class="pre">telegram_bot_duplicates_20260706/</span></code> — direct historical evidence
+that at least one prior Telegram bot consolidation pass occurred; it is
+itself out of scope for new classification (already archived).</p></li>
+<li><p><strong>systemd catalog</strong> (from <code class="docutils literal notranslate"><span class="pre">docs/runbooks/SERVICE_MATRIX_AUDIT_PACK.md</span></code> §
+“Fixed service catalog”, cross-checked against <code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code>)
+lists 10 audited units, while <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code> on disk holds <strong>16</strong>
+unit/timer files (corrected count, see §6) — several units in
+<code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code> (<code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code>, and the three <code class="docutils literal notranslate"><span class="pre">.timer</span></code> files) are <strong>not</strong>
+in the service_matrix’s fixed catalog, meaning the audit pack’s official
+“what runs on the VPS” list is now stale relative to the repo’s own
+systemd unit definitions — a governance gap, not a code defect.</p></li>
+<li><p>No direct evidence of raw JSONL/DB reads from the canonical frontend or
+Operator API bypassing governed projections was found; documented bypass
+patterns exist in the <strong>Telegram</strong> layer (<code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> reading
+<code class="docutils literal notranslate"><span class="pre">databases/decision_packets_{date}.jsonl</span></code> directly, and
+<code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code> closing over live
+advisor-loop/paper-trading in-process state — both already flagged in the
+existing Telegram registry) and, newly identified in this pass, in the
+<strong><code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code></strong> CryptoRadar web dashboard, which reads the
+same <code class="docutils literal notranslate"><span class="pre">decision_packets_*.jsonl</span></code> files directly and independently
+recomputes scanner/signal statistics rather than consuming the governed
+<code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code> bridge.</p></li>
+<li><p><strong>systemd catalog</strong>: <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code> holds <strong>16</strong> unit/timer files (not
+15 as an earlier draft of this document stated), including
+<code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code>, whose source-declared <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code> launches
+<code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code> — a source-level fact, independent of whether
+that unit is currently active on the VPS (§12).</p></li>
+</ul>
+</section>
+<section id="bis-answers-to-the-13-special-questions">
+<h2>1bis. Answers to the 13 special questions<a class="headerlink" href="#bis-answers-to-the-13-special-questions" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>How many distinct web surfaces exist?</strong> Four at the code level: (1)
+the canonical Operator Web App (<code class="docutils literal notranslate"><span class="pre">frontend/</span></code>), (2) the parallel SDOS
+Terminal stack (<code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code>), (3) the standalone CryptoRadar web
+dashboard (<code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code>, backing <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code>),
+(4) the legacy Windows panel/dashboard layer (<code class="docutils literal notranslate"><span class="pre">dashboard/</span></code>,
+<code class="docutils literal notranslate"><span class="pre">infra/panels/</span></code>, root <code class="docutils literal notranslate"><span class="pre">.bat</span></code> launchers) — the last one already shown
+broken in <code class="docutils literal notranslate"><span class="pre">panel_test_report.txt</span></code>.</p></li>
+<li><p><strong>What is the canonical web app?</strong> The Operator Web App:
+<code class="docutils literal notranslate"><span class="pre">frontend/</span></code> (React/Vite) served by <code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code>
+(FastAPI), per #285’s target architecture and <code class="docutils literal notranslate"><span class="pre">architecture/</span> <span class="pre">CANONICAL_COMPONENTS.md</span></code>.</p></li>
+<li><p><strong>Does an independent CryptoRadar site still exist, and what would be
+needed before retiring it?</strong> Yes, in source: <code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code>
+is a standalone FastAPI+HTML CryptoRadar site (own routes, own login
+page, own <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PORT</span></code>), declared by <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code>.
+Whether it is actually deployed/reachable on the VPS today remains
+<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> (§12) — that is a separate question from its existence in
+source, which is now confirmed. It contains its own scan/signal/status
+computation (<code class="docutils literal notranslate"><span class="pre">compute_stats()</span></code>, <code class="docutils literal notranslate"><span class="pre">extract_signals()</span></code>) read directly from
+<code class="docutils literal notranslate"><span class="pre">decision_packets_*.jsonl</span></code>, duplicating logic also present in
+<code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> and, more governed, in
+<code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code> (Operator API MARKET bridge,
+per <code class="docutils literal notranslate"><span class="pre">docs/contracts/WEB_01_MARKET_CRYPTORADAR_CONTRACT.md</span></code>). Before this
+site could be retired, the Operator App’s MARKET view would need to
+reach parity with <code class="docutils literal notranslate"><span class="pre">dashboard_api.py</span></code>’s scan/signal/symbol/status/LMI
+routes, and both <code class="docutils literal notranslate"><span class="pre">dashboard_api.py</span></code> and <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> would need
+their direct JSONL reads replaced by the governed snapshot producer.</p></li>
+<li><p><strong>How many Telegram bots exist, and their details?</strong> Five identities are
+documented: <code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> (identity/deployment unresolved), <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code>
+— full detail in §5.</p></li>
+<li><p><strong>Is there scientific/financial logic that lives ONLY behind Telegram?</strong>
+No irreproducible <em>scientific</em> logic was found hidden only in a bot; the
+closest cases are (a) <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code>’s hand-duplicated ENL friction
+model (<code class="docutils literal notranslate"><span class="pre">_enl_fill()</span></code>), which duplicates rather than uniquely holds logic
+also present in <code class="docutils literal notranslate"><span class="pre">src/execution/enl.py</span></code>, and (b) <code class="docutils literal notranslate"><span class="pre">src/telegram/</span> <span class="pre">sim_bot.py</span></code>’s three duplicated aggregation implementations, which
+duplicate rather than uniquely hold logic also present in
+<code class="docutils literal notranslate"><span class="pre">src/analytics/performance_breakdown.breakdown()</span></code>. Both are duplication
+risks, not sole-custody risks.</p></li>
+<li><p><strong>What should various Telegram functions become long-term?</strong> Per #285/#287
+direction: business logic moves to/stays in shared modules already
+consumed by the Operator API path; presentation moves into the Operator
+App (System/Governance panel for Quant Observer, Portfolio/Finance view
+for Command Center, Market view for CryptoRadar, an Event Center for
+alerts); the Telegram transport itself is retired last, only after App
+parity is demonstrated per bot.</p></li>
+<li><p><strong>Which servers/APIs still exist?</strong> <code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code>
+(canonical, API-01), <code class="docutils literal notranslate"><span class="pre">sdos_terminal/api/app.py</span></code> (parallel, unresolved,
+API-02), <code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code> (unresolved, no consumer found,
+API-03), <code class="docutils literal notranslate"><span class="pre">visualization/api/quant_live_api.py</span></code> (data-provider module,
+canonical producer for the Quant Observer bot, API-04),
+<code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code> (standalone CryptoRadar Web Dashboard API,
+API-06, backing <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code>) — see §4.</p></li>
+<li><p><strong>Are there competing sources for the same info?</strong> Yes: performance/PnL
+aggregation is computed in at least three places for Sim Bot commands
+instead of one shared <code class="docutils literal notranslate"><span class="pre">performance_breakdown.breakdown()</span></code>; ENL friction
+cost is computed twice (canonical <code class="docutils literal notranslate"><span class="pre">src/execution/enl.py</span></code> vs.
+<code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code>’s local <code class="docutils literal notranslate"><span class="pre">_enl_fill()</span></code>); CryptoRadar symbol stats are
+independently parsed/aggregated in <code class="docutils literal notranslate"><span class="pre">radar_bot.py</span></code> rather than through a
+shared decision-packet aggregator also used elsewhere.</p></li>
+<li><p><strong>Are there direct JSONL/DB reads from a UI/bot bypassing governed
+projections?</strong> Yes, three confirmed cases: <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> reads
+<code class="docutils literal notranslate"><span class="pre">databases/decision_packets_{date}.jsonl</span></code> directly for <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code>;
+<code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py::load_recent_packets()</span></code> reads the same files
+directly for the standalone CryptoRadar web dashboard and independently
+recomputes scanner/signal statistics (<code class="docutils literal notranslate"><span class="pre">compute_stats()</span></code>); and
+<code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code> bypasses the Operator API by
+closing over live in-process advisor-loop/paper-trading state rather than
+going through a governed HTTP boundary. No such bypass was found in the
+canonical <code class="docutils literal notranslate"><span class="pre">frontend/</span></code> — its only path is the Operator API.</p></li>
+<li><p><strong>Which components look orphaned but can’t yet be proven RETIRE?</strong>
+<code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code> (API+frontend), <code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">governance/status_dashboard.py</span></code>, <code class="docutils literal notranslate"><span class="pre">infra/dashboards/__init__.py</span></code> (empty
+stub) — all classified <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, see §8/§12.</p></li>
+<li><p><strong>Which dependencies still create an architecture parallel to
+engine→projection→Operator API→App?</strong> (a) <code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code> stack — its
+own API + its own frontend, sharing only the <code class="docutils literal notranslate"><span class="pre">visualization/api/</span></code>
+producer with the canonical Quant Observer edge; (b) <code class="docutils literal notranslate"><span class="pre">scripts/</span> <span class="pre">dashboard_api.py</span></code>’s standalone CryptoRadar Web Dashboard, a second
+ungoverned aggregator over <code class="docutils literal notranslate"><span class="pre">decision_packets_*.jsonl</span></code> alongside
+<code class="docutils literal notranslate"><span class="pre">radar_bot.py</span></code>’s; © the direct producer paths of the four Telegram
+bots whose source and deployment are both confirmed
+(<code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>’s in-process closures,
+<code class="docutils literal notranslate"><span class="pre">radar_bot.py</span></code>’s direct JSONL read, <code class="docutils literal notranslate"><span class="pre">quant_observer/bot.py</span></code>’s
+otherwise-canonical but Telegram-duplicated presentation of the same
+<code class="docutils literal notranslate"><span class="pre">quant_live_api.py</span></code> data already available to the App, and
+<code class="docutils literal notranslate"><span class="pre">paper_runner.py</span></code>’s isolated loop for <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code>), plus a fifth,
+<code class="docutils literal notranslate"><span class="pre">sim_bot.py</span></code>’s own SQLite store, whose bot identity/deployment is
+itself still <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> (§12) rather than confirmed-active.
+<em>(Note: the source issue’s prose does not enumerate a literal numbered list
+of 13 questions; items 12–13 below capture the two remaining distinct
+forensic questions implied by the issue text, beyond the 11 above.)</em></p></li>
+<li><p><strong>Do competing APIs expose the same data under different contracts?</strong>
+<code class="docutils literal notranslate"><span class="pre">sdos_terminal/api/app.py</span></code> exposes <code class="docutils literal notranslate"><span class="pre">/api/portfolio</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/burnin</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/api/regret</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/decision/{id}</span></code> — conceptually overlapping with
+Operator API’s <code class="docutils literal notranslate"><span class="pre">/api/operator/v1/snapshot</span></code> domains (portfolio, decision
+pipeline, health) — but built on a separate FastAPI app with its own
+contract, not a subrouter of API-01. This is the one clearest concrete
+instance of contract duplication found, and it cannot be resolved to
+RETIRE/INTEGRATE without the VPS evidence in §12.</p></li>
+<li><p><strong>Is there a governed path for future alerts to reach operators without
+Telegram?</strong> Partially: <code class="docutils literal notranslate"><span class="pre">#285</span></code> names a future “Centre d’événements”
+inside the App; today no such component exists in the App itself — the
+closest existing building block is <code class="docutils literal notranslate"><span class="pre">dashboard/alert_dashboard.py</span></code>
+(reads <code class="docutils literal notranslate"><span class="pre">alerts_audit.jsonl</span></code>, presentation-only, already tested and
+imported by CI-adjacent panel scripts) which is a plausible candidate
+producer to wire into a future Event Center, rather than a governed
+Event Center that already exists.</p></li>
+</ol>
+</section>
+<section id="current-canonical-architecture">
+<h2>2. Current canonical architecture<a class="headerlink" href="#current-canonical-architecture" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Decision engine (quant_hedge_ai/engine/decision_engine.py, DecisionEngine)
+        |
+        v
+observability/* (heartbeat, decision_event_bus, operator_snapshot_builder,
+                  market_radar_snapshot)                 [passive, ADR-0007]
+        |
+        v
+observability/operator_api/app.py  (FastAPI, GET /api/operator/v1/snapshot,
+                                     GET /api/operator/v1/market)
+        |
+        v
+frontend/  (React/Vite Operator Web App — presentation only, per #285 §1.4)
+</pre></div>
+</div>
+<p>Telegram bots sit <strong>alongside</strong> this pipeline today, each with its own
+producer paths (see §4), which is exactly the “surface multiplication” #287
+identifies as the pattern to unwind. <code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code> and <code class="docutils literal notranslate"><span class="pre">infra/api/</span> <span class="pre">api_server.py</span></code> are separate stacks whose current runtime role is unproven from
+source alone (§9 Unknowns).</p>
+</section>
+<section id="web-surfaces-inventory">
+<h2>3. Web surfaces inventory<a class="headerlink" href="#web-surfaces-inventory" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Path</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Producer</p></th>
+<th class="head"><p>Consumers found</p></th>
+<th class="head"><p>Business logic?</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Confidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>WEB-01</p></td>
+<td><p>Operator Web App (canonical)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/</span></code> (React/Vite), <code class="docutils literal notranslate"><span class="pre">sdos_terminal</span></code> excluded</p></td>
+<td><p>web app</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code></p></td>
+<td><p>end users (browser)</p></td>
+<td><p>No — presentation only, per O-02W-B/contract docs</p></td>
+<td><p><strong>KEEP</strong></p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p>WEB-02</p></td>
+<td><p>SDOS Terminal</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sdos_terminal/api/app.py</span></code>, <code class="docutils literal notranslate"><span class="pre">sdos_terminal/frontend/</span></code></p></td>
+<td><p>web app (parallel)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">visualization/api/</span></code> (SDOS Data API)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator/domains/regret_state.py</span></code> (1 ref found); no systemd unit matched</p></td>
+<td><p>Read-only per own docstring</p></td>
+<td><p><strong>UNKNOWN</strong></p></td>
+<td><p>Low — no systemd/consumer proof either way</p></td>
+</tr>
+<tr class="row-even"><td><p>WEB-03</p></td>
+<td><p>Legacy Windows dashboard launchers</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">launch_*.bat</span></code> (root, ~20 files), <code class="docutils literal notranslate"><span class="pre">infra/panels/*</span></code>, <code class="docutils literal notranslate"><span class="pre">dashboard/alert_dashboard.py</span></code></p></td>
+<td><p>legacy desktop dashboards</p></td>
+<td><p>various (Dash/Panel/Streamlit scripts, mostly under root or <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">panel_test_report.txt</span></code> shows these <strong>already broken</strong> (missing <code class="docutils literal notranslate"><span class="pre">seaborn</span></code>) as of 2026-04-29</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">alert_dashboard.py</span></code> = presentation only (log formatter); wrapping <code class="docutils literal notranslate"><span class="pre">.bat</span></code>/panel launchers = orchestration only</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">alert_dashboard.py</span></code>: <strong>KEEP</strong> (still imported/tested); <code class="docutils literal notranslate"><span class="pre">.bat</span></code> launchers + broken panels: <strong>ARCHIVE</strong></p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-odd"><td><p>WEB-04</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/dashboards/</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/dashboards/__init__.py</span></code> (empty module)</p></td>
+<td><p>placeholder</p></td>
+<td><p>none</p></td>
+<td><p>none found</p></td>
+<td><p>n/a</p></td>
+<td><p><strong>UNKNOWN</strong> (empty stub, no evidence of use or disuse)</p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-even"><td><p>WEB-05</p></td>
+<td><p>CryptoRadar Web Dashboard</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code></p></td>
+<td><p>web app (FastAPI + inline HTML)</p></td>
+<td><p>own <code class="docutils literal notranslate"><span class="pre">load_recent_packets()</span></code>/<code class="docutils literal notranslate"><span class="pre">compute_stats()</span></code>, reading <code class="docutils literal notranslate"><span class="pre">databases/decision_packets_*.jsonl</span></code> directly</p></td>
+<td><p>none found (standalone site; own login/session, <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code> per §6)</p></td>
+<td><p>Yes — recomputes scan/signal/status/LMI aggregation locally, bypassing governed projections</p></td>
+<td><p><strong>INTEGRATE</strong> (fold into Operator App MARKET view; retire direct-JSONL read first, per §1 Q3)</p></td>
+<td><p>High (source-confirmed; live/deployed status on VPS is separately <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, §12)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="api-inventory">
+<h2>4. API inventory<a class="headerlink" href="#api-inventory" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Path</p></th>
+<th class="head"><p>Framework</p></th>
+<th class="head"><p>Routes (sample)</p></th>
+<th class="head"><p>Ports/env</p></th>
+<th class="head"><p>Consumers</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Confidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>API-01</p></td>
+<td><p>Operator API</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code></p></td>
+<td><p>FastAPI</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/snapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/market</span></code> (per <code class="docutils literal notranslate"><span class="pre">WEB_01_MARKET_CRYPTORADAR_CONTRACT.md</span></code>)</p></td>
+<td><p>Port <code class="docutils literal notranslate"><span class="pre">127.0.0.1:8090</span></code> (loopback only, per <code class="docutils literal notranslate"><span class="pre">crypto-operator-api.service</span></code>); env names: <code class="docutils literal notranslate"><span class="pre">OPERATOR_SNAPSHOT_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">OPERATOR_RUNTIME_MANIFEST_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">RADAR_MARKET_SNAPSHOT_PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">RADAR_MARKET_STALE_AFTER_S</span></code> (values are file paths/durations, not secrets)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/</span></code> React app; <code class="docutils literal notranslate"><span class="pre">scripts/systemd/crypto-operator-api.service</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code></p></td>
+<td><p><strong>KEEP</strong> (canonical)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p>API-06</p></td>
+<td><p>CryptoRadar Web Dashboard API</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code></p></td>
+<td><p>FastAPI + inline HTML</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/scan</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/signals</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/symbol/{symbol}</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/status</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/lmi/status</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/lmi/table</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/lmi/symbol/{symbol}</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/lmi/events</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/</span></code> (login/dashboard HTML)</p></td>
+<td><p>Default <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PORT=8050</span></code> (bound <code class="docutils literal notranslate"><span class="pre">0.0.0.0</span></code>); env names: <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">DASHBOARD_PASSWORD</span></code> (secret — name only), <code class="docutils literal notranslate"><span class="pre">DP_LOG_DIR</span></code></p></td>
+<td><p>none found; standalone, own password-gated session</p></td>
+<td><p><strong>INTEGRATE</strong> (see WEB-05)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-even"><td><p>API-02</p></td>
+<td><p>SDOS Terminal API</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sdos_terminal/api/app.py</span></code></p></td>
+<td><p>FastAPI</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/health</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/pipeline</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/portfolio</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/rejections</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/burnin</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/regret</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/decision/{id}</span></code>, <code class="docutils literal notranslate"><span class="pre">/api/system</span></code>, PNG endpoints, <code class="docutils literal notranslate"><span class="pre">WS</span> <span class="pre">/ws/live</span></code></p></td>
+<td><p>none matched in <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator/domains/regret_state.py</span></code> (1 internal ref); own <code class="docutils literal notranslate"><span class="pre">sdos_terminal/frontend/</span></code></p></td>
+<td><p><strong>UNKNOWN</strong></p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-odd"><td><p>API-03</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code></p></td>
+<td><p>not confirmed (not opened in this pass beyond path discovery)</p></td>
+<td><p>not confirmed</p></td>
+<td><p>not confirmed</p></td>
+<td><p>no importer found via <code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">-rl</span> <span class="pre">&quot;infra.api.api_server&quot;</span></code></p></td>
+<td><p><strong>UNKNOWN</strong></p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-even"><td><p>API-04</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">visualization/api/quant_live_api.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">visualization/api/quant_live_api.py</span></code></p></td>
+<td><p>data-provider module (not a standalone HTTP server per registry text)</p></td>
+<td><p>n/a — Python API, feeds <code class="docutils literal notranslate"><span class="pre">QuantLiveSnapshot</span></code></p></td>
+<td><p>n/a</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/bot.py</span></code> (<code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code>)</p></td>
+<td><p><strong>KEEP</strong> (canonical producer for Quant Observer per <code class="docutils literal notranslate"><span class="pre">TELEGRAM_BOT_REGISTRY.md</span></code>)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p>API-05</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">governance/status_dashboard.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">governance/status_dashboard.py</span></code></p></td>
+<td><p>not confirmed</p></td>
+<td><p>not confirmed</p></td>
+<td><p>not confirmed</p></td>
+<td><p>not confirmed</p></td>
+<td><p><strong>UNKNOWN</strong></p></td>
+<td><p>Low</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="telegram-inventory">
+<h2>5. Telegram inventory<a class="headerlink" href="#telegram-inventory" title="Link to this heading">¶</a></h2>
+<p>Synthesized directly from the existing, still-current
+<code class="docutils literal notranslate"><span class="pre">docs/observability/TELEGRAM_BOT_REGISTRY.md</span></code> (itself an O-01 forensic pass
+over <code class="docutils literal notranslate"><span class="pre">src/telegram/</span></code>, <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code>, <code class="docutils literal notranslate"><span class="pre">src/paper/</span></code>, <code class="docutils literal notranslate"><span class="pre">scripts/systemd/*.service</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">.env.example</span></code>/<code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code>). No bot code was read or modified to
+produce this section.</p>
+<p>| Bot (BotFather name) | Role | Entrypoint | Producer | Business logic exclusive to bot? | systemd unit | Classification | Confidence |
+|—|—|—|—|—|—|—|—|—|
+| <code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code> “Quant Observer” | read-only decision-engine microstructure viewer | <code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/bot.py</span></code> | <code class="docutils literal notranslate"><span class="pre">visualization/api/quant_live_api.py</span></code>, <code class="docutils literal notranslate"><span class="pre">visualization/ves</span></code> | No — “ZERO business logic” per own docstring | <code class="docutils literal notranslate"><span class="pre">crypto-quant-observer.service</span></code> | <strong>INTEGRATE</strong> (highest priority per registry — target: Operator App System/Governance panel) | High |
+| <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code> “Portfolio/Command Center” | KPI/capital/positions read surface, all writes hard-blocked | <code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code> | <code class="docutils literal notranslate"><span class="pre">PhaseKPITracker</span></code>, <code class="docutils literal notranslate"><span class="pre">ExecutionEngine.fetch_available_capital()</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trading.recorder</span></code>, <code class="docutils literal notranslate"><span class="pre">.env</span></code>, log files | No net-new logic, but <strong>duplicate senders</strong> on same identity (<code class="docutils literal notranslate"><span class="pre">CommandCenterBot.send()</span></code> + <code class="docutils literal notranslate"><span class="pre">src/telegram/notifier.py::Notifier._send()</span></code>) and a paper/real KPI labeling gap (remediated per registry O-02B/O-02B-R1) | not directly named in matrix catalog above (see §1 gap) | <strong>INTEGRATE</strong> (high priority) | High |
+| <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code> | single hard-coded research experiment (ETH/USDT 4h RSI) | <code class="docutils literal notranslate"><span class="pre">src/paper/paper_runner.py::run_paper_arena()</span></code> | own loop; hand-duplicated ENL friction model instead of importing <code class="docutils literal notranslate"><span class="pre">src/execution/enl.py</span></code> | Isolated experiment logic, but drift risk from duplicated friction math | <code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code> | <strong>KEEP for now / low migration priority</strong> (already clean &amp; isolated per registry) | High |
+| <code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> “CMVK/Sim Bot” | backtest/simulation tooling, name implies telemetry but commands are backtesting | <code class="docutils literal notranslate"><span class="pre">src/telegram/sim_bot.py</span></code> | own <code class="docutils literal notranslate"><span class="pre">BacktestEngine</span></code>/<code class="docutils literal notranslate"><span class="pre">VirtualExchange</span></code>; persists to <code class="docutils literal notranslate"><span class="pre">databases/sim_runs.sqlite</span></code> | Cross-wiring: posts to <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code>’s chat via its own <code class="docutils literal notranslate"><span class="pre">Notifier()</span></code>, not its own chat; 3 duplicated aggregation implementations instead of shared <code class="docutils literal notranslate"><span class="pre">src/analytics/performance_breakdown.breakdown()</span></code> | <strong>none found</strong> — no <code class="docutils literal notranslate"><span class="pre">.service</span></code> references <code class="docutils literal notranslate"><span class="pre">bot_runner.py</span></code>/<code class="docutils literal notranslate"><span class="pre">TELEMETRIE_IA_BOT_TOKEN</span></code> | <strong>UNKNOWN</strong> (identity/deployment unresolved per registry itself — do not migrate until resolved) | Low |
+| <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code> “CryptoRadar” | market-wide opportunity scanner, explicitly excludes Entry/SL/TP/portfolio | <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> | reads <code class="docutils literal notranslate"><span class="pre">databases/decision_packets_{date}.jsonl</span></code> directly (bypass of governed projections); <code class="docutils literal notranslate"><span class="pre">/lmi</span></code> via <code class="docutils literal notranslate"><span class="pre">trade_analysis.integrations.radar_adapter</span></code> | <code class="docutils literal notranslate"><span class="pre">extract_signals()</span></code> computes Entry/SL/TP but is dead/unreachable — internal-only, not exposed | <code class="docutils literal notranslate"><span class="pre">crypto-radar-bot.service</span></code> | <strong>INTEGRATE</strong> (low priority — stable, minimize churn; migrate transport into Operator App MARKET view per <code class="docutils literal notranslate"><span class="pre">WEB_01_MARKET_CRYPTORADAR_CONTRACT.md</span></code>, keep engine) | High |
+| <code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code> | claims to be CCXT read-only sync for <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code> | <code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code> | independent balance/PnL/drawdown computation | Never imported anywhere in the repo | n/a | <strong>RETIRE</strong> (dead/duplicate code, no consumer found; registry explicitly confirms zero imports) | High |
+| <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/telegram_bot_duplicates_20260706/capital_deployment_portfolio_bot.py</span></code> | prior duplicate of the portfolio bot | <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/telegram_bot_duplicates_20260706/</span></code> | n/a | n/a | n/a | <strong>already ARCHIVE</strong> (out of scope — prior cleanup pass) | High |</p>
+</section>
+<section id="services-process-inventory">
+<h2>6. Services/process inventory<a class="headerlink" href="#services-process-inventory" title="Link to this heading">¶</a></h2>
+<p>From <code class="docutils literal notranslate"><span class="pre">docs/runbooks/SERVICE_MATRIX_AUDIT_PACK.md</span></code> (fixed catalog, 10 units)
+cross-checked against the <strong>16</strong> unit/timer files under <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code>
+(corrected from an earlier draft’s count of 15; <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">ls-tree</span></code> on the
+verified head confirms 16: <code class="docutils literal notranslate"><span class="pre">crypto-advisor</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-dashboard</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-lmi-observatory</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-horizons</span></code> <code class="docutils literal notranslate"><span class="pre">.service</span></code>+<code class="docutils literal notranslate"><span class="pre">.timer</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-market-observer</span></code> <code class="docutils literal notranslate"><span class="pre">.service</span></code>+<code class="docutils literal notranslate"><span class="pre">.timer</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-radar</span></code>
+<code class="docutils literal notranslate"><span class="pre">.service</span></code>+<code class="docutils literal notranslate"><span class="pre">.timer</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-operator-api</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-operator-web</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-quant-observer</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-radar-bot</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-watchdog</span></code>, <code class="docutils literal notranslate"><span class="pre">paper-arena</span></code>):</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Unit</p></th>
+<th class="head"><p>Role/tier (per audit pack)</p></th>
+<th class="head"><p>In fixed audit catalog?</p></th>
+<th class="head"><p>Source-declared ExecStart</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Confidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code></p></td>
+<td><p>decision engine / core</p></td>
+<td><p>Yes</p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>KEEP</strong></p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-watchdog.service</span></code></p></td>
+<td><p>runtime safety / safety</p></td>
+<td><p>Yes</p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>KEEP</strong> (currently OFF per #282/#286, but the unit itself is canonical safety infra)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code></p></td>
+<td><p>web interface / interface</p></td>
+<td><p>Yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.venv/bin/python</span> <span class="pre">scripts/dashboard_api.py</span></code> (source-confirmed; <code class="docutils literal notranslate"><span class="pre">Description=CryptoRadar</span> <span class="pre">Web</span> <span class="pre">Dashboard</span></code>)</p></td>
+<td><p><strong>INTEGRATE</strong> — source identity is now resolved (WEB-05/API-06); whether this unit is currently <code class="docutils literal notranslate"><span class="pre">active</span></code>/<code class="docutils literal notranslate"><span class="pre">enabled</span></code> on the VPS remains <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> (§12)</p></td>
+<td><p>High (source) / Low (deployed state)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-lmi-observatory.service</span></code></p></td>
+<td><p>live-market observation</p></td>
+<td><p>Yes</p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>KEEP</strong> (observation-only, ADR-0007 compliant)</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-market-horizons.service</span></code> + <code class="docutils literal notranslate"><span class="pre">.timer</span></code></p></td>
+<td><p>market horizons / observation</p></td>
+<td><p>Yes (service); timer absent from catalog</p></td>
+<td><p>Timer: <code class="docutils literal notranslate"><span class="pre">OnCalendar=*-*-*</span> <span class="pre">06:15:00</span> <span class="pre">UTC</span></code> daily (ADR-0016 R2, 15 min after R1)</p></td>
+<td><p><strong>KEEP</strong> service / <strong>KEEP</strong> timer (source-known schedule; enabled/active runtime state remains <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, §12)</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-market-observer.service</span></code> + <code class="docutils literal notranslate"><span class="pre">.timer</span></code></p></td>
+<td><p>market observer / observation</p></td>
+<td><p>Yes (service); timer absent from catalog</p></td>
+<td><p>Timer: <code class="docutils literal notranslate"><span class="pre">OnBootSec=2min</span></code>, <code class="docutils literal notranslate"><span class="pre">OnUnitActiveSec=15min</span></code> (every 15 min after boot, ADR-0016)</p></td>
+<td><p><strong>KEEP</strong> service / <strong>KEEP</strong> timer (source-known schedule; enabled/active runtime state remains <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, §12)</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-market-radar.service</span></code> + <code class="docutils literal notranslate"><span class="pre">.timer</span></code></p></td>
+<td><p>market radar / observation</p></td>
+<td><p>Yes (service); timer absent from catalog</p></td>
+<td><p>Timer: <code class="docutils literal notranslate"><span class="pre">OnCalendar=*-*-*</span> <span class="pre">06:00:00</span> <span class="pre">UTC</span></code> daily (ADR-0016 R1)</p></td>
+<td><p><strong>KEEP</strong> service / <strong>KEEP</strong> timer (source-known schedule; enabled/active runtime state remains <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, §12)</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code></p></td>
+<td><p>(not in fixed catalog)</p></td>
+<td><p><strong>No</strong></p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>UNKNOWN</strong> — likely producer for <code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code>, but not certified by the audit pack</p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-operator-api.service</span></code></p></td>
+<td><p>(not in fixed catalog)</p></td>
+<td><p><strong>No</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uvicorn</span> <span class="pre">observability.operator_api.app:app</span> <span class="pre">--host</span> <span class="pre">127.0.0.1</span> <span class="pre">--port</span> <span class="pre">8090</span></code> (see API-01 ports/env)</p></td>
+<td><p><strong>KEEP</strong> (matches canonical API-01, but governance doc is stale — recommend adding to catalog)</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code></p></td>
+<td><p>(not in fixed catalog)</p></td>
+<td><p><strong>No</strong></p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>KEEP</strong> (matches canonical WEB-01 frontend, same stale-catalog note)</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-quant-observer.service</span></code></p></td>
+<td><p>Telegram quant observer / interface</p></td>
+<td><p>Yes</p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>INTEGRATE</strong> (see §5)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crypto-radar-bot.service</span></code></p></td>
+<td><p>Telegram radar / interface</p></td>
+<td><p>Yes</p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>INTEGRATE</strong> (see §5)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">paper-arena.service</span></code></p></td>
+<td><p>paper-execution interface / interface</p></td>
+<td><p>Yes</p></td>
+<td><p>(not re-extracted in this pass)</p></td>
+<td><p><strong>KEEP</strong> (see §5)</p></td>
+<td><p>High</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>On “source-known” vs. “deployed” throughout this document</strong>: a unit
+file’s <code class="docutils literal notranslate"><span class="pre">Description</span></code>, <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code>, and any <code class="docutils literal notranslate"><span class="pre">.timer</span></code>’s <code class="docutils literal notranslate"><span class="pre">OnCalendar</span></code>/
+<code class="docutils literal notranslate"><span class="pre">OnBootSec</span></code>/<code class="docutils literal notranslate"><span class="pre">OnUnitActiveSec</span></code> are static facts readable directly from the
+repository at the verified head (§16) — they are not VPS/runtime claims and
+do not require VPS access to state. What remains genuinely <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> without
+VPS access is <em>deployed/enabled/active</em> state: whether that unit file is
+installed under <code class="docutils literal notranslate"><span class="pre">/etc/systemd/system/</span></code>, currently <code class="docutils literal notranslate"><span class="pre">enabled</span></code>, and its
+<code class="docutils literal notranslate"><span class="pre">ActiveState</span></code>. This distinction was under-stated in an earlier draft, which
+is corrected here per human review.</p>
+<p><strong>Risk note</strong>: three systemd units that plausibly back canonical WEB-01/API-01
+(<code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-operator-api</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-operator-web</span></code>) are
+absent from the audit pack’s fixed catalog. This is a governance/documentation
+gap (the audit pack needs a version bump), not evidence that the units
+themselves are illegitimate — but it also means this forensic <strong>cannot</strong>
+independently confirm their live <code class="docutils literal notranslate"><span class="pre">ActiveState</span></code> from source alone; that
+requires the audit pack itself to be re-run on the VPS, which is out of scope
+for this read-only, repo-only forensic.</p>
+</section>
+<section id="snapshot-data-producer-inventory">
+<h2>7. Snapshot/data producer inventory<a class="headerlink" href="#snapshot-data-producer-inventory" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Producer</p></th>
+<th class="head"><p>Path</p></th>
+<th class="head"><p>Feeds</p></th>
+<th class="head"><p>Reads raw JSONL/DB directly?</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Confidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Operator snapshot builder</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code> → <code class="docutils literal notranslate"><span class="pre">frontend/</span></code></p></td>
+<td><p>No — advisor-owned in-process snapshot</p></td>
+<td><p><strong>KEEP</strong> (canonical)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p>Market radar snapshot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code> MARKET route, per <code class="docutils literal notranslate"><span class="pre">WEB_01_MARKET_CRYPTORADAR_CONTRACT.md</span></code></p></td>
+<td><p>Reuses <code class="docutils literal notranslate"><span class="pre">radar_bot.py</span></code> calculation functions → atomic <code class="docutils literal notranslate"><span class="pre">cryptoradar_market_snapshot.json</span></code> (not raw JSONL directly per contract)</p></td>
+<td><p><strong>KEEP</strong> (canonical bridge, explicitly contracted as one-directional)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-even"><td><p>CryptoRadar bot calc</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py::compute_symbol_stats()</span></code></p></td>
+<td><p>Telegram <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code> only</p></td>
+<td><p><strong>Yes</strong> — reads <code class="docutils literal notranslate"><span class="pre">databases/decision_packets_{date}.jsonl</span></code> directly for trailing 24h</p></td>
+<td><p><strong>INTEGRATE</strong> (fold direct read into the governed snapshot producer path; do not let Telegram keep a second, ungoverned aggregator)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p>Command Center provider</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/command_center_bot.py</span></code> (<code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code> only</p></td>
+<td><p>In-process closures over live advisor-loop state (not file reads, but also not the governed Operator API)</p></td>
+<td><p><strong>INTEGRATE</strong></p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-even"><td><p>Sim Bot run store</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/sim_bot.py</span></code> → <code class="docutils literal notranslate"><span class="pre">databases/sim_runs.sqlite</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> (deployment unresolved)</p></td>
+<td><p>Yes, but to its own isolated SQLite, not shared ledgers</p></td>
+<td><p><strong>UNKNOWN</strong> (tied to bot identity resolution)</p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-odd"><td><p>SDOS Data API</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">visualization/api/</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sdos_terminal/api/app.py</span></code>, <code class="docutils literal notranslate"><span class="pre">src/telegram/quant_observer/bot.py</span></code></p></td>
+<td><p>Not confirmed in this pass</p></td>
+<td><p><strong>KEEP</strong> (at least the Quant Observer edge is canonical per registry)</p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-even"><td><p>CryptoRadar dashboard producer</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py::load_recent_packets()</span></code> / <code class="docutils literal notranslate"><span class="pre">compute_stats()</span></code></p></td>
+<td><p>Standalone CryptoRadar Web Dashboard (WEB-05/API-06) only</p></td>
+<td><p><strong>Yes</strong> — reads <code class="docutils literal notranslate"><span class="pre">databases/decision_packets_{date}.jsonl</span></code> directly, independently of <code class="docutils literal notranslate"><span class="pre">radar_bot.py</span></code>’s own read of the same files</p></td>
+<td><p><strong>INTEGRATE</strong> (second, separate ungoverned aggregator over the same evidence store; fold into the governed snapshot producer alongside Wave 5)</p></td>
+<td><p>High</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="legacy-code-duplication-inventory">
+<h2>8. Legacy/code duplication inventory<a class="headerlink" href="#legacy-code-duplication-inventory" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Item</p></th>
+<th class="head"><p>Path</p></th>
+<th class="head"><p>Evidence of consumers</p></th>
+<th class="head"><p>Classification</p></th>
+<th class="head"><p>Confidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code> (whole tree)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code></p></td>
+<td><p>Already named “archive” by a prior pass; contains its own <code class="docutils literal notranslate"><span class="pre">_legacy/</span></code>, <code class="docutils literal notranslate"><span class="pre">telegram_bot_duplicates_20260706/</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trades_restore_bug_20260614/</span></code>, <code class="docutils literal notranslate"><span class="pre">mvp/</span></code></p></td>
+<td><p><strong>ARCHIVE</strong> (already; out of new-classification scope, listed for completeness)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code></p></td>
+<td><p>Zero imports found (confirmed independently and by the existing registry)</p></td>
+<td><p><strong>RETIRE</strong></p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-even"><td><p>Legacy Windows launcher scripts (root <code class="docutils literal notranslate"><span class="pre">.bat</span></code>, <code class="docutils literal notranslate"><span class="pre">launch_*.ps1</span></code>)</p></td>
+<td><p>repo root</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">panel_test_report.txt</span></code> proves several already fail at runtime (missing <code class="docutils literal notranslate"><span class="pre">seaborn</span></code>)</p></td>
+<td><p><strong>ARCHIVE</strong></p></td>
+<td><p>Medium</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">infra/dashboards/__init__.py</span></code> (empty)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">infra/dashboards/</span></code></p></td>
+<td><p>No content, no imports found</p></td>
+<td><p><strong>UNKNOWN</strong> (too little evidence to prove orphan vs. planned placeholder)</p></td>
+<td><p>Low</p></td>
+</tr>
+<tr class="row-even"><td><p>Regime detector shim</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/market/regime_detector.py</span></code></p></td>
+<td><p>Already flagged in <code class="docutils literal notranslate"><span class="pre">architecture/CANONICAL_COMPONENTS.md</span></code> as “shim à supprimer P2”, re-exports <code class="docutils literal notranslate"><span class="pre">AdvancedRegimeDetector</span></code></p></td>
+<td><p><strong>ARCHIVE</strong> (per existing architecture doc; not new evidence, restated for completeness)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-odd"><td><p>Legacy kill-switch variants</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">supervision/kill_switch.py</span></code>, <code class="docutils literal notranslate"><span class="pre">supervision/telegram_kill_switch.py</span></code></p></td>
+<td><p>Documented as “non importée par le runtime” in <code class="docutils literal notranslate"><span class="pre">CANONICAL_COMPONENTS.md</span></code></p></td>
+<td><p><strong>ARCHIVE</strong> (per existing doc)</p></td>
+<td><p>High</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">src/risk/kill_switch.py</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/risk/kill_switch.py</span></code></p></td>
+<td><p>Documented as “stub minimal pour les tests de simulation”</p></td>
+<td><p><strong>KEEP</strong> (test-only stub, has a defined purpose)</p></td>
+<td><p>High</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="consumer-dependency-graph-narrative">
+<h2>9. Consumer/dependency graph (narrative)<a class="headerlink" href="#consumer-dependency-graph-narrative" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>quant_hedge_ai/engine/decision_engine.py (DecisionEngine)
+   -&gt; observability/* (heartbeat, decision_event_bus, operator_snapshot_builder)
+        -&gt; observability/operator_api/app.py (FastAPI)
+             -&gt; frontend/ (React canonical app)          [WEB-01 / API-01 — KEEP]
+   -&gt; quant_hedge_ai/agents/execution/execution_engine.py
+        -&gt; capital_deployment/command_center_bot.py -&gt; @mon_portfolio_bot   [INTEGRATE]
+   -&gt; databases/decision_packets_*.jsonl (governed evidence store)
+        -&gt; scripts/radar_bot.py -&gt; @RadarCrypto1_bot                        [INTEGRATE]
+        -&gt; scripts/dashboard_api.py -&gt; CryptoRadar Web Dashboard (WEB-05)   [INTEGRATE]
+        -&gt; observability/market_radar_snapshot.py -&gt; operator_api MARKET    [KEEP, one-way bridge]
+   -&gt; visualization/api/quant_live_api.py -&gt; src/telegram/quant_observer -&gt; @QuantCrpto_bot  [INTEGRATE]
+   -&gt; src/paper/paper_runner.py (isolated) -&gt; @PaperArena_bot                [KEEP, low priority]
+   -&gt; src/telegram/sim_bot.py (deployment unresolved) -&gt; databases/sim_runs.sqlite, cross-posts to @mon_portfolio_bot's chat  [UNKNOWN]
+
+Parallel / unresolved stacks (no confirmed edge into the canonical graph above):
+   sdos_terminal/api/app.py &lt;- visualization/api/ (shared producer with Quant Observer)
+        -&gt; sdos_terminal/frontend/                                          [UNKNOWN]
+   infra/api/api_server.py (no confirmed consumer found)                    [UNKNOWN]
+</pre></div>
+</div>
+</section>
+<section id="classification-matrix-summary-table">
+<h2>10. Classification matrix (summary table)<a class="headerlink" href="#classification-matrix-summary-table" title="Link to this heading">¶</a></h2>
+<p>Each row below is one uniquely-identified component from §3–8 (its table id,
+e.g. <code class="docutils literal notranslate"><span class="pre">WEB-01</span></code>, <code class="docutils literal notranslate"><span class="pre">API-06</span></code>, or a systemd unit name). A bot’s own producer/read
+path is counted as a distinct component from the bot’s presentation/transport
+row wherever this document models them separately (e.g. <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code>
+the Telegram transport vs. its <code class="docutils literal notranslate"><span class="pre">radar_bot.py</span></code> producer function vs. the
+separate <code class="docutils literal notranslate"><span class="pre">dashboard_api.py</span></code> producer) — these are intentionally three rows,
+not double-counting one thing. Counts below are therefore exact given this
+document’s own component list, not approximate.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Classification</p></th>
+<th class="head text-right"><p>Count</p></th>
+<th class="head"><p>Component IDs (this document’s own row identifiers)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>KEEP</p></td>
+<td class="text-right"><p>16</p></td>
+<td><p>WEB-01, API-01, API-04, operator_snapshot_builder, market_radar_snapshot, <code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-advisor.service</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-watchdog.service</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-lmi-observatory.service</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-horizons.service</span></code>+<code class="docutils literal notranslate"><span class="pre">.timer</span></code> (2), <code class="docutils literal notranslate"><span class="pre">crypto-market-observer.service</span></code>+<code class="docutils literal notranslate"><span class="pre">.timer</span></code> (2), <code class="docutils literal notranslate"><span class="pre">crypto-market-radar.service</span></code>+<code class="docutils literal notranslate"><span class="pre">.timer</span></code> (2), <code class="docutils literal notranslate"><span class="pre">src/risk/kill_switch.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>INTEGRATE</p></td>
+<td class="text-right"><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code>/<code class="docutils literal notranslate"><span class="pre">command_center_bot.py</span></code>, <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code>, <code class="docutils literal notranslate"><span class="pre">radar_bot.py</span></code> producer (CryptoRadar bot calc), WEB-05 (CryptoRadar Web Dashboard), API-06 (dashboard API), <code class="docutils literal notranslate"><span class="pre">dashboard_api.py</span></code> producer (CryptoRadar dashboard producer), <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code> (systemd unit backing WEB-05/API-06 — source identity resolved; its VPS activation state is separately <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, §12), Command Center provider</p></td>
+</tr>
+<tr class="row-even"><td><p>MOVE</p></td>
+<td class="text-right"><p>0</p></td>
+<td><p>none identified with sufficient evidence in this pass — candidates would need VPS/runtime evidence first</p></td>
+</tr>
+<tr class="row-odd"><td><p>ARCHIVE</p></td>
+<td class="text-right"><p>5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code> tree (pre-existing), legacy <code class="docutils literal notranslate"><span class="pre">.bat</span></code>/panel launchers, regime-detector shim, legacy kill-switch variants, <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/telegram_bot_duplicates_20260706</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>RETIRE</p></td>
+<td class="text-right"><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code> (zero imports, confirmed dead)</p></td>
+</tr>
+<tr class="row-odd"><td><p>UNKNOWN</p></td>
+<td class="text-right"><p>6</p></td>
+<td><p>WEB-02/API-02 (<code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code>, one component across API+frontend), API-03 (<code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code>), API-05 (<code class="docutils literal notranslate"><span class="pre">governance/status_dashboard.py</span></code>), <code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code>/<code class="docutils literal notranslate"><span class="pre">sim_bot.py</span></code> (identity+deployment; its Sim Bot run store is the same unresolved component, not counted twice), <code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code>, WEB-04 (<code class="docutils literal notranslate"><span class="pre">infra/dashboards/__init__.py</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>This corrects an earlier draft, which both called its totals “approximate”
+and listed exact counts — a contradiction. The counts above are exact given
+this document’s own row set; a future pass could still find additional
+components not yet enumerated here (test/doc files are treated as evidence
+for these rows, not separate components).</p>
+</section>
+<section id="risks">
+<h2>11. Risks<a class="headerlink" href="#risks" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Stale audit-pack catalog</strong> (§6): <code class="docutils literal notranslate"><span class="pre">crypto-operator-api.service</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code>, and three
+<code class="docutils literal notranslate"><span class="pre">.timer</span></code> files exist in <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code> but are absent from
+<code class="docutils literal notranslate"><span class="pre">docs/runbooks/SERVICE_MATRIX_AUDIT_PACK.md</span></code>’s fixed catalog. Any future
+cleanup PR must not treat “not in the audit pack” as “not running” — it may
+simply mean the audit pack is outdated.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> identity ambiguity</strong> (already flagged internally):
+env vars in <code class="docutils literal notranslate"><span class="pre">.env.secrets.example</span></code> say one BotFather name, a prior internal
+audit (<code class="docutils literal notranslate"><span class="pre">docs/architecture/TELEGRAM_BOT_REGISTRY.md</span></code>) says another
+(<code class="docutils literal notranslate"><span class="pre">&#64;FtnTrading_bot</span></code>), and no systemd unit references its entrypoint. Treating
+it as RETIRE without resolving this first would risk silently deleting a
+bot that is still deployed under a different name.</p></li>
+<li><p><strong>CryptoRadar direct JSONL read</strong>: both <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code> (Telegram)
+and <code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code> (standalone web dashboard) independently
+read and re-aggregate <code class="docutils literal notranslate"><span class="pre">decision_packets_*.jsonl</span></code>, each its own ungoverned
+bypass of the WEB-01 MARKET bridge, which was explicitly designed as
+one-directional to avoid this pattern reaching the frontend. Two bypasses
+over the same evidence store is a larger governance gap than the earlier
+draft of this document recorded (it named only one); any future
+consolidation must fold both into the governed producer rather than
+generalize the bypass further.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code> and <code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code></strong> cannot be classified
+above UNKNOWN from source alone; marking them RETIRE without VPS evidence
+(running processes, nginx/reverse-proxy config, cron, or an explicit
+operator statement that they are dormant) would violate the fail-closed
+rule in #285 §1.5 / #286.</p></li>
+<li><p><strong>Legacy Windows panel stack</strong> already has direct evidence of breakage
+(<code class="docutils literal notranslate"><span class="pre">panel_test_report.txt</span></code>), which reduces but does not eliminate removal
+risk — the shared <code class="docutils literal notranslate"><span class="pre">dashboard/alert_dashboard.py</span></code> module underneath it is
+still imported by non-panel code and has its own test.</p></li>
+</ul>
+</section>
+<section id="unknowns-requiring-runtime-vps-evidence">
+<h2>12. Unknowns requiring runtime/VPS evidence<a class="headerlink" href="#unknowns-requiring-runtime-vps-evidence" title="Link to this heading">¶</a></h2>
+<p>These are <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">=</span> <span class="pre">do</span> <span class="pre">not</span> <span class="pre">touch</span></code> per #286’s fail-closed rule. Source-level
+facts (a unit’s <code class="docutils literal notranslate"><span class="pre">Description</span></code>/<code class="docutils literal notranslate"><span class="pre">ExecStart</span></code>, a timer’s schedule, a bot’s
+registry entry) are <strong>not</strong> listed here even when related VPS state is —
+per human review, source-forensic completion and runtime/VPS evidence are
+two different questions, and this section is scoped to the latter only:</p>
+<ol class="arabic simple">
+<li><p>Is <code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code> (API + frontend) actually deployed/reachable on the
+VPS today, under what unit/port, and who uses it?</p></li>
+<li><p>Is <code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code> deployed anywhere, and by what process
+supervises it (no systemd unit name matched it in this pass)?</p></li>
+<li><p>Is <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code> currently installed, <code class="docutils literal notranslate"><span class="pre">enabled</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">active</span></code> on the VPS? (Its source-declared <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code> —
+<code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code> — is now confirmed from source, §6; only its
+deployed/running state is unknown.)</p></li>
+<li><p>Are <code class="docutils literal notranslate"><span class="pre">crypto-market-horizons.timer</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-observer.timer</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">crypto-market-radar.timer</span></code> currently <code class="docutils literal notranslate"><span class="pre">enabled</span></code>/<code class="docutils literal notranslate"><span class="pre">active</span></code>, and do their
+corresponding <code class="docutils literal notranslate"><span class="pre">.service</span></code> units’ current <code class="docutils literal notranslate"><span class="pre">ActiveState</span></code> match the audit
+pack’s last observation? (Their configured schedules are source-known,
+§6, and not themselves unknown.)</p></li>
+<li><p>Is <code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> actually running under any process today, and
+under which of its two candidate BotFather identities?</p></li>
+<li><p>Does <code class="docutils literal notranslate"><span class="pre">crypto-operator-api.service</span></code> / <code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code> map
+1:1 to <code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code> / <code class="docutils literal notranslate"><span class="pre">frontend/</span></code>, confirming
+WEB-01/API-01 are indeed the live canonical stack and not just the
+intended one?</p></li>
+<li><p>Is <code class="docutils literal notranslate"><span class="pre">governance/status_dashboard.py</span></code> (API-05) invoked by any running
+process, cron, or operator workflow?</p></li>
+<li><p>Is <code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code> currently <code class="docutils literal notranslate"><span class="pre">enabled</span></code>/<code class="docutils literal notranslate"><span class="pre">active</span></code>, and
+does it in fact back <code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code>?</p></li>
+</ol>
+<p>None of these can be resolved by a read-only repository pass; they require a
+future, separately-scoped, explicitly-authorized VPS read (e.g. a
+<code class="docutils literal notranslate"><span class="pre">service_matrix</span></code>-style bounded audit pack extended to cover these specific
+units, or an <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code>-scoped follow-up pack). Runtime/VPS unknowns
+remaining open does not block source-forensic completion (§17) — it blocks
+only cleanup of the specific <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> components listed above and in §10.</p>
+</section>
+<section id="proposed-migration-order-wave-1-6-proposals-only-not-executed">
+<h2>13. Proposed migration order (Wave 1…6 — PROPOSALS ONLY, not executed)<a class="headerlink" href="#proposed-migration-order-wave-1-6-proposals-only-not-executed" title="Link to this heading">¶</a></h2>
+<p>These are <strong>proposals for future, separately-governed PRs</strong>. None of them are
+executed by this forensic, and each would need its own issue, branch, PR, and
+pass through #286 per #285 §18.</p>
+<ul class="simple">
+<li><p><strong>Wave 1 — Low-risk retirement of proven-dead code.</strong> Remove
+<code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code> (zero confirmed imports). Lowest risk item
+in this inventory.</p></li>
+<li><p><strong>Wave 2 — Resolve unknowns before any further action.</strong> Get VPS
+enabled/active evidence for <code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code>, <code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">governance/status_dashboard.py</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code>, the three market <code class="docutils literal notranslate"><span class="pre">.timer</span></code> units, and
+<code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> identity/deployment (§12). Update the
+<code class="docutils literal notranslate"><span class="pre">service_matrix</span></code> fixed catalog to include <code class="docutils literal notranslate"><span class="pre">crypto-operator-api.service</span></code>,
+<code class="docutils literal notranslate"><span class="pre">crypto-operator-web.service</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-market-snapshot.service</span></code>, and the
+three <code class="docutils literal notranslate"><span class="pre">.timer</span></code> units.</p></li>
+<li><p><strong>Wave 3 — Integrate <code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code>.</strong> Per the registry’s own
+highest-priority recommendation: fold its metrics into the Operator App’s
+System/Governance panel using the already-canonical
+<code class="docutils literal notranslate"><span class="pre">visualization/api/quant_live_api.py</span></code> producer; no new producer needed.</p></li>
+<li><p><strong>Wave 4 — Integrate <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code> / Command Center.</strong> Consolidate
+its two independent senders (<code class="docutils literal notranslate"><span class="pre">CommandCenterBot.send()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Notifier._send()</span></code>) into one owner; migrate its KPI surface into the
+Operator App Portfolio/Finance view, sourcing from the same
+<code class="docutils literal notranslate"><span class="pre">CommandDataProvider</span></code> data already used, not a re-derivation.</p></li>
+<li><p><strong>Wave 5 — Integrate <code class="docutils literal notranslate"><span class="pre">&#64;RadarCrypto1_bot</span></code> and the CryptoRadar Web Dashboard.</strong>
+Replace both <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code>’s and <code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code>’s
+direct <code class="docutils literal notranslate"><span class="pre">databases/decision_packets_*.jsonl</span></code> reads with calls into the
+existing governed <code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code> producer (or
+extend that producer to serve the same fields, including
+<code class="docutils literal notranslate"><span class="pre">dashboard_api.py</span></code>’s <code class="docutils literal notranslate"><span class="pre">/api/scan</span></code>/<code class="docutils literal notranslate"><span class="pre">/api/signals</span></code>/<code class="docutils literal notranslate"><span class="pre">/api/status</span></code>/<code class="docutils literal notranslate"><span class="pre">/api/lmi/*</span></code>
+shapes), then retire the Telegram transport and the standalone dashboard
+site, keeping the CryptoRadar calculation engine and folding its
+presentation into the Operator App MARKET view.</p></li>
+<li><p><strong>Wave 6 — Archive proven-legacy surfaces.</strong> Legacy Windows <code class="docutils literal notranslate"><span class="pre">.bat</span></code>/panel
+launchers (with <code class="docutils literal notranslate"><span class="pre">panel_test_report.txt</span></code> as supporting evidence of already
+broken runtime), the regime-detector shim, and legacy kill-switch variants
+already flagged ARCHIVE in <code class="docutils literal notranslate"><span class="pre">architecture/CANONICAL_COMPONENTS.md</span></code> — move to
+<code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code> rather than delete, consistent with that directory’s
+existing pattern.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;PaperArena_bot</span></code> and <code class="docutils literal notranslate"><span class="pre">&#64;Telemetrie_IA_bot</span></code> are deliberately <strong>not</strong> placed in
+an early wave: the former is already clean/isolated (low migration urgency),
+the latter cannot be migrated safely until its identity/deployment ambiguity
+is resolved (Wave 2 dependency).</p>
+</section>
+<section id="proposed-future-cleanup-prs-independent-each-through-286">
+<h2>14. Proposed future cleanup PRs (independent, each through #286)<a class="headerlink" href="#proposed-future-cleanup-prs-independent-each-through-286" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCH-CONSOLIDATE-01a</span></code> — Remove <code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code> (Wave 1).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCH-CONSOLIDATE-01b</span></code> — VPS-scoped audit-pack extension to resolve the
+runtime/VPS unknowns in §12 (Wave 2), read-only, no code change to
+runtime logic.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCH-CONSOLIDATE-01c</span></code> — Update <code class="docutils literal notranslate"><span class="pre">docs/runbooks/SERVICE_MATRIX_AUDIT_PACK.md</span></code>
+fixed catalog to include the three currently-undocumented <code class="docutils literal notranslate"><span class="pre">.service</span></code> units
+and three <code class="docutils literal notranslate"><span class="pre">.timer</span></code> units (Wave 2, documentation-only).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCH-CONSOLIDATE-01d</span></code> — Integrate <code class="docutils literal notranslate"><span class="pre">&#64;QuantCrpto_bot</span></code> metrics into the
+Operator App (Wave 3), Telegram bot left running until App parity is
+proven, then a separate follow-up PR retires the bot transport.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCH-CONSOLIDATE-01e</span></code> — Consolidate <code class="docutils literal notranslate"><span class="pre">&#64;mon_portfolio_bot</span></code> senders and
+migrate its KPI surface into the Operator App (Wave 4).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCH-CONSOLIDATE-01f</span></code> — Replace <code class="docutils literal notranslate"><span class="pre">scripts/radar_bot.py</span></code>’s and
+<code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code>’s direct JSONL reads with the governed
+<code class="docutils literal notranslate"><span class="pre">market_radar_snapshot.py</span></code> producer, then retire the Telegram transport
+and the standalone CryptoRadar Web Dashboard, keeping the engine (Wave 5).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCH-CONSOLIDATE-01g</span></code> — Move legacy Windows panel/launcher assets and the
+already-flagged shims/kill-switch variants into <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026/</span></code> (Wave 6).</p></li>
+</ol>
+</section>
+<section id="explicit-non-impact-statement">
+<h2>15. Explicit non-impact statement<a class="headerlink" href="#explicit-non-impact-statement" title="Link to this heading">¶</a></h2>
+<p>This forensic mission made <strong>no</strong> change to any runtime, configuration,
+service, systemd unit, database, ledger, PPL stream, Telegram bot, deployed
+process, or existing file in this repository. No file was deleted. No
+service was restarted, started, or stopped. No secret value was read,
+printed, or transmitted — only variable/reference <strong>names</strong> are cited above.
+The only artifact added by this mission is this single new document,
+<code class="docutils literal notranslate"><span class="pre">docs/forensics/ARCH_CONSOLIDATE_01_FORENSIC.md</span></code>, on a dedicated branch not
+merged by this mission. The active burn-in epoch
+<code class="docutils literal notranslate"><span class="pre">BURN-IN-EPOCH-01-20260926T064144Z</span></code> (#282/#286) is entirely unaffected.</p>
+</section>
+<section id="exact-source-sha-tree-branch-identity">
+<h2>16. Exact source SHA / tree / branch identity<a class="headerlink" href="#exact-source-sha-tree-branch-identity" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Original forensic pass was built against <code class="docutils literal notranslate"><span class="pre">main</span></code> HEAD (via <code class="docutils literal notranslate"><span class="pre">origin/main</span></code>)
+<code class="docutils literal notranslate"><span class="pre">4016725058ba399eab470ee96b076fe7c2bbfebd</span></code>, which at that time matched the
+baseline SHA named in the mission brief (no drift).</p></li>
+<li><p><strong>Remediation pass</strong> (this revision, responding to human review comment
+<code class="docutils literal notranslate"><span class="pre">5860949880</span></code> on PR #306): <code class="docutils literal notranslate"><span class="pre">main</span></code> had since advanced to
+<code class="docutils literal notranslate"><span class="pre">5e5163721417a646897e62669f39ee678f0161ec</span></code> (D4E/D5A landed). This branch
+was merged forward onto that HEAD before the corrections in this revision
+were made, so all source citations above (including the <code class="docutils literal notranslate"><span class="pre">scripts/systemd/</span></code>
+16-unit count and <code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code> evidence) are verified against
+<code class="docutils literal notranslate"><span class="pre">5e5163721417a646897e62669f39ee678f0161ec</span></code>, not the original SHA.</p></li>
+<li><p>Branch used for this forensic: <code class="docutils literal notranslate"><span class="pre">forensic/arch-consolidate-01</span></code>.</p></li>
+<li><p>This document’s own path: <code class="docutils literal notranslate"><span class="pre">docs/forensics/ARCH_CONSOLIDATE_01_FORENSIC.md</span></code>.</p></li>
+</ul>
+</section>
+<section id="final-forensic-verdict">
+<h2>17. Final forensic verdict<a class="headerlink" href="#final-forensic-verdict" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ARCH_CONSOLIDATION_FORENSIC_SOURCE_READY</span></code></p>
+<p>This corrects an earlier revision of this document, which contained several
+source-level contradictions (an independent CryptoRadar web dashboard
+overlooked, a stale systemd-unit count, an inconsistent Telegram bot count,
+“approximate” totals presented as exact) identified in human review (PR #306
+comment <code class="docutils literal notranslate"><span class="pre">5860949880</span></code>) and fixed in this revision. <code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> reflects
+that the source-evidence forensic pass is now internally consistent and
+complete against the current verified head (§16); it is <strong>not</strong>
+<code class="docutils literal notranslate"><span class="pre">ARCH_CONSOLIDATION_FORENSIC_CERTIFIED</span></code>, since several components remain
+<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> pending VPS/runtime evidence (§12) and certification still requires
+a further round of explicit human sign-off, per #286’s fail-closed cleanup
+rule and #285 §18’s governance requirements. Runtime/VPS unknowns are
+intentionally left open and visible, not resolved, by this revision.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ARCH-CONSOLIDATE-01 — Forensic des surfaces Web, APIs, Telegram, services et code legacy</a><ul>
+<li><a class="reference internal" href="#executive-summary">1. Executive Summary</a></li>
+<li><a class="reference internal" href="#bis-answers-to-the-13-special-questions">1bis. Answers to the 13 special questions</a></li>
+<li><a class="reference internal" href="#current-canonical-architecture">2. Current canonical architecture</a></li>
+<li><a class="reference internal" href="#web-surfaces-inventory">3. Web surfaces inventory</a></li>
+<li><a class="reference internal" href="#api-inventory">4. API inventory</a></li>
+<li><a class="reference internal" href="#telegram-inventory">5. Telegram inventory</a></li>
+<li><a class="reference internal" href="#services-process-inventory">6. Services/process inventory</a></li>
+<li><a class="reference internal" href="#snapshot-data-producer-inventory">7. Snapshot/data producer inventory</a></li>
+<li><a class="reference internal" href="#legacy-code-duplication-inventory">8. Legacy/code duplication inventory</a></li>
+<li><a class="reference internal" href="#consumer-dependency-graph-narrative">9. Consumer/dependency graph (narrative)</a></li>
+<li><a class="reference internal" href="#classification-matrix-summary-table">10. Classification matrix (summary table)</a></li>
+<li><a class="reference internal" href="#risks">11. Risks</a></li>
+<li><a class="reference internal" href="#unknowns-requiring-runtime-vps-evidence">12. Unknowns requiring runtime/VPS evidence</a></li>
+<li><a class="reference internal" href="#proposed-migration-order-wave-1-6-proposals-only-not-executed">13. Proposed migration order (Wave 1…6 — PROPOSALS ONLY, not executed)</a></li>
+<li><a class="reference internal" href="#proposed-future-cleanup-prs-independent-each-through-286">14. Proposed future cleanup PRs (independent, each through #286)</a></li>
+<li><a class="reference internal" href="#explicit-non-impact-statement">15. Explicit non-impact statement</a></li>
+<li><a class="reference internal" href="#exact-source-sha-tree-branch-identity">16. Exact source SHA / tree / branch identity</a></li>
+<li><a class="reference internal" href="#final-forensic-verdict">17. Final forensic verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
