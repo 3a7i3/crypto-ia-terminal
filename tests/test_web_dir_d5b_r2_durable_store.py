@@ -6,7 +6,6 @@ créé et détruit par chaque test.
 """
 from __future__ import annotations
 
-import json
 import sqlite3
 import threading
 from dataclasses import replace
@@ -123,7 +122,7 @@ def test_reponse_perdue_apres_commit_est_retrouvee_sans_duplication(tmp_path):
 
 def test_crash_avant_commit_ne_laisse_aucune_trace(tmp_path):
     db = tmp_path / "store.db"
-    s = store(db)
+    store(db)  # initialise le schéma avant la manipulation SQL directe
     conn = sqlite3.connect(str(db), isolation_level=None)
     conn.execute("BEGIN IMMEDIATE")
     conn.execute(

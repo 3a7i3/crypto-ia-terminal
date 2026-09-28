@@ -28,10 +28,9 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
-from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Mapping
+from typing import Mapping
 from uuid import uuid4
 
 from observability.operator_decisions.producer import (
