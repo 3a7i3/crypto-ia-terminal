@@ -138,15 +138,26 @@ class GovernedProducer:
         if len(set(c.evidence_refs)) != len(c.evidence_refs):
             raise ContractError("références de preuve dupliquées")
 
-    def admit(self, candidate: Candidate, *, occurred_at_utc: str) -> str:
+    def admit(
+        self, candidate: Candidate, *, occurred_at_utc: str,
+        approved_status: str, approved_priority: str, admission_approval_ref: str,
+    ) -> str:
         """Admettre sans action humaine. Un doublon strict ne produit aucun événement."""
         self._validate(candidate)
         _utc(occurred_at_utc)
+        _text(admission_approval_ref, "admission_approval_ref")
+        if approved_status not in INITIAL_STATUSES or approved_priority not in PRIORITIES:
+            raise ContractError("statut ou priorité approuvé invalide")
         self.verify()
         key = (candidate.owner_registry, candidate.source_type,
                candidate.source_id, candidate.owner_record_version,
                candidate.decision_purpose)
-        fingerprint = _digest(self._payload(candidate))
+        fingerprint = _digest({
+            "candidate": self._payload(candidate),
+            "approved_status": approved_status,
+            "approved_priority": approved_priority,
+            "admission_approval_ref": admission_approval_ref,
+        })
         if key in self._admitted:
             prior_fingerprint, decision_id = self._admitted[key]
             if prior_fingerprint != fingerprint:
@@ -160,10 +171,11 @@ class GovernedProducer:
             "sequence": sequence, "event_type": "CANDIDATE_ADMITTED",
             "actor_type": "GOVERNANCE_SERVICE",
             "actor_ref": "governed-admission", "occurred_at_utc": occurred_at_utc,
-            "previous_status": None, "new_status": candidate.requested_status,
+            "previous_status": None, "new_status": approved_status,
             "expected_version": 0, "candidate_id": candidate.candidate_id,
             "source_revision_ref": candidate.owner_record_version,
-            "reason": "admission gouvernée",
+            "reason": "admission gouvernée", "admission_approval_ref": admission_approval_ref,
+            "approved_priority": approved_priority,
             "evidence_refs": list(candidate.evidence_refs),
             "idempotency_key": _digest(key),
             "previous_event_hash": self._events[-1]["event_hash"] if self._events else "GENESIS",
@@ -219,7 +231,7 @@ class GovernedProducer:
                 "decision_id": e["decision_id"], "schema_version": SCHEMA_VERSION,
                 "decision_type": c["decision_type"], "title": c["title"],
                 "summary": c["summary"], "status": e["new_status"],
-                "priority": c["requested_priority"],
+                "priority": e["approved_priority"],
                 "created_at_utc": e["occurred_at_utc"],
                 "updated_at_utc": e["occurred_at_utc"],
                 "source": {
