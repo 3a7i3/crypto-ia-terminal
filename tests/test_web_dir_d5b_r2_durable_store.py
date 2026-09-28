@@ -358,15 +358,19 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
 
     view = s.project(proof(1))
     if not injected["done"]:
-        # DIAGNOSTIC TEMPORAIRE (PR #316) : expose le VRAI type/message de la
-        # dernière exception sqlite retenue dans `_read_events_verified`,
-        # pour remplacer la conjecture par la preuve directe côté CI. À
-        # retirer une fois la cause confirmée.
-        exc = s.last_read_retry_exception
-        detail = f"{type(exc).__name__}: {exc!r}" if exc is not None else "aucune exception capturée"
+        # DIAGNOSTIC TEMPORAIRE (PR #316) : expose l'état exact de la
+        # dernière exécution de `_read_events_verified` (nombre de
+        # tentatives, étape atteinte, type/message d'exception, résultat
+        # renvoyé par `project()`), pour remplacer la conjecture par la
+        # preuve directe côté CI. À retirer une fois la cause confirmée.
         raise AssertionError(
-            f"injected['done'] resté False : _verify_locked jamais atteint. "
-            f"Dernière exception retenue par le store : {detail}"
+            "injected['done'] resté False : _verify_locked jamais atteint. "
+            f"tentatives_utilisées={s.last_read_attempts_used} "
+            f"select_atteint_avant_verify={s.last_read_reached_verify} "
+            f"exception_type={s.last_read_exception_type!r} "
+            f"exception_repr={s.last_read_exception_repr!r} "
+            f"project()_availability={view.get('availability')!r} "
+            f"project()_limitations={view.get('limitations')!r}"
         )
     assert view["availability"] == "AVAILABLE"
     assert view["decision_count"] == 1

@@ -126,11 +126,15 @@ class DurableGovernedStore:
         self._validator = GovernedProducer(dict(owners))
         self._db_path = str(db_path)
         self._lock = threading.Lock()
-        # DIAGNOSTIC TEMPORAIRE (PR #316) : capture la dernière exception
-        # sqlite retenue dans `_read_events_verified`, pour permettre au test
-        # d'afficher le VRAI type/message sous CI au lieu de deviner. À
+        # DIAGNOSTIC TEMPORAIRE (PR #316) : capture l'état exact de la
+        # dernière exécution de `_read_events_verified`, pour permettre au
+        # test d'afficher le VRAI déroulement sous CI au lieu de deviner. À
         # retirer une fois la cause CI confirmée par instrumentation directe.
         self.last_read_retry_exception: BaseException | None = None
+        self.last_read_exception_type: str | None = None
+        self.last_read_exception_repr: str | None = None
+        self.last_read_attempts_used: int = 0
+        self.last_read_reached_verify: bool = False
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -153,7 +157,35 @@ class DurableGovernedStore:
         # comportement fonctionnel du prototype.
         current_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
         if str(current_mode).lower() != "wal":
-            conn.execute("PRAGMA journal_mode=WAL")
+            # Reproduit localement (hors CI, 5 threads créant chacun leur
+            # propre `DurableGovernedStore` sur le même fichier neuf) :
+            # `sqlite3.OperationalError: database is locked` précisément sur
+            # `PRAGMA journal_mode=WAL`, malgré `busy_timeout=30000` déjà
+            # posé sur CETTE connexion. Cause réelle (pas une hypothèse) :
+            # le changement de mode journal exige un verrou EXCLUSIF bref
+            # pendant que la première écriture crée le fichier `-wal`/`-shm`
+            # ; sous plusieurs connexions concurrentes exécutant ce PRAGMA au
+            # même instant sur un fichier tout juste créé, SQLite peut
+            # renvoyer `SQLITE_BUSY` sur CE PRAGMA précis avant même que le
+            # compteur `busy_timeout` de l'appelant n'ait une fenêtre pour
+            # s'appliquer côté verrou de création de fichier (comportement
+            # documenté de SQLite sur le changement de journal_mode, distinct
+            # du verrou de transaction ordinaire). La retenue bornée ici est
+            # symétrique à celle de `_read_events_verified` : seule une
+            # `sqlite3.OperationalError` transitoire est retentée, jamais un
+            # signe de corruption.
+            last_exc: sqlite3.OperationalError | None = None
+            for attempt in range(_OPEN_RETRY_ATTEMPTS):
+                if attempt:
+                    time.sleep(_OPEN_RETRY_DELAY_SECONDS)
+                try:
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    break
+                except sqlite3.OperationalError as exc:
+                    last_exc = exc
+                    continue
+            else:
+                raise last_exc
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
 
@@ -424,29 +456,47 @@ class DurableGovernedStore:
         """
         last_exc: sqlite3.DatabaseError | None = None
         for attempt in range(_OPEN_RETRY_ATTEMPTS):
+            # DIAGNOSTIC TEMPORAIRE (PR #316) : trace l'étape exacte atteinte
+            # à chaque tentative, pour distinguer sans ambiguïté "aucune
+            # exception, `_verify_locked` jamais appelé" (bug de dispatch ou
+            # de logique) de "une exception hors `sqlite3.DatabaseError` a
+            # été levée avant `_verify_locked`" (retenue trop étroite).
+            self.last_read_attempts_used = attempt + 1
             if attempt:
                 time.sleep(_OPEN_RETRY_DELAY_SECONDS)
             try:
                 conn = self._connect()
             except sqlite3.DatabaseError as exc:
                 last_exc = exc
-                self.last_read_retry_exception = exc  # DIAGNOSTIC TEMPORAIRE
+                self.last_read_retry_exception = exc
+                self.last_read_exception_type = type(exc).__name__
+                self.last_read_exception_repr = repr(exc)
                 continue
+            except Exception as exc:  # DIAGNOSTIC TEMPORAIRE : ne masque rien, re-lève tel quel
+                self.last_read_exception_type = type(exc).__name__
+                self.last_read_exception_repr = repr(exc)
+                raise
             try:
                 conn.execute("BEGIN")
                 try:
                     rows = conn.execute(
                         "SELECT payload_json FROM events ORDER BY sequence ASC"
                     ).fetchall()
+                    self.last_read_reached_verify = True  # DIAGNOSTIC TEMPORAIRE
                     self._verify_locked(conn)
                 finally:
                     conn.execute("COMMIT")
                 return tuple(json.loads(r[0]) for r in rows)
             except sqlite3.DatabaseError as exc:
                 last_exc = exc
-                # DIAGNOSTIC TEMPORAIRE (PR #316) : voir docstring ci-dessus.
                 self.last_read_retry_exception = exc
+                self.last_read_exception_type = type(exc).__name__
+                self.last_read_exception_repr = repr(exc)
                 continue
+            except Exception as exc:  # DIAGNOSTIC TEMPORAIRE : ne masque rien, re-lève tel quel
+                self.last_read_exception_type = type(exc).__name__
+                self.last_read_exception_repr = repr(exc)
+                raise
             finally:
                 conn.close()
         assert last_exc is not None  # noqa: S101 (garantie interne, pas un test)
