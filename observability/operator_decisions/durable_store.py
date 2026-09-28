@@ -5,27 +5,21 @@ prolonge le noyau source D5B-R1 (`producer.GovernedProducer`) avec un journal
 append-only persistant (SQLite, transaction explicite) et une projection
 reconstruite uniquement à partir de ce journal.
 
-Limites documentées (voir aussi `docs/adr/0019-...md`) :
+Contrat de confiance : ADR-0020 (`docs/adr/0020-contrat-de-confiance-...md`).
 
-- L'`AvailabilityProof` reste une attestation *injectée par l'appelant*. Ce
-  module ne l'authentifie jamais : aucune signature, aucune racine de
-  confiance externe n'est vérifiée ici. Une preuve non authentifiée ne peut
-  donc JAMAIS, à elle seule, produire `AVAILABLE` avec certitude — elle ne
-  fait que refléter ce que l'appelant prétend. Le champ
-  `AvailabilityProof.trust_root_ref` documente l'absence de vérification et
-  DOIT être traité comme non fiable tant qu'aucun mécanisme de signature ou
-  d'ancrage n'est branché (gate distinct, non couvert par ce prototype).
-  Conséquence explicite : une preuve non authentifiée ne peut jamais, à elle
-  seule, certifier un ZÉRO (base vide) — `project()` refuse ce cas
-  (`UNKNOWN`) tant qu'aucune racine de confiance réelle n'est branchée (voir
-  revue indépendante PR #316, review_id 5333698547, point 1).
-- Le hash de chaîne (`event_hash`/`previous_event_hash`) est un contrôle
-  d'INTÉGRITÉ interne (détecte réécriture, troncature, réordonnancement) ; ce
-  n'est PAS une preuve d'AUTHENTICITÉ externe (rien n'empêche quiconque a un
-  accès disque de recalculer une chaîne cohérente après une réécriture totale
-  du fichier). Une racine de confiance externe (clé de signature détenue hors
-  de ce processus, ancrage dans un registre faisant autorité) resterait
-  nécessaire pour ce niveau de garantie et n'est pas implémentée ici.
+- Admission : exige une approbation signée (Ed25519) par un
+  `ADMISSION_APPROVER` de la politique passée au CONSTRUCTEUR, liée au
+  candidat exact ; statut et priorité sont lus depuis l'approbation vérifiée.
+- Projection : `AVAILABLE` (y compris le zéro explicite) exige une
+  attestation signée par un `AVAILABILITY_AUTHORITY`, fraîche (horloge
+  injectée), liée au `journal_id`, complète (compte + hash de tête) et
+  monotone (dernier checkpoint accepté persisté par le vérificateur).
+  `AvailabilityProof` (preuve libre) ne produit plus jamais `AVAILABLE`.
+- Limite : la politique utilisée est une FIXTURE non opérationnelle ; aucune
+  autorité réelle n'est désignée (ADR-0020 §3, blocage de certification).
+  La chaîne de hash reste un contrôle d'INTÉGRITÉ : une réécriture complète
+  avec recalcul n'est détectée que par l'attestation fraîche ou l'ancre
+  anti-retour, jamais par `verify()` seul.
 """
 from __future__ import annotations
 
@@ -53,13 +47,16 @@ from observability.operator_decisions.producer import (
 from observability.operator_decisions.trust import (
     ADMISSION_APPROVAL,
     ADMISSION_APPROVER,
+    AVAILABILITY_ATTESTATION,
+    AVAILABILITY_AUTHORITY,
     PRIORITY_RANK,
     SignedStatement,
     TrustError,
     TrustPolicy,
 )
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "2.0.0"
+JOURNAL_SCOPE = "OPERATOR_DECISION_QUEUE"
 KNOWN_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION})
 
 # Retenue bornée pour `_read_events_verified` face à un `sqlite3.OperationalError`
@@ -71,13 +68,13 @@ _OPEN_RETRY_DELAY_SECONDS = 0.05
 
 @dataclass(frozen=True)
 class AvailabilityProof:
-    """Attestation injectée par un gate futur — jamais fabriquée ici.
+    """OBSOLÈTE — preuve libre non authentifiée, conservée pour la rétro-lecture.
 
-    `trust_root_ref` documente explicitement qu'aucune vérification de
-    signature ou d'ancrage n'est effectuée par ce prototype : la valeur est
-    acceptée telle quelle et n'ajoute aucune garantie cryptographique. Un
-    gate distinct devra brancher une racine de confiance réelle avant que
-    cette attestation puisse justifier une décision opérationnelle.
+    Depuis ADR-0020, `project()` n'accorde AUCUNE autorité à cet objet : un
+    booléen `producer_certified` fourni par l'appelant n'établit jamais sa
+    propre autorité. Passée à `project()`, elle produit toujours `UNKNOWN`
+    (jamais `AVAILABLE`, base vide ou non). Seule une attestation signée par
+    un `AVAILABILITY_AUTHORITY` de la politique du constructeur compte.
     """
 
     producer_certified: bool
@@ -94,6 +91,24 @@ class CorruptedJournalError(IntegrityError):
 def candidate_fingerprint(payload: Mapping) -> str:
     """Empreinte canonique du candidat exact (tous champs, JSON trié)."""
     return _digest(dict(payload))
+
+
+def availability_attestation_payload(
+    *, policy_version: str, authority_id: str, journal_id: str,
+    checkpoint: int, event_count: int, head_hash: str, issued_at_utc: str,
+    expires_at_utc: str, deployment_evidence_ref: str,
+    scope: str = JOURNAL_SCOPE, schema_version: str = SCHEMA_VERSION,
+) -> dict:
+    """Construit la charge d'une attestation de disponibilité (à signer HORS store)."""
+    return {
+        "statement_type": AVAILABILITY_ATTESTATION,
+        "policy_version": policy_version, "authority_id": authority_id,
+        "journal_id": journal_id, "scope": scope,
+        "schema_version": schema_version, "checkpoint": checkpoint,
+        "event_count": event_count, "head_hash": head_hash,
+        "issued_at_utc": issued_at_utc, "expires_at_utc": expires_at_utc,
+        "deployment_evidence_ref": deployment_evidence_ref,
+    }
 
 
 def admission_approval_payload(
@@ -132,7 +147,8 @@ def admission_approval_payload(
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS schema_meta (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    schema_version TEXT NOT NULL
+    schema_version TEXT NOT NULL,
+    journal_id TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS events (
     sequence INTEGER PRIMARY KEY,
@@ -153,6 +169,19 @@ CREATE TABLE IF NOT EXISTS command_results (
 );
 """
 
+# Ancre anti-retour (ADR-0020 §8) : dernier checkpoint ACCEPTÉ par le
+# vérificateur, jamais fourni par l'appelant. Peut vivre dans un fichier
+# distinct du journal (`anchor_path`).
+_ANCHOR_SQL = """
+CREATE TABLE IF NOT EXISTS accepted_checkpoint (
+    journal_id TEXT PRIMARY KEY,
+    checkpoint INTEGER NOT NULL,
+    event_count INTEGER NOT NULL,
+    head_hash TEXT NOT NULL,
+    accepted_at_utc TEXT NOT NULL
+);
+"""
+
 
 class DurableGovernedStore:
     """Journal append-only SQLite + projection gouvernée, hors runtime.
@@ -170,6 +199,7 @@ class DurableGovernedStore:
     def __init__(
         self, db_path: str | Path, owners: Mapping[str, str], *,
         trust_policy: TrustPolicy, clock: Callable[[], datetime],
+        anchor_path: str | Path | None = None,
     ):
         # Réutilise la validation du noyau R1 sans dupliquer la logique de
         # décision (gel architectural) : seule la persistance change.
@@ -183,11 +213,12 @@ class DurableGovernedStore:
         self._policy = trust_policy
         self._clock = clock
         self._db_path = str(db_path)
+        self._anchor_path = str(anchor_path) if anchor_path is not None else self._db_path
         self._lock = threading.Lock()
         self._init_schema()
 
-    def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self._db_path, timeout=30, isolation_level=None)
+    def _connect(self, path: str | None = None) -> sqlite3.Connection:
+        conn = sqlite3.connect(path or self._db_path, timeout=30, isolation_level=None)
         # `busy_timeout` explicite (en plus de `timeout=` ci-dessus, qui règle
         # la même chose côté wrapper Python) : le changement de mode journal
         # ci-dessous exige un verrou exclusif bref, et sous forte contention
@@ -243,16 +274,22 @@ class DurableGovernedStore:
         try:
             conn.executescript(_SCHEMA_SQL)  # DDL : idempotent, hors journal
             conn.execute("BEGIN IMMEDIATE")
+            # Identifiant de journal stable : créé une seule fois à
+            # l'initialisation, lié par chaque attestation de disponibilité.
             conn.execute(
-                "INSERT OR IGNORE INTO schema_meta (id, schema_version) VALUES (1, ?)",
-                (SCHEMA_VERSION,),
+                "INSERT OR IGNORE INTO schema_meta (id, schema_version, journal_id) "
+                "VALUES (1, ?, ?)",
+                (SCHEMA_VERSION, str(uuid4())),
             )
-            row = conn.execute("SELECT schema_version FROM schema_meta WHERE id=1").fetchone()
+            row = conn.execute(
+                "SELECT schema_version, journal_id FROM schema_meta WHERE id=1"
+            ).fetchone()
             conn.execute("COMMIT")
             if row[0] not in KNOWN_SCHEMA_VERSIONS:
                 raise CorruptedJournalError(
                     f"version de schéma de base inconnue : {row[0]!r}"
                 )
+            self._journal_id = row[1]
         except BaseException:
             try:
                 conn.execute("ROLLBACK")
@@ -261,6 +298,13 @@ class DurableGovernedStore:
             raise
         finally:
             conn.close()
+
+    def _init_anchor(self, conn: sqlite3.Connection) -> None:
+        conn.executescript(_ANCHOR_SQL)
+
+    @property
+    def journal_id(self) -> str:
+        return self._journal_id
 
     @staticmethod
     def _key(candidate: Candidate) -> tuple:
@@ -567,52 +611,137 @@ class DurableGovernedStore:
         assert last_exc is not None  # noqa: S101 (garantie interne, pas un test)
         raise last_exc
 
-    def project(self, proof: AvailabilityProof | None = None) -> dict:
-        """Reconstruit la projection à partir du journal seul (fail-closed)."""
+    def _unknown(self, reason: str) -> dict:
+        return {
+            "schema_version": SCHEMA_VERSION, "availability": "UNKNOWN",
+            "decision_count": None, "items": None, "limitations": [reason],
+        }
+
+    def _load_anchor(self) -> tuple[int, int, str] | None:
+        conn = self._connect(self._anchor_path)
+        try:
+            self._init_anchor(conn)
+            row = conn.execute(
+                "SELECT checkpoint, event_count, head_hash FROM accepted_checkpoint "
+                "WHERE journal_id = ?", (self._journal_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        return tuple(row) if row else None
+
+    @staticmethod
+    def _anchor_violation(anchor, checkpoint: int, count: int, head: str) -> str | None:
+        """Règles anti-retour (ADR-0020 §8) ; `None` si acceptable."""
+        if anchor is None:
+            return None
+        a_cp, a_count, a_head = anchor
+        if checkpoint < a_cp:
+            return "checkpoint antérieur au dernier accepté (retour arrière)"
+        if checkpoint == a_cp and (count, head) != (a_count, a_head):
+            return "checkpoint rejoué avec un état différent"
+        if checkpoint > a_cp and count < a_count:
+            return "journal plus court que le dernier état accepté (troncature)"
+        return None
+
+    def _accept_checkpoint(self, checkpoint: int, count: int, head: str) -> str | None:
+        """Persiste l'ancre de façon atomique et monotone (vérificateur seul)."""
+        conn = self._connect(self._anchor_path)
+        try:
+            self._init_anchor(conn)
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                row = conn.execute(
+                    "SELECT checkpoint, event_count, head_hash FROM accepted_checkpoint "
+                    "WHERE journal_id = ?", (self._journal_id,),
+                ).fetchone()
+                violation = self._anchor_violation(
+                    tuple(row) if row else None, checkpoint, count, head
+                )
+                if violation is None and (row is None or checkpoint > row[0]):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO accepted_checkpoint (journal_id, "
+                        "checkpoint, event_count, head_hash, accepted_at_utc) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (self._journal_id, checkpoint, count, head,
+                         self._clock().strftime("%Y-%m-%dT%H:%M:%SZ")),
+                    )
+                conn.execute("COMMIT")
+            except BaseException:
+                conn.execute("ROLLBACK")
+                raise
+        finally:
+            conn.close()
+        return violation
+
+    def project(self, attestation: SignedStatement | None = None) -> dict:
+        """Reconstruit la projection à partir du journal seul (fail-closed).
+
+        `AVAILABLE` exige une attestation signée par un
+        `AVAILABILITY_AUTHORITY` de la politique du constructeur, fraîche
+        (horloge injectée), liée à ce journal (`journal_id`, périmètre,
+        schéma), complète (`event_count`, `head_hash` égaux au journal
+        vérifié) et monotone (checkpoint >= dernier accepté, persisté par le
+        vérificateur). Le zéro explicite n'est possible qu'à ces conditions.
+        """
         try:
             events = self._read_events_verified()
         except (CorruptedJournalError, IntegrityError, sqlite3.DatabaseError,
                 json.JSONDecodeError):
-            return {
-                "schema_version": SCHEMA_VERSION, "availability": "UNKNOWN",
-                "decision_count": None, "items": None,
-                "limitations": ["integrity_failure"],
-            }
+            return self._unknown("integrity_failure")
+        count = len(events)
+        head = events[-1]["event_hash"] if events else "GENESIS"
 
-        if proof is None:
+        # Anti-retour indépendant de toute attestation : le journal réel doit
+        # prolonger le dernier état accepté (préfixe identique).
+        anchor = self._load_anchor()
+        if anchor is not None:
+            _, a_count, a_head = anchor
+            prefix_head = events[a_count - 1]["event_hash"] if a_count and count >= a_count else (
+                "GENESIS" if a_count == 0 else None
+            )
+            if count < a_count or prefix_head != a_head:
+                return self._unknown(
+                    "retour arrière détecté : le journal ne prolonge pas le "
+                    "dernier checkpoint accepté (troncature ou réécriture)"
+                )
+
+        if attestation is None:
             return {
                 "schema_version": SCHEMA_VERSION, "availability": "NON DÉPLOYÉ",
                 "decision_count": None, "items": None,
-                "limitations": ["aucune preuve de déploiement"],
+                "limitations": ["aucune attestation de disponibilité"],
             }
-        if not isinstance(proof, AvailabilityProof) or proof.producer_certified is not True:
-            raise ContractError("attestation de producteur requise")
-        _text(proof.deployment_evidence_ref, "deployment_evidence_ref")
-        _utc(proof.observed_at_utc)
-        if type(proof.complete_event_count) is not int or proof.complete_event_count != len(events):
-            return {
-                "schema_version": SCHEMA_VERSION, "availability": "UNKNOWN",
-                "decision_count": None, "items": None,
-                "limitations": ["watermark incomplet"],
-            }
-        if len(events) == 0:
-            # Corrige la faille #1 signalée en revue indépendante (PR #316,
-            # review_id 5333698547) : une `AvailabilityProof` est une
-            # attestation injectée par l'appelant, jamais authentifiée par ce
-            # module (aucune signature, aucune racine de confiance externe).
-            # Elle ne peut donc JAMAIS, seule, certifier un zéro — un
-            # appelant pourrait sinon fabriquer librement une preuve
-            # affirmant qu'aucune décision n'existe. Tant qu'aucun gate de
-            # confiance réel n'est branché, ce cas reste fail-closed.
-            return {
-                "schema_version": SCHEMA_VERSION, "availability": "UNKNOWN",
-                "decision_count": None, "items": None,
-                "limitations": [
-                    "zéro non authentifié refusé : une AvailabilityProof non "
-                    "authentifiée ne peut jamais certifier une base vide en "
-                    "l'absence de racine de confiance externe vérifiée"
-                ],
-            }
+        if isinstance(attestation, AvailabilityProof) or not isinstance(attestation, SignedStatement):
+            return self._unknown(
+                "preuve non authentifiée refusée : seule une attestation signée "
+                "par AVAILABILITY_AUTHORITY peut produire AVAILABLE (ADR-0020)"
+            )
+        try:
+            body, key = self._policy.verify(
+                attestation, role=AVAILABILITY_AUTHORITY,
+                statement_type=AVAILABILITY_ATTESTATION,
+            )
+            self._policy.check_validity(body, self._clock())
+            if body.get("authority_id") != key.identity:
+                raise TrustError("autorité signée différente de l'identité de la clé")
+            _text(body.get("deployment_evidence_ref"), "deployment_evidence_ref")
+        except (TrustError, ContractError) as exc:
+            return self._unknown(f"attestation refusée : {exc}")
+
+        checkpoint = body.get("checkpoint")
+        if body.get("journal_id") != self._journal_id:
+            return self._unknown("attestation d'un autre journal (substitution)")
+        if body.get("scope") != JOURNAL_SCOPE or body.get("schema_version") != SCHEMA_VERSION:
+            return self._unknown("périmètre ou version de schéma non attestés")
+        if type(checkpoint) is not int or checkpoint < 1:
+            return self._unknown("checkpoint invalide")
+        if type(body.get("event_count")) is not int or body["event_count"] != count:
+            return self._unknown("attestation incomplète : nombre d'événements différent")
+        if body.get("head_hash") != head:
+            return self._unknown("attestation incomplète : hash de tête différent")
+        violation = self._accept_checkpoint(checkpoint, count, head)
+        if violation is not None:
+            return self._unknown(f"anti-retour : {violation}")
 
         items = []
         for e in events:
@@ -640,7 +769,7 @@ class DurableGovernedStore:
                     "source_hashes": [c["source_sha"]],
                     "tests": None, "ci": None, "review": c["upstream_approval_ref"],
                     "limitations": [
-                        "AvailabilityProof non authentifiée (pas de racine de confiance)"
+                        "politique de confiance FIXTURE non opérationnelle (ADR-0020 §3)"
                     ],
                 },
                 "proposed_change": c["proposed_change"],
@@ -655,14 +784,16 @@ class DurableGovernedStore:
         return {
             "schema_version": SCHEMA_VERSION, "product": "OPERATOR_DECISION_QUEUE",
             "domain": "GOVERNANCE", "authority": "GOVERNANCE_WORKFLOW_PRESENTATION",
-            "availability": "AVAILABLE", "generated_at_utc": proof.observed_at_utc,
-            "deployment_evidence_ref": proof.deployment_evidence_ref,
-            "trust_root_ref": proof.trust_root_ref,
-            "as_of_event_version": len(events),
+            "availability": "AVAILABLE", "generated_at_utc": body["issued_at_utc"],
+            "deployment_evidence_ref": body["deployment_evidence_ref"],
+            "journal_id": self._journal_id, "checkpoint": checkpoint,
+            "attested_by": body["authority_id"],
+            "policy_version": body["policy_version"],
+            "as_of_event_version": count, "head_hash": head,
             "decision_count": len(items), "counts_by_status": counts,
             "items": items, "limitations": [
-                "AvailabilityProof non authentifiée : voir docs/adr — "
-                "aucune racine de confiance externe branchée dans ce prototype"
+                "politique de confiance FIXTURE non opérationnelle : aucune "
+                "autorité réelle désignée (ADR-0020 §3, blocage de certification)"
             ],
             "projection_hash": _digest(items),
         }
@@ -670,5 +801,6 @@ class DurableGovernedStore:
 
 __all__ = [
     "AvailabilityProof", "CorruptedJournalError", "DurableGovernedStore",
-    "SCHEMA_VERSION", "admission_approval_payload", "candidate_fingerprint",
+    "JOURNAL_SCOPE", "SCHEMA_VERSION", "admission_approval_payload",
+    "availability_attestation_payload", "candidate_fingerprint",
 ]
