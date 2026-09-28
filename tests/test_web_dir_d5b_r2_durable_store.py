@@ -1133,3 +1133,56 @@ def test_lecture_verifiee_sans_retenue_generique_echoue_ferme(tmp_path, monkeypa
     assert view["availability"] == "UNKNOWN"
     assert len(selects) == 1  # plus de retenue générique sur DatabaseError
     assert all(c.closed for c in opened)
+
+
+# --- Preuves négatives complémentaires (étape 5) ------------------------------
+
+def test_approbation_emise_dans_le_futur_hors_tolerance_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    appr = approval(c, issued_at_utc=_iso(NOW_DT + timedelta(minutes=5)),
+                    expires_at_utc=_iso(NOW_DT + timedelta(minutes=30)))
+    _refus_sans_ecriture(s, c, appr, match="futur")
+
+
+def test_attestation_checkpoint_invalide_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    for bad in (0, -1, "1", 1.0):
+        _refusee(s.project(attest(s, checkpoint=bad)), "checkpoint")
+
+
+def test_attestation_autorite_differente_de_l_identite_de_la_cle(tmp_path):
+    s = store(tmp_path / "store.db")
+    _refusee(s.project(attest(s, authority_id="usurpateur")), "identité")
+
+
+def test_approbation_ancienne_revision_rejouee_apres_remplacement_de_source(tmp_path):
+    """v1 puis v2 admises ; l'approbation v1 ne peut pas servir pour v2 ni
+    être détournée vers une autre finalité."""
+    s = store(tmp_path / "store.db")
+    v1 = candidate()
+    appr_v1 = approval(v1)
+    admit(s, v1, command_id="cmd-v1", appr=appr_v1)
+    v2 = candidate(owner_record_version="v2", source_sha="c" * 64,
+                   candidate_id="cand-1b", candidate_revision=2)
+    admit(s, v2, command_id="cmd-v2")
+    with pytest.raises(TrustError, match="owner_record_version"):
+        s.admit(v2, approval=appr_v1, command_id="cmd-v2-bis")
+    with pytest.raises(TrustError, match="decision_purpose"):
+        s.admit(replace(v1, decision_purpose="autre-finalite"), approval=appr_v1,
+                command_id="cmd-v1-detourne")
+    assert len(s.events()) == 2
+
+
+def test_evenement_journalise_conserve_l_approbation_signee_verifiable(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    appr = approval(c)
+    admit(s, c, appr=appr)
+    (event,) = s.events()
+    assert event["approval"] == appr.digest_material()
+    stored = event["approval"]
+    replayed = type(appr)(stored["payload"], stored["key_id"], stored["signature_hex"])
+    body, _ = policy().verify(replayed, role=ADMISSION_APPROVER,
+                              statement_type="ADMISSION_APPROVAL")
+    assert body["approval_id"] == "approbation-1"

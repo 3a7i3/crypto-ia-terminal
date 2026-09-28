@@ -143,6 +143,19 @@ fail-closed ; elles **ne résolvent pas** le gate d'authenticité externe déjà
 documenté ci-dessus (signature/ancrage pour la chaîne de hash et pour
 `AvailabilityProof`), qui reste un gate ouvert distinct.
 
+## Addendum 2 — contrat de confiance (commentaire propriétaire 5864337478)
+
+Les limites « authenticité » et « `AvailabilityProof` non authentifiée »
+ci-dessus sont traitées, au niveau prototype, par ADR-0020
+(`docs/adr/0020-contrat-de-confiance-operator-decision-d5b-r2.md`) :
+approbation d'admission signée liée au candidat exact, attestation de
+disponibilité signée (journal_id, compte, hash de tête, checkpoint monotone,
+fenêtre de validité), ancre anti-retour persistée par le vérificateur, index
+`command_results` lié au journal vérifié. `AvailabilityProof` ne produit plus
+jamais `AVAILABLE`. **Le gate reste bloquant pour la certification** : la
+politique de confiance est une FIXTURE non opérationnelle, aucune autorité
+réelle n'étant désignée (décision humaine requise, ADR-0020 §3).
+
 ## Conséquences
 
 **Positives :**
