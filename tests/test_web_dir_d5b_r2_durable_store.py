@@ -10,18 +10,21 @@ import sqlite3
 import threading
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from observability.operator_decisions.durable_store import (
-    AvailabilityProof, CorruptedJournalError, DurableGovernedStore,
-    admission_approval_payload, availability_attestation_payload,
+    EVIDENCE_PUBLIC, EVIDENCE_SENSITIVE, AvailabilityProof,
+    CorruptedJournalError, DurableGovernedStore, admission_approval_payload,
+    availability_attestation_payload, evidence_access_grant_payload,
+    evidence_ref_digest, owner_transfer_payload, transfer_digest,
 )
 from observability.operator_decisions.producer import Candidate, ContractError
 from observability.operator_decisions.trust import (
-    ADMISSION_APPROVER, AVAILABILITY_AUTHORITY, TrustError, TrustPolicy,
-    sign_statement, trusted_key,
+    ADMISSION_APPROVER, AVAILABILITY_AUTHORITY, EVIDENCE_ACCESS_AUTHORITY,
+    SOURCE_OWNER, TrustError, TrustPolicy, sign_statement, trusted_key,
 )
 
 NOW = "2026-09-28T03:00:00Z"
@@ -33,20 +36,34 @@ NOW_DT = datetime(2026, 9, 28, 3, 0, 0, tzinfo=timezone.utc)
 FIXTURE_NON_OPERATIONNELLE = True
 APPROVER_SK = Ed25519PrivateKey.generate()
 AUTHORITY_SK = Ed25519PrivateKey.generate()
+OWNER_SK = Ed25519PrivateKey.generate()
+ACCESS_SK = Ed25519PrivateKey.generate()
 ROGUE_SK = Ed25519PrivateKey.generate()
 POLICY_VERSION = "fixture-policy-v1"
+GRANT = ("problem-registry", "PROBLEM", "planifier")
 APPROVER_KEY = trusted_key(
     APPROVER_SK, "fixture-approver-1", ADMISSION_APPROVER,
-    "fixture:approbateur-problem", scopes=("problem-registry",),
+    "fixture:approbateur-problem", grants=(GRANT,),
+)
+OWNER_KEY = trusted_key(
+    OWNER_SK, "fixture-owner-1", SOURCE_OWNER,
+    "fixture:proprietaire-problem", grants=(GRANT,),
 )
 AUTHORITY_KEY = trusted_key(
     AUTHORITY_SK, "fixture-authority-1", AVAILABILITY_AUTHORITY,
     "fixture:autorite-disponibilite",
 )
+ACCESS_KEY = trusted_key(
+    ACCESS_SK, "fixture-access-1", EVIDENCE_ACCESS_AUTHORITY,
+    "fixture:autorite-acces-preuves",
+)
 
 
 def policy(**overrides) -> TrustPolicy:
-    base = dict(policy_version=POLICY_VERSION, keys=(APPROVER_KEY, AUTHORITY_KEY))
+    base = dict(
+        policy_version=POLICY_VERSION,
+        keys=(OWNER_KEY, APPROVER_KEY, AUTHORITY_KEY, ACCESS_KEY),
+    )
     base.update(overrides)
     return TrustPolicy(**base)
 
@@ -85,18 +102,45 @@ def candidate(**overrides) -> Candidate:
     return Candidate(**base)
 
 
-def store(path, *, trust_policy: TrustPolicy | None = None, clock=None) -> DurableGovernedStore:
+def anchor_of(path) -> Path:
+    """Ancre anti-retour dans un fichier DISTINCT du journal (défaut exigé)."""
+    return Path(str(path) + ".anchor")
+
+
+def store(path, *, trust_policy: TrustPolicy | None = None, clock=None,
+          **kwargs) -> DurableGovernedStore:
+    kwargs.setdefault("anchor_path", anchor_of(path))
     return DurableGovernedStore(
         path, {"PROBLEM": "problem-registry"},
-        trust_policy=trust_policy or policy(), clock=clock or Clock(),
+        trust_policy=trust_policy or policy(), clock=clock or Clock(), **kwargs,
     )
 
 
-def approval(c: Candidate, *, sk=APPROVER_SK, key_id="fixture-approver-1", **overrides):
+def default_classes(c: Candidate) -> dict:
+    return {evidence_ref_digest(r): EVIDENCE_PUBLIC for r in c.evidence_refs}
+
+
+def transfer(c: Candidate, *, sk=OWNER_SK, key_id="fixture-owner-1", **overrides):
+    """Transfert propriétaire signé par le propriétaire FIXTURE non opérationnel."""
+    fields = dict(
+        policy_version=POLICY_VERSION, owner_id="fixture:proprietaire-problem",
+        transfer_id="transfert-1", evidence_ref_classes=default_classes(c),
+        issued_at_utc=_iso(NOW_DT - timedelta(minutes=1)),
+        expires_at_utc=_iso(NOW_DT + timedelta(minutes=30)),
+    )
+    payload_overrides = {k: overrides.pop(k) for k in list(overrides) if k not in fields}
+    fields.update(overrides)
+    payload = owner_transfer_payload(c, **fields)
+    payload.update(payload_overrides)
+    return sign_statement(sk, key_id, payload)
+
+
+def approval(c: Candidate, *, sk=APPROVER_SK, key_id="fixture-approver-1",
+             owner_transfer=None, **overrides):
     fields = dict(
         policy_version=POLICY_VERSION, approver_id="fixture:approbateur-problem",
         approved_status="TO_PLAN", approved_priority="MEDIUM",
-        transfer_ref="transfert:problem-registry->operator-decision:1",
+        owner_transfer_digest=transfer_digest(owner_transfer or transfer(c)),
         approval_id="approbation-1", issued_at_utc=_iso(NOW_DT - timedelta(minutes=1)),
         expires_at_utc=_iso(NOW_DT + timedelta(minutes=30)),
     )
@@ -133,8 +177,12 @@ def attest(s: DurableGovernedStore, checkpoint: int = 1, *, sk=AUTHORITY_SK,
 
 
 def admit(s: DurableGovernedStore, c: Candidate, command_id: str = "cmd-1",
-          appr=None) -> str:
-    return s.admit(c, approval=appr or approval(c), command_id=command_id)
+          appr=None, tr=None) -> str:
+    tr = tr or transfer(c)
+    return s.admit(
+        c, owner_transfer=tr, approval=appr or approval(c, owner_transfer=tr),
+        command_id=command_id,
+    )
 
 
 # --- Admission atomique et idempotence -------------------------------------
@@ -564,10 +612,20 @@ def test_zero_ne_peut_jamais_etre_certifie_par_une_preuve_non_authentifiee(tmp_p
 
 # --- Approbation signée liée au contenu (ADR-0020, étape 2) ------------------
 
-def _refus_sans_ecriture(s, c, appr, match=None):
+def _refus_sans_ecriture(s, c, appr, match=None, tr=None):
     with pytest.raises((TrustError, ContractError), match=match):
-        s.admit(c, approval=appr, command_id="cmd-refus")
+        s.admit(c, owner_transfer=tr or transfer(c), approval=appr,
+                command_id="cmd-refus")
     assert s.events() == ()
+    assert _command_rows(s) == 0
+
+
+def _command_rows(s) -> int:
+    conn = sqlite3.connect(s._db_path, timeout=30)  # noqa: SLF001
+    try:
+        return conn.execute("SELECT COUNT(*) FROM command_results").fetchone()[0]
+    finally:
+        conn.close()
 
 
 def test_approbation_avec_fausse_signature_refusee_sans_ecriture(tmp_path):
@@ -607,10 +665,12 @@ def test_approbation_signee_par_le_mauvais_role_refusee(tmp_path):
 
 def test_approbation_par_approbateur_d_un_autre_proprietaire_refusee(tmp_path):
     other = trusted_key(APPROVER_SK, "fixture-approver-1", ADMISSION_APPROVER,
-                        "fixture:approbateur-problem", scopes=("bounty-registry",))
-    s = store(tmp_path / "store.db", trust_policy=policy(keys=(other, AUTHORITY_KEY)))
+                        "fixture:approbateur-problem",
+                        grants=(("bounty-registry", "PROBLEM", "planifier"),))
+    s = store(tmp_path / "store.db",
+              trust_policy=policy(keys=(OWNER_KEY, other, AUTHORITY_KEY, ACCESS_KEY)))
     c = candidate()
-    _refus_sans_ecriture(s, c, approval(c), match="propriétaire")
+    _refus_sans_ecriture(s, c, approval(c), match="ADMISSION_APPROVER non autorisé")
 
 
 def test_approbation_liee_a_un_mauvais_proprietaire_refusee(tmp_path):
@@ -1167,10 +1227,22 @@ def test_approbation_ancienne_revision_rejouee_apres_remplacement_de_source(tmp_
                    candidate_id="cand-1b", candidate_revision=2)
     admit(s, v2, command_id="cmd-v2")
     with pytest.raises(TrustError, match="owner_record_version"):
-        s.admit(v2, approval=appr_v1, command_id="cmd-v2-bis")
+        s.admit(v2, owner_transfer=transfer(v2), approval=appr_v1,
+                command_id="cmd-v2-bis")
+    # Détournement vers une autre finalité : les clés sont autorisées pour les
+    # DEUX finalités, seule la liaison de l'approbation doit donc l'interdire.
+    g2 = (GRANT[0], GRANT[1], "autre-finalite")
+    owner2 = trusted_key(OWNER_SK, "fixture-owner-1", SOURCE_OWNER,
+                         "fixture:proprietaire-problem", grants=(GRANT, g2))
+    approver2 = trusted_key(APPROVER_SK, "fixture-approver-1", ADMISSION_APPROVER,
+                            "fixture:approbateur-problem", grants=(GRANT, g2))
+    s2 = store(tmp_path / "store2.db", trust_policy=policy(
+        keys=(owner2, approver2, AUTHORITY_KEY, ACCESS_KEY)))
+    detourne = replace(v1, decision_purpose="autre-finalite")
     with pytest.raises(TrustError, match="decision_purpose"):
-        s.admit(replace(v1, decision_purpose="autre-finalite"), approval=appr_v1,
-                command_id="cmd-v1-detourne")
+        s2.admit(detourne, owner_transfer=transfer(detourne), approval=appr_v1,
+                 command_id="cmd-v1-detourne")
+    assert s2.events() == ()
     assert len(s.events()) == 2
 
 
@@ -1186,3 +1258,409 @@ def test_evenement_journalise_conserve_l_approbation_signee_verifiable(tmp_path)
     body, _ = policy().verify(replayed, role=ADMISSION_APPROVER,
                               statement_type="ADMISSION_APPROVAL")
     assert body["approval_id"] == "approbation-1"
+
+
+# --- Transfert propriétaire signé et permissions exactes (D5B §2) -----------
+
+def test_transfert_avec_fausse_signature_refuse_sans_ecriture(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    forged = replace(transfer(c), signature_hex="0" * 128)
+    _refus_sans_ecriture(s, c, approval(c), match="signature invalide", tr=forged)
+
+
+def test_transfert_signe_par_une_cle_inconnue_refuse(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    tr = transfer(c, sk=ROGUE_SK, key_id="cle-inconnue")
+    _refus_sans_ecriture(s, c, approval(c, owner_transfer=tr), match="clé inconnue", tr=tr)
+
+
+def test_transfert_signe_par_le_mauvais_role_refuse(tmp_path):
+    """L'approbateur d'admission ne peut pas se faire passer pour le propriétaire."""
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    tr = transfer(c, sk=APPROVER_SK, key_id="fixture-approver-1")
+    _refus_sans_ecriture(s, c, approval(c, owner_transfer=tr), match="rôle incorrect", tr=tr)
+
+
+def test_transfert_par_une_cle_proprietaire_revoquee_refuse(tmp_path):
+    s = store(tmp_path / "store.db", trust_policy=policy(
+        revoked_key_ids=frozenset({"fixture-owner-1"})))
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c), match="révoquée")
+
+
+def test_transfert_avec_identite_proprietaire_differente_de_la_cle_refuse(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    tr = transfer(c, owner_id="usurpateur")
+    _refus_sans_ecriture(s, c, approval(c, owner_transfer=tr), match="propriétaire signé", tr=tr)
+
+
+@pytest.mark.parametrize("grant", [
+    ("problem-registry", "PROBLEM", "autre-finalite"),
+    ("problem-registry", "PROPOSED_EVOLUTION", "planifier"),
+    ("autre-registre", "PROBLEM", "planifier"),
+])
+def test_proprietaire_non_autorise_pour_le_triplet_exact_refuse(tmp_path, grant):
+    """Registre, type de source ET finalité sont tous exigés (pas de joker)."""
+    limited = trusted_key(OWNER_SK, "fixture-owner-1", SOURCE_OWNER,
+                          "fixture:proprietaire-problem", grants=(grant,))
+    s = store(tmp_path / "store.db", trust_policy=policy(
+        keys=(limited, APPROVER_KEY, AUTHORITY_KEY, ACCESS_KEY)))
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c), match="SOURCE_OWNER non autorisé")
+
+
+@pytest.mark.parametrize("grant", [
+    ("problem-registry", "PROBLEM", "autre-finalite"),
+    ("problem-registry", "PROPOSED_EVOLUTION", "planifier"),
+    ("autre-registre", "PROBLEM", "planifier"),
+])
+def test_approbateur_non_autorise_pour_le_triplet_exact_refuse(tmp_path, grant):
+    limited = trusted_key(APPROVER_SK, "fixture-approver-1", ADMISSION_APPROVER,
+                          "fixture:approbateur-problem", grants=(grant,))
+    s = store(tmp_path / "store.db", trust_policy=policy(
+        keys=(OWNER_KEY, limited, AUTHORITY_KEY, ACCESS_KEY)))
+    c = candidate()
+    _refus_sans_ecriture(s, c, approval(c), match="ADMISSION_APPROVER non autorisé")
+
+
+def test_transfert_lie_a_un_autre_candidat_refuse(tmp_path):
+    s = store(tmp_path / "store.db")
+    c1, c2 = candidate(), candidate(title="Titre substitué")
+    tr = transfer(c1)
+    _refus_sans_ecriture(s, c2, approval(c2, owner_transfer=tr),
+                         match="transfert propriétaire non lié", tr=tr)
+
+
+def test_transfert_pour_une_autre_revision_source_refuse(tmp_path):
+    s = store(tmp_path / "store.db")
+    v1, v2 = candidate(), candidate(owner_record_version="v2")
+    tr = transfer(v1)
+    _refus_sans_ecriture(s, v2, approval(v2, owner_transfer=tr),
+                         match="owner_record_version", tr=tr)
+
+
+def test_approbation_liee_a_un_autre_transfert_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    autre = transfer(c, transfer_id="transfert-autre")
+    appr = approval(c, owner_transfer=autre)
+    _refus_sans_ecriture(s, c, appr, match="non liée au transfert propriétaire",
+                         tr=transfer(c))
+
+
+@pytest.mark.parametrize("libre", [None, {"owner": "x", "certified": True}, "transfert:1"])
+def test_transfert_absent_ou_libre_refuse(tmp_path, libre):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    with pytest.raises((TrustError, ContractError), match="énoncé signé requis"):
+        s.admit(c, owner_transfer=libre, approval=approval(c), command_id="cmd-libre")
+    assert s.events() == ()
+
+
+def test_transfert_expire_refuse_pour_une_nouvelle_ecriture(tmp_path):
+    clock = Clock()
+    s = store(tmp_path / "store.db", clock=clock)
+    c = candidate()
+    tr = transfer(c, expires_at_utc=_iso(NOW_DT + timedelta(minutes=1)))
+    appr = approval(c, owner_transfer=tr)
+    clock.now = NOW_DT + timedelta(minutes=5)
+    _refus_sans_ecriture(s, c, appr, match="expiré", tr=tr)
+
+
+def test_une_identite_ne_peut_pas_etre_proprietaire_et_approbateur():
+    meme_identite = trusted_key(OWNER_SK, "fixture-owner-2", SOURCE_OWNER,
+                                "fixture:approbateur-problem", grants=(GRANT,))
+    with pytest.raises(ContractError, match="deux rôles"):
+        policy(keys=(meme_identite, APPROVER_KEY, AUTHORITY_KEY, ACCESS_KEY))
+
+
+def test_permissions_invalides_refusees_a_la_construction():
+    def cle(role, grants):
+        return trusted_key(ROGUE_SK, "k", role, "fixture:x", grants=grants)
+
+    with pytest.raises(ContractError, match="exige au moins une permission"):
+        policy(keys=(cle(SOURCE_OWNER, ()),))
+    with pytest.raises(ContractError, match="sans joker"):
+        policy(keys=(cle(SOURCE_OWNER, (("problem-registry", "*", "planifier"),)),))
+    with pytest.raises(ContractError, match="sans joker"):
+        policy(keys=(cle(ADMISSION_APPROVER, (("problem-registry", "PROBLEM"),)),))
+    with pytest.raises(ContractError, match="aucune permission"):
+        policy(keys=(cle(AVAILABILITY_AUTHORITY, (GRANT,)),))
+    with pytest.raises(ContractError, match="aucune permission"):
+        policy(keys=(cle(EVIDENCE_ACCESS_AUTHORITY, (GRANT,)),))
+
+
+def test_evenement_journalise_conserve_le_transfert_signe_verifiable(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = candidate()
+    tr = transfer(c)
+    admit(s, c, tr=tr)
+    (event,) = s.events()
+    assert event["owner_transfer"] == tr.digest_material()
+    assert event["owner_id"] == "fixture:proprietaire-problem"
+    assert event["transfer_id"] == "transfert-1"
+    stored = event["owner_transfer"]
+    replayed = type(tr)(stored["payload"], stored["key_id"], stored["signature_hex"])
+    body, _ = policy().verify(replayed, role=SOURCE_OWNER, statement_type="OWNER_TRANSFER")
+    assert body["candidate_fingerprint"] == event["approval"]["payload"]["candidate_fingerprint"]
+    assert event["approval"]["payload"]["owner_transfer_digest"] == transfer_digest(tr)
+
+
+# --- Rejeu idempotent après expiration (réponse perdue) ----------------------
+
+def _admis_puis_expire(tmp_path):
+    clock = Clock()
+    db = tmp_path / "store.db"
+    s = store(db, clock=clock)
+    c = candidate()
+    tr = transfer(c)
+    appr = approval(c, owner_transfer=tr)
+    decision = s.admit(c, owner_transfer=tr, approval=appr, command_id="cmd-1")
+    clock.now = NOW_DT + timedelta(hours=3)  # bien au-delà de la validité
+    return db, clock, s, c, tr, appr, decision
+
+
+def test_rejeu_apres_expiration_des_enonces_retrouve_la_decision(tmp_path):
+    _, _, s, c, tr, appr, decision = _admis_puis_expire(tmp_path)
+    assert s.admit(c, owner_transfer=tr, approval=appr, command_id="cmd-1") == decision
+    assert len(s.events()) == 1
+
+
+def test_rejeu_apres_expiration_avec_un_nouveau_command_id_converge(tmp_path):
+    _, _, s, c, tr, appr, decision = _admis_puis_expire(tmp_path)
+    assert s.admit(c, owner_transfer=tr, approval=appr, command_id="cmd-2") == decision
+    assert len(s.events()) == 1
+
+
+def test_nouvelle_admission_avec_enonces_expires_refusee_sans_ecriture(tmp_path):
+    _, _, s, _, _, _, _ = _admis_puis_expire(tmp_path)
+    autre = candidate(source_id="problem-2", candidate_id="cand-2")
+    tr, appr = transfer(autre), approval(autre)
+    with pytest.raises(TrustError, match="expiré"):
+        s.admit(autre, owner_transfer=tr, approval=appr, command_id="cmd-2")
+    assert len(s.events()) == 1
+    assert _command_rows(s) == 1
+
+
+def test_rejeu_apres_expiration_avec_cle_revoquee_refuse(tmp_path):
+    db, clock, _, c, tr, appr, _ = _admis_puis_expire(tmp_path)
+    revoque = store(db, clock=clock, trust_policy=policy(
+        revoked_key_ids=frozenset({"fixture-approver-1"})))
+    with pytest.raises(TrustError, match="révoquée"):
+        revoque.admit(c, owner_transfer=tr, approval=appr, command_id="cmd-1")
+
+
+def test_rejeu_apres_expiration_avec_enonce_falsifie_refuse(tmp_path):
+    _, _, s, c, tr, appr, _ = _admis_puis_expire(tmp_path)
+    with pytest.raises(TrustError, match="signature invalide"):
+        s.admit(c, owner_transfer=tr, approval=replace(appr, signature_hex="0" * 128),
+                command_id="cmd-1")
+
+
+def test_rejeu_apres_expiration_avec_autre_approbation_signee_refuse(tmp_path):
+    _, _, s, c, tr, _, _ = _admis_puis_expire(tmp_path)
+    autre = approval(c, owner_transfer=tr, approval_id="approbation-2")
+    with pytest.raises(ContractError, match="charge différente"):
+        s.admit(c, owner_transfer=tr, approval=autre, command_id="cmd-1")
+    assert len(s.events()) == 1
+
+
+# --- Références de preuves sensibles (D5B §5) --------------------------------
+
+PUBLIQUE, SENSIBLE = "artifact:sha256:abc", "vault:incident-7:acces-restreint"
+
+
+def _candidat_sensible(**kw):
+    return candidate(evidence_refs=(PUBLIQUE, SENSIBLE), **kw)
+
+
+def _classes(**kw):
+    base = {evidence_ref_digest(PUBLIQUE): EVIDENCE_PUBLIC,
+            evidence_ref_digest(SENSIBLE): EVIDENCE_SENSITIVE}
+    base.update(kw)
+    return base
+
+
+def _admis_sensible(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = _candidat_sensible()
+    decision = admit(s, c, tr=transfer(c, evidence_ref_classes=_classes()),
+                     appr=approval(c, owner_transfer=transfer(c, evidence_ref_classes=_classes())))
+    return s, c, decision
+
+
+def access_grant(s, decision_id, *, sk=ACCESS_SK, key_id="fixture-access-1", **overrides):
+    fields = dict(
+        policy_version=POLICY_VERSION, authority_id="fixture:autorite-acces-preuves",
+        journal_id=s.journal_id, decision_id=decision_id, accessor_id="fixture:lecteur-1",
+        issued_at_utc=_iso(NOW_DT - timedelta(minutes=1)),
+        expires_at_utc=_iso(NOW_DT + timedelta(minutes=5)),
+    )
+    fields.update(overrides)
+    return sign_statement(sk, key_id, evidence_access_grant_payload(**fields))
+
+
+def test_classification_incomplete_des_references_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = _candidat_sensible()
+    tr = transfer(c, evidence_ref_classes={evidence_ref_digest(PUBLIQUE): EVIDENCE_PUBLIC})
+    _refus_sans_ecriture(s, c, approval(c, owner_transfer=tr), match="classification", tr=tr)
+
+
+def test_classification_avec_reference_inconnue_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = _candidat_sensible()
+    tr = transfer(c, evidence_ref_classes=_classes(**{evidence_ref_digest("autre"): EVIDENCE_PUBLIC}))
+    _refus_sans_ecriture(s, c, approval(c, owner_transfer=tr), match="classification", tr=tr)
+
+
+def test_classification_avec_valeur_invalide_refusee(tmp_path):
+    s = store(tmp_path / "store.db")
+    c = _candidat_sensible()
+    tr = transfer(c, evidence_ref_classes=_classes(**{evidence_ref_digest(SENSIBLE): "SECRET"}))
+    _refus_sans_ecriture(s, c, approval(c, owner_transfer=tr), match="classification", tr=tr)
+
+
+def test_projection_masque_les_references_sensibles(tmp_path):
+    import json
+    s, _, _ = _admis_sensible(tmp_path)
+    view = s.project(attest(s))
+    assert view["availability"] == "AVAILABLE"
+    evidence = view["items"][0]["evidence"]
+    assert evidence["evidence_refs"] == [
+        PUBLIQUE, {"redacted": True, "ref_digest": evidence_ref_digest(SENSIBLE)},
+    ]
+    assert evidence["sensitive_refs_redacted"] == 1
+    assert SENSIBLE not in json.dumps(view)
+
+
+def test_reference_non_explicitement_publique_est_masquee_par_defaut():
+    """Échec fermé : classe absente ou inconnue => masquée."""
+    for classes in ({}, None, {evidence_ref_digest("x"): "INCONNU"}):
+        out = DurableGovernedStore._projected_refs(  # noqa: SLF001
+            {"evidence_refs": ["x"], "evidence_ref_classes": classes})
+        assert out == [{"redacted": True, "ref_digest": evidence_ref_digest("x")}]
+
+
+def test_lecture_des_references_sensibles_avec_droit_valide(tmp_path):
+    s, _, decision = _admis_sensible(tmp_path)
+    assert s.read_sensitive_evidence(decision, grant=access_grant(s, decision)) == (SENSIBLE,)
+
+
+@pytest.mark.parametrize("libre", [None, {"acces": True}, "ok"])
+def test_lecture_sensible_sans_droit_signe_refusee(tmp_path, libre):
+    s, _, decision = _admis_sensible(tmp_path)
+    with pytest.raises(TrustError, match="énoncé signé requis"):
+        s.read_sensitive_evidence(decision, grant=libre)
+
+
+@pytest.mark.parametrize("sk,key_id", [
+    (AUTHORITY_SK, "fixture-authority-1"),
+    (APPROVER_SK, "fixture-approver-1"),
+    (OWNER_SK, "fixture-owner-1"),
+])
+def test_lecture_sensible_avec_droit_signe_par_un_autre_role_refusee(tmp_path, sk, key_id):
+    s, _, decision = _admis_sensible(tmp_path)
+    with pytest.raises(TrustError, match="rôle incorrect"):
+        s.read_sensitive_evidence(decision, grant=access_grant(s, decision, sk=sk, key_id=key_id))
+
+
+def test_lecture_sensible_avec_fausse_signature_ou_cle_inconnue_refusee(tmp_path):
+    s, _, decision = _admis_sensible(tmp_path)
+    with pytest.raises(TrustError, match="signature invalide"):
+        s.read_sensitive_evidence(
+            decision, grant=replace(access_grant(s, decision), signature_hex="0" * 128))
+    with pytest.raises(TrustError, match="clé inconnue"):
+        s.read_sensitive_evidence(
+            decision, grant=access_grant(s, decision, sk=ROGUE_SK, key_id="inconnue"))
+
+
+def test_lecture_sensible_avec_droit_d_une_autre_decision_refusee(tmp_path):
+    s, _, decision = _admis_sensible(tmp_path)
+    with pytest.raises(TrustError, match="autre décision"):
+        s.read_sensitive_evidence(decision, grant=access_grant(s, "autre-decision"))
+
+
+def test_lecture_sensible_avec_droit_d_un_autre_journal_refusee(tmp_path):
+    s, _, decision = _admis_sensible(tmp_path)
+    with pytest.raises(TrustError, match="autre journal"):
+        s.read_sensitive_evidence(decision, grant=access_grant(s, decision, journal_id="autre"))
+
+
+def test_lecture_sensible_avec_droit_expire_ou_revoque_refusee(tmp_path):
+    clock = Clock()
+    db = tmp_path / "store.db"
+    s = store(db, clock=clock)
+    c = _candidat_sensible()
+    tr = transfer(c, evidence_ref_classes=_classes())
+    decision = s.admit(c, owner_transfer=tr, approval=approval(c, owner_transfer=tr),
+                       command_id="cmd-1")
+    grant = access_grant(s, decision)
+    clock.now = NOW_DT + timedelta(minutes=30)
+    with pytest.raises(TrustError, match="expiré"):
+        s.read_sensitive_evidence(decision, grant=grant)
+    clock.now = NOW_DT
+    revoque = store(db, clock=clock, trust_policy=policy(
+        revoked_key_ids=frozenset({"fixture-access-1"})))
+    with pytest.raises(TrustError, match="révoquée"):
+        revoque.read_sensitive_evidence(decision, grant=grant)
+
+
+def test_lecture_sensible_sur_journal_corrompu_echoue_ferme(tmp_path):
+    s, _, decision = _admis_sensible(tmp_path)
+    grant = access_grant(s, decision)
+    conn = _raw(tmp_path / "store.db")
+    conn.execute("UPDATE events SET payload_json = '{}' WHERE sequence = 1")
+    conn.close()
+    with pytest.raises(CorruptedJournalError):
+        s.read_sensitive_evidence(decision, grant=grant)
+
+
+def test_lecture_sensible_d_une_decision_inconnue_refusee(tmp_path):
+    s, _, _ = _admis_sensible(tmp_path)
+    with pytest.raises(ContractError, match="décision inconnue"):
+        s.read_sensitive_evidence("inconnue", grant=access_grant(s, "inconnue"))
+
+
+# --- Ancre anti-retour hors du fichier journal -------------------------------
+
+def test_ancre_colocalisee_refusee_par_defaut(tmp_path):
+    db = tmp_path / "store.db"
+    owners = {"PROBLEM": "problem-registry"}
+    with pytest.raises(ContractError, match="ancre anti-retour hors du fichier"):
+        DurableGovernedStore(db, owners, trust_policy=policy(), clock=Clock())
+    with pytest.raises(ContractError, match="ancre anti-retour hors du fichier"):
+        DurableGovernedStore(db, owners, trust_policy=policy(), clock=Clock(),
+                             anchor_path=db)
+
+
+def test_ancre_colocalisee_explicite_laisse_passer_une_restauration_complete(tmp_path):
+    """LIMITE DOCUMENTÉE (ADR-0020 §8) : colocalisée, l'ancre recule avec le
+    fichier restauré ; seule la fenêtre de validité de l'attestation borne
+    alors le rejeu. C'est pourquoi la colocalisation doit être explicite."""
+    db = tmp_path / "store.db"
+    s = DurableGovernedStore(db, {"PROBLEM": "problem-registry"}, trust_policy=policy(),
+                             clock=Clock(), allow_colocated_anchor=True)
+    admit(s, candidate())
+    ancien = attest(s, checkpoint=1)
+    snapshot = sqlite3.connect(str(tmp_path / "ancien.db"))
+    live = sqlite3.connect(str(db))
+    live.backup(snapshot)
+    live.close()
+    snapshot.close()
+    admit(s, candidate(source_id="problem-2", candidate_id="cand-2"), command_id="cmd-2")
+    assert s.project(attest(s, checkpoint=2))["availability"] == "AVAILABLE"
+
+    restored = sqlite3.connect(str(tmp_path / "ancien.db"))
+    target = sqlite3.connect(str(db))
+    restored.backup(target)
+    restored.close()
+    target.close()
+    rouvert = DurableGovernedStore(db, {"PROBLEM": "problem-registry"}, trust_policy=policy(),
+                                   clock=Clock(), allow_colocated_anchor=True)
+    # L'ancien état signé est encore accepté : le retour arrière n'est PAS détecté.
+    assert rouvert.project(ancien)["availability"] == "AVAILABLE"

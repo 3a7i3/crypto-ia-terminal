@@ -27,10 +27,20 @@ from observability.operator_decisions.producer import ContractError
 
 ADMISSION_APPROVER = "ADMISSION_APPROVER"
 AVAILABILITY_AUTHORITY = "AVAILABILITY_AUTHORITY"
-ROLES = frozenset({ADMISSION_APPROVER, AVAILABILITY_AUTHORITY})
+SOURCE_OWNER = "SOURCE_OWNER"
+EVIDENCE_ACCESS_AUTHORITY = "EVIDENCE_ACCESS_AUTHORITY"
+ROLES = frozenset({
+    ADMISSION_APPROVER, AVAILABILITY_AUTHORITY, SOURCE_OWNER,
+    EVIDENCE_ACCESS_AUTHORITY,
+})
+# Rôles dont les permissions sont bornées par des grants exacts
+# (registre, type de source, finalité) ; les autres n'en portent aucun.
+GRANTED_ROLES = frozenset({ADMISSION_APPROVER, SOURCE_OWNER})
 
 ADMISSION_APPROVAL = "ADMISSION_APPROVAL"
 AVAILABILITY_ATTESTATION = "AVAILABILITY_ATTESTATION"
+OWNER_TRANSFER = "OWNER_TRANSFER"
+EVIDENCE_ACCESS_GRANT = "EVIDENCE_ACCESS_GRANT"
 
 # Rang de priorité (plus grand = plus urgent) — sert uniquement à refuser une
 # auto-promotion ; aucune règle de décision nouvelle n'est introduite.
@@ -63,7 +73,10 @@ class TrustedKey:
     role: str
     identity: str
     public_key: bytes  # clé publique Ed25519 brute (32 octets)
-    scopes: frozenset[str] = frozenset()  # owner_registry autorisés (approbateur)
+    # Permissions exactes (owner_registry, source_type, decision_purpose),
+    # sans joker. Requises pour SOURCE_OWNER et ADMISSION_APPROVER ; vides
+    # pour les autres rôles.
+    grants: frozenset[tuple[str, str, str]] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -113,9 +126,37 @@ class TrustPolicy:
                     "une même identité ne peut détenir les deux rôles "
                     "(séparation des pouvoirs)"
                 )
+            self._check_grants(key)
             Ed25519PublicKey.from_public_bytes(key.public_key)  # valide le format
             index[key.key_id] = key
         object.__setattr__(self, "_index", index)
+
+    @staticmethod
+    def _check_grants(key: TrustedKey) -> None:
+        if key.role not in GRANTED_ROLES:
+            if key.grants:
+                raise ContractError(f"le rôle {key.role} ne porte aucune permission par registre")
+            return
+        if not key.grants:
+            raise ContractError(f"le rôle {key.role} exige au moins une permission explicite")
+        for grant in key.grants:
+            if (not isinstance(grant, tuple) or len(grant) != 3
+                    or any(not isinstance(v, str) or not v.strip() or v != v.strip()
+                           or "*" in v for v in grant)):
+                raise ContractError(
+                    "permission invalide : triplet exact (registre, type de "
+                    "source, finalité), sans joker"
+                )
+
+    @staticmethod
+    def authorize(key: TrustedKey, owner_registry: str, source_type: str,
+                  decision_purpose: str) -> None:
+        """La clé est-elle autorisée pour ce triplet exact ? Sinon refus."""
+        if (owner_registry, source_type, decision_purpose) not in key.grants:
+            raise TrustError(
+                f"{key.role} non autorisé pour ({owner_registry}, {source_type}, "
+                f"{decision_purpose})"
+            )
 
     def verify(self, statement: object, *, role: str, statement_type: str) -> tuple[dict, TrustedKey]:
         """Vérifie signature, clé, rôle, révocation, type et version de politique."""
@@ -142,15 +183,20 @@ class TrustPolicy:
             raise TrustError("version de politique inconnue du vérificateur")
         return payload, key
 
-    def check_validity(self, payload: Mapping, now: datetime) -> None:
-        """Fenêtre de validité, dérive d'horloge et durée maximale (ADR-0020 §9)."""
+    def check_window(self, payload: Mapping) -> tuple[datetime, datetime]:
+        """Structure de la fenêtre (indépendante de l'heure courante)."""
         issued = parse_utc(payload.get("issued_at_utc"), "issued_at_utc")
         expires = parse_utc(payload.get("expires_at_utc"), "expires_at_utc")
+        if expires <= issued or expires - issued > timedelta(seconds=self.max_validity_seconds):
+            raise TrustError("durée de validité invalide ou excessive")
+        return issued, expires
+
+    def check_validity(self, payload: Mapping, now: datetime) -> None:
+        """Fenêtre de validité, dérive d'horloge et durée maximale (ADR-0020 §9)."""
+        issued, expires = self.check_window(payload)
         if now.tzinfo is None:
             raise TrustError("horloge injectée : datetime UTC conscient requis")
         skew = timedelta(seconds=self.max_clock_skew_seconds)
-        if expires <= issued or expires - issued > timedelta(seconds=self.max_validity_seconds):
-            raise TrustError("durée de validité invalide ou excessive")
         if issued - skew > now:
             raise TrustError("énoncé émis dans le futur (hors tolérance de dérive)")
         if now >= expires:
@@ -171,13 +217,15 @@ def public_bytes(private_key: Ed25519PrivateKey) -> bytes:
 
 
 def trusted_key(private_key: Ed25519PrivateKey, key_id: str, role: str,
-                identity: str, scopes: Iterable[str] = ()) -> TrustedKey:
-    return TrustedKey(key_id, role, identity, public_bytes(private_key), frozenset(scopes))
+                identity: str, grants: Iterable[tuple[str, str, str]] = ()) -> TrustedKey:
+    return TrustedKey(key_id, role, identity, public_bytes(private_key), frozenset(grants))
 
 
 __all__ = [
     "ADMISSION_APPROVAL", "ADMISSION_APPROVER", "AVAILABILITY_ATTESTATION",
-    "AVAILABILITY_AUTHORITY", "PRIORITY_RANK", "SignedStatement", "TrustError",
+    "AVAILABILITY_AUTHORITY", "EVIDENCE_ACCESS_AUTHORITY",
+    "EVIDENCE_ACCESS_GRANT", "GRANTED_ROLES", "OWNER_TRANSFER",
+    "PRIORITY_RANK", "SOURCE_OWNER", "SignedStatement", "TrustError",
     "TrustPolicy", "TrustedKey", "canonical_bytes", "parse_utc",
     "public_bytes", "sign_statement", "trusted_key",
 ]

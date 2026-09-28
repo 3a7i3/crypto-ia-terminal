@@ -49,13 +49,24 @@ from observability.operator_decisions.trust import (
     ADMISSION_APPROVER,
     AVAILABILITY_ATTESTATION,
     AVAILABILITY_AUTHORITY,
+    EVIDENCE_ACCESS_AUTHORITY,
+    EVIDENCE_ACCESS_GRANT,
+    OWNER_TRANSFER,
     PRIORITY_RANK,
+    SOURCE_OWNER,
     SignedStatement,
     TrustError,
     TrustPolicy,
 )
 
-SCHEMA_VERSION = "2.0.0"
+# Version du JOURNAL (corps d'événement + attestations). 3.0.0 : transfert
+# signé par le propriétaire, classification des références de preuves,
+# permissions par triplet exact. Un journal d'une version antérieure est
+# refusé (échec fermé) : aucun journal hors tests n'existe à ce jour.
+SCHEMA_VERSION = "3.0.0"
+EVIDENCE_PUBLIC = "PUBLIC"
+EVIDENCE_SENSITIVE = "SENSITIVE"
+EVIDENCE_CLASSES = frozenset({EVIDENCE_PUBLIC, EVIDENCE_SENSITIVE})
 JOURNAL_SCOPE = "OPERATOR_DECISION_QUEUE"
 KNOWN_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION})
 
@@ -114,22 +125,14 @@ def availability_attestation_payload(
     }
 
 
-def admission_approval_payload(
-    candidate: Candidate, *, policy_version: str, approver_id: str,
-    approved_status: str, approved_priority: str, transfer_ref: str,
-    approval_id: str, issued_at_utc: str, expires_at_utc: str,
-) -> dict:
-    """Construit la charge d'une approbation d'admission (à signer HORS store).
+def evidence_ref_digest(ref: str) -> str:
+    """Empreinte d'une référence de preuve (clé de classification)."""
+    return _digest(ref)
 
-    Simple constructeur de données : une charge non signée n'a aucune
-    autorité. Seule `TrustPolicy.verify` (politique du constructeur du store)
-    lui en confère une.
-    """
+
+def _candidate_bindings(candidate: Candidate) -> dict:
+    """Champs qui lient un énoncé signé au candidat exact."""
     return {
-        "statement_type": ADMISSION_APPROVAL,
-        "policy_version": policy_version,
-        "approval_id": approval_id,
-        "approver_id": approver_id,
         "candidate_fingerprint": candidate_fingerprint(
             GovernedProducer._payload(candidate)  # noqa: SLF001
         ),
@@ -139,10 +142,75 @@ def admission_approval_payload(
         "owner_record_version": candidate.owner_record_version,
         "source_sha": candidate.source_sha,
         "decision_purpose": candidate.decision_purpose,
+    }
+
+
+def owner_transfer_payload(
+    candidate: Candidate, *, policy_version: str, owner_id: str,
+    transfer_id: str, evidence_ref_classes: Mapping[str, str],
+    issued_at_utc: str, expires_at_utc: str,
+) -> dict:
+    """Charge d'un transfert explicite du propriétaire source (à signer HORS store).
+
+    Contrat D5B §2 : chaque admission exige un transfert explicite approuvé
+    par le propriétaire du fait source. `evidence_ref_classes` classe CHAQUE
+    référence de preuve du candidat (clé = `evidence_ref_digest`), afin que
+    la projection masque les références sensibles (D5B §5).
+    """
+    return {
+        "statement_type": OWNER_TRANSFER,
+        "policy_version": policy_version,
+        "transfer_id": transfer_id,
+        "owner_id": owner_id,
+        **_candidate_bindings(candidate),
+        "evidence_ref_classes": dict(evidence_ref_classes),
+        "issued_at_utc": issued_at_utc,
+        "expires_at_utc": expires_at_utc,
+    }
+
+
+def transfer_digest(transfer: SignedStatement) -> str:
+    """Empreinte du transfert signé exact (signature comprise)."""
+    return _digest(transfer.digest_material())
+
+
+def admission_approval_payload(
+    candidate: Candidate, *, policy_version: str, approver_id: str,
+    approved_status: str, approved_priority: str, owner_transfer_digest: str,
+    approval_id: str, issued_at_utc: str, expires_at_utc: str,
+) -> dict:
+    """Construit la charge d'une approbation d'admission (à signer HORS store).
+
+    Simple constructeur de données : une charge non signée n'a aucune
+    autorité. Seule `TrustPolicy.verify` (politique du constructeur du store)
+    lui en confère une. L'approbation est liée au transfert propriétaire
+    exact par son empreinte (`owner_transfer_digest`).
+    """
+    return {
+        "statement_type": ADMISSION_APPROVAL,
+        "policy_version": policy_version,
+        "approval_id": approval_id,
+        "approver_id": approver_id,
+        **_candidate_bindings(candidate),
         "approved_status": approved_status,
         "approved_priority": approved_priority,
-        "transfer_ref": transfer_ref,
+        "owner_transfer_digest": owner_transfer_digest,
         "issued_at_utc": issued_at_utc,
+        "expires_at_utc": expires_at_utc,
+    }
+
+
+def evidence_access_grant_payload(
+    *, policy_version: str, authority_id: str, journal_id: str,
+    decision_id: str, accessor_id: str, issued_at_utc: str,
+    expires_at_utc: str,
+) -> dict:
+    """Charge d'un droit de lecture des références sensibles d'UNE décision."""
+    return {
+        "statement_type": EVIDENCE_ACCESS_GRANT,
+        "policy_version": policy_version, "authority_id": authority_id,
+        "journal_id": journal_id, "decision_id": decision_id,
+        "accessor_id": accessor_id, "issued_at_utc": issued_at_utc,
         "expires_at_utc": expires_at_utc,
     }
 
@@ -204,6 +272,7 @@ class DurableGovernedStore:
         self, db_path: str | Path, owners: Mapping[str, str], *,
         trust_policy: TrustPolicy, clock: Callable[[], datetime],
         anchor_path: str | Path | None = None,
+        allow_colocated_anchor: bool = False,
     ):
         # Réutilise la validation du noyau R1 sans dupliquer la logique de
         # décision (gel architectural) : seule la persistance change.
@@ -217,7 +286,21 @@ class DurableGovernedStore:
         self._policy = trust_policy
         self._clock = clock
         self._db_path = str(db_path)
-        self._anchor_path = str(anchor_path) if anchor_path is not None else self._db_path
+        # Ancre anti-retour (ADR-0020 §8) : hors du fichier journal par
+        # défaut. Colocalisée, une restauration du fichier entier fait
+        # reculer l'ancre avec lui ; ce choix doit donc être explicite.
+        if anchor_path is None:
+            anchor = self._db_path
+        else:
+            anchor = str(anchor_path)
+        if (Path(anchor).resolve() == Path(self._db_path).resolve()
+                and not allow_colocated_anchor):
+            raise ContractError(
+                "ancre anti-retour hors du fichier journal requise (anchor_path) ; "
+                "colocalisation seulement avec allow_colocated_anchor=True "
+                "(une restauration du fichier entier ferait reculer l'ancre)"
+            )
+        self._anchor_path = anchor
         self._lock = threading.Lock()
         self._init_schema()
 
@@ -298,21 +381,9 @@ class DurableGovernedStore:
             candidate.decision_purpose,
         )
 
-    def _verify_approval(self, candidate: Candidate, payload: dict,
-                         approval: object) -> dict:
-        """Vérifie l'approbation signée contre la politique du constructeur.
-
-        Aucune écriture n'a lieu avant la fin de cette méthode : tout échec
-        lève `TrustError`/`ContractError` sans toucher au journal.
-        """
-        body, key = self._policy.verify(
-            approval, role=ADMISSION_APPROVER, statement_type=ADMISSION_APPROVAL,
-        )
-        self._policy.check_validity(body, self._clock())
-        if body.get("approver_id") != key.identity:
-            raise TrustError("l'approbateur signé ne correspond pas à l'identité de la clé")
-        if candidate.owner_registry not in key.scopes:
-            raise TrustError("approbateur non autorisé pour ce propriétaire source")
+    @staticmethod
+    def _check_bindings(body: dict, candidate: Candidate, payload: dict, label: str) -> None:
+        """L'énoncé signé doit viser exactement ce candidat (anti-substitution)."""
         bindings = {
             "owner_registry": candidate.owner_registry,
             "source_type": candidate.source_type,
@@ -325,47 +396,102 @@ class DurableGovernedStore:
         for name, expected in bindings.items():
             if body.get(name) != expected:
                 raise TrustError(
-                    f"approbation non liée au candidat présenté ({name}) : "
+                    f"{label} non lié au candidat présenté ({name}) : "
                     "substitution, source remplacée ou obsolète"
                 )
-        status, priority = body.get("approved_status"), body.get("approved_priority")
+
+    def _authenticate(self, candidate: Candidate, payload: dict,
+                      owner_transfer: object, approval: object) -> tuple[dict, dict]:
+        """Authentifie transfert propriétaire + approbation, SANS fraîcheur.
+
+        Signature, clé connue et non révoquée, rôle, version de politique,
+        identité, permissions exactes (registre, type, finalité), liens au
+        candidat exact, lien approbation → transfert. Aucune écriture n'a
+        lieu ici. La fraîcheur est vérifiée à part (`_check_fresh`), et
+        seulement quand un nouvel événement va être écrit : un rejeu d'une
+        commande déjà commitée doit rester possible après expiration
+        (réponse perdue), tout en restant authentifié.
+        """
+        t_body, t_key = self._policy.verify(
+            owner_transfer, role=SOURCE_OWNER, statement_type=OWNER_TRANSFER,
+        )
+        self._policy.check_window(t_body)
+        if t_body.get("owner_id") != t_key.identity:
+            raise TrustError("le propriétaire signé ne correspond pas à l'identité de la clé")
+        self._policy.authorize(
+            t_key, candidate.owner_registry, candidate.source_type,
+            candidate.decision_purpose,
+        )
+        self._check_bindings(t_body, candidate, payload, "transfert propriétaire")
+        _text(t_body.get("transfer_id"), "transfer_id")
+        classes = t_body.get("evidence_ref_classes")
+        expected_refs = {evidence_ref_digest(r) for r in candidate.evidence_refs}
+        if (not isinstance(classes, dict) or set(classes) != expected_refs
+                or any(v not in EVIDENCE_CLASSES for v in classes.values())):
+            raise TrustError(
+                "classification des références de preuves incomplète ou "
+                "invalide (chaque référence doit être PUBLIC ou SENSITIVE)"
+            )
+
+        a_body, a_key = self._policy.verify(
+            approval, role=ADMISSION_APPROVER, statement_type=ADMISSION_APPROVAL,
+        )
+        self._policy.check_window(a_body)
+        if a_body.get("approver_id") != a_key.identity:
+            raise TrustError("l'approbateur signé ne correspond pas à l'identité de la clé")
+        self._policy.authorize(
+            a_key, candidate.owner_registry, candidate.source_type,
+            candidate.decision_purpose,
+        )
+        self._check_bindings(a_body, candidate, payload, "approbation")
+        if a_body.get("owner_transfer_digest") != transfer_digest(owner_transfer):
+            raise TrustError("approbation non liée au transfert propriétaire présenté")
+        status, priority = a_body.get("approved_status"), a_body.get("approved_priority")
         if status not in INITIAL_STATUSES or priority not in PRIORITIES:
             raise TrustError("statut ou priorité approuvé invalide")
         if PRIORITY_RANK[priority] > PRIORITY_RANK[candidate.requested_priority]:
             raise TrustError("priorité auto-promue au-delà de la demande du candidat")
-        _text(body.get("transfer_ref"), "transfer_ref")
-        _text(body.get("approval_id"), "approval_id")
-        return body
+        _text(a_body.get("approval_id"), "approval_id")
+        return t_body, a_body
 
-    def admit(self, candidate: Candidate, *, approval: SignedStatement,
-              command_id: str) -> str:
+    def _check_fresh(self, *bodies: dict) -> None:
+        now = self._clock()
+        for body in bodies:
+            self._policy.check_validity(body, now)
+
+    def admit(self, candidate: Candidate, *, owner_transfer: SignedStatement,
+              approval: SignedStatement, command_id: str) -> str:
         """Admission atomique et idempotente, y compris après redémarrage.
 
-        `approval` est une approbation signée par un `ADMISSION_APPROVER` de
-        la politique du constructeur ; statut et priorité approuvés sont lus
-        depuis elle (jamais depuis des arguments libres). Le seuil de
-        candidature D5B reste celui de `GovernedProducer._validate`.
-        L'admission gouvernée n'est PAS la décision humaine D5D (non
-        implémentée ici).
+        `owner_transfer` : transfert explicite signé par un `SOURCE_OWNER`
+        autorisé pour (registre, type de source, finalité) (contrat D5B §2).
+        `approval` : approbation signée par un `ADMISSION_APPROVER`
+        distinct, liée au candidat exact ET au transfert présenté ; statut
+        et priorité approuvés sont lus depuis elle (jamais depuis des
+        arguments libres). Le seuil de candidature D5B reste celui de
+        `GovernedProducer._validate`. L'admission gouvernée n'est PAS la
+        décision humaine D5D (non implémentée ici).
 
         `command_id` identifie la requête de l'appelant (pas la décision) :
         si l'appelant a perdu la réponse après un commit réussi (crash,
-        coupure réseau), rejouer `admit` avec le même `command_id` retrouve
-        la `decision_id` déjà committée sans dupliquer d'événement.
+        coupure réseau, expiration entre-temps), rejouer `admit` avec le
+        même `command_id` et les mêmes énoncés retrouve la `decision_id`
+        déjà committée sans dupliquer d'événement.
         """
         self._validator._validate(candidate)  # noqa: SLF001 (réutilisation intentionnelle)
         _text(command_id, "command_id")
         payload = self._validator._payload(candidate)  # noqa: SLF001
-        body = self._verify_approval(candidate, payload, approval)
-        approved_status = body["approved_status"]
-        approved_priority = body["approved_priority"]
+        t_body, a_body = self._authenticate(candidate, payload, owner_transfer, approval)
+        approved_status = a_body["approved_status"]
+        approved_priority = a_body["approved_priority"]
         occurred_at_utc = self._clock().strftime("%Y-%m-%dT%H:%M:%SZ")
         _utc(occurred_at_utc)
 
         key = self._key(candidate)
         key_hash = _digest(key)
         fingerprint = _digest({
-            "candidate": payload, "approval": approval.digest_material(),
+            "candidate": payload, "owner_transfer": owner_transfer.digest_material(),
+            "approval": approval.digest_material(),
         })
 
         with self._lock:
@@ -407,6 +533,10 @@ class DurableGovernedStore:
                         conn.execute("ROLLBACK")
                         raise ContractError("collision de clé d'admission")
                 else:
+                    # Nouvel événement : les énoncés doivent être frais. Le
+                    # refus a lieu AVANT toute écriture (ROLLBACK par le
+                    # gestionnaire d'exception ci-dessous).
+                    self._check_fresh(t_body, a_body)
                     last = conn.execute(
                         "SELECT sequence, event_hash FROM events "
                         "ORDER BY sequence DESC LIMIT 1"
@@ -425,11 +555,14 @@ class DurableGovernedStore:
                         "new_status": approved_status,
                         "candidate_id": candidate.candidate_id,
                         "source_revision_ref": candidate.owner_record_version,
-                        "admission_approval_ref": body["approval_id"],
-                        "approver_id": body["approver_id"],
-                        "policy_version": body["policy_version"],
-                        "transfer_ref": body["transfer_ref"],
+                        "admission_approval_ref": a_body["approval_id"],
+                        "approver_id": a_body["approver_id"],
+                        "owner_id": t_body["owner_id"],
+                        "policy_version": a_body["policy_version"],
+                        "transfer_id": t_body["transfer_id"],
+                        "owner_transfer": owner_transfer.digest_material(),
                         "approval": approval.digest_material(),
+                        "evidence_ref_classes": t_body["evidence_ref_classes"],
                         "approved_priority": approved_priority,
                         "requested_priority": candidate.requested_priority,
                         "evidence_refs": list(candidate.evidence_refs),
@@ -623,6 +756,54 @@ class DurableGovernedStore:
         finally:
             conn.close()
 
+    @staticmethod
+    def _projected_refs(event: dict) -> list:
+        """Références de preuves exposables : tout ce qui n'est pas
+        explicitement `PUBLIC` (classé par le propriétaire) est masqué
+        (D5B §5, échec fermé). Le journal garde les références brutes ;
+        leur lecture passe par `read_sensitive_evidence`."""
+        classes = event.get("evidence_ref_classes") or {}
+        out: list = []
+        for ref in event["evidence_refs"]:
+            digest = evidence_ref_digest(ref)
+            if classes.get(digest) == EVIDENCE_PUBLIC:
+                out.append(ref)
+            else:
+                out.append({"redacted": True, "ref_digest": digest})
+        return out
+
+    def read_sensitive_evidence(self, decision_id: str, *,
+                                grant: SignedStatement) -> tuple[str, ...]:
+        """Références SENSIBLES d'une décision, sous contrôle d'accès distinct.
+
+        Exige un droit signé par un `EVIDENCE_ACCESS_AUTHORITY` de la
+        politique du constructeur, lié à ce journal et à CETTE décision,
+        frais (horloge injectée). Le journal est vérifié avant toute
+        lecture (échec fermé). Limite : le droit est une capacité au porteur ;
+        `accessor_id` est consigné pour audit mais l'authentification réelle
+        de l'appelant relève de la future couche d'identité opérateur
+        (D5A), hors de ce prototype.
+        """
+        body, key = self._policy.verify(
+            grant, role=EVIDENCE_ACCESS_AUTHORITY, statement_type=EVIDENCE_ACCESS_GRANT,
+        )
+        self._policy.check_validity(body, self._clock())
+        if body.get("authority_id") != key.identity:
+            raise TrustError("autorité signée différente de l'identité de la clé")
+        _text(body.get("accessor_id"), "accessor_id")
+        if body.get("journal_id") != self._journal_id:
+            raise TrustError("droit d'accès d'un autre journal")
+        if body.get("decision_id") != decision_id:
+            raise TrustError("droit d'accès lié à une autre décision")
+        for event in self._read_events_verified():
+            if event["decision_id"] == decision_id:
+                classes = event.get("evidence_ref_classes") or {}
+                return tuple(
+                    ref for ref in event["evidence_refs"]
+                    if classes.get(evidence_ref_digest(ref)) != EVIDENCE_PUBLIC
+                )
+        raise ContractError("décision inconnue")
+
     def _unknown(self, reason: str) -> dict:
         return {
             "schema_version": SCHEMA_VERSION, "availability": "UNKNOWN",
@@ -777,7 +958,10 @@ class DurableGovernedStore:
                 "authority": "HUMAN_OPERATOR",
                 "evidence": {
                     "evidence_status": c["evidence_status"],
-                    "evidence_refs": list(e["evidence_refs"]),
+                    "evidence_refs": self._projected_refs(e),
+                    "sensitive_refs_redacted": sum(
+                        1 for r in self._projected_refs(e) if isinstance(r, dict)
+                    ),
                     "source_hashes": [c["source_sha"]],
                     "tests": None, "ci": None, "review": c["upstream_approval_ref"],
                     "limitations": [
@@ -813,6 +997,8 @@ class DurableGovernedStore:
 
 __all__ = [
     "AvailabilityProof", "CorruptedJournalError", "DurableGovernedStore",
-    "JOURNAL_SCOPE", "SCHEMA_VERSION", "admission_approval_payload",
-    "availability_attestation_payload", "candidate_fingerprint",
+    "EVIDENCE_PUBLIC", "EVIDENCE_SENSITIVE", "JOURNAL_SCOPE", "SCHEMA_VERSION",
+    "admission_approval_payload", "availability_attestation_payload",
+    "candidate_fingerprint", "evidence_access_grant_payload",
+    "evidence_ref_digest", "owner_transfer_payload", "transfer_digest",
 ]
