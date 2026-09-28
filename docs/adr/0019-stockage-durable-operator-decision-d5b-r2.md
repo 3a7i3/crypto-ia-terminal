@@ -96,6 +96,53 @@ même racine de confiance externe que ci-dessus.
 | SQLite avec `isolation_level` implicite (autocommit par instruction) | Ne garantit pas qu'un événement + son index d'idempotence + l'accusé de commande soient durables ensemble ; une coupure entre deux `INSERT` autocommit peut laisser un état incohérent. Rejeté au profit d'une transaction explicite unique. |
 | Base de données externe (Postgres, etc.) | Introduirait une dépendance de service supplémentaire (processus, réseau, secrets) hors du périmètre "prototype isolé hors runtime" de #315, et une nouvelle surface expérimentale non justifiée par une hypothèse H1-H6. |
 
+## Addendum — corrections suite à la revue indépendante (PR #316, review_id 5333698547)
+
+Le propriétaire du dépôt a signalé trois contournements réels du principe
+fail-closed dans le prototype initial. Les trois ont été corrigés dans la
+même PR #316 (voir `observability/operator_decisions/durable_store.py` et
+`tests/test_web_dir_d5b_r2_durable_store.py`) :
+
+1. **Zéro non authentifié refusé** — `project()` refusait auparavant
+   d'admettre le contournement suivant : avec une base vide, une
+   `AvailabilityProof` librement construite par l'appelant
+   (`producer_certified=True`, `complete_event_count=0`, aucune signature ni
+   ancrage) produisait `AVAILABLE` avec `decision_count=0`. Corrigé :
+   `project()` refuse désormais explicitement toute certification d'un
+   journal vide via une preuve non authentifiée (`UNKNOWN`), tant qu'aucun
+   gate de confiance réel (signature, ancrage externe) n'est branché. Voir
+   `test_zero_ne_peut_jamais_etre_certifie_par_une_preuve_non_authentifiee`.
+2. **Corruption détectée avant toute réponse rejouée** — `admit()` consultait
+   `command_results` (et pouvait renvoyer une `decision_id` connue) avant
+   d'appeler `_verify_locked`, ce qui permettait à une corruption du journal
+   de rester invisible tant que l'appelant rejouait un `command_id` déjà
+   connu. Corrigé : la vérification de la chaîne se fait désormais
+   systématiquement avant toute lecture de `command_results`. De plus,
+   `command_results` porte maintenant une empreinte (`request_fingerprint`)
+   de la requête d'origine (candidat + statut/priorité approuvés + référence
+   d'approbation) : rejouer le même `command_id` avec une charge différente
+   est rejeté explicitement (`ContractError`) au lieu de renvoyer
+   silencieusement une réponse périmée. Voir
+   `test_corruption_avant_rejeu_de_command_id_est_detectee_pas_masquee` et
+   `test_rejeu_de_command_id_avec_charge_differente_est_rejete`.
+3. **Lecture + vérification transactionnelles dans `project()`** — `project()`
+   appelait `events()` puis `verify()` sur deux connexions/transactions
+   SQLite distinctes, laissant une fenêtre où une admission concurrente
+   pouvait s'intercaler entre les deux lectures. Corrigé par
+   `_read_events_verified()` : une unique transaction de lecture (`BEGIN` en
+   mode WAL) fixe l'instantané avant la première lecture, et la vérification
+   de la chaîne porte sur ce même instantané. Voir
+   `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique`
+   (démonstration déterministe par injection d'une écriture corruptrice
+   pendant la fenêtre auparavant vulnérable) et
+   `test_admission_concurrente_pendant_une_projection_ne_produit_aucune_incoherence`
+   (stress multi-thread).
+
+Ces trois corrections ferment des contournements précis du principe
+fail-closed ; elles **ne résolvent pas** le gate d'authenticité externe déjà
+documenté ci-dessus (signature/ancrage pour la chaîne de hash et pour
+`AvailabilityProof`), qui reste un gate ouvert distinct.
+
 ## Conséquences
 
 **Positives :**

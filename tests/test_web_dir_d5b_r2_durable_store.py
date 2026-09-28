@@ -221,6 +221,44 @@ def test_troncature_du_journal_echoue_ferme(tmp_path):
         corrupted.verify()
 
 
+def test_corruption_avant_rejeu_de_command_id_est_detectee_pas_masquee(tmp_path):
+    """Revue indépendante PR #316 (review_id 5333698547), point 2.
+
+    Après une admission réussie, si `events.payload_json` est altéré en
+    base, un rejeu du même `command_id` ne doit PAS renvoyer silencieusement
+    la `decision_id` connue depuis `command_results` : la chaîne doit être
+    vérifiée AVANT toute réponse issue de `command_results`, donc la
+    corruption doit être détectée en premier.
+    """
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(), command_id="cmd-1")
+    conn = _raw(db)
+    conn.execute("UPDATE events SET payload_json = '{}' WHERE sequence = 1")
+    conn.close()
+
+    replayer = store(db)
+    with pytest.raises(CorruptedJournalError):
+        admit(replayer, candidate(), command_id="cmd-1")
+
+
+def test_rejeu_de_command_id_avec_charge_differente_est_rejete(tmp_path):
+    """Revue indépendante PR #316 (review_id 5333698547), point 2.
+
+    Le `command_id` est désormais lié à une empreinte de la requête
+    d'origine : rejouer le même `command_id` avec une charge différente
+    (ex: un autre `title`) doit être rejeté explicitement, jamais renvoyer
+    silencieusement une réponse périmée qui ne correspond pas à la nouvelle
+    requête.
+    """
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(title="Titre initial"), command_id="cmd-shared")
+
+    with pytest.raises(ContractError, match="rejeu de command_id"):
+        admit(s, candidate(title="Titre modifié"), command_id="cmd-shared")
+
+
 def test_version_de_schema_inconnue_est_rejetee(tmp_path):
     db = tmp_path / "store.db"
     s = store(db)
@@ -263,6 +301,85 @@ def test_availability_proof_non_authentifiee_ne_produit_jamais_available_sans_wa
         s.project(AvailabilityProof(False, "ref", 1, NOW))
 
 
+def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_path, monkeypatch):
+    """Revue indépendante PR #316 (review_id 5333698547), point 3.
+
+    Avant la correction, `project()` lisait `events()` puis appelait
+    `verify()` sur deux connexions/transactions distinctes : une écriture
+    corruptrice concurrente pouvait s'intercaler entre les deux. On simule
+    précisément cette fenêtre (une écriture corruptrice commitée par une
+    connexion séparée juste après le début de la lecture, avant la
+    vérification) et on démontre qu'elle reste invisible : l'instantané de
+    transaction fixé au début de `_read_events_verified` ne voit pas les
+    écritures commitées après son démarrage, donc les données lues et
+    vérifiées restent cohérentes entre elles.
+    """
+    from observability.operator_decisions.durable_store import DurableGovernedStore
+
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(), command_id="cmd-1")
+
+    original_verify_locked = DurableGovernedStore._verify_locked
+    injected = {"done": False}
+
+    def corrupting_verify(conn):
+        if not injected["done"]:
+            injected["done"] = True
+            raw = sqlite3.connect(str(db), isolation_level=None)
+            raw.execute("UPDATE events SET payload_json = '{}' WHERE sequence = 1")
+            raw.close()
+        return original_verify_locked(conn)
+
+    monkeypatch.setattr(DurableGovernedStore, "_verify_locked", staticmethod(corrupting_verify))
+
+    view = s.project(proof(1))
+    assert injected["done"]
+    assert view["availability"] == "AVAILABLE"
+    assert view["decision_count"] == 1
+
+
+def test_admission_concurrente_pendant_une_projection_ne_produit_aucune_incoherence(tmp_path):
+    """Revue indépendante PR #316 (review_id 5333698547), point 3 (stress).
+
+    Un thread admet de nouveaux candidats pendant qu'un autre projette en
+    boucle : quel que soit l'entrelacement réel, chaque projection doit
+    rester interne cohérente (jamais de crash, et `decision_count` toujours
+    égal à `len(items)` et à `as_of_event_version` quand `AVAILABLE`).
+    """
+    db = tmp_path / "store.db"
+    s0 = store(db)
+    errors: list[Exception] = []
+
+    def admit_many():
+        try:
+            for i in range(10):
+                admit(store(db), candidate(source_id=f"problem-{i}", candidate_id=f"cand-{i}"),
+                      command_id=f"cmd-{i}")
+        except Exception as exc:  # pragma: no cover - diagnostic
+            errors.append(exc)
+
+    def project_many():
+        try:
+            for _ in range(30):
+                n = len(store(db).events())
+                view = store(db).project(proof(n))
+                if view["availability"] == "AVAILABLE":
+                    assert view["decision_count"] == len(view["items"])
+                    assert view["decision_count"] == view["as_of_event_version"]
+        except Exception as exc:  # pragma: no cover - diagnostic
+            errors.append(exc)
+
+    threads = [threading.Thread(target=admit_many), threading.Thread(target=project_many)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors
+    assert len(s0.events()) == 10
+
+
 def test_watermark_partiel_echoue_ferme(tmp_path):
     db = tmp_path / "store.db"
     s = store(db)
@@ -273,10 +390,23 @@ def test_watermark_partiel_echoue_ferme(tmp_path):
     assert view["decision_count"] is None
 
 
-def test_zero_certifie_seulement_si_source_complete(tmp_path):
+def test_zero_ne_peut_jamais_etre_certifie_par_une_preuve_non_authentifiee(tmp_path):
+    """Revue indépendante PR #316 (review_id 5333698547), point 1.
+
+    Une base vide et une `AvailabilityProof` librement construite par
+    l'appelant (`producer_certified=True`, aucune signature, aucun ancrage)
+    ne doivent JAMAIS pouvoir produire `AVAILABLE` avec `decision_count=0` :
+    il n'existe aucun gate de confiance réel dans ce prototype pour
+    authentifier une telle preuve, donc le zéro doit rester refusé
+    (fail-closed), pas silencieusement accepté.
+    """
     db = tmp_path / "store.db"
     s = store(db)
     assert s.project()["decision_count"] is None  # NON DÉPLOYÉ, jamais 0 par défaut
-    view = s.project(proof(0))
-    assert view["availability"] == "AVAILABLE"
-    assert view["decision_count"] == 0  # zéro explicite, watermark cohérent
+
+    invented = AvailabilityProof(True, "invented", 0, NOW)
+    view = s.project(invented)
+    assert view["availability"] != "AVAILABLE"
+    assert view["availability"] == "UNKNOWN"
+    assert view["decision_count"] is None
+    assert "zéro non authentifié" in " ".join(view["limitations"])

@@ -15,6 +15,10 @@ Limites documentées (voir aussi `docs/adr/0019-...md`) :
   `AvailabilityProof.trust_root_ref` documente l'absence de vérification et
   DOIT être traité comme non fiable tant qu'aucun mécanisme de signature ou
   d'ancrage n'est branché (gate distinct, non couvert par ce prototype).
+  Conséquence explicite : une preuve non authentifiée ne peut jamais, à elle
+  seule, certifier un ZÉRO (base vide) — `project()` refuse ce cas
+  (`UNKNOWN`) tant qu'aucune racine de confiance réelle n'est branchée (voir
+  revue indépendante PR #316, review_id 5333698547, point 1).
 - Le hash de chaîne (`event_hash`/`previous_event_hash`) est un contrôle
   d'INTÉGRITÉ interne (détecte réécriture, troncature, réordonnancement) ; ce
   n'est PAS une preuve d'AUTHENTICITÉ externe (rien n'empêche quiconque a un
@@ -90,7 +94,8 @@ CREATE TABLE IF NOT EXISTS command_results (
     command_id TEXT PRIMARY KEY,
     decision_id TEXT NOT NULL,
     sequence INTEGER NOT NULL,
-    committed_at_utc TEXT NOT NULL
+    committed_at_utc TEXT NOT NULL,
+    request_fingerprint TEXT NOT NULL
 );
 """
 
@@ -186,15 +191,29 @@ class DurableGovernedStore:
             conn = self._connect()
             try:
                 conn.execute("BEGIN IMMEDIATE")
+                # Corrige la faille #2 signalée en revue indépendante (PR #316,
+                # review_id 5333698547) : la chaîne DOIT être vérifiée AVANT
+                # de renvoyer quoi que ce soit depuis `command_results`, sinon
+                # une réponse rejouée peut masquer une corruption survenue
+                # après l'admission d'origine.
+                self._verify_locked(conn)
+
                 existing_cmd = conn.execute(
-                    "SELECT decision_id FROM command_results WHERE command_id = ?",
+                    "SELECT decision_id, request_fingerprint FROM command_results "
+                    "WHERE command_id = ?",
                     (command_id,),
                 ).fetchone()
                 if existing_cmd is not None:
+                    existing_decision_id, existing_fingerprint = existing_cmd
+                    if existing_fingerprint != fingerprint:
+                        conn.execute("ROLLBACK")
+                        raise ContractError(
+                            "rejeu de command_id avec une charge différente de "
+                            "la requête d'origine : réponse refusée (pas de "
+                            "réponse périmée renvoyée silencieusement)"
+                        )
                     conn.execute("COMMIT")
-                    return existing_cmd[0]
-
-                self._verify_locked(conn)
+                    return existing_decision_id
 
                 existing_key = conn.execute(
                     "SELECT decision_id, payload_json, sequence FROM events "
@@ -251,8 +270,9 @@ class DurableGovernedStore:
 
                 conn.execute(
                     "INSERT INTO command_results (command_id, decision_id, "
-                    "sequence, committed_at_utc) VALUES (?, ?, ?, ?)",
-                    (command_id, decision_id, sequence, occurred_at_utc),
+                    "sequence, committed_at_utc, request_fingerprint) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (command_id, decision_id, sequence, occurred_at_utc, fingerprint),
                 )
                 conn.execute("COMMIT")
                 return decision_id
@@ -317,11 +337,36 @@ class DurableGovernedStore:
             conn.close()
         return tuple(json.loads(r[0]) for r in rows)
 
+    def _read_events_verified(self) -> tuple[dict, ...]:
+        """Lit les événements et vérifie la chaîne sous le même instantané.
+
+        Corrige la faille #3 signalée en revue indépendante (PR #316, review_id
+        5333698547) : `events()` et `verify()` ouvraient chacun leur propre
+        connexion/transaction, ce qui laissait une fenêtre où une admission
+        concurrente pouvait s'intercaler entre la lecture des événements et
+        leur vérification. Ici, une unique transaction de lecture SQLite
+        (`BEGIN` en mode WAL) fixe l'instantané avant la première lecture ;
+        les deux opérations voient donc strictement le même état, quoi qu'il
+        se passe sur une autre connexion pendant ce temps.
+        """
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN")
+            try:
+                rows = conn.execute(
+                    "SELECT payload_json FROM events ORDER BY sequence ASC"
+                ).fetchall()
+                self._verify_locked(conn)
+            finally:
+                conn.execute("COMMIT")
+            return tuple(json.loads(r[0]) for r in rows)
+        finally:
+            conn.close()
+
     def project(self, proof: AvailabilityProof | None = None) -> dict:
         """Reconstruit la projection à partir du journal seul (fail-closed)."""
         try:
-            events = self.events()
-            self.verify()
+            events = self._read_events_verified()
         except (CorruptedJournalError, IntegrityError, sqlite3.DatabaseError,
                 json.JSONDecodeError):
             return {
@@ -345,6 +390,24 @@ class DurableGovernedStore:
                 "schema_version": SCHEMA_VERSION, "availability": "UNKNOWN",
                 "decision_count": None, "items": None,
                 "limitations": ["watermark incomplet"],
+            }
+        if len(events) == 0:
+            # Corrige la faille #1 signalée en revue indépendante (PR #316,
+            # review_id 5333698547) : une `AvailabilityProof` est une
+            # attestation injectée par l'appelant, jamais authentifiée par ce
+            # module (aucune signature, aucune racine de confiance externe).
+            # Elle ne peut donc JAMAIS, seule, certifier un zéro — un
+            # appelant pourrait sinon fabriquer librement une preuve
+            # affirmant qu'aucune décision n'existe. Tant qu'aucun gate de
+            # confiance réel n'est branché, ce cas reste fail-closed.
+            return {
+                "schema_version": SCHEMA_VERSION, "availability": "UNKNOWN",
+                "decision_count": None, "items": None,
+                "limitations": [
+                    "zéro non authentifié refusé : une AvailabilityProof non "
+                    "authentifiée ne peut jamais certifier une base vide en "
+                    "l'absence de racine de confiance externe vérifiée"
+                ],
             }
 
         items = []
