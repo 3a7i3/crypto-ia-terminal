@@ -87,21 +87,60 @@ restent une décision opérationnelle explicite pour une mission ultérieure.
 
 1. Arrêter tout accès en écriture sur le fichier cible (hors périmètre
    runtime aujourd'hui, mais impératif pour une future intégration).
-2. Copier le fichier de sauvegarde vers l'emplacement de destination.
-3. Instancier `DurableGovernedStore(path, owners)` sur le fichier restauré et
-   appeler `verify()` : toute erreur (`CorruptedJournalError`) signale une
-   sauvegarde invalide — ne jamais mettre en service une base restaurée sans
-   ce contrôle.
-4. Appeler `project(proof)` avec une `AvailabilityProof` de test pour
-   confirmer que la projection se reconstruit correctement avant toute
-   utilisation réelle.
+2. Copier le fichier de sauvegarde vers l'emplacement de destination. Le
+   `journal_id` (table `schema_meta`) est conservé : c'est le même journal.
+3. Instancier `DurableGovernedStore(path, owners, trust_policy=..., clock=...)`
+   sur le fichier restauré et appeler `verify()` : journal (chaîne de hash,
+   cohérence colonnes/charge) ET index `command_results` (chaque ligne liée à
+   séquence + `event_hash`) sont vérifiés. Toute `CorruptedJournalError`
+   signale une sauvegarde invalide — ne jamais mettre en service une base
+   restaurée sans ce contrôle.
+4. Si seul l'index est altéré (journal sain), `rebuild_command_index()` le
+   reconstruit depuis le journal vérifié (transaction unique ; refus et
+   rollback si le journal lui-même est corrompu). Les commandes secondaires
+   convergentes ne sont pas dans le journal : leur rejeu reconverge par la clé
+   d'idempotence vers la même `decision_id`.
+5. Rejouer un `command_id` connu : il doit renvoyer la même `decision_id`
+   sans nouvel événement (idempotence).
+6. `project(attestation)` n'est `AVAILABLE` qu'avec une attestation signée
+   par l'`AVAILABILITY_AUTHORITY` couvrant l'état restauré. **Anti-retour :**
+   si le vérificateur a déjà accepté un checkpoint plus récent (ancre
+   `accepted_checkpoint`), une restauration à un état antérieur est refusée
+   (`UNKNOWN`, « retour arrière détecté ») — c'est voulu. Une restauration
+   légitime à un état antérieur exige une décision humaine explicite et une
+   nouvelle attestation de l'autorité ; aucune procédure automatique ne
+   contourne l'ancre.
+
+Procédure exercée par le test exécutable
+`tests/test_web_dir_d5b_r2_durable_store.py::test_sauvegarde_restauration_puis_rejeu_idempotent`
+(`Connection.backup()`, `verify()`, rejeu idempotent, projection attestée) ;
+reconstruction : `test_reconstruction_de_l_index_depuis_le_journal` ;
+restauration frauduleuse : `test_restauration_complete_du_fichier_detectee_avec_ancre_externe`.
 
 ---
 
-## 4. Limite non résolue
+## 4. Retenues SQLite (état au commentaire propriétaire 5864337478)
 
-Ni la migration ni la sauvegarde décrites ici ne couvrent l'authenticité de
-la chaîne de hash (voir ADR-0019, section « Limite explicite »). Une
-restauration réussie prouve la cohérence interne du fichier restauré, pas
-qu'il n'a jamais été altéré par un tiers ayant eu accès au disque. Cette
-limite reste un gate ouvert.
+- **Conservée, ciblée :** `PRAGMA journal_mode=WAL` dans `_connect()`,
+  uniquement sur `OperationalError` contenant « database is locked », 5
+  tentatives × 50 ms (reproduction locale déterministe : création concurrente
+  de plusieurs stores sur un fichier neuf). Toute autre erreur remonte
+  immédiatement ; la connexion est fermée sur tout échec (tests
+  `test_connexion_fermee_*`, `test_retenue_wal_*`).
+- **Retirée :** la retenue générique de `_read_events_verified` sur
+  `DatabaseError`, dont le diagnostic CI a été réfuté (cause réelle :
+  monkeypatch au niveau classe dans le test). Une erreur SQLite en lecture
+  produit désormais `UNKNOWN` sans nouvelle tentative
+  (`test_lecture_verifiee_sans_retenue_generique_echoue_ferme`).
+
+---
+
+## 5. Limite non résolue
+
+Ni la migration ni la sauvegarde décrites ici ne prouvent l'authenticité
+d'origine : la politique de confiance est une FIXTURE non opérationnelle et
+aucune autorité réelle n'est désignée (ADR-0020 §3, blocage de
+certification). Une restauration réussie prouve la cohérence interne du
+fichier restauré ; seule une attestation fraîche d'une autorité réelle, et une
+ancre anti-retour hors de portée d'un attaquant disposant du disque,
+fermeraient ce gate.

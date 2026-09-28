@@ -430,15 +430,16 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
     trouvé par une simple recherche dans `s.__dict__`, prioritaire sur
     l'attribut de classe et non soumis aux mêmes caches d'attribut de type
     que `setattr()` sur une classe. Aucune modification de
-    `DurableGovernedStore` n'était donc nécessaire pour CE flaking précis
-    (la retenue SQLite ajoutée reste une résilience défensive raisonnable,
-    sans rapport avec ce symptôme).
+    `DurableGovernedStore` n'était donc nécessaire pour CE flaking précis ;
+    la retenue générique ajoutée pendant le diagnostic réfuté a depuis été
+    retirée de `_read_events_verified` (commentaire propriétaire
+    5864337478, point 4).
     """
     db = tmp_path / "store.db"
     s = store(db)
     admit(s, candidate(), command_id="cmd-1")
 
-    original_verify_locked = type(s)._verify_locked
+    original_verify_locked = s._verify_locked  # méthode liée, capturée avant le patch
     injected = {"done": False}
 
     def corrupting_verify(conn):
@@ -476,17 +477,13 @@ def test_admission_concurrente_pendant_une_projection_ne_produit_aucune_incohere
     dépend d'aucune fenêtre de timing précise pour être valide : l'invariant
     vérifié (cohérence interne d'une projection) doit tenir quel que soit
     l'entrelacement réel, par construction — ce n'est pas un test qui essaie
-    de "gagner" une course. Le seul risque de flaking résiduel est le même
-    que celui diagnostiqué sur
-    `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique` :
-    un `sqlite3.OperationalError` transitoire (connexion/verrou) sous forte
-    contention réelle (10 admissions + 30 projections concurrentes, dans un
-    processus qui peut déjà tourner 6549+ tests). `_read_events_verified`
-    absorbe désormais ce cas par une retenue bornée côté production ; on
-    ajoute ici, uniquement côté test, une retenue bornée symétrique autour de
-    chaque opération pour ne jamais confondre cette contention transitoire
-    avec une vraie incohérence — sans jamais retenter après une `AssertionError`
-    (une vraie violation d'invariant doit rester fatale immédiatement).
+    de "gagner" une course. `project()` échoue fermé (`UNKNOWN`) sur toute
+    erreur SQLite, sans retenue côté production ; une retenue bornée reste
+    uniquement côté test, sur `sqlite3.OperationalError` seulement, pour ne
+    pas confondre une contention de verrou réelle avec une incohérence —
+    jamais après une `AssertionError` (une vraie violation d'invariant reste
+    fatale immédiatement). Chaque projection reçoit une attestation fixture
+    à checkpoint croissant (anti-retour respecté).
     """
     db = tmp_path / "store.db"
     s0 = store(db)
@@ -920,3 +917,219 @@ def test_restauration_complete_du_fichier_detectee_avec_ancre_externe(tmp_path):
     restored.close()
     target.close()
     _refusee(s_().project(ancien), "retour arrière")
+
+
+# --- Intégrité du stockage et reprise (étape 4) ------------------------------
+
+def test_alteration_de_l_index_command_results_detectee(tmp_path):
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(), command_id="cmd-1")
+    admit(s, candidate(source_id="problem-2", candidate_id="cand-2"), command_id="cmd-2")
+    conn = _raw(db)
+    # Redirige la commande 1 vers la décision de l'événement 2.
+    d2 = conn.execute("SELECT decision_id FROM events WHERE sequence = 2").fetchone()[0]
+    conn.execute("UPDATE command_results SET decision_id = ? WHERE command_id = 'cmd-1'", (d2,))
+    conn.close()
+    with pytest.raises(CorruptedJournalError, match="index"):
+        s.verify()
+    with pytest.raises(CorruptedJournalError, match="index"):
+        admit(s, candidate(), command_id="cmd-1")  # jamais de réponse issue d'un index altéré
+    assert s.project(attest(s))["availability"] == "UNKNOWN"
+
+
+def test_index_orphelin_ou_event_hash_altere_detecte(tmp_path):
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(), command_id="cmd-1")
+    conn = _raw(db)
+    conn.execute("UPDATE command_results SET event_hash = ? WHERE command_id = 'cmd-1'",
+                 ("e" * 64,))
+    conn.close()
+    with pytest.raises(CorruptedJournalError, match="index"):
+        s.verify()
+    conn = _raw(db)
+    conn.execute("UPDATE command_results SET sequence = 99 WHERE command_id = 'cmd-1'")
+    conn.close()
+    with pytest.raises(CorruptedJournalError, match="orphelin"):
+        s.verify()
+
+
+def test_alteration_des_colonnes_d_index_du_journal_detectee(tmp_path):
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(), command_id="cmd-1")
+    conn = _raw(db)
+    conn.execute("UPDATE events SET idempotency_key = 'cle-forgee' WHERE sequence = 1")
+    conn.close()
+    with pytest.raises(CorruptedJournalError):
+        s.verify()
+
+
+def test_reconstruction_de_l_index_depuis_le_journal(tmp_path):
+    db = tmp_path / "store.db"
+    s = store(db)
+    d1 = admit(s, candidate(), command_id="cmd-1")
+    d2 = admit(s, candidate(source_id="problem-2", candidate_id="cand-2"), command_id="cmd-2")
+    conn = _raw(db)
+    conn.execute("UPDATE command_results SET decision_id = 'forge' WHERE command_id = 'cmd-1'")
+    conn.execute("DELETE FROM command_results WHERE command_id = 'cmd-2'")
+    conn.close()
+    with pytest.raises(CorruptedJournalError):
+        s.verify()
+    assert s.rebuild_command_index() == 2
+    s.verify()
+    # Rejeu idempotent après reconstruction : mêmes décisions, aucun doublon.
+    assert admit(s, candidate(), command_id="cmd-1") == d1
+    c2 = candidate(source_id="problem-2", candidate_id="cand-2")
+    assert admit(s, c2, command_id="cmd-2") == d2
+    assert len(s.events()) == 2
+
+
+def test_reconstruction_refusee_si_le_journal_est_corrompu(tmp_path):
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(), command_id="cmd-1")
+    conn = _raw(db)
+    conn.execute("UPDATE events SET payload_json = '{}' WHERE sequence = 1")
+    conn.close()
+    with pytest.raises(CorruptedJournalError):
+        s.rebuild_command_index()
+    conn = _raw(db)
+    assert conn.execute("SELECT COUNT(*) FROM command_results").fetchone()[0] == 1  # rollback
+    conn.close()
+
+
+def test_sauvegarde_restauration_puis_rejeu_idempotent(tmp_path):
+    """Procédure du runbook §2-§3, exécutée : backup(), verify(), rejeu."""
+    db = tmp_path / "operator_decisions.db"
+    s = store(db)
+    decision_id = admit(s, candidate(), command_id="cmd-sauvegarde")
+
+    source = sqlite3.connect(str(db))
+    source.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    backup_path = tmp_path / "operator_decisions.backup.db"
+    backup = sqlite3.connect(str(backup_path))
+    with backup:
+        source.backup(backup)
+    backup.close()
+    source.close()
+
+    restored_path = tmp_path / "restaure.db"
+    restored_path.write_bytes(backup_path.read_bytes())
+    restored = store(restored_path)
+    restored.verify()
+    assert restored.journal_id == s.journal_id  # même journal, identité conservée
+    assert admit(restored, candidate(), command_id="cmd-sauvegarde") == decision_id
+    assert len(restored.events()) == 1
+    view = restored.project(attest(restored))
+    assert view["availability"] == "AVAILABLE"
+    assert view["decision_count"] == 1
+
+
+class _TrackedConnection:
+    """Proxy de connexion : trace la fermeture et injecte des échecs ciblés."""
+
+    registry: list = []
+
+    def __init__(self, real, fail):
+        self._real = real
+        self._fail = fail
+        self.closed = False
+        _TrackedConnection.registry.append(self)
+
+    def execute(self, sql, *args):
+        exc = self._fail(sql)
+        if exc is not None:
+            raise exc
+        return self._real.execute(sql, *args)
+
+    def executescript(self, sql):
+        return self._real.executescript(sql)
+
+    def close(self):
+        self.closed = True
+        self._real.close()
+
+
+def _instrument(monkeypatch, fail):
+    _TrackedConnection.registry = []
+    real_connect = sqlite3.connect
+    monkeypatch.setattr(sqlite3, "connect",
+                        lambda *a, **k: _TrackedConnection(real_connect(*a, **k), fail))
+    return _TrackedConnection.registry
+
+
+def test_connexion_fermee_si_le_passage_wal_echoue_sans_retenue_hors_verrou(tmp_path, monkeypatch):
+    calls = []
+
+    def fail(sql):
+        if sql == "PRAGMA journal_mode=WAL":
+            calls.append(sql)
+            return sqlite3.OperationalError("disk I/O error")
+        return None
+
+    opened = _instrument(monkeypatch, fail)
+    with pytest.raises(sqlite3.OperationalError, match="disk I/O"):
+        store(tmp_path / "store.db")
+    assert len(calls) == 1  # aucune retenue pour une erreur autre que le verrou
+    assert opened and all(c.closed for c in opened)
+
+
+def test_retenue_wal_limitee_a_database_is_locked(tmp_path, monkeypatch):
+    calls = []
+
+    def fail(sql):
+        if sql == "PRAGMA journal_mode=WAL":
+            calls.append(sql)
+            if len(calls) <= 2:
+                return sqlite3.OperationalError("database is locked")
+        return None
+
+    opened = _instrument(monkeypatch, fail)
+    store(tmp_path / "store.db")
+    assert len(calls) == 3
+    assert all(c.closed for c in opened)
+
+
+def test_retenue_wal_bornee_puis_connexion_fermee(tmp_path, monkeypatch):
+    def fail(sql):
+        if sql == "PRAGMA journal_mode=WAL":
+            return sqlite3.OperationalError("database is locked")
+        return None
+
+    opened = _instrument(monkeypatch, fail)
+    with pytest.raises(sqlite3.OperationalError, match="locked"):
+        store(tmp_path / "store.db")
+    assert opened and all(c.closed for c in opened)
+
+
+def test_connexion_fermee_si_init_schema_echoue(tmp_path, monkeypatch):
+    db = tmp_path / "store.db"
+    store(db)
+    conn = _raw(db)
+    conn.execute("UPDATE schema_meta SET schema_version = '9.9.9'")
+    conn.close()
+    opened = _instrument(monkeypatch, lambda sql: None)
+    with pytest.raises(CorruptedJournalError, match="schéma"):
+        store(db)
+    assert opened and all(c.closed for c in opened)
+
+
+def test_lecture_verifiee_sans_retenue_generique_echoue_ferme(tmp_path, monkeypatch):
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate())
+    selects = []
+
+    def fail(sql):
+        if sql.startswith("SELECT payload_json FROM events"):
+            selects.append(sql)
+            return sqlite3.DatabaseError("erreur injectée")
+        return None
+
+    opened = _instrument(monkeypatch, fail)
+    view = s.project(attest(s))
+    assert view["availability"] == "UNKNOWN"
+    assert len(selects) == 1  # plus de retenue générique sur DatabaseError
+    assert all(c.closed for c in opened)

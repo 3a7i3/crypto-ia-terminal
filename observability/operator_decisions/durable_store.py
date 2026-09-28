@@ -59,11 +59,14 @@ SCHEMA_VERSION = "2.0.0"
 JOURNAL_SCOPE = "OPERATOR_DECISION_QUEUE"
 KNOWN_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION})
 
-# Retenue bornée pour `_read_events_verified` face à un `sqlite3.OperationalError`
-# transitoire (voir docstring de `_read_events_verified`) — pas un nouveau
-# comportement fonctionnel, une résilience I/O sur un chemin déjà fail-closed.
-_OPEN_RETRY_ATTEMPTS = 5
-_OPEN_RETRY_DELAY_SECONDS = 0.05
+# Retenue bornée UNIQUEMENT pour `PRAGMA journal_mode=WAL` dans `_connect()`
+# face à `sqlite3.OperationalError("database is locked")` (reproduction
+# locale déterministe documentée, PR #316). Aucune autre erreur n'est
+# retentée : la retenue générique de `_read_events_verified` a été retirée,
+# son diagnostic ayant été réfuté (cause réelle : monkeypatch au niveau
+# classe dans le test).
+_WAL_RETRY_ATTEMPTS = 5
+_WAL_RETRY_DELAY_SECONDS = 0.05
 
 
 @dataclass(frozen=True)
@@ -164,6 +167,7 @@ CREATE TABLE IF NOT EXISTS command_results (
     command_id TEXT PRIMARY KEY,
     decision_id TEXT NOT NULL,
     sequence INTEGER NOT NULL,
+    event_hash TEXT NOT NULL,
     committed_at_utc TEXT NOT NULL,
     request_fingerprint TEXT NOT NULL
 );
@@ -218,55 +222,35 @@ class DurableGovernedStore:
         self._init_schema()
 
     def _connect(self, path: str | None = None) -> sqlite3.Connection:
+        """Ouvre une connexion configurée ; la ferme sur tout échec.
+
+        `busy_timeout` explicite, puis passage en WAL seulement si
+        nécessaire. Reproduction locale déterministe (5 threads créant chacun
+        leur `DurableGovernedStore` sur le même fichier neuf) :
+        `sqlite3.OperationalError: database is locked` précisément sur
+        `PRAGMA journal_mode=WAL` malgré `busy_timeout` — le changement de
+        mode exige un verrou exclusif bref que `busy_timeout` ne couvre pas
+        toujours. Seule cette erreur précise est retentée (bornée) ; toute
+        autre exception remonte immédiatement, connexion fermée.
+        """
         conn = sqlite3.connect(path or self._db_path, timeout=30, isolation_level=None)
-        # `busy_timeout` explicite (en plus de `timeout=` ci-dessus, qui règle
-        # la même chose côté wrapper Python) : le changement de mode journal
-        # ci-dessous exige un verrou exclusif bref, et sous forte contention
-        # (admissions concurrentes, ou suite de tests complète avec de
-        # nombreux threads SQLite actifs) l'échec observé en CI
-        # (`sqlite3.OperationalError: database is locked` sur cette ligne,
-        # cf. échec CI PR #316 sur TEST REGRESSION GATE) montre que la
-        # retenue par défaut peut ne pas suffire tant que le PRAGMA n'a pas
-        # explicitement son propre délai d'attente.
-        conn.execute("PRAGMA busy_timeout=30000")
-        # N'exécute le changement de mode que s'il est nécessaire : une fois
-        # la base déjà en WAL (cas de toute connexion après la première),
-        # réémettre `PRAGMA journal_mode=WAL` est un no-op côté résultat mais
-        # peut encore solliciter un verrou bref sur certaines versions de
-        # SQLite — l'éviter réduit la fenêtre de contention sans changer le
-        # comportement fonctionnel du prototype.
-        current_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
-        if str(current_mode).lower() != "wal":
-            # Reproduit localement (hors CI, 5 threads créant chacun leur
-            # propre `DurableGovernedStore` sur le même fichier neuf) :
-            # `sqlite3.OperationalError: database is locked` précisément sur
-            # `PRAGMA journal_mode=WAL`, malgré `busy_timeout=30000` déjà
-            # posé sur CETTE connexion. Cause réelle (pas une hypothèse) :
-            # le changement de mode journal exige un verrou EXCLUSIF bref
-            # pendant que la première écriture crée le fichier `-wal`/`-shm`
-            # ; sous plusieurs connexions concurrentes exécutant ce PRAGMA au
-            # même instant sur un fichier tout juste créé, SQLite peut
-            # renvoyer `SQLITE_BUSY` sur CE PRAGMA précis avant même que le
-            # compteur `busy_timeout` de l'appelant n'ait une fenêtre pour
-            # s'appliquer côté verrou de création de fichier (comportement
-            # documenté de SQLite sur le changement de journal_mode, distinct
-            # du verrou de transaction ordinaire). La retenue bornée ici est
-            # symétrique à celle de `_read_events_verified` : seule une
-            # `sqlite3.OperationalError` transitoire est retentée, jamais un
-            # signe de corruption.
-            last_exc: sqlite3.OperationalError | None = None
-            for attempt in range(_OPEN_RETRY_ATTEMPTS):
-                if attempt:
-                    time.sleep(_OPEN_RETRY_DELAY_SECONDS)
-                try:
-                    conn.execute("PRAGMA journal_mode=WAL")
-                    break
-                except sqlite3.OperationalError as exc:
-                    last_exc = exc
-                    continue
-            else:
-                raise last_exc
-        conn.execute("PRAGMA foreign_keys=ON")
+        try:
+            conn.execute("PRAGMA busy_timeout=30000")
+            current_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+            if str(current_mode).lower() != "wal":
+                for attempt in range(_WAL_RETRY_ATTEMPTS):
+                    try:
+                        conn.execute("PRAGMA journal_mode=WAL")
+                        break
+                    except sqlite3.OperationalError as exc:
+                        if ("database is locked" not in str(exc)
+                                or attempt == _WAL_RETRY_ATTEMPTS - 1):
+                            raise
+                        time.sleep(_WAL_RETRY_DELAY_SECONDS)
+            conn.execute("PRAGMA foreign_keys=ON")
+        except BaseException:
+            conn.close()
+            raise
         return conn
 
     def _init_schema(self) -> None:
@@ -413,11 +397,11 @@ class DurableGovernedStore:
                     return existing_decision_id
 
                 existing_key = conn.execute(
-                    "SELECT decision_id, payload_json, sequence FROM events "
+                    "SELECT decision_id, payload_json, sequence, event_hash FROM events "
                     "WHERE idempotency_key = ?", (key_hash,),
                 ).fetchone()
                 if existing_key is not None:
-                    decision_id, payload_json, sequence = existing_key
+                    decision_id, payload_json, sequence, event_hash = existing_key
                     stored = json.loads(payload_json)
                     if stored.get("fingerprint") != fingerprint:
                         conn.execute("ROLLBACK")
@@ -453,10 +437,12 @@ class DurableGovernedStore:
                         "previous_event_hash": previous_hash,
                         "candidate": payload,
                         "fingerprint": fingerprint,
+                        "command_id": command_id,
                     }
-                    event_hash = _digest(
-                        {k: v for k, v in event_body.items() if k != "fingerprint"}
-                    )
+                    # Le hash couvre TOUT le corps (empreinte et commande
+                    # d'origine comprises) : l'index est reconstructible et
+                    # vérifiable depuis le journal seul.
+                    event_hash = _digest(event_body)
                     event_body["event_hash"] = event_hash
                     conn.execute(
                         "INSERT INTO events (sequence, event_id, decision_id, "
@@ -469,11 +455,15 @@ class DurableGovernedStore:
                         ),
                     )
 
+                # L'accusé de commande référence séquence + event_hash du
+                # journal vérifié : une altération de l'index est détectée
+                # par `_verify_locked`.
                 conn.execute(
                     "INSERT INTO command_results (command_id, decision_id, "
-                    "sequence, committed_at_utc, request_fingerprint) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (command_id, decision_id, sequence, occurred_at_utc, fingerprint),
+                    "sequence, event_hash, committed_at_utc, request_fingerprint) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (command_id, decision_id, sequence, event_hash,
+                     occurred_at_utc, fingerprint),
                 )
                 conn.execute("COMMIT")
                 return decision_id
@@ -487,16 +477,19 @@ class DurableGovernedStore:
                 conn.close()
 
     @staticmethod
-    def _verify_locked(conn: sqlite3.Connection) -> None:
-        """Vérifie la chaîne dans la transaction en cours (fail-closed)."""
+    def _verify_events(conn: sqlite3.Connection) -> dict[int, dict]:
+        """Vérifie la chaîne et la cohérence colonnes/charge ; renvoie les corps."""
         rows = conn.execute(
-            "SELECT sequence, event_hash, previous_event_hash, schema_version, "
-            "payload_json FROM events ORDER BY sequence ASC"
+            "SELECT sequence, event_id, decision_id, idempotency_key, event_hash, "
+            "previous_event_hash, schema_version, payload_json FROM events "
+            "ORDER BY sequence ASC"
         ).fetchall()
         previous = "GENESIS"
         seen_decisions: set[str] = set()
-        expected_seq = 1
-        for sequence, event_hash, previous_event_hash, schema_version, payload_json in rows:
+        bodies: dict[int, dict] = {}
+        for expected_seq, row in enumerate(rows, 1):
+            (sequence, event_id, decision_id, idem, event_hash,
+             previous_event_hash, schema_version, payload_json) = row
             if sequence != expected_seq:
                 raise CorruptedJournalError("trou ou réordonnancement de séquence")
             if schema_version not in KNOWN_SCHEMA_VERSIONS:
@@ -507,18 +500,46 @@ class DurableGovernedStore:
                 body = json.loads(payload_json)
             except json.JSONDecodeError as exc:
                 raise CorruptedJournalError("charge utile illisible") from exc
-            recomputed = _digest(
-                {k: v for k, v in body.items() if k not in ("event_hash", "fingerprint")}
-            )
+            if not isinstance(body, dict):
+                raise CorruptedJournalError("charge utile invalide")
+            recomputed = _digest({k: v for k, v in body.items() if k != "event_hash"})
             if (
                 previous_event_hash != previous or event_hash != recomputed
                 or body.get("event_hash") != event_hash
-                or body.get("decision_id") in seen_decisions
+                or body.get("previous_event_hash") != previous
+                or body.get("sequence") != sequence
+                or body.get("event_id") != event_id
+                or body.get("decision_id") != decision_id
+                or body.get("idempotency_key") != idem
+                or decision_id in seen_decisions
             ):
                 raise CorruptedJournalError("chaîne d'événements invalide")
-            seen_decisions.add(body["decision_id"])
+            seen_decisions.add(decision_id)
+            bodies[sequence] = body
             previous = event_hash
-            expected_seq += 1
+        return bodies
+
+    @staticmethod
+    def _verify_index(conn: sqlite3.Connection, bodies: Mapping[int, dict]) -> None:
+        """Chaque accusé de commande doit pointer vers un événement vérifié."""
+        rows = conn.execute(
+            "SELECT command_id, decision_id, sequence, event_hash, "
+            "request_fingerprint FROM command_results"
+        ).fetchall()
+        for command_id, decision_id, sequence, event_hash, fingerprint in rows:
+            body = bodies.get(sequence)
+            if (
+                body is None or body.get("event_hash") != event_hash
+                or body.get("decision_id") != decision_id
+                or body.get("fingerprint") != fingerprint
+            ):
+                raise CorruptedJournalError(
+                    f"index command_results altéré ou orphelin ({command_id!r})"
+                )
+
+    def _verify_locked(self, conn: sqlite3.Connection) -> None:
+        """Vérifie journal + index dans la transaction en cours (fail-closed)."""
+        self._verify_index(conn, self._verify_events(conn))
 
     def verify(self) -> None:
         """Vérification en lecture seule, hors transaction d'écriture."""
@@ -527,6 +548,40 @@ class DurableGovernedStore:
             self._verify_locked(conn)
         finally:
             conn.close()
+
+    def rebuild_command_index(self) -> int:
+        """Reconstruit `command_results` depuis le journal vérifié seul.
+
+        Une ligne par événement (commande d'origine, liée à séquence +
+        event_hash). Les commandes secondaires convergentes (même charge,
+        autre `command_id`) ne sont pas dans le journal : leur rejeu
+        reconverge par la clé d'idempotence sur la même `decision_id`.
+        Renvoie le nombre de lignes reconstruites.
+        """
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                bodies = self._verify_events(conn)  # index ignoré : il est reconstruit
+                conn.execute("DELETE FROM command_results")
+                for sequence, body in bodies.items():
+                    conn.execute(
+                        "INSERT INTO command_results (command_id, decision_id, "
+                        "sequence, event_hash, committed_at_utc, request_fingerprint) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (body["command_id"], body["decision_id"], sequence,
+                         body["event_hash"], body["occurred_at_utc"], body["fingerprint"]),
+                    )
+                conn.execute("COMMIT")
+                return len(bodies)
+            except BaseException:
+                try:
+                    conn.execute("ROLLBACK")
+                except sqlite3.OperationalError:
+                    pass
+                raise
+            finally:
+                conn.close()
 
     def events(self) -> tuple[dict, ...]:
         conn = self._connect()
@@ -539,77 +594,34 @@ class DurableGovernedStore:
         return tuple(json.loads(r[0]) for r in rows)
 
     def _read_events_verified(self) -> tuple[dict, ...]:
-        """Lit les événements et vérifie la chaîne sous le même instantané.
+        """Lit les événements et vérifie journal + index sous le même instantané.
 
-        Corrige la faille #3 signalée en revue indépendante (PR #316, review_id
-        5333698547) : `events()` et `verify()` ouvraient chacun leur propre
-        connexion/transaction, ce qui laissait une fenêtre où une admission
-        concurrente pouvait s'intercaler entre la lecture des événements et
-        leur vérification. Ici, une unique transaction de lecture SQLite
-        (`BEGIN` en mode WAL) fixe l'instantané avant la première lecture ;
-        les deux opérations voient donc strictement le même état, quoi qu'il
-        se passe sur une autre connexion pendant ce temps.
+        Revue indépendante PR #316 (review_id 5333698547), faille #3 : une
+        unique transaction de lecture (`BEGIN` en mode WAL) fixe l'instantané
+        avant la première lecture ; lecture et vérification voient le même
+        état.
 
-        Retenue bornée sur `sqlite3.DatabaseError` (`_OPEN_RETRY_ATTEMPTS`) :
-        résilience défensive raisonnable face à une contention SQLite
-        transitoire réelle (verrou, ouverture de fichier) sous forte charge.
-
-        MISE EN GARDE (PR #316, historique de diagnostic) : les deux premiers
-        correctifs sur cette méthode (retenue sur `sqlite3.OperationalError`
-        puis élargie à `sqlite3.DatabaseError`) partaient de l'hypothèse que
-        le flaking CI de
-        `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique`
-        venait d'une exception SQLite transitoire non retenue avant
-        `_verify_locked`. Cette hypothèse n'a JAMAIS été confirmée par une
-        trace CI directe (seulement plausible par injection forcée locale) et
-        s'est avérée FAUSSE : une instrumentation CI directe (runs
-        36377422947, 36379284990, 36379739236) a prouvé que `_connect()` et
-        le `SELECT` réussissaient toujours sans aucune exception, que
-        `_verify_locked` était bien atteint et appelé, et que le callable
-        réellement invoqué était l'implémentation ORIGINALE de la classe —
-        jamais le remplacement posé par
-        `monkeypatch.setattr(DurableGovernedStore, "_verify_locked", ...)`
-        du test. La cause réelle n'était donc pas dans cette méthode : le
-        monkeypatch au niveau CLASSE ne prenait pas effet de façon fiable
-        dans l'environnement CI (suite complète, 6549+ tests dans le même
-        processus), jamais reproduit en isolation locale. Le correctif est
-        côté test (monkeypatch au niveau INSTANCE, voir
-        `tests/test_web_dir_d5b_r2_durable_store.py`), pas ici. La retenue
-        `sqlite3.DatabaseError` ci-dessous reste néanmoins une défense
-        raisonnable contre une vraie contention transitoire, sans rapport
-        avec ce flaking précis. `CorruptedJournalError`/`IntegrityError`
-        (vraie corruption détectée par `_verify_locked`) restent une
-        hiérarchie d'exceptions entièrement distincte (`ValueError`, définie
-        dans `producer.py`), jamais une sous-classe de
-        `sqlite3.DatabaseError` — elles continuent de remonter immédiatement,
-        sans aucun affaiblissement du fail-closed, retenue ou pas.
+        Aucune retenue ici (commentaire propriétaire 5864337478, point 4) :
+        la retenue générique sur `sqlite3.DatabaseError` ajoutée pendant le
+        diagnostic CI a été RETIRÉE, ce diagnostic ayant été réfuté par
+        instrumentation CI directe (runs 36377422947, 36379284990,
+        36379739236 : aucune exception SQLite ; cause réelle = monkeypatch
+        au niveau classe dans le test, corrigé côté test). Toute erreur
+        SQLite remonte et `project()` échoue fermé (`UNKNOWN`).
         """
-        last_exc: sqlite3.DatabaseError | None = None
-        for attempt in range(_OPEN_RETRY_ATTEMPTS):
-            if attempt:
-                time.sleep(_OPEN_RETRY_DELAY_SECONDS)
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN")
             try:
-                conn = self._connect()
-            except sqlite3.DatabaseError as exc:
-                last_exc = exc
-                continue
-            try:
-                conn.execute("BEGIN")
-                try:
-                    rows = conn.execute(
-                        "SELECT payload_json FROM events ORDER BY sequence ASC"
-                    ).fetchall()
-                    self._verify_locked(conn)
-                finally:
-                    conn.execute("COMMIT")
-                return tuple(json.loads(r[0]) for r in rows)
-            except sqlite3.DatabaseError as exc:
-                last_exc = exc
-                continue
+                rows = conn.execute(
+                    "SELECT payload_json FROM events ORDER BY sequence ASC"
+                ).fetchall()
+                self._verify_locked(conn)
             finally:
-                conn.close()
-        assert last_exc is not None  # noqa: S101 (garantie interne, pas un test)
-        raise last_exc
+                conn.execute("COMMIT")
+            return tuple(json.loads(r[0]) for r in rows)
+        finally:
+            conn.close()
 
     def _unknown(self, reason: str) -> dict:
         return {
