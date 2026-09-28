@@ -35,6 +35,13 @@ def proof(count: int) -> AvailabilityProof:
     return AvailabilityProof(True, "deploy-audit:sha256:abc", count, NOW)
 
 
+def admit(p: GovernedProducer, c: Candidate) -> str:
+    return p.admit(
+        c, occurred_at_utc=NOW, approved_status="TO_PLAN",
+        approved_priority="HIGH", admission_approval_ref="gate:review-1",
+    )
+
+
 def test_absence_de_producteur_ne_devient_jamais_zero():
     p = producer()
     assert p.project()["availability"] == "NON DÉPLOYÉ"
@@ -44,22 +51,23 @@ def test_absence_de_producteur_ne_devient_jamais_zero():
 
 def test_admission_est_idempotente_et_projection_reproductible():
     p = producer()
-    first = p.admit(candidate(), occurred_at_utc=NOW)
-    second = p.admit(candidate(), occurred_at_utc=NOW)
+    first = admit(p, candidate())
+    second = admit(p, candidate())
     assert first == second
     assert len(p.events()) == 1
     view = p.project(proof(1))
     assert view["decision_count"] == 1
     assert view["counts_by_status"]["TO_PLAN"] == 1
+    assert view["items"][0]["priority"] == "HIGH"
     assert view["items"][0]["decision_id"] == first
     assert view == p.project(proof(1))
 
 
 def test_collision_meme_source_version_et_finalite_est_rejetee():
     p = producer()
-    p.admit(candidate(), occurred_at_utc=NOW)
+    admit(p, candidate())
     with pytest.raises(ContractError, match="collision"):
-        p.admit(replace(candidate(), title="Autre décision"), occurred_at_utc=NOW)
+        admit(p, replace(candidate(), title="Autre décision"))
     assert len(p.events()) == 1
 
 
@@ -75,13 +83,13 @@ def test_collision_meme_source_version_et_finalite_est_rejetee():
 def test_source_non_gouvernee_ou_preuve_insuffisante_rejetee(change):
     p = producer()
     with pytest.raises(ContractError):
-        p.admit(replace(candidate(), **change), occurred_at_utc=NOW)
+        admit(p, replace(candidate(), **change))
     assert p.events() == ()
 
 
 def test_chaine_inalterable_depuis_copie_et_corruption_fail_closed():
     p = producer()
-    p.admit(candidate(), occurred_at_utc=NOW)
+    admit(p, candidate())
     external = p.events()[0]
     external["candidate"]["title"] = "modifié"
     assert p.project(proof(1))["availability"] == "AVAILABLE"
@@ -90,14 +98,22 @@ def test_chaine_inalterable_depuis_copie_et_corruption_fail_closed():
     assert view["availability"] == "UNKNOWN"
     assert view["decision_count"] is None
     with pytest.raises(ContractError):
-        p.admit(replace(candidate(), source_id="problem-2"), occurred_at_utc=NOW)
+        admit(p, replace(candidate(), source_id="problem-2"))
 
 
 def test_watermark_incomplet_ne_produit_pas_un_nombre():
     p = producer()
-    p.admit(candidate(), occurred_at_utc=NOW)
+    admit(p, candidate())
     assert p.project(proof(0))["availability"] == "UNKNOWN"
     assert p.project(proof(0))["decision_count"] is None
+
+
+def test_admission_sans_approbation_distincte_est_refusee():
+    p = producer()
+    with pytest.raises(ContractError):
+        p.admit(candidate(), occurred_at_utc=NOW, approved_status="TO_PLAN",
+                approved_priority="HIGH", admission_approval_ref="")
+    assert p.events() == ()
 
 
 def test_aucune_action_humaine_ni_effet_runtime_expose():
