@@ -357,7 +357,17 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
     monkeypatch.setattr(DurableGovernedStore, "_verify_locked", staticmethod(corrupting_verify))
 
     view = s.project(proof(1))
-    assert injected["done"]
+    if not injected["done"]:
+        # DIAGNOSTIC TEMPORAIRE (PR #316) : expose le VRAI type/message de la
+        # dernière exception sqlite retenue dans `_read_events_verified`,
+        # pour remplacer la conjecture par la preuve directe côté CI. À
+        # retirer une fois la cause confirmée.
+        exc = s.last_read_retry_exception
+        detail = f"{type(exc).__name__}: {exc!r}" if exc is not None else "aucune exception capturée"
+        raise AssertionError(
+            f"injected['done'] resté False : _verify_locked jamais atteint. "
+            f"Dernière exception retenue par le store : {detail}"
+        )
     assert view["availability"] == "AVAILABLE"
     assert view["decision_count"] == 1
 

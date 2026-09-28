@@ -126,6 +126,11 @@ class DurableGovernedStore:
         self._validator = GovernedProducer(dict(owners))
         self._db_path = str(db_path)
         self._lock = threading.Lock()
+        # DIAGNOSTIC TEMPORAIRE (PR #316) : capture la dernière exception
+        # sqlite retenue dans `_read_events_verified`, pour permettre au test
+        # d'afficher le VRAI type/message sous CI au lieu de deviner. À
+        # retirer une fois la cause CI confirmée par instrumentation directe.
+        self.last_read_retry_exception: BaseException | None = None
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -425,6 +430,7 @@ class DurableGovernedStore:
                 conn = self._connect()
             except sqlite3.DatabaseError as exc:
                 last_exc = exc
+                self.last_read_retry_exception = exc  # DIAGNOSTIC TEMPORAIRE
                 continue
             try:
                 conn.execute("BEGIN")
@@ -438,6 +444,8 @@ class DurableGovernedStore:
                 return tuple(json.loads(r[0]) for r in rows)
             except sqlite3.DatabaseError as exc:
                 last_exc = exc
+                # DIAGNOSTIC TEMPORAIRE (PR #316) : voir docstring ci-dessus.
+                self.last_read_retry_exception = exc
                 continue
             finally:
                 conn.close()
