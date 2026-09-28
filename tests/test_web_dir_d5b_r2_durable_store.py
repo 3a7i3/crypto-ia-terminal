@@ -315,34 +315,49 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
     vérifiées restent cohérentes entre elles.
 
     Déterminisme de l'injection (pas un thread, pas de `sleep`/`Event.wait`) :
-    `corrupting_verify` remplace directement `_verify_locked` par
-    `monkeypatch.setattr`, donc l'appel `self._verify_locked(conn)` dans
-    `_read_events_verified` exécute la corruption de façon synchrone, dans le
-    même thread, au point exact voulu — il n'y a aucune fenêtre de timing à
-    gagner. Le flaking constaté en CI (TEST REGRESSION GATE, PR #316, run
-    36374909495, check_run_id 108778642724 et 108778632585, reproduit deux
-    fois sur le même HEAD b63bca8, en cascade avec les checks "test"
-    (108778642556) et "coveralls-upload" (108778642041)) ne venait donc pas
-    d'une course perdue par ce test, mais d'un `sqlite3.OperationalError`
-    transitoire pouvant survenir avant même d'atteindre `_verify_locked`
-    (ouverture de connexion sous forte contention I/O quand les 6549+ tests
-    tournent dans le même processus) : `project()` l'absorbait dans son
-    `except sqlite3.DatabaseError` fail-closed et renvoyait silencieusement
-    `UNKNOWN`, sans jamais appeler la version patchée — d'où
-    `injected["done"]` resté `False`. La correction structurelle est dans
-    `DurableGovernedStore._read_events_verified` (retenue bornée sur
-    `sqlite3.OperationalError`, jamais sur `CorruptedJournalError`) ; la
-    connexion corruptrice ci-dessous reçoit en plus son propre
-    `busy_timeout` généreux pour ne pas être elle-même la source d'un
-    `OperationalError` transitoire sous charge CI.
-    """
-    from observability.operator_decisions.durable_store import DurableGovernedStore
+    `corrupting_verify` remplace `_verify_locked` UNIQUEMENT sur l'instance
+    `s` (`monkeypatch.setattr(s, "_verify_locked", ...)`, PAS sur la classe),
+    donc l'appel `self._verify_locked(conn)` dans `_read_events_verified`
+    exécute la corruption de façon synchrone, dans le même thread, au point
+    exact voulu — il n'y a aucune fenêtre de timing à gagner.
 
+    Historique du diagnostic (PR #316) — cause réelle confirmée par
+    instrumentation CI directe, pas par hypothèse : ce test a été rouge 3
+    fois de suite en CI (runs 36377422947, 36379284990, 36379739236) alors
+    qu'il passait systématiquement en isolation locale (60+ exécutions). Les
+    deux premiers correctifs tentés (retenue sur `sqlite3.OperationalError`
+    puis élargie à `sqlite3.DatabaseError` dans
+    `DurableGovernedStore._read_events_verified`) reposaient sur l'hypothèse
+    qu'une exception SQLite transitoire non retenue empêchait d'atteindre
+    `_verify_locked`. Une instrumentation CI directe (capture, dans le
+    store, du nombre de tentatives, de l'étape atteinte, du type/message de
+    toute exception, ET de l'identité qualifiée exacte du callable résolu
+    par `self._verify_locked` juste avant son appel) a prouvé que cette
+    hypothèse était FAUSSE : sur les 3 runs, `_connect()` et le `SELECT`
+    réussissaient sans aucune exception, `_verify_locked` était bien
+    atteint et appelé, ET le callable réellement invoqué était
+    `DurableGovernedStore._verify_locked` — l'implémentation ORIGINALE de
+    la CLASSE, jamais `corrupting_verify`. Le monkeypatch au niveau CLASSE
+    (`monkeypatch.setattr(DurableGovernedStore, "_verify_locked",
+    staticmethod(corrupting_verify))`) ne prenait donc simplement pas effet
+    de façon fiable dans l'environnement CI (suite complète, 6549+ tests
+    dans le même processus) — jamais reproduit en isolation locale, cause
+    exacte non élucidée au niveau CPython/pytest, mais le SYMPTÔME
+    (dispatch classe non fiable à cette échelle) est, lui, directement
+    prouvé par cette instrumentation. Correctif : monkeypatcher l'attribut
+    sur l'INSTANCE `s` plutôt que sur la classe — un attribut d'instance est
+    trouvé par une simple recherche dans `s.__dict__`, prioritaire sur
+    l'attribut de classe et non soumis aux mêmes caches d'attribut de type
+    que `setattr()` sur une classe. Aucune modification de
+    `DurableGovernedStore` n'était donc nécessaire pour CE flaking précis
+    (la retenue SQLite ajoutée reste une résilience défensive raisonnable,
+    sans rapport avec ce symptôme).
+    """
     db = tmp_path / "store.db"
     s = store(db)
     admit(s, candidate(), command_id="cmd-1")
 
-    original_verify_locked = DurableGovernedStore._verify_locked
+    original_verify_locked = type(s)._verify_locked
     injected = {"done": False}
 
     def corrupting_verify(conn):
@@ -354,25 +369,15 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
             raw.close()
         return original_verify_locked(conn)
 
-    monkeypatch.setattr(DurableGovernedStore, "_verify_locked", staticmethod(corrupting_verify))
+    # Monkeypatch au niveau INSTANCE (pas la classe) : voir docstring.
+    monkeypatch.setattr(s, "_verify_locked", corrupting_verify, raising=False)
 
     view = s.project(proof(1))
-    if not injected["done"]:
-        # DIAGNOSTIC TEMPORAIRE (PR #316) : expose l'état exact de la
-        # dernière exécution de `_read_events_verified` (nombre de
-        # tentatives, étape atteinte, type/message d'exception, résultat
-        # renvoyé par `project()`), pour remplacer la conjecture par la
-        # preuve directe côté CI. À retirer une fois la cause confirmée.
-        raise AssertionError(
-            "injected['done'] resté False : _verify_locked jamais atteint. "
-            f"tentatives_utilisées={s.last_read_attempts_used} "
-            f"select_atteint_avant_verify={s.last_read_reached_verify} "
-            f"exception_type={s.last_read_exception_type!r} "
-            f"exception_repr={s.last_read_exception_repr!r} "
-            f"verify_impl_invoque={s.last_read_verify_impl!r} "
-            f"project()_availability={view.get('availability')!r} "
-            f"project()_limitations={view.get('limitations')!r}"
-        )
+    assert injected["done"], (
+        "_verify_locked jamais atteint avec la corruption injectée — "
+        f"project() a renvoyé availability={view.get('availability')!r}, "
+        f"limitations={view.get('limitations')!r}"
+    )
     assert view["availability"] == "AVAILABLE"
     assert view["decision_count"] == 1
 

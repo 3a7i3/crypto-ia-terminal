@@ -126,22 +126,6 @@ class DurableGovernedStore:
         self._validator = GovernedProducer(dict(owners))
         self._db_path = str(db_path)
         self._lock = threading.Lock()
-        # DIAGNOSTIC TEMPORAIRE (PR #316) : capture l'état exact de la
-        # dernière exécution de `_read_events_verified`, pour permettre au
-        # test d'afficher le VRAI déroulement sous CI au lieu de deviner. À
-        # retirer une fois la cause CI confirmée par instrumentation directe.
-        self.last_read_retry_exception: BaseException | None = None
-        self.last_read_exception_type: str | None = None
-        self.last_read_exception_repr: str | None = None
-        self.last_read_attempts_used: int = 0
-        self.last_read_reached_verify: bool = False
-        # DIAGNOSTIC TEMPORAIRE (PR #316) : identité exacte (qualname +
-        # module) du callable réellement invoqué comme `_verify_locked`,
-        # capturée juste avant l'appel — pour trancher, depuis l'intérieur
-        # même du store, entre "le monkeypatch de test n'a jamais pris effet
-        # sur cet attribut" et toute autre explication (fuite d'exception,
-        # etc.), sans dépendre de ce que le test observe de l'extérieur.
-        self.last_read_verify_impl: str | None = None
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -419,96 +403,61 @@ class DurableGovernedStore:
         se passe sur une autre connexion pendant ce temps.
 
         Retenue bornée sur `sqlite3.DatabaseError` (`_OPEN_RETRY_ATTEMPTS`) :
-        observé en CI (TEST REGRESSION GATE, PR #316, run 36374909495,
-        check_run_id 108778642724 et 108778632585) — sous forte contention
-        d'ouverture de connexion (suite complète, 6549+ tests dans le même
-        processus), `self._connect()` peut échouer rapidement (verrou SQLite
-        transitoire, pression sur les descripteurs de fichiers, ou glitch I/O
-        transitoire du système de fichiers du runner) avant même d'atteindre
-        `_verify_locked`. Sans retenue, cette erreur transitoire était
-        absorbée par le `except sqlite3.DatabaseError` fail-closed de
-        `project()` et renvoyée comme `UNKNOWN`/`integrity_failure` — un faux
-        négatif indiscernable d'une vraie corruption, et la cause du test
-        `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique`
-        constaté comme flaky (jamais atteint en isolation, seulement sous la
-        suite complète).
+        résilience défensive raisonnable face à une contention SQLite
+        transitoire réelle (verrou, ouverture de fichier) sous forte charge.
 
-        Correctif précédent (retenue sur `sqlite3.OperationalError` seul,
-        HEAD 85e9c23) INSUFFISANT — cause réelle prouvée par reproduction
-        ciblée (pas une hypothèse) : `sqlite3.OperationalError` n'est qu'UNE
-        sous-classe de `sqlite3.DatabaseError` (verrou, timeout, "unable to
-        open database file"). Une erreur SQLite transitoire d'un AUTRE type
-        de cette même hiérarchie (ex. `sqlite3.DatabaseError` nu, levé par
-        exemple sur un glitch I/O du système de fichiers du runner CI) n'est
-        PAS un `sqlite3.OperationalError` : elle traverse ce `except` sans
-        être retenue, remonte immédiatement hors de la boucle (zéro retry
-        tenté, quel que soit `_OPEN_RETRY_ATTEMPTS`), et est absorbée
-        silencieusement par le `except (..., sqlite3.DatabaseError, ...)`
-        fail-closed de `project()` — exactement le symptôme observé
-        (`injected["done"]` resté `False`, échec identique sur les 3 runs
-        CI malgré le correctif précédent, puisque ce correctif ne change
-        rien à une erreur qui ne passe jamais par le `except
-        sqlite3.OperationalError`). Reproduction : forcer `self._connect()`
-        à lever un `sqlite3.DatabaseError` nu (et non une de ses sous-classes)
-        au premier appel démontre, avec le code d'avant ce correctif, que
-        `project()` renvoie `UNKNOWN` après un seul appel à `_connect()`
-        (aucune retenue déclenchée) — reproduisant fidèlement le symptôme
-        CI sans deviner. La retenue ne s'applique qu'aux erreurs SQLite
-        transitoires : `CorruptedJournalError`/`IntegrityError` (vraie
-        corruption détectée par `_verify_locked`) sont une hiérarchie
-        d'exceptions entièrement distincte (`ValueError`, définie dans
-        `producer.py`), jamais une sous-classe de `sqlite3.DatabaseError` —
-        elles continuent de remonter immédiatement, sans aucun
-        affaiblissement du fail-closed, retenue ou pas.
+        MISE EN GARDE (PR #316, historique de diagnostic) : les deux premiers
+        correctifs sur cette méthode (retenue sur `sqlite3.OperationalError`
+        puis élargie à `sqlite3.DatabaseError`) partaient de l'hypothèse que
+        le flaking CI de
+        `test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique`
+        venait d'une exception SQLite transitoire non retenue avant
+        `_verify_locked`. Cette hypothèse n'a JAMAIS été confirmée par une
+        trace CI directe (seulement plausible par injection forcée locale) et
+        s'est avérée FAUSSE : une instrumentation CI directe (runs
+        36377422947, 36379284990, 36379739236) a prouvé que `_connect()` et
+        le `SELECT` réussissaient toujours sans aucune exception, que
+        `_verify_locked` était bien atteint et appelé, et que le callable
+        réellement invoqué était l'implémentation ORIGINALE de la classe —
+        jamais le remplacement posé par
+        `monkeypatch.setattr(DurableGovernedStore, "_verify_locked", ...)`
+        du test. La cause réelle n'était donc pas dans cette méthode : le
+        monkeypatch au niveau CLASSE ne prenait pas effet de façon fiable
+        dans l'environnement CI (suite complète, 6549+ tests dans le même
+        processus), jamais reproduit en isolation locale. Le correctif est
+        côté test (monkeypatch au niveau INSTANCE, voir
+        `tests/test_web_dir_d5b_r2_durable_store.py`), pas ici. La retenue
+        `sqlite3.DatabaseError` ci-dessous reste néanmoins une défense
+        raisonnable contre une vraie contention transitoire, sans rapport
+        avec ce flaking précis. `CorruptedJournalError`/`IntegrityError`
+        (vraie corruption détectée par `_verify_locked`) restent une
+        hiérarchie d'exceptions entièrement distincte (`ValueError`, définie
+        dans `producer.py`), jamais une sous-classe de
+        `sqlite3.DatabaseError` — elles continuent de remonter immédiatement,
+        sans aucun affaiblissement du fail-closed, retenue ou pas.
         """
         last_exc: sqlite3.DatabaseError | None = None
         for attempt in range(_OPEN_RETRY_ATTEMPTS):
-            # DIAGNOSTIC TEMPORAIRE (PR #316) : trace l'étape exacte atteinte
-            # à chaque tentative, pour distinguer sans ambiguïté "aucune
-            # exception, `_verify_locked` jamais appelé" (bug de dispatch ou
-            # de logique) de "une exception hors `sqlite3.DatabaseError` a
-            # été levée avant `_verify_locked`" (retenue trop étroite).
-            self.last_read_attempts_used = attempt + 1
             if attempt:
                 time.sleep(_OPEN_RETRY_DELAY_SECONDS)
             try:
                 conn = self._connect()
             except sqlite3.DatabaseError as exc:
                 last_exc = exc
-                self.last_read_retry_exception = exc
-                self.last_read_exception_type = type(exc).__name__
-                self.last_read_exception_repr = repr(exc)
                 continue
-            except Exception as exc:  # DIAGNOSTIC TEMPORAIRE : ne masque rien, re-lève tel quel
-                self.last_read_exception_type = type(exc).__name__
-                self.last_read_exception_repr = repr(exc)
-                raise
             try:
                 conn.execute("BEGIN")
                 try:
                     rows = conn.execute(
                         "SELECT payload_json FROM events ORDER BY sequence ASC"
                     ).fetchall()
-                    self.last_read_reached_verify = True  # DIAGNOSTIC TEMPORAIRE
-                    verify_fn = self._verify_locked  # DIAGNOSTIC TEMPORAIRE : capture avant appel
-                    self.last_read_verify_impl = (
-                        f"{getattr(verify_fn, '__module__', '?')}."
-                        f"{getattr(verify_fn, '__qualname__', repr(verify_fn))}"
-                    )
-                    verify_fn(conn)
+                    self._verify_locked(conn)
                 finally:
                     conn.execute("COMMIT")
                 return tuple(json.loads(r[0]) for r in rows)
             except sqlite3.DatabaseError as exc:
                 last_exc = exc
-                self.last_read_retry_exception = exc
-                self.last_read_exception_type = type(exc).__name__
-                self.last_read_exception_repr = repr(exc)
                 continue
-            except Exception as exc:  # DIAGNOSTIC TEMPORAIRE : ne masque rien, re-lève tel quel
-                self.last_read_exception_type = type(exc).__name__
-                self.last_read_exception_repr = repr(exc)
-                raise
             finally:
                 conn.close()
         assert last_exc is not None  # noqa: S101 (garantie interne, pas un test)
