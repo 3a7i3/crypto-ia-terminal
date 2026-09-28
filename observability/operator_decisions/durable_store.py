@@ -135,6 +135,13 @@ class DurableGovernedStore:
         self.last_read_exception_repr: str | None = None
         self.last_read_attempts_used: int = 0
         self.last_read_reached_verify: bool = False
+        # DIAGNOSTIC TEMPORAIRE (PR #316) : identité exacte (qualname +
+        # module) du callable réellement invoqué comme `_verify_locked`,
+        # capturée juste avant l'appel — pour trancher, depuis l'intérieur
+        # même du store, entre "le monkeypatch de test n'a jamais pris effet
+        # sur cet attribut" et toute autre explication (fuite d'exception,
+        # etc.), sans dépendre de ce que le test observe de l'extérieur.
+        self.last_read_verify_impl: str | None = None
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -483,7 +490,12 @@ class DurableGovernedStore:
                         "SELECT payload_json FROM events ORDER BY sequence ASC"
                     ).fetchall()
                     self.last_read_reached_verify = True  # DIAGNOSTIC TEMPORAIRE
-                    self._verify_locked(conn)
+                    verify_fn = self._verify_locked  # DIAGNOSTIC TEMPORAIRE : capture avant appel
+                    self.last_read_verify_impl = (
+                        f"{getattr(verify_fn, '__module__', '?')}."
+                        f"{getattr(verify_fn, '__qualname__', repr(verify_fn))}"
+                    )
+                    verify_fn(conn)
                 finally:
                     conn.execute("COMMIT")
                 return tuple(json.loads(r[0]) for r in rows)

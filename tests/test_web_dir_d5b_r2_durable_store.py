@@ -369,6 +369,7 @@ def test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique(tmp_pat
             f"select_atteint_avant_verify={s.last_read_reached_verify} "
             f"exception_type={s.last_read_exception_type!r} "
             f"exception_repr={s.last_read_exception_repr!r} "
+            f"verify_impl_invoque={s.last_read_verify_impl!r} "
             f"project()_availability={view.get('availability')!r} "
             f"project()_limitations={view.get('limitations')!r}"
         )
