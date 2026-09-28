@@ -15,7 +15,7 @@ modifiés ni réécrits**, y compris pendant une migration.
 ### 1.1 Ajout rétrocompatible (colonne optionnelle, nouveau champ de payload)
 
 1. Ajouter la nouvelle version à `KNOWN_SCHEMA_VERSIONS` dans
-   `durable_store.py` (ex: `{"1.0.0", "1.1.0"}`).
+   `durable_store.py` (ex: `{"3.0.0", "3.1.0"}`).
 2. Les nouveaux événements sont écrits avec `schema_version="1.1.0"`.
 3. `_verify_locked` et `project()` doivent savoir lire **les deux** versions
    pendant toute la période de transition (jamais une bascule brutale qui
@@ -45,7 +45,18 @@ Un changement non rétrocompatible **n'est jamais appliqué en place**. Procédu
    humaine explicite — cette étape reste un gate distinct, hors périmètre du
    prototype R2.
 
-### 1.3 Ce qui n'est PAS une migration valide
+### 1.3 État courant : schéma 3.0.0
+
+`SCHEMA_VERSION = "3.0.0"`. Le corps d'événement embarque désormais le
+transfert propriétaire signé, sa classification des références de preuves et
+l'approbation signée. Un journal d'une version antérieure est refusé
+(`CorruptedJournalError`, échec fermé). Aucun journal hors tests n'existe à ce
+jour, donc aucune migration de données n'est à exécuter. Si un journal
+antérieur existait un jour, ses événements ne pourraient PAS être rejoués en
+3.0.0 sans un transfert signé du propriétaire pour chacun : on ne fabrique
+jamais une signature rétroactive.
+
+### 1.4 Ce qui n'est PAS une migration valide
 
 - `UPDATE events SET ...` sur la base en production : interdit, casse la
   garantie append-only et la chaîne de hash.
@@ -74,7 +85,20 @@ source.close()
 une copie cohérente d'une base active — elle ne nécessite pas de figer les
 écritures côté appelant.
 
-### 2.2 Fréquence et rétention (à valider par l'opérateur)
+### 2.2 Ancre anti-retour et sensibilité des sauvegardes
+
+- **L'ancre anti-retour est un fichier distinct** (`anchor_path`). Elle est la
+  mémoire du vérificateur : **ne jamais la restaurer à un état plus ancien en
+  même temps que le journal**, sinon la protection contre le retour arrière
+  disparaît. Sauvegarder l'ancre séparément, dans un emplacement que
+  l'attaquant qui peut restaurer le journal ne contrôle pas (décision
+  ADR-0020 §3.6, non prise).
+- **Le journal contient les références de preuves brutes**, y compris les
+  références classées sensibles (la projection les masque, pas le fichier).
+  Une sauvegarde est donc aussi sensible que le journal : permissions
+  restreintes, jamais partagée, jamais copiée hors du périmètre autorisé.
+
+### 2.3 Fréquence et rétention (à valider par l'opérateur)
 
 Ce prototype ne définit pas de politique de rétention automatique — aucune
 tâche planifiée, aucun cron, aucun script de déploiement n'est ajouté ici
@@ -89,8 +113,9 @@ restent une décision opérationnelle explicite pour une mission ultérieure.
    runtime aujourd'hui, mais impératif pour une future intégration).
 2. Copier le fichier de sauvegarde vers l'emplacement de destination. Le
    `journal_id` (table `schema_meta`) est conservé : c'est le même journal.
-3. Instancier `DurableGovernedStore(path, owners, trust_policy=..., clock=...)`
-   sur le fichier restauré et appeler `verify()` : journal (chaîne de hash,
+3. Instancier `DurableGovernedStore(path, owners, trust_policy=..., clock=...,
+   anchor_path=...)` sur le fichier restauré, avec l'ancre COURANTE (jamais une
+   ancre restaurée) et appeler `verify()` : journal (chaîne de hash,
    cohérence colonnes/charge) ET index `command_results` (chaque ligne liée à
    séquence + `event_hash`) sont vérifiés. Toute `CorruptedJournalError`
    signale une sauvegarde invalide — ne jamais mettre en service une base
@@ -105,7 +130,8 @@ restent une décision opérationnelle explicite pour une mission ultérieure.
 6. `project(attestation)` n'est `AVAILABLE` qu'avec une attestation signée
    par l'`AVAILABILITY_AUTHORITY` couvrant l'état restauré. **Anti-retour :**
    si le vérificateur a déjà accepté un checkpoint plus récent (ancre
-   `accepted_checkpoint`), une restauration à un état antérieur est refusée
+   `accepted_checkpoint`, fichier distinct), une restauration à un état
+   antérieur est refusée
    (`UNKNOWN`, « retour arrière détecté ») — c'est voulu. Une restauration
    légitime à un état antérieur exige une décision humaine explicite et une
    nouvelle attestation de l'autorité ; aucune procédure automatique ne
@@ -115,7 +141,9 @@ Procédure exercée par le test exécutable
 `tests/test_web_dir_d5b_r2_durable_store.py::test_sauvegarde_restauration_puis_rejeu_idempotent`
 (`Connection.backup()`, `verify()`, rejeu idempotent, projection attestée) ;
 reconstruction : `test_reconstruction_de_l_index_depuis_le_journal` ;
-restauration frauduleuse : `test_restauration_complete_du_fichier_detectee_avec_ancre_externe`.
+restauration frauduleuse : `test_restauration_complete_du_fichier_detectee_avec_ancre_externe` ;
+limite d'une ancre colocalisée :
+`test_ancre_colocalisee_explicite_laisse_passer_une_restauration_complete`.
 
 ---
 
@@ -135,7 +163,7 @@ restauration frauduleuse : `test_restauration_complete_du_fichier_detectee_avec_
 
 ---
 
-## 5. Limite non résolue
+## 5. Limites non résolues
 
 Ni la migration ni la sauvegarde décrites ici ne prouvent l'authenticité
 d'origine : la politique de confiance est une FIXTURE non opérationnelle et
@@ -143,4 +171,6 @@ aucune autorité réelle n'est désignée (ADR-0020 §3, blocage de
 certification). Une restauration réussie prouve la cohérence interne du
 fichier restauré ; seule une attestation fraîche d'une autorité réelle, et une
 ancre anti-retour hors de portée d'un attaquant disposant du disque,
-fermeraient ce gate.
+fermeraient ce gate. L'emplacement de l'ancre, la désignation des
+propriétaires de sources et de l'autorité d'accès aux références sensibles
+restent des décisions humaines (ADR-0020 §3.4 à §3.6).

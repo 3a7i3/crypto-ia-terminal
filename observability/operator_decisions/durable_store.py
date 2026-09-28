@@ -7,9 +7,13 @@ reconstruite uniquement à partir de ce journal.
 
 Contrat de confiance : ADR-0020 (`docs/adr/0020-contrat-de-confiance-...md`).
 
-- Admission : exige une approbation signée (Ed25519) par un
-  `ADMISSION_APPROVER` de la politique passée au CONSTRUCTEUR, liée au
-  candidat exact ; statut et priorité sont lus depuis l'approbation vérifiée.
+- Admission : exige un transfert signé (Ed25519) par un `SOURCE_OWNER` et une
+  approbation signée par un `ADMISSION_APPROVER` distinct, de la politique
+  passée au CONSTRUCTEUR, autorisés pour le triplet exact (registre, type de
+  source, finalité), liés au candidat exact ; statut et priorité sont lus
+  depuis l'approbation vérifiée. Le propriétaire classe chaque référence de
+  preuve (PUBLIC/SENSITIVE) ; la projection masque tout ce qui n'est pas
+  explicitement PUBLIC.
 - Projection : `AVAILABLE` (y compris le zéro explicite) exige une
   attestation signée par un `AVAILABILITY_AUTHORITY`, fraîche (horloge
   injectée), liée au `journal_id`, complète (compte + hash de tête) et

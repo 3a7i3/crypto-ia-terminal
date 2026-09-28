@@ -4,7 +4,9 @@
 **Statut :** Proposé — **BLOQUÉ pour certification** (aucune autorité de confiance réelle désignée)
 **Portée :** `observability/operator_decisions/` uniquement (prototype isolé, issue #315, PR #316)
 **Complète :** ADR-0019 (stockage durable), qui laissait l'authenticité en gate ouvert.
-**Origine :** commentaire du propriétaire PR #316 (comment_id 5864337478), étape 1.
+**Origine :** commentaire du propriétaire PR #316 (comment_id 5864337478), étape 1 ;
+révisé après l'analyse d'écart de la mission « fermer les critères
+d'authenticité et d'autorité » (§12).
 
 > Note de numérotation : le fichier `0020-deterministic-durable-idempotent-order-submission.md`
 > existe déjà (même situation que les deux ADR-0019). Le nom de ce fichier a
@@ -29,7 +31,9 @@ règles ; le code (`trust.py`, `durable_store.py`) ne fait que les appliquer.
 | M3 | Demandeur qui rejoue une approbation ou une attestation ancienne | Possède des objets signés authentiques mais périmés | Fenêtre de validité (`issued_at`/`expires_at`), horloge injectée, checkpoint monotone persisté par le vérificateur | Voir §8 (retour arrière du fichier entier) |
 | M4 | Clé compromise | Signe n'importe quoi au nom d'une identité | Révocation par identifiant de clé dans la politique ; rotation par nouvelle version de politique | La fenêtre entre compromission et révocation n'est pas couverte |
 | M5 | Accès disque en écriture au fichier SQLite | Réécrit, tronque, réordonne, recalcule toute la chaîne | Chaîne de hash (intégrité) + attestation signée du hash de tête + ancre anti-retour | Sans attestation fraîche, une réécriture cohérente complète reste indétectable (§9) |
-| M6 | Confusion de rôles | Utilise une clé d'approbation pour attester la disponibilité (ou l'inverse) | Rôles disjoints dans la politique (`ADMISSION_APPROVER` ≠ `AVAILABILITY_AUTHORITY`) ; une clé = un rôle | — |
+| M6 | Confusion de rôles | Utilise une clé d'un rôle pour signer au nom d'un autre (approbateur se faisant passer pour le propriétaire, autorité de disponibilité pour l'accès aux preuves, etc.) | Quatre rôles disjoints (§4) ; une clé = un rôle ; une identité = un seul rôle ; chaque énoncé est vérifié pour SON rôle | — |
+| M8 | Approbateur ou propriétaire qui sort de son périmètre | Signe pour un autre registre, un autre type de source ou une autre finalité | Permissions par triplet exact (registre, type de source, finalité), sans joker (§4) | Les triplets réels restent à désigner (§3) |
+| M9 | Fuite de références de preuves sensibles par la projection | Lit la projection (ou une réponse d'API future) | Classification signée par le propriétaire, masquage fail-closed, lecture séparée sous droit signé (§4.2) | Aucune détection automatique de secret dans les champs texte libres (§10) |
 | M7 | Horloge locale fausse | Avance/recul de l'horloge | Horloge injectée, tolérance de dérive bornée, validité maximale bornée | Un vérificateur dont l'horloge est contrôlée par l'attaquant n'est pas protégé |
 
 Hors modèle : compromission du processus vérificateur lui-même, de la
@@ -60,27 +64,88 @@ par l'opérateur :
    politique versionné et signé dans un dépôt distinct, revu par le
    propriétaire) et le lieu de garde des clés privées (hors de ce dépôt, hors
    du processus vérificateur).
+4. **Désigner, pour chaque source de la matrice D5B §2, l'identité du
+   propriétaire habilité à signer un transfert** (`SOURCE_OWNER`) et les
+   triplets (registre, type de source, finalité) qu'elle couvre. Aucun de ces
+   registres n'existe : cette désignation dépend de leur création et de leur
+   accord.
+5. **Désigner qui classe les références de preuves (public/sensible) et qui
+   peut accorder l'accès aux références sensibles** (`EVIDENCE_ACCESS_AUTHORITY`),
+   ainsi que le mécanisme d'authentification réelle du lecteur (couche
+   d'identité opérateur de D5A, hors de ce prototype).
+6. **Choisir l'emplacement de l'ancre anti-retour** (§8), hors de portée d'un
+   attaquant disposant du disque du journal.
 
-Tant que ces trois décisions n'existent pas : statut **BLOQUÉ pour
+Tant que ces six décisions n'existent pas : statut **BLOQUÉ pour
 certification**, quelle que soit la couleur de la CI.
 
-## 4. Identités et rôles autorisés
+## 4. Identités, rôles et permissions
 
 La politique (`TrustPolicy`) déclare, pour une `policy_version` donnée, une
-liste de clés publiques Ed25519 `TrustedKey(key_id, role, identity, public_key, scopes)` :
+liste de clés publiques Ed25519
+`TrustedKey(key_id, role, identity, public_key, grants)` :
 
-- `ADMISSION_APPROVER` : signe une approbation d'admission. `identity` doit
-  égaler `approver_id` dans l'approbation ; `scopes` restreint les
-  `owner_registry` pour lesquels la clé peut approuver.
-- `AVAILABILITY_AUTHORITY` : signe une attestation de disponibilité du
-  journal. `identity` doit égaler `authority_id` de l'attestation.
+| Rôle | Signe | Permissions (`grants`) |
+|---|---|---|
+| `SOURCE_OWNER` | `OWNER_TRANSFER` : le transfert explicite du fait source vers l'admission (D5B §2), avec la classification de chaque référence de preuve | triplets exacts (registre, type de source, finalité) |
+| `ADMISSION_APPROVER` | `ADMISSION_APPROVAL` : le contrôle d'admission, lié au candidat ET à l'empreinte du transfert présenté ; porte le statut et la priorité approuvés | triplets exacts (registre, type de source, finalité) |
+| `AVAILABILITY_AUTHORITY` | `AVAILABILITY_ATTESTATION` du journal (§8, §9) | aucune (l'attestation lie le journal) |
+| `EVIDENCE_ACCESS_AUTHORITY` | `EVIDENCE_ACCESS_GRANT` : droit de lire les références sensibles d'UNE décision d'UN journal | aucune (le droit lie décision et journal) |
 
-Une clé n'a qu'un seul rôle. Une même identité ne peut pas être déclarée dans
-les deux rôles (séparation des pouvoirs, vérifiée à la construction).
+Règles vérifiées à la construction : une clé n'a qu'un rôle ; **une même
+identité ne peut détenir deux rôles** (le propriétaire ne peut donc pas être
+son propre approbateur) ; les permissions sont des triplets exacts non vides,
+sans joker `*` ; `SOURCE_OWNER` et `ADMISSION_APPROVER` doivent en déclarer au
+moins un ; les deux autres rôles n'en portent pas. `identity` doit égaler
+`owner_id` / `approver_id` / `authority_id` de l'énoncé signé.
+
+### 4.1 Admission : deux énoncés, un candidat
+
+`admit(candidate, owner_transfer=..., approval=..., command_id=...)` exige :
+
+1. le seuil de candidature D5B (`GovernedProducer._validate`, inchangé) ;
+2. un `OWNER_TRANSFER` authentique, dont la clé est autorisée pour le triplet
+   du candidat, lié au candidat exact (empreinte canonique, registre, type,
+   `source_id`, révision, `source_sha`, finalité) et classant **chaque**
+   référence de preuve ;
+3. une `ADMISSION_APPROVAL` authentique, autorisée pour le même triplet, liée
+   au même candidat et à l'empreinte du transfert (`owner_transfer_digest`) ;
+   statut et priorité sont lus ici, jamais dans des arguments libres ;
+   promotion au-delà de la priorité demandée refusée.
+
+Tout échec a lieu **avant** toute écriture (ni événement, ni résultat de
+commande). L'admission gouvernée n'est pas une décision humaine D5D.
+
+**Rejeu et fraîcheur.** Authenticité (signature, clé non révoquée, rôle,
+permissions, liens, empreinte identique) et fraîcheur (fenêtre de validité)
+sont séparées. La fraîcheur n'est exigée que pour écrire un **nouvel**
+événement. Un rejeu d'une commande déjà commitée, avec les mêmes énoncés,
+reste possible après expiration — sinon l'idempotence persistante ne vaudrait
+que dans la fenêtre de validité et une réponse perdue deviendrait
+irrécupérable. Un rejeu avec un énoncé falsifié, une clé désormais révoquée ou
+une autre approbation signée est refusé.
+
+### 4.2 Références de preuves sensibles (D5B §5)
+
+- Le propriétaire signe une classification `PUBLIC` / `SENSITIVE` pour chaque
+  référence (clé = empreinte de la référence) ; classification incomplète,
+  avec référence inconnue ou valeur invalide → refus sans écriture.
+- `project()` n'expose que les références explicitement `PUBLIC` ; toute autre
+  (classe absente ou inconnue comprise) est remplacée par
+  `{"redacted": true, "ref_digest": ...}` (échec fermé).
+- `read_sensitive_evidence(decision_id, grant=...)` exige un droit signé par un
+  `EVIDENCE_ACCESS_AUTHORITY`, lié au journal et à la décision demandée,
+  frais ; le journal est vérifié avant toute lecture.
+- **Limites :** le droit est une capacité au porteur — `accessor_id` est
+  consigné mais l'authentification réelle du lecteur n'existe pas ici
+  (§3.5) ; la classification est déclarative (aucune détection de secret dans
+  les champs texte libres, §10) ; le journal SQLite contient les références
+  brutes, donc le fichier journal et ses sauvegardes sont eux-mêmes sensibles.
 
 **Registre actuel : FIXTURE.** Les seules clés existantes sont générées à la
 volée dans les tests (`Ed25519PrivateKey.generate()`), marquées
-`NON_OPERATIONNELLE`, jamais persistées, jamais réutilisables hors test.
+`NON_OPERATIONNELLE`, jamais persistées, jamais réutilisables hors test. Une
+politique `operational=True` est refusée à la construction.
 
 ## 5. Distribution des clés publiques
 
@@ -102,8 +167,9 @@ requête n'établissent jamais leur propre autorité.**
 - `admit()` ne reçoit plus `approved_status`/`approved_priority`/
   `admission_approval_ref` libres : ces valeurs sont **lues depuis
   l'approbation vérifiée**.
-- `trust_root_ref`, `deployment_evidence_ref`, `transfer_ref` restent des
-  pointeurs d'audit, jamais une preuve.
+- `trust_root_ref` et `deployment_evidence_ref` restent des pointeurs
+  d'audit, jamais une preuve. L'ancien `transfer_ref` (chaîne libre signée par
+  l'approbateur) est remplacé par un transfert signé par le propriétaire.
 
 ## 7. Révocation et rotation
 
@@ -111,7 +177,10 @@ requête n'établissent jamais leur propre autorité.**
   clé révoquée est refusée, même si elle a été produite avant la révocation
   (pas de date de révocation fiable sans autorité réelle — choix fail-closed).
   Conséquence documentée : les événements déjà admis restent dans le journal
-  (append-only) ; seules les nouvelles vérifications échouent.
+  (append-only) ; seules les nouvelles vérifications échouent — y compris le
+  rejeu d'une commande dont un énoncé a été signé par une clé révoquée depuis
+  (§4.1). Une révocation datée exigerait une source de temps de confiance
+  (§9) ; elle reste un gate ouvert.
 - **Rotation :** nouvelle `policy_version` contenant la nouvelle clé. Chaque
   énoncé signé porte la `policy_version` sous laquelle il a été émis ; une
   version inconnue du vérificateur est refusée. Le vérificateur n'accepte
@@ -129,12 +198,17 @@ requête n'établissent jamais leur propre autorité.**
   mais compte/hash différents → rejet ; checkpoint supérieur avec moins
   d'événements que le dernier accepté → rejet ; journal réel dont le préfixe
   ne reproduit pas le hash de tête accepté (troncature, réécriture) → rejet.
-- L'ancre peut être placée dans un fichier distinct (`anchor_path`) hors du
-  fichier journal. **Limite honnête :** si l'ancre est dans le même fichier
-  (défaut) et que l'attaquant restaure le fichier entier à un état ancien,
-  l'ancre recule avec lui ; seule la fenêtre de validité de l'attestation
-  borne alors le rejeu. Une ancre hors de portée de l'attaquant (autre hôte,
-  registre externe) reste une décision opérationnelle ouverte.
+- **L'ancre est exigée dans un fichier distinct du journal** (`anchor_path`) :
+  le constructeur refuse une ancre colocalisée sauf
+  `allow_colocated_anchor=True`. Colocalisée, une restauration du fichier
+  entier à un état ancien ferait reculer l'ancre avec lui ; le rejeu d'une
+  ancienne attestation encore dans sa fenêtre de validité serait alors accepté
+  (comportement démontré par
+  `test_ancre_colocalisee_explicite_laisse_passer_une_restauration_complete`).
+- **Limite honnête :** un fichier distinct sur le même disque protège contre la
+  restauration du seul journal, pas contre un attaquant qui restaure aussi
+  l'ancre. Une ancre hors de portée de cet attaquant (autre hôte, registre
+  externe) reste une décision opérationnelle ouverte (§3.6).
 
 ## 9. Politique d'horloge
 
@@ -164,3 +238,19 @@ humaine future reste distincte de l'admission gouvernée), aucun service,
 déploiement, restart, lecture de données runtime, aucune mutation
 PAPER/PPL/FIN/Research/Watchdog/TESTNET/LIVE/epoch/config/risk/sizing. Aucun
 verdict R2.
+
+## 12. Écarts corrigés depuis 203d02b (analyse de la mission d'authenticité)
+
+Constatés en lisant le code livré contre le contrat D5B et la mission :
+
+| Écart | Source de l'exigence | Correction | Test (exemples) |
+|---|---|---|---|
+| Le « transfert » n'était qu'une chaîne signée par l'approbateur : aucune signature du propriétaire | D5B §2 : « transfert explicite approuvé par son propriétaire » | Rôle `SOURCE_OWNER`, énoncé `OWNER_TRANSFER`, approbation liée à son empreinte (§4.1) | `test_transfert_*`, `test_approbation_liee_a_un_autre_transfert_refusee` |
+| Permissions limitées au registre | mission : « identités autorisées par registre, rôle et finalité » | Triplets exacts (registre, type, finalité), sans joker (§4) | `test_*_non_autorise_pour_le_triplet_exact_refuse`, `test_permissions_invalides_refusees_a_la_construction` |
+| Rejeu impossible après expiration des énoncés | mission : idempotence persistante, réponse perdue | Authenticité séparée de la fraîcheur (§4.1) | `test_rejeu_apres_expiration_*`, `test_nouvelle_admission_avec_enonces_expires_refusee_sans_ecriture` |
+| Références de preuves exposées telles quelles ; `test_preuve_sensible_non_autorisee_*` ne testait que le mauvais rôle | D5B §5 : contrôle d'accès distinct des références sensibles | Classification signée, masquage fail-closed, lecture sous droit signé (§4.2) | `test_projection_masque_*`, `test_lecture_sensible_*` |
+| Ancre anti-retour colocalisée par défaut | mission : rejeu d'un ancien état signé | Ancre exigée hors du fichier journal (§8) | `test_ancre_colocalisee_*` |
+
+Conservés inchangés : seuil de candidature D5B, séparation demandée/approuvée,
+distinction `NON DÉPLOYÉ` / `UNKNOWN` / zéro authentifié, anti-retour par
+checkpoint, index lié au journal, instantané transactionnel unique.
