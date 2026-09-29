@@ -11,37 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 PROJECT = Path(__file__).resolve().parent.parent
 DP_DIR = Path(os.getenv("DP_LOG_DIR", str(PROJECT / "databases")))
-DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
-
-def _dashboard_host():
-    raw = os.getenv("DASHBOARD_HOST", "127.0.0.1").strip()
-    if raw == "localhost":
-        return raw
-    try:
-        address = ipaddress.ip_address(raw)
-    except ValueError as exc:
-        raise RuntimeError("DASHBOARD_HOST doit être une adresse IP ou localhost") from exc
-    remote_allowed = os.getenv("DASHBOARD_ALLOW_REMOTE_BIND", "").strip().lower() in {
-        "1", "true", "yes",
-    }
-    if not address.is_loopback and not remote_allowed:
-        raise RuntimeError(
-            "liaison distante refusée sans DASHBOARD_ALLOW_REMOTE_BIND=true"
-        )
-    return raw
-
-def _dashboard_port():
-    try:
-        port = int(os.getenv("DASHBOARD_PORT", "8050"))
-    except ValueError as exc:
-        raise RuntimeError("DASHBOARD_PORT doit être un entier") from exc
-    if not 1 <= port <= 65535:
-        raise RuntimeError("DASHBOARD_PORT doit être compris entre 1 et 65535")
-    return port
-
-DASHBOARD_HOST = _dashboard_host()
-DASHBOARD_PORT = _dashboard_port()
-app = FastAPI(title="CryptoRadar", docs_url=None, redoc_url=None)
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")\nDASHBOARD_PORT = os.getenv("DASHBOARD_PORT", "8050")\napp = FastAPI(title="CryptoRadar", docs_url=None, redoc_url=None)
 _SECRET = secrets.token_hex(32)
 
 def _make_token():
@@ -310,7 +280,37 @@ load();setInterval(load,30000);
 setInterval(()=>{if(ct==='live')loadLMI()},5000);
 </script></body></html>"""
 
+def _dashboard_host():
+    raw = os.getenv("DASHBOARD_HOST", "127.0.0.1").strip()
+    if raw == "localhost":
+        return raw
+    try:
+        address = ipaddress.ip_address(raw)
+    except ValueError as exc:
+        raise RuntimeError("DASHBOARD_HOST doit être une adresse IP ou localhost") from exc
+    remote_allowed = os.getenv("DASHBOARD_ALLOW_REMOTE_BIND", "").strip().lower() in {
+        "1", "true", "yes",
+    }
+    if not address.is_loopback and not remote_allowed:
+        raise RuntimeError(
+            "liaison distante refusée sans DASHBOARD_ALLOW_REMOTE_BIND=true"
+        )
+    return raw
+
+
+def _dashboard_port():
+    try:
+        port = int(DASHBOARD_PORT)
+    except ValueError as exc:
+        raise RuntimeError("DASHBOARD_PORT doit être un entier") from exc
+    if not 1 <= port <= 65535:
+        raise RuntimeError("DASHBOARD_PORT doit être compris entre 1 et 65535")
+    return port
+
+
 if __name__ == "__main__":
     import uvicorn
-    print(f"[Dashboard] http://{DASHBOARD_HOST}:{DASHBOARD_PORT}")
-    uvicorn.run(app, host=DASHBOARD_HOST, port=DASHBOARD_PORT, log_level="warning")
+    host = _dashboard_host()
+    port = _dashboard_port()
+    print(f"[Dashboard] http://{host}:{port}")
+    uvicorn.run(app, host=host, port=port, log_level="warning")
