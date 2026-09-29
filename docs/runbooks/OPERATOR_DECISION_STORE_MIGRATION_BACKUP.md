@@ -50,8 +50,16 @@ Un changement non rétrocompatible **n'est jamais appliqué en place**. Procédu
 `SCHEMA_VERSION = "3.0.0"`. Le corps d'événement embarque désormais le
 transfert propriétaire signé, sa classification des références de preuves et
 l'approbation signée. Un journal d'une version antérieure est refusé
-(`CorruptedJournalError`, échec fermé). Aucun journal hors tests n'existe à ce
-jour, donc aucune migration de données n'est à exécuter. Si un journal
+(`CorruptedJournalError`, échec fermé) dès l'ouverture, **sans altérer le
+fichier** : `_refuse_legacy_layout` refuse une base dont la version est
+inconnue ou dont `schema_meta` n'a pas de `journal_id` (cas d'un journal
+1.0.0), et `verify()` refuse des événements d'une version non reconnue.
+Aucun ajout n'est possible sur un journal ancien (tests
+`test_journal_v1_sans_journal_id_refuse_explicitement_et_reste_intact`,
+`test_base_d_une_version_anterieure_refusee_a_l_ouverture`,
+`test_evenements_d_une_version_anterieure_refuses_sans_ajout`). Aucun journal
+hors tests n'existe à ce jour, donc aucune migration de données n'est à
+exécuter. Si un journal
 antérieur existait un jour, ses événements ne pourraient PAS être rejoués en
 3.0.0 sans un transfert signé du propriétaire pour chacun : on ne fabrique
 jamais une signature rétroactive.

@@ -340,9 +340,38 @@ class DurableGovernedStore:
             raise
         return conn
 
+    @staticmethod
+    def _refuse_legacy_layout(conn: sqlite3.Connection) -> None:
+        """Refus explicite d'un journal d'une version antérieure ou inconnue.
+
+        `CREATE TABLE IF NOT EXISTS` n'altère jamais une table existante : sans
+        ce contrôle, un journal d'un schéma plus ancien échouerait sur une
+        erreur SQLite opaque (colonne absente) au lieu d'un refus intelligible,
+        et ses événements ne seraient jamais réécrits (append-only). Aucune
+        migration automatique : voir le runbook, §1.
+        """
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(schema_meta)")}
+        if not columns:
+            return  # base neuve : rien à refuser
+        version = None
+        if "schema_version" in columns:
+            row = conn.execute(
+                "SELECT schema_version FROM schema_meta WHERE id = 1"
+            ).fetchone()
+            version = row[0] if row else None
+        if "journal_id" not in columns or (
+            version is not None and version not in KNOWN_SCHEMA_VERSIONS
+        ):
+            raise CorruptedJournalError(
+                f"journal de version antérieure ou inconnue ({version!r}) : "
+                f"refusé, seule la version {SCHEMA_VERSION} est acceptée "
+                "(aucune migration automatique, voir le runbook §1)"
+            )
+
     def _init_schema(self) -> None:
         conn = self._connect()
         try:
+            self._refuse_legacy_layout(conn)
             conn.executescript(_SCHEMA_SQL)  # DDL : idempotent, hors journal
             conn.execute("BEGIN IMMEDIATE")
             # Identifiant de journal stable : créé une seule fois à

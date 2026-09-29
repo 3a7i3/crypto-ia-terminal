@@ -94,10 +94,22 @@ liste de clés publiques Ed25519
 
 Règles vérifiées à la construction : une clé n'a qu'un rôle ; **une même
 identité ne peut détenir deux rôles** (le propriétaire ne peut donc pas être
-son propre approbateur) ; les permissions sont des triplets exacts non vides,
+son propre approbateur) ; **un matériau de clé publique ne peut figurer
+qu'une seule fois dans la politique** — ni cumul de rôles par le même
+matériau sous des `key_id` et des identités différents, ni alias : sans ce
+contrôle, une seule clé privée porterait deux rôles, et une clé révoquée sous
+un `key_id` resterait valable via un alias du même matériau (révocation
+contournée) ; les permissions sont des triplets exacts non vides,
 sans joker `*` ; `SOURCE_OWNER` et `ADMISSION_APPROVER` doivent en déclarer au
 moins un ; les deux autres rôles n'en portent pas. `identity` doit égaler
 `owner_id` / `approver_id` / `authority_id` de l'énoncé signé.
+
+**Limite :** l'unicité du matériau ne prouve pas que deux clés distinctes sont
+détenues par deux personnes distinctes ; cette séparation des détenteurs reste
+une décision opérationnelle (§3.2). Le contrôle porte sur les octets de clé
+publique : une clé dérivée de la même clé privée par une opération de
+signature manuelle sur la courbe (point opposé) serait un autre matériau
+détenu par le même opérateur, hors de portée d'un contrôle de configuration.
 
 ### 4.1 Admission : deux énoncés, un candidat
 
@@ -181,7 +193,9 @@ requête n'établissent jamais leur propre autorité.**
   rejeu d'une commande dont un énoncé a été signé par une clé révoquée depuis
   (§4.1). Une révocation datée exigerait une source de temps de confiance
   (§9) ; elle reste un gate ouvert.
-- **Rotation :** nouvelle `policy_version` contenant la nouvelle clé. Chaque
+- **Rotation :** nouvelle clé (nouveau matériau) dans la politique, l'ancienne
+  révoquée ; une clé révoquée ne peut pas réapparaître sous un autre `key_id`
+  (matériau unique, §4). Nouvelle `policy_version` contenant la nouvelle clé. Chaque
   énoncé signé porte la `policy_version` sous laquelle il a été émis ; une
   version inconnue du vérificateur est refusée. Le vérificateur n'accepte
   qu'**une** version courante (pas de période de coexistence dans ce
@@ -205,9 +219,10 @@ requête n'établissent jamais leur propre autorité.**
   ancienne attestation encore dans sa fenêtre de validité serait alors accepté
   (comportement démontré par
   `test_ancre_colocalisee_explicite_laisse_passer_une_restauration_complete`).
-- **Limite honnête :** un fichier distinct sur le même disque protège contre la
-  restauration du seul journal, pas contre un attaquant qui restaure aussi
-  l'ancre. Une ancre hors de portée de cet attaquant (autre hôte, registre
+- **Limite honnête :** un fichier d'ancre distinct ne démontre pas un domaine
+  de protection indépendant : sur le même hôte et avec les mêmes droits
+  d'écriture, il protège contre la restauration du seul journal, pas contre un
+  attaquant qui restaure aussi l'ancre. Une ancre hors de portée de cet attaquant (autre hôte, registre
   externe) reste une décision opérationnelle ouverte (§3.6).
 
 ## 9. Politique d'horloge
@@ -250,6 +265,13 @@ Constatés en lisant le code livré contre le contrat D5B et la mission :
 | Rejeu impossible après expiration des énoncés | mission : idempotence persistante, réponse perdue | Authenticité séparée de la fraîcheur (§4.1) | `test_rejeu_apres_expiration_*`, `test_nouvelle_admission_avec_enonces_expires_refusee_sans_ecriture` |
 | Références de preuves exposées telles quelles ; `test_preuve_sensible_non_autorisee_*` ne testait que le mauvais rôle | D5B §5 : contrôle d'accès distinct des références sensibles | Classification signée, masquage fail-closed, lecture sous droit signé (§4.2) | `test_projection_masque_*`, `test_lecture_sensible_*` |
 | Ancre anti-retour colocalisée par défaut | mission : rejeu d'un ancien état signé | Ancre exigée hors du fichier journal (§8) | `test_ancre_colocalisee_*` |
+
+Ajoutés après la revue complémentaire du HEAD `a74ce54` :
+
+| Écart | Source | Correction | Test (exemples) |
+|---|---|---|---|
+| Une même clé publique acceptée sous deux rôles, deux `key_id` et deux identités ; conséquence : une clé révoquée restait valable via un alias | ADR-0020 §4 « une clé n'a qu'un rôle » ; revue du propriétaire | Matériau de clé public unique dans la politique (§4) | `test_meme_cle_privee_sous_deux_roles_et_deux_identites_refusee`, `test_aucun_cumul_de_roles_par_materiau_cryptographique`, `test_alias_de_cle_du_meme_role_refuse_*`, `test_rotation_par_nouvelle_cle_reste_valide` |
+| Le refus des anciennes versions de schéma reposait sur une erreur SQLite opaque (colonne absente) pour un journal 1.0.0, et n'était testé qu'avec `9.9.9` | revue du propriétaire : conserver explicitement le refus | Refus explicite à l'ouverture (`_refuse_legacy_layout`), sans altérer le fichier | `test_journal_v1_sans_journal_id_refuse_explicitement_et_reste_intact`, `test_base_d_une_version_anterieure_refusee_a_l_ouverture`, `test_evenements_d_une_version_anterieure_refuses_sans_ajout` |
 
 Conservés inchangés : seuil de candidature D5B, séparation demandée/approuvée,
 distinction `NON DÉPLOYÉ` / `UNKNOWN` / zéro authentifié, anti-retour par

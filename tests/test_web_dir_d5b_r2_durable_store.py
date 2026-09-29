@@ -1171,7 +1171,7 @@ def test_connexion_fermee_si_init_schema_echoue(tmp_path, monkeypatch):
     conn.execute("UPDATE schema_meta SET schema_version = '9.9.9'")
     conn.close()
     opened = _instrument(monkeypatch, lambda sql: None)
-    with pytest.raises(CorruptedJournalError, match="schéma"):
+    with pytest.raises(CorruptedJournalError, match="version antérieure ou inconnue"):
         store(db)
     assert opened and all(c.closed for c in opened)
 
@@ -1664,3 +1664,136 @@ def test_ancre_colocalisee_explicite_laisse_passer_une_restauration_complete(tmp
                                    clock=Clock(), allow_colocated_anchor=True)
     # L'ancien état signé est encore accepté : le retour arrière n'est PAS détecté.
     assert rouvert.project(ancien)["availability"] == "AVAILABLE"
+
+
+# --- Unicité du matériau de clé publique (revue complémentaire, a74ce54) -----
+
+_GRANTS = (("problem-registry", "PROBLEM", "planifier"),)
+
+
+def _cle(sk, key_id, role, identity):
+    grants = _GRANTS if role in (SOURCE_OWNER, ADMISSION_APPROVER) else ()
+    return trusted_key(sk, key_id, role, identity, grants=grants)
+
+
+def test_meme_cle_privee_sous_deux_roles_et_deux_identites_refusee():
+    """Reproduction de la revue : UNE clé Ed25519, deux `key_id`, deux
+    identités, deux rôles, même triplet autorisé."""
+    sk = Ed25519PrivateKey.generate()
+    proprietaire = _cle(sk, "owner", SOURCE_OWNER, "person-owner")
+    approbateur = _cle(sk, "approver", ADMISSION_APPROVER, "person-approver")
+    with pytest.raises(ContractError, match="matériau de clé public réutilisé"):
+        TrustPolicy(policy_version=POLICY_VERSION, keys=(proprietaire, approbateur))
+
+
+@pytest.mark.parametrize("role_a,role_b", [
+    (SOURCE_OWNER, ADMISSION_APPROVER),
+    (SOURCE_OWNER, AVAILABILITY_AUTHORITY),
+    (SOURCE_OWNER, EVIDENCE_ACCESS_AUTHORITY),
+    (ADMISSION_APPROVER, AVAILABILITY_AUTHORITY),
+    (ADMISSION_APPROVER, EVIDENCE_ACCESS_AUTHORITY),
+    (AVAILABILITY_AUTHORITY, EVIDENCE_ACCESS_AUTHORITY),
+])
+def test_aucun_cumul_de_roles_par_materiau_cryptographique(role_a, role_b):
+    sk = Ed25519PrivateKey.generate()
+    with pytest.raises(ContractError, match="matériau de clé public réutilisé"):
+        TrustPolicy(policy_version=POLICY_VERSION, keys=(
+            _cle(sk, "cle-a", role_a, "personne-a"),
+            _cle(sk, "cle-b", role_b, "personne-b"),
+        ))
+
+
+def test_alias_de_cle_du_meme_role_refuse_donc_pas_de_contournement_de_revocation():
+    """Sans ce refus, révoquer `k1` laisserait le MÊME matériau signer via `k2`."""
+    sk = Ed25519PrivateKey.generate()
+    k1 = _cle(sk, "k1", SOURCE_OWNER, "fixture:proprietaire-problem")
+    k2 = _cle(sk, "k2", SOURCE_OWNER, "fixture:proprietaire-problem")
+    with pytest.raises(ContractError, match="matériau de clé public réutilisé"):
+        TrustPolicy(policy_version=POLICY_VERSION, keys=(k1, k2),
+                    revoked_key_ids=frozenset({"k1"}))
+
+
+def test_rotation_par_nouvelle_cle_reste_valide(tmp_path):
+    """Rotation : ancienne clé révoquée + NOUVEAU matériau, même identité, même rôle."""
+    nouvelle_sk = Ed25519PrivateKey.generate()
+    nouvelle = trusted_key(nouvelle_sk, "fixture-owner-2", SOURCE_OWNER,
+                           "fixture:proprietaire-problem", grants=(GRANT,))
+    pol = policy(keys=(OWNER_KEY, nouvelle, APPROVER_KEY, AUTHORITY_KEY, ACCESS_KEY),
+                 revoked_key_ids=frozenset({"fixture-owner-1"}))
+    s = store(tmp_path / "store.db", trust_policy=pol)
+    c = candidate()
+    tr_nouveau = transfer(c, sk=nouvelle_sk, key_id="fixture-owner-2")
+    assert admit(s, c, tr=tr_nouveau)
+    autre = candidate(source_id="problem-2", candidate_id="cand-2")
+    with pytest.raises(TrustError, match="révoquée"):  # l'ancienne clé ne signe plus
+        s.admit(autre, owner_transfer=transfer(autre),
+                approval=approval(autre), command_id="cmd-2")
+
+
+# --- Refus explicite des anciennes versions de schéma (3.0.0) ----------------
+
+@pytest.mark.parametrize("ancienne", ["1.0.0", "2.0.0"])
+def test_evenements_d_une_version_anterieure_refuses_sans_ajout(tmp_path, ancienne):
+    db = tmp_path / "store.db"
+    s = store(db)
+    admit(s, candidate(), command_id="cmd-1")
+    conn = _raw(db)
+    conn.execute("UPDATE events SET schema_version = ? WHERE sequence = 1", (ancienne,))
+    conn.close()
+    with pytest.raises(CorruptedJournalError, match="version de schéma inconnue"):
+        s.verify()
+    assert s.project(attest(s))["availability"] == "UNKNOWN"
+    with pytest.raises(CorruptedJournalError):  # jamais d'ajout sur un journal ancien
+        admit(s, candidate(source_id="problem-2", candidate_id="cand-2"), command_id="cmd-2")
+    assert len(s.events()) == 1
+
+
+@pytest.mark.parametrize("ancienne", ["1.0.0", "2.0.0"])
+def test_base_d_une_version_anterieure_refusee_a_l_ouverture(tmp_path, ancienne):
+    db = tmp_path / "store.db"
+    admit(store(db), candidate(), command_id="cmd-1")
+    conn = _raw(db)
+    conn.execute("UPDATE schema_meta SET schema_version = ? WHERE id = 1", (ancienne,))
+    conn.close()
+    with pytest.raises(CorruptedJournalError, match="version antérieure ou inconnue"):
+        store(db)
+
+
+def test_journal_v1_sans_journal_id_refuse_explicitement_et_reste_intact(tmp_path):
+    """Un vrai journal 1.0.0 (sans `journal_id`) : refus intelligible, aucune
+    altération de schéma, aucun événement réécrit (append-only)."""
+    db = tmp_path / "ancien.db"
+    conn = sqlite3.connect(str(db))
+    conn.executescript("""
+        CREATE TABLE schema_meta (id INTEGER PRIMARY KEY CHECK (id = 1),
+                                  schema_version TEXT NOT NULL);
+        INSERT INTO schema_meta VALUES (1, '1.0.0');
+        CREATE TABLE events (sequence INTEGER PRIMARY KEY, event_id TEXT, decision_id TEXT,
+            schema_version TEXT, idempotency_key TEXT, previous_event_hash TEXT,
+            event_hash TEXT, payload_json TEXT);
+        INSERT INTO events VALUES (1, 'e1', 'd1', '1.0.0', 'k1', 'GENESIS', 'h1', '{}');
+    """)
+    conn.commit()
+    conn.close()
+    with pytest.raises(CorruptedJournalError, match="version antérieure ou inconnue"):
+        store(db)
+    conn = sqlite3.connect(str(db))
+    try:
+        colonnes = [r[1] for r in conn.execute("PRAGMA table_info(schema_meta)")]
+        assert colonnes == ["id", "schema_version"]  # aucune ALTER
+        assert conn.execute("SELECT payload_json FROM events").fetchall() == [("{}",)]
+    finally:
+        conn.close()
+
+
+def test_base_partiellement_initialisee_sans_evenement_reste_ouvrable(tmp_path):
+    """Le refus des anciennes versions ne doit pas bloquer une initialisation
+    interrompue avant l'écriture de la version (aucun événement, aucune ligne)."""
+    db = tmp_path / "store.db"
+    store(db)
+    conn = _raw(db)
+    conn.execute("DELETE FROM schema_meta")
+    conn.close()
+    rouvert = store(db)
+    assert rouvert.events() == ()
+    assert rouvert.project(None)["availability"] == "NON DÉPLOYÉ"

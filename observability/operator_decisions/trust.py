@@ -116,6 +116,7 @@ class TrustPolicy:
             )
         index: dict[str, TrustedKey] = {}
         identities: dict[str, str] = {}
+        materials: dict[bytes, str] = {}
         for key in self.keys:
             if not isinstance(key, TrustedKey) or key.role not in ROLES:
                 raise ContractError("clé de confiance ou rôle invalide")
@@ -128,6 +129,20 @@ class TrustPolicy:
                 )
             self._check_grants(key)
             Ed25519PublicKey.from_public_bytes(key.public_key)  # valide le format
+            # Un matériau cryptographique = une seule entrée. Sans ce contrôle,
+            # la même clé privée pourrait porter deux rôles sous des `key_id`
+            # et des identités différents (séparation des pouvoirs contournée),
+            # et une clé révoquée sous un `key_id` resterait valable via un
+            # alias du même matériau (révocation contournée). La rotation
+            # passe par une NOUVELLE clé, jamais par un alias.
+            other = materials.setdefault(bytes(key.public_key), key.key_id)
+            if other != key.key_id:
+                raise ContractError(
+                    f"matériau de clé public réutilisé par {other!r} et "
+                    f"{key.key_id!r} : un matériau cryptographique ne peut "
+                    "figurer qu'une fois (pas de cumul de rôles ni d'alias de "
+                    "révocation)"
+                )
             index[key.key_id] = key
         object.__setattr__(self, "_index", index)
 
