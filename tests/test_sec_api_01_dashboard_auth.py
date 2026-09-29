@@ -7,6 +7,8 @@ import sys
 import uuid
 from pathlib import Path
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,3 +84,53 @@ def test_dashboard_valid_login_sets_session_and_allows_api(monkeypatch, tmp_path
     assert login.json() == {"ok": True}
     assert "radar_session" in login.cookies
     assert protected.status_code == 200
+
+
+def test_dashboard_defaults_to_loopback(monkeypatch, tmp_path):
+    monkeypatch.delenv("DASHBOARD_HOST", raising=False)
+    monkeypatch.delenv("DASHBOARD_ALLOW_REMOTE_BIND", raising=False)
+
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
+    assert module._dashboard_host() == "127.0.0.1"
+
+
+def test_dashboard_refuses_remote_bind_without_explicit_opt_in(monkeypatch, tmp_path):
+    monkeypatch.setenv("DASHBOARD_HOST", "0.0.0.0")
+    monkeypatch.delenv("DASHBOARD_ALLOW_REMOTE_BIND", raising=False)
+
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
+    with pytest.raises(RuntimeError, match="liaison distante refusée"):
+        module._dashboard_host()
+
+
+def test_dashboard_accepts_explicit_remote_bind(monkeypatch, tmp_path):
+    monkeypatch.setenv("DASHBOARD_HOST", "0.0.0.0")
+    monkeypatch.setenv("DASHBOARD_ALLOW_REMOTE_BIND", "true")
+
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
+    assert module._dashboard_host() == "0.0.0.0"
+
+
+@pytest.mark.parametrize("host", ["", "not an address", "example.com"])
+def test_dashboard_refuses_invalid_host(monkeypatch, tmp_path, host):
+    monkeypatch.setenv("DASHBOARD_HOST", host)
+    monkeypatch.delenv("DASHBOARD_ALLOW_REMOTE_BIND", raising=False)
+
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
+    with pytest.raises(RuntimeError, match="DASHBOARD_HOST"):
+        module._dashboard_host()
+
+
+@pytest.mark.parametrize("port", ["0", "65536", "not-a-port"])
+def test_dashboard_refuses_invalid_port(monkeypatch, tmp_path, port):
+    monkeypatch.delenv("DASHBOARD_HOST", raising=False)
+    monkeypatch.setenv("DASHBOARD_PORT", port)
+
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
+    with pytest.raises(RuntimeError, match="DASHBOARD_PORT"):
+        module._dashboard_port()
