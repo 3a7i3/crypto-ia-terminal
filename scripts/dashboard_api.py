@@ -11,7 +11,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 PROJECT = Path(__file__).resolve().parent.parent
 DP_DIR = Path(os.getenv("DP_LOG_DIR", str(PROJECT / "databases")))
-DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")\nDASHBOARD_PORT = os.getenv("DASHBOARD_PORT", "8050")\napp = FastAPI(title="CryptoRadar", docs_url=None, redoc_url=None)
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
+DASHBOARD_PORT = os.getenv("DASHBOARD_PORT", "8050")
+app = FastAPI(title="CryptoRadar", docs_url=None, redoc_url=None)
 _SECRET = secrets.token_hex(32)
 
 def _make_token():
