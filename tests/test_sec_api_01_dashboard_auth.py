@@ -92,15 +92,17 @@ def test_dashboard_defaults_to_loopback(monkeypatch, tmp_path):
 
     module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
 
-    assert module.DASHBOARD_HOST == "127.0.0.1"
+    assert module._dashboard_host() == "127.0.0.1"
 
 
 def test_dashboard_refuses_remote_bind_without_explicit_opt_in(monkeypatch, tmp_path):
     monkeypatch.setenv("DASHBOARD_HOST", "0.0.0.0")
     monkeypatch.delenv("DASHBOARD_ALLOW_REMOTE_BIND", raising=False)
 
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
     with pytest.raises(RuntimeError, match="liaison distante refusée"):
-        _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+        module._dashboard_host()
 
 
 def test_dashboard_accepts_explicit_remote_bind(monkeypatch, tmp_path):
@@ -109,7 +111,7 @@ def test_dashboard_accepts_explicit_remote_bind(monkeypatch, tmp_path):
 
     module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
 
-    assert module.DASHBOARD_HOST == "0.0.0.0"
+    assert module._dashboard_host() == "0.0.0.0"
 
 
 @pytest.mark.parametrize("host", ["", "not an address", "example.com"])
@@ -117,8 +119,10 @@ def test_dashboard_refuses_invalid_host(monkeypatch, tmp_path, host):
     monkeypatch.setenv("DASHBOARD_HOST", host)
     monkeypatch.delenv("DASHBOARD_ALLOW_REMOTE_BIND", raising=False)
 
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
     with pytest.raises(RuntimeError, match="DASHBOARD_HOST"):
-        _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+        module._dashboard_host()
 
 
 @pytest.mark.parametrize("port", ["0", "65536", "not-a-port"])
@@ -126,5 +130,7 @@ def test_dashboard_refuses_invalid_port(monkeypatch, tmp_path, port):
     monkeypatch.delenv("DASHBOARD_HOST", raising=False)
     monkeypatch.setenv("DASHBOARD_PORT", port)
 
+    module = _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+
     with pytest.raises(RuntimeError, match="DASHBOARD_PORT"):
-        _load_dashboard(monkeypatch, tmp_path, "synthetic-test-password")
+        module._dashboard_port()
