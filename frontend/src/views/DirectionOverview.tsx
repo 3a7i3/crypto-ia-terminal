@@ -227,6 +227,7 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
         <div><dt>Runtime</dt><dd>{s.runtime_state}</dd></div>
         <div><dt>Instance</dt><dd>{s.instance_relation}</dd></div>
         <div><dt>Worktree</dt><dd>{s.worktree_state}</dd></div>
+        <div><dt>Âge snapshot</dt><dd>{s.snapshot_age_s === null ? "NOT_AVAILABLE" : `${s.snapshot_age_s}s`}</dd></div>
         <div><dt>Stale reason</dt><dd>{s.stale_reason ?? "NOT_AVAILABLE"}</dd></div>
         <div><dt>Inventaire positions</dt><dd>{p.open_positions.semantics}</dd></div>
         <div><dt>PnL réalisé PAPER</dt><dd>{observed(p.paper_realized_pnl_usd)}</dd></div>

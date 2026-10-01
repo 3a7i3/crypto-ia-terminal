@@ -322,7 +322,7 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     render(<DirectionOverview />);
 
     await waitFor(() =>
-      expect(screen.getByTestId("direction-admission-inconsistent")).toHaveTextContent("compteurs divergents"),
+      expect(screen.getByTestId("direction-admission-inconsistent")).toHaveTextContent(/compteurs divergents/i),
     );
 
     const global = screen.getByTestId("direction-global-card");
