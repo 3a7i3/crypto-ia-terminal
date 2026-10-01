@@ -5,6 +5,12 @@ prototype isolé `observability/operator_decisions/durable_store.py`. Il ne
 décrit aucune procédure de déploiement VPS ni de service runtime — aucun des
 deux n'existe pour ce composant.
 
+**Décision de périmètre 2026-09-30 : Gate S — prototype source uniquement.**
+Ce runbook documente les propriétés et procédures attendues du prototype ; il
+ne constitue pas une procédure opérationnelle active. Gate O, `operational=True`,
+D5C, API et tout déploiement restent bloqués ; #315 reste ouverte et #286
+demeure applicable.
+
 ---
 
 ## 1. Contrat de migration de schéma
@@ -175,8 +181,9 @@ limite d'une ancre colocalisée :
 
 Ni la migration ni la sauvegarde décrites ici ne prouvent l'authenticité
 d'origine : la politique de confiance est une FIXTURE non opérationnelle et
-aucune autorité réelle n'est désignée (ADR-0020 §3, blocage de
-certification). Une restauration réussie prouve la cohérence interne du
+aucune autorité réelle n'est désignée (ADR-0020 §3, blocage Gate O de
+certification opérationnelle). Cette limite n’empêche pas un verdict Gate S
+source-only après revue et CI du candidat exact. Une restauration réussie prouve la cohérence interne du
 fichier restauré ; seule une attestation fraîche d'une autorité réelle, et une
 ancre anti-retour hors de portée d'un attaquant disposant du disque,
 fermeraient ce gate. L'emplacement de l'ancre, la désignation des
