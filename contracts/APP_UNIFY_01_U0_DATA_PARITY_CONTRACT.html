@@ -1,0 +1,1483 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>APP-UNIFY-01-U0 — Contrat de données et matrice de parité - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/APP_UNIFY_01_U0_DATA_PARITY_CONTRACT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/APP_UNIFY_01_U0_DATA_PARITY_CONTRACT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="app-unify-01-u0-contrat-de-donnees-et-matrice-de-parite">
+<h1>APP-UNIFY-01-U0 — Contrat de données et matrice de parité<a class="headerlink" href="#app-unify-01-u0-contrat-de-donnees-et-matrice-de-parite" title="Link to this heading">¶</a></h1>
+<p>Issue : #324<br />
+Parent : #323<br />
+Roadmap : #285<br />
+Burn-in : #282<br />
+Freeze : #286<br />
+Baseline source auditée : <code class="docutils literal notranslate"><span class="pre">fa3a6167bc3fb2efcba6284f95de26f0872d7fa0</span></code><br />
+Date : 2026-10-01</p>
+<section id="verdict-de-laudit">
+<h2>1. Verdict de l’audit<a class="headerlink" href="#verdict-de-laudit" title="Link to this heading">¶</a></h2>
+<p>L’Operator App dispose déjà d’une base fonctionnelle importante. Le problème
+principal n’est pas l’absence d’interface, mais l’absence de certaines
+<strong>projections gouvernées</strong> permettant de remplacer les inspections VPS
+manuelles.</p>
+<p>Architecture à préserver :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PRODUCTEUR GOUVERNÉ
+        ↓
+ARTIFACT / SNAPSHOT ATOMIQUE
+        ↓
+OPERATOR API GET-ONLY
+        ↓
+VALIDATION FRONTEND
+        ↓
+OPERATOR APP
+</pre></div>
+</div>
+<p>Interdit :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>React → JSONL / database / systemd / exchange / calcul scientifique
+</pre></div>
+</div>
+<p>Verdict U0 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U0_DATA_PARITY_CONTRACT_READY</span></code></p>
+<p>Ce verdict est documentaire/source-only. Il n’autorise aucun déploiement,
+restart, activation FIN-02, modification de l’Advisor, ni retrait de
+CryptoRadar.</p>
+</section>
+<hr class="docutils" />
+<section id="surfaces-existantes">
+<h2>2. Surfaces existantes<a class="headerlink" href="#surfaces-existantes" title="Link to this heading">¶</a></h2>
+<section id="operator-api">
+<h3>2.1 Operator API<a class="headerlink" href="#operator-api" title="Link to this heading">¶</a></h3>
+<p>Routes GET-only déjà présentes :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/snapshot</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/portfolio</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/decision-pipeline</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/system-health</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/ppl-comparison</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/financial-reconciliation</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/market</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/api/operator/v1/research-lab</span></code></p></li>
+</ul>
+</section>
+<section id="frontend">
+<h3>2.2 Frontend<a class="headerlink" href="#frontend" title="Link to this heading">¶</a></h3>
+<p>Routes produit déjà présentes :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/paper-live</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/direction</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/research</span></code></p></li>
+</ul>
+<p>Vues principales déjà disponibles :</p>
+<ul class="simple">
+<li><p>Overview ;</p></li>
+<li><p>Market ;</p></li>
+<li><p>Portfolio ;</p></li>
+<li><p>Decisions ;</p></li>
+<li><p>Lifecycle/PPL comparison ;</p></li>
+<li><p>Finance ;</p></li>
+<li><p>System ;</p></li>
+<li><p>Direction ;</p></li>
+<li><p>Research Lab.</p></li>
+</ul>
+</section>
+<section id="direction">
+<h3>2.3 Direction<a class="headerlink" href="#direction" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">DirectionOverview.tsx</span></code> consomme déjà quatre familles indépendantes :</p>
+<ol class="arabic simple">
+<li><p>snapshot Advisor ;</p></li>
+<li><p>FIN-02 ;</p></li>
+<li><p>Market/CryptoRadar ;</p></li>
+<li><p>Research Lab.</p></li>
+</ol>
+<p>La page est correctement définie comme :</p>
+<p><code class="docutils literal notranslate"><span class="pre">FÉDÉRÉ</span> <span class="pre">·</span> <span class="pre">NON</span> <span class="pre">ATOMIQUE</span></code>.</p>
+<p>Aucun état global synthétique ne doit être inventé.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="vocabulaire-u0">
+<h2>3. Vocabulaire U0<a class="headerlink" href="#vocabulaire-u0" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Statut</p></th>
+<th class="head"><p>Sens</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DISPLAYED</span></code></p></td>
+<td><p>producteur + API + UI présents</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AVAILABLE_NOT_DISPLAYED</span></code></p></td>
+<td><p>la donnée existe dans un payload gouverné mais l’UI ne l’affiche pas</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_AVAILABLE_RUNTIME_UNPROVEN</span></code></p></td>
+<td><p>chaîne source existe, disponibilité runtime courante non certifiée</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MISSING_PRODUCER</span></code></p></td>
+<td><p>aucune projection gouvernée appropriée n’existe</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">NON_DEPLOYE</span></code></p></td>
+<td><p>capacité volontairement non déployée</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DO_NOT_MIGRATE</span></code></p></td>
+<td><p>donnée historique/ambiguë à ne pas recopier dans la nouvelle app</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DEFERRED</span></code></p></td>
+<td><p>utile mais hors première tranche</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="matrice-de-verite-etat-machine">
+<h2>4. Matrice de vérité — état machine<a class="headerlink" href="#matrice-de-verite-etat-machine" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Besoin opérateur</p></th>
+<th class="head"><p>Producteur</p></th>
+<th class="head"><p>Endpoint / champ</p></th>
+<th class="head"><p>App actuelle</p></th>
+<th class="head"><p>Statut U0</p></th>
+<th class="head"><p>Action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Mode PAPER/TESTNET/REAL</p></td>
+<td><p>canonical operator snapshot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.portfolio.mode</span></code></p></td>
+<td><p>Direction + Portfolio</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-odd"><td><p>Runtime snapshot courant/last-known</p></td>
+<td><p>reader Operator</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.runtime_state</span></code></p></td>
+<td><p>Overview + Direction</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-even"><td><p>Relation instance</p></td>
+<td><p>reader Operator</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.instance_relation</span></code></p></td>
+<td><p>Overview + Direction</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-odd"><td><p>SHA runtime</p></td>
+<td><p>operator snapshot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.source_sha</span></code> + evidence status</p></td>
+<td><p>Direction provenance</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>remonter plus lisiblement en U1</p></td>
+</tr>
+<tr class="row-even"><td><p>Worktree runtime</p></td>
+<td><p>operator snapshot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snapshot.worktree_state</span></code></p></td>
+<td><p>Direction provenance</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fraîcheur snapshot</p></td>
+<td><p>reader Operator</p></td>
+<td><p>age + freshness</p></td>
+<td><p>Overview + Direction</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-even"><td><p>Santé modules</p></td>
+<td><p>system_health</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">module_statuses</span></code></p></td>
+<td><p>System</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>hiérarchiser</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">boot_alive</span></code> Advisor</p></td>
+<td><p>system_health</p></td>
+<td><p>ObservedValue</p></td>
+<td><p>System + Direction</p></td>
+<td><p>DISPLAYED mais généralement UNKNOWN par contrat</p></td>
+<td><p>ne jamais transformer en preuve systemd</p></td>
+</tr>
+<tr class="row-even"><td><p>Service Advisor réellement actif</p></td>
+<td><p>aucun producteur opérateur gouverné</p></td>
+<td><p>—</p></td>
+<td><p>absent</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>futur snapshot host/runtime read-only</p></td>
+</tr>
+<tr class="row-odd"><td><p>MainPID / NRestarts / ExecMainStart</p></td>
+<td><p>aucun producteur App</p></td>
+<td><p>—</p></td>
+<td><p>absent</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>futur snapshot host/runtime read-only</p></td>
+</tr>
+<tr class="row-even"><td><p>Epoch active</p></td>
+<td><p>FIN-02 / PPL comparison / Research</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code></p></td>
+<td><p>Direction via FIN</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+<td><p>U2 doit disposer d’une source burn-in indépendante de FIN</p></td>
+</tr>
+<tr class="row-odd"><td><p>Config hash actif</p></td>
+<td><p>FIN-02</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">config_hash</span></code></p></td>
+<td><p>Direction provenance</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+<td><p>U2 : projection experiment/burn-in</p></td>
+</tr>
+<tr class="row-even"><td><p>Dernière activité machine</p></td>
+<td><p>sources séparées</p></td>
+<td><p>timestamps snapshot/Market</p></td>
+<td><p>partiel</p></td>
+<td><p>AVAILABLE_NOT_DISPLAYED / MISSING_PRODUCER pour dernier PPL</p></td>
+<td><p>U1 + U2</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="conclusion-a">
+<h3>Conclusion A<a class="headerlink" href="#conclusion-a" title="Link to this heading">¶</a></h3>
+<p>L’app connaît déjà l’identité de son snapshot et une partie du runtime, mais
+elle ne possède <strong>aucune preuve gouvernée de liveness systemd de l’Advisor</strong>.
+<code class="docutils literal notranslate"><span class="pre">/healthz</span></code> prouve seulement que l’Operator API répond.</p>
+<p>Pour atteindre l’objectif “ne plus ouvrir le VPS”, une future projection
+host/runtime read-only est nécessaire. Elle ne doit jamais être construite à
+partir d’une inférence frontend.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matrice-de-verite-burn-in-actif">
+<h2>5. Matrice de vérité — burn-in actif<a class="headerlink" href="#matrice-de-verite-burn-in-actif" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Besoin</p></th>
+<th class="head"><p>Source actuelle</p></th>
+<th class="head"><p>App</p></th>
+<th class="head"><p>Statut U0</p></th>
+<th class="head"><p>Décision</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code></p></td>
+<td><p>FIN-02 / PPL comparison / Research</p></td>
+<td><p>partiel</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+<td><p>U2</p></td>
+</tr>
+<tr class="row-odd"><td><p>T0 / EPOCH_CREATED</p></td>
+<td><p>PPL autoritaire</p></td>
+<td><p>absent</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>U2</p></td>
+</tr>
+<tr class="row-even"><td><p>event_count</p></td>
+<td><p>PPL autoritaire</p></td>
+<td><p>absent</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>U2</p></td>
+</tr>
+<tr class="row-odd"><td><p>last_sequence</p></td>
+<td><p>FIN-02 transporte <code class="docutils literal notranslate"><span class="pre">last_source_sequence</span></code></p></td>
+<td><p>Finance seulement</p></td>
+<td><p>AVAILABLE_NOT_DISPLAYED</p></td>
+<td><p>U1 peut l’afficher si FIN disponible ; U2 doit l’exposer canoniquement</p></td>
+</tr>
+<tr class="row-even"><td><p>POSITION_OPENED</p></td>
+<td><p>PPL autoritaire</p></td>
+<td><p>absent comme compteur actif</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>U2</p></td>
+</tr>
+<tr class="row-odd"><td><p>POSITION_CLOSED</p></td>
+<td><p>PPL autoritaire</p></td>
+<td><p>FIN expose seulement <code class="docutils literal notranslate"><span class="pre">settled_position_count</span></code></p></td>
+<td><p>absent comme CLOSED exact</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+</tr>
+<tr class="row-even"><td><p>POSITION_UNRESOLVED</p></td>
+<td><p>FIN-02 + PPL</p></td>
+<td><p>Direction/Finance</p></td>
+<td><p>partiel</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-odd"><td><p>open positions courantes</p></td>
+<td><p>canonical snapshot</p></td>
+<td><p>Portfolio</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>réutiliser</p></td>
+</tr>
+<tr class="row-even"><td><p>détail positions</p></td>
+<td><p>canonical snapshot</p></td>
+<td><p>Portfolio</p></td>
+<td><p>DISPLAYED</p></td>
+<td><p>améliorer mobile</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">opened_at</span></code></p></td>
+<td><p>canonical snapshot</p></td>
+<td><p>payload présent, non affiché</p></td>
+<td><p>AVAILABLE_NOT_DISPLAYED</p></td>
+<td><p>U1/U2</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout_at</span></code> / recovery deadline</p></td>
+<td><p>PPL OPEN event</p></td>
+<td><p>absent</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>U2</p></td>
+</tr>
+<tr class="row-odd"><td><p>âge/deadline state</p></td>
+<td><p>aucune projection</p></td>
+<td><p>absent</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>produire côté U2, pas dans React</p></td>
+</tr>
+<tr class="row-even"><td><p>dernier événement PPL</p></td>
+<td><p>PPL autoritaire</p></td>
+<td><p>absent comme fait actif canonique</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+<td><p>U2</p></td>
+</tr>
+<tr class="row-odd"><td><p>source SHA burn-in</p></td>
+<td><p>operator snapshot / FIN</p></td>
+<td><p>partiel</p></td>
+<td><p>DISPLAYED / SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+<td><p>U1/U2</p></td>
+</tr>
+<tr class="row-even"><td><p>config hash burn-in</p></td>
+<td><p>FIN / config freeze</p></td>
+<td><p>partiel</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+<td><p>U2</p></td>
+</tr>
+<tr class="row-odd"><td><p>PB hard limit</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code> construit par operator snapshot</p></td>
+<td><p>payload, non affiché</p></td>
+<td><p>AVAILABLE_NOT_DISPLAYED</p></td>
+<td><p>U1</p></td>
+</tr>
+<tr class="row-even"><td><p>admission_state OPEN/SATURATED/OVER_LIMIT</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code></p></td>
+<td><p>non affiché</p></td>
+<td><p>AVAILABLE_NOT_DISPLAYED_WITH_CONSISTENCY_GUARD</p></td>
+<td><p>U1, seulement après validation croisée</p></td>
+</tr>
+<tr class="row-odd"><td><p>positions par régime/personality</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code></p></td>
+<td><p>non affiché</p></td>
+<td><p>AVAILABLE_NOT_DISPLAYED</p></td>
+<td><p>U1 secondaire</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Important : le builder garantit par test que <code class="docutils literal notranslate"><span class="pre">paper_open_positions_count</span> <span class="pre">==</span> <span class="pre">len(open_positions)</span></code>
+sur une capture réussie, y compris lorsqu’une position disparaît pendant
+l’enrichissement. <code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code>, lui, est construit depuis la vue initiale
+avant cette correction de race. Aucun test source n’établit actuellement que
+<code class="docutils literal notranslate"><span class="pre">portfolio_status.current_positions</span></code> reste identique au compteur matérialisé
+dans ce cas transitoire.</p>
+<p>Conséquence U1 :</p>
+<ul class="simple">
+<li><p>afficher le nombre courant depuis <code class="docutils literal notranslate"><span class="pre">paper_open_positions_count</span></code> ;</p></li>
+<li><p>utiliser <code class="docutils literal notranslate"><span class="pre">portfolio_status.hard_position_limit</span></code> comme plafond producteur ;</p></li>
+<li><p>ne rendre <code class="docutils literal notranslate"><span class="pre">portfolio_status.current_positions/admission_state</span></code> comme état
+cohérent qu’après une validation croisée explicite ;</p></li>
+<li><p>en cas de désaccord, afficher un état d’incohérence/indisponibilité plutôt
+que choisir silencieusement un des deux compteurs.
+| <code class="docutils literal notranslate"><span class="pre">PAPER_PORTFOLIO_BRAIN_LEVEL</span></code> | paramètre matériel <code class="docutils literal notranslate"><span class="pre">PAPER_*</span></code> du freeze + cutover | absent | MISSING_PRODUCER | U2 lit l’enregistrement exact du snapshot gelé |
+| <code class="docutils literal notranslate"><span class="pre">MEXC_SIM_MAX_POSITION_USD</span></code> | paramètre matériel <code class="docutils literal notranslate"><span class="pre">MEXC_SIM_*</span></code> du freeze | absent | MISSING_PRODUCER | U2 lit l’enregistrement exact du snapshot gelé |
+| max age / <code class="docutils literal notranslate"><span class="pre">MEXC_SIM_MAX_AGE_H</span></code> | paramètre matériel <code class="docutils literal notranslate"><span class="pre">MEXC_SIM_*</span></code> + OPEN PPL | absent | MISSING_PRODUCER | U2 lie config gelée et lifecycle |</p></li>
+</ul>
+<p>Le moteur de freeze classe explicitement les préfixes <code class="docutils literal notranslate"><span class="pre">PB_</span></code>, <code class="docutils literal notranslate"><span class="pre">PAPER_</span></code> et
+<code class="docutils literal notranslate"><span class="pre">MEXC_SIM_</span></code> comme matériels. Il résout chaque variable depuis la chaîne
+d’EnvironmentFiles ou depuis un défaut de code littéral, puis enregistre
+valeur, provenance, source et callsites.</p>
+<p>Règle U2 : la vérité de configuration affichée dans l’app doit provenir de
+l’enregistrement du <strong>snapshot BURN_IN_EXPERIMENT_CONFIG_V1 gelé et validé</strong>.
+Les probes <code class="docutils literal notranslate"><span class="pre">/proc/&lt;pid&gt;/environ</span></code> restent des preuves runtime ponctuelles de
+contrôle ; ils ne deviennent pas le producteur de configuration de l’app.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=2</span></code> possède en plus une liaison explicite par l’overlay
+d’activation du freeze.
+| progression O1…O9 | preuves gouvernance #282 | absent | MISSING_PRODUCER | ne pas scraper/calculer dans React ; prévoir artifact de checkpoint gouverné |
+| dernier checkpoint certifié | preuves #282 | absent | MISSING_PRODUCER | artifact de checkpoint gouverné |
+| critères restants avant finalisation | #282/#286 | absent | MISSING_PRODUCER | présentation gouvernée, jamais heuristique |
+| dataset final désigné | Research | non final aujourd’hui | NOT_AVAILABLE | rester explicite |</p>
+<section id="conclusion-b">
+<h3>Conclusion B<a class="headerlink" href="#conclusion-b" title="Link to this heading">¶</a></h3>
+<p>Le manque principal est un <strong>BurnInStatusSnapshot</strong> ou contrat équivalent,
+produit hors frontend.</p>
+<p>Il doit être passif et fail-closed et porter au minimum :</p>
+<ul class="simple">
+<li><p>epoch/config/source identity ;</p></li>
+<li><p>T0 ;</p></li>
+<li><p>event_count/last_sequence ;</p></li>
+<li><p>OPEN/CLOSED/UNRESOLVED ;</p></li>
+<li><p>dernier événement ;</p></li>
+<li><p>open lifecycles ;</p></li>
+<li><p>opened_at/timeout_at/recovery deadline ;</p></li>
+<li><p>admission configuration certifiée utile à l’opérateur ;</p></li>
+<li><p>provenance/freshness ;</p></li>
+<li><p>finalization state factuel.</p></li>
+</ul>
+<p>Les verdicts O1…O9 sont des certifications de gouvernance, pas des métriques
+runtime. Ils nécessitent un artifact de checkpoint explicitement publié ou
+doivent rester hors de la vérité live.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matrice-de-verite-finance">
+<h2>6. Matrice de vérité — Finance<a class="headerlink" href="#matrice-de-verite-finance" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Besoin</p></th>
+<th class="head"><p>Producteur source</p></th>
+<th class="head"><p>Endpoint</p></th>
+<th class="head"><p>App</p></th>
+<th class="head"><p>Statut</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>capital initial</p></td>
+<td><p>FIN-02</p></td>
+<td><p>financial reconciliation</p></td>
+<td><p>Finance/Direction partiel</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-odd"><td><p>cash disponible</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance/Direction</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-even"><td><p>réservé</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance/Direction</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-odd"><td><p>déployé</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance/Direction</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-even"><td><p>unresolved</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance/Direction</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-odd"><td><p>PnL réalisé</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance/Direction</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-even"><td><p>frais</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance/Direction</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-odd"><td><p>equity certifiée</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-even"><td><p>reconciliation</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance/Direction</p></td>
+<td><p>SOURCE_AVAILABLE_RUNTIME_UNPROVEN</p></td>
+</tr>
+<tr class="row-odd"><td><p>last_source_sequence</p></td>
+<td><p>FIN-02</p></td>
+<td><p>idem</p></td>
+<td><p>Finance</p></td>
+<td><p>DISPLAYED dans Finance / non remonté niveau 1</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="point-de-gouvernance">
+<h3>Point de gouvernance<a class="headerlink" href="#point-de-gouvernance" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">FIN02_RUNTIME_ENABLED</span></code> est OFF par défaut et le burn-in a été activé avec
+FIN-02 runtime OFF. #286 interdit une activation implicite.</p>
+<p>U0 ne demande donc aucune activation.</p>
+<p>Pour une App autonome à terme, deux voies seulement sont acceptables :</p>
+<ol class="arabic simple">
+<li><p>gate séparée pour activer le writer passif existant ;</p></li>
+<li><p>producteur sidecar READ-ONLY séparé lisant la frontière PPL certifiée sans
+redémarrer/modifier l’Advisor.</p></li>
+</ol>
+<p>Le choix appartient à une future mission de runtime proof.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="parite-cryptoradar-standalone-operator-app">
+<h2>7. Parité CryptoRadar standalone → Operator App<a class="headerlink" href="#parite-cryptoradar-standalone-operator-app" title="Link to this heading">¶</a></h2>
+<p>Le dashboard historique <code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code> possède :</p>
+<ul class="simple">
+<li><p>Scanner ;</p></li>
+<li><p>Signaux ;</p></li>
+<li><p>Live Market / LMI ;</p></li>
+<li><p>status DecisionPacket ;</p></li>
+<li><p>détail symbole ;</p></li>
+<li><p>authentification/dashboard standalone.</p></li>
+</ul>
+<section id="scanner">
+<h3>7.1 Scanner<a class="headerlink" href="#scanner" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Fonction standalone</p></th>
+<th class="head"><p>Operator App actuelle</p></th>
+<th class="head"><p>Classe U0</p></th>
+<th class="head"><p>Décision</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>classement symbole</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MarketView.top_opportunities</span></code></p></td>
+<td><p>DÉJÀ COUVERT PARTIELLEMENT</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-odd"><td><p>avg confidence</p></td>
+<td><p>oui</p></td>
+<td><p>DÉJÀ COUVERT</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-even"><td><p>max confidence</p></td>
+<td><p>oui</p></td>
+<td><p>DÉJÀ COUVERT</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-odd"><td><p>dominant side</p></td>
+<td><p>oui</p></td>
+<td><p>DÉJÀ COUVERT</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-even"><td><p>dominance %</p></td>
+<td><p>oui</p></td>
+<td><p>DÉJÀ COUVERT</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-odd"><td><p>nombre signaux</p></td>
+<td><p>oui</p></td>
+<td><p>DÉJÀ COUVERT</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-even"><td><p>régime</p></td>
+<td><p>oui</p></td>
+<td><p>DÉJÀ COUVERT</p></td>
+<td><p>conserver</p></td>
+</tr>
+<tr class="row-odd"><td><p>filtre LONG/SHORT</p></td>
+<td><p>non</p></td>
+<td><p>AVAILABLE UI GAP</p></td>
+<td><p>U3</p></td>
+</tr>
+<tr class="row-even"><td><p>recherche symbole</p></td>
+<td><p>non</p></td>
+<td><p>AVAILABLE UI GAP</p></td>
+<td><p>U3</p></td>
+</tr>
+<tr class="row-odd"><td><p>liste jusqu’à 50 / univers large</p></td>
+<td><p>snapshot actuel top 20</p></td>
+<td><p>PRODUCER GAP</p></td>
+<td><p>U3 : étendre projection safe</p></td>
+</tr>
+<tr class="row-even"><td><p>Entry/SL/TP</p></td>
+<td><p>volontairement interdits par WEB-01 Market</p></td>
+<td><p>DO_NOT_MIGRATE</p></td>
+<td><p>ne pas remettre dans Market</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Le contrat WEB-01 interdit explicitement les champs d’exécution :
+<code class="docutils literal notranslate"><span class="pre">entry/sl/tp/r_multiple/trade_allowed/is_actionable/order/position</span></code>.</p>
+<p>Cette interdiction doit rester.</p>
+</section>
+<section id="onglet-historique-signaux">
+<h3>7.2 Onglet historique “Signaux”<a class="headerlink" href="#onglet-historique-signaux" title="Link to this heading">¶</a></h3>
+<p>Le standalone reconstruit :</p>
+<ul class="simple">
+<li><p>Entry ;</p></li>
+<li><p>Stop Loss ;</p></li>
+<li><p>Take Profit ;</p></li>
+<li><p>R:R ;</p></li>
+<li><p>risk_pct ;</p></li>
+<li><p>reward_pct ;</p></li>
+<li><p>confidence ;</p></li>
+<li><p>régime.</p></li>
+</ul>
+<p>Cette vue est issue des DecisionPackets historiques et ressemble à une surface
+d’exécution.</p>
+<p>Verdict U0 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">DO_NOT_MIGRATE_AS_MARKET_VIEW</span></code>.</p>
+<p>Si l’opérateur a besoin de comprendre les décisions réelles de la machine,
+utiliser/faire évoluer <code class="docutils literal notranslate"><span class="pre">PAPER</span> <span class="pre">LIVE</span> <span class="pre">/</span> <span class="pre">Decisions</span></code>, qui conserve déjà
+<code class="docutils literal notranslate"><span class="pre">is_actionable</span></code>, <code class="docutils literal notranslate"><span class="pre">trade_allowed</span></code>, blocker, side, regime, lifecycle et
+confidence avec leurs autorités exactes.</p>
+</section>
+<section id="detail-symbole">
+<h3>7.3 Détail symbole<a class="headerlink" href="#detail-symbole" title="Link to this heading">¶</a></h3>
+<p>Standalone :</p>
+<ul class="simple">
+<li><p>n_signals ;</p></li>
+<li><p>avg/max confidence ;</p></li>
+<li><p>longs/shorts ;</p></li>
+<li><p>dominant regime ;</p></li>
+<li><p>dernier signal avec Entry/SL/TP/R.</p></li>
+</ul>
+<p>Classification :</p>
+<ul class="simple">
+<li><p>agrégats observationnels : utiles, mais projection actuelle incomplète ;</p></li>
+<li><p>niveaux Entry/SL/TP/R : DO_NOT_MIGRATE dans Market.</p></li>
+</ul>
+<p>U3 pourra ajouter un drill-down observationnel safe sans niveaux d’exécution.</p>
+</section>
+<section id="status-decisionpackets">
+<h3>7.4 Status DecisionPackets<a class="headerlink" href="#status-decisionpackets" title="Link to this heading">¶</a></h3>
+<p>Standalone :</p>
+<ul class="simple">
+<li><p>packets_today ;</p></li>
+<li><p>last_packet ;</p></li>
+<li><p>dp_files ;</p></li>
+<li><p>dp_total_gb.</p></li>
+</ul>
+<p>Parité :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">last_packet</span></code> est largement remplacé par <code class="docutils literal notranslate"><span class="pre">market.source_updated_at_utc</span></code> ;</p></li>
+<li><p>volume de packets sur fenêtre : <code class="docutils literal notranslate"><span class="pre">packets_observed</span></code> ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dp_files</span></code> / <code class="docutils literal notranslate"><span class="pre">dp_total_gb</span></code> relèvent de System/Storage, pas de Market.</p></li>
+</ul>
+<p>Ne pas recopier les métriques filesystem dans Market.</p>
+</section>
+<section id="live-market-lmi">
+<h3>7.5 Live Market / LMI<a class="headerlink" href="#live-market-lmi" title="Link to this heading">¶</a></h3>
+<p>Le standalone expose une capacité utile non présente dans l’Operator App :</p>
+<ul class="simple">
+<li><p>état microstructure ;</p></li>
+<li><p>state confidence ;</p></li>
+<li><p>buy/sell pressure ;</p></li>
+<li><p>flow USD ;</p></li>
+<li><p>resistance ;</p></li>
+<li><p>fragility ;</p></li>
+<li><p>price ;</p></li>
+<li><p>freshness/stale ;</p></li>
+<li><p>couverture ;</p></li>
+<li><p>événements LMI.</p></li>
+</ul>
+<p>Source :</p>
+<p><code class="docutils literal notranslate"><span class="pre">trade_analysis/integrations/dashboard_adapter.py</span></code> lisant
+<code class="docutils literal notranslate"><span class="pre">lmi_live_state.json</span></code>.</p>
+<p>Verdict :</p>
+<p><code class="docutils literal notranslate"><span class="pre">USEFUL_MISSING_PRODUCT_PROJECTION</span></code>.</p>
+<p>Cette capacité doit migrer, mais pas par lecture directe du fichier depuis
+React ou l’Operator API.</p>
+<p>Cible U3 :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>LMI source
+   ↓
+MarketMicrostructureSnapshot atomique
+   ↓
+reader API strict GET-only
+   ↓
+PAPER LIVE / Marché · Microstructure
+</pre></div>
+</div>
+<p>Le statut runtime courant de cette source doit être recertifié séparément avant
+tout verdict LIVE.</p>
+</section>
+<section id="dashboard-standalone-lui-meme">
+<h3>7.6 Dashboard standalone lui-même<a class="headerlink" href="#dashboard-standalone-lui-meme" title="Link to this heading">¶</a></h3>
+<p>Éléments à ne pas migrer :</p>
+<ul class="simple">
+<li><p>serveur FastAPI standalone ;</p></li>
+<li><p>login/cookie propres au dashboard ;</p></li>
+<li><p>lecture directe DecisionPacket JSONL par le serveur dashboard ;</p></li>
+<li><p>HTML/CSS/JS monolithique ;</p></li>
+<li><p>routes d’exécution-shaped signal levels.</p></li>
+</ul>
+<p>Le retrait futur concerne la <strong>surface de transport</strong>, pas les producteurs
+métier utiles.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="matrice-de-verite-research">
+<h2>8. Matrice de vérité — Research<a class="headerlink" href="#matrice-de-verite-research" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Besoin</p></th>
+<th class="head"><p>Schéma/UI</p></th>
+<th class="head"><p>Production live</p></th>
+<th class="head"><p>Statut U0</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>dataset_id</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-odd"><td><p>source_boundary_id</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-even"><td><p>paper_epoch_id</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-odd"><td><p>N / evidence strength</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-even"><td><p>research_run_id</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-odd"><td><p>diagnostic_run_id</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-even"><td><p>performance metrics</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-odd"><td><p>attribution</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-even"><td><p>limitations</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-odd"><td><p>candidates</p></td>
+<td><p>présent</p></td>
+<td><p>artifact attendu</p></td>
+<td><p>UI_READY</p></td>
+</tr>
+<tr class="row-even"><td><p>publication automatique depuis O7</p></td>
+<td><p>absente</p></td>
+<td><p>absente</p></td>
+<td><p>MISSING_PRODUCER</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Constat source :</p>
+<p><code class="docutils literal notranslate"><span class="pre">observability/research_lab_snapshot.py</span></code> fournit validation + publication
+atomique d’un document déjà construit.</p>
+<p>Aucun builder de production n’a été trouvé. Les appels au publisher sont
+limités aux tests/fixtures.</p>
+<p>Cible U4 :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>publication Research certifiée
+        ↓
+builder de présentation déterministe
+        ↓
+research_lab_snapshot.json
+        ↓
+/api/operator/v1/research-lab
+        ↓
+ResearchLabView / Direction
+</pre></div>
+</div>
+<p>Aucun calcul scientifique ne doit être déplacé dans le builder.</p>
+</section>
+<hr class="docutils" />
+<section id="gouvernance-securite-et-dette">
+<h2>9. Gouvernance, sécurité et dette<a class="headerlink" href="#gouvernance-securite-et-dette" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Besoin</p></th>
+<th class="head"><p>App actuelle</p></th>
+<th class="head"><p>Statut</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Freeze #286</p></td>
+<td><p>aucun producteur</p></td>
+<td><p>NON_DEPLOYE</p></td>
+</tr>
+<tr class="row-odd"><td><p>Gate O #315</p></td>
+<td><p>bloc placeholder seulement</p></td>
+<td><p>NON_DEPLOYE</p></td>
+</tr>
+<tr class="row-even"><td><p>décisions opérateur réelles</p></td>
+<td><p>aucun producteur opérationnel</p></td>
+<td><p>NON_DEPLOYE</p></td>
+</tr>
+<tr class="row-odd"><td><p>Agents/Bounties/AIC</p></td>
+<td><p>placeholders honnêtes</p></td>
+<td><p>NON_DEPLOYE</p></td>
+</tr>
+<tr class="row-even"><td><p>dette #202/#207/#208/#209/#257</p></td>
+<td><p>aucune projection consolidée</p></td>
+<td><p>NON_DEPLOYE</p></td>
+</tr>
+<tr class="row-odd"><td><p>incidents consolidés</p></td>
+<td><p>aucune projection</p></td>
+<td><p>NON_DEPLOYE</p></td>
+</tr>
+<tr class="row-even"><td><p>coûts réels consolidés</p></td>
+<td><p>aucune projection</p></td>
+<td><p>NON_DEPLOYE</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>La première version de #323 doit continuer à afficher ces absences
+explicitement plutôt que créer une fausse complétude.</p>
+<p>Une future <code class="docutils literal notranslate"><span class="pre">GovernanceSnapshot</span></code> pourra être étudiée après U1–U4.</p>
+</section>
+<hr class="docutils" />
+<section id="donnees-deja-disponibles-mais-sous-utilisees">
+<h2>10. Données déjà disponibles mais sous-utilisées<a class="headerlink" href="#donnees-deja-disponibles-mais-sous-utilisees" title="Link to this heading">¶</a></h2>
+<p>Priorité U1, sans nouveau moteur métier :</p>
+<section id="operator-snapshot">
+<h3>Operator snapshot<a class="headerlink" href="#operator-snapshot" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">source_sha</span></code> ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">worktree_state</span></code> ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runtime_sha_evidence_status</span></code> ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open_positions</span></code> ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open_positions[].opened_at</span></code> ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_open_positions_count</span></code> comme compteur courant canonique matérialisé ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">portfolio_status.hard_position_limit</span></code> ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">portfolio_status.current_positions/admission_state</span></code> uniquement après
+validation croisée avec le compteur courant.</p></li>
+</ul>
+<p>Limite frontend actuelle : <code class="docutils literal notranslate"><span class="pre">PortfolioDomain.portfolio_status</span></code> est typé
+<code class="docutils literal notranslate"><span class="pre">Record&lt;string,</span> <span class="pre">unknown&gt;</span></code> et <code class="docutils literal notranslate"><span class="pre">snapshotValidation.ts::isValidPortfolio()</span></code>
+ne valide pas sa structure. U1 doit donc introduire un type fermé et une
+validation stricte de <code class="docutils literal notranslate"><span class="pre">current_positions</span></code>, <code class="docutils literal notranslate"><span class="pre">hard_position_limit</span></code>,
+<code class="docutils literal notranslate"><span class="pre">admission_state</span></code>, <code class="docutils literal notranslate"><span class="pre">positions_by_personality</span></code> et <code class="docutils literal notranslate"><span class="pre">positions_by_regime</span></code>
+avant toute utilisation en rendu. Un cast TypeScript ou un accès direct à
+l’objet inconnu est interdit.</p>
+<ul class="simple">
+<li><p>positions par régime/personality ;</p></li>
+<li><p>decision blockers et autorités.</p></li>
+</ul>
+</section>
+<section id="fin-02">
+<h3>FIN-02<a class="headerlink" href="#fin-02" title="Link to this heading">¶</a></h3>
+<p>Lorsque son artifact est disponible :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">last_source_sequence</span></code> ;</p></li>
+<li><p>source/config identities ;</p></li>
+<li><p>counts ;</p></li>
+<li><p>capital/frais/PnL ;</p></li>
+<li><p>reconciliation.</p></li>
+</ul>
+</section>
+<section id="market">
+<h3>Market<a class="headerlink" href="#market" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">source_updated_at_utc</span></code> ;</p></li>
+<li><p>universe ;</p></li>
+<li><p>actionable/watchlist ;</p></li>
+<li><p>top opportunity rows ;</p></li>
+<li><p>freshness.</p></li>
+</ul>
+</section>
+<section id="research">
+<h3>Research<a class="headerlink" href="#research" title="Link to this heading">¶</a></h3>
+<p>L’UI est déjà suffisamment riche ; le manque est essentiellement le builder
+de présentation de production.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="modifications-produit-proposees">
+<h2>11. Modifications produit proposées<a class="headerlink" href="#modifications-produit-proposees" title="Link to this heading">¶</a></h2>
+<section id="u1-vue-proprietaire-lisible">
+<h3>U1 — Vue Propriétaire lisible<a class="headerlink" href="#u1-vue-proprietaire-lisible" title="Link to this heading">¶</a></h3>
+<p>Fichiers principaux :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/views/DirectionOverview.tsx</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/operator.css</span></code></p></li>
+<li><p>tests Direction.</p></li>
+</ul>
+<p>Objectif :</p>
+<ul class="simple">
+<li><p>remonter mode, source/runtime evidence, compteur courant/limite et dernière
+fraîcheur ;</p></li>
+<li><p>ajouter le type/validateur fermé de <code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code> ;</p></li>
+<li><p>ajouter un contrôle de cohérence avant d’afficher l’admission_state issu de
+<code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code> ;</p></li>
+<li><p>rendre le portefeuille et ses limites compréhensibles en quelques secondes ;</p></li>
+<li><p>conserver les détails SHA/provenance repliables ;</p></li>
+<li><p>ne créer aucun nouveau calcul scientifique.</p></li>
+</ul>
+<p>U1 peut utiliser uniquement des champs déjà présents.</p>
+</section>
+<section id="u2-burninstatussnapshot">
+<h3>U2 — BurnInStatusSnapshot<a class="headerlink" href="#u2-burninstatussnapshot" title="Link to this heading">¶</a></h3>
+<p>Nouveau producteur/projection passif à spécifier séparément.</p>
+<p>Composants candidats :</p>
+<ul class="simple">
+<li><p>builder <code class="docutils literal notranslate"><span class="pre">observability/burn_in_status_snapshot.py</span></code> ;</p></li>
+<li><p>reader <code class="docutils literal notranslate"><span class="pre">observability/operator_api/burn_in_status_reader.py</span></code> ;</p></li>
+<li><p>route GET-only <code class="docutils literal notranslate"><span class="pre">/api/operator/v1/burn-in</span></code> ;</p></li>
+<li><p>types/validator/client frontend ;</p></li>
+<li><p>carte burn-in Direction + vue PAPER lifecycle enrichie.</p></li>
+</ul>
+<p>Le builder possède la lecture de la frontière PPL/config. L’API ne lit jamais
+le JSONL autoritaire directement.</p>
+<p>Aucune mutation PPL.</p>
+</section>
+<section id="u2b-runtimeservicesnapshot">
+<h3>U2b — RuntimeServiceSnapshot<a class="headerlink" href="#u2b-runtimeservicesnapshot" title="Link to this heading">¶</a></h3>
+<p>Pour supprimer le besoin de <code class="docutils literal notranslate"><span class="pre">systemctl</span></code> manuel :</p>
+<ul class="simple">
+<li><p>producteur host read-only ;</p></li>
+<li><p>Advisor unit state ;</p></li>
+<li><p>MainPID ;</p></li>
+<li><p>NRestarts ;</p></li>
+<li><p>ExecMainStartTimestamp ;</p></li>
+<li><p>source/deployment evidence ;</p></li>
+<li><p>freshness.</p></li>
+</ul>
+<p>Cette capacité est une preuve host/runtime séparée et ne doit pas être inférée
+du snapshot Advisor.</p>
+<p>Déploiement ultérieur sous gate #286 distincte.</p>
+</section>
+<section id="u3-market-cryptoradar-unifie">
+<h3>U3 — Market / CryptoRadar unifié<a class="headerlink" href="#u3-market-cryptoradar-unifie" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p>scanner safe : compléter filtres/recherche et couverture ;</p></li>
+<li><p>microstructure LMI : nouveau snapshot gouverné ;</p></li>
+<li><p>ne pas migrer l’onglet Signaux historique dans Market ;</p></li>
+<li><p>conserver provenance/freshness par source ;</p></li>
+<li><p>matrice de parité obligatoire avant retirement.</p></li>
+</ol>
+</section>
+<section id="u4-research-publication-app">
+<h3>U4 — Research publication → App<a class="headerlink" href="#u4-research-publication-app" title="Link to this heading">¶</a></h3>
+<p>Créer le builder déterministe de présentation depuis les artifacts Research
+certifiés.</p>
+</section>
+<section id="u5-gouvernance-decision-queue">
+<h3>U5 — Gouvernance/Decision Queue<a class="headerlink" href="#u5-gouvernance-decision-queue" title="Link to this heading">¶</a></h3>
+<p>Reste dépendant de #315 Gate O pour la queue opérationnelle.</p>
+<p>Les informations read-only peuvent être ajoutées plus tôt si un producteur
+gouverné existe.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ordre-des-pr-recommande">
+<h2>12. Ordre des PR recommandé<a class="headerlink" href="#ordre-des-pr-recommande" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>U0  contrat/parité                      ← cette mission
+ ↓
+U1  Direction : exploiter les champs déjà disponibles
+ ↓
+U2  BurnInStatusSnapshot source-only
+ ↓
+U2b RuntimeServiceSnapshot source-only
+ ↓
+U3a Market scanner safe / parité
+ ↓
+U3b LMI microstructure projection
+ ↓
+U4  Research presentation builder
+ ↓
+Certification source #323
+ ↓
+Déploiement Operator App / observers par gates séparées
+ ↓
+Runtime/browser proof
+ ↓
+Retirement CryptoRadar standalone dans une mission indépendante
+</pre></div>
+</div>
+<p>U1 peut être développé sans toucher au runtime de trading.</p>
+<p>U2/U2b/U3b/U4 doivent séparer SOURCE PROOF et RUNTIME PROOF.</p>
+</section>
+<hr class="docutils" />
+<section id="criteres-de-retrait-futur-de-cryptoradar-standalone">
+<h2>13. Critères de retrait futur de CryptoRadar standalone<a class="headerlink" href="#criteres-de-retrait-futur-de-cryptoradar-standalone" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code> ne peut être retiré que si les conditions
+suivantes sont toutes prouvées :</p>
+<ol class="arabic simple">
+<li><p>Scanner observationnel utile présent dans Operator App.</p></li>
+<li><p>Filtres/recherche nécessaires disponibles.</p></li>
+<li><p>LMI/microstructure utile migré ou explicitement classé non nécessaire.</p></li>
+<li><p>Aucun niveau Entry/SL/TP historique n’est perdu silencieusement :
+il est soit volontairement retiré comme ambigu, soit remplacé par une vue
+PAPER Decision gouvernée.</p></li>
+<li><p>Aucun consommateur humain/service légitime ne dépend encore du port/service.</p></li>
+<li><p>Operator Market sources FRESH/STALE sont visibles et fail-closed.</p></li>
+<li><p>Mobile/desktop parité fonctionnelle vérifiée.</p></li>
+<li><p>Auth/canal Operator App certifié.</p></li>
+<li><p>Rollback documenté.</p></li>
+<li><p>Mission runtime séparée autorisée sous #286 ou après levée gouvernée du
+freeze.</p></li>
+<li><p>L’Advisor n’est jamais redémarré comme effet du retirement.</p></li>
+<li><p>Suppression source éventuelle séparée de l’arrêt runtime.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="tests-requis-pour-la-suite">
+<h2>14. Tests requis pour la suite<a class="headerlink" href="#tests-requis-pour-la-suite" title="Link to this heading">¶</a></h2>
+<section id="backend-snapshots">
+<h3>Backend / snapshots<a class="headerlink" href="#backend-snapshots" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>closed schema ;</p></li>
+<li><p>atomic write ;</p></li>
+<li><p>deterministic projection ;</p></li>
+<li><p>missing/malformed/stale fail-closed ;</p></li>
+<li><p>source identity/provenance ;</p></li>
+<li><p>no secrets ;</p></li>
+<li><p>aucune importation d’autorité execution/risk ;</p></li>
+<li><p>aucune mutation PPL ;</p></li>
+<li><p>aucune lecture brute depuis l’API lorsque le producteur doit posséder cette
+lecture.</p></li>
+</ul>
+</section>
+<section id="id1">
+<h3>Frontend<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>validateurs stricts ;</p></li>
+<li><p>invalid HTTP 200 → contract error ;</p></li>
+<li><p>UNKNOWN/UNRESOLVED/NOT_AVAILABLE/NON_DEPLOYE jamais transformés en zéro ;</p></li>
+<li><p>aucune recomputation PnL/equity/population ;</p></li>
+<li><p>aucune donnée Research injectée dans PAPER ;</p></li>
+<li><p>erreurs de cartes indépendantes ;</p></li>
+<li><p>desktop/mobile ;</p></li>
+<li><p>accessibilité ;</p></li>
+<li><p>routes GET-only.</p></li>
+</ul>
+</section>
+<section id="cryptoradar-parity">
+<h3>CryptoRadar parity<a class="headerlink" href="#cryptoradar-parity" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>même classement observationnel pour la même population source ;</p></li>
+<li><p>aucun champ Entry/SL/TP/R dans la projection Market ;</p></li>
+<li><p>filtres/search purement présentation ;</p></li>
+<li><p>LMI stale/fresh explicitement testé ;</p></li>
+<li><p>arrêt d’un producteur → STALE/UNAVAILABLE visible, jamais données courantes
+fabriquées.</p></li>
+</ul>
+</section>
+<section id="gouvernance">
+<h3>Gouvernance<a class="headerlink" href="#gouvernance" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>diff source-only pour chaque phase avant runtime gate ;</p></li>
+<li><p>exact SHA ;</p></li>
+<li><p>CI ;</p></li>
+<li><p>cross-stack ;</p></li>
+<li><p>visual proof ;</p></li>
+<li><p>rollback ;</p></li>
+<li><p>#286 explicitement respecté.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ce-que-u0-ne-recommande-pas">
+<h2>15. Ce que U0 ne recommande pas<a class="headerlink" href="#ce-que-u0-ne-recommande-pas" title="Link to this heading">¶</a></h2>
+<p>Ne pas :</p>
+<ul class="simple">
+<li><p>fusionner l’ancien dashboard dans React en copiant son HTML/JS ;</p></li>
+<li><p>connecter React directement aux DecisionPacket JSONL ;</p></li>
+<li><p>faire lire PPL JSONL par une route API ad hoc ;</p></li>
+<li><p>afficher Entry/SL/TP issus du radar comme opportunités Market ;</p></li>
+<li><p>calculer le burn-in progress dans le frontend ;</p></li>
+<li><p>inférer Advisor alive depuis <code class="docutils literal notranslate"><span class="pre">/healthz</span></code> ;</p></li>
+<li><p>activer FIN-02 implicitement ;</p></li>
+<li><p>utiliser Research N/PF/WR comme métrique PAPER active ;</p></li>
+<li><p>retirer <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code> avant parité et gate séparée.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="conclusion">
+<h2>16. Conclusion<a class="headerlink" href="#conclusion" title="Link to this heading">¶</a></h2>
+<p>L’Operator App est déjà la bonne fondation.</p>
+<p>Le travail restant se répartit ainsi :</p>
+<ul class="simple">
+<li><p><strong>présentation sous-utilisée</strong> : U1 ;</p></li>
+<li><p><strong>projections réellement manquantes</strong> : U2/U2b/U3b/U4 ;</p></li>
+<li><p><strong>surface historique à retirer plus tard</strong> : CryptoRadar standalone ;</p></li>
+<li><p><strong>trading runtime</strong> : inchangé.</p></li>
+</ul>
+<p>La cible produit reste :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ouvrir l'Operator App
+→ comprendre l'état de la machine
+→ comprendre le burn-in
+→ voir portefeuille/finance/marché/Research
+→ ouvrir le VPS seulement pour maintenance/forensic exceptionnel
+</pre></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">APP-UNIFY-01-U0 — Contrat de données et matrice de parité</a><ul>
+<li><a class="reference internal" href="#verdict-de-laudit">1. Verdict de l’audit</a></li>
+<li><a class="reference internal" href="#surfaces-existantes">2. Surfaces existantes</a><ul>
+<li><a class="reference internal" href="#operator-api">2.1 Operator API</a></li>
+<li><a class="reference internal" href="#frontend">2.2 Frontend</a></li>
+<li><a class="reference internal" href="#direction">2.3 Direction</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#vocabulaire-u0">3. Vocabulaire U0</a></li>
+<li><a class="reference internal" href="#matrice-de-verite-etat-machine">4. Matrice de vérité — état machine</a><ul>
+<li><a class="reference internal" href="#conclusion-a">Conclusion A</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#matrice-de-verite-burn-in-actif">5. Matrice de vérité — burn-in actif</a><ul>
+<li><a class="reference internal" href="#conclusion-b">Conclusion B</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#matrice-de-verite-finance">6. Matrice de vérité — Finance</a><ul>
+<li><a class="reference internal" href="#point-de-gouvernance">Point de gouvernance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#parite-cryptoradar-standalone-operator-app">7. Parité CryptoRadar standalone → Operator App</a><ul>
+<li><a class="reference internal" href="#scanner">7.1 Scanner</a></li>
+<li><a class="reference internal" href="#onglet-historique-signaux">7.2 Onglet historique “Signaux”</a></li>
+<li><a class="reference internal" href="#detail-symbole">7.3 Détail symbole</a></li>
+<li><a class="reference internal" href="#status-decisionpackets">7.4 Status DecisionPackets</a></li>
+<li><a class="reference internal" href="#live-market-lmi">7.5 Live Market / LMI</a></li>
+<li><a class="reference internal" href="#dashboard-standalone-lui-meme">7.6 Dashboard standalone lui-même</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#matrice-de-verite-research">8. Matrice de vérité — Research</a></li>
+<li><a class="reference internal" href="#gouvernance-securite-et-dette">9. Gouvernance, sécurité et dette</a></li>
+<li><a class="reference internal" href="#donnees-deja-disponibles-mais-sous-utilisees">10. Données déjà disponibles mais sous-utilisées</a><ul>
+<li><a class="reference internal" href="#operator-snapshot">Operator snapshot</a></li>
+<li><a class="reference internal" href="#fin-02">FIN-02</a></li>
+<li><a class="reference internal" href="#market">Market</a></li>
+<li><a class="reference internal" href="#research">Research</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#modifications-produit-proposees">11. Modifications produit proposées</a><ul>
+<li><a class="reference internal" href="#u1-vue-proprietaire-lisible">U1 — Vue Propriétaire lisible</a></li>
+<li><a class="reference internal" href="#u2-burninstatussnapshot">U2 — BurnInStatusSnapshot</a></li>
+<li><a class="reference internal" href="#u2b-runtimeservicesnapshot">U2b — RuntimeServiceSnapshot</a></li>
+<li><a class="reference internal" href="#u3-market-cryptoradar-unifie">U3 — Market / CryptoRadar unifié</a></li>
+<li><a class="reference internal" href="#u4-research-publication-app">U4 — Research publication → App</a></li>
+<li><a class="reference internal" href="#u5-gouvernance-decision-queue">U5 — Gouvernance/Decision Queue</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ordre-des-pr-recommande">12. Ordre des PR recommandé</a></li>
+<li><a class="reference internal" href="#criteres-de-retrait-futur-de-cryptoradar-standalone">13. Critères de retrait futur de CryptoRadar standalone</a></li>
+<li><a class="reference internal" href="#tests-requis-pour-la-suite">14. Tests requis pour la suite</a><ul>
+<li><a class="reference internal" href="#backend-snapshots">Backend / snapshots</a></li>
+<li><a class="reference internal" href="#id1">Frontend</a></li>
+<li><a class="reference internal" href="#cryptoradar-parity">CryptoRadar parity</a></li>
+<li><a class="reference internal" href="#gouvernance">Gouvernance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ce-que-u0-ne-recommande-pas">15. Ce que U0 ne recommande pas</a></li>
+<li><a class="reference internal" href="#conclusion">16. Conclusion</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
