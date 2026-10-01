@@ -1,8 +1,8 @@
 # APP-UNIFY-01 U2 — BurnInStatusSnapshot + historique PAPER
 
-Issue : #328  
-Parent : #323  
-Freeze : #286  
+Issue : #328
+Parent : #323
+Freeze : #286
 Baseline : `a2032b13982ae270cb8cd6e0f96c45ed6d53b721`
 
 ## Architecture
