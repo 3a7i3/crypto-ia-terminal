@@ -1,10 +1,22 @@
 # ADR-0019 — Stockage durable et projection gouvernée `OperatorDecision` (D5B-R2, prototype hors runtime)
 
 **Date :** 2026-09-28
-**Statut :** Proposé (prototype isolé, soumis à revue indépendante — issue #315)
+**Statut :** Gate S adopté par l’opérateur — prototype source uniquement ; revue finale requise avant le verdict `D5B_R2_PROTOTYPE_SOURCE_ACCEPTED`. Gate O reste bloqué.
 **Auteur :** Mathieu (via session Claude)
 
 ---
+
+## Décision de périmètre — Gate S (2026-09-30)
+
+L’opérateur a choisi explicitement **S — prototype source uniquement** dans le
+plan `D5B-R2-SCOPE-PLAN-20260930`. Cette décision autorise uniquement la
+livraison et, si les preuves finales passent, la fusion du prototype hors
+runtime sous le verdict distinct `D5B_R2_PROTOTYPE_SOURCE_ACCEPTED`.
+
+Elle **ne ferme aucun des six gates opérationnels** d’ADR-0020 §3, ne rend pas
+`operational=True` admissible et n’autorise ni D5C, ni raccordement Operator
+API, ni clé ou registre opérationnel, ni déploiement. L’issue #315 reste
+ouverte pour Gate O et le freeze #286 reste applicable.
 
 ## Contexte
 
@@ -152,7 +164,7 @@ approbation d'admission signée liée au candidat exact, attestation de
 disponibilité signée (journal_id, compte, hash de tête, checkpoint monotone,
 fenêtre de validité), ancre anti-retour persistée par le vérificateur, index
 `command_results` lié au journal vérifié. `AvailabilityProof` ne produit plus
-jamais `AVAILABLE`. **Le gate reste bloquant pour la certification** : la
+jamais `AVAILABLE`. **Gate O reste bloquant pour la certification opérationnelle** : la
 politique de confiance est une FIXTURE non opérationnelle, aucune autorité
 réelle n'étant désignée (décision humaine requise, ADR-0020 §3).
 
