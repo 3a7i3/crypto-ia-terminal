@@ -61,7 +61,56 @@ const operatorSnapshot = {
     real_account_last_poll_utc: { value: null, semantics: "UNKNOWN" },
     non_paper_wallet_balance_usd: { value: null, semantics: "NOT_APPLICABLE" },
     capital_x_usd: { value: null, semantics: "NOT_APPLICABLE" },
-    open_positions: { value: [], semantics: "EMPTY" },
+    open_positions: {
+      value: [
+        {
+          position_id: "visual-btc",
+          symbol: "BTCUSDT",
+          side: "BUY",
+          size_usd: 10,
+          entry_price: 50000,
+          current_price: { value: 50500, semantics: "PRESENT" },
+          current_price_observed_at_utc: "2026-09-27T20:00:00+00:00",
+          tp_price: 52000,
+          sl_price: 49000,
+          tp_sl_source: "original",
+          unrealized_pnl_usd: { value: 0.1, semantics: "PRESENT" },
+          unrealized_pnl_pct: { value: 1, semantics: "PRESENT" },
+          opened_at: Date.parse("2026-09-27T18:00:00+00:00") / 1000,
+          regime: { value: "trend", semantics: "PRESENT" },
+          restored_without_regime: false,
+          personality: "scalper",
+          restored: false,
+        },
+        {
+          position_id: "visual-eth",
+          symbol: "ETHUSDT",
+          side: "SELL",
+          size_usd: 10,
+          entry_price: 3000,
+          current_price: { value: 2970, semantics: "PRESENT" },
+          current_price_observed_at_utc: "2026-09-27T20:00:00+00:00",
+          tp_price: 2900,
+          sl_price: 3050,
+          tp_sl_source: "original",
+          unrealized_pnl_usd: { value: 0.1, semantics: "PRESENT" },
+          unrealized_pnl_pct: { value: 1, semantics: "PRESENT" },
+          opened_at: Date.parse("2026-09-27T19:30:00+00:00") / 1000,
+          regime: { value: "range", semantics: "PRESENT" },
+          restored_without_regime: false,
+          personality: "mean_reversion",
+          restored: false,
+        },
+      ],
+      semantics: "PRESENT",
+    },
+    portfolio_status: {
+      current_positions: 2,
+      hard_position_limit: 2,
+      admission_state: "SATURATED",
+      positions_by_personality: { scalper: 1, mean_reversion: 1 },
+      positions_by_regime: { trend: 1, range: 1 },
+    },
   },
   decision_pipeline: {
     domain: "decision_pipeline",
@@ -269,7 +318,19 @@ try {
   await page.getByTestId("direction-market-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-research-card").waitFor({ state: "visible" });
 
-  await page.getByTestId("direction-global-card").getByText("PAPER", { exact: true }).waitFor();
+  const globalCard = page.getByTestId("direction-global-card");
+  await globalCard.getByText("PAPER", { exact: true }).waitFor();
+  const ownerPulse = page.getByTestId("direction-owner-pulse");
+  const ownerPulseText = await ownerPulse.innerText();
+  for (const required of ["2 / 2", "SATURATED", "VERIFIED"]) {
+    assert(ownerPulseText.includes(required), `U1 owner pulse missing: ${required}`);
+  }
+  const ownerPositions = page.getByTestId("direction-owner-positions");
+  const ownerPositionsText = await ownerPositions.innerText();
+  for (const required of ["BTCUSDT", "ETHUSDT", "2h 0m", "30m", "Âge à la capture"]) {
+    assert(ownerPositionsText.includes(required), `U1 owner position evidence missing: ${required}`);
+  }
+
   await page.getByTestId("direction-experiment-card").getByText("981.8435705815693 USDT", { exact: true }).waitFor();
   const marketCard = page.getByTestId("direction-market-card");
   const researchCard = page.getByTestId("direction-research-card");
