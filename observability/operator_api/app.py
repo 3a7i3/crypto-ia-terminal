@@ -25,6 +25,12 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from observability.operator_api.burn_in_status_reader import (
+    DEFAULT_BURN_IN_STATUS_PATH,
+    DEFAULT_STALE_AFTER_S as DEFAULT_BURN_IN_STATUS_STALE_AFTER_S,
+    BurnInStatusReadResult,
+    BurnInStatusSnapshotReader,
+)
 from observability.operator_api.financial_reconciliation_reader import (
     DEFAULT_FINANCIAL_RECONCILIATION_PATH,
     DEFAULT_FINANCIAL_RECONCILIATION_STALE_AFTER_S,
@@ -64,6 +70,7 @@ app = FastAPI(
 # external exposure/auth remains a deployment/security responsibility.
 
 _reader = SafeSnapshotReader()
+_burn_in_status_reader = BurnInStatusSnapshotReader()
 _market_reader = MarketSnapshotReader()
 _ppl_comparison_reader = PplComparisonSnapshotReader()
 _financial_reconciliation_reader = FinancialReconciliationSnapshotReader()
@@ -106,6 +113,26 @@ def configure_market_reader(
         kwargs["now_fn"] = now_fn
     _market_reader = MarketSnapshotReader(path=market_snapshot_path, **kwargs)
     return _market_reader
+
+
+def get_burn_in_status_reader() -> BurnInStatusSnapshotReader:
+    return _burn_in_status_reader
+
+
+def configure_burn_in_status_reader(
+    path: Path = DEFAULT_BURN_IN_STATUS_PATH,
+    *,
+    stale_after_s: float = DEFAULT_BURN_IN_STATUS_STALE_AFTER_S,
+    now_fn=None,
+) -> BurnInStatusSnapshotReader:
+    """Replace the U2 presentation reader without touching PPL."""
+
+    global _burn_in_status_reader
+    kwargs: Dict[str, Any] = {"stale_after_s": stale_after_s}
+    if now_fn is not None:
+        kwargs["now_fn"] = now_fn
+    _burn_in_status_reader = BurnInStatusSnapshotReader(path=path, **kwargs)
+    return _burn_in_status_reader
 
 
 def get_market_reader() -> MarketSnapshotReader:
@@ -191,6 +218,16 @@ def _failure_response(result: SnapshotReadResult) -> JSONResponse:
             "error_code": result.error_code,
             "error_message": result.error_message,
             "retries_used": result.retries_used,
+        },
+    )
+
+
+def _burn_in_status_failure_response(result: BurnInStatusReadResult) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error_code": result.error_code,
+            "error_message": result.error_message,
         },
     )
 
@@ -345,6 +382,20 @@ def get_financial_reconciliation() -> Any:
     return payload
 
 
+@app.get("/api/operator/v1/burn-in")
+def get_burn_in_status() -> Any:
+    """Transport only the validated U2 atomic presentation artifact."""
+
+    result = get_burn_in_status_reader().read()
+    if not result.ok:
+        return _burn_in_status_failure_response(result)
+
+    payload = dict(result.snapshot or {})
+    payload["snapshot_age_s"] = result.snapshot_age_s
+    payload["freshness_classification"] = result.freshness_classification
+    return payload
+
+
 @app.get("/api/operator/v1/market")
 def get_market() -> Any:
     """Return only the validated CryptoRadar presentation artifact.
@@ -382,6 +433,8 @@ __all__ = [
     "app",
     "configure_reader",
     "get_reader",
+    "configure_burn_in_status_reader",
+    "get_burn_in_status_reader",
     "configure_market_reader",
     "get_market_reader",
     "configure_ppl_comparison_reader",
