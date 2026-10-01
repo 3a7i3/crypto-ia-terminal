@@ -61,7 +61,7 @@ const EVENT_KEYS = [
 ] as const;
 const DEADLINES = new Set(["BEFORE_TIMEOUT", "RECOVERY_WINDOW", "RECOVERY_EXPIRED", "NOT_AVAILABLE"]);
 const STATUSES = new Set(["OPEN", "CLOSED", "UNRESOLVED"]);
-const EVENTS = new Set(EVENT_KEYS);
+const EVENTS: ReadonlySet<string> = new Set(EVENT_KEYS);
 
 function validOpen(x: unknown): x is BurnInOpenLifecycle {
   if (!plain(x) || !exact(x, OPEN)) return false;
@@ -91,10 +91,11 @@ function validHistory(x: unknown): x is BurnInHistoryRow {
   if (typeof x.status !== "string" || !STATUSES.has(x.status)) return false;
   if (x.terminal_sequence !== null && (!nnInt(x.terminal_sequence) || x.terminal_sequence < 1)) return false;
   if (!nullableUtc(x.terminal_at_utc)) return false;
-  for (const key of ["exit_price", "exit_fee_usd", "gross_pnl_usd", "net_realized_pnl_usd", "duration_seconds"] as const) {
+  for (const key of ["exit_price", "exit_fee_usd", "gross_pnl_usd", "net_realized_pnl_usd"] as const) {
     if (x[key] !== null && !finite(x[key])) return false;
   }
-  if (x.duration_seconds !== null && x.duration_seconds < 0) return false;
+  const durationSeconds = x.duration_seconds;
+  if (durationSeconds !== null && (!finite(durationSeconds) || durationSeconds < 0)) return false;
   if (!nullableStr(x.unresolved_reason)) return false;
 
   if (x.status === "OPEN") {
