@@ -20,6 +20,7 @@ import { validateOperatorSnapshot } from "../lib/snapshotValidation";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
 import { validatePplComparisonSnapshot } from "../lib/pplComparisonValidation";
 import { validateResearchLabSnapshot } from "../lib/researchLabValidation";
+import { validateBurnInStatusSnapshot } from "../lib/burnInStatusValidation";
 import type { OperatorSnapshot, ApiStructuredError } from "../types";
 
 const FIXTURES_DIR =
@@ -264,6 +265,52 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     );
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/operator/v1/research-lab",
+      { method: "GET" },
+    );
+  });
+
+  it("J U2: exact PPL producer/API burn-in JSON renders governed history without direct JSONL access", async () => {
+    const canonical = loadFixture("A_minimal_canonical");
+    const burnIn = loadFixture("J_burn_in");
+    expect(canonical.http_status).toBe(200);
+    expect(burnIn.http_status).toBe(200);
+    expect(validateOperatorSnapshot(canonical.body)).toBe(true);
+    expect(validateBurnInStatusSnapshot(burnIn.body)).toBe(true);
+    expect(burnIn._proof?.producer_authority).toBe("PPL_AUTHORITY_PRESENTATION");
+    expect(burnIn._proof?.artifact_is_regular_file).toBe(true);
+    expect(burnIn._proof?.ppl_lock_created).toBe(false);
+    expect(burnIn._proof?.lifecycle_total).toBe(3);
+    expect(burnIn._proof?.history_rows).toBe(3);
+
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/operator/v1/burn-in") {
+        return Promise.resolve(jsonResponse(burnIn.body, 200));
+      }
+      if (url === "/api/operator/v1/snapshot") {
+        return Promise.resolve(jsonResponse(canonical.body, 200));
+      }
+      return Promise.resolve(jsonResponse({ error_code: "UNEXPECTED_TEST_URL" }, 404));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("tab-paper"));
+    fireEvent.click(screen.getByTestId("tab-burn-in"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("burnin-view")).toHaveTextContent("BURN-IN-EPOCH-CROSS-STACK"),
+    );
+    const view = screen.getByTestId("burnin-view");
+    expect(view).toHaveTextContent("Historique des ordres PAPER");
+    expect(view).toHaveTextContent("BTC/USDT");
+    expect(view).toHaveTextContent("ETH/USDT");
+    expect(view).toHaveTextContent("SOL/USDT");
+    expect(view).toHaveTextContent("UNRESOLVED");
+    expect(view).toHaveTextContent("PB_MAX_POSITIONS");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/operator/v1/burn-in",
       { method: "GET" },
     );
   });
