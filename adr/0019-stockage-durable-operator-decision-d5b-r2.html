@@ -1,0 +1,541 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>ADR-0019 — Stockage durable et projection gouvernée OperatorDecision (D5B-R2, prototype hors runtime) - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/adr/0019-stockage-durable-operator-decision-d5b-r2.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/adr/0019-stockage-durable-operator-decision-d5b-r2.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="adr-0019-stockage-durable-et-projection-gouvernee-operatordecision-d5b-r2-prototype-hors-runtime">
+<h1>ADR-0019 — Stockage durable et projection gouvernée <code class="docutils literal notranslate"><span class="pre">OperatorDecision</span></code> (D5B-R2, prototype hors runtime)<a class="headerlink" href="#adr-0019-stockage-durable-et-projection-gouvernee-operatordecision-d5b-r2-prototype-hors-runtime" title="Link to this heading">¶</a></h1>
+<p><strong>Date :</strong> 2026-09-28
+<strong>Statut :</strong> Proposé (prototype isolé, soumis à revue indépendante — issue #315)
+<strong>Auteur :</strong> Mathieu (via session Claude)</p>
+<hr class="docutils" />
+<section id="contexte">
+<h2>Contexte<a class="headerlink" href="#contexte" title="Link to this heading">¶</a></h2>
+<p>Le noyau source D5B-R1 (<code class="docutils literal notranslate"><span class="pre">observability/operator_decisions/producer.py</span></code>,
+PR #314, certifié <code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D5B_R1_GOVERNED_PRODUCER_SOURCE_CERTIFIED</span></code>)
+admet des candidats gouvernés et journalise des événements append-only, mais
+<strong>uniquement en mémoire</strong> : un redémarrage de processus perd tout l’état, et
+rien ne garantit qu’une écriture concurrente ou une coupure au milieu d’une
+admission ne corrompe le journal ni ne duplique une décision.</p>
+<p>L’issue #315 (D5B-R2) exige une décision documentée de stockage durable
+avant tout raccordement futur à l’Operator API ou à D5C, avec des preuves
+empiriques (tests de crash, de concurrence, de corruption) plutôt qu’une
+promesse d’architecture.</p>
+<p>Ce prototype reste strictement hors runtime : aucun endpoint, aucun service,
+aucun branchement à l’Advisor, aucune lecture de JSONL/DB/Telegram réels.
+Conformément au gel architectural (Scientific Debt Rule), il ne crée qu’une
+seule variable nouvelle — le mécanisme de persistance — et n’ajoute aucune
+règle de décision, aucun indicateur, aucune stratégie.</p>
+</section>
+<section id="alternatives-comparees">
+<h2>Alternatives comparées<a class="headerlink" href="#alternatives-comparees" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Critère</p></th>
+<th class="head"><p>(a) SQLite, transaction explicite</p></th>
+<th class="head"><p>(b) Journal append-only fichier (JSONL + fsync)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Atomicité</strong></p></td>
+<td><p>Native : <code class="docutils literal notranslate"><span class="pre">BEGIN</span> <span class="pre">IMMEDIATE</span></code> … <code class="docutils literal notranslate"><span class="pre">COMMIT</span></code>/<code class="docutils literal notranslate"><span class="pre">ROLLBACK</span></code> garantit qu’un événement, son index d’idempotence et l’accusé de commande sont écrits ensemble ou pas du tout (test ACID du moteur SQLite).</p></td>
+<td><p>Nécessite d’implémenter soi-même l’atomicité multi-écriture (ex: écrire dans un fichier temporaire + <code class="docutils literal notranslate"><span class="pre">rename</span></code> atomique), fragile dès qu’on doit associer plusieurs faits (événement + index d’idempotence + réponse de commande) dans une seule opération.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Reprise après crash</strong></p></td>
+<td><p>Le fichier <code class="docutils literal notranslate"><span class="pre">-wal</span></code>/<code class="docutils literal notranslate"><span class="pre">-journal</span></code> de SQLite permet un rollback automatique d’une transaction interrompue à la réouverture ; démontré par nos tests (<code class="docutils literal notranslate"><span class="pre">test_crash_avant_commit_ne_laisse_aucune_trace</span></code>, <code class="docutils literal notranslate"><span class="pre">test_crash_apres_commit_avant_reponse_est_durable_et_rejouable</span></code>).</p></td>
+<td><p>Une écriture JSONL interrompue au milieu d’une ligne laisse une ligne tronquée illisible ; il faut détecter et tronquer la queue corrompue soi-même à chaque redémarrage, ce qui est justement le risque que l’issue #315 demande d’éliminer, pas de recréer.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Intégrité</strong></p></td>
+<td><p>Contraintes <code class="docutils literal notranslate"><span class="pre">UNIQUE</span></code> natives (clé d’idempotence, hash d’événement) + vérification applicative de la chaîne de hash à la lecture.</p></td>
+<td><p>Chaîne de hash applicative seule ; aucune contrainte d’unicité imposée par le système de fichiers, donc une réécriture partielle peut passer inaperçue plus longtemps.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Concurrence</strong></p></td>
+<td><p>Verrouillage natif au niveau fichier (<code class="docutils literal notranslate"><span class="pre">BEGIN</span> <span class="pre">IMMEDIATE</span></code> sérialise les écrivains) ; démontré par nos tests d’admissions simultanées identiques/conflictuelles.</p></td>
+<td><p>Nécessite un verrou applicatif externe (fichier <code class="docutils literal notranslate"><span class="pre">.lock</span></code>, <code class="docutils literal notranslate"><span class="pre">flock</span></code>) réimplémentant ce que SQLite fournit déjà, avec plus de surface de bug.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Sauvegarde</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sqlite3.Connection.backup()</span></code> ou copie du fichier après <code class="docutils literal notranslate"><span class="pre">PRAGMA</span> <span class="pre">wal_checkpoint(TRUNCATE)</span></code> : opération standard, testable.</p></td>
+<td><p>Copie de fichier simple, mais sans garantie de cohérence si une écriture est en cours au moment de la copie (pas de point de cohérence natif).</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Migration</strong></p></td>
+<td><p>Schéma relationnel versionné (<code class="docutils literal notranslate"><span class="pre">schema_meta</span></code>), colonnes typées, migrations via scripts SQL classiques (ADD COLUMN, nouvelle table) sans réécrire l’historique.</p></td>
+<td><p>Migration = réécriture de tout le fichier JSONL ligne par ligne vers un nouveau format, ce qui casse la propriété “append-only, jamais réécrit” que l’on cherche justement à garantir.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="decision">
+<h2>Décision<a class="headerlink" href="#decision" title="Link to this heading">¶</a></h2>
+<p><strong>Retenu : (a) SQLite avec transaction explicite (<code class="docutils literal notranslate"><span class="pre">BEGIN</span> <span class="pre">IMMEDIATE</span></code> /
+<code class="docutils literal notranslate"><span class="pre">COMMIT</span></code> / <code class="docutils literal notranslate"><span class="pre">ROLLBACK</span></code>)</strong>, jamais un simple <code class="docutils literal notranslate"><span class="pre">commit()</span></code> implicite en fin de
+script. Chaque admission est une transaction unique qui :</p>
+<ol class="arabic simple">
+<li><p>vérifie la chaîne d’événements existante (fail-closed) ;</p></li>
+<li><p>cherche d’abord un résultat déjà committé pour la commande de l’appelant
+(<code class="docutils literal notranslate"><span class="pre">command_id</span></code>) — garantit qu’une réponse perdue après commit ne produit
+jamais un doublon lors d’un rejeu ;</p></li>
+<li><p>cherche ensuite une admission déjà committée pour la même clé métier
+(<code class="docutils literal notranslate"><span class="pre">owner_registry</span></code>, <code class="docutils literal notranslate"><span class="pre">source_type</span></code>, <code class="docutils literal notranslate"><span class="pre">source_id</span></code>, <code class="docutils literal notranslate"><span class="pre">owner_record_version</span></code>,
+<code class="docutils literal notranslate"><span class="pre">decision_purpose</span></code>) — identique → même <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> ; différente →
+<code class="docutils literal notranslate"><span class="pre">ContractError(&quot;collision</span> <span class="pre">...&quot;)</span></code> ;</p></li>
+<li><p>insère l’événement, son hash de chaîne et l’accusé de commande dans la
+même transaction.</p></li>
+</ol>
+<p>Le module ne réimplémente pas la logique de validation du candidat : il
+appelle <code class="docutils literal notranslate"><span class="pre">GovernedProducer._validate</span></code>/<code class="docutils literal notranslate"><span class="pre">_payload</span></code> du noyau R1 pour ne pas
+dupliquer une décision déjà gouvernée (gel architectural).</p>
+<section id="limite-explicite-authenticite-pas-seulement-integrite">
+<h3>Limite explicite — authenticité, pas seulement intégrité<a class="headerlink" href="#limite-explicite-authenticite-pas-seulement-integrite" title="Link to this heading">¶</a></h3>
+<p>Le hash de chaîne (<code class="docutils literal notranslate"><span class="pre">event_hash</span></code>/<code class="docutils literal notranslate"><span class="pre">previous_event_hash</span></code>) est un contrôle
+<strong>d’intégrité interne</strong> : il détecte une réécriture, une troncature ou un
+réordonnancement <em>après coup</em>, dans le même fichier. Ce n’est <strong>pas</strong> une
+preuve d’<strong>authenticité</strong> externe — quiconque a un accès en écriture au
+fichier SQLite peut réécrire tout le journal et recalculer une chaîne interne
+cohérente. Une racine de confiance externe serait nécessaire pour fermer ce
+trou :</p>
+<ul class="simple">
+<li><p>une signature cryptographique (clé privée détenue hors de ce processus,
+p. ex. HSM ou coffre de secrets), vérifiée à la lecture ; ou</p></li>
+<li><p>un ancrage périodique du hash de tête dans un registre faisant autorité et
+hors de portée du même compte/processus (ex: commit signé dans un dépôt
+séparé, service d’horodatage tiers).</p></li>
+</ul>
+<p>Aucun de ces mécanismes n’est disponible dans ce dépôt aujourd’hui (pas de
+gestion de clés de signature, pas de service d’ancrage). <strong>Ce point reste
+donc un gate ouvert, non résolu par ce prototype</strong> — voir la table
+« exigence → preuve → limite restante » de la PR associée.</p>
+<p>De même, <code class="docutils literal notranslate"><span class="pre">AvailabilityProof</span></code> reste une attestation fournie par l’appelant.
+Ce module ne l’authentifie jamais : un appelant malveillant ou bogué peut
+fabriquer une preuve à <code class="docutils literal notranslate"><span class="pre">producer_certified=True</span></code> avec le bon compte
+d’événements et obtenir <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code>. La seule garantie apportée ici est que
+<strong>l’absence de preuve, une preuve invalide structurellement, ou un watermark
+incohérent avec le journal réel ne produisent jamais <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code> ni un
+compte zéro implicite</strong> — mais l’authenticité de la preuve elle-même exige la
+même racine de confiance externe que ci-dessus.</p>
+</section>
+</section>
+<section id="alternatives-rejetees">
+<h2>Alternatives rejetées<a class="headerlink" href="#alternatives-rejetees" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Alternative</p></th>
+<th class="head"><p>Raison du rejet</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Journal append-only fichier (JSONL)</p></td>
+<td><p>Reprise après crash et concurrence beaucoup plus fragiles à implémenter correctement soi-même ; migration = réécriture, contraire à la propriété recherchée. Voir tableau ci-dessus.</p></td>
+</tr>
+<tr class="row-odd"><td><p>SQLite avec <code class="docutils literal notranslate"><span class="pre">isolation_level</span></code> implicite (autocommit par instruction)</p></td>
+<td><p>Ne garantit pas qu’un événement + son index d’idempotence + l’accusé de commande soient durables ensemble ; une coupure entre deux <code class="docutils literal notranslate"><span class="pre">INSERT</span></code> autocommit peut laisser un état incohérent. Rejeté au profit d’une transaction explicite unique.</p></td>
+</tr>
+<tr class="row-even"><td><p>Base de données externe (Postgres, etc.)</p></td>
+<td><p>Introduirait une dépendance de service supplémentaire (processus, réseau, secrets) hors du périmètre “prototype isolé hors runtime” de #315, et une nouvelle surface expérimentale non justifiée par une hypothèse H1-H6.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="addendum-corrections-suite-a-la-revue-independante-pr-316-review-id-5333698547">
+<h2>Addendum — corrections suite à la revue indépendante (PR #316, review_id 5333698547)<a class="headerlink" href="#addendum-corrections-suite-a-la-revue-independante-pr-316-review-id-5333698547" title="Link to this heading">¶</a></h2>
+<p>Le propriétaire du dépôt a signalé trois contournements réels du principe
+fail-closed dans le prototype initial. Les trois ont été corrigés dans la
+même PR #316 (voir <code class="docutils literal notranslate"><span class="pre">observability/operator_decisions/durable_store.py</span></code> et
+<code class="docutils literal notranslate"><span class="pre">tests/test_web_dir_d5b_r2_durable_store.py</span></code>) :</p>
+<ol class="arabic simple">
+<li><p><strong>Zéro non authentifié refusé</strong> — <code class="docutils literal notranslate"><span class="pre">project()</span></code> refusait auparavant
+d’admettre le contournement suivant : avec une base vide, une
+<code class="docutils literal notranslate"><span class="pre">AvailabilityProof</span></code> librement construite par l’appelant
+(<code class="docutils literal notranslate"><span class="pre">producer_certified=True</span></code>, <code class="docutils literal notranslate"><span class="pre">complete_event_count=0</span></code>, aucune signature ni
+ancrage) produisait <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code> avec <code class="docutils literal notranslate"><span class="pre">decision_count=0</span></code>. Corrigé :
+<code class="docutils literal notranslate"><span class="pre">project()</span></code> refuse désormais explicitement toute certification d’un
+journal vide via une preuve non authentifiée (<code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>), tant qu’aucun
+gate de confiance réel (signature, ancrage externe) n’est branché. Voir
+<code class="docutils literal notranslate"><span class="pre">test_zero_ne_peut_jamais_etre_certifie_par_une_preuve_non_authentifiee</span></code>.</p></li>
+<li><p><strong>Corruption détectée avant toute réponse rejouée</strong> — <code class="docutils literal notranslate"><span class="pre">admit()</span></code> consultait
+<code class="docutils literal notranslate"><span class="pre">command_results</span></code> (et pouvait renvoyer une <code class="docutils literal notranslate"><span class="pre">decision_id</span></code> connue) avant
+d’appeler <code class="docutils literal notranslate"><span class="pre">_verify_locked</span></code>, ce qui permettait à une corruption du journal
+de rester invisible tant que l’appelant rejouait un <code class="docutils literal notranslate"><span class="pre">command_id</span></code> déjà
+connu. Corrigé : la vérification de la chaîne se fait désormais
+systématiquement avant toute lecture de <code class="docutils literal notranslate"><span class="pre">command_results</span></code>. De plus,
+<code class="docutils literal notranslate"><span class="pre">command_results</span></code> porte maintenant une empreinte (<code class="docutils literal notranslate"><span class="pre">request_fingerprint</span></code>)
+de la requête d’origine (candidat + statut/priorité approuvés + référence
+d’approbation) : rejouer le même <code class="docutils literal notranslate"><span class="pre">command_id</span></code> avec une charge différente
+est rejeté explicitement (<code class="docutils literal notranslate"><span class="pre">ContractError</span></code>) au lieu de renvoyer
+silencieusement une réponse périmée. Voir
+<code class="docutils literal notranslate"><span class="pre">test_corruption_avant_rejeu_de_command_id_est_detectee_pas_masquee</span></code> et
+<code class="docutils literal notranslate"><span class="pre">test_rejeu_de_command_id_avec_charge_differente_est_rejete</span></code>.</p></li>
+<li><p><strong>Lecture + vérification transactionnelles dans <code class="docutils literal notranslate"><span class="pre">project()</span></code></strong> — <code class="docutils literal notranslate"><span class="pre">project()</span></code>
+appelait <code class="docutils literal notranslate"><span class="pre">events()</span></code> puis <code class="docutils literal notranslate"><span class="pre">verify()</span></code> sur deux connexions/transactions
+SQLite distinctes, laissant une fenêtre où une admission concurrente
+pouvait s’intercaler entre les deux lectures. Corrigé par
+<code class="docutils literal notranslate"><span class="pre">_read_events_verified()</span></code> : une unique transaction de lecture (<code class="docutils literal notranslate"><span class="pre">BEGIN</span></code> en
+mode WAL) fixe l’instantané avant la première lecture, et la vérification
+de la chaîne porte sur ce même instantané. Voir
+<code class="docutils literal notranslate"><span class="pre">test_project_lit_et_verifie_sous_un_instantane_transactionnel_unique</span></code>
+(démonstration déterministe par injection d’une écriture corruptrice
+pendant la fenêtre auparavant vulnérable) et
+<code class="docutils literal notranslate"><span class="pre">test_admission_concurrente_pendant_une_projection_ne_produit_aucune_incoherence</span></code>
+(stress multi-thread).</p></li>
+</ol>
+<p>Ces trois corrections ferment des contournements précis du principe
+fail-closed ; elles <strong>ne résolvent pas</strong> le gate d’authenticité externe déjà
+documenté ci-dessus (signature/ancrage pour la chaîne de hash et pour
+<code class="docutils literal notranslate"><span class="pre">AvailabilityProof</span></code>), qui reste un gate ouvert distinct.</p>
+</section>
+<section id="addendum-2-contrat-de-confiance-commentaire-proprietaire-5864337478">
+<h2>Addendum 2 — contrat de confiance (commentaire propriétaire 5864337478)<a class="headerlink" href="#addendum-2-contrat-de-confiance-commentaire-proprietaire-5864337478" title="Link to this heading">¶</a></h2>
+<p>Les limites « authenticité » et « <code class="docutils literal notranslate"><span class="pre">AvailabilityProof</span></code> non authentifiée »
+ci-dessus sont traitées, au niveau prototype, par ADR-0020
+(<code class="docutils literal notranslate"><span class="pre">docs/adr/0020-contrat-de-confiance-operator-decision-d5b-r2.md</span></code>) :
+approbation d’admission signée liée au candidat exact, attestation de
+disponibilité signée (journal_id, compte, hash de tête, checkpoint monotone,
+fenêtre de validité), ancre anti-retour persistée par le vérificateur, index
+<code class="docutils literal notranslate"><span class="pre">command_results</span></code> lié au journal vérifié. <code class="docutils literal notranslate"><span class="pre">AvailabilityProof</span></code> ne produit plus
+jamais <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code>. <strong>Le gate reste bloquant pour la certification</strong> : la
+politique de confiance est une FIXTURE non opérationnelle, aucune autorité
+réelle n’étant désignée (décision humaine requise, ADR-0020 §3).</p>
+</section>
+<section id="consequences">
+<h2>Conséquences<a class="headerlink" href="#consequences" title="Link to this heading">¶</a></h2>
+<p><strong>Positives :</strong></p>
+<ul class="simple">
+<li><p>Propriétés ACID démontrées par des tests réels de crash simulé (avant/après
+commit), de concurrence (admissions simultanées identiques/conflictuelles)
+et de corruption (troncature, réordonnancement, version de schéma inconnue).</p></li>
+<li><p>Idempotence de commande : une réponse perdue après commit ne peut jamais
+être rejouée en double.</p></li>
+<li><p>Projection reconstruite uniquement depuis le journal SQLite, jamais depuis
+un état en mémoire séparé.</p></li>
+</ul>
+<p><strong>Négatives / compromis :</strong></p>
+<ul class="simple">
+<li><p>Un seul fichier SQLite est un point de défaillance unique tant qu’aucune
+procédure de sauvegarde n’est exécutée régulièrement (voir
+<code class="docutils literal notranslate"><span class="pre">docs/runbooks/OPERATOR_DECISION_STORE_MIGRATION_BACKUP.md</span></code>).</p></li>
+<li><p>L’authenticité (racine de confiance externe pour la chaîne de hash et pour
+<code class="docutils literal notranslate"><span class="pre">AvailabilityProof</span></code>) n’est pas résolue par ce prototype — gate distinct.</p></li>
+</ul>
+<p><strong>Règles induites :</strong></p>
+<ul class="simple">
+<li><p>Aucune écriture ne doit contourner <code class="docutils literal notranslate"><span class="pre">DurableGovernedStore.admit</span></code> (pas
+d’accès SQL direct en dehors des tests de corruption, qui simulent
+explicitement une attaque/incident).</p></li>
+<li><p>Toute nouvelle version de schéma doit être ajoutée à
+<code class="docutils literal notranslate"><span class="pre">KNOWN_SCHEMA_VERSIONS</span></code> avec un plan de migration documenté (voir
+runbook), jamais par réécriture des événements existants.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADR-0019 — Stockage durable et projection gouvernée <code class="docutils literal notranslate"><span class="pre">OperatorDecision</span></code> (D5B-R2, prototype hors runtime)</a><ul>
+<li><a class="reference internal" href="#contexte">Contexte</a></li>
+<li><a class="reference internal" href="#alternatives-comparees">Alternatives comparées</a></li>
+<li><a class="reference internal" href="#decision">Décision</a><ul>
+<li><a class="reference internal" href="#limite-explicite-authenticite-pas-seulement-integrite">Limite explicite — authenticité, pas seulement intégrité</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#alternatives-rejetees">Alternatives rejetées</a></li>
+<li><a class="reference internal" href="#addendum-corrections-suite-a-la-revue-independante-pr-316-review-id-5333698547">Addendum — corrections suite à la revue indépendante (PR #316, review_id 5333698547)</a></li>
+<li><a class="reference internal" href="#addendum-2-contrat-de-confiance-commentaire-proprietaire-5864337478">Addendum 2 — contrat de confiance (commentaire propriétaire 5864337478)</a></li>
+<li><a class="reference internal" href="#consequences">Conséquences</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
