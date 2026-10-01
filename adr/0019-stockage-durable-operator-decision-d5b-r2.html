@@ -249,9 +249,20 @@
           <section id="adr-0019-stockage-durable-et-projection-gouvernee-operatordecision-d5b-r2-prototype-hors-runtime">
 <h1>ADR-0019 — Stockage durable et projection gouvernée <code class="docutils literal notranslate"><span class="pre">OperatorDecision</span></code> (D5B-R2, prototype hors runtime)<a class="headerlink" href="#adr-0019-stockage-durable-et-projection-gouvernee-operatordecision-d5b-r2-prototype-hors-runtime" title="Link to this heading">¶</a></h1>
 <p><strong>Date :</strong> 2026-09-28
-<strong>Statut :</strong> Proposé (prototype isolé, soumis à revue indépendante — issue #315)
+<strong>Statut :</strong> Gate S adopté par l’opérateur — prototype source uniquement ; revue finale requise avant le verdict <code class="docutils literal notranslate"><span class="pre">D5B_R2_PROTOTYPE_SOURCE_ACCEPTED</span></code>. Gate O reste bloqué.
 <strong>Auteur :</strong> Mathieu (via session Claude)</p>
 <hr class="docutils" />
+<section id="decision-de-perimetre-gate-s-2026-09-30">
+<h2>Décision de périmètre — Gate S (2026-09-30)<a class="headerlink" href="#decision-de-perimetre-gate-s-2026-09-30" title="Link to this heading">¶</a></h2>
+<p>L’opérateur a choisi explicitement <strong>S — prototype source uniquement</strong> dans le
+plan <code class="docutils literal notranslate"><span class="pre">D5B-R2-SCOPE-PLAN-20260930</span></code>. Cette décision autorise uniquement la
+livraison et, si les preuves finales passent, la fusion du prototype hors
+runtime sous le verdict distinct <code class="docutils literal notranslate"><span class="pre">D5B_R2_PROTOTYPE_SOURCE_ACCEPTED</span></code>.</p>
+<p>Elle <strong>ne ferme aucun des six gates opérationnels</strong> d’ADR-0020 §3, ne rend pas
+<code class="docutils literal notranslate"><span class="pre">operational=True</span></code> admissible et n’autorise ni D5C, ni raccordement Operator
+API, ni clé ou registre opérationnel, ni déploiement. L’issue #315 reste
+ouverte pour Gate O et le freeze #286 reste applicable.</p>
+</section>
 <section id="contexte">
 <h2>Contexte<a class="headerlink" href="#contexte" title="Link to this heading">¶</a></h2>
 <p>Le noyau source D5B-R1 (<code class="docutils literal notranslate"><span class="pre">observability/operator_decisions/producer.py</span></code>,
@@ -438,7 +449,7 @@ approbation d’admission signée liée au candidat exact, attestation de
 disponibilité signée (journal_id, compte, hash de tête, checkpoint monotone,
 fenêtre de validité), ancre anti-retour persistée par le vérificateur, index
 <code class="docutils literal notranslate"><span class="pre">command_results</span></code> lié au journal vérifié. <code class="docutils literal notranslate"><span class="pre">AvailabilityProof</span></code> ne produit plus
-jamais <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code>. <strong>Le gate reste bloquant pour la certification</strong> : la
+jamais <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code>. <strong>Gate O reste bloquant pour la certification opérationnelle</strong> : la
 politique de confiance est une FIXTURE non opérationnelle, aucune autorité
 réelle n’étant désignée (décision humaine requise, ADR-0020 §3).</p>
 </section>
@@ -512,6 +523,7 @@ runbook), jamais par réécriture des événements existants.</p></li>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">ADR-0019 — Stockage durable et projection gouvernée <code class="docutils literal notranslate"><span class="pre">OperatorDecision</span></code> (D5B-R2, prototype hors runtime)</a><ul>
+<li><a class="reference internal" href="#decision-de-perimetre-gate-s-2026-09-30">Décision de périmètre — Gate S (2026-09-30)</a></li>
 <li><a class="reference internal" href="#contexte">Contexte</a></li>
 <li><a class="reference internal" href="#alternatives-comparees">Alternatives comparées</a></li>
 <li><a class="reference internal" href="#decision">Décision</a><ul>

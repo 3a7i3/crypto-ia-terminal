@@ -252,6 +252,11 @@
 prototype isolé <code class="docutils literal notranslate"><span class="pre">observability/operator_decisions/durable_store.py</span></code>. Il ne
 décrit aucune procédure de déploiement VPS ni de service runtime — aucun des
 deux n’existe pour ce composant.</p>
+<p><strong>Décision de périmètre 2026-09-30 : Gate S — prototype source uniquement.</strong>
+Ce runbook documente les propriétés et procédures attendues du prototype ; il
+ne constitue pas une procédure opérationnelle active. Gate O, <code class="docutils literal notranslate"><span class="pre">operational=True</span></code>,
+D5C, API et tout déploiement restent bloqués ; #315 reste ouverte et #286
+demeure applicable.</p>
 <hr class="docutils" />
 <section id="contrat-de-migration-de-schema">
 <h2>1. Contrat de migration de schéma<a class="headerlink" href="#contrat-de-migration-de-schema" title="Link to this heading">¶</a></h2>
@@ -426,8 +431,9 @@ produit désormais <code class="docutils literal notranslate"><span class="pre">
 <h2>5. Limites non résolues<a class="headerlink" href="#limites-non-resolues" title="Link to this heading">¶</a></h2>
 <p>Ni la migration ni la sauvegarde décrites ici ne prouvent l’authenticité
 d’origine : la politique de confiance est une FIXTURE non opérationnelle et
-aucune autorité réelle n’est désignée (ADR-0020 §3, blocage de
-certification). Une restauration réussie prouve la cohérence interne du
+aucune autorité réelle n’est désignée (ADR-0020 §3, blocage Gate O de
+certification opérationnelle). Cette limite n’empêche pas un verdict Gate S
+source-only après revue et CI du candidat exact. Une restauration réussie prouve la cohérence interne du
 fichier restauré ; seule une attestation fraîche d’une autorité réelle, et une
 ancre anti-retour hors de portée d’un attaquant disposant du disque,
 fermeraient ce gate. L’emplacement de l’ancre, la désignation des

@@ -249,7 +249,7 @@
           <section id="adr-0020-contrat-de-confiance-operatordecision-d5b-r2-prototype-hors-runtime">
 <h1>ADR-0020 — Contrat de confiance <code class="docutils literal notranslate"><span class="pre">OperatorDecision</span></code> (D5B-R2, prototype hors runtime)<a class="headerlink" href="#adr-0020-contrat-de-confiance-operatordecision-d5b-r2-prototype-hors-runtime" title="Link to this heading">¶</a></h1>
 <p><strong>Date :</strong> 2026-09-28
-<strong>Statut :</strong> Proposé — <strong>BLOQUÉ pour certification</strong> (aucune autorité de confiance réelle désignée)
+<strong>Statut :</strong> Gate S adopté pour livraison source ; <strong>Gate O BLOQUÉ pour certification opérationnelle</strong> (aucune autorité de confiance réelle désignée)
 <strong>Portée :</strong> <code class="docutils literal notranslate"><span class="pre">observability/operator_decisions/</span></code> uniquement (prototype isolé, issue #315, PR #316)
 <strong>Complète :</strong> ADR-0019 (stockage durable), qui laissait l’authenticité en gate ouvert.
 <strong>Origine :</strong> commentaire du propriétaire PR #316 (comment_id 5864337478), étape 1 ;
@@ -261,6 +261,18 @@ existe déjà (même situation que les deux ADR-0019). Le nom de ce fichier a
 été imposé par la mission ; la désambiguïsation se fait par le slug.</p>
 </div></blockquote>
 <hr class="docutils" />
+<section id="decision-de-perimetre-gate-s-2026-09-30">
+<h2>Décision de périmètre — Gate S (2026-09-30)<a class="headerlink" href="#decision-de-perimetre-gate-s-2026-09-30" title="Link to this heading">¶</a></h2>
+<p>L’opérateur a choisi explicitement <strong>S — prototype source uniquement</strong>.
+Le contrat ci-dessous reste intégralement requis pour <strong>Gate O</strong>, c’est-à-dire
+toute certification ou activation opérationnelle.</p>
+<p>Gate S peut accepter le code et la documentation du prototype comme artefact
+source hors runtime, après composition avec le <code class="docutils literal notranslate"><span class="pre">main</span></code> courant, revue finale et
+CI au SHA exact. Le verdict source <code class="docutils literal notranslate"><span class="pre">D5B_R2_PROTOTYPE_SOURCE_ACCEPTED</span></code> ne
+désigne aucune autorité réelle, ne certifie aucun zéro opérationnel et
+n’autorise ni <code class="docutils literal notranslate"><span class="pre">operational=True</span></code>, ni D5C/API/runtime/déploiement.</p>
+<p>L’issue #315 reste ouverte et le freeze #286 demeure inchangé.</p>
+</section>
 <section id="pourquoi-ce-contrat-precede-le-code">
 <h2>1. Pourquoi ce contrat précède le code<a class="headerlink" href="#pourquoi-ce-contrat-precede-le-code" title="Link to this heading">¶</a></h2>
 <p>ADR-0019 prouve l’<strong>intégrité interne</strong> du journal (chaîne de hash, transactions
@@ -342,8 +354,8 @@ règles ; le code (<code class="docutils literal notranslate"><span class="pre">
 <p>Hors modèle : compromission du processus vérificateur lui-même, de la
 politique de confiance passée au constructeur, ou du code source.</p>
 </section>
-<section id="proprietaire-de-la-politique-de-confiance-blocage-de-certification">
-<h2>3. Propriétaire de la politique de confiance — BLOCAGE DE CERTIFICATION<a class="headerlink" href="#proprietaire-de-la-politique-de-confiance-blocage-de-certification" title="Link to this heading">¶</a></h2>
+<section id="proprietaire-de-la-politique-de-confiance-blocage-de-certification-operationnelle-gate-o">
+<h2>3. Propriétaire de la politique de confiance — BLOCAGE DE CERTIFICATION OPÉRATIONNELLE (GATE O)<a class="headerlink" href="#proprietaire-de-la-politique-de-confiance-blocage-de-certification-operationnelle-gate-o" title="Link to this heading">¶</a></h2>
 <p><strong>Constat :</strong> aucune autorité opérationnelle réelle n’existe aujourd’hui pour
 ce domaine. Les registres propriétaires listés par le contrat D5B
 (<code class="docutils literal notranslate"><span class="pre">docs/contracts/WEB_DIR_01_D5B_OPERATOR_DECISION_PRODUCER_ARCHITECTURE.md</span></code>,
@@ -352,9 +364,10 @@ futurs</strong> ; aucun n’est déployé, certifié, ni n’a donné son accord
 prototype n’en invente aucun.</p>
 <p><strong>Conséquence :</strong> la politique de confiance utilisée dans les tests est une
 <strong>FIXTURE non opérationnelle</strong> (<code class="docutils literal notranslate"><span class="pre">TrustPolicy(operational=False)</span></code>). Aucune
-sortie de ce prototype ne peut être présentée comme certifiée tant que la
+sortie de ce prototype ne peut être présentée comme <strong>certifiée opérationnellement</strong> tant que la
 décision humaine suivante n’a pas été prise et consignée dans un ADR signé
-par l’opérateur :</p>
+par l’opérateur. Le verdict source-only <code class="docutils literal notranslate"><span class="pre">D5B_R2_PROTOTYPE_SOURCE_ACCEPTED</span></code>
+ne ferme pas ces décisions :</p>
 <ol class="arabic simple">
 <li><p><strong>Désigner le propriétaire de la politique de confiance</strong> (personne ou rôle
 humain responsable de la liste des clés, des révocations et des versions de
@@ -378,8 +391,9 @@ d’identité opérateur de D5A, hors de ce prototype).</p></li>
 <li><p><strong>Choisir l’emplacement de l’ancre anti-retour</strong> (§8), hors de portée d’un
 attaquant disposant du disque du journal.</p></li>
 </ol>
-<p>Tant que ces six décisions n’existent pas : statut <strong>BLOQUÉ pour
-certification</strong>, quelle que soit la couleur de la CI.</p>
+<p>Tant que ces six décisions n’existent pas : <strong>Gate O BLOQUÉ pour
+certification opérationnelle</strong>, quelle que soit la couleur de la CI. Gate S
+reste un verdict source-only distinct, sans autorité opérationnelle.</p>
 </section>
 <section id="identites-roles-et-permissions">
 <h2>4. Identités, rôles et permissions<a class="headerlink" href="#identites-roles-et-permissions" title="Link to this heading">¶</a></h2>
@@ -584,7 +598,7 @@ dans le code de test. D’où le statut FIXTURE.</p></li>
 humaine future reste distincte de l’admission gouvernée), aucun service,
 déploiement, restart, lecture de données runtime, aucune mutation
 PAPER/PPL/FIN/Research/Watchdog/TESTNET/LIVE/epoch/config/risk/sizing. Aucun
-verdict R2.</p>
+verdict R2 opérationnel. Un verdict Gate S source-only ne change aucune de ces frontières.</p>
 </section>
 <section id="ecarts-corriges-depuis-203d02b-analyse-de-la-mission-dauthenticite">
 <h2>12. Écarts corrigés depuis 203d02b (analyse de la mission d’authenticité)<a class="headerlink" href="#ecarts-corriges-depuis-203d02b-analyse-de-la-mission-dauthenticite" title="Link to this heading">¶</a></h2>
@@ -695,9 +709,10 @@ checkpoint, index lié au journal, instantané transactionnel unique.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">ADR-0020 — Contrat de confiance <code class="docutils literal notranslate"><span class="pre">OperatorDecision</span></code> (D5B-R2, prototype hors runtime)</a><ul>
+<li><a class="reference internal" href="#decision-de-perimetre-gate-s-2026-09-30">Décision de périmètre — Gate S (2026-09-30)</a></li>
 <li><a class="reference internal" href="#pourquoi-ce-contrat-precede-le-code">1. Pourquoi ce contrat précède le code</a></li>
 <li><a class="reference internal" href="#modele-de-menace">2. Modèle de menace</a></li>
-<li><a class="reference internal" href="#proprietaire-de-la-politique-de-confiance-blocage-de-certification">3. Propriétaire de la politique de confiance — BLOCAGE DE CERTIFICATION</a></li>
+<li><a class="reference internal" href="#proprietaire-de-la-politique-de-confiance-blocage-de-certification-operationnelle-gate-o">3. Propriétaire de la politique de confiance — BLOCAGE DE CERTIFICATION OPÉRATIONNELLE (GATE O)</a></li>
 <li><a class="reference internal" href="#identites-roles-et-permissions">4. Identités, rôles et permissions</a><ul>
 <li><a class="reference internal" href="#admission-deux-enonces-un-candidat">4.1 Admission : deux énoncés, un candidat</a></li>
 <li><a class="reference internal" href="#references-de-preuves-sensibles-d5b-5">4.2 Références de preuves sensibles (D5B §5)</a></li>
