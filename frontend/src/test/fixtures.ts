@@ -39,6 +39,13 @@ export function baseSnapshot(overrides: Partial<OperatorSnapshot> = {}): Operato
       non_paper_wallet_balance_usd: { value: null, semantics: "NOT_APPLICABLE" },
       capital_x_usd: { value: null, semantics: "NOT_APPLICABLE" },
       open_positions: { value: [], semantics: "EMPTY" },
+      portfolio_status: {
+        current_positions: 0,
+        hard_position_limit: 2,
+        admission_state: "OPEN",
+        positions_by_personality: {},
+        positions_by_regime: {},
+      },
     },
     decision_pipeline: {
       domain: "decision_pipeline",

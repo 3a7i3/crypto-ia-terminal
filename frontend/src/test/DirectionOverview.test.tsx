@@ -175,6 +175,15 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     const research = screen.getByTestId("direction-research-card");
 
     expect(global).toHaveTextContent("INCONNU");
+    expect(global).toHaveTextContent("Mode");
+    expect(global).toHaveTextContent("PAPER");
+    expect(global).toHaveTextContent("Capital PAPER");
+    expect(global).toHaveTextContent("Positions PAPER");
+    expect(global).toHaveTextContent("0 / 2");
+    expect(global).toHaveTextContent("Admission portefeuille");
+    expect(global).toHaveTextContent("OPEN");
+    expect(global).toHaveTextContent("Runtime source");
+    expect(global).toHaveTextContent("VERIFIED");
     expect(global).toHaveTextContent("CURRENT_INSTANCE");
     expect(global).toHaveTextContent("boot_alive observation");
     expect(global).toHaveTextContent("NON DÉPLOYÉ");
@@ -296,6 +305,76 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
 
     expect(provenance).toHaveTextContent("Fraîcheur STALE");
     expect(provenance).toHaveTextContent("Âge NOT_AVAILABLE");
+  });
+
+  it("guards admission state when portfolio_status count diverges from the canonical observed count", async () => {
+    const operator = baseSnapshot();
+    operator.portfolio.paper_open_positions_count = { value: 1, semantics: "PRESENT" };
+    operator.portfolio.portfolio_status = {
+      current_positions: 2,
+      hard_position_limit: 2,
+      admission_state: "SATURATED",
+      positions_by_personality: { scalper: 2 },
+      positions_by_regime: { trend: 2 },
+    };
+
+    vi.stubGlobal("fetch", governedFetch(financialSnapshot(), marketSnapshot(), researchSnapshot(), operator));
+    render(<DirectionOverview />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("direction-admission-inconsistent")).toHaveTextContent(/compteurs divergents/i),
+    );
+
+    const global = screen.getByTestId("direction-global-card");
+    expect(global).toHaveTextContent("1 / 2");
+    expect(global).toHaveTextContent("INCOHÉRENT");
+    expect(global).toHaveTextContent("Aucun état d’admission n’est déduit");
+    expect(screen.getByTestId("direction-owner-pulse")).not.toHaveTextContent("SATURATED");
+  });
+
+  it("shows deterministic position age at snapshot time without presenting a timeout", async () => {
+    const operator = baseSnapshot({ generated_at_utc: "2026-09-09T02:30:00+00:00" });
+    operator.portfolio.paper_open_positions_count = { value: 1, semantics: "PRESENT" };
+    operator.portfolio.portfolio_status = {
+      current_positions: 1,
+      hard_position_limit: 2,
+      admission_state: "OPEN",
+      positions_by_personality: { scalper: 1 },
+      positions_by_regime: { trend: 1 },
+    };
+    operator.portfolio.open_positions = {
+      semantics: "PRESENT",
+      value: [
+        {
+          position_id: "pos-1",
+          symbol: "BTCUSDT",
+          side: "BUY",
+          size_usd: 10,
+          entry_price: 50000,
+          current_price: { value: 50500, semantics: "PRESENT" },
+          current_price_observed_at_utc: "2026-09-09T02:29:59+00:00",
+          tp_price: 52000,
+          sl_price: 49000,
+          tp_sl_source: "original",
+          unrealized_pnl_usd: { value: 0.1, semantics: "PRESENT" },
+          unrealized_pnl_pct: { value: 1, semantics: "PRESENT" },
+          opened_at: Date.parse("2026-09-09T00:00:00+00:00") / 1000,
+          regime: { value: "trend", semantics: "PRESENT" },
+          restored_without_regime: false,
+          personality: "scalper",
+          restored: false,
+        },
+      ],
+    };
+
+    vi.stubGlobal("fetch", governedFetch(financialSnapshot(), marketSnapshot(), researchSnapshot(), operator));
+    render(<DirectionOverview />);
+
+    await waitFor(() => expect(screen.getByTestId("direction-owner-positions")).toHaveTextContent("BTCUSDT"));
+    const positions = screen.getByTestId("direction-owner-positions");
+    expect(positions).toHaveTextContent("2h 30m");
+    expect(positions).toHaveTextContent("Âge à la capture");
+    expect(positions).toHaveTextContent("Ce n’est ni un timeout PPL ni une deadline scientifique");
   });
 
   it("treats an invalid HTTP 200 snapshot as a contract/transport error without erasing FIN", async () => {
