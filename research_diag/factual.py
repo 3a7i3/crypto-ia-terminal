@@ -594,16 +594,31 @@ def diagnose_factual_dataset(
     )
 
     net_sum = sum(float(row["net_realized_pnl_usd"]) for row in trades)
-    fee_sum = sum(float(row["total_fees_usd"]) for row in trades)
+    closed_fee_sum = sum(float(row["total_fees_usd"]) for row in trades)
+    non_closed_entry_fee_sum = sum(
+        _finite("entry_fee", life.entry_fee)
+        for life in replay.lifecycle
+        if life.resolution_status != "CLOSED"
+    )
+    reconciled_fee_sum = closed_fee_sum + non_closed_entry_fee_sum
     terminal_net = _finite("terminal.realized_pnl", replay.terminal_state["realized_pnl"])
     terminal_fees = _finite("terminal.fees_paid", replay.terminal_state["fees_paid"])
     if not math.isclose(net_sum, terminal_net, rel_tol=1e-12, abs_tol=1e-12):
         raise DiagnosticError(
             f"trade net PnL does not reconcile: trades={net_sum}, terminal={terminal_net}"
         )
-    if not math.isclose(fee_sum, terminal_fees, rel_tol=1e-12, abs_tol=1e-12):
+    if not math.isclose(
+        reconciled_fee_sum,
+        terminal_fees,
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    ):
         raise DiagnosticError(
-            f"trade fees do not reconcile: trades={fee_sum}, terminal={terminal_fees}"
+            "lifecycle fees do not reconcile: "
+            f"closed={closed_fee_sum}, "
+            f"non_closed_entry={non_closed_entry_fee_sum}, "
+            f"combined={reconciled_fee_sum}, "
+            f"terminal={terminal_fees}"
         )
 
     summary = _group_summary(trades)
@@ -612,6 +627,8 @@ def diagnose_factual_dataset(
             "paper_epoch_id": replay.paper_epoch_id,
             "initial_virtual_capital": replay.terminal_state["initial_virtual_capital"],
             "terminal_realized_pnl_usd": terminal_net,
+            "closed_population_fees_usd": closed_fee_sum,
+            "non_closed_entry_fees_usd": non_closed_entry_fee_sum,
             "terminal_fees_paid_usd": terminal_fees,
             "pnl_reconciliation": "PASS",
             "fee_reconciliation": "PASS",
