@@ -9,7 +9,7 @@ an atomic artifact without acquiring authority over the underlying PPL stream.
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Mapping
 
 SCHEMA_VERSION = "1.0.0"
