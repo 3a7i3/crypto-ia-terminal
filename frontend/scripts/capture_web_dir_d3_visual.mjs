@@ -279,6 +279,98 @@ const researchSnapshot = {
   limitations: ["N=13 / LOW_SAMPLE"],
 };
 
+const burnInSnapshot = {
+  schema_version: "1.0.0",
+  product: "BurnInStatusSnapshot",
+  domain: "burn_in",
+  authority: "PPL_AUTHORITY_PRESENTATION",
+  mode: "READ_ONLY",
+  generated_at_utc: "2026-09-27T20:00:00Z",
+  source_updated_at_utc: "2026-09-27T19:59:58Z",
+  paper_epoch_id: "BURN-IN-EPOCH-01-20260926T064144Z",
+  epoch_created_at_utc: "2026-09-27T02:41:07Z",
+  source_code_sha: "116634be0d3c015cce1cfa58be7da7255414fbfd",
+  config_snapshot_hash: "9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4",
+  ppl_stream_sha256: "7".repeat(64),
+  scientific_t0: {
+    status: "PRESENT",
+    value_utc: "2026-09-27T03:06:03.086973Z",
+    source: "WEB_DIR_01_D1_GOVERNANCE_CONTRACT",
+  },
+  event_count: 2,
+  last_sequence: 2,
+  event_counts: {
+    EPOCH_CREATED: 1,
+    POSITION_OPENED: 1,
+    POSITION_CLOSED: 0,
+    POSITION_UNRESOLVED: 0,
+    RECOVERY_COMPLETED: 0,
+  },
+  lifecycle_counts: { open: 1, closed: 0, unresolved: 0, total: 1 },
+  last_event: {
+    sequence: 2,
+    event_type: "POSITION_OPENED",
+    timestamp_utc: "2026-09-27T19:59:58Z",
+    trade_id: "visual-open",
+    decision_id: "visual-decision",
+  },
+  open_lifecycles: [{
+    trade_id: "visual-open",
+    decision_id: "visual-decision",
+    symbol: "CC/USDT",
+    side: "LONG",
+    principal_usd: 10,
+    entry_price: 0.2,
+    entry_fee_usd: 0.01,
+    opened_sequence: 2,
+    opened_at_utc: "2026-09-27T18:00:00Z",
+    age_seconds: 7198,
+    tp_price: 0.22,
+    sl_price: 0.19,
+    timeout_at_utc: "2026-09-28T02:00:00Z",
+    recovery_eligible_until_utc: "2026-09-28T11:00:00Z",
+    deadline_state: "BEFORE_TIMEOUT",
+  }],
+  lifecycle_history: [{
+    trade_id: "visual-open",
+    open_decision_id: "visual-decision",
+    terminal_decision_id: null,
+    symbol: "CC/USDT",
+    side: "LONG",
+    principal_usd: 10,
+    entry_price: 0.2,
+    entry_fee_usd: 0.01,
+    opened_sequence: 2,
+    opened_at_utc: "2026-09-27T18:00:00Z",
+    status: "OPEN",
+    terminal_sequence: null,
+    terminal_at_utc: null,
+    exit_price: null,
+    exit_fee_usd: null,
+    gross_pnl_usd: null,
+    net_realized_pnl_usd: null,
+    unresolved_reason: null,
+    duration_seconds: null,
+  }],
+  history_order: "OPEN_SEQUENCE_DESC",
+  frozen_config: {
+    snapshot_schema: "BURN_IN_EXPERIMENT_CONFIG_V1",
+    snapshot_sha256: "9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4",
+    runtime_source_sha: "116634be0d3c015cce1cfa58be7da7255414fbfd",
+    pb_max_positions: "2",
+    paper_portfolio_brain_level: "a",
+    mexc_sim_max_position_usd: "10",
+    mexc_sim_max_age_h: "8",
+    paper_lifecycle_authority: "PPL_AUTHORITY",
+  },
+  finalization: {
+    state: "NOT_AVAILABLE",
+    reason: "NO_GOVERNED_FINALIZATION_ARTIFACT_SUPPLIED",
+  },
+  snapshot_age_s: 2,
+  freshness_classification: "FRESH",
+};
+
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -296,6 +388,9 @@ try {
   );
   await page.route("**/api/operator/v1/research-lab", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(researchSnapshot) }),
+  );
+  await page.route("**/api/operator/v1/burn-in", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(burnInSnapshot) }),
   );
 
   page.on("request", (request) => {
@@ -317,6 +412,12 @@ try {
   await page.getByTestId("direction-experiment-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-market-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-research-card").waitFor({ state: "visible" });
+  await page.getByTestId("direction-burnin-card").waitFor({ state: "visible" });
+  const burnInCard = page.getByTestId("direction-burnin-card");
+  const burnInText = await burnInCard.innerText();
+  for (const required of ["PPL_AUTHORITY_PRESENTATION", "BEFORE_TIMEOUT", "T0 scientifique", "CC/USDT"]) {
+    assert(burnInText.includes(required), `U2 Direction burn-in evidence missing: ${required}`);
+  }
 
   const globalCard = page.getByTestId("direction-global-card");
   await globalCard.getByText("PAPER", { exact: true }).waitFor();
@@ -352,12 +453,14 @@ try {
   const experimentProvenance = page.getByTestId("direction-provenance-experiment");
   const marketProvenance = page.getByTestId("direction-provenance-market");
   const researchProvenance = page.getByTestId("direction-provenance-research");
+  const burnInProvenance = page.getByTestId("direction-provenance-burnin");
 
   for (const [locator, required] of [
     [globalProvenance, ["/api/operator/v1/snapshot", "canonical_advisor_presentation", "AUCUNE AUTORITÉ GLOBALE"]],
     [experimentProvenance, ["/api/operator/v1/financial-reconciliation", "FINANCIAL_OBSERVATION", "FRESH", "4.5s"]],
     [marketProvenance, ["/api/operator/v1/market", "OBSERVATIONAL_TELEMETRY", "FRESH", "8s"]],
     [researchProvenance, ["/api/operator/v1/research-lab", "RESEARCH_NON_AUTHORITATIVE", "NOT_AVAILABLE"]],
+    [burnInProvenance, ["/api/operator/v1/burn-in", "PPL_AUTHORITY_PRESENTATION", "FRESH", "2s"]],
   ]) {
     const text = await locator.innerText();
     for (const expected of required) {
@@ -411,8 +514,9 @@ try {
     "GET /api/operator/v1/financial-reconciliation",
     "GET /api/operator/v1/market",
     "GET /api/operator/v1/research-lab",
+    "GET /api/operator/v1/burn-in",
   ]);
-  assert(apiRequests.length >= 4, "Direction did not request all four governed D4B/D4C/D4D sources");
+  assert(apiRequests.length >= 5, "Direction did not request all five governed sources");
   assert(
     apiRequests.every((request) => allowedRequests.has(request)),
     `Direction requested an endpoint outside D4B/D4C/D4D: ${apiRequests.join(", ")}`,
@@ -421,7 +525,8 @@ try {
     apiRequests.includes("GET /api/operator/v1/snapshot") &&
       apiRequests.includes("GET /api/operator/v1/financial-reconciliation") &&
       apiRequests.includes("GET /api/operator/v1/market") &&
-      apiRequests.includes("GET /api/operator/v1/research-lab"),
+      apiRequests.includes("GET /api/operator/v1/research-lab") &&
+      apiRequests.includes("GET /api/operator/v1/burn-in"),
     `Direction governed sources incomplete: ${apiRequests.join(", ")}`,
   );
   assert(mutationRequests.length === 0, `Direction issued mutation requests: ${mutationRequests.join(", ")}`);
@@ -443,6 +548,7 @@ try {
   assert(await page.getByTestId("direction-provenance-experiment").isVisible(), "mobile Experiment provenance strip is not visible");
   assert(await page.getByTestId("direction-provenance-market").isVisible(), "mobile Market provenance strip is not visible");
   assert(await page.getByTestId("direction-provenance-research").isVisible(), "mobile Research provenance strip is not visible");
+  assert(await page.getByTestId("direction-provenance-burnin").isVisible(), "mobile Burn-in provenance strip is not visible");
   const mobileHeaderPosition = await page.locator(".direction-header").evaluate(
     (element) => getComputedStyle(element).position,
   );
