@@ -54,6 +54,33 @@ function isBoolean(x: unknown): x is boolean {
   return typeof x === "boolean";
 }
 
+function isNonNegativeSafeInteger(x: unknown): x is number {
+  return typeof x === "number" && Number.isSafeInteger(x) && x >= 0;
+}
+
+function hasExactKeys(x: Record<string, unknown>, expected: Set<string>): boolean {
+  const keys = Object.keys(x);
+  return keys.length === expected.size && keys.every((key) => expected.has(key));
+}
+
+function isCountMap(x: unknown): boolean {
+  if (!isPlainObject(x)) return false;
+  return Object.entries(x).every(
+    ([key, value]) => isNonBlankString(key) && isNonNegativeSafeInteger(value),
+  );
+}
+
+function isValidPortfolioStatus(x: unknown): boolean {
+  if (!isPlainObject(x)) return false;
+  if (!hasExactKeys(x, PORTFOLIO_STATUS_KEYS)) return false;
+  if (!isNonNegativeSafeInteger(x.current_positions)) return false;
+  if (!isNonNegativeSafeInteger(x.hard_position_limit)) return false;
+  if (!PORTFOLIO_ADMISSION_STATES.has(x.admission_state as string)) return false;
+  if (!isCountMap(x.positions_by_personality)) return false;
+  if (!isCountMap(x.positions_by_regime)) return false;
+  return true;
+}
+
 const WORKTREE_STATES = new Set(["CLEAN", "DIRTY", "UNKNOWN"]);
 const EVIDENCE_STATUSES = new Set(["VERIFIED", "CLAIMED_ONLY", "UNKNOWN"]);
 // O-02W-D2-R1.1 Correction E — `deployment_evidence.source` is a closed
@@ -62,6 +89,14 @@ const EVIDENCE_STATUSES = new Set(["VERIFIED", "CLAIMED_ONLY", "UNKNOWN"]);
 // is a shape check only, not a semantic upgrade of the evidence itself.
 const DEPLOYMENT_EVIDENCE_SOURCES = new Set(["deploy_tag", "deploy_audit", "post_deploy_verification"]);
 const PORTFOLIO_MODES = new Set(["PAPER", "REAL_API", "TESTNET_API", "UNKNOWN"]);
+const PORTFOLIO_ADMISSION_STATES = new Set(["OPEN", "SATURATED", "OVER_LIMIT"]);
+const PORTFOLIO_STATUS_KEYS = new Set([
+  "current_positions",
+  "hard_position_limit",
+  "admission_state",
+  "positions_by_personality",
+  "positions_by_regime",
+]);
 const INSTANCE_RELATIONS = new Set(["CURRENT_INSTANCE", "PREVIOUS_INSTANCE", "UNKNOWN"]);
 const RUNTIME_STATES = new Set(["CURRENT", "LAST_KNOWN"]);
 
@@ -250,6 +285,13 @@ function isValidPortfolio(x: unknown): boolean {
   if (!isStringObservedValue(x.real_account_last_poll_utc)) return false;
 
   if (!isListObservedValue(x.open_positions, isValidOpenPosition)) return false;
+
+  // U1 — portfolio_status becomes renderable only after a closed structural
+  // contract. It remains optional because the producer omits it when the
+  // simulator/canonical portfolio view is unavailable.
+  if (x.portfolio_status !== undefined && !isValidPortfolioStatus(x.portfolio_status)) {
+    return false;
+  }
 
   return true;
 }

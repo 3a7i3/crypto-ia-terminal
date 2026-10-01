@@ -11,6 +11,7 @@ export type WorktreeState = "CLEAN" | "DIRTY" | "UNKNOWN";
 export type DeploymentEvidenceStatus = "VERIFIED" | "CLAIMED_ONLY" | "UNKNOWN";
 export type RuntimeShaEvidenceStatus = "VERIFIED" | "CLAIMED_ONLY" | "UNKNOWN";
 export type PortfolioMode = "PAPER" | "REAL_API" | "TESTNET_API" | "UNKNOWN";
+export type PortfolioAdmissionState = "OPEN" | "SATURATED" | "OVER_LIMIT";
 export type Authority = "EXECUTION_AUTHORITY" | "OBSERVATIONAL_TELEMETRY" | "DECISION_OUTCOME_EVIDENCE" | string;
 
 export interface DeploymentEvidence {
@@ -45,6 +46,14 @@ export interface OpenPosition {
   restored_evidence_gaps?: string[];
 }
 
+export interface PortfolioStatus {
+  current_positions: number;
+  hard_position_limit: number;
+  admission_state: PortfolioAdmissionState;
+  positions_by_personality: Record<string, number>;
+  positions_by_regime: Record<string, number>;
+}
+
 export interface PortfolioDomain {
   domain: string;
   observed_at_utc: string;
@@ -68,7 +77,7 @@ export interface PortfolioDomain {
   non_paper_wallet_balance_usd: ObservedValue<number>;
   capital_x_usd: ObservedValue<number>;
   open_positions: ObservedValue<OpenPosition[]>;
-  portfolio_status?: Record<string, unknown>;
+  portfolio_status?: PortfolioStatus;
   [key: string]: unknown;
 }
 

@@ -8,6 +8,7 @@ import type { ResearchLabState } from "../lib/researchLabClient";
 import { useOperatorSnapshot } from "../lib/snapshotClient";
 import type { SnapshotState } from "../lib/snapshotClient";
 import type { ObservedValue } from "../lib/observedValue";
+import type { OpenPosition, PortfolioStatus } from "../types";
 
 const unavailable = [
   "File de décisions",
@@ -23,6 +24,94 @@ function observed(value: ObservedValue<unknown>): string {
   if (typeof value.value === "boolean") return value.value ? "TRUE" : "FALSE";
   return String(value.value);
 }
+
+function shortIdentity(value: string | null): string {
+  if (value === null) return "UNKNOWN";
+  return value.length > 14 ? `${value.slice(0, 12)}…` : value;
+}
+
+function formatPositionAgeAtSnapshot(openedAt: number | null, generatedAtUtc: string): string {
+  if (openedAt === null || !Number.isFinite(openedAt)) return "NOT_AVAILABLE";
+  const generatedMs = Date.parse(generatedAtUtc);
+  if (!Number.isFinite(generatedMs)) return "NOT_AVAILABLE";
+
+  const ageSeconds = Math.floor(generatedMs / 1000 - openedAt);
+  if (ageSeconds < 0) return "INCOHÉRENT";
+
+  const days = Math.floor(ageSeconds / 86400);
+  const hours = Math.floor((ageSeconds % 86400) / 3600);
+  const minutes = Math.floor((ageSeconds % 3600) / 60);
+
+  if (days > 0) return `${days}j ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${ageSeconds}s`;
+}
+
+type AdmissionPresentation = {
+  limit: string;
+  state: string;
+  consistent: boolean | null;
+};
+
+function admissionPresentation(
+  currentCount: ObservedValue<number>,
+  status: PortfolioStatus | undefined,
+): AdmissionPresentation {
+  if (status === undefined) {
+    return { limit: "NOT_AVAILABLE", state: "NOT_AVAILABLE", consistent: null };
+  }
+
+  if (currentCount.value === null) {
+    return {
+      limit: String(status.hard_position_limit),
+      state: `NON VALIDÉ · ${currentCount.semantics}`,
+      consistent: null,
+    };
+  }
+
+  if (currentCount.value !== status.current_positions) {
+    return {
+      limit: String(status.hard_position_limit),
+      state: "INCOHÉRENT",
+      consistent: false,
+    };
+  }
+
+  return {
+    limit: String(status.hard_position_limit),
+    state: status.admission_state,
+    consistent: true,
+  };
+}
+
+const PositionOwnerRow: React.FC<{
+  position: OpenPosition;
+  generatedAtUtc: string;
+}> = ({ position, generatedAtUtc }) => (
+  <div className="direction-position-row" data-testid="direction-owner-position">
+    <div>
+      <strong>{position.symbol}</strong>
+      <span>{position.side ?? "NOT_AVAILABLE"}</span>
+    </div>
+    <div>
+      <span>Taille</span>
+      <strong>{position.size_usd ?? "NOT_AVAILABLE"}</strong>
+    </div>
+    <div>
+      <span>PnL latent</span>
+      <strong>{observed(position.unrealized_pnl_usd)}</strong>
+    </div>
+    <div>
+      <span>Régime</span>
+      <strong>{observed(position.regime)}</strong>
+    </div>
+    <div>
+      <span>Âge à la capture · UI</span>
+      <strong>{formatPositionAgeAtSnapshot(position.opened_at, generatedAtUtc)}</strong>
+    </div>
+  </div>
+);
 
 type DirectionApiErrorState = Extract<
   SnapshotState | FinancialReconciliationState | MarketState | ResearchLabState,
@@ -75,8 +164,12 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
   }
 
   const s = state.snapshot;
+  const p = s.portfolio;
+  const admission = admissionPresentation(p.paper_open_positions_count, p.portfolio_status);
+  const positions = Array.isArray(p.open_positions.value) ? p.open_positions.value : [];
+
   return (
-    <article className="direction-card direction-card-governed" data-testid="direction-global-card">
+    <article className="direction-card direction-card-governed direction-owner-card" data-testid="direction-global-card">
       <div className="direction-card-heading">
         <h3>État global</h3>
         <span className="direction-card-badge">INCONNU</span>
@@ -90,18 +183,77 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
         freshness={s.freshness_classification}
         age={s.snapshot_age_s === null ? "NOT_AVAILABLE" : `${s.snapshot_age_s}s`}
       />
-      <dl className="direction-fact-grid">
-        <div><dt>Mode</dt><dd>{s.portfolio.mode}</dd></div>
+      <div className="direction-owner-pulse" data-testid="direction-owner-pulse">
+        <div>
+          <span>Mode</span>
+          <strong>{p.mode}</strong>
+          <small>canonique · non inféré</small>
+        </div>
+        <div>
+          <span>Capital PAPER</span>
+          <strong>{observed(p.paper_equity_usd)}</strong>
+          <small>{p.paper_equity_usd.semantics}</small>
+        </div>
+        <div>
+          <span>Positions PAPER</span>
+          <strong>{observed(p.paper_open_positions_count)} / {admission.limit}</strong>
+          <small>compteur canonique / plafond producteur</small>
+        </div>
+        <div>
+          <span>Admission portefeuille</span>
+          <strong>{admission.state}</strong>
+          <small>{admission.consistent === true ? "compteurs cohérents" : admission.consistent === false ? "compteurs divergents" : "validation indisponible"}</small>
+        </div>
+        <div>
+          <span>Snapshot</span>
+          <strong>{s.freshness_classification}</strong>
+          <small>{s.snapshot_age_s === null ? "âge NOT_AVAILABLE" : `âge ${s.snapshot_age_s}s`}</small>
+        </div>
+        <div>
+          <span>Runtime source</span>
+          <strong>{shortIdentity(s.source_sha)}</strong>
+          <small>{s.runtime_sha_evidence_status}</small>
+        </div>
+      </div>
+
+      {admission.consistent === false && p.portfolio_status !== undefined && (
+        <p className="direction-warning" data-testid="direction-admission-inconsistent">
+          Admission non fiable pour le niveau 1 : portfolio_status.current_positions={p.portfolio_status.current_positions}
+          {" "}≠ paper_open_positions_count={observed(p.paper_open_positions_count)}. Aucun état d’admission n’est déduit.
+        </p>
+      )}
+
+      <dl className="direction-fact-grid direction-owner-facts">
         <div><dt>Runtime</dt><dd>{s.runtime_state}</dd></div>
         <div><dt>Instance</dt><dd>{s.instance_relation}</dd></div>
         <div><dt>Worktree</dt><dd>{s.worktree_state}</dd></div>
-        <div><dt>Fraîcheur</dt><dd>{s.freshness_classification}</dd></div>
-        <div><dt>Âge snapshot</dt><dd>{s.snapshot_age_s === null ? "NOT_AVAILABLE" : `${s.snapshot_age_s}s`}</dd></div>
+        <div><dt>Stale reason</dt><dd>{s.stale_reason ?? "NOT_AVAILABLE"}</dd></div>
+        <div><dt>Inventaire positions</dt><dd>{p.open_positions.semantics}</dd></div>
+        <div><dt>PnL réalisé PAPER</dt><dd>{observed(p.paper_realized_pnl_usd)}</dd></div>
         <div><dt>Advisor · boot_alive observation</dt><dd>{observed(s.system_health.boot_alive)}</dd></div>
         <div><dt>Health level · producteur</dt><dd>{observed(s.system_health.health_level)}</dd></div>
         <div><dt>Watchdog</dt><dd>NON DÉPLOYÉ</dd></div>
         <div><dt>Alertes critiques</dt><dd>NON DÉPLOYÉ</dd></div>
       </dl>
+
+      {positions.length > 0 && (
+        <section className="direction-owner-positions" data-testid="direction-owner-positions">
+          <div className="direction-owner-section-head">
+            <strong>Positions ouvertes · snapshot opérateur</strong>
+            <span>{p.open_positions.semantics}</span>
+          </div>
+          <div className="direction-position-list">
+            {positions.map((position) => (
+              <PositionOwnerRow
+                key={position.position_id || position.symbol}
+                position={position}
+                generatedAtUtc={s.generated_at_utc}
+              />
+            ))}
+          </div>
+          <p>Âge à la capture = calcul de présentation entre opened_at et generated_at_utc du même snapshot. Ce n’est ni un timeout PPL ni une deadline scientifique.</p>
+        </section>
+      )}
       <details className="direction-provenance">
         <summary>Voir provenance</summary>
         <dl className="direction-fact-grid">
@@ -111,6 +263,9 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
           <div><dt>Process instance ID</dt><dd>{s.process_instance_id}</dd></div>
           <div><dt>Runtime source SHA</dt><dd>{s.source_sha ?? "UNKNOWN"}</dd></div>
           <div><dt>Preuve SHA</dt><dd>{s.runtime_sha_evidence_status}</dd></div>
+          <div><dt>Positions PAPER · compteur</dt><dd>{observed(p.paper_open_positions_count)}</dd></div>
+          <div><dt>Plafond producteur</dt><dd>{p.portfolio_status?.hard_position_limit ?? "NOT_AVAILABLE"}</dd></div>
+          <div><dt>Admission brute producteur</dt><dd>{p.portfolio_status?.admission_state ?? "NOT_AVAILABLE"}</dd></div>
           <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
           <div><dt>Stale reason</dt><dd>{s.stale_reason ?? "NOT_AVAILABLE"}</dd></div>
         </dl>
@@ -315,7 +470,7 @@ export const DirectionOverview: React.FC = () => {
   return (
     <div className="direction-stack" data-testid="direction-view">
       <section className="direction-intro">
-        <div><div className="direction-eyebrow">SURFACE PROPRIÉTAIRE · PRÉSENTATION / GOUVERNANCE</div><h2>Vue Direction</h2></div>
+        <div><div className="direction-eyebrow">SURFACE PROPRIÉTAIRE · PRÉSENTATION / GOUVERNANCE</div><h2>Vue Direction · Propriétaire</h2></div>
         <span className="direction-status-unknown">ÉTAT GLOBAL · INCONNU</span>
       </section>
 

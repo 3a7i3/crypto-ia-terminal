@@ -1132,6 +1132,39 @@
 }
 
 
+/* APP-UNIFY-01 U1 — owner-level machine facts from the existing snapshot only. */
+.direction-owner-card { grid-column: 1 / -1; }
+.direction-owner-pulse { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.direction-owner-pulse > div { min-width: 0; padding: 10px; border: 1px solid rgba(167, 139, 250, 0.16); border-radius: var(--r-chip); background: rgba(167, 139, 250, 0.035); }
+.direction-owner-pulse span, .direction-position-row span, .direction-owner-section-head span { display: block; color: var(--text-muted); font-family: var(--font-mono); font-size: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+.direction-owner-pulse strong { display: block; margin-top: 5px; overflow-wrap: anywhere; color: var(--text-pri); font-family: var(--font-mono); font-size: 13px; line-height: 1.25; }
+.direction-owner-pulse small { display: block; margin-top: 4px; color: var(--text-muted); font-family: var(--font-mono); font-size: 8px; line-height: 1.35; }
+.direction-owner-facts { margin-top: 2px; }
+.direction-owner-positions { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--bg-border); }
+.direction-owner-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.direction-owner-section-head strong { color: var(--text-sec); font-family: var(--font-mono); font-size: 10px; }
+.direction-position-list { display: grid; gap: 7px; }
+.direction-position-row { display: grid; grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr)); gap: 8px; padding: 9px; border: 1px solid rgba(255,255,255,0.05); border-radius: var(--r-chip); background: rgba(255,255,255,0.015); }
+.direction-position-row > div { min-width: 0; }
+.direction-position-row strong { display: block; margin-top: 3px; overflow-wrap: anywhere; color: var(--text-pri); font-family: var(--font-mono); font-size: 10px; }
+.direction-owner-positions p { margin: 8px 0 0; }
+
+@media (max-width: 1180px) {
+  .direction-owner-pulse { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .direction-position-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .direction-owner-pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .direction-position-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .direction-owner-section-head { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 390px) {
+  .direction-owner-pulse,
+  .direction-position-row { grid-template-columns: 1fr; }
+}
+
 /* WEB-DIR-01 D4D — cross-card provenance and freshness, presentation-only. */
 .direction-federation-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(167, 139, 250, 0.24); border-radius: var(--r-card); background: var(--violet-dim); color: var(--text-sec); font-family: var(--font-mono); font-size: 9px; line-height: 1.45; }
 .direction-federation-notice strong { color: var(--violet); font-size: 9px; letter-spacing: 0.08em; white-space: nowrap; }
