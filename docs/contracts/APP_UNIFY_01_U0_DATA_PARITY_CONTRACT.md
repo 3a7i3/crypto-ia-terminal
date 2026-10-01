@@ -479,7 +479,15 @@ Priorité U1, sans nouveau moteur métier :
 - `paper_open_positions_count` comme compteur courant canonique matérialisé ;
 - `portfolio_status.hard_position_limit` ;
 - `portfolio_status.current_positions/admission_state` uniquement après
-  validation croisée avec le compteur courant ;
+  validation croisée avec le compteur courant.
+
+Limite frontend actuelle : `PortfolioDomain.portfolio_status` est typé
+`Record<string, unknown>` et `snapshotValidation.ts::isValidPortfolio()`
+ne valide pas sa structure. U1 doit donc introduire un type fermé et une
+validation stricte de `current_positions`, `hard_position_limit`,
+`admission_state`, `positions_by_personality` et `positions_by_regime`
+avant toute utilisation en rendu. Un cast TypeScript ou un accès direct à
+l'objet inconnu est interdit.
 - positions par régime/personality ;
 - decision blockers et autorités.
 
@@ -523,6 +531,7 @@ Objectif :
 
 - remonter mode, source/runtime evidence, compteur courant/limite et dernière
   fraîcheur ;
+- ajouter le type/validateur fermé de `portfolio_status` ;
 - ajouter un contrôle de cohérence avant d'afficher l'admission_state issu de
   `portfolio_status` ;
 - rendre le portefeuille et ses limites compréhensibles en quelques secondes ;
