@@ -179,9 +179,22 @@ Conséquence U1 :
   cohérent qu'après une validation croisée explicite ;
 - en cas de désaccord, afficher un état d'incohérence/indisponibilité plutôt
   que choisir silencieusement un des deux compteurs.
-| `PAPER_PORTFOLIO_BRAIN_LEVEL` | runtime config | absent | MISSING_PRODUCER | U2 depuis config gelée, pas env frontend |
-| `MEXC_SIM_MAX_POSITION_USD` | runtime config | absent | MISSING_PRODUCER | U2 depuis config gelée |
-| max age 8h | runtime config/PPL OPEN | absent | MISSING_PRODUCER | U2 |
+| `PAPER_PORTFOLIO_BRAIN_LEVEL` | paramètre matériel `PAPER_*` du freeze + cutover | absent | MISSING_PRODUCER | U2 lit l'enregistrement exact du snapshot gelé |
+| `MEXC_SIM_MAX_POSITION_USD` | paramètre matériel `MEXC_SIM_*` du freeze | absent | MISSING_PRODUCER | U2 lit l'enregistrement exact du snapshot gelé |
+| max age / `MEXC_SIM_MAX_AGE_H` | paramètre matériel `MEXC_SIM_*` + OPEN PPL | absent | MISSING_PRODUCER | U2 lie config gelée et lifecycle |
+
+Le moteur de freeze classe explicitement les préfixes `PB_`, `PAPER_` et
+`MEXC_SIM_` comme matériels. Il résout chaque variable depuis la chaîne
+d'EnvironmentFiles ou depuis un défaut de code littéral, puis enregistre
+valeur, provenance, source et callsites.
+
+Règle U2 : la vérité de configuration affichée dans l'app doit provenir de
+l'enregistrement du **snapshot BURN_IN_EXPERIMENT_CONFIG_V1 gelé et validé**.
+Les probes `/proc/<pid>/environ` restent des preuves runtime ponctuelles de
+contrôle ; ils ne deviennent pas le producteur de configuration de l'app.
+
+`PB_MAX_POSITIONS=2` possède en plus une liaison explicite par l'overlay
+d'activation du freeze.
 | progression O1…O9 | preuves gouvernance #282 | absent | MISSING_PRODUCER | ne pas scraper/calculer dans React ; prévoir artifact de checkpoint gouverné |
 | dernier checkpoint certifié | preuves #282 | absent | MISSING_PRODUCER | artifact de checkpoint gouverné |
 | critères restants avant finalisation | #282/#286 | absent | MISSING_PRODUCER | présentation gouvernée, jamais heuristique |
