@@ -281,6 +281,14 @@ function isValidPortfolio(x: unknown): boolean {
     if (!isNumericObservedValue(x[key])) return false;
   }
 
+  // U1: this is a count, not an arbitrary numeric metric. The producer
+  // materializes an integer position count; fractional/negative values must
+  // never reach the owner-level "current / limit" presentation.
+  const paperOpenCount = x.paper_open_positions_count as { value: unknown };
+  if (paperOpenCount.value !== null && !isNonNegativeSafeInteger(paperOpenCount.value)) {
+    return false;
+  }
+
   if (!isBooleanObservedValue(x.real_account_stale)) return false;
   if (!isStringObservedValue(x.real_account_last_poll_utc)) return false;
 

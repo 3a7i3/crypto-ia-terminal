@@ -218,7 +218,7 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
 
       {admission.consistent === false && p.portfolio_status !== undefined && (
         <p className="direction-warning" data-testid="direction-admission-inconsistent">
-          Admission non fiable pour le niveau 1 : portfolio_status.current_positions={p.portfolio_status.current_positions}
+          Compteurs divergents : admission non fiable pour le niveau 1. portfolio_status.current_positions={p.portfolio_status.current_positions}
           {" "}≠ paper_open_positions_count={observed(p.paper_open_positions_count)}. Aucun état d’admission n’est déduit.
         </p>
       )}

@@ -159,6 +159,12 @@ describe("validateOperatorSnapshot — U1 closed portfolio_status contract", () 
     expect(validateOperatorSnapshot(snap)).toBe(true);
   });
 
+  it("rejects a fractional canonical paper_open_positions_count", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.paper_open_positions_count = { value: 1.5, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
   it("rejects an invented portfolio_status admission_state", () => {
     const snap = baseSnapshot();
     (snap.portfolio.portfolio_status as unknown as Record<string, unknown>).admission_state = "FULL";
