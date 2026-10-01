@@ -161,8 +161,24 @@ partir d'une inférence frontend.
 | source SHA burn-in | operator snapshot / FIN | partiel | DISPLAYED / SOURCE_AVAILABLE_RUNTIME_UNPROVEN | U1/U2 |
 | config hash burn-in | FIN / config freeze | partiel | SOURCE_AVAILABLE_RUNTIME_UNPROVEN | U2 |
 | PB hard limit | `portfolio_status` construit par operator snapshot | payload, non affiché | AVAILABLE_NOT_DISPLAYED | U1 |
-| admission_state OPEN/SATURATED/OVER_LIMIT | `portfolio_status` | non affiché | AVAILABLE_NOT_DISPLAYED | U1 |
+| admission_state OPEN/SATURATED/OVER_LIMIT | `portfolio_status` | non affiché | AVAILABLE_NOT_DISPLAYED_WITH_CONSISTENCY_GUARD | U1, seulement après validation croisée |
 | positions par régime/personality | `portfolio_status` | non affiché | AVAILABLE_NOT_DISPLAYED | U1 secondaire |
+
+Important : le builder garantit par test que `paper_open_positions_count == len(open_positions)`
+sur une capture réussie, y compris lorsqu'une position disparaît pendant
+l'enrichissement. `portfolio_status`, lui, est construit depuis la vue initiale
+avant cette correction de race. Aucun test source n'établit actuellement que
+`portfolio_status.current_positions` reste identique au compteur matérialisé
+dans ce cas transitoire.
+
+Conséquence U1 :
+
+- afficher le nombre courant depuis `paper_open_positions_count` ;
+- utiliser `portfolio_status.hard_position_limit` comme plafond producteur ;
+- ne rendre `portfolio_status.current_positions/admission_state` comme état
+  cohérent qu'après une validation croisée explicite ;
+- en cas de désaccord, afficher un état d'incohérence/indisponibilité plutôt
+  que choisir silencieusement un des deux compteurs.
 | `PAPER_PORTFOLIO_BRAIN_LEVEL` | runtime config | absent | MISSING_PRODUCER | U2 depuis config gelée, pas env frontend |
 | `MEXC_SIM_MAX_POSITION_USD` | runtime config | absent | MISSING_PRODUCER | U2 depuis config gelée |
 | max age 8h | runtime config/PPL OPEN | absent | MISSING_PRODUCER | U2 |
@@ -447,9 +463,10 @@ Priorité U1, sans nouveau moteur métier :
 - `runtime_sha_evidence_status` ;
 - `open_positions` ;
 - `open_positions[].opened_at` ;
-- `portfolio_status.current_positions` ;
+- `paper_open_positions_count` comme compteur courant canonique matérialisé ;
 - `portfolio_status.hard_position_limit` ;
-- `portfolio_status.admission_state` ;
+- `portfolio_status.current_positions/admission_state` uniquement après
+  validation croisée avec le compteur courant ;
 - positions par régime/personality ;
 - decision blockers et autorités.
 
@@ -491,8 +508,10 @@ Fichiers principaux :
 
 Objectif :
 
-- remonter mode, source/runtime evidence, position count/limit,
-  admission_state et dernière fraîcheur ;
+- remonter mode, source/runtime evidence, compteur courant/limite et dernière
+  fraîcheur ;
+- ajouter un contrôle de cohérence avant d'afficher l'admission_state issu de
+  `portfolio_status` ;
 - rendre le portefeuille et ses limites compréhensibles en quelques secondes ;
 - conserver les détails SHA/provenance repliables ;
 - ne créer aucun nouveau calcul scientifique.
