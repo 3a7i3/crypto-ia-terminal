@@ -1,7 +1,7 @@
 # ADR-0020 — Contrat de confiance `OperatorDecision` (D5B-R2, prototype hors runtime)
 
 **Date :** 2026-09-28
-**Statut :** Proposé — **BLOQUÉ pour certification** (aucune autorité de confiance réelle désignée)
+**Statut :** Gate S adopté pour livraison source ; **Gate O BLOQUÉ pour certification opérationnelle** (aucune autorité de confiance réelle désignée)
 **Portée :** `observability/operator_decisions/` uniquement (prototype isolé, issue #315, PR #316)
 **Complète :** ADR-0019 (stockage durable), qui laissait l'authenticité en gate ouvert.
 **Origine :** commentaire du propriétaire PR #316 (comment_id 5864337478), étape 1 ;
@@ -13,6 +13,20 @@ d'authenticité et d'autorité » (§12).
 > été imposé par la mission ; la désambiguïsation se fait par le slug.
 
 ---
+
+## Décision de périmètre — Gate S (2026-09-30)
+
+L’opérateur a choisi explicitement **S — prototype source uniquement**.
+Le contrat ci-dessous reste intégralement requis pour **Gate O**, c’est-à-dire
+toute certification ou activation opérationnelle.
+
+Gate S peut accepter le code et la documentation du prototype comme artefact
+source hors runtime, après composition avec le `main` courant, revue finale et
+CI au SHA exact. Le verdict source `D5B_R2_PROTOTYPE_SOURCE_ACCEPTED` ne
+désigne aucune autorité réelle, ne certifie aucun zéro opérationnel et
+n’autorise ni `operational=True`, ni D5C/API/runtime/déploiement.
+
+L’issue #315 reste ouverte et le freeze #286 demeure inchangé.
 
 ## 1. Pourquoi ce contrat précède le code
 
@@ -39,7 +53,7 @@ règles ; le code (`trust.py`, `durable_store.py`) ne fait que les appliquer.
 Hors modèle : compromission du processus vérificateur lui-même, de la
 politique de confiance passée au constructeur, ou du code source.
 
-## 3. Propriétaire de la politique de confiance — BLOCAGE DE CERTIFICATION
+## 3. Propriétaire de la politique de confiance — BLOCAGE DE CERTIFICATION OPÉRATIONNELLE (GATE O)
 
 **Constat :** aucune autorité opérationnelle réelle n'existe aujourd'hui pour
 ce domaine. Les registres propriétaires listés par le contrat D5B
@@ -50,9 +64,10 @@ prototype n'en invente aucun.
 
 **Conséquence :** la politique de confiance utilisée dans les tests est une
 **FIXTURE non opérationnelle** (`TrustPolicy(operational=False)`). Aucune
-sortie de ce prototype ne peut être présentée comme certifiée tant que la
+sortie de ce prototype ne peut être présentée comme **certifiée opérationnellement** tant que la
 décision humaine suivante n'a pas été prise et consignée dans un ADR signé
-par l'opérateur :
+par l'opérateur. Le verdict source-only `D5B_R2_PROTOTYPE_SOURCE_ACCEPTED`
+ne ferme pas ces décisions :
 
 1. **Désigner le propriétaire de la politique de confiance** (personne ou rôle
    humain responsable de la liste des clés, des révocations et des versions de
@@ -76,8 +91,9 @@ par l'opérateur :
 6. **Choisir l'emplacement de l'ancre anti-retour** (§8), hors de portée d'un
    attaquant disposant du disque du journal.
 
-Tant que ces six décisions n'existent pas : statut **BLOQUÉ pour
-certification**, quelle que soit la couleur de la CI.
+Tant que ces six décisions n'existent pas : **Gate O BLOQUÉ pour
+certification opérationnelle**, quelle que soit la couleur de la CI. Gate S
+reste un verdict source-only distinct, sans autorité opérationnelle.
 
 ## 4. Identités, rôles et permissions
 
@@ -252,7 +268,7 @@ Aucun raccordement Operator API/D5C, aucune action humaine D5D (la décision
 humaine future reste distincte de l'admission gouvernée), aucun service,
 déploiement, restart, lecture de données runtime, aucune mutation
 PAPER/PPL/FIN/Research/Watchdog/TESTNET/LIVE/epoch/config/risk/sizing. Aucun
-verdict R2.
+verdict R2 opérationnel. Un verdict Gate S source-only ne change aucune de ces frontières.
 
 ## 12. Écarts corrigés depuis 203d02b (analyse de la mission d'authenticité)
 
