@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { DirectionOverview } from "../views/DirectionOverview";
 import { baseSnapshot } from "./fixtures";
+import { burnInFixture } from "./burnInFixtures";
 
 function response(body: unknown, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
@@ -144,6 +145,7 @@ function governedFetch(
   market = marketSnapshot(),
   research = researchSnapshot(),
   operator = baseSnapshot(),
+  burnIn = burnInFixture(),
 ) {
   return vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
@@ -151,6 +153,7 @@ function governedFetch(
     if (url.endsWith("/api/operator/v1/financial-reconciliation")) return Promise.resolve(response(fin));
     if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(market));
     if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(research));
+    if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnIn));
     return Promise.reject(new Error("unexpected endpoint " + url));
   });
 }
@@ -158,7 +161,7 @@ function governedFetch(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
-  it("renders all four independent governed Direction cards with GET-only reads", async () => {
+  it("renders all five independent governed Direction cards with GET-only reads", async () => {
     const fetchMock = governedFetch();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -168,11 +171,18 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     await waitFor(() => expect(screen.getByTestId("direction-experiment-card")).toHaveTextContent("981.8435705815693 USDT"));
     await waitFor(() => expect(screen.getByTestId("direction-market-card")).toHaveTextContent("OBSERVATIONAL_TELEMETRY"));
     await waitFor(() => expect(screen.getByTestId("direction-research-card")).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE"));
+    await waitFor(() => expect(screen.getByTestId("direction-burnin-card")).toHaveTextContent("BURN-IN-EPOCH-01"));
 
+    const burnIn = screen.getByTestId("direction-burnin-card");
     const global = screen.getByTestId("direction-global-card");
     const experiment = screen.getByTestId("direction-experiment-card");
     const market = screen.getByTestId("direction-market-card");
     const research = screen.getByTestId("direction-research-card");
+
+    expect(burnIn).toHaveTextContent("Événements");
+    expect(burnIn).toHaveTextContent("BEFORE_TIMEOUT");
+    expect(burnIn).toHaveTextContent("T0 scientifique");
+    expect(burnIn).toHaveTextContent("PPL_AUTHORITY_PRESENTATION");
 
     expect(global).toHaveTextContent("INCONNU");
     expect(global).toHaveTextContent("Mode");
@@ -209,13 +219,14 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     expect(research).toHaveTextContent("0");
     expect(research).toHaveTextContent("ne remplissent jamais les métriques PAPER actives");
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
       expect.arrayContaining([
         "/api/operator/v1/snapshot",
         "/api/operator/v1/financial-reconciliation",
         "/api/operator/v1/market",
         "/api/operator/v1/research-lab",
+        "/api/operator/v1/burn-in",
       ]),
     );
     for (const call of fetchMock.mock.calls) expect(call[1]).toEqual({ method: "GET" });
@@ -251,6 +262,11 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     expect(market).toHaveTextContent("market");
     expect(market).toHaveTextContent("FRESH");
     expect(market).toHaveTextContent("8s");
+
+    const burnInProvenance = screen.getByTestId("direction-provenance-burnin");
+    expect(burnInProvenance).toHaveTextContent("/api/operator/v1/burn-in");
+    expect(burnInProvenance).toHaveTextContent("PPL_AUTHORITY_PRESENTATION");
+    expect(burnInProvenance).toHaveTextContent("FRESH");
 
     const research = screen.getByTestId("direction-provenance-research");
     expect(research).toHaveTextContent("/api/operator/v1/research-lab");
@@ -388,6 +404,7 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
       }
       if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(marketSnapshot()));
       if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(researchSnapshot()));
+      if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
       return Promise.reject(new Error("unexpected endpoint " + url));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -421,6 +438,7 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
       if (url.endsWith("/api/operator/v1/research-lab")) {
         return Promise.reject(new Error("research network unavailable"));
       }
+      if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
       return Promise.reject(new Error("unexpected endpoint " + url));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -475,6 +493,7 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
         return Promise.resolve(response({ error_code: "MARKET_SNAPSHOT_MISSING", error_message: "missing" }, 503));
       }
       if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(researchSnapshot()));
+      if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
       return Promise.reject(new Error("unexpected endpoint " + url));
     });
     vi.stubGlobal("fetch", fetchMock);
