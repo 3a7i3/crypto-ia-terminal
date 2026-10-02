@@ -20,6 +20,7 @@ const mainLinks = [
 
 const paperLinks = [
   { to: "/paper-live/portfolio", label: "Portefeuille", testId: "tab-portfolio" },
+  { to: "/paper-live/burn-in", label: "Burn-in", testId: "tab-burn-in" },
   { to: "/paper-live/decisions", label: "Décisions", testId: "tab-decisions" },
   { to: "/paper-live/lifecycle", label: "Lifecycle PPL", testId: "tab-ppl" },
   { to: "/paper-live/finance", label: "Finance", testId: "tab-finance" },
@@ -45,6 +46,7 @@ export const PaperLiveShell: React.FC = () => {
   const activeDomain = domain(location.pathname);
   const independentRoute = activeDomain === "market" ||
     location.pathname === "/paper-live/lifecycle" ||
+    location.pathname === "/paper-live/burn-in" ||
     location.pathname === "/paper-live/finance";
 
   return (

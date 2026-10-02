@@ -1,4 +1,6 @@
 import React from "react";
+import { useBurnInStatus } from "../lib/burnInStatusClient";
+import type { BurnInState } from "../lib/burnInStatusClient";
 import { useFinancialReconciliation } from "../lib/financialReconciliationClient";
 import type { FinancialReconciliationState } from "../lib/financialReconciliationClient";
 import { useMarketSnapshot } from "../lib/marketClient";
@@ -114,7 +116,7 @@ const PositionOwnerRow: React.FC<{
 );
 
 type DirectionApiErrorState = Extract<
-  SnapshotState | FinancialReconciliationState | MarketState | ResearchLabState,
+  SnapshotState | FinancialReconciliationState | MarketState | ResearchLabState | BurnInState,
   { status: "api_error" }
 >;
 
@@ -269,6 +271,68 @@ const GlobalStateCard: React.FC<{ state: SnapshotState }> = ({ state }) => {
           <div><dt>Admission brute producteur</dt><dd>{p.portfolio_status?.admission_state ?? "NOT_AVAILABLE"}</dd></div>
           <div><dt>Généré</dt><dd>{s.generated_at_utc}</dd></div>
           <div><dt>Stale reason</dt><dd>{s.stale_reason ?? "NOT_AVAILABLE"}</dd></div>
+        </dl>
+      </details>
+    </article>
+  );
+};
+
+const BurnInCard: React.FC<{ state: BurnInState }> = ({ state }) => {
+  if (state.status === "loading") {
+    return <article className="direction-card direction-card-governed direction-burnin-card" data-testid="direction-burnin-card"><h3>Burn-in</h3><strong>CHARGEMENT</strong><p>Lecture de la projection PPL U2.</p></article>;
+  }
+  if (state.status === "api_error") {
+    return <article className="direction-card direction-card-governed direction-card-error direction-burnin-card" data-testid="direction-burnin-card"><h3>Burn-in</h3><strong>ERREUR SOURCE</strong><p>{apiError(state)}</p></article>;
+  }
+  if (state.status === "transport_error") {
+    return <article className="direction-card direction-card-governed direction-card-error direction-burnin-card" data-testid="direction-burnin-card"><h3>Burn-in</h3><strong>ERREUR TRANSPORT / CONTRAT</strong><p>{state.message}</p></article>;
+  }
+
+  const s = state.snapshot;
+  return (
+    <article className="direction-card direction-card-governed direction-burnin-card" data-testid="direction-burnin-card">
+      <div className="direction-card-heading">
+        <h3>Burn-in actif</h3>
+        <span className="direction-card-badge">{s.freshness_classification}</span>
+      </div>
+      <ProvenanceStrip
+        testId="direction-provenance-burnin"
+        endpoint="/api/operator/v1/burn-in"
+        domain={s.domain}
+        authority={s.authority}
+        generatedAt={s.generated_at_utc}
+        freshness={s.freshness_classification}
+        age={`${s.snapshot_age_s}s`}
+      />
+      <div className="direction-epoch-id">{s.paper_epoch_id}</div>
+      <div className="direction-burnin-pulse">
+        <div><span>Événements</span><strong>{s.event_count}</strong><small>last seq {s.last_sequence}</small></div>
+        <div><span>OPEN</span><strong>{s.lifecycle_counts.open}</strong><small>courants</small></div>
+        <div><span>CLOSED</span><strong>{s.lifecycle_counts.closed}</strong><small>résolus connus</small></div>
+        <div><span>UNRESOLVED</span><strong>{s.lifecycle_counts.unresolved}</strong><small>outcome inconnu</small></div>
+        <div><span>T0 scientifique</span><strong>{s.scientific_t0.status}</strong><small>{s.scientific_t0.value_utc ?? "NOT_AVAILABLE"}</small></div>
+        <div><span>Dernier événement</span><strong>{s.last_event.event_type}</strong><small>#{s.last_event.sequence}</small></div>
+      </div>
+      {s.open_lifecycles.length > 0 && (
+        <div className="direction-burnin-open" data-testid="direction-burnin-open">
+          {s.open_lifecycles.map((row) => (
+            <div key={row.trade_id}>
+              <strong>{row.symbol}</strong>
+              <span>{row.side} · {row.deadline_state}</span>
+              <small>{Math.floor(row.age_seconds / 3600)}h · timeout {row.timeout_at_utc ?? "NOT_AVAILABLE"}</small>
+            </div>
+          ))}
+        </div>
+      )}
+      <details className="direction-provenance">
+        <summary>Voir provenance / config</summary>
+        <dl className="direction-fact-grid">
+          <div><dt>Runtime source SHA</dt><dd>{s.source_code_sha}</dd></div>
+          <div><dt>Config hash</dt><dd>{s.config_snapshot_hash}</dd></div>
+          <div><dt>PPL stream SHA</dt><dd>{s.ppl_stream_sha256}</dd></div>
+          <div><dt>PB_MAX_POSITIONS</dt><dd>{s.frozen_config.pb_max_positions}</dd></div>
+          <div><dt>MEXC_SIM_MAX_AGE_H</dt><dd>{s.frozen_config.mexc_sim_max_age_h}</dd></div>
+          <div><dt>Finalisation</dt><dd>{s.finalization.state}</dd></div>
         </dl>
       </details>
     </article>
@@ -464,6 +528,7 @@ const ResearchCard: React.FC<{ state: ResearchLabState }> = ({ state }) => {
 
 export const DirectionOverview: React.FC = () => {
   const operatorState = useOperatorSnapshot();
+  const burnInState = useBurnInStatus();
   const financialState = useFinancialReconciliation();
   const marketState = useMarketSnapshot();
   const researchState = useResearchLabSnapshot();
@@ -477,8 +542,12 @@ export const DirectionOverview: React.FC = () => {
 
       <aside className="direction-federation-notice" data-testid="direction-federation-notice">
         <strong>FÉDÉRÉ · NON ATOMIQUE</strong>
-        <span>4 sources indépendantes · aucun timestamp global · aucune fraîcheur globale · aucun état de santé global dérivé.</span>
+        <span>5 sources indépendantes · aucun timestamp global · aucune fraîcheur globale · aucun état de santé global dérivé.</span>
       </aside>
+
+      <section aria-label="État burn-in Direction">
+        <BurnInCard state={burnInState} />
+      </section>
 
       <section className="direction-primary-grid" aria-label="Synthèse gouvernée Direction">
         <GlobalStateCard state={operatorState} />

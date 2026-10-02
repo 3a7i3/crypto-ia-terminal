@@ -16,6 +16,7 @@ import {
   SystemRoute,
 } from "./router/PaperLiveRoutes";
 import { DirectionOverview } from "./views/DirectionOverview";
+import { BurnInStatusView } from "./views/BurnInStatusView";
 import { EventsView } from "./views/EventsView";
 import { NotFoundView } from "./views/NotFoundView";
 import { ResearchLabView } from "./views/ResearchLabView";
@@ -29,6 +30,7 @@ const App: React.FC = () => (
         <Route path="overview" element={<OverviewRoute />} />
         <Route path="market" element={<MarketRoute />} />
         <Route path="portfolio" element={<PortfolioRoute />} />
+        <Route path="burn-in" element={<BurnInStatusView />} />
         <Route path="decisions" element={<DecisionsRoute />} />
         <Route path="lifecycle" element={<LifecycleRoute />} />
         <Route path="finance" element={<FinanceRoute />} />
