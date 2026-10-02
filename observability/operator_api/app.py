@@ -25,6 +25,11 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from observability.operator_api.market_microstructure_reader import (
+    DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
+    MarketMicrostructureReader,
+)
+
 from observability.operator_api.runtime_service_reader import (
     DEFAULT_RUNTIME_SERVICE_PATH,
     DEFAULT_STALE_AFTER_S as DEFAULT_RUNTIME_SERVICE_STALE_AFTER_S,
@@ -76,6 +81,7 @@ app = FastAPI(
 # external exposure/auth remains a deployment/security responsibility.
 
 _reader = SafeSnapshotReader()
+_microstructure_reader = MarketMicrostructureReader()
 _runtime_service_reader = RuntimeServiceSnapshotReader()
 _burn_in_status_reader = BurnInStatusSnapshotReader()
 _market_reader = MarketSnapshotReader()
@@ -120,6 +126,19 @@ def configure_market_reader(
         kwargs["now_fn"] = now_fn
     _market_reader = MarketSnapshotReader(path=market_snapshot_path, **kwargs)
     return _market_reader
+
+
+def get_microstructure_reader() -> MarketMicrostructureReader:
+    return _microstructure_reader
+
+
+def configure_microstructure_reader(
+    path: Path = DEFAULT_MICROSTRUCTURE_PATH, *, now_fn=None
+) -> MarketMicrostructureReader:
+    global _microstructure_reader
+    kwargs = {} if now_fn is None else {"now_fn": now_fn}
+    _microstructure_reader = MarketMicrostructureReader(path, **kwargs)
+    return _microstructure_reader
 
 
 def get_runtime_service_reader() -> RuntimeServiceSnapshotReader:
@@ -407,6 +426,15 @@ def get_financial_reconciliation() -> Any:
     return payload
 
 
+@app.get("/api/operator/v1/market-microstructure")
+def get_market_microstructure() -> Any:
+    """Only the passive presentation artifact, never the LMI sidecar itself."""
+    result = get_microstructure_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
+
+
 @app.get("/api/operator/v1/runtime-service")
 def get_runtime_service() -> Any:
     """Transport only the passive host/systemd observation artifact."""
@@ -467,6 +495,8 @@ __all__ = [
     "app",
     "configure_reader",
     "get_reader",
+    "get_microstructure_reader",
+    "configure_microstructure_reader",
     "get_runtime_service_reader",
     "configure_runtime_service_reader",
     "configure_burn_in_status_reader",

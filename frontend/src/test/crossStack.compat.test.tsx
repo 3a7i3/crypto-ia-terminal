@@ -16,6 +16,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
+import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
+import { validateMarketMicrostructureSnapshot } from "../lib/marketMicrostructureValidation";
 import { MarketView } from "../views/MarketView";
 import { validateOperatorSnapshot } from "../lib/snapshotValidation";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
@@ -357,5 +359,26 @@ describe.skipIf(!HAS_FIXTURES)("U3a scanner real producer → API → React", ()
     expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("86.7");
     expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("SHORT");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe.skipIf(!HAS_FIXTURES)("U3b LMI real producer → API → React", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("accepts the exact microstructure projection and preserves observed, stale and unavailable facts", async () => {
+    const fixture = loadFixture("M_microstructure");
+    expect(fixture.http_status).toBe(200);
+    expect(fixture._proof?.source_unchanged).toBe(true);
+    expect(validateMarketMicrostructureSnapshot(fixture.body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    render(<MarketMicrostructureView />);
+    await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
+    const rows = screen.getAllByTestId("microstructure-row");
+    expect(rows[0]).toHaveTextContent("accumulation");
+    expect(rows[0]).toHaveTextContent("0,8123");
+    expect(rows[1]).toHaveTextContent("STALE");
+    expect(rows[2]).toHaveTextContent("NOT_AVAILABLE");
+    expect(screen.getByTestId("microstructure-view")).not.toHaveTextContent("GHOSTUSDT");
+    expect(screen.getByTestId("microstructure-view")).not.toHaveTextContent("MUST_NOT_ESCAPE");
   });
 });
