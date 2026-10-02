@@ -4,7 +4,6 @@
 [Unit]
 Description=Crypto AI Terminal — APP-UNIFY Operator Web (isolated read-only)
 After=network.target crypto-operator-api.service
-Wants=crypto-operator-api.service
 StartLimitIntervalSec=120
 StartLimitBurst=5
 
