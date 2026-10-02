@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import os
 from dataclasses import dataclass
+from pathlib import Path
+
 from observability.research_evidence_io import read_evidence
 from observability.research_strategy_board_contract import (
     MAX_BYTES,
     validate_strategy_board,
 )
 
-DEFAULT_PATH = Path("databases/research_presentation/research_strategy_board.json")
+DEFAULT_PATH = Path(
+    os.getenv(
+        "RESEARCH_STRATEGY_BOARD_SNAPSHOT_PATH",
+        "databases/research_presentation/research_strategy_board.json",
+    )
+)
 
 
 @dataclass(frozen=True)
