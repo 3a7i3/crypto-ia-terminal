@@ -32,7 +32,7 @@ Environment=RADAR_MARKET_STALE_AFTER_S=90
 Environment=PPL_COMPARISON_STALE_AFTER_S=90
 Environment=BURN_IN_STATUS_STALE_AFTER_S=90
 
-ExecStart=/opt/crypto-ai-terminal/operator/venv/bin/python -m uvicorn observability.operator_api.app:app --host 127.0.0.1 --port 8090 --no-access-log
+ExecStart=/opt/crypto-ai-terminal/operator/current/.venv/bin/python -m uvicorn observability.operator_api.app:app --host 127.0.0.1 --port 8090 --no-access-log
 Restart=on-failure
 RestartSec=10s
 TimeoutStopSec=30
