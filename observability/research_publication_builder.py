@@ -338,6 +338,11 @@ def _build(
             and diag["diagnostic_config_hash"] == di["diagnostic_config_hash"],
             "Diagnostic upstream/config mismatch",
         )
+        _require(
+            _n(di["population"]["closed_trade_count"])
+            and _digest(di["population"]["decision_packet_component_sha256"]),
+            "Invalid diagnostic population identity",
+        )
         summary = diag["summary"]
         _require(
             di["population"]["definition"] == population["population_definition"]

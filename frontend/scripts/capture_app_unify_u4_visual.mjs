@@ -40,6 +40,7 @@ try {
       if (scenario === "historical") assert((await view.innerText()).includes("2020-01-01T00:00:00Z"), "Historical evidence rejuvenated");
     }
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${scenario}/${width}: overflow`);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(out, `research-${scenario}-${width}.png`), fullPage: true });
     if (["published", "missing"].includes(scenario)) {
       await page.goto(`${base}/direction`, { waitUntil: "networkidle" });

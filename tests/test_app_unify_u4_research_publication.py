@@ -415,3 +415,25 @@ def test_presentation_size_bound(evidence):
     readmission(evidence, diagnostic=True)
     with pytest.raises(ResearchPublicationError):
         build(evidence)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("closed_trade_count", 3.0), ("decision_packet_component_sha256", "invalid")],
+)
+def test_diagnostic_identity_profile_even_when_readmitted(evidence, field, value):
+    def mutate(diag):
+        diag["diagnostic_run_identity"]["population"][field] = value
+        diag["diagnostic_run_id"] = hashlib.sha256(
+            canonical_snapshot_bytes(diag["diagnostic_run_identity"])
+        ).hexdigest()
+
+    rewrite(evidence[2], mutate)
+    diag = json.loads(evidence[2].read_bytes())
+    rewrite(
+        evidence[0],
+        lambda s: s.update({"diagnostic_run_id": diag["diagnostic_run_id"]}),
+    )
+    readmission(evidence, diagnostic=True)
+    with pytest.raises(ResearchPublicationError):
+        build(evidence)
