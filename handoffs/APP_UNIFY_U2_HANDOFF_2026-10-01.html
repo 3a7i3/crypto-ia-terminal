@@ -1,0 +1,1339 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>HANDOFF — APP-UNIFY U2 / BurnInStatusSnapshot - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/handoffs/APP_UNIFY_U2_HANDOFF_2026-10-01.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/handoffs/APP_UNIFY_U2_HANDOFF_2026-10-01.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="handoff-app-unify-u2-burninstatussnapshot">
+<h1>HANDOFF — APP-UNIFY U2 / BurnInStatusSnapshot<a class="headerlink" href="#handoff-app-unify-u2-burninstatussnapshot" title="Link to this heading">¶</a></h1>
+<p>Date de handoff : 2026-10-01
+Projet : <code class="docutils literal notranslate"><span class="pre">Crypto</span> <span class="pre">AI</span> <span class="pre">Terminal</span> <span class="pre">—</span> <span class="pre">Research</span> <span class="pre">Infrastructure</span></code>
+Repository : <code class="docutils literal notranslate"><span class="pre">3a7i3/crypto-ia-terminal</span></code></p>
+<p>Ce document est la source de reprise recommandée pour une nouvelle conversation.</p>
+<hr class="docutils" />
+<section id="etat-global-du-programme-app-unify">
+<h2>1. État global du programme APP-UNIFY<a class="headerlink" href="#etat-global-du-programme-app-unify" title="Link to this heading">¶</a></h2>
+<p>Programme parent :</p>
+<ul class="simple">
+<li><p>#323 — <code class="docutils literal notranslate"><span class="pre">APP-UNIFY-01</span> <span class="pre">—</span> <span class="pre">Operator</span> <span class="pre">App</span> <span class="pre">unique,</span> <span class="pre">cockpit</span> <span class="pre">burn-in</span> <span class="pre">autonome</span> <span class="pre">et</span> <span class="pre">intégration</span> <span class="pre">CryptoRadar</span></code></p></li>
+</ul>
+<p>Roadmap :</p>
+<ul class="simple">
+<li><p>#285</p></li>
+</ul>
+<p>Freeze runtime/burn-in :</p>
+<ul class="simple">
+<li><p>#286 reste <strong>ACTIVE</strong></p></li>
+<li><p>ne pas fermer #286</p></li>
+<li><p>aucun changement de runtime/burn-in n’est autorisé implicitement par U2</p></li>
+</ul>
+<section id="u0-termine">
+<h3>U0 — terminé<a class="headerlink" href="#u0-termine" title="Link to this heading">¶</a></h3>
+<p>Issue :</p>
+<ul class="simple">
+<li><p>#324 — carte exacte de ce que l’app sait / ne sait pas</p></li>
+</ul>
+<p>PR :</p>
+<ul class="simple">
+<li><p>#325</p></li>
+</ul>
+<p>Merge U0 :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">397c07ecae66eb4d78f9668d9246c47804d1915a</span></code></p></li>
+</ul>
+<p>Résultat principal :</p>
+<ul class="simple">
+<li><p>l’Operator App est la bonne fondation ;</p></li>
+<li><p>plusieurs données existaient déjà mais étaient sous-utilisées ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code> existait mais était typé <code class="docutils literal notranslate"><span class="pre">Record&lt;string,</span> <span class="pre">unknown&gt;</span></code> côté frontend ;</p></li>
+<li><p>le vieux CryptoRadar ne doit pas être copié tel quel ;</p></li>
+<li><p>Scanner et LMI doivent être intégrés comme projections gouvernées ;</p></li>
+<li><p>les anciens signaux Entry/SL/TP ne doivent pas être injectés dans MARKET.</p></li>
+</ul>
+</section>
+<section id="u1-termine">
+<h3>U1 — terminé<a class="headerlink" href="#u1-termine" title="Link to this heading">¶</a></h3>
+<p>Issue :</p>
+<ul class="simple">
+<li><p>#326 — Vue Propriétaire avec données existantes</p></li>
+</ul>
+<p>PR :</p>
+<ul class="simple">
+<li><p>#327</p></li>
+</ul>
+<p>HEAD final U1 :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">e5d93908c433c3d3c5dff338b7edbe558cc9361f</span></code></p></li>
+</ul>
+<p>Merge U1 / main avant U2 :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">a2032b13982ae270cb8cd6e0f96c45ed6d53b721</span></code></p></li>
+</ul>
+<p>Verdict :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U1_OWNER_VIEW_SOURCE_READY</span></code></p></li>
+</ul>
+<p>U1 a ajouté :</p>
+<ul class="simple">
+<li><p>contrat frontend fermé <code class="docutils literal notranslate"><span class="pre">PortfolioStatus</span></code> ;</p></li>
+<li><p>validation stricte de <code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code> ;</p></li>
+<li><p>compteur courant canonique = <code class="docutils literal notranslate"><span class="pre">paper_open_positions_count</span></code> ;</p></li>
+<li><p>plafond = <code class="docutils literal notranslate"><span class="pre">portfolio_status.hard_position_limit</span></code> ;</p></li>
+<li><p>admission affichée seulement lorsque les compteurs concordent ;</p></li>
+<li><p>désaccord =&gt; <code class="docutils literal notranslate"><span class="pre">INCOHÉRENT</span></code>, sans réparation/inférence ;</p></li>
+<li><p>mode, capital PAPER, source SHA/evidence, worktree, fraîcheur et stale reason au niveau propriétaire ;</p></li>
+<li><p>positions ouvertes et âge UI au snapshot ;</p></li>
+<li><p>global <code class="docutils literal notranslate"><span class="pre">INCONNU</span></code> et sémantique fédérée/non atomique conservés.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="freeze-runtime-a-ne-pas-casser">
+<h2>2. Freeze runtime à ne pas casser<a class="headerlink" href="#freeze-runtime-a-ne-pas-casser" title="Link to this heading">¶</a></h2>
+<p>Le checkout runtime VPS reste volontairement gelé sur :</p>
+<p><code class="docutils literal notranslate"><span class="pre">116634be0d3c015cce1cfa58be7da7255414fbfd</span></code></p>
+<p>Burn-in :</p>
+<p><code class="docutils literal notranslate"><span class="pre">BURN-IN-EPOCH-01-20260926T064144Z</span></code></p>
+<p>Config semantic snapshot SHA :</p>
+<p><code class="docutils literal notranslate"><span class="pre">9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4</span></code></p>
+<p>T0 gouverné connu dans les travaux scientifiques précédents :</p>
+<p><code class="docutils literal notranslate"><span class="pre">2026-09-27T03:06:03.086973Z</span></code></p>
+<p>Important :</p>
+<ul class="simple">
+<li><p>le runtime checkout ne doit pas être avancé sur <code class="docutils literal notranslate"><span class="pre">main</span></code> ;</p></li>
+<li><p>aucun restart Advisor n’a été fait pour APP-UNIFY ;</p></li>
+<li><p>aucun changement PPL/FIN/epoch/config/risk/sizing/<code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS</span></code> n’a été fait ;</p></li>
+<li><p>U2 est <strong>SOURCE-ONLY</strong> ;</p></li>
+<li><p>le futur déploiement/publisher U2 doit avoir sa propre gate compatible #286.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="etat-scientifique-burn-in-connu-avant-u2">
+<h2>3. État scientifique burn-in connu avant U2<a class="headerlink" href="#etat-scientifique-burn-in-connu-avant-u2" title="Link to this heading">¶</a></h2>
+<p>Dernier checkpoint PPL read-only documenté avant APP-UNIFY U2 :</p>
+<ul class="simple">
+<li><p>event_count = 63 ;</p></li>
+<li><p>last_sequence = 63 ;</p></li>
+<li><p>POSITION_OPENED = 32 ;</p></li>
+<li><p>POSITION_CLOSED = 30 ;</p></li>
+<li><p>POSITION_UNRESOLVED = 0 ;</p></li>
+<li><p>OPEN = 2 ;</p></li>
+<li><p>PPL append-only stable à ce checkpoint ;</p></li>
+<li><p>realized PnL = <code class="docutils literal notranslate"><span class="pre">-0.6565499307274114</span></code> ;</p></li>
+<li><p>fees_paid = <code class="docutils literal notranslate"><span class="pre">0.6200000000000003</span></code> ;</p></li>
+<li><p>available_cash = <code class="docutils literal notranslate"><span class="pre">981.1870206508428</span></code> ;</p></li>
+<li><p>reserved_principal = <code class="docutils literal notranslate"><span class="pre">20.0</span></code>.</p></li>
+</ul>
+<p>À ce checkpoint, les deux positions capturées étaient encore OPEN :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">521E1597-3</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">63858D4C-1</span></code></p></li>
+</ul>
+<p>Le probe O9 avait montré :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM_MAX_POSITION_USD=10</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=2</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAPER_PORTFOLIO_BRAIN_LEVEL=a</span></code></p></li>
+</ul>
+<p>et les positions avaient une deadline timeout à environ 8 h avec une fenêtre recovery supplémentaire.</p>
+<p>Ces valeurs sont des <strong>preuves VPS ponctuelles historiques</strong>, pas une source produit actuelle.
+U2 ne doit jamais lire <code class="docutils literal notranslate"><span class="pre">/proc/&lt;pid&gt;/environ</span></code> comme vérité de configuration affichée.</p>
+</section>
+<hr class="docutils" />
+<section id="pourquoi-u2-existe">
+<h2>4. Pourquoi U2 existe<a class="headerlink" href="#pourquoi-u2-existe" title="Link to this heading">¶</a></h2>
+<p>Les captures d’écran de l’app montraient :</p>
+<ul class="simple">
+<li><p>Portfolio : positions ouvertes visibles mais historique incomplet ;</p></li>
+<li><p>PPL Compare : événements PPL bruts, utile pour preuve technique mais pas adapté comme historique opérateur ;</p></li>
+<li><p>Financial : vue FIN détaillée, parfois stale ;</p></li>
+<li><p>aucune vue consolidée permettant de savoir immédiatement :</p>
+<ul>
+<li><p>quelle epoch tourne ;</p></li>
+<li><p>combien d’événements PPL ont été produits ;</p></li>
+<li><p>combien de trades OPEN/CLOSED/UNRESOLVED existent ;</p></li>
+<li><p>quelles positions sont encore ouvertes ;</p></li>
+<li><p>leurs deadlines ;</p></li>
+<li><p>l’historique des ordres ;</p></li>
+<li><p>la provenance config/code/PPL ;</p></li>
+<li><p>l’état de finalisation du burn-in.</p></li>
+</ul>
+</li>
+</ul>
+<p>Objectif U2 :</p>
+<blockquote>
+<div><p>comprendre le burn-in depuis l’app sans ouvrir le VPS.</p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="issue-et-pr-u2">
+<h2>5. Issue et PR U2<a class="headerlink" href="#issue-et-pr-u2" title="Link to this heading">¶</a></h2>
+<p>Issue :</p>
+<ul class="simple">
+<li><p>#328 — <code class="docutils literal notranslate"><span class="pre">APP-UNIFY-01-U2</span> <span class="pre">—</span> <span class="pre">BurnInStatusSnapshot</span> <span class="pre">et</span> <span class="pre">historique</span> <span class="pre">des</span> <span class="pre">ordres</span> <span class="pre">PAPER</span></code></p></li>
+</ul>
+<p>PR :</p>
+<ul class="simple">
+<li><p>#329 — <code class="docutils literal notranslate"><span class="pre">APP-UNIFY</span> <span class="pre">U2</span> <span class="pre">—</span> <span class="pre">BurnInStatusSnapshot</span> <span class="pre">et</span> <span class="pre">historique</span> <span class="pre">PAPER</span></code></p></li>
+</ul>
+<p>Branche :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">feat/328-app-unify-u2-burn-in-status</span></code></p></li>
+</ul>
+<p>Base PR :</p>
+<p><code class="docutils literal notranslate"><span class="pre">a2032b13982ae270cb8cd6e0f96c45ed6d53b721</span></code></p>
+<p>HEAD courant au moment du handoff :</p>
+<p><code class="docutils literal notranslate"><span class="pre">5c69b7e56f7b7c95c6326061fecd335ea786ac2c</span></code></p>
+<p>PR :</p>
+<ul class="simple">
+<li><p>OPEN ;</p></li>
+<li><p>DRAFT ;</p></li>
+<li><p>mergeable = true ;</p></li>
+<li><p>aucun review thread ;</p></li>
+<li><p>aucun review bloquant.</p></li>
+</ul>
+<p>Ne pas merger tant que les deux visual proofs restants ne sont pas corrigés et verts.</p>
+</section>
+<hr class="docutils" />
+<section id="architecture-u2-decidee">
+<h2>6. Architecture U2 décidée<a class="headerlink" href="#architecture-u2-decidee" title="Link to this heading">¶</a></h2>
+<p>Architecture obligatoire :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PPL Durable Event Stream + BURN_IN_EXPERIMENT_CONFIG_V1
+                         ↓
+BurnInStatusSnapshot producer READ-ONLY
+                         ↓
+artifact JSON atomique
+                         ↓
+strict Operator API reader
+                         ↓
+GET /api/operator/v1/burn-in
+                         ↓
+Direction summary + PAPER LIVE / Burn-in
+</pre></div>
+</div>
+<p>Frontières interdites :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>React -&gt; PPL JSONL direct                INTERDIT
+Operator API -&gt; PPL JSONL direct         INTERDIT
+frontend -&gt; calcul lifecycle/PnL         INTERDIT
+frontend -&gt; calcul deadline scientifique INTERDIT
+U2 producer -&gt; append PPL                INTERDIT
+U2 producer -&gt; créer lock PPL            INTERDIT
+</pre></div>
+</div>
+<p>Le producteur U2 est le seul composant autorisé à lire la frontière source PPL/config.</p>
+</section>
+<hr class="docutils" />
+<section id="lecture-ppl-read-only-decision-importante">
+<h2>7. Lecture PPL read-only : décision importante<a class="headerlink" href="#lecture-ppl-read-only-decision-importante" title="Link to this heading">¶</a></h2>
+<p>Nous avons inspecté <code class="docutils literal notranslate"><span class="pre">DurableEventStore</span></code>.</p>
+<p>Certaines méthodes de store utilisent un lock.
+Pour un producteur de présentation strictement passif, U2 <strong>n’utilise pas</strong>
+le store de façon susceptible de créer/toucher le lock.</p>
+<p>Méthode U2 :</p>
+<ol class="arabic simple">
+<li><p>calcule le fichier d’epoch par SHA256(epoch_id) ;</p></li>
+<li><p>exige un fichier régulier non symlink ;</p></li>
+<li><p>lit une frontière append-only stable ;</p></li>
+<li><p>vérifie taille + mtime avant/après ;</p></li>
+<li><p>exige newline finale ;</p></li>
+<li><p>décode chaque record via le wire-format canonique PPL ;</p></li>
+<li><p>exige que la re-sérialisation canonique soit byte-identical ;</p></li>
+<li><p>vérifie :</p>
+<ul class="simple">
+<li><p>epoch_id ;</p></li>
+<li><p>sequence contiguë ;</p></li>
+<li><p>event_id unique ;</p></li>
+</ul>
+</li>
+<li><p>projette avec le vrai <code class="docutils literal notranslate"><span class="pre">paper_portfolio_ledger.project()</span></code> ;</p></li>
+<li><p>n’écrit jamais dans le PPL store.</p></li>
+</ol>
+<p>Le cross-stack U2 contient une preuve explicite :</p>
+<p><code class="docutils literal notranslate"><span class="pre">ppl_lock_created</span> <span class="pre">==</span> <span class="pre">false</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="t0-decouverte-importante">
+<h2>8. T0 : découverte importante<a class="headerlink" href="#t0-decouverte-importante" title="Link to this heading">¶</a></h2>
+<p>Recherche source effectuée sur :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">T0</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BURN_IN_T0</span></code></p></li>
+<li><p>timestamps connus du burn-in</p></li>
+<li><p>contrats de navigation/Direction</p></li>
+<li><p>Research/burn-in code</p></li>
+</ul>
+<p>Conclusion :</p>
+<p><strong>scientific T0 n’est pas automatiquement égal à EPOCH_CREATED.</strong></p>
+<p>Donc U2 :</p>
+<ul class="simple">
+<li><p>expose <code class="docutils literal notranslate"><span class="pre">epoch_created_at_utc</span></code> séparément ;</p></li>
+<li><p>expose <code class="docutils literal notranslate"><span class="pre">scientific_t0</span></code> avec :</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">PRESENT</span></code> + valeur + source explicite ;</p></li>
+<li><p>ou <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code> ;</p></li>
+</ul>
+</li>
+<li><p>n’infère jamais T0 depuis l’epoch.</p></li>
+</ul>
+<p>Sans artifact/provenance gouvernée :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"NOT_AVAILABLE"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"value_utc"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="identite-config-code-ppl">
+<h2>9. Identité config/code/PPL<a class="headerlink" href="#identite-config-code-ppl" title="Link to this heading">¶</a></h2>
+<p>Le moteur de freeze a été inspecté.</p>
+<p>Les préfixes matériels comprennent notamment :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PB_</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAPER_</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM_</span></code></p></li>
+</ul>
+<p>Le snapshot scientifique est :</p>
+<p><code class="docutils literal notranslate"><span class="pre">BURN_IN_EXPERIMENT_CONFIG_V1</span></code></p>
+<p>U2 exige une identité triple fail-closed :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PPL epoch.paper_epoch_id
+  == config.paper_epoch_id
+
+PPL epoch.code_sha
+  == config.runtime_source_sha
+
+PPL epoch.config_snapshot_hash
+  == config.snapshot_sha256
+</pre></div>
+</div>
+<p>Whitelist opérateur publiée :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAPER_PORTFOLIO_BRAIN_LEVEL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM_MAX_POSITION_USD</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM_MAX_AGE_H</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAPER_LIFECYCLE_AUTHORITY</span></code></p></li>
+</ul>
+<p>Aucun dump complet d’environnement.</p>
+</section>
+<hr class="docutils" />
+<section id="contrat-burninstatussnapshot">
+<h2>10. Contrat BurnInStatusSnapshot<a class="headerlink" href="#contrat-burninstatussnapshot" title="Link to this heading">¶</a></h2>
+<p>Le contrat fermé contient notamment :</p>
+<section id="identite-provenance">
+<h3>Identité/provenance<a class="headerlink" href="#identite-provenance" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>schema_version ;</p></li>
+<li><p>product ;</p></li>
+<li><p>domain ;</p></li>
+<li><p>authority ;</p></li>
+<li><p>mode READ_ONLY ;</p></li>
+<li><p>generated_at_utc ;</p></li>
+<li><p>source_updated_at_utc ;</p></li>
+<li><p>paper_epoch_id ;</p></li>
+<li><p>epoch_created_at_utc ;</p></li>
+<li><p>source_code_sha ;</p></li>
+<li><p>config_snapshot_hash ;</p></li>
+<li><p>ppl_stream_sha256 ;</p></li>
+<li><p>scientific_t0.</p></li>
+</ul>
+</section>
+<section id="progression">
+<h3>Progression<a class="headerlink" href="#progression" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>event_count ;</p></li>
+<li><p>last_sequence ;</p></li>
+<li><p>event_counts :</p>
+<ul>
+<li><p>EPOCH_CREATED ;</p></li>
+<li><p>POSITION_OPENED ;</p></li>
+<li><p>POSITION_CLOSED ;</p></li>
+<li><p>POSITION_UNRESOLVED ;</p></li>
+<li><p>RECOVERY_COMPLETED ;</p></li>
+</ul>
+</li>
+<li><p>lifecycle_counts :</p>
+<ul>
+<li><p>open ;</p></li>
+<li><p>closed ;</p></li>
+<li><p>unresolved ;</p></li>
+<li><p>total ;</p></li>
+</ul>
+</li>
+<li><p>last_event.</p></li>
+</ul>
+</section>
+<section id="open-lifecycles">
+<h3>OPEN lifecycles<a class="headerlink" href="#open-lifecycles" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>trade_id ;</p></li>
+<li><p>decision_id ;</p></li>
+<li><p>symbol ;</p></li>
+<li><p>side ;</p></li>
+<li><p>principal_usd ;</p></li>
+<li><p>entry_price ;</p></li>
+<li><p>entry_fee_usd ;</p></li>
+<li><p>opened_sequence ;</p></li>
+<li><p>opened_at_utc ;</p></li>
+<li><p>age_seconds ;</p></li>
+<li><p>tp_price ;</p></li>
+<li><p>sl_price ;</p></li>
+<li><p>timeout_at_utc ;</p></li>
+<li><p>recovery_eligible_until_utc ;</p></li>
+<li><p>deadline_state.</p></li>
+</ul>
+<p>Deadline states :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BEFORE_TIMEOUT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RECOVERY_WINDOW</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RECOVERY_EXPIRED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></li>
+</ul>
+<p>Deadlines sont calculées <strong>côté producteur</strong>, jamais dans React.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="historique-des-ordres-lifecycles">
+<h2>11. Historique des ordres / lifecycles<a class="headerlink" href="#historique-des-ordres-lifecycles" title="Link to this heading">¶</a></h2>
+<p>L’utilisateur a explicitement demandé une vue historique des ordres.</p>
+<p>U2 publie :</p>
+<p><code class="docutils literal notranslate"><span class="pre">lifecycle_history</span></code></p>
+<p>Une ligne par trade PPL, sans doublon, tri :</p>
+<p><code class="docutils literal notranslate"><span class="pre">OPEN_SEQUENCE_DESC</span></code></p>
+<p>Champs :</p>
+<ul class="simple">
+<li><p>trade_id ;</p></li>
+<li><p>open_decision_id ;</p></li>
+<li><p>terminal_decision_id ;</p></li>
+<li><p>symbol ;</p></li>
+<li><p>side ;</p></li>
+<li><p>principal_usd ;</p></li>
+<li><p>entry_price ;</p></li>
+<li><p>entry_fee_usd ;</p></li>
+<li><p>opened_sequence ;</p></li>
+<li><p>opened_at_utc ;</p></li>
+<li><p>status ;</p></li>
+<li><p>terminal_sequence ;</p></li>
+<li><p>terminal_at_utc ;</p></li>
+<li><p>exit_price ;</p></li>
+<li><p>exit_fee_usd ;</p></li>
+<li><p>gross_pnl_usd ;</p></li>
+<li><p>net_realized_pnl_usd ;</p></li>
+<li><p>unresolved_reason ;</p></li>
+<li><p>duration_seconds.</p></li>
+</ul>
+<p>Sémantique stricte :</p>
+<section id="open">
+<h3>OPEN<a class="headerlink" href="#open" title="Link to this heading">¶</a></h3>
+<p>Aucun :</p>
+<ul class="simple">
+<li><p>exit_price ;</p></li>
+<li><p>exit_fee ;</p></li>
+<li><p>gross PnL ;</p></li>
+<li><p>net PnL ;</p></li>
+<li><p>terminal timestamp ;</p></li>
+<li><p>duration terminal.</p></li>
+</ul>
+</section>
+<section id="closed">
+<h3>CLOSED<a class="headerlink" href="#closed" title="Link to this heading">¶</a></h3>
+<p>Le producteur recalcule le gross PnL selon la comptabilité canonique PPL puis :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>net_realized_pnl
+  = gross_pnl
+  - entry_fee
+  - exit_fee
+</pre></div>
+</div>
+<p>Puis le total CLOSED est réconcilié contre :</p>
+<p><code class="docutils literal notranslate"><span class="pre">PaperPortfolioState.realized_pnl</span></code></p>
+<p>Fail-closed si divergence.</p>
+</section>
+<section id="unresolved">
+<h3>UNRESOLVED<a class="headerlink" href="#unresolved" title="Link to this heading">¶</a></h3>
+<p>Aucun faux :</p>
+<ul class="simple">
+<li><p>exit ;</p></li>
+<li><p>gross PnL ;</p></li>
+<li><p>net PnL.</p></li>
+</ul>
+<p>La raison durable <code class="docutils literal notranslate"><span class="pre">unresolved_reason</span></code> est conservée.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="finalisation-du-burn-in">
+<h2>12. Finalisation du burn-in<a class="headerlink" href="#finalisation-du-burn-in" title="Link to this heading">¶</a></h2>
+<p>U2 ne déduit jamais qu’un burn-in est terminé.</p>
+<p>Aucun scraping GitHub des verdicts O1…O9.</p>
+<p>Sans artifact gouverné explicite :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>finalization.state = NOT_AVAILABLE
+finalization.reason = NO_GOVERNED_FINALIZATION_ARTIFACT_SUPPLIED
+</pre></div>
+</div>
+<p>Cela évite de confondre documentation scientifique et vérité runtime.</p>
+</section>
+<hr class="docutils" />
+<section id="ui-u2-construite">
+<h2>13. UI U2 construite<a class="headerlink" href="#ui-u2-construite" title="Link to this heading">¶</a></h2>
+<p>Nouvelle route :</p>
+<p><code class="docutils literal notranslate"><span class="pre">/paper-live/burn-in</span></code></p>
+<p>Nouveau sous-onglet :</p>
+<p><code class="docutils literal notranslate"><span class="pre">Burn-in</span></code></p>
+<p>La page contient :</p>
+<ol class="arabic simple">
+<li><p>résumé burn-in ;</p></li>
+<li><p>OPEN / CLOSED / UNRESOLVED ;</p></li>
+<li><p>dernier événement ;</p></li>
+<li><p>T0 scientifique ;</p></li>
+<li><p>positions ouvertes ;</p></li>
+<li><p>deadlines ;</p></li>
+<li><p>historique des ordres ;</p></li>
+<li><p>config gelée/provenance ;</p></li>
+<li><p>finalization state.</p></li>
+</ol>
+<section id="desktop">
+<h3>Desktop<a class="headerlink" href="#desktop" title="Link to this heading">¶</a></h3>
+<p>Historique sous forme de table.</p>
+</section>
+<section id="mobile-720px">
+<h3>Mobile &lt;= 720px<a class="headerlink" href="#mobile-720px" title="Link to this heading">¶</a></h3>
+<p>Le tableau desktop est caché.
+L’historique devient une liste de cartes.</p>
+<p>But :</p>
+<ul class="simple">
+<li><p>ne pas reproduire les très grandes tables illisibles vues sur les captures mobiles ;</p></li>
+<li><p>pouvoir lire symbole/statut/PnL/durée/trade_id sur téléphone.</p></li>
+</ul>
+</section>
+<section id="direction">
+<h3>Direction<a class="headerlink" href="#direction" title="Link to this heading">¶</a></h3>
+<p>Une cinquième source indépendante est ajoutée :</p>
+<p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/operator/v1/burn-in</span></code></p>
+<p>La carte Direction Burn-in montre :</p>
+<ul class="simple">
+<li><p>epoch ;</p></li>
+<li><p>event_count ;</p></li>
+<li><p>last_sequence ;</p></li>
+<li><p>OPEN/CLOSED/UNRESOLVED ;</p></li>
+<li><p>T0 ;</p></li>
+<li><p>dernier événement ;</p></li>
+<li><p>OPEN lifecycles + deadline ;</p></li>
+<li><p>provenance/config.</p></li>
+</ul>
+<p>La doctrine Direction reste :</p>
+<p><code class="docutils literal notranslate"><span class="pre">FÉDÉRÉ</span> <span class="pre">·</span> <span class="pre">NON</span> <span class="pre">ATOMIQUE</span></code></p>
+<p>Aucun état global n’est inféré.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="recherche-source-executee-pendant-u0-u1-u2">
+<h2>14. Recherche source exécutée pendant U0/U1/U2<a class="headerlink" href="#recherche-source-executee-pendant-u0-u1-u2" title="Link to this heading">¶</a></h2>
+<p>Les fichiers/composants suivants ont été inspectés.</p>
+<section id="operator-app-snapshots">
+<h3>Operator App / snapshots<a class="headerlink" href="#operator-app-snapshots" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/operator_snapshot_builder.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/types.ts</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/lib/snapshotValidation.ts</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/views/DirectionOverview.tsx</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/views/PortfolioView.tsx</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/App.tsx</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/shells/PaperLiveShell.tsx</span></code></p></li>
+<li><p>routing/tests frontend</p></li>
+</ul>
+<p>Découvertes :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">portfolio_status</span></code> existait déjà côté producer ;</p></li>
+<li><p>il n’était pas typé/validé strictement côté frontend ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_open_positions_count</span></code> possède une meilleure sémantique de compteur matérialisé ;</p></li>
+<li><p>Direction est fédérée et ne doit pas devenir une synthèse atomique artificielle.</p></li>
+</ul>
+</section>
+<section id="ppl-lifecycle">
+<h3>PPL / lifecycle<a class="headerlink" href="#ppl-lifecycle" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/ledger_events.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/paper_portfolio_ledger.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/ppl_authority_runtime.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paper_trading/durable_event_store.py</span></code></p></li>
+<li><p>composants paper portfolio view/status</p></li>
+</ul>
+<p>Découvertes :</p>
+<ul class="simple">
+<li><p>les événements autoritaires suffisants existent pour reconstruire un historique lifecycle ;</p></li>
+<li><p>OPEN/CLOSED/UNRESOLVED doivent rester sémantiquement distincts ;</p></li>
+<li><p>les deadlines timeout/recovery sont portées par l’état OPEN projeté ;</p></li>
+<li><p>le store possède des mécanismes de lock qu’un producteur de présentation passif ne doit pas déclencher ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">project()</span></code> est la référence sémantique canonique.</p></li>
+</ul>
+</section>
+<section id="freeze-config">
+<h3>Freeze/config<a class="headerlink" href="#freeze-config" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">scripts/f00_experiment_config_freeze.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scripts/burn_in_experiment_config_freeze.py</span></code></p></li>
+<li><p>tests RB3/burn-in freeze</p></li>
+<li><p>recherches :</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">BURN_IN_EXPERIMENT_CONFIG_V1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM_MAX_POSITION_USD</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MEXC_SIM_MAX_AGE_H</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAPER_PORTFOLIO_BRAIN_LEVEL</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Découvertes :</p>
+<ul class="simple">
+<li><p>PB_/PAPER_/MEXC_SIM_ sont matériels dans le freeze ;</p></li>
+<li><p>la config affichée doit venir du snapshot gelé, pas du process env live ;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS=2</span></code> était aussi confirmé par l’overlay/runtime probe historique.</p></li>
+</ul>
+</section>
+<section id="t0-burn-in">
+<h3>T0 / burn-in<a class="headerlink" href="#t0-burn-in" title="Link to this heading">¶</a></h3>
+<p>Recherches :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">T0</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BURN_IN_T0</span></code></p></li>
+<li><p>timestamps connus</p></li>
+<li><p>contrats Direction/navigation</p></li>
+<li><p>Research finalization</p></li>
+</ul>
+<p>Découverte :</p>
+<ul class="simple">
+<li><p>T0 scientifique est une notion distincte de EPOCH_CREATED ;</p></li>
+<li><p>pas d’inférence autorisée.</p></li>
+</ul>
+</section>
+<section id="operator-api-readers">
+<h3>Operator API / readers<a class="headerlink" href="#operator-api-readers" title="Link to this heading">¶</a></h3>
+<p>Inspectés :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code></p></li>
+<li><p>readers Market/FIN/Research</p></li>
+<li><p>patterns d’artifact atomique</p></li>
+</ul>
+<p>Décision :</p>
+<ul class="simple">
+<li><p>U2 suit le pattern reader strict GET-only ;</p></li>
+<li><p>Operator API ne lit jamais PPL directement.</p></li>
+</ul>
+</section>
+<section id="cross-stack">
+<h3>Cross-stack<a class="headerlink" href="#cross-stack" title="Link to this heading">¶</a></h3>
+<p>Inspectés :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">.github/workflows/cross-stack-compat.yml</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/cross_stack/generate_fixtures.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/src/test/crossStack.compat.test.tsx</span></code></p></li>
+</ul>
+<p>U2 ajoute :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tests/cross_stack/generate_burn_in_fixture.py</span></code></p></li>
+<li><p>fixture J burn-in produite via vrai producteur U2 ;</p></li>
+<li><p>vrai endpoint FastAPI ;</p></li>
+<li><p>vrai validateur/frontend ;</p></li>
+<li><p>assertion <code class="docutils literal notranslate"><span class="pre">ppl_lock_created=false</span></code>.</p></li>
+</ul>
+</section>
+<section id="visual-proof">
+<h3>Visual proof<a class="headerlink" href="#visual-proof" title="Link to this heading">¶</a></h3>
+<p>Inspectés/modifiés :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/scripts/capture_web_dir_d3_visual.mjs</span></code></p></li>
+<li><p>workflow Direction visual</p></li>
+<li><p>nouvelle preuve U2 :</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">frontend/scripts/capture_app_unify_u2_visual.mjs</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.github/workflows/app-unify-u2-visual-proof.yml</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Objectif :</p>
+<ul class="simple">
+<li><p>desktop historique ;</p></li>
+<li><p>mobile cartes ;</p></li>
+<li><p>no horizontal overflow ;</p></li>
+<li><p>no mutation HTTP ;</p></li>
+<li><p>Direction cinquième source.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="commits-u2-exacts">
+<h2>15. Commits U2 exacts<a class="headerlink" href="#commits-u2-exacts" title="Link to this heading">¶</a></h2>
+<p>PR #329 contient actuellement :</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bd52c63782d99ffabb5160873f7853ca985f2985</span></code></p>
+<ul class="simple">
+<li><p>créer la projection BurnInStatus read-only</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">9045cf65bc0d1ebae783c96e7479f127eff9f6f0</span></code></p>
+<ul class="simple">
+<li><p>corriger le lint du contrat burn-in</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">787165c5ddd40f0dd7e96f72391a8b2153921494</span></code></p>
+<ul class="simple">
+<li><p>contrat frontend + historique PAPER</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">759244060fc0223593b2537eb6d8b4dde2a829b2</span></code></p>
+<ul class="simple">
+<li><p>brancher Burn-in dans PAPER LIVE et Direction</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">be2cab36c5d5631667260a61a00ab5088470fcde</span></code></p>
+<ul class="simple">
+<li><p>étendre tests Direction à la source burn-in</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">8636b733e7d908b24019c4ff9799ffab7b386226</span></code></p>
+<ul class="simple">
+<li><p>preuve cross-stack burn-in</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">e41deead5bfc5f92485e68a4abca7fe69b424a3f</span></code></p>
+<ul class="simple">
+<li><p>preuve Direction burn-in</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">87cb0a81af5e0e5e33faf9c784400f51f0af1d03</span></code></p>
+<ul class="simple">
+<li><p>preuve historique desktop/mobile</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">a19a58ee27a9908695a4647f0eb20d8d41f12ca6</span></code></p>
+<ul class="simple">
+<li><p>mise à jour routing Direction 5 sources</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1da52a1fdfaf97c4b4fa9b63c1300e89d2eee835</span></code></p>
+<ul class="simple">
+<li><p>correction narrowing TypeScript</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">5c69b7e56f7b7c95c6326061fecd335ea786ac2c</span></code></p>
+<ul class="simple">
+<li><p>nettoyage du contrat source</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="erreurs-rencontrees-et-corrections-deja-faites">
+<h2>16. Erreurs rencontrées et corrections déjà faites<a class="headerlink" href="#erreurs-rencontrees-et-corrections-deja-faites" title="Link to this heading">¶</a></h2>
+<section id="a-lint-python">
+<h3>A. Lint Python<a class="headerlink" href="#a-lint-python" title="Link to this heading">¶</a></h3>
+<p>Erreur :</p>
+<ul class="simple">
+<li><p>import inutilisé dans <code class="docutils literal notranslate"><span class="pre">burn_in_status_contract.py</span></code></p></li>
+</ul>
+<p>Corrigé au SHA :</p>
+<p><code class="docutils literal notranslate"><span class="pre">9045cf65...</span></code></p>
+</section>
+<section id="b-routing-direction">
+<h3>B. Routing Direction<a class="headerlink" href="#b-routing-direction" title="Link to this heading">¶</a></h3>
+<p>Ancien test attendait 4 GET.
+U2 introduit la cinquième source Burn-in.</p>
+<p>Corrigé :</p>
+<ul class="simple">
+<li><p>test renommé ;</p></li>
+<li><p>attente = 5 GET ;</p></li>
+<li><p>endpoint burn-in explicitement vérifié.</p></li>
+</ul>
+<p>SHA :</p>
+<p><code class="docutils literal notranslate"><span class="pre">a19a58ee...</span></code></p>
+</section>
+<section id="c-typescript-build-narrowing">
+<h3>C. TypeScript build/narrowing<a class="headerlink" href="#c-typescript-build-narrowing" title="Link to this heading">¶</a></h3>
+<p>269 tests frontend passaient mais le build échouait sur :</p>
+<ul class="simple">
+<li><p>narrowing <code class="docutils literal notranslate"><span class="pre">duration_seconds</span></code> ;</p></li>
+<li><p>type du <code class="docutils literal notranslate"><span class="pre">Set</span></code> des événements.</p></li>
+</ul>
+<p>Corrigé au SHA :</p>
+<p><code class="docutils literal notranslate"><span class="pre">1da52a1f...</span></code></p>
+</section>
+<section id="d-nettoyage-contrat-source">
+<h3>D. Nettoyage contrat source<a class="headerlink" href="#d-nettoyage-contrat-source" title="Link to this heading">¶</a></h3>
+<p>Whitespace Markdown uniquement.</p>
+<p>SHA :</p>
+<p><code class="docutils literal notranslate"><span class="pre">5c69b7e5...</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ci-actuelle-au-handoff">
+<h2>17. CI actuelle au handoff<a class="headerlink" href="#ci-actuelle-au-handoff" title="Link to this heading">¶</a></h2>
+<p>HEAD :</p>
+<p><code class="docutils literal notranslate"><span class="pre">5c69b7e56f7b7c95c6326061fecd335ea786ac2c</span></code></p>
+<section id="verts">
+<h3>Verts<a class="headerlink" href="#verts" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>integrity</p></li>
+<li><p>frontend</p></li>
+<li><p>test</p></li>
+<li><p>TEST REGRESSION GATE</p></li>
+<li><p>LINT REGRESSION GATE</p></li>
+<li><p>Smoke test</p></li>
+<li><p>CROSS-STACK COMPATIBILITY GATE</p></li>
+<li><p>coverage</p></li>
+<li><p>codecov</p></li>
+<li><p>coveralls</p></li>
+<li><p>COVERAGE REGRESSION BASELINE</p></li>
+<li><p>LONG-RUN PERFORMANCE GATE</p></li>
+<li><p>semgrep</p></li>
+<li><p>WEB-01 MARKET VISUAL PROOF</p></li>
+<li><p>WEB-02 PPL VISUAL PROOF</p></li>
+<li><p>FIN-02 FINANCIAL VISUAL PROOF</p></li>
+<li><p>WEB-RL RESEARCH VISUAL PROOF</p></li>
+<li><p>screenshots</p></li>
+</ul>
+</section>
+<section id="rouges-restants">
+<h3>Rouges restants<a class="headerlink" href="#rouges-restants" title="Link to this heading">¶</a></h3>
+<p>Deux seulement :</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">APP-UNIFY</span> <span class="pre">U2</span> <span class="pre">BURN-IN</span> <span class="pre">VISUAL</span> <span class="pre">PROOF</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WEB-DIR-01</span> <span class="pre">D3</span> <span class="pre">DIRECTION</span> <span class="pre">VISUAL</span> <span class="pre">PROOF</span></code></p></li>
+</ol>
+<p>Aucun check pending au moment du handoff.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="cause-exacte-des-deux-visual-failures">
+<h2>18. Cause exacte des deux visual failures<a class="headerlink" href="#cause-exacte-des-deux-visual-failures" title="Link to this heading">¶</a></h2>
+<section id="u2-burn-in-visual">
+<h3>18.1 U2 Burn-in visual<a class="headerlink" href="#u2-burn-in-visual" title="Link to this heading">¶</a></h3>
+<p>Erreur exacte :</p>
+<p><code class="docutils literal notranslate"><span class="pre">desktop</span> <span class="pre">Burn-in</span> <span class="pre">evidence</span> <span class="pre">missing:</span> <span class="pre">RECOVERY_PRICE_UNAVAILABLE</span></code></p>
+<p>Cause :</p>
+<ul class="simple">
+<li><p>le fixture contient bien un lifecycle UNRESOLVED avec
+<code class="docutils literal notranslate"><span class="pre">unresolved_reason=RECOVERY_PRICE_UNAVAILABLE</span></code> ;</p></li>
+<li><p>la vue mobile affiche cette raison dans la carte ;</p></li>
+<li><p>la table desktop actuelle affiche statut/PnL/durée mais <strong>pas la colonne reason</strong> ;</p></li>
+<li><p>le script desktop exigeait pourtant cette chaîne.</p></li>
+</ul>
+<p>Ce n’est pas un défaut backend/contrat.</p>
+<p>Décision recommandée :</p>
+<p><strong>ajouter une colonne “Raison” dans le tableau desktop</strong>.</p>
+<p>Pourquoi :</p>
+<ul class="simple">
+<li><p>l’issue #328 exige explicitement <code class="docutils literal notranslate"><span class="pre">unresolved_reason</span></code> dans l’historique ;</p></li>
+<li><p>cela améliore le produit ;</p></li>
+<li><p>le desktop doit être aussi informatif que les cartes mobile ;</p></li>
+<li><p>ensuite garder l’assertion visuelle.</p></li>
+</ul>
+<p>Ne pas simplement supprimer l’assertion si la colonne peut être affichée proprement.</p>
+</section>
+<section id="direction-visual">
+<h3>18.2 Direction visual<a class="headerlink" href="#direction-visual" title="Link to this heading">¶</a></h3>
+<p>Erreur exacte :</p>
+<p><code class="docutils literal notranslate"><span class="pre">U2</span> <span class="pre">Direction</span> <span class="pre">burn-in</span> <span class="pre">evidence</span> <span class="pre">missing:</span> <span class="pre">T0</span> <span class="pre">scientifique</span></code></p>
+<p>Le composant Direction contient bien le label :</p>
+<p><code class="docutils literal notranslate"><span class="pre">T0</span> <span class="pre">scientifique</span></code></p>
+<p>La cause la plus probable du mismatch est le rendu <code class="docutils literal notranslate"><span class="pre">innerText()</span></code> avec
+<code class="docutils literal notranslate"><span class="pre">text-transform:</span> <span class="pre">uppercase</span></code> sur les labels, qui produit visuellement :</p>
+<p><code class="docutils literal notranslate"><span class="pre">T0</span> <span class="pre">SCIENTIFIQUE</span></code></p>
+<p>alors que le test compare une chaîne case-sensitive.</p>
+<p>Décision recommandée :</p>
+<ul class="simple">
+<li><p>rendre l’assertion case-insensitive ;</p></li>
+<li><p>par exemple normaliser <code class="docutils literal notranslate"><span class="pre">burnInText.toLowerCase()</span></code> ;</p></li>
+<li><p>ne pas changer le produit pour satisfaire la casse du test.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="prochaine-action-exacte-dans-une-nouvelle-conversation">
+<h2>19. Prochaine action exacte dans une nouvelle conversation<a class="headerlink" href="#prochaine-action-exacte-dans-une-nouvelle-conversation" title="Link to this heading">¶</a></h2>
+<section id="etape-1-reprendre-329-au-head-exact">
+<h3>Étape 1 — reprendre #329 au HEAD exact<a class="headerlink" href="#etape-1-reprendre-329-au-head-exact" title="Link to this heading">¶</a></h3>
+<p>Vérifier :</p>
+<p><code class="docutils literal notranslate"><span class="pre">5c69b7e56f7b7c95c6326061fecd335ea786ac2c</span></code></p>
+<p>et que <code class="docutils literal notranslate"><span class="pre">main</span></code> reste :</p>
+<p><code class="docutils literal notranslate"><span class="pre">a2032b13982ae270cb8cd6e0f96c45ed6d53b721</span></code></p>
+</section>
+<section id="etape-2-corriger-les-2-visual-proofs-seulement">
+<h3>Étape 2 — corriger les 2 visual proofs seulement<a class="headerlink" href="#etape-2-corriger-les-2-visual-proofs-seulement" title="Link to this heading">¶</a></h3>
+<p>A. Dans <code class="docutils literal notranslate"><span class="pre">BurnInStatusView.tsx</span></code> :</p>
+<ul class="simple">
+<li><p>ajouter colonne desktop <code class="docutils literal notranslate"><span class="pre">Raison</span></code> ;</p></li>
+<li><p>afficher <code class="docutils literal notranslate"><span class="pre">row.unresolved_reason</span> <span class="pre">??</span> <span class="pre">&quot;—&quot;</span></code>.</p></li>
+</ul>
+<p>B. Dans <code class="docutils literal notranslate"><span class="pre">capture_web_dir_d3_visual.mjs</span></code> :</p>
+<ul class="simple">
+<li><p>assertion T0 case-insensitive / texte normalisé.</p></li>
+</ul>
+<p>Aucune autre modification fonctionnelle.</p>
+</section>
+<section id="etape-3-rerun-ci-sur-nouveau-head">
+<h3>Étape 3 — rerun CI sur nouveau HEAD<a class="headerlink" href="#etape-3-rerun-ci-sur-nouveau-head" title="Link to this heading">¶</a></h3>
+<p>Attendre :</p>
+<ul class="simple">
+<li><p>U2 Burn-in visual = PASS ;</p></li>
+<li><p>Direction visual = PASS ;</p></li>
+<li><p>tous les anciens gates toujours verts ;</p></li>
+<li><p>aucun review thread ;</p></li>
+<li><p>main inchangé ou rebase/review explicite si main bouge.</p></li>
+</ul>
+</section>
+<section id="etape-4-revue-finale">
+<h3>Étape 4 — revue finale<a class="headerlink" href="#etape-4-revue-finale" title="Link to this heading">¶</a></h3>
+<p>Vérifier le diff complet #329 :</p>
+<ul class="simple">
+<li><p>aucun Advisor ;</p></li>
+<li><p>aucun risk/sizing ;</p></li>
+<li><p>aucun execution ;</p></li>
+<li><p>aucun systemd ;</p></li>
+<li><p>aucun PPL write ;</p></li>
+<li><p>API GET-only ;</p></li>
+<li><p>producteur read-only ;</p></li>
+<li><p>frontend strict.</p></li>
+</ul>
+</section>
+<section id="etape-5-sortir-du-draft-et-merge-si-tout-est-vert">
+<h3>Étape 5 — sortir du draft et merge si tout est vert<a class="headerlink" href="#etape-5-sortir-du-draft-et-merge-si-tout-est-vert" title="Link to this heading">¶</a></h3>
+<p>Verdict cible :</p>
+<p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U2_BURN_IN_STATUS_SOURCE_READY</span></code></p>
+<p>Mettre à jour :</p>
+<ul class="simple">
+<li><p>#328 ;</p></li>
+<li><p>#323.</p></li>
+</ul>
+</section>
+<section id="etape-6-ne-pas-deployer-automatiquement">
+<h3>Étape 6 — NE PAS déployer automatiquement<a class="headerlink" href="#etape-6-ne-pas-deployer-automatiquement" title="Link to this heading">¶</a></h3>
+<p>Après merge source :</p>
+<ul class="simple">
+<li><p>runtime reste sur <code class="docutils literal notranslate"><span class="pre">116634be...</span></code> ;</p></li>
+<li><p>#286 reste ACTIVE ;</p></li>
+<li><p>créer/traiter une gate séparée pour publier réellement
+<code class="docutils literal notranslate"><span class="pre">BurnInStatusSnapshot</span></code> sur le VPS ;</p></li>
+<li><p>cette gate doit être passive, compatible burn-in et sans restart Advisor si possible.</p></li>
+</ul>
+<p>U2b <code class="docutils literal notranslate"><span class="pre">RuntimeServiceSnapshot</span></code> reste une mission distincte :
+elle doit apporter la preuve host/systemd Advisor, pas être confondue avec
+le publisher BurnInStatus.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="regles-de-reprise-a-conserver">
+<h2>20. Règles de reprise à conserver<a class="headerlink" href="#regles-de-reprise-a-conserver" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Une gate à la fois.</p></li>
+<li><p>Source certification avant runtime.</p></li>
+<li><p>Aucun déploiement implicite.</p></li>
+<li><p>Aucun restart Advisor pendant #286 sans exception explicite.</p></li>
+<li><p>React ne lit pas les fichiers autoritaires.</p></li>
+<li><p>Operator API ne lit pas directement le PPL.</p></li>
+<li><p>Aucun PnL inventé.</p></li>
+<li><p>UNRESOLVED reste UNRESOLVED.</p></li>
+<li><p>T0 n’est jamais assimilé à EPOCH_CREATED.</p></li>
+<li><p>Le vieux CryptoRadar sera retiré seulement après parité app + gate séparée.</p></li>
+<li><p>L’app doit devenir le cockpit principal pour éviter d’ouvrir le VPS.</p></li>
+<li><p>Les preuves desktop et mobile sont obligatoires pour les surfaces importantes.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="prompt-de-reprise-court-pour-une-nouvelle-conversation">
+<h2>21. Prompt de reprise court pour une nouvelle conversation<a class="headerlink" href="#prompt-de-reprise-court-pour-une-nouvelle-conversation" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Projet : 3a7i3/crypto-ia-terminal
+
+Reprendre APP-UNIFY U2 depuis :
+docs/handoffs/APP_UNIFY_U2_HANDOFF_2026-10-01.md
+
+Issue : #328
+PR : #329
+Branch : feat/328-app-unify-u2-burn-in-status
+HEAD attendu au handoff : 5c69b7e56f7b7c95c6326061fecd335ea786ac2c
+Base/main attendu : a2032b13982ae270cb8cd6e0f96c45ed6d53b721
+
+#286 reste ACTIVE.
+Ne pas toucher au runtime/VPS/Advisor/PPL/config/risk/sizing.
+
+Il reste 2 visual failures uniquement :
+1. U2 desktop : unresolved_reason absent du tableau desktop.
+   Ajouter colonne Raison, conserver l'assertion RECOVERY_PRICE_UNAVAILABLE.
+2. Direction visual : assertion "T0 scientifique" sensible à la casse.
+   Normaliser/case-insensitive.
+
+Puis rerun toute la CI, revue HEAD/base/diff/threads.
+Si tout est vert, sortir #329 du draft, merge au SHA exact, synchroniser #328/#323.
+Ne pas déployer après le merge : runtime gate séparée.
+</pre></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">HANDOFF — APP-UNIFY U2 / BurnInStatusSnapshot</a><ul>
+<li><a class="reference internal" href="#etat-global-du-programme-app-unify">1. État global du programme APP-UNIFY</a><ul>
+<li><a class="reference internal" href="#u0-termine">U0 — terminé</a></li>
+<li><a class="reference internal" href="#u1-termine">U1 — terminé</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#freeze-runtime-a-ne-pas-casser">2. Freeze runtime à ne pas casser</a></li>
+<li><a class="reference internal" href="#etat-scientifique-burn-in-connu-avant-u2">3. État scientifique burn-in connu avant U2</a></li>
+<li><a class="reference internal" href="#pourquoi-u2-existe">4. Pourquoi U2 existe</a></li>
+<li><a class="reference internal" href="#issue-et-pr-u2">5. Issue et PR U2</a></li>
+<li><a class="reference internal" href="#architecture-u2-decidee">6. Architecture U2 décidée</a></li>
+<li><a class="reference internal" href="#lecture-ppl-read-only-decision-importante">7. Lecture PPL read-only : décision importante</a></li>
+<li><a class="reference internal" href="#t0-decouverte-importante">8. T0 : découverte importante</a></li>
+<li><a class="reference internal" href="#identite-config-code-ppl">9. Identité config/code/PPL</a></li>
+<li><a class="reference internal" href="#contrat-burninstatussnapshot">10. Contrat BurnInStatusSnapshot</a><ul>
+<li><a class="reference internal" href="#identite-provenance">Identité/provenance</a></li>
+<li><a class="reference internal" href="#progression">Progression</a></li>
+<li><a class="reference internal" href="#open-lifecycles">OPEN lifecycles</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#historique-des-ordres-lifecycles">11. Historique des ordres / lifecycles</a><ul>
+<li><a class="reference internal" href="#open">OPEN</a></li>
+<li><a class="reference internal" href="#closed">CLOSED</a></li>
+<li><a class="reference internal" href="#unresolved">UNRESOLVED</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#finalisation-du-burn-in">12. Finalisation du burn-in</a></li>
+<li><a class="reference internal" href="#ui-u2-construite">13. UI U2 construite</a><ul>
+<li><a class="reference internal" href="#desktop">Desktop</a></li>
+<li><a class="reference internal" href="#mobile-720px">Mobile &lt;= 720px</a></li>
+<li><a class="reference internal" href="#direction">Direction</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#recherche-source-executee-pendant-u0-u1-u2">14. Recherche source exécutée pendant U0/U1/U2</a><ul>
+<li><a class="reference internal" href="#operator-app-snapshots">Operator App / snapshots</a></li>
+<li><a class="reference internal" href="#ppl-lifecycle">PPL / lifecycle</a></li>
+<li><a class="reference internal" href="#freeze-config">Freeze/config</a></li>
+<li><a class="reference internal" href="#t0-burn-in">T0 / burn-in</a></li>
+<li><a class="reference internal" href="#operator-api-readers">Operator API / readers</a></li>
+<li><a class="reference internal" href="#cross-stack">Cross-stack</a></li>
+<li><a class="reference internal" href="#visual-proof">Visual proof</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#commits-u2-exacts">15. Commits U2 exacts</a></li>
+<li><a class="reference internal" href="#erreurs-rencontrees-et-corrections-deja-faites">16. Erreurs rencontrées et corrections déjà faites</a><ul>
+<li><a class="reference internal" href="#a-lint-python">A. Lint Python</a></li>
+<li><a class="reference internal" href="#b-routing-direction">B. Routing Direction</a></li>
+<li><a class="reference internal" href="#c-typescript-build-narrowing">C. TypeScript build/narrowing</a></li>
+<li><a class="reference internal" href="#d-nettoyage-contrat-source">D. Nettoyage contrat source</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ci-actuelle-au-handoff">17. CI actuelle au handoff</a><ul>
+<li><a class="reference internal" href="#verts">Verts</a></li>
+<li><a class="reference internal" href="#rouges-restants">Rouges restants</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cause-exacte-des-deux-visual-failures">18. Cause exacte des deux visual failures</a><ul>
+<li><a class="reference internal" href="#u2-burn-in-visual">18.1 U2 Burn-in visual</a></li>
+<li><a class="reference internal" href="#direction-visual">18.2 Direction visual</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#prochaine-action-exacte-dans-une-nouvelle-conversation">19. Prochaine action exacte dans une nouvelle conversation</a><ul>
+<li><a class="reference internal" href="#etape-1-reprendre-329-au-head-exact">Étape 1 — reprendre #329 au HEAD exact</a></li>
+<li><a class="reference internal" href="#etape-2-corriger-les-2-visual-proofs-seulement">Étape 2 — corriger les 2 visual proofs seulement</a></li>
+<li><a class="reference internal" href="#etape-3-rerun-ci-sur-nouveau-head">Étape 3 — rerun CI sur nouveau HEAD</a></li>
+<li><a class="reference internal" href="#etape-4-revue-finale">Étape 4 — revue finale</a></li>
+<li><a class="reference internal" href="#etape-5-sortir-du-draft-et-merge-si-tout-est-vert">Étape 5 — sortir du draft et merge si tout est vert</a></li>
+<li><a class="reference internal" href="#etape-6-ne-pas-deployer-automatiquement">Étape 6 — NE PAS déployer automatiquement</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#regles-de-reprise-a-conserver">20. Règles de reprise à conserver</a></li>
+<li><a class="reference internal" href="#prompt-de-reprise-court-pour-une-nouvelle-conversation">21. Prompt de reprise court pour une nouvelle conversation</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
