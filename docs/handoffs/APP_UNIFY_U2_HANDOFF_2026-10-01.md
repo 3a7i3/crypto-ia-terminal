@@ -1,7 +1,7 @@
 # HANDOFF — APP-UNIFY U2 / BurnInStatusSnapshot
 
-Date de handoff : 2026-10-01  
-Projet : `Crypto AI Terminal — Research Infrastructure`  
+Date de handoff : 2026-10-01
+Projet : `Crypto AI Terminal — Research Infrastructure`
 Repository : `3a7i3/crypto-ia-terminal`
 
 Ce document est la source de reprise recommandée pour une nouvelle conversation.
@@ -140,7 +140,7 @@ Le probe O9 avait montré :
 
 et les positions avaient une deadline timeout à environ 8 h avec une fenêtre recovery supplémentaire.
 
-Ces valeurs sont des **preuves VPS ponctuelles historiques**, pas une source produit actuelle.  
+Ces valeurs sont des **preuves VPS ponctuelles historiques**, pas une source produit actuelle.
 U2 ne doit jamais lire `/proc/<pid>/environ` comme vérité de configuration affichée.
 
 ---
@@ -239,7 +239,7 @@ Le producteur U2 est le seul composant autorisé à lire la frontière source PP
 
 Nous avons inspecté `DurableEventStore`.
 
-Certaines méthodes de store utilisent un lock.  
+Certaines méthodes de store utilisent un lock.
 Pour un producteur de présentation strictement passif, U2 **n'utilise pas**
 le store de façon susceptible de créer/toucher le lock.
 
@@ -525,7 +525,7 @@ Historique sous forme de table.
 
 ### Mobile <= 720px
 
-Le tableau desktop est caché.  
+Le tableau desktop est caché.
 L'historique devient une liste de cartes.
 
 But :
@@ -731,7 +731,7 @@ Corrigé au SHA :
 
 ### B. Routing Direction
 
-Ancien test attendait 4 GET.  
+Ancien test attendait 4 GET.
 U2 introduit la cinquième source Burn-in.
 
 Corrigé :
