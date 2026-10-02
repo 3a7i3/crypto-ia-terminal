@@ -73,6 +73,8 @@ jobs:
           python -m tests.cross_stack.generate_ppl_comparison_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_research_lab_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_research_publication_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_strategy_board_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_financial_clarity_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_burn_in_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_runtime_service_fixture --out frontend/.cross-stack-fixtures
 
@@ -80,4 +82,4 @@ jobs:
         working-directory: frontend
         env:
           CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
-        run: npx vitest run src/test/crossStack.compat.test.tsx
+        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx

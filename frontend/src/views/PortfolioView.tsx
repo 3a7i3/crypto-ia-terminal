@@ -54,7 +54,8 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
 );
 
 const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) => (
-  <div style={{ overflowX: "auto" }}>
+  <>
+  <div className="portfolio-table-desktop" style={{ overflowX: "auto" }}>
     <table className="w-full">
       <thead>
         <tr className="text-left" style={{ color: "var(--text-muted)" }}>
@@ -72,6 +73,19 @@ const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) 
       </tbody>
     </table>
   </div>
+  <div className="portfolio-mobile-list" data-testid="portfolio-mobile-positions">
+    {positions.map((pos) => <article className="portfolio-position-card" key={pos.position_id || pos.symbol}>
+      <h3>{pos.symbol} · {pos.side ?? "—"}</h3><dl>
+        <div><dt>Taille USD</dt><dd>{pos.size_usd ?? "—"}</dd></div>
+        <div><dt>Entrée</dt><dd>{pos.entry_price ?? "—"}</dd></div>
+        <div><dt>Prix actuel</dt><dd><ObservedValueView ov={pos.current_price} render={fmtUsd} /></dd></div>
+        <div><dt>PnL USD</dt><dd><ObservedValueView ov={pos.unrealized_pnl_usd} render={fmtUsd} /></dd></div>
+        <div><dt>PnL %</dt><dd><ObservedValueView ov={pos.unrealized_pnl_pct} render={fmtPct} /></dd></div>
+        <div><dt>Régime</dt><dd><ObservedValueView ov={pos.regime} />{pos.restored_without_regime && <span> · restaurée sans régime</span>}</dd></div>
+      </dl><details><summary>Identité & sources</summary><p>{pos.position_id} · {pos.tp_sl_source} · {pos.personality ?? "—"}</p></details>
+    </article>)}
+  </div>
+  </>
 );
 
 /** O-02W-D2-R1 Correction D — `open_positions` presentation, never via

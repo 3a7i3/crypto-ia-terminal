@@ -18,6 +18,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
 import { ResearchLabView } from "../views/ResearchLabView";
 import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
+import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
+import { validateFinancialReconciliationSnapshot } from "../lib/financialReconciliationValidation";
 import { validateMarketMicrostructureSnapshot } from "../lib/marketMicrostructureValidation";
 import { MarketView } from "../views/MarketView";
 import { validateOperatorSnapshot } from "../lib/snapshotValidation";
@@ -51,6 +53,21 @@ function jsonResponse(body: unknown, status: number) {
 describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer -> real API -> frontend)", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("P: preserves exact producer financial strings while a tiny nonzero delta never looks like zero", async () => {
+    const f = loadFixture("P_financial_clarity");
+    expect(f.http_status).toBe(200);
+    expect(f._proof?.existing_fin_producer_invoked).toBe(true);
+    const before = JSON.stringify(f.body);
+    expect(validateFinancialReconciliationSnapshot(f.body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(f.body, 200)));
+    render(<FinancialReconciliationView />);
+    await screen.findByText("Financial Truth");
+    const view = screen.getByTestId("financial-reconciliation-view");
+    expect(view).toHaveTextContent("< 0,01");
+    expect(view).toHaveTextContent((f.body as any).reconciliation.unreconciled_capital);
+    expect(JSON.stringify(f.body)).toBe(before);
   });
 
   it("A: accepts the exact producer-generated JSON unchanged and renders every canonical cockpit view", async () => {

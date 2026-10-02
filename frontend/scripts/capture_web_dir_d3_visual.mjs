@@ -559,7 +559,15 @@ try {
   const mobileHeaderPosition = await page.locator(".direction-header").evaluate(
     (element) => getComputedStyle(element).position,
   );
-  assert(mobileHeaderPosition === "sticky", "mobile Direction header is not sticky");
+  assert(mobileHeaderPosition === "relative", "U6 Direction header must scroll with the document");
+  // U6 replaces the tall sticky header with two workspaces. Prove that the
+  // operator can bring a card title to the top without the shell covering it.
+  const globalHeading = page.getByTestId("direction-global-card").getByRole("heading");
+  await globalHeading.evaluate(element => element.scrollIntoView({ block: "start" }));
+  const headingBox = await globalHeading.boundingBox();
+  const headerBox = await page.locator(".direction-header").boundingBox();
+  assert(headingBox !== null && headerBox !== null && headerBox.y + headerBox.height <= headingBox.y + 1, "Direction header obscures the card title after scroll");
+  await page.evaluate(() => window.scrollTo(0, 0));
   const mobileReturnBox = await returnControl.boundingBox();
   assert(mobileReturnBox !== null && mobileReturnBox.height >= 44, "mobile return control is smaller than 44px");
   assert(mobileReturnBox !== null && mobileReturnBox.width <= 390, "mobile return control exceeds viewport");
