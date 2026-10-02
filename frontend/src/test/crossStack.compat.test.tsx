@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
+import { ResearchLabView } from "../views/ResearchLabView";
 import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
 import { validateMarketMicrostructureSnapshot } from "../lib/marketMicrostructureValidation";
 import { MarketView } from "../views/MarketView";
@@ -380,5 +381,29 @@ describe.skipIf(!HAS_FIXTURES)("U3b LMI real producer → API → React", () => 
     expect(rows[2]).toHaveTextContent("NOT_AVAILABLE");
     expect(screen.getByTestId("microstructure-view")).not.toHaveTextContent("GHOSTUSDT");
     expect(screen.getByTestId("microstructure-view")).not.toHaveTextContent("MUST_NOT_ESCAPE");
+  });
+});
+
+
+describe.skipIf(!HAS_FIXTURES)("U4 certified Research publication → builder → API → React", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("admits exact builder-authored JSON and preserves metrics, hashes and scientific limits", async () => {
+    const fixture = loadFixture("N_research_publication");
+    expect(fixture.http_status).toBe(200);
+    expect(fixture._proof?.builder_invoked).toBe(true);
+    expect(validateResearchLabSnapshot(fixture.body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    render(<ResearchLabView />);
+    await waitFor(() => expect(screen.getByTestId("research-domain-banner")).toBeVisible());
+    const view = screen.getByTestId("research-lab-view");
+    expect(view).toHaveTextContent("LOW_SAMPLE");
+    expect(view).toHaveTextContent("Candidate catalog NOT_AVAILABLE");
+    expect(view).toHaveTextContent("mark_to_market_max_drawdown");
+    expect(view).toHaveTextContent("NOT_AVAILABLE");
+    expect(view).toHaveTextContent("closed_population_fees_usd");
+    fireEvent.click(screen.getByText("Full Research provenance"));
+    expect(screen.getByTestId("research-source-artifacts")).toHaveTextContent(String(fixture._proof?.manifest_sha256));
+    expect(screen.getByTestId("research-source-artifacts")).toHaveTextContent(String(fixture._proof?.diagnostic_sha256));
+    expect(screen.queryByTestId("research-candidate-card")).not.toBeInTheDocument();
   });
 });

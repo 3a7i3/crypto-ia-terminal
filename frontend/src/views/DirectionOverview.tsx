@@ -504,7 +504,7 @@ const ResearchCard: React.FC<{ state: ResearchLabState }> = ({ state }) => {
         <div><dt>Population dataset N</dt><dd>{s.population.n}</dd></div>
         <div><dt>Evidence</dt><dd>{s.population.evidence_status}</dd></div>
         <div><dt>Force statistique</dt><dd>{s.population.statistical_strength}</dd></div>
-        <div><dt>Candidats</dt><dd>{s.candidate_registry.candidate_count}</dd></div>
+        <div><dt>Candidats publiés dans cette projection</dt><dd>{s.candidate_registry.candidate_count}</dd></div>
         <div><dt>Autorité</dt><dd>{s.authority}</dd></div>
       </dl>
       <p className="direction-boundary">Les faits Research décrivent leur dataset uniquement et ne remplissent jamais les métriques PAPER actives.</p>
