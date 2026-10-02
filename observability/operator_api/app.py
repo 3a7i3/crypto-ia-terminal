@@ -62,6 +62,7 @@ from observability.operator_api.ppl_comparison_reader import (
     PplComparisonSnapshotReader,
 )
 from observability.operator_api.reader import SafeSnapshotReader, SnapshotReadResult
+from observability.operator_api.research_strategy_board_reader import ResearchStrategyBoardReader
 from observability.operator_api.research_lab_reader import (
     DEFAULT_RESEARCH_LAB_SNAPSHOT_PATH,
     ResearchLabReadResult,
@@ -88,6 +89,7 @@ _market_reader = MarketSnapshotReader()
 _ppl_comparison_reader = PplComparisonSnapshotReader()
 _financial_reconciliation_reader = FinancialReconciliationSnapshotReader()
 _research_lab_reader = ResearchLabSnapshotReader()
+_research_strategy_board_reader = ResearchStrategyBoardReader()
 
 
 def configure_reader(
@@ -474,6 +476,19 @@ def get_market() -> Any:
     payload["snapshot_age_s"] = result.snapshot_age_s
     payload["freshness_classification"] = result.freshness_classification
     return payload
+
+
+def get_research_strategy_board_reader() -> ResearchStrategyBoardReader:
+    return _research_strategy_board_reader
+
+
+@app.get("/api/operator/v1/research-strategies")
+def get_research_strategies() -> Any:
+    """Transport only the strategy presentation artifact; no source/evaluation I/O."""
+    result = get_research_strategy_board_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
 
 
 @app.get("/api/operator/v1/research-lab")

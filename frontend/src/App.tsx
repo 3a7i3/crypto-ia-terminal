@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./tokens.css";
 import "./operator.css";
+import "./clarity.css";
 import { DirectionShell } from "./shells/DirectionShell";
 import { PaperLiveShell } from "./shells/PaperLiveShell";
 import { ResearchShell } from "./shells/ResearchShell";
@@ -19,6 +20,7 @@ import { DirectionOverview } from "./views/DirectionOverview";
 import { BurnInStatusView } from "./views/BurnInStatusView";
 import { EventsView } from "./views/EventsView";
 import { NotFoundView } from "./views/NotFoundView";
+import { ResearchStrategyBoardView } from "./views/ResearchStrategyBoardView";
 import { ResearchLabView } from "./views/ResearchLabView";
 
 const App: React.FC = () => (
@@ -43,6 +45,7 @@ const App: React.FC = () => (
       </Route>
       <Route path="/research" element={<ResearchShell />}>
         <Route index element={<ResearchLabView />} />
+        <Route path="strategies" element={<ResearchStrategyBoardView />} />
       </Route>
       <Route path="*" element={<NotFoundView />} />
     </Routes>
