@@ -125,7 +125,7 @@ export const BurnInStatusView: React.FC = () => {
           <table className="burnin-history-table">
             <thead><tr>
               <th>Statut</th><th>Symbole</th><th>Side</th><th>Ouverture</th><th>Fin</th>
-              <th>Principal</th><th>Entry</th><th>Exit</th><th>Frais E/X</th><th>PnL net</th><th>Durée</th>
+              <th>Principal</th><th>Entry</th><th>Exit</th><th>Frais E/X</th><th>PnL net</th><th>Durée</th><th>Raison</th>
             </tr></thead>
             <tbody>
               {s.lifecycle_history.map((row) => (
@@ -136,6 +136,7 @@ export const BurnInStatusView: React.FC = () => {
                   <td>{row.entry_fee_usd} / {num(row.exit_fee_usd)}</td>
                   <td>{row.status === "UNRESOLVED" ? "UNRESOLVED" : num(row.net_realized_pnl_usd)}</td>
                   <td>{duration(row.duration_seconds)}</td>
+                  <td>{row.unresolved_reason ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

@@ -415,7 +415,8 @@ try {
   await page.getByTestId("direction-burnin-card").waitFor({ state: "visible" });
   const burnInCard = page.getByTestId("direction-burnin-card");
   const burnInText = await burnInCard.innerText();
-  for (const required of ["PPL_AUTHORITY_PRESENTATION", "BEFORE_TIMEOUT", "T0 scientifique", "CC/USDT"]) {
+  assert(/T0 scientifique/i.test(burnInText), "U2 Direction burn-in evidence missing: T0 scientifique");
+  for (const required of ["PPL_AUTHORITY_PRESENTATION", "BEFORE_TIMEOUT", "CC/USDT"]) {
     assert(burnInText.includes(required), `U2 Direction burn-in evidence missing: ${required}`);
   }
 
