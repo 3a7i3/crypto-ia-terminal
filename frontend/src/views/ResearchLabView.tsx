@@ -165,11 +165,19 @@ export const ResearchLabView: React.FC = () => {
             <div><span>dataset_id</span><code>{context.dataset_id}</code></div>
             <div><span>source_boundary_id</span><code>{context.source_boundary_id}</code></div>
             <div><span>research_run_id</span><code>{context.research_run_id}</code></div>
-            <div><span>diagnostic_run_id</span><code>{context.diagnostic_run_id ?? "NOT_APPLICABLE"}</code></div>
+            <div><span>diagnostic_run_id</span><code>{context.diagnostic_run_id ?? "NOT_AVAILABLE"}</code></div>
             <div><span>research source SHA</span><code>{context.research_source_code_sha}</code></div>
             <div><span>research config hash</span><code>{context.research_config_hash ?? "NOT_AVAILABLE"}</code></div>
             <div><span>presentation builder SHA</span><code>{context.presentation_builder_source_sha}</code></div>
             <div><span>published</span><code>{snapshot.generated_at_utc}</code></div>
+          </div>
+          <div className="research-provenance-grid" data-testid="research-source-artifacts">
+            {snapshot.provenance.source_artifacts.map((artifact) => (
+              <div key={artifact.artifact_ref}>
+                <span>{artifact.artifact_ref} · {artifact.artifact_type}</span>
+                <code>{artifact.sha256}</code>
+              </div>
+            ))}
           </div>
         </details>
       </section>
