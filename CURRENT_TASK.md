@@ -1,23 +1,18 @@
-# CURRENT_TASK
+# Mission de cette tranche
 
-## Focus actuel
+**DOC-CANON-01 — [#340](https://github.com/3a7i3/crypto-ia-terminal/issues/340)**
 
-P10 — Evolutionary Architecture (vision)
+Base documentaire : `053c8540a012b2c2c7a9bc5e76585a1425858f73`.
+Ce pointeur décrit cette tranche ; vérifier l'issue pour son état réel et la
+mission suivante. Il n'atteste aucun état runtime.
 
-## Contexte utile
+Scope : README, CLAUDE, CURRENT_TASK, ROADMAP et
+[docs/DEVELOPER_ENTRYPOINT.md](docs/DEVELOPER_ENTRYPOINT.md). Zéro code/config/runtime.
+[#266](https://github.com/3a7i3/crypto-ia-terminal/pull/266) sert de matériau
+historique ; aucun merge/cherry-pick, aucun changement BUGS dans cette mission.
 
-- P9 fermé (2026-05-26) : SystemHealthMonitor, BehavioralDriftDetector, SelfMonitoringLoop, AnomalyGovernance, PerformanceSupervisor, PortfolioIntelligence — 64/64 tests
-- anara_context v1.5 : 52 modules indexés, topologie complète
-- Branch active : feat/stack-unification
-- Tests totaux : 1627+ verts avant démarrage P10
-
-## Composants P10 (vision)
-
-1. **HyperparameterOptimizer** — boucle externe teste variations, conserve les meilleures
-2. **StrategyGenerator** — exploration combinaisons indicateurs → conservation par régime
-3. **EpisodicMemory** — configurations gagnantes rejouées sur contextes similaires
-4. **RLPolicyEngine** — politique allocation apprise par RL, récompense = Sharpe glissant
-
-## Notes
-
-Cette page doit rester courte, concrete et orientée exécution.
+Priorisation : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+Cockpit : [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323).
+Garde-fou : [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) actif.
+Burn-in : [#282](https://github.com/3a7i3/crypto-ia-terminal/issues/282), checkpoints
+READ-ONLY distincts ; aucune nouvelle observation VPS dans DOC-CANON-01.
