@@ -3,6 +3,8 @@
 import hashlib
 import json
 import shutil
+import os
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -223,8 +225,10 @@ def test_output_cannot_replace_source_or_follow_symlink(admitted, tmp_path, loca
         publish_strategy_board(target, selection, evidence, **KWARGS)
 
 
-def test_real_producer_reader_api_chain(tmp_path):
-    result = generate_strategy_board_fixture(tmp_path)
+@pytest.mark.parametrize("relative", [False, True])
+def test_real_producer_reader_api_chain(tmp_path, relative):
+    root = Path(os.path.relpath(tmp_path, Path.cwd())) if relative else tmp_path
+    result = generate_strategy_board_fixture(root)
     assert result["http_status"] == 200
     assert validate_strategy_board(result["body"])
 

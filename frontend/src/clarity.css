@@ -78,7 +78,7 @@
   .portfolio-position-card dt { color:var(--text-sec); font-size:12px; } .portfolio-position-card dd { overflow-wrap:anywhere; font-size:14px; margin-top:6px; }
 }
 @media (prefers-reduced-motion:reduce) { .operator-shell *, .operator-shell *::before, .operator-shell *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
-.strategy-stack { display:grid; gap:20px; }
+.strategy-stack { display:grid; gap:20px; min-width:0; overflow-wrap:anywhere; }
 .strategy-hero, .strategy-detail, .strategy-state, .strategy-publication { padding:24px; }
 .strategy-hero h2, .strategy-detail h2, .strategy-state h2 { font-size:28px; margin:8px 0; }
 .strategy-hero p, .strategy-detail p, .strategy-state p, .strategy-publication p { color:var(--text-sec); line-height:1.65; font-size:14px; }
@@ -100,7 +100,7 @@
 .strategy-table th:first-child { text-align:left; min-width:200px; }
 .strategy-table thead th { font-size:13px; color:var(--text-sec); background:var(--bg-card-soft); }
 .strategy-table small { display:block; color:var(--text-sec); font-size:12px; margin-top:8px; }
-.strategy-name { background:transparent; border:0; color:var(--text-pri); font-size:16px; font-weight:650; text-align:left; cursor:pointer; }
+.strategy-name { background:transparent; border:0; color:var(--text-pri); font-size:16px; font-weight:650; text-align:left; cursor:pointer; max-width:100%; overflow-wrap:anywhere; }
 .strategy-name:hover { color:var(--violet); }
 .strategy-mobile-cards { display:none; }
 .strategy-detail { border:2px solid var(--violet); }

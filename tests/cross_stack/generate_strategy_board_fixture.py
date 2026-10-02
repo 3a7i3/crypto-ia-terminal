@@ -43,6 +43,9 @@ def write_source(root: Path, relative: str, doc: dict) -> dict:
 
 
 def prepare_strategy_evidence(root: Path) -> tuple[Path, Path]:
+    # Python 3.11 mkdtemp retains a relative dir, while 3.12 returns absolute.
+    # The immutable candidate publisher returns absolute artifact paths.
+    root = root.resolve()
     evidence = root / "evidence"
     rows = []
     for i, label in enumerate(

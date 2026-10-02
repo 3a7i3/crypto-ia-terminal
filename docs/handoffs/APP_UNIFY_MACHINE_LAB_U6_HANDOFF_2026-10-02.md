@@ -39,7 +39,7 @@ Research réel ou activation du registre n'est publié par cette tranche.
 
 ## Validation locale
 
-- 131 tests Python : `tests/cross_stack/`, U4, WEB-RL et reader/API FIN ;
+- 132 tests Python : `tests/cross_stack/`, U4, WEB-RL et reader/API FIN ;
 - 376 tests frontend avec fixtures cross-stack générées ;
 - 7 contrats de transport local/PWA ; build TypeScript/Vite PASS ;
 - Ruff baseline : 947 findings existants, zéro nouvelle violation ;
@@ -48,6 +48,10 @@ Research réel ou activation du registre n'est publié par cette tranche.
 - preuve U6 aux largeurs 1440/820/390 : deux espaces, erreurs/vide, critères
   cliquables et focus, layout mobile, valeurs exactes FIN, zéro overflow et GET
   canonique uniquement. Captures complètes et de viewport dans les artifacts CI.
+- preuve Direction mise à jour : l'en-tête défile avec le document et ne
+  recouvre pas les titres après scroll ; aucun simple test de sticky conservé ;
+- fixture candidate testée avec racines absolues et relatives, y compris le
+  comportement différent de `mkdtemp` entre Python 3.11 et 3.12.
 
 Commandes : générateurs `tests.cross_stack.generate_*` de la workflow
 `machine-lab-u6-visual-proof.yml`, puis `npm run build`, `npx vitest run` et

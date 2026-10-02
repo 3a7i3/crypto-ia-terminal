@@ -11,6 +11,12 @@ function display(value: string | null): string {
   return value === null ? "UNAVAILABLE" : value;
 }
 
+const AMOUNT_FIELDS = new Set(["cash_available", "capital_reserved", "capital_unresolved", "fees_paid", "realized_pnl", "book_capital_at_cost"]);
+function recordDisplay(field: string, value: string | null): string {
+  const raw = display(value);
+  return AMOUNT_FIELDS.has(field) ? formatDecimalText(raw) : raw;
+}
+
 function tone(status: FinancialReconciliationStatus): string {
   if (status === "EXACT") return "exact";
   if (status === "WITHIN_TOLERANCE") return "tolerance";
@@ -39,10 +45,10 @@ const RecordRow: React.FC<{ row: FinancialReconciliationRecord }> = ({ row }) =>
       <strong>{row.field}</strong>
       <small>{row.source_kind} · {row.source_id}</small>
     </td>
-    <td>{formatDecimalText(display(row.projected_value))}</td>
-    <td>{formatDecimalText(display(row.observed_value))}</td>
-    <td>{formatDecimalText(display(row.delta_observed_minus_projected))}</td>
-    <td>{formatDecimalText(display(row.unreconciled_amount))}</td>
+    <td>{recordDisplay(row.field, row.projected_value)}</td>
+    <td>{recordDisplay(row.field, row.observed_value)}</td>
+    <td>{recordDisplay(row.field, row.delta_observed_minus_projected)}</td>
+    <td>{recordDisplay(row.field, row.unreconciled_amount)}</td>
     <td>
       <span className={"fin-status fin-status-" + tone(row.status)}>
         {row.status.replaceAll("_", " ")}
@@ -201,10 +207,10 @@ export const FinancialReconciliationView: React.FC = () => {
             <article className="fin-record-card" key={row.record_id}>
               <div className="fin-record-head"><strong>{row.field}</strong><span className={"fin-status fin-status-" + tone(row.status)}>{row.status.replaceAll("_", " ")}</span></div>
               <dl className="fin-record-values">
-                <div><dt>FIN projeté</dt><dd>{row.projected_value === null ? "UNAVAILABLE" : formatDecimalText(row.projected_value)}</dd></div>
-                <div><dt>Observé</dt><dd>{row.observed_value === null ? "UNAVAILABLE" : formatDecimalText(row.observed_value)}</dd></div>
-                <div><dt>Écart</dt><dd>{row.delta_observed_minus_projected === null ? "UNAVAILABLE" : formatDecimalText(row.delta_observed_minus_projected)}</dd></div>
-                <div><dt>Non réconcilié</dt><dd>{row.unreconciled_amount === null ? "UNAVAILABLE" : formatDecimalText(row.unreconciled_amount)}</dd></div>
+                <div><dt>FIN projeté</dt><dd>{recordDisplay(row.field, row.projected_value)}</dd></div>
+                <div><dt>Observé</dt><dd>{recordDisplay(row.field, row.observed_value)}</dd></div>
+                <div><dt>Écart</dt><dd>{recordDisplay(row.field, row.delta_observed_minus_projected)}</dd></div>
+                <div><dt>Non réconcilié</dt><dd>{recordDisplay(row.field, row.unreconciled_amount)}</dd></div>
               </dl>
               <details><summary>Valeurs exactes & preuves</summary><div className="fin-evidence">
                 <div><span>Projeté</span><code>{display(row.projected_value)}</code></div>
