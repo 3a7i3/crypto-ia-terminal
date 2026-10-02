@@ -141,7 +141,7 @@ def _validate(doc, transport):
             if expected_age is None:
                 if age is not None:
                     return False
-            elif not finite(age) or not math.isclose(age, expected_age, rel_tol=1e-12, abs_tol=1e-6):
+            elif not finite(age) or age < 0 or not math.isclose(age, expected_age, rel_tol=1e-12, abs_tol=1e-6):
                 return False
             expected_class = "NOT_AVAILABLE" if row["availability"] == "UNAVAILABLE" else "UNKNOWN" if age is None else "STALE" if age > STALE_AFTER_S or read - source > STALE_AFTER_S else "FRESH"
             if row["freshness_classification"] != expected_class:
@@ -151,7 +151,7 @@ def _validate(doc, transport):
     if transport:
         read = utc_seconds(doc["read_at_utc"])
         age = doc["source_age_s"]
-        if read is None or read < generated or not finite(age) or not math.isclose(age, read - source, rel_tol=1e-12, abs_tol=1e-6):
+        if read is None or read < generated or not finite(age) or age < 0 or not math.isclose(age, read - source, rel_tol=1e-12, abs_tol=1e-6):
             return False
         if doc["freshness_classification"] != ("STALE" if age > STALE_AFTER_S else "FRESH"):
             return False

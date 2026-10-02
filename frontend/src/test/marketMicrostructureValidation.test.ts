@@ -29,3 +29,15 @@ describe("U3b strict transport contract", () => {
     expect(validateMarketMicrostructureSnapshot(doc)).toBe(false);
   });
 });
+
+
+it.each(["source", "observation"])("rejects slightly negative %s age instead of accepting tolerance as zero", (field) => {
+  const doc = microstructureFixture();
+  doc.read_at_utc = doc.source_updated_at_utc; doc.source_age_s = 0;
+  doc.rows[0].observed_at_utc = doc.source_updated_at_utc; doc.rows[0].observation_age_s = 0;
+  doc.rows[1].observation_age_s = 30;
+  expect(validateMarketMicrostructureSnapshot(doc)).toBe(true);
+  if (field === "source") doc.source_age_s = -1e-8;
+  else doc.rows[0].observation_age_s = -1e-8;
+  expect(validateMarketMicrostructureSnapshot(doc)).toBe(false);
+});

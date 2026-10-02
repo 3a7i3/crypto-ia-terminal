@@ -20,7 +20,7 @@ export function validateMarketMicrostructureSnapshot(x: unknown): x is MarketMic
   if (x.schema_version !== "1.0.0" || x.product !== "MarketMicrostructureSnapshot" || x.domain !== "market_microstructure" || x.authority !== "OBSERVATIONAL_TELEMETRY" || x.mode !== "READ_ONLY") return false;
   const source = utc(x.source_updated_at_utc), generated = utc(x.generated_at_utc), read = utc(x.read_at_utc);
   if (source === null || generated === null || read === null || source < 0 || source > generated || generated > read) return false;
-  if (!finite(x.source_age_s) || !close(x.source_age_s, read - source) || x.freshness_classification !== (x.source_age_s > 15 ? "STALE" : "FRESH")) return false;
+  if (!finite(x.source_age_s) || x.source_age_s < 0 || !close(x.source_age_s, read - source) || x.freshness_classification !== (x.source_age_s > 15 ? "STALE" : "FRESH")) return false;
   if (typeof x.source_artifact_sha256 !== "string" || !/^[0-9a-f]{64}$/.test(x.source_artifact_sha256) || !member(x.exchange, ["mexc", "binance"])) return false;
   if (!member(x.unit_contract_source, ["api", "fallback", "mixed", "unknown"]) || (x.unit_contract_degraded !== null && typeof x.unit_contract_degraded !== "boolean")) return false;
   if (x.pressure_field_count !== null && !unsigned(x.pressure_field_count)) return false;
@@ -53,7 +53,7 @@ export function validateMarketMicrostructureSnapshot(x: unknown): x is MarketMic
       if (row.notable !== expectedNotable) return false;
       if (stamp === null) { if (row.observation_age_s !== null || row.freshness_classification !== "UNKNOWN") return false; }
       else {
-        if (!finite(row.observation_age_s) || !close(row.observation_age_s, read - stamp)) return false;
+        if (!finite(row.observation_age_s) || row.observation_age_s < 0 || !close(row.observation_age_s, read - stamp)) return false;
         if (row.freshness_classification !== (row.observation_age_s > 15 || read - source > 15 ? "STALE" : "FRESH")) return false;
       }
     } else return false;

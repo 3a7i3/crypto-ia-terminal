@@ -230,3 +230,17 @@ def test_source_offset_is_normalized_and_legacy_age_is_never_trusted(source, tmp
     artifact, result = publish(source, tmp_path)
     assert result["source_updated_at_utc"] == "2026-09-14T20:00:00.000Z"
     assert MarketMicrostructureReader(artifact, now_fn=lambda: NOW).read().snapshot["rows"][1]["freshness_classification"] == "STALE"
+
+
+@pytest.mark.parametrize("field", ["source", "observation"])
+def test_contract_rejects_negative_age_even_within_numeric_tolerance(source, tmp_path, field):
+    artifact, doc = publish(source, tmp_path)
+    doc["rows"][0]["observed_at_utc"] = doc["source_updated_at_utc"]
+    artifact.write_text(json.dumps(doc))
+    transport = MarketMicrostructureReader(artifact, now_fn=lambda: NOW).read().snapshot
+    assert validate_microstructure_snapshot(transport, transport=True)
+    if field == "source":
+        transport["source_age_s"] = -1e-8
+    else:
+        transport["rows"][0]["observation_age_s"] = -1e-8
+    assert not validate_microstructure_snapshot(transport, transport=True)
