@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,7 +14,12 @@ from observability.runtime_service_contract import (
     validate_runtime_service_snapshot,
 )
 
-DEFAULT_RUNTIME_SERVICE_PATH = Path("databases/runtime_service_snapshot.json")
+DEFAULT_RUNTIME_SERVICE_PATH = Path(
+    os.getenv(
+        "RUNTIME_SERVICE_SNAPSHOT_PATH",
+        "databases/runtime_service_snapshot.json",
+    )
+)
 DEFAULT_STALE_AFTER_S = 90.0
 
 
@@ -58,7 +64,6 @@ class RuntimeServiceSnapshotReader:
             return RuntimeServiceReadResult(
                 False, error_code="RUNTIME_SERVICE_FUTURE_TIMESTAMP"
             )
-        # Freshness is measured from the actual host collection, not republishing.
         age = now - observed
         return RuntimeServiceReadResult(
             True,
