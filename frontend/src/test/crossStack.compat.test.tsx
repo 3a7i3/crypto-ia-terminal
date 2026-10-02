@@ -21,6 +21,7 @@ import { validateMarketRadarSnapshot } from "../lib/marketValidation";
 import { validatePplComparisonSnapshot } from "../lib/pplComparisonValidation";
 import { validateResearchLabSnapshot } from "../lib/researchLabValidation";
 import { validateBurnInStatusSnapshot } from "../lib/burnInStatusValidation";
+import { validateRuntimeServiceSnapshot } from "../lib/runtimeServiceValidation";
 import type { OperatorSnapshot, ApiStructuredError } from "../types";
 
 const FIXTURES_DIR =
@@ -313,6 +314,26 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
       "/api/operator/v1/burn-in",
       { method: "GET" },
     );
+  });
+
+  it("K U2b: exact host producer/API JSON renders independently of a missing Advisor snapshot", async () => {
+    const fixture = loadFixture("K_runtime_service");
+    expect(fixture.http_status).toBe(200);
+    expect(validateRuntimeServiceSnapshot(fixture.body)).toBe(true);
+    expect(fixture._proof?.producer_authority).toBe("HOST_SYSTEMD_OBSERVATION");
+    expect(fixture._proof?.artifact_is_regular_file).toBe(true);
+    expect(fixture._proof?.deployment_evidence_unchanged).toBe(true);
+    window.history.replaceState({}, "", "/paper-live/system");
+    const fetchMock = vi.fn().mockImplementation((url) => Promise.resolve(String(url).endsWith("/runtime-service") ? jsonResponse(fixture.body, 200) : jsonResponse({ error_code: "SNAPSHOT_MISSING" }, 503)));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("host-cross-stack"));
+    const view = screen.getByTestId("runtime-service-view");
+    expect(view).toHaveTextContent("MainPID à la capture4321");
+    expect(view).toHaveTextContent("NRestarts0");
+    expect(view).toHaveTextContent("b".repeat(40));
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
+    expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/runtime-service", { method: "GET", signal: expect.any(AbortSignal) });
   });
 
 });
