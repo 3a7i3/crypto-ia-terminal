@@ -96,6 +96,8 @@ export function validateMarketRadarSnapshot(x: unknown): x is MarketRadarSnapsho
   if (!isNonNegativeInteger(x.actionable_count)) return false;
   if (!isNonNegativeInteger(x.watchlist_count)) return false;
   if (!Array.isArray(x.top_opportunities) || !x.top_opportunities.every(isMarketOpportunity)) return false;
+  if (x.top_opportunities.length > x.actionable_count || x.actionable_count > x.universe_size) return false;
+  if (new Set(x.top_opportunities.map((row) => row.symbol)).size !== x.top_opportunities.length) return false;
   if (!isFiniteNumber(x.snapshot_age_s) || x.snapshot_age_s < 0) return false;
   if (x.freshness_classification !== "FRESH" && x.freshness_classification !== "STALE") return false;
   return true;

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useMarketSnapshot } from "../lib/marketClient";
 import type { MarketOpportunity } from "../lib/marketTypes";
 
@@ -40,6 +40,9 @@ const Regime: React.FC<{ value: string }> = ({ value }) => (
 
 export const MarketView: React.FC = () => {
   const state = useMarketSnapshot();
+  const [query, setQuery] = useState("");
+  const [side, setSide] = useState("ALL");
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   if (state.status === "loading") {
     return (
@@ -75,6 +78,12 @@ export const MarketView: React.FC = () => {
 
   const m = state.snapshot;
   const stale = m.freshness_classification === "STALE";
+  const rows = m.top_opportunities.filter((row) =>
+    row.symbol.toUpperCase().includes(query.trim().toUpperCase()) &&
+    (side === "ALL" || row.dominant_side === side));
+  // Resolve from the current validated snapshot: never retain a stale row
+  // object after polling replaces the source or the selection is filtered out.
+  const selected = rows.find((row) => row.symbol === selectedSymbol);
 
   return (
     <div className="market-stack" data-testid="market-view">
@@ -119,7 +128,7 @@ export const MarketView: React.FC = () => {
       <section className="market-panel market-opportunities-panel">
         <div className="market-section-head">
           <div>
-            <div className="market-section-title">Top market opportunities</div>
+            <div className="market-section-title">Scanner · Market observations</div>
             <div className="market-section-subtitle">Observation ranking supplied by CryptoRadar · unchanged by the UI</div>
           </div>
           <div className="market-table-meta">
@@ -127,10 +136,43 @@ export const MarketView: React.FC = () => {
           </div>
         </div>
 
+        <div className="market-scanner-controls">
+          <label>Recherche symbole
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="BTC, ETH…" />
+          </label>
+          <label>Biais dominant
+            <select value={side} onChange={(event) => setSide(event.target.value)}>
+              <option value="ALL">Tous</option><option value="LONG">LONG</option>
+              <option value="SHORT">SHORT</option><option value="MIXED">MIXED</option>
+            </select>
+          </label>
+          <button type="button" onClick={() => { setQuery(""); setSide("ALL"); setSelectedSymbol(null); }}>Réinitialiser</button>
+        </div>
+        <div className="market-scanner-coverage" role="status" data-testid="market-scanner-coverage">
+          {rows.length} résultat(s) · {m.top_opportunities.length} ligne(s) publiée(s) sur {m.actionable_count} symbole(s) au seuil · univers observé : {m.universe_size}
+          {m.top_opportunities.length < m.actionable_count && <span> · Couverture partielle : recherche et filtres limités aux lignes publiées.</span>}
+        </div>
+        {stale && <div className="market-scanner-coverage">Données historiques périmées · état actuel du marché INCONNU.</div>}
+        {selected && <section className="market-symbol-detail" aria-label="Détail observationnel" data-testid="market-symbol-detail">
+          <div className="market-section-head"><strong>{selected.symbol} · détail observationnel</strong>
+            <button type="button" onClick={() => setSelectedSymbol(null)}>Fermer le détail</button></div>
+          <p>Population : packets au seuil ≥ {m.min_confidence}, fenêtre {m.window_hours}h. {stale ? "STALE · historique" : "FRESH · observation"}.</p>
+          <dl>
+            <div><dt>Avg conf</dt><dd>{selected.avg_confidence.toFixed(1)}</dd></div>
+            <div><dt>Max</dt><dd>{selected.max_confidence.toFixed(1)}</dd></div>
+            <div><dt>Signals</dt><dd>{selected.n_signals}</dd></div>
+            <div><dt>Biais dominant</dt><dd><Side row={selected} /></dd></div>
+            <div><dt>Dominance</dt><dd>{selected.dominance_pct.toFixed(0)}%</dd></div>
+            <div><dt>Regime</dt><dd><Regime value={selected.regime} /></dd></div>
+          </dl>
+          <p>Comptages LONG/SHORT exacts non disponibles · NOT_AVAILABLE dans cette projection. Aucune permission de trading.</p>
+        </section>}
         {m.top_opportunities.length === 0 ? (
           <div className="market-empty" data-testid="market-empty">
             No symbol meets the CryptoRadar display threshold in the current observation window.
           </div>
+        ) : rows.length === 0 ? (
+          <div className="market-empty" data-testid="market-filter-empty">Aucun résultat dans les lignes publiées pour ces filtres. Le marché n’est pas déclaré vide.</div>
         ) : (
           <>
             <div className="market-table-wrap market-table-desktop">
@@ -147,9 +189,9 @@ export const MarketView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {m.top_opportunities.map((row) => (
+                  {rows.map((row) => (
                     <tr key={row.symbol} data-testid="market-opportunity-row">
-                      <td className="market-table-symbol">{row.symbol}</td>
+                      <td className="market-table-symbol"><button type="button" className="market-symbol-button" aria-label={`Détail ${row.symbol}`} onClick={() => setSelectedSymbol(row.symbol)}>{row.symbol}</button></td>
                       <td className="market-num">{row.avg_confidence.toFixed(1)}</td>
                       <td className="market-num">{row.max_confidence.toFixed(1)}</td>
                       <td><Side row={row} /></td>
@@ -163,10 +205,10 @@ export const MarketView: React.FC = () => {
             </div>
 
             <div className="market-card-list" data-testid="market-opportunity-cards">
-              {m.top_opportunities.map((row) => (
+              {rows.map((row) => (
                 <article className="market-opportunity-card" key={row.symbol} data-testid="market-opportunity-card">
                   <div className="market-card-head">
-                    <div className="market-card-symbol">{row.symbol}</div>
+                    <button type="button" className="market-symbol-button market-card-symbol" aria-label={`Détail ${row.symbol}`} onClick={() => setSelectedSymbol(row.symbol)}>{row.symbol}</button>
                     <Side row={row} />
                   </div>
                   <div className="market-card-metrics">
