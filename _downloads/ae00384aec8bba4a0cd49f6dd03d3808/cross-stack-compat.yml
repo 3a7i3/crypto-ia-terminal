@@ -1,0 +1,85 @@
+name: Cross-Stack Compatibility Gate
+
+# O-02W-D3 — LOCAL CROSS-STACK COMPATIBILITY GATE.
+#
+# Proves that canonical payloads generated through the actual Python producer
+# paths travel through the real read-only FastAPI routes and are accepted,
+# unchanged, by the real frontend validators/cockpit. WEB-01-MARKET extends
+# this gate with separate observational producer -> atomic artifact -> API ->
+# React paths for CryptoRadar MARKET and WEB-02 PPL comparison. All artifacts are generated into a
+# temporary directory at run time; nothing here is a committed handwritten
+# "golden" fixture. No exchange credentials, no VPS/network deployment.
+#
+# O-02W-D3-R1.1 Blocker A: deliberately NO `paths:` filter. A hand-picked
+# path allowlist is fragile by construction. The gate itself is short, so the
+# stronger scientific guarantee of running on every PR/push to `main` costs
+# little and cannot silently miss an indirect contract dependency.
+
+on:
+  pull_request:
+    branches: [main, "web-rl-01-three-domain-contract"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-stack-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cross-stack-compat:
+    name: "CROSS-STACK COMPATIBILITY GATE"
+    runs-on: ubuntu-latest
+
+    # No secrets, no exchange access, no VPS/network deployment, and
+    # deliberately no exchange-mode environment variable at all — the
+    # compatibility gate uses only deterministic passive evidence/fakes and
+    # must never advertise or depend on any exchange mode.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Python producer/reader/API integration tests
+        run: pytest -q tests/cross_stack/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generate canonical cross-stack fixtures (real producer paths)
+        run: |
+          python -m tests.cross_stack.generate_fixtures --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_market_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_scanner_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_microstructure_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_ppl_comparison_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_research_lab_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_research_publication_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_strategy_board_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_financial_clarity_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_burn_in_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_runtime_service_fixture --out frontend/.cross-stack-fixtures
+
+      - name: Frontend cross-stack compatibility test
+        working-directory: frontend
+        env:
+          CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
+        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx

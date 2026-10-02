@@ -1,0 +1,268 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, "chore/**", "feat/**", "fix/**" ]
+    paths-ignore:
+      - audit_requests/**
+      - audit_results/**
+  pull_request:
+    branches: [ main, master , "web-rl-01-three-domain-contract"]
+  workflow_dispatch:
+
+# Le CI de validation ne doit jamais recevoir un jeton d'écriture.
+permissions:
+  contents: read
+
+# Annule les runs en cours si un nouveau push arrive sur la même branche
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # 1. LINT — CI-00B (Phase 2/3) : gate indépendant, différentiel contre
+  #    .ci/ruff_baseline.json (~1000 findings historiques tolérés — dette
+  #    gelée sous la Scientific Debt Rule). Ne bloque JAMAIS les tests :
+  #    aucun `needs: lint` ailleurs dans ce fichier. Échoue UNIQUEMENT sur
+  #    une violation absente du baseline (vraie régression). Voir
+  #    scripts/ci/ruff_baseline_gate.py pour le mécanisme complet.
+  # ──────────────────────────────────────────────────────────────────────────
+  lint:
+    name: "LINT REGRESSION GATE"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les outils de lint
+        # Version épinglée : le diff baseline est sensible à la version de
+        # ruff (nouvelles règles / parseur) — pin identique à celui utilisé
+        # pour générer .ci/ruff_baseline.json, sinon des faux "nouveaux"
+        # findings apparaissent sans changement de code (CI-00B, incident
+        # constaté sur ce PR : ruff 0.16.5 vs 0.15.8 en local).
+        run: pip install ruff==0.15.8
+
+      - name: Ruff — diff contre le baseline (pas de nouvelle violation)
+        run: python scripts/ci/ruff_baseline_gate.py check
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 2. TESTS — pytest + coverage. CI-00B (Phase 2) : job indépendant du
+  #    lint (aucun `needs: lint`) — un échec de lint ne doit jamais
+  #    empêcher les tests de tourner et de rapporter leur propre statut.
+  # ──────────────────────────────────────────────────────────────────────────
+  tests:
+    name: "TEST REGRESSION GATE"
+    runs-on: ubuntu-latest
+
+    # CI volontairement sans secrets et sans accès réseau au marché.
+    env:
+      BINANCE_TESTNET: "true"
+      MARKET_SCANNER_SYNTHETIC: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Pytest — correctness regression corpus (hors performance/slow)
+        # CI-00B (Phase 8) : exécute systématiquement tout tests/, y compris
+        # les tests corrigés (permissions, killswitch) et le xfail nommé et
+        # documenté (golden backtest, cf. .ci/known_red_tests.md / BT-00).
+        # -q sans -x : un test rouge non attendu doit être visible en entier,
+        # pas masquer les suivants.
+        #
+        # Volontairement tout le corpus de correctness, pas un sous-ensemble limité aux
+        # fichiers touchés par cette mission. Les marqueurs performance/slow
+        # ont un gate séparé ci-dessous et restent bloquants au niveau workflow.
+        # C'est exactement le point de
+        # la Phase 8 (détecter une vraie régression n'importe où dans
+        # tests/, pas seulement dans les fichiers de CI-00B) — restreindre
+        # le run réintroduirait le défaut que CI-00 a audité (tests non
+        # réellement exécutés / signal masqué).
+        #
+        # Pas de `|| true` ni de contournement JUnit : le code de sortie
+        # pytest ORDINAIRE est le signal, point. Le Scientific Data Guard
+        # (conftest.py::pytest_sessionfinish, DS-001/ADR-0008) ne surcharge
+        # plus session.exitstatus que pour une contamination NOUVELLE de
+        # databases/ ou cache/ (chemin absent de
+        # .ci/scientific_data_guard_baseline.json) ; une dette déjà
+        # baselisée (~10 chemins pré-existants, hors périmètre CI-00B —
+        # signal/évolution, quant_hedge_ai/ai_evolution, etc., gelés) est
+        # affichée en clair mais ne touche jamais au code de sortie. Voir
+        # .ci/known_red_tests.md pour le détail et la mission de suivi.
+        run: pytest -q -m "not performance and not slow" tests/
+
+      - name: Upload rapport de couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 2a. LONG-RUN PERFORMANCE GATE — ownership explicite des tests
+  #     resource-sensitive. Ils restent bloquants mais ne contaminent ni le
+  #     gate de correctness ni les workflows de transport de couverture.
+  # ──────────────────────────────────────────────────────────────────────────
+  long-run-performance:
+    name: "LONG-RUN PERFORMANCE GATE"
+    runs-on: ubuntu-latest
+
+    env:
+      BINANCE_TESTNET: "true"
+      MARKET_SCANNER_SYNTHETIC: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Memory + endurance evidence
+        run: pytest -q -m "performance or slow" tests/test_long_run.py
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 2bis. COVERAGE REGRESSION BASELINE — CI-00B : signal SÉPARÉ de
+  #    TEST REGRESSION GATE. La correctness des tests (ci-dessus) et le
+  #    niveau de couverture sont deux questions différentes ; les
+  #    confondre dans un seul job masquerait soit une vraie régression de
+  #    test derrière un chiffre de coverage, soit l'inverse. Ce job
+  #    n'affecte JAMAIS TEST REGRESSION GATE et vice-versa (needs: [] sur
+  #    les deux, jobs parallèles indépendants).
+  #
+  #    COVERAGE_TARGET historique = 60% (dette non résolue, documentée —
+  #    voir .ci/known_red_tests.md). Ce job ne prétend PAS que 4% satisfait
+  #    cet objectif : il fige la baseline actuelle (~4.09%, reproduite deux
+  #    fois en CI sur ce PR) comme PLANCHER anti-régression — toute baisse
+  #    EN DESSOUS du plancher fait échouer ce job ; le relever vers 60%
+  #    (tests réels sur execution/risk/market) reste une mission séparée.
+  # ──────────────────────────────────────────────────────────────────────────
+  coverage-baseline:
+    name: "COVERAGE REGRESSION BASELINE"
+    runs-on: ubuntu-latest
+
+    env:
+      BINANCE_TESTNET: "true"
+      MARKET_SCANNER_SYNTHETIC: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Pytest + coverage (plancher anti-régression, PAS l'objectif 60%)
+        run: |
+          pytest \
+            --cov=supervision \
+            --cov=quant_hedge_ai/agents/market \
+            --cov=quant_hedge_ai/agents/execution \
+            --cov=quant_hedge_ai/agents/risk \
+            --cov=quant_hedge_ai/agents/quant \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-precision=2 \
+            --cov-fail-under=4 \
+            -x -q \
+            supervision/test_supervision.py \
+            quant_hedge_ai/strategy_lab/test_strategy_lab.py
+
+      - name: Upload rapport de couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 3. SMOKE TEST — vérifie que tous les modules s'importent et s'initialisent
+  # ──────────────────────────────────────────────────────────────────────────
+  smoke:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    # CI-00B (Phase 2) : indépendant du lint, comme `tests` — un lint rouge
+    # ne doit jamais empêcher le smoke test de tourner.
+
+    env:
+      MARKET_SCANNER_SYNTHETIC: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances (core seulement)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ccxt pytest pytest-cov pytest-asyncio
+
+      - name: Smoke test
+        run: python scripts/smoke_test_ci.py
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 4. VALIDATE HISTORICAL — walk-forward strictement synthétique
+  #    (aucun secret exchange n'est exposé au CI)
+  # ──────────────────────────────────────────────────────────────────────────
+  validate-strategies:
+    name: Walk-forward validation
+    runs-on: ubuntu-latest
+    needs: tests
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install ccxt
+
+      - name: Validation walk-forward (synthétique)
+        run: |
+          python scripts/validate_historical.py \
+            --synthetic \
+            --symbols BTC/USDT ETH/USDT \
+            --years 1 \
+            --output databases/walk_forward_results_ci.json
+
+      - name: Upload résultats walk-forward
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: walk-forward-results
+          path: databases/walk_forward_results_ci.json
