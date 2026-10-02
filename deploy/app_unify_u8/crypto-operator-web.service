@@ -1,0 +1,39 @@
+# APP-UNIFY U8 PREP — NOT AUTHORIZED FOR INSTALLATION while #286 is active.
+# Future governed unit for the built React cockpit. The server binds loopback
+# in frontend/scripts/web01_local_frontend_server.mjs and proxies GET/HEAD only.
+[Unit]
+Description=Crypto AI Terminal — APP-UNIFY Operator Web (isolated read-only)
+After=network.target crypto-operator-api.service
+Wants=crypto-operator-api.service
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/opt/crypto-ai-terminal/operator/current/frontend
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node /opt/crypto-ai-terminal/operator/current/frontend/scripts/web01_local_frontend_server.mjs
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_operator_web_u8
+Nice=10
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
