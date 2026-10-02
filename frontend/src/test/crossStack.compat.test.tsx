@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
+import { MarketView } from "../views/MarketView";
 import { validateOperatorSnapshot } from "../lib/snapshotValidation";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
 import { validatePplComparisonSnapshot } from "../lib/pplComparisonValidation";
@@ -336,4 +337,25 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/runtime-service", { method: "GET", signal: expect.any(AbortSignal) });
   });
 
+});
+
+
+describe.skipIf(!HAS_FIXTURES)("U3a scanner real producer → API → React", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("finds and drills into a symbol beyond the old top 20, preserving coverage and source values", async () => {
+    const fixture = loadFixture("L_scanner");
+    expect(fixture.http_status).toBe(200);
+    expect(validateMarketRadarSnapshot(fixture.body)).toBe(true);
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MarketView />);
+    await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(50));
+    expect(screen.getByTestId("market-scanner-coverage")).toHaveTextContent("50 ligne(s) publiée(s) sur 60");
+    fireEvent.change(screen.getByLabelText("Recherche symbole"), { target: { value: "s25" } });
+    expect(screen.getByTestId("market-opportunity-row")).toHaveTextContent("S25/USDT");
+    fireEvent.click(screen.getAllByRole("button", { name: "Détail S25/USDT" })[0]);
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("86.7");
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("SHORT");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
