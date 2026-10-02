@@ -1,0 +1,678 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Inventaire Machine / Laboratoire / surfaces historiques - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="inventaire-machine-laboratoire-surfaces-historiques">
+<h1>Inventaire Machine / Laboratoire / surfaces historiques<a class="headerlink" href="#inventaire-machine-laboratoire-surfaces-historiques" title="Link to this heading">¶</a></h1>
+<p>2026-10-02 · #338 · base U4 fusionnée <code class="docutils literal notranslate"><span class="pre">de8281f3fa2a7994e2836b4139cc8457d389030a</span></code>.
+SOURCE ONLY, #286 ACTIVE. Aucun accès VPS ni certification de disponibilité réelle.</p>
+<section id="couverture-et-portee">
+<h2>Couverture et portée<a class="headerlink" href="#couverture-et-portee" title="Link to this heading">¶</a></h2>
+<p>Index AST de <strong>913 fichiers Python suivis</strong>, <strong>8 342 déclarations</strong> classe/fonction/
+fonction async, zéro erreur de parsing, hors tests et <code class="docutils literal notranslate"><span class="pre">_ARCHIVE_2026</span></code> :
+<a class="reference download internal" download="" href="../_downloads/a17b791e6f7a524fd7f944329861cae2/APP_UNIFY_SOURCE_FUNCTION_INDEX.csv"><span class="xref download myst">APP_UNIFY_SOURCE_FUNCTION_INDEX.csv</span></a>.
+Le CSV contient uniquement chemin, ligne, nom qualifié et type ; aucun secret ou
+contenu de configuration. Il est une photographie structurelle de cette base,
+pas une revue sémantique exhaustive de 8 342 fonctions, ni un inventaire runtime.
+Les modules sans déclaration (constantes/imports) ne figurent pas dans le CSV.
+Le nouveau domaine <code class="docutils literal notranslate"><span class="pre">ResearchStrategyBoardSnapshot</span></code> de #338 apparaît après cette
+base : adaptation passive des candidats/évaluations admis et des verdicts/rangs
+prépubliés. Son contrat indépendant est décrit dans
+<a class="reference internal" href="../contracts/APP_UNIFY_RESEARCH_STRATEGY_BOARD_CONTRACT.html"><span class="std std-doc">APP_UNIFY_RESEARCH_STRATEGY_BOARD_CONTRACT.md</span></a>.
+Il ne prouve pas l’activité runtime du registre ni l’admission de résultats réels.
+Les lignes « source uniquement » ci-dessous nécessitent leur propre preuve de
+producteur/consommateurs et d’alimentation avant présentation de résultats.</p>
+</section>
+<section id="matrice-des-capacites">
+<h2>Matrice des capacités<a class="headerlink" href="#matrice-des-capacites" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Capacité</p></th>
+<th class="head"><p>Source / autorité</p></th>
+<th class="head"><p>App / destination</p></th>
+<th class="head"><p>État source et suite</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>État Advisor / décision courante</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code>, snapshot canonique</p></td>
+<td><p>Machine · Vue générale / Direction</p></td>
+<td><p>projection existante ; runtime non recertifié</p></td>
+</tr>
+<tr class="row-odd"><td><p>Service Advisor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/runtime_service_snapshot.py</span></code></p></td>
+<td><p>Machine · Système / Direction</p></td>
+<td><p>U2b, observation bornée à la capture</p></td>
+</tr>
+<tr class="row-even"><td><p>Coordination / cycle de vie</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">runtime/</span></code></p></td>
+<td><p>Machine · Système</p></td>
+<td><p>source indexée ; ne pas confondre présence et activation</p></td>
+</tr>
+<tr class="row-odd"><td><p>Portefeuille / positions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper_trading/</span></code>, snapshot ObservedValue</p></td>
+<td><p>Machine · Portefeuille</p></td>
+<td><p>existant, isolé de comptes réels</p></td>
+</tr>
+<tr class="row-even"><td><p>PPL événements et lifecycle</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">paper_trading/ledger_events.py</span></code>, readers</p></td>
+<td><p>Machine · Lifecycle / Événements</p></td>
+<td><p>existant ; sources exactes et pas de reconstruction financière UI</p></td>
+</tr>
+<tr class="row-odd"><td><p>Comparaison legacy/PPL</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/ppl_comparison.py</span></code></p></td>
+<td><p>Machine · Lifecycle</p></td>
+<td><p>existant ; comparabilité et valeurs originales conservées</p></td>
+</tr>
+<tr class="row-even"><td><p>Finance / equity / frais</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">financial_institute/</span></code>, FIN-02</p></td>
+<td><p>Machine · Finance</p></td>
+<td><p>existant ; préciser l’affichage decimal sans changer la valeur</p></td>
+</tr>
+<tr class="row-odd"><td><p>Réconciliation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/financial_reconciliation.py</span></code></p></td>
+<td><p>Machine · Finance / Direction</p></td>
+<td><p>existant ; statut source, pas d’auto-correction</p></td>
+</tr>
+<tr class="row-even"><td><p>Burn-in / epoch / populations</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/burn_in_status_snapshot.py</span></code></p></td>
+<td><p>Machine · Burn-in / Direction</p></td>
+<td><p>U2 ; aucune mutation d’epoch</p></td>
+</tr>
+<tr class="row-odd"><td><p>Checkpoints / dataset final</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">research_data/burn_in_finalization.py</span></code></p></td>
+<td><p>Machine · preuves ; Lab · dataset</p></td>
+<td><p>disponibilité dépend de preuves admises ; jamais inférée</p></td>
+</tr>
+<tr class="row-even"><td><p>Décisions / blocages</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/decision_packet.py</span></code>, snapshot</p></td>
+<td><p>Machine · Décisions</p></td>
+<td><p>existant ; niveaux/permissions réservés à ce domaine</p></td>
+</tr>
+<tr class="row-odd"><td><p>Signal / conviction</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/execution/</span></code></p></td>
+<td><p>Machine · Décisions</p></td>
+<td><p>source indexée ; valeurs uniquement via projection exacte</p></td>
+</tr>
+<tr class="row-even"><td><p>Risque / contraintes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">risk/</span></code>, <code class="docutils literal notranslate"><span class="pre">exchange_constraints/</span></code>, governance gates</p></td>
+<td><p>Machine · blocages ; Lab · critères</p></td>
+<td><p>sources indexées ; aucun câblage/config/sizing modifié</p></td>
+</tr>
+<tr class="row-odd"><td><p>Execution / simulation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">execution_simulator/</span></code>, <code class="docutils literal notranslate"><span class="pre">paper_trading/</span></code></p></td>
+<td><p>Machine · état ; Lab · expérience identifiée</p></td>
+<td><p>pas de mélange simulation, PAPER et résultats réels</p></td>
+</tr>
+<tr class="row-even"><td><p>Marché / collecte / régimes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">market_data/</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/market/</span></code></p></td>
+<td><p>Machine · CryptoRadar</p></td>
+<td><p>agrégats sûrs existants ; contextes supplémentaires à qualifier</p></td>
+</tr>
+<tr class="row-odd"><td><p>Scanner / classement symboles</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code></p></td>
+<td><p>Machine · CryptoRadar</p></td>
+<td><p>U3a : top50, recherche, filtres, détail ; couverture partielle explicite</p></td>
+</tr>
+<tr class="row-even"><td><p>Microstructure LMI</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">trade_analysis/integrations/dashboard_adapter.py</span></code>, snapshot U3b</p></td>
+<td><p>Machine · CryptoRadar</p></td>
+<td><p>projection passive déjà intégrée</p></td>
+</tr>
+<tr class="row-odd"><td><p>Events LMI historiques</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/lmi/events</span></code>, adapter</p></td>
+<td><p>Machine · CryptoRadar</p></td>
+<td><p>ancienne route filtre les <strong>états actuels</strong> notables ; aucun journal temporel certifié trouvé</p></td>
+</tr>
+<tr class="row-even"><td><p>Détail LMI complet</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/lmi/symbol/{symbol}</span></code></p></td>
+<td><p>Machine · détail Microstructure</p></td>
+<td><p>core metrics intégrées ; <code class="docutils literal notranslate"><span class="pre">state_components</span></code>/raw/liq détaillée restent à contractualiser</p></td>
+</tr>
+<tr class="row-odd"><td><p>Horizon / observer / radar secondaires</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/systemd/crypto-market-*.service</span></code>, producers</p></td>
+<td><p>Machine · Marché / Système</p></td>
+<td><p>unités source existantes ; dépendances/consommateurs runtime non recertifiés</p></td>
+</tr>
+<tr class="row-even"><td><p>Volumes filesystem DecisionPacket</p></td>
+<td><p>ancien <code class="docutils literal notranslate"><span class="pre">/api/status</span></code></p></td>
+<td><p>Machine · Système / Stockage</p></td>
+<td><p>projection storage manquante ; ne pas placer dans Market</p></td>
+</tr>
+<tr class="row-odd"><td><p>Replay factuel</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">research_replay/</span></code></p></td>
+<td><p>Lab · Évaluations</p></td>
+<td><p>publication immutable + U4 ; moteur jamais lancé par l’app</p></td>
+</tr>
+<tr class="row-even"><td><p>Diagnostic / attribution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">research_diag/</span></code></p></td>
+<td><p>Lab · Évaluations / détails</p></td>
+<td><p>aggregates publiés via U4, contraintes scientifiques conservées</p></td>
+</tr>
+<tr class="row-odd"><td><p>Catalogue candidate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">research_candidate/registry.py</span></code></p></td>
+<td><p>Lab · Stratégies/candidats</p></td>
+<td><p>contrats/publisher existants ; raccordement présentation à construire</p></td>
+</tr>
+<tr class="row-even"><td><p>Identités / résultats candidate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">research_candidate/candidate.py</span></code></p></td>
+<td><p>Lab · fiche / critères</p></td>
+<td><p>validateur pur ; consommation explicite d’artifacts évalués</p></td>
+</tr>
+<tr class="row-odd"><td><p>Strategy Lab génération/backtest</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/strategy_lab/</span></code></p></td>
+<td><p>Lab · expériences</p></td>
+<td><p>source uniquement ; exemples de scoring non financiers exclus des classements admis</p></td>
+</tr>
+<tr class="row-even"><td><p>Factory / évolution</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/strategy_factory/</span></code>, <code class="docutils literal notranslate"><span class="pre">ai_evolution/</span></code></p></td>
+<td><p>Lab · développement / lineage</p></td>
+<td><p>données/évaluations à admettre ; aucun lancement d’optimisation</p></td>
+</tr>
+<tr class="row-odd"><td><p>Stratégies primitives</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/agent/</span></code>, <code class="docutils literal notranslate"><span class="pre">signal/strategies/</span></code></p></td>
+<td><p>Lab · catalogue après identité</p></td>
+<td><p>code présent ≠ stratégie active ou performance certifiée</p></td>
+</tr>
+<tr class="row-even"><td><p>Ranker / mémoire / meta stratégie</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/ai_evolution/</span></code>, <code class="docutils literal notranslate"><span class="pre">agents/intelligence/</span></code></p></td>
+<td><p>Lab · ranking qualifié ; Machine · contexte</p></td>
+<td><p>ADR-0014 historique ; alimentation actuelle non recertifiée, pas de raccordement runtime</p></td>
+</tr>
+<tr class="row-odd"><td><p>Walk-forward / validation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">walk_forward/</span></code>, <code class="docutils literal notranslate"><span class="pre">certification/</span></code>, <code class="docutils literal notranslate"><span class="pre">reality_checks/</span></code></p></td>
+<td><p>Lab · validation</p></td>
+<td><p>protocole/population/provenance nécessaires, pas de vert depuis présence d’un fichier</p></td>
+</tr>
+<tr class="row-even"><td><p>Analyse trades / postmortem</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">trade_analysis/</span></code>, <code class="docutils literal notranslate"><span class="pre">analysis/</span></code></p></td>
+<td><p>Lab · diagnostics ; Machine · historique</p></td>
+<td><p>canoniser provenance avant migration complémentaire</p></td>
+</tr>
+<tr class="row-odd"><td><p>DIP / contre-factuel</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dip/</span></code></p></td>
+<td><p>Lab · protocole identifié</p></td>
+<td><p>absence de trajectoire marché ne doit pas devenir simulation fictive</p></td>
+</tr>
+<tr class="row-even"><td><p>Santé / monitoring / profiler</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">health/</span></code>, <code class="docutils literal notranslate"><span class="pre">monitoring/</span></code>, <code class="docutils literal notranslate"><span class="pre">monitor/</span></code></p></td>
+<td><p>Machine · Système</p></td>
+<td><p>existant partiel ; sélectionner des métriques sourcées</p></td>
+</tr>
+<tr class="row-odd"><td><p>Supervision / watchdog</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">supervision/</span></code>, <code class="docutils literal notranslate"><span class="pre">watchdog_vps.py</span></code></p></td>
+<td><p>Machine · Santé</p></td>
+<td><p>source uniquement pour état non projeté ; aucun restart/action</p></td>
+</tr>
+<tr class="row-even"><td><p>Trading authority / gouvernance</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">governance/</span></code>, <code class="docutils literal notranslate"><span class="pre">observability/operator_decision*</span></code></p></td>
+<td><p>Machine · Direction / décisions</p></td>
+<td><p>#315 Gate O OPEN ; aucune queue opérationnelle inventée</p></td>
+</tr>
+<tr class="row-odd"><td><p>Capital deployment</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">capital_deployment/</span></code></p></td>
+<td><p>Lab · propositions ; Machine · état admis</p></td>
+<td><p>commandes non exposées ; scope runtime séparé</p></td>
+</tr>
+<tr class="row-even"><td><p>Mémoire / meta-learning / knowledge</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">meta_learning/</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/</span></code>, <code class="docutils literal notranslate"><span class="pre">pieuvre/</span></code></p></td>
+<td><p>Lab · preuve/contextes</p></td>
+<td><p>source indexée ; qualification et preuve d’alimentation nécessaires</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tracker / rapports</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tracker_system/</span></code>, <code class="docutils literal notranslate"><span class="pre">reports/</span></code>, <code class="docutils literal notranslate"><span class="pre">metrics/</span></code></p></td>
+<td><p>App · historique / preuve après mapping</p></td>
+<td><p>multiples sorties legacy ; pas d’autorité déduite du nom</p></td>
+</tr>
+<tr class="row-even"><td><p>Visualisations / anciens panels</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">visualization/</span></code>, <code class="docutils literal notranslate"><span class="pre">infra/visualization/</span></code>, <code class="docutils literal notranslate"><span class="pre">dashboard/</span></code></p></td>
+<td><p>Lab ou Machine selon autorité</p></td>
+<td><p>transport à remplacer après parité ; aucune suppression ici</p></td>
+</tr>
+<tr class="row-odd"><td><p>Terminal / interfaces anciennes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">terminal_core/</span></code>, <code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code>, <code class="docutils literal notranslate"><span class="pre">src/</span></code></p></td>
+<td><p>App · fonctions utiles après qualification</p></td>
+<td><p>code/transport legacy, non preuve d’exécution VPS</p></td>
+</tr>
+<tr class="row-even"><td><p>LM Studio / recherche IA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lm_studio/</span></code>, <code class="docutils literal notranslate"><span class="pre">agents/research/</span></code></p></td>
+<td><p>Lab · expériences admises</p></td>
+<td><p>aucune requête IA / accès provider nécessaire à cette migration</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="cryptoradar-transfert-des-fonctions-et-pas-du-transport">
+<h2>CryptoRadar : transfert des fonctions et pas du transport<a class="headerlink" href="#cryptoradar-transfert-des-fonctions-et-pas-du-transport" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Route historique</p></th>
+<th class="head"><p>Fonction</p></th>
+<th class="head"><p>App / décision</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/api/scan</span></code></p></td>
+<td><p>Scanner</p></td>
+<td><p>U3a, intégré ; données live à recertifier séparément</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/api/symbol/{symbol}</span></code></p></td>
+<td><p>détail agrégats symbole</p></td>
+<td><p>détail safe U3a ; LONG/SHORT exacts non publiés</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/api/signals</span></code></p></td>
+<td><p>niveaux Entry/SL/TP/R historiques</p></td>
+<td><p>domaine Decisions/Portfolio, pas une permission de trade dans Market</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/api/status</span></code></p></td>
+<td><p>derniers packets + taille/fichiers</p></td>
+<td><p>population/fraîcheur Market existantes ; stockage requiert une projection System</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/api/lmi/status</span></code></p></td>
+<td><p>couverture/état</p></td>
+<td><p>U3b intégré</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/api/lmi/table</span></code></p></td>
+<td><p>métriques microstructure</p></td>
+<td><p>U3b intégré</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/api/lmi/symbol/{symbol}</span></code></p></td>
+<td><p>détail complet</p></td>
+<td><p>metrics intégrées, champs raw non repris aveuglément</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/api/lmi/events</span></code></p></td>
+<td><p>état notable actuel filtré</p></td>
+<td><p>U3b observations notables à la capture ; pas d’historique inventé</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/</span></code>, login/cookie standalone</p></td>
+<td><p>interface/transport</p></td>
+<td><p>remplacés par l’app après parité, preuves consommateurs et rollback</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="sorties-et-consommateurs-a-consolider">
+<h2>Sorties et consommateurs à consolider<a class="headerlink" href="#sorties-et-consommateurs-a-consolider" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Sortie</p></th>
+<th class="head"><p>Point de source</p></th>
+<th class="head"><p>Consommateurs connus en source</p></th>
+<th class="head"><p>Cible / condition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Operator API/app</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code>, <code class="docutils literal notranslate"><span class="pre">frontend/</span></code></p></td>
+<td><p>app React</p></td>
+<td><p>surface opérateur unique cible</p></td>
+</tr>
+<tr class="row-odd"><td><p>CryptoRadar standalone</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto-dashboard.service</span></code></p></td>
+<td><p>navigateur ; dépendants API non recertifiés</p></td>
+<td><p>retrait seulement après parité/consommateurs/rollback/gate</p></td>
+</tr>
+<tr class="row-even"><td><p>Telegram</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/advisor_loop.py</span></code> helpers <code class="docutils literal notranslate"><span class="pre">_telegram*</span></code>, <code class="docutils literal notranslate"><span class="pre">_send_intel</span></code>, <code class="docutils literal notranslate"><span class="pre">scripts/telegram_alerts.py</span></code></p></td>
+<td><p>humains / canaux configurés</p></td>
+<td><p>exporter les faits vers projections ; pas de redirection d’envoi dans ce chantier</p></td>
+</tr>
+<tr class="row-odd"><td><p>Email</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">_send_email</span></code></p></td>
+<td><p>destinataires configurés</p></td>
+<td><p>alerte app après contrat ; aucune adresse/clé lue dans l’inventaire</p></td>
+</tr>
+<tr class="row-even"><td><p>Dashboards Streamlit/anciens scripts</p></td>
+<td><p>launchers + <code class="docutils literal notranslate"><span class="pre">dashboard/</span></code>, <code class="docutils literal notranslate"><span class="pre">visualization/</span></code>, <code class="docutils literal notranslate"><span class="pre">src/</span></code></p></td>
+<td><p>consultation opérateur, usages non prouvés</p></td>
+<td><p>qualifier/migrer avant fermeture</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rapports/KPI tracker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tracker_system/</span></code>, <code class="docutils literal notranslate"><span class="pre">scripts/</span></code>, <code class="docutils literal notranslate"><span class="pre">reports/</span></code></p></td>
+<td><p>panels/fichiers/audits</p></td>
+<td><p>données utiles admises dans app, preuves internes conservées</p></td>
+</tr>
+<tr class="row-even"><td><p>JSONL PPL/DecisionPacket</p></td>
+<td><p>producteurs métier</p></td>
+<td><p>Replay/Diag/projections/audits</p></td>
+<td><p>conserver preuves, jamais lecture frontend directe</p></td>
+</tr>
+<tr class="row-odd"><td><p>Artifacts Research et snapshots</p></td>
+<td><p>Research/projections</p></td>
+<td><p>API, tests, certification</p></td>
+<td><p>conserver sources exactes et formats internes</p></td>
+</tr>
+<tr class="row-even"><td><p>Logs/sauvegardes</p></td>
+<td><p>runtime/observability</p></td>
+<td><p>forensic/reprise</p></td>
+<td><p>conserver ; ne pas confondre avec une UI concurrente</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="resultat-limites">
+<h2>Résultat / limites<a class="headerlink" href="#resultat-limites" title="Link to this heading">¶</a></h2>
+<p>Deux espaces visuels ne fusionnent pas les autorités ni les comptes. Aucun
+classement financier depuis un score de démonstration. Les producteurs continuent
+à porter les calculs ; le frontend présente les faits et les limites.</p>
+<p>Le catalogue Research, la politique de verdicts des critères, les cohortes de
+classement et leurs preuves doivent être <strong>publiés explicitement</strong> ; aucun
+<code class="docutils literal notranslate"><span class="pre">latest</span></code> implicite, classement depuis le nom d’un module ou pipeline autonome
+lancé au clic. Le tableau peut être livré en source avec état indisponible
+honnête tant que les artifacts réels ne sont pas publiés.</p>
+<p>Restent des chantiers de preuve/producer distincts : stockage, liq/raw LMI
+contractualisés, consommateurs des anciens transports, sources KPI historiques
+et Gate O. Cette matrice interdit de les présenter comme déjà déployés/résolus.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Inventaire Machine / Laboratoire / surfaces historiques</a><ul>
+<li><a class="reference internal" href="#couverture-et-portee">Couverture et portée</a></li>
+<li><a class="reference internal" href="#matrice-des-capacites">Matrice des capacités</a></li>
+<li><a class="reference internal" href="#cryptoradar-transfert-des-fonctions-et-pas-du-transport">CryptoRadar : transfert des fonctions et pas du transport</a></li>
+<li><a class="reference internal" href="#sorties-et-consommateurs-a-consolider">Sorties et consommateurs à consolider</a></li>
+<li><a class="reference internal" href="#resultat-limites">Résultat / limites</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
