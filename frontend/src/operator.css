@@ -1267,3 +1267,19 @@
 .market-symbol-detail dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; }
 .market-symbol-detail dt { font-size:11px; color:var(--text-sec); }
 .market-symbol-detail dd { margin:6px 0 0; }
+
+/* U3b: independent passive LMI observations, no console layout. */
+.microstructure-panel { margin-top:16px; padding:16px; overflow-wrap:anywhere; }
+.microstructure-panel h2 { font-size:18px; margin:6px 0; }
+.microstructure-panel p { font-size:12px; color:var(--text-sec); line-height:1.7; margin:10px 0; }
+.microstructure-coverage { display:block; padding:12px; border:1px solid var(--bg-border); border-radius:6px; font-size:13px; }
+.microstructure-hash { word-break:break-all; }
+.microstructure-card-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:12px; }
+.microstructure-card { min-width:0; padding:16px; border:1px solid var(--bg-border); border-radius:8px; background:var(--bg-dark); }
+.microstructure-card strong { color:var(--market-observation); }
+.microstructure-card span { font-size:11px; }
+.microstructure-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; font-size:12px; }
+.microstructure-metrics dt { color:var(--text-sec); font-size:11px; }
+.microstructure-metrics dd { margin:5px 0 0; }
+.market-scanner-controls .microstructure-toggle { flex-direction:row; align-items:center; min-height:44px; }
+.microstructure-toggle input { flex:none; width:20px; }

@@ -153,8 +153,8 @@ describe("App", () => {
     expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT");
     expect(screen.queryByTestId("not-exposed-label")).toBeNull();
 
-    // Canonical snapshot + MARKET subrouter fetch.
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // Canonical snapshot, scanner and independent LMI source.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
 
     fireEvent.click(screen.getByTestId("tab-system"));
     fireEvent.click(screen.getByTestId("tab-scores"));
