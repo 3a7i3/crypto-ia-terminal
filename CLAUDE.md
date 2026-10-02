@@ -1,206 +1,113 @@
-# CLAUDE.md — Règles invariantes du projet crypto_ai_terminal
+# Constitution de travail — Crypto AI Terminal
 
-Ces règles s'appliquent à toutes les sessions, sans exception.
+Lire d'abord [docs/DEVELOPER_ENTRYPOINT.md](docs/DEVELOPER_ENTRYPOINT.md).
+Ce fichier porte les invariants et la méthode, pas l'état opérationnel courant.
+La priorisation vit dans [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285),
+la mission dans [CURRENT_TASK.md](CURRENT_TASK.md), les observations dans leurs
+preuves GitHub datées. Une documentation ancienne ne constitue jamais une
+permission de déployer, calibrer ou modifier une expérience.
 
----
+## 1. Faits, hypothèses et autorités
 
-## AVIS TEMPORAIRE — STABILIZATION LAB (2026-09-02 → 2026-09-16)
+- **PPL = vérité lifecycle** : événements et états issus de l'autorité déclarée.
+- **FIN = vérité financière** : valeurs, frais et réconciliation issus de FIN.
+- **Research = non autoritaire** : PAPER produit les faits ; Research produit
+  les hypothèses et candidats pour une future expérience gouvernée.
+- **Operator API = boundary GET-only de présentation** ; le frontend consomme
+  les projections, sans lecture directe de JSONL/database/exchange/VPS.
+- **L'intelligence n'est pas l'autorité** : une recommandation, un score,
+  une pastille verte ou une qualification source n'active aucune stratégie.
+- **SOURCE PROOF ≠ RUNTIME PROOF** : vérifier le HEAD réel et la portée de la
+  preuve ; aucune déduction de déploiement depuis main ou la CI.
+- **UNKNOWN ≠ 0** ; NOT_AVAILABLE et UNRESOLVED restent visibles et distincts.
+- **UNRESOLVED IS DATA** : conserver l'état, la provenance, la population et
+  ses limites ; ne pas effacer un cas difficile pour améliorer un résultat.
 
-La certification du burn-in EXP-001 est suspendue depuis le
-`2026-09-02T20:18:12Z`, mais le runtime VPS continue en paper/revision afin de
-tester les processus réels, les redémarrages, les écritures disque et Telegram.
-Jusqu'à un verdict humain `READY_FOR_BURNIN`, toute donnée produite pendant la
-révision est `certified=false` et ne peut pas alimenter le N d'une nouvelle
-époque certifiée.
+Le frontend peut filtrer, expliquer et formater une valeur ; il ne recalcule
+ni PnL/equity, ni verdict scientifique, ni classement. Une valeur exacte reste
+consultable lorsque son affichage est abrégé. Une panne de lecture n'est pas
+une population vide, et une fixture ne devient jamais une preuve runtime.
 
-Le contrat normatif temporaire est
-`docs/governance/STABILIZATION_WINDOW_2026-09-03_2026-09-16.md`.
-L'acte append-only est `experiments/EXP-001-pause-2026-09-02.yaml`.
+## 2. Passivité et intégrité expérimentale
 
-Cette fenêtre autorise des déploiements et redémarrages contrôlés du VPS après
-PR mergée, avec preuve du SHA déployé et vérification post-restart. Elle
-n'autorise ni live trading, ni calibration alpha, ni nouveau
-signal/indicateur/stratégie. `PAPER_TRADING_ENABLED=true` et
-`LIVE_TRADING_CONFIRMED=false` restent obligatoires. Le 16 septembre
-n'autorise aucune reprise automatique.
+Les observers, télémétrie, regret, laboratoire, replay et outils IA observent,
+enregistrent, simulent et recommandent. Ils n'influencent pas une décision
+active et ne pilotent pas le runtime. Voir ADR-0007 dans les références de
+l'entrée développeur.
 
----
+`FEATURE_AUTO_CALIBRATION=false` reste le défaut permanent ; aucune exception
+sans décision de gouvernance explicite. Ne pas changer la base de sizing,
+les seuils ou le capital par un redémarrage, un refactor ou un effet de bord.
+Les anciennes références `WALLET_PAPER_CAPITAL` ne remplacent pas l'identité et
+la configuration gouvernées de l'expérience considérée.
 
-## Règle constitutionnelle — Passivité absolue des observers (ADR-0007)
+Toute calibration exige des preuves statistiques pertinentes : protocole,
+population, coûts, limites, incertitude, reproductibilité et validation humaine.
+Les anciennes tables de seuils et fenêtres de dataset sont conservées dans
+[l'ancien CLAUDE.md](https://github.com/3a7i3/crypto-ia-terminal/blob/053c8540a012b2c2c7a9bc5e76585a1425858f73/CLAUDE.md).
+Cette réécriture ne change aucun protocole ni paramètre. Ne pas réutiliser
+`CLEAN_DATA_SINCE_V4`, EXP-001 ou les scores PMI historiques comme état ou
+admission d'un dataset actuel ; employer les IDs/boundaries/manifests explicites
+et les gates applicables. Atteindre un ancien seuil ne lève aucun freeze.
 
-> Le moteur de décision est le seul composant autorisé à prendre une décision de trading.
-> Tous les autres composants (observabilité, télémétrie, regret, calibration, gouvernance,
-> laboratoire, replay, IA) sont strictement passifs. Ils peuvent observer, enregistrer,
-> simuler, expliquer et recommander, mais ils ne peuvent jamais influencer une décision
-> en temps réel. Toute évolution des paramètres doit être validée explicitement par
-> l'opérateur et appliquée via un processus de configuration versionné.
+La Scientific Debt Rule demeure : justifier chaque changement par une mission,
+un besoin de validation ou une hypothèse ; éviter de créer des variables
+expérimentales inutiles. Les améliorations UI/source autorisées ne sont pas
+une autorisation de refactoriser ou d'enrichir la machine déployée.
 
-**Conséquence directe :** `FEATURE_AUTO_CALIBRATION=false` est le défaut permanent.
-Aucune exception sans ADR signé par l'opérateur.
-Base de sizing épinglée à `WALLET_PAPER_CAPITAL` jusqu'aux gates de calibration ;
-tout sizing dépendant de l'equity est une décision de calibration explicite,
-jamais un effet de redémarrage.
+## 3. Expérience active : vérifier le garde-fou
 
----
+Avant tout travail, consulter [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286)
+et la mission applicable. Tant que `ACTIVE_BURN_IN_IMMUTABILITY_GUARD` est actif,
+préserver stratégie, signaux, thresholds, calibration, risk, sizing,
+`PB_MAX_POSITIONS`, config, capital initial, manifest, epoch et autorité PPL.
 
-## Scientific Debt Rule — Gel architectural
+Sans mission et gate distinctes explicitement autorisées : aucun restart
+Advisor, changement du checkout/runtime/VPS/systemd, activation Watchdog/FIN,
+TESTNET/LIVE, écriture exchange ou mutation PPL/FIN. Ne pas arrêter CryptoRadar,
+retirer des sorties ou modifier les notifications dans une mission source/UI.
+Les exceptions historiques sont consommées, pas des permissions réutilisables.
 
-> Aucune nouvelle fonctionnalité ne peut être développée tant qu'elle crée davantage
-> de variables expérimentales qu'elle n'en élimine. Toute nouvelle fonctionnalité doit
-> être justifiée par une hypothèse scientifique existante ou par un besoin de validation,
-> jamais par une intuition ou une opportunité technique.
+Flux admis : `PAPER → dataset immuable → Research → diagnostic/candidat`.
+Flux interdit : `Research → même epoch active`.
+Une future epoch nécessite ses propres preuves et sa propre autorisation ;
+la fin du burn-in n'en crée pas une automatiquement.
 
-**Conséquence directe :** Phase II = zéro nouvelles couches, zéro nouveaux indicateurs,
-zéro nouvelles stratégies. Seuls les outils de mesure, d'audit et de certification
-sont autorisés. Toute demande de nouvelle fonctionnalité doit pointer vers une hypothèse
-H1-H6 existante qui la justifie.
+Les checkpoints runtime READ-ONLY restent ponctuels dans leur mission autorisée.
+Un agent n'accède pas aux secrets par défaut et ne se donne aucune autorité
+pour déployer, promouvoir, écrire sur exchange ou merger automatiquement.
+Une action source explicitement autorisée par l'opérateur doit rester dans
+sa portée ; elle ne vaut jamais autorisation runtime.
 
----
+## 4. Méthode de modification
 
-## Règle du statisticien — Validation empirique obligatoire
+1. Lire la mission, ses contraintes et les contrats du domaine. Revérifier les
+   références GitHub ; séparer règles permanentes et preuves temporelles.
+2. Examiner le tree local, les changements préexistants et le HEAD/base réels.
+   Utiliser une branche/PR isolée ; préserver le travail de l'opérateur.
+3. Identifier producteur, autorité, artifact, consommateurs et conséquences.
+   Ne pas « corriger » une autorité via son lecteur ou sa présentation.
+4. Implémenter le scope admis, sans changement runtime implicite ni faux état.
+5. Exécuter les contrôles adaptés et les checks requis. Rapporter échecs,
+   skips, limites et fraîcheur des preuves au HEAD exact ; pas de baseline
+   modifiée ou de test supprimé pour masquer une régression.
+6. Livrer une PR/documentation traçable. Une fusion source et une publication
+   runtime ont des gates et des preuves différentes.
 
-> Aucun paramètre du moteur de trading ne peut être modifié sur la base d'une intuition,
-> d'une observation isolée ou d'un faible échantillon. Toute proposition de calibration
-> doit être accompagnée d'une justification statistique (taille d'échantillon, intervalles
-> de confiance, puissance statistique, impact attendu sur les métriques de risque et de
-> performance) et être validée par un opérateur humain avant toute application.
+Ne pas exposer de secrets dans les commandes/logs/artifacts, ni envoyer des
+messages à des tiers sans autorisation. Pas de `npm audit fix --force` comme
+substitut à une revue de dépendances. Les permissions de secrets, la sécurité
+frontend et les protections GitHub ont leurs missions distinctes.
 
-**Seuil minimum absolu avant toute calibration :**
+## 5. Cleanup et historique
 
-| Catégorie              | Minimum |
-|------------------------|---------|
-| Trades totaux          | 500     |
-| Winners                | 150     |
-| Losers                 | 150     |
-| MISSED_WIN (regret)    | 100     |
-| GOOD_REFUSAL (regret)  | 100     |
-| Par régime de marché   | 50      |
-| Par couche bloqueuse   | 30      |
-| Calibration Readiness Index (CRI) | ≥ 90/100 |
+Classification préalable : `KEEP | INTEGRATE | MOVE | ARCHIVE | RETIRE | UNKNOWN`.
+UNKNOWN signifie ne pas supprimer. Avant retrait, vérifier imports,
+producteurs/consommateurs, scripts/cron, unités systemd, API/frontend, tests/CI,
+preuves scientifiques et rollback. Préserver logs, JSONL, datasets immuables
+et sauvegardes nécessaires à l'audit/reprise.
 
-Tant que ces seuils ne sont pas atteints : **ACE interdit, zéro modification de seuil**.
-
-**Borne canonique du dataset propre — `CLEAN_DATA_SINCE_V4 = 2026-07-17T01:30:00Z`**
-(époque palier 1, ADR-0017 : univers tradé élargi à 135 paires épinglées —
-l'univers est une variable expérimentale, changer d'univers = changer
-d'époque ; V3 = époque 28 paires, N=49, archivée et comparable en interne).
-Toute donnée antérieure à ce timestamp (`paper_trades.jsonl`, `regret_analysis.jsonl`)
-est invalide pour le calcul de N et de tout seuil ci-dessus — appliquée par
-`scripts/data_quality.py` (source unique, alias `CLEAN_DATA_SINCE_ACTIVE`
-à importer partout) et par `tools/cri_calculator.py::load_clean_trades()`,
-jamais copiée localement.
-Cette borne **remplace** v1 (`2026-06-25`, ADR-0011), v2
-(`2026-07-09T01:16:00Z`, ADR-0012) et v3 (`2026-07-09T07:45:00Z`,
-addendum ADR-0012) sans les contredire : chaque version
-exclut strictement un sur-ensemble de la précédente — adopter la borne la
-plus récente et la plus large satisfait toutes les exigences simultanément.
-Historique : v2 marquait le restart censé activer le gate d'exécution réelle
-SEC-01 (correction de `consecutive_losses` qui confondait échecs d'exécution
-technique et vraies pertes, contaminant 5 mécanismes de décision — voir
-ADR-0012) ; mais le déploiement du 2026-07-08 était **silencieusement
-partiel** (bug `ssh` sans `-n` dans `deploy_vps.sh`, tags d'audit
-`deploy-20260707-0806` → `deploy-20260708-1831` créés sur de faux succès) :
-`execution_engine.py` n'a jamais atteint le VPS et SEC-01 était inactif dans
-la fenêtre v2 (ordre réel encore tenté le 2026-07-09 06:28 UTC). v3 = borne
-postérieure au restart de rattrapage qui charge réellement SEC-01 — voir
-**addendum ADR-0012**. v1 reste documentée pour l'audit qualité de données
-(`scripts/data_quality.py`, tokens toxiques/bypass `meta_allowed` — un
-problème différent).
-
----
-
-## Phase actuelle : Validation Scientifique (gel fonctionnel étendu)
-
-Le développement fonctionnel est **gelé**. Sont désormais **interdits** :
-
-- Nouvelles couches IA ou décisionnelles
-- Nouveaux indicateurs techniques
-- Nouvelles stratégies ou personnalités
-- Nouvelles règles de décision ou de filtrage
-- Toute modification des seuils existants
-
-**Autorisés exclusivement :**
-outils de mesure, outils d'audit, tableaux de bord scientifiques,
-visualisation des hypothèses/datasets/expériences, qualité statistique, reproductibilité.
-
----
-
-## Project Maturity Index (PMI) et SDOS
-
-Indicateur composite en 7 niveaux, complété par la couche L3.5 du
-Scientific Decision Operating System (SDOS). Référence normative :
-`docs/blueprint_v2.md`.
-
-```
-PMI = (L1 + L2 + L3 + L4 + L5 + L6 + L7) / 700
-SDOS Capability = (L1 + L2 + L3 + L3.5 + L4 + L5 + L6 + L7) / 800
-```
-
-| Niveau | Nom | Score | Gate |
-|--------|-----|-------|------|
-| L1 | Engineering | 100/100 | FRANCHIE ✅ |
-| L2 | Scientific Validation | 35/100 | gate S1→S5 (N>=100) |
-| L3 | Scientific Governance | 10/100 | gate L2 |
-| L3.5 | Scientific Intelligence Layer | 0/100 | gate L3 + Observer Certification |
-| L4 | Research Lab | 0/100 | gate L3.5 + N>=500 |
-| L5 | Digital Twin | 0/100 | gate L4 |
-| L6 | Live Operations | 36/100 | gate L2 → Phase A |
-| L7 | Scientific Intelligence Core | 0/100 | gate L6 Phase C |
-| **PMI-7** | | **181/700 = 26%** | |
-| **SDOS** | | **181/800 = 22.6%** | |
-
-Baseline PMI-7 : 2026-06-30. Baseline SDOS : 2026-07-01.
-Les scores progressent avec les gates franchies, jamais avec le nombre de
-lignes de code ajoutées.
-
-### Double lecture PMI
-
-| Score | Signification | Baseline |
-|---|---|---|
-| **Capability Score** | Ce que le système peut faire | PMI-7 181/700 = 26% ; SDOS 181/800 = 22.6% |
-| **Evidence Score** | Ce qui est démontré par les données | 0/700 = 0% ; SDOS 0/800 = 0% |
-
-**Evidence Score = 0** signifie : aucune donnée certifiée, aucune hypothèse conclue.
-L'architecture est mature. Les preuves restent à construire.
-
----
-
-## Verrous Go/No-Go EXP-001 (en plus des métriques financières)
-
-1. **Zéro Inconclusive critique** : si H1, H2 ou H3 est `Inconclusive` avec
-   `n_at_eval >= min_n_required` → passage réel interdit.
-2. **Zéro contradiction** : conflits H1↔H3 et H2↔H3 doivent être résolus
-   (voir `experiments/EXP-001.yaml § known_conflict_pairs`).
-
----
-
-## Déploiement VPS — geste délibéré (2026-07-04)
-
-Le hook `.git/hooks/post-commit` qui déployait automatiquement chaque commit
-vers le VPS a été **aboli** (renommé `post-commit.disabled`, réversible mais
-non réactivé). Un commit sur `main` ne déploie plus jamais rien tout seul —
-conforme au gel scientifique, un déploiement doit rester un acte conscient.
-
-**Nouveau geste** :
-
-```
-bash scripts/deploy_vps.sh --confirm            # avec confirmation interactive
-bash scripts/deploy_vps.sh --confirm --yes       # usage scripté, sans prompt
-bash scripts/deploy_vps.sh --confirm --dry-run   # simulation, aucun transfert réel
-bash scripts/deploy_vps.sh --confirm --restart   # + redémarrage du service (double opt-in)
-```
-
-Sans `--confirm` : affiche l'usage, exit 1. Aucune exécution implicite.
-
-Le script conserve le filtre d'exclusion (`databases/|cache/|logs/|tests/|docs/`)
-qui empêche d'écraser l'état runtime du VPS (dont `runtime_config.json`,
-paramètres de risque live) via un commit accidentel.
-
-Après un déploiement réussi (jamais avant, jamais en `--dry-run`), un tag
-git annoté `deploy-YYYYMMDD-HHMM` est créé et poussé — SHA du commit + liste
-des fichiers transférés dans le message. **Ce tag est le journal d'audit des
-déploiements**, `git tag -l "deploy-*"` en donne l'historique complet.
-
-Le redémarrage du service (`pkill` + relance `advisor_loop.py`) reste un
-double opt-in : `VPS_RESTART_CMD` défini dans `.env` ET `--restart` passé
-explicitement. Jamais implicite, même avec un fichier critique déployé.
+Les anciennes fenêtres STABILIZATION LAB, Phase II, V4 et plans live sont des
+archives. Leurs commandes de déploiement et autorisations ne sont pas actives.
+[#148](https://github.com/3a7i3/crypto-ia-terminal/issues/148) reste l'archive
+canonique de la phase précédente ; [ROADMAP.md](ROADMAP.md) en donne les repères.
