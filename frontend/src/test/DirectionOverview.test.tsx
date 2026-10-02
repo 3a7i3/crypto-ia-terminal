@@ -1,3 +1,4 @@
+import { runtimeServiceFixture } from "./runtimeServiceFixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { DirectionOverview } from "../views/DirectionOverview";
@@ -153,6 +154,7 @@ function governedFetch(
     if (url.endsWith("/api/operator/v1/financial-reconciliation")) return Promise.resolve(response(fin));
     if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(market));
     if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(research));
+    if (url.endsWith("/api/operator/v1/runtime-service")) return Promise.resolve(response(runtimeServiceFixture()));
     if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnIn));
     return Promise.reject(new Error("unexpected endpoint " + url));
   });
@@ -161,7 +163,7 @@ function governedFetch(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
-  it("renders all five independent governed Direction cards with GET-only reads", async () => {
+  it("renders all six independent governed Direction cards with GET-only reads", async () => {
     const fetchMock = governedFetch();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -173,6 +175,8 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     await waitFor(() => expect(screen.getByTestId("direction-research-card")).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE"));
     await waitFor(() => expect(screen.getByTestId("direction-burnin-card")).toHaveTextContent("BURN-IN-EPOCH-01"));
 
+    await waitFor(() => expect(screen.getByTestId("direction-runtime-service-card")).toHaveTextContent("ÉTAT OBSERVÉ · active"));
+    expect(screen.getByTestId("direction-runtime-service-card")).toHaveTextContent("HOST_SYSTEMD_OBSERVATION");
     const burnIn = screen.getByTestId("direction-burnin-card");
     const global = screen.getByTestId("direction-global-card");
     const experiment = screen.getByTestId("direction-experiment-card");
@@ -219,7 +223,7 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     expect(research).toHaveTextContent("0");
     expect(research).toHaveTextContent("ne remplissent jamais les métriques PAPER actives");
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
       expect.arrayContaining([
         "/api/operator/v1/snapshot",
@@ -227,9 +231,12 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
         "/api/operator/v1/market",
         "/api/operator/v1/research-lab",
         "/api/operator/v1/burn-in",
+        "/api/operator/v1/runtime-service",
       ]),
     );
-    for (const call of fetchMock.mock.calls) expect(call[1]).toEqual({ method: "GET" });
+    for (const call of fetchMock.mock.calls) {
+      expect(call[1]).toMatchObject({ method: "GET" });
+    }
   });
 
   it("keeps provenance and freshness independent per card with no global roll-up", async () => {
@@ -404,7 +411,8 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
       }
       if (url.endsWith("/api/operator/v1/market")) return Promise.resolve(response(marketSnapshot()));
       if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(researchSnapshot()));
-      if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
+      if (url.endsWith("/api/operator/v1/runtime-service")) return Promise.resolve(response(runtimeServiceFixture()));
+    if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
       return Promise.reject(new Error("unexpected endpoint " + url));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -438,7 +446,8 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
       if (url.endsWith("/api/operator/v1/research-lab")) {
         return Promise.reject(new Error("research network unavailable"));
       }
-      if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
+      if (url.endsWith("/api/operator/v1/runtime-service")) return Promise.resolve(response(runtimeServiceFixture()));
+    if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
       return Promise.reject(new Error("unexpected endpoint " + url));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -493,7 +502,8 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
         return Promise.resolve(response({ error_code: "MARKET_SNAPSHOT_MISSING", error_message: "missing" }, 503));
       }
       if (url.endsWith("/api/operator/v1/research-lab")) return Promise.resolve(response(researchSnapshot()));
-      if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
+      if (url.endsWith("/api/operator/v1/runtime-service")) return Promise.resolve(response(runtimeServiceFixture()));
+    if (url.endsWith("/api/operator/v1/burn-in")) return Promise.resolve(response(burnInFixture()));
       return Promise.reject(new Error("unexpected endpoint " + url));
     });
     vi.stubGlobal("fetch", fetchMock);

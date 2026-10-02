@@ -1,4 +1,6 @@
 import React from "react";
+import { useRuntimeService } from "../lib/runtimeServiceClient";
+import { RuntimeServiceCard } from "./RuntimeServiceView";
 import { useBurnInStatus } from "../lib/burnInStatusClient";
 import type { BurnInState } from "../lib/burnInStatusClient";
 import { useFinancialReconciliation } from "../lib/financialReconciliationClient";
@@ -527,6 +529,7 @@ const ResearchCard: React.FC<{ state: ResearchLabState }> = ({ state }) => {
 };
 
 export const DirectionOverview: React.FC = () => {
+  const runtimeServiceState = useRuntimeService();
   const operatorState = useOperatorSnapshot();
   const burnInState = useBurnInStatus();
   const financialState = useFinancialReconciliation();
@@ -542,11 +545,15 @@ export const DirectionOverview: React.FC = () => {
 
       <aside className="direction-federation-notice" data-testid="direction-federation-notice">
         <strong>FÉDÉRÉ · NON ATOMIQUE</strong>
-        <span>5 sources indépendantes · aucun timestamp global · aucune fraîcheur globale · aucun état de santé global dérivé.</span>
+        <span>6 sources indépendantes · aucun timestamp global · aucune fraîcheur globale · aucun état de santé global dérivé.</span>
       </aside>
 
       <section aria-label="État burn-in Direction">
         <BurnInCard state={burnInState} />
+      </section>
+
+      <section aria-label="Preuve host Advisor Direction">
+        <RuntimeServiceCard state={runtimeServiceState} testId="direction-runtime-service-card" />
       </section>
 
       <section className="direction-primary-grid" aria-label="Synthèse gouvernée Direction">

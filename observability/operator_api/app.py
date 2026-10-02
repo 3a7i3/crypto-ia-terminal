@@ -25,6 +25,12 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from observability.operator_api.runtime_service_reader import (
+    DEFAULT_RUNTIME_SERVICE_PATH,
+    DEFAULT_STALE_AFTER_S as DEFAULT_RUNTIME_SERVICE_STALE_AFTER_S,
+    RuntimeServiceSnapshotReader,
+)
+
 from observability.operator_api.burn_in_status_reader import (
     DEFAULT_BURN_IN_STATUS_PATH,
     DEFAULT_STALE_AFTER_S as DEFAULT_BURN_IN_STATUS_STALE_AFTER_S,
@@ -70,6 +76,7 @@ app = FastAPI(
 # external exposure/auth remains a deployment/security responsibility.
 
 _reader = SafeSnapshotReader()
+_runtime_service_reader = RuntimeServiceSnapshotReader()
 _burn_in_status_reader = BurnInStatusSnapshotReader()
 _market_reader = MarketSnapshotReader()
 _ppl_comparison_reader = PplComparisonSnapshotReader()
@@ -113,6 +120,24 @@ def configure_market_reader(
         kwargs["now_fn"] = now_fn
     _market_reader = MarketSnapshotReader(path=market_snapshot_path, **kwargs)
     return _market_reader
+
+
+def get_runtime_service_reader() -> RuntimeServiceSnapshotReader:
+    return _runtime_service_reader
+
+
+def configure_runtime_service_reader(
+    path: Path = DEFAULT_RUNTIME_SERVICE_PATH,
+    *,
+    stale_after_s: float = DEFAULT_RUNTIME_SERVICE_STALE_AFTER_S,
+    now_fn=None,
+) -> RuntimeServiceSnapshotReader:
+    global _runtime_service_reader
+    kwargs: dict[str, Any] = {"stale_after_s": stale_after_s}
+    if now_fn is not None:
+        kwargs["now_fn"] = now_fn
+    _runtime_service_reader = RuntimeServiceSnapshotReader(path, **kwargs)
+    return _runtime_service_reader
 
 
 def get_burn_in_status_reader() -> BurnInStatusSnapshotReader:
@@ -382,6 +407,15 @@ def get_financial_reconciliation() -> Any:
     return payload
 
 
+@app.get("/api/operator/v1/runtime-service")
+def get_runtime_service() -> Any:
+    """Transport only the passive host/systemd observation artifact."""
+    result = get_runtime_service_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
+
+
 @app.get("/api/operator/v1/burn-in")
 def get_burn_in_status() -> Any:
     """Transport only the validated U2 atomic presentation artifact."""
@@ -433,6 +467,8 @@ __all__ = [
     "app",
     "configure_reader",
     "get_reader",
+    "get_runtime_service_reader",
+    "configure_runtime_service_reader",
     "configure_burn_in_status_reader",
     "get_burn_in_status_reader",
     "configure_market_reader",

@@ -1212,6 +1212,10 @@
 .burnin-status-closed { color:var(--cyan); background:var(--cyan-dim); border-color:rgba(34,211,238,.22); }
 .burnin-status-unresolved,.burnin-deadline-recovery_expired { color:var(--warn); background:var(--warn-dim); border-color:rgba(245,158,11,.25); }
 .burnin-deadline-recovery_window { color:#c4b5fd; background:var(--violet-dim); border-color:rgba(167,139,250,.28); }
+.runtime-service-card { min-width:0; margin-bottom:16px; }
+.runtime-service-card dd { overflow-wrap:anywhere; min-width:0; }
+.runtime-service-state { display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; font-family:var(--font-mono); }
+.runtime-service-state strong { color:var(--text-pri); }
 .burnin-history-table-wrap { overflow-x:auto; border:1px solid var(--bg-border); border-radius:var(--r-chip); }
 .burnin-history-table { width:100%; min-width:1180px; border-collapse:collapse; }
 .burnin-history-table th,.burnin-history-table td { padding:8px; border-bottom:1px solid var(--bg-border); text-align:left; color:var(--text-sec); font-family:var(--font-mono); font-size:9px; white-space:nowrap; }

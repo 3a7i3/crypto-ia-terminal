@@ -41,7 +41,7 @@ describe("WEB-DIR-01-D2 product routing", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps Direction separate and fetches its five independent governed sources", async () => {
+  it("keeps Direction separate and fetches its six independent governed sources", async () => {
     window.history.replaceState({}, "", "/direction");
     render(<App />);
 
@@ -54,7 +54,7 @@ describe("WEB-DIR-01-D2 product routing", () => {
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("AUCUNE AUTORITÉ PAPER");
     expect(screen.getByText(/ÉTAT GLOBAL · INCONNU/)).toBeInTheDocument();
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
       expect.arrayContaining([
         "/api/operator/v1/snapshot",
@@ -62,6 +62,7 @@ describe("WEB-DIR-01-D2 product routing", () => {
         "/api/operator/v1/market",
         "/api/operator/v1/research-lab",
         "/api/operator/v1/burn-in",
+        "/api/operator/v1/runtime-service",
       ]),
     );
   });

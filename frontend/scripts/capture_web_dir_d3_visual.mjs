@@ -389,6 +389,9 @@ try {
   await page.route("**/api/operator/v1/research-lab", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(researchSnapshot) }),
   );
+  await page.route("**/api/operator/v1/runtime-service", (route) =>
+    route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error_code: "RUNTIME_SERVICE_MISSING" }) }),
+  );
   await page.route("**/api/operator/v1/burn-in", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(burnInSnapshot) }),
   );
@@ -413,6 +416,7 @@ try {
   await page.getByTestId("direction-market-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-research-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-burnin-card").waitFor({ state: "visible" });
+  assert((await page.getByTestId("direction-runtime-service-card").innerText()).includes("RUNTIME_SERVICE_MISSING"), "Missing host source must remain independent");
   const burnInCard = page.getByTestId("direction-burnin-card");
   const burnInText = await burnInCard.innerText();
   assert(/T0 scientifique/i.test(burnInText), "U2 Direction burn-in evidence missing: T0 scientifique");
@@ -516,8 +520,9 @@ try {
     "GET /api/operator/v1/market",
     "GET /api/operator/v1/research-lab",
     "GET /api/operator/v1/burn-in",
+    "GET /api/operator/v1/runtime-service",
   ]);
-  assert(apiRequests.length >= 5, "Direction did not request all five governed sources");
+  assert(apiRequests.length >= 6, "Direction did not request all six governed sources");
   assert(
     apiRequests.every((request) => allowedRequests.has(request)),
     `Direction requested an endpoint outside D4B/D4C/D4D: ${apiRequests.join(", ")}`,
@@ -527,7 +532,8 @@ try {
       apiRequests.includes("GET /api/operator/v1/financial-reconciliation") &&
       apiRequests.includes("GET /api/operator/v1/market") &&
       apiRequests.includes("GET /api/operator/v1/research-lab") &&
-      apiRequests.includes("GET /api/operator/v1/burn-in"),
+      apiRequests.includes("GET /api/operator/v1/burn-in") &&
+      apiRequests.includes("GET /api/operator/v1/runtime-service"),
     `Direction governed sources incomplete: ${apiRequests.join(", ")}`,
   );
   assert(mutationRequests.length === 0, `Direction issued mutation requests: ${mutationRequests.join(", ")}`);
