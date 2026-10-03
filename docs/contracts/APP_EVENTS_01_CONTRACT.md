@@ -87,8 +87,10 @@ même si capture FRESH. Aucun mtime traité comme preuve d'activité.
 Vue indépendante du snapshot Advisor, cartes sources, couverture, filtres
 source/sévérité, cartes événements et détail provenance ; dates null visibles,
 empty/filtre vide distincts de missing/error. Données STALE décrites comme
-historiques ; erreur refresh retire les anciens événements. Chargement, erreurs
-réseau/API/contrat, mobile 390 et desktop 1440 vérifiés. Couleur + libellé/icône,
+historiques ; erreur refresh retire les anciens événements. Lecture HTTP
+sérialisée, délai maximal de 10 s (réponse et JSON), abort à la fermeture ; une
+requête bloquée retire également l’ancienne capture après timeout. Chargement,
+erreurs réseau/API/contrat, mobile 390 et desktop 1440 vérifiés. Couleur + libellé/icône,
 focus accessible et identités longues sans overflow. Aucune commande humaine.
 
 ## Validation et frontières

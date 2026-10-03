@@ -87,10 +87,26 @@ describe.skipIf(!hasFixture)("APP-EVENTS-01 Python -> API -> React", () => {
     const slow = vi.fn().mockImplementation(() => new Promise<Response>(r => { resolve = r; }));
     vi.stubGlobal("fetch", slow);
     render(<EventsView />);
-    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(9_000); });
     expect(slow).toHaveBeenCalledTimes(1);
     await act(async () => { resolve(response(fixture())); });
     expect(screen.getAllByTestId("event-row")).toHaveLength(8);
+  });
+
+  it("times out a hanging response and removes the previous successful capture", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(response(fixture())).mockImplementation(() => new Promise(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<EventsView />);
+    await act(async () => {});
+    expect(screen.getAllByTestId("event-row")).toHaveLength(8);
+    await act(async () => { await vi.advanceTimersByTimeAsync(29_999); });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByTestId("event-row")).toHaveLength(8);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.queryAllByTestId("event-row")).toHaveLength(0);
+    expect(screen.getByTestId("events-view")).toHaveTextContent("EVENT_CENTER_TRANSPORT_ERROR");
+    expect(fetchMock.mock.calls[1][1].signal.aborted).toBe(true);
   });
 });
 

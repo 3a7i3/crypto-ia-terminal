@@ -103,22 +103,32 @@ export function useEventCenter(intervalMs = 20_000): EventCenterState {
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const controller = new AbortController();
+    let requestTimer: ReturnType<typeof setTimeout> | undefined;
+    let controller: AbortController;
     async function load() {
+      controller = new AbortController();
       let next: EventCenterState;
       try {
-        const response = await fetch(EVENTS_ENDPOINT, { method: "GET", signal: controller.signal });
-        const body: unknown = await response.json();
+        const request = async () => {
+          const response = await fetch(EVENTS_ENDPOINT, { method: "GET", signal: controller.signal });
+          const body: unknown = await response.json();
+          return { response, body };
+        };
+        const timeout = new Promise<never>((_, reject) => {
+          requestTimer = setTimeout(() => { controller.abort(); reject(new Error("EVENT_CENTER_TIMEOUT")); }, 10_000);
+        });
+        const { response, body } = await Promise.race([request(), timeout]);
         if (!response.ok) {
           const known = ["EVENT_CENTER_MISSING", "EVENT_CENTER_INVALID_SCHEMA", "EVENT_CENTER_INVALID_ARTIFACT", "EVENT_CENTER_FUTURE_TIMESTAMP"];
           const code = typeof body === "object" && body !== null && "error_code" in body && member(body.error_code, known) ? String(body.error_code) : "EVENT_CENTER_SOURCE_ERROR";
           next = { status: "error", code };
         } else next = validateEventCenter(body) ? { status: "success", snapshot: body } : { status: "error", code: "EVENT_CENTER_CONTRACT_ERROR" };
       } catch { next = { status: "error", code: "EVENT_CENTER_TRANSPORT_ERROR" }; }
+      finally { clearTimeout(requestTimer); }
       if (alive) { setState(next); timer = setTimeout(load, intervalMs); }
     }
     load();
-    return () => { alive = false; controller.abort(); if (timer !== undefined) clearTimeout(timer); };
+    return () => { alive = false; controller.abort(); clearTimeout(requestTimer); if (timer !== undefined) clearTimeout(timer); };
   }, [intervalMs]);
   return state;
 }

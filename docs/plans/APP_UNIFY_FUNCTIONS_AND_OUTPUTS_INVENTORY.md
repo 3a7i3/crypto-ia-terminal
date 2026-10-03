@@ -186,7 +186,7 @@ indépendante `/paper-live/events`. UNKNOWN, source absente, source invalide,
 capture vide et données périmées restent distincts. Les corrections supervision
 restent comptées comme exclusions ; aucune activité moteur déduite des journaux.
 
-Validation locale synthétique : 389 tests frontend, 526 tests Python de la chaîne
+Validation locale synthétique : 390 tests frontend, 526 tests Python de la chaîne
 et surfaces voisines, puis 22 tests Events finaux ; build, 7 contrôles PWA et
 Ruff sans nouvelle violation. 16 captures Chromium 1440/390 couvrent sources,
 filtres, erreurs, provenance et overflow. Cette preuve ne certifie aucun
