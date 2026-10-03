@@ -31,7 +31,9 @@ jobs:
           node-version: "22"
 
       - name: Régénérer le lockfile candidat sans scripts
-        run: npm install --package-lock-only --ignore-scripts --no-fund --no-audit
+        run: |
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-fund --no-audit
 
       - name: Capturer l'audit du graphe candidat
         continue-on-error: true
