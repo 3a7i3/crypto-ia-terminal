@@ -1,0 +1,99 @@
+# Relance contrôlée après figement du lockfile audité.
+name: SEC-WEB-DEPS-01 — remédiation dépendances frontend
+
+on:
+  pull_request:
+    paths:
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - "frontend/src/**"
+      - "frontend/vite.config.ts"
+      - ".github/workflows/sec-web-deps-01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile-candidate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout du HEAD exact
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Régénérer le lockfile candidat sans scripts
+        run: |
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-fund --no-audit
+
+      - name: Capturer l'audit du graphe candidat
+        continue-on-error: true
+        run: npm audit --json > npm-audit-candidat.json
+
+      - name: Publier lockfile et audit candidats
+        uses: actions/upload-artifact@v4
+        with:
+          name: sec-web-deps-01-candidat
+          path: |
+            frontend/package-lock.json
+            frontend/npm-audit-candidat.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commiter le lockfile exact s'il a changé
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- package-lock.json; then
+            echo "LOCKFILE_DEJA_IDENTIQUE=1"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "SEC-WEB-DEPS-01 : figer le lockfile npm audité"
+          git push origin "HEAD:${{ github.head_ref }}"
+
+  validation-lock-commite:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout du HEAD exact
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installation déterministe
+        run: npm ci
+
+      - name: Build TypeScript + Vite
+        run: npm run build
+
+      - name: Tests frontend
+        run: npm test -- --run
+
+      - name: Tests transport/PWA
+        run: npm run test:runtime
+
+      - name: Audit final strict
+        run: npm audit --audit-level=low
