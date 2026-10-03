@@ -1,7 +1,10 @@
 # Documentation Hub -- crypto_ai_terminal
 
-> Source of truth unique. Genere automatiquement le 2026-05-13 11:26.
+> Catalogue historique généré le 2026-05-13 11:26 ; entrée clarifiée le 2026-10-03.
 > Pour regenerer : `python project_os/doc_indexer.py`
+> Entrée actuelle : [guide développeur](DEVELOPER_ENTRYPOINT.md).
+> Priorisation : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) ; app : [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323).
+> Les commandes des anciens guides ne constituent pas une autorisation runtime ; [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) reste le garde-fou.
 
 ---
 
@@ -9,20 +12,26 @@
 
 | Besoin | Section |
 |--------|---------|
-| Demarrer le systeme | [Quick Start](#quick-start--setup) |
+| Reprendre le travail actuel | [Entrée développeur](DEVELOPER_ENTRYPOINT.md) |
+| Consulter les anciens guides | [Quick Start](#quick-start--setup) |
 | Comprendre l'architecture | [Architecture](#architecture--design) |
-| Etat du projet (live) | [Project OS](#project-os--etat-courant) |
-| Roadmap et phases | [Roadmap](#roadmap--planification) |
+| Rapports locaux Project OS | [Project OS](#project-os--rapports-locaux-non-certifiés) |
+| Priorisation actuelle | [Roadmap II · #285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) |
+| Plans et phases historiques | [Roadmap](#roadmap--planification) |
 | Un composant specifique | [Composants](#composants--modules) |
 | Rapports historiques | [Rapports](#rapports-historiques) |
 
 ---
 
-## Project OS — Etat courant
+## Project OS — Rapports locaux non certifiés
+
+Les chiffres ci-dessous sont ceux de l'index historique de mai. Ils ne sont pas
+une mesure actuelle de couverture CI, de maturité ou de santé runtime. Consulter
+les preuves datées des missions ; #207 documente notamment des cycles encore suivis.
 
 **Coverage tests :** 30.1% (108 OK / 39 partiel / 342 manquant)
 **Maturite globale :** 2.25/5
-**Cycles :** aucun (propre)
+**Cycles consignés en mai :** aucun ; ce constat historique ne clôture pas #207.
 
 | Commande | Role |
 |----------|------|
@@ -92,7 +101,7 @@
 | Fichier | Titre |
 |---------|-------|
 | [AIDE_GPT_EVOLUTION_DASHBOARD_FR.md](../docs/evolution/AIDE_GPT_EVOLUTION_DASHBOARD_FR.md) | 🤖 Aide interactive – Assistant GPT pour l’écosystème évolutif |
-| [ARCHIVE.md](../quant_hedge_ai/_legacy/ARCHIVE.md) | Legacy Code Archive |
+| [ARCHIVE.md](../_ARCHIVE_2026/_legacy/ARCHIVE.md) | Legacy Code Archive |
 | [CHATBOT_EXTENSION.md](../docs/divers/CHATBOT_EXTENSION.md) | 🤖 Extension Chatbot Externe (démo) |
 | [CHECKLIST_DASHBOARD_3D.md](../docs/evolution/CHECKLIST_DASHBOARD_3D.md) | Checklist de validation manuelle – Dashboard 3D Evolution |
 | [CLAUDE_TRACKER_HANDOFF.md](../CLAUDE_TRACKER_HANDOFF.md) | Tracker System Handoff For Claude |
@@ -105,7 +114,7 @@
 | [FAQ_EVOLUTION_DASHBOARD_EN.md](../docs/evolution/FAQ_EVOLUTION_DASHBOARD_EN.md) | ❓ FAQ – Evolutionary Ecosystem & Dashboard |
 | [FAQ_EVOLUTION_DASHBOARD_FR.md](../FAQ_EVOLUTION_DASHBOARD_FR.md) | ❓ FAQ – Écosystème évolutif & Dashboard |
 | [GPT_HELP_EVOLUTION_DASHBOARD_EN.md](../docs/evolution/GPT_HELP_EVOLUTION_DASHBOARD_EN.md) | 🤖 Interactive Help – GPT Assistant for the Evolutionary Ecosystem |
-| [MIGRATION.md](../quant_hedge_ai/_legacy/MIGRATION.md) | Migration Guide |
+| [MIGRATION.md](../_ARCHIVE_2026/_legacy/MIGRATION.md) | Migration Guide |
 | [RAPPORT_FINAL_SUPERVISION.md](../docs/audit/RAPPORT_FINAL_SUPERVISION.md) | RAPPORT FINAL — SUPERVISION BOTDOCTOR |
 | [README.md](../quant_hedge_ai/README.md) | V9 Autonomous Quant Hedge Fund System |
 | [README.md](../quant_hedge_ai/strategy_lab/README.md) | Strategy Lab — Exemples d'utilisation |

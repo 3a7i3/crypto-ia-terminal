@@ -614,6 +614,229 @@ honnête tant que les artifacts réels ne sont pas publiés.</p>
 contractualisés, consommateurs des anciens transports, sources KPI historiques
 et Gate O. Cette matrice interdit de les présenter comme déjà déployés/résolus.</p>
 </section>
+<section id="revue-application-et-consolidation-2026-10-03">
+<h2>Revue application et consolidation — 2026-10-03<a class="headerlink" href="#revue-application-et-consolidation-2026-10-03" title="Link to this heading">¶</a></h2>
+<p>Demande opérateur : reprise des issues, tests de l’app et de ses sorties, ménage
+source sans toucher au burn-in. Branche locale <code class="docutils literal notranslate"><span class="pre">audit/app-coherence-cleanup</span></code>,
+base examinée <code class="docutils literal notranslate"><span class="pre">385b8c9cdd4f0f67fd58898ba18f6a37b5e308a4</span></code>.
+Ce complément conserve la photographie U4 ci-dessus et utilise cet inventaire
+existant comme liste de travail, sans créer de nouveau rapport concurrent.</p>
+<section id="reprise-et-coherence-roadmap">
+<h3>Reprise et cohérence roadmap<a class="headerlink" href="#reprise-et-coherence-roadmap" title="Link to this heading">¶</a></h3>
+<p>Corpus récupéré : 109 issues distinctes du dépôt et 858 commentaires, par
+recherches ascendante/descendante (limite 100 par appel) et complément récent.
+Il ne certifie pas l’exhaustivité de l’historique GitHub ni toutes les discussions
+de PR. Les dispositions finales priment sur les anciens blocs/commentaires.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mission</p></th>
+<th class="head"><p>Dernière disposition consultée</p></th>
+<th class="head"><p>Conséquence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>#285 / #323</p></td>
+<td><p>app unique prioritaire, burn-in protégé</p></td>
+<td><p>visibilité et consolidation source</p></td>
+</tr>
+<tr class="row-odd"><td><p>#338 / #339</p></td>
+<td><p>Machine/Lab intégré en source</p></td>
+<td><p>aucune preuve de déploiement induite</p></td>
+</tr>
+<tr class="row-even"><td><p>#340 / #341</p></td>
+<td><p>façade documentaire intégrée</p></td>
+<td><p>ancien pointeur CURRENT_TASK à remplacer</p></td>
+</tr>
+<tr class="row-odd"><td><p>#342 / #343</p></td>
+<td><p>préparation U8 intégrée, NOT_AUTHORIZED</p></td>
+<td><p>publication/appareil sous gates G0–G8 séparées</p></td>
+</tr>
+<tr class="row-even"><td><p>#257 / #344 / #346</p></td>
+<td><p>sécurité remédiée</p></td>
+<td><p>ancien total de vulnérabilités dépassé ; audit frais local à zéro</p></td>
+</tr>
+<tr class="row-odd"><td><p>#315</p></td>
+<td><p>Gate S accepté, Gate O ouvert</p></td>
+<td><p>queue/actions opérationnelles encore bloquées</p></td>
+</tr>
+<tr class="row-even"><td><p>#287 / #309</p></td>
+<td><p>forensic et observation runtime historique terminées</p></td>
+<td><p>réobserver les consommateurs avant retrait</p></td>
+</tr>
+<tr class="row-odd"><td><p>#349 / #350–#355 / #207</p></td>
+<td><p>triage intégré, reliquats distincts</p></td>
+<td><p>rapport PASS ne signifie pas défauts corrigés</p></td>
+</tr>
+<tr class="row-even"><td><p>#209 / #284</p></td>
+<td><p>orchestration legacy différée / économie contractuelle</p></td>
+<td><p>ne pas ajouter de couplage au cockpit courant</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Exemples de bruit administratif : les premiers commentaires de #342 décrivent
+encore une PR Draft non fusionnée et une sécurité bloquante, alors que son corps
+consigne la préparation intégrée après remédiation. #257 a connu plusieurs
+dispositions successives. Ne pas utiliser un commentaire ancien comme état actuel.</p>
+</section>
+<section id="faiblesses-et-ordre-utile">
+<h3>Faiblesses et ordre utile<a class="headerlink" href="#faiblesses-et-ordre-utile" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Priorité</p></th>
+<th class="head"><p>Constat vérifié</p></th>
+<th class="head"><p>Action suivante</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>source intégrée ≠ sorties réellement servies ; accès machine absent ici</p></td>
+<td><p>vérifier endpoints, build et provenance en lecture seule</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frontend/src/views/EventsView.tsx</span></code> est statique NON DÉPLOYÉ</p></td>
+<td><p>contrat/producteur Centre d’événements avant retrait des notifications</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>détail LMI raw/liq et projection stockage manquants dans la matrice</p></td>
+<td><p>terminer les projections utiles avant retrait CryptoRadar</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>grille Research source disponible, résultats réels non admis par cette tranche</p></td>
+<td><p>sélectionner explicitement évaluations et assessments certifiés</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>index documentaire prétendait être source unique/live avec chiffres de mai</p></td>
+<td><p>entrée canonique et limites historiques clarifiées, générateur corrigé</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>CURRENT_TASK pointait #340 déjà intégrée</p></td>
+<td><p>reprise actuelle et reliquats explicités</p></td>
+</tr>
+<tr class="row-even"><td><p>différée</p></td>
+<td><p>Scores, queue Direction, économie et orchestration legacy</p></td>
+<td><p>garder indisponible/différé jusqu’aux contrats et gates applicables</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classification-pour-le-menage">
+<h3>Classification pour le ménage<a class="headerlink" href="#classification-pour-le-menage" title="Link to this heading">¶</a></h3>
+<p>Une classification source n’établit pas l’absence de consommateurs runtime.
+L’observation de dormance dans #309 est historique, pas une preuve de retrait actuel.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Surface / fichiers</p></th>
+<th class="head"><p>Classification de cette revue</p></th>
+<th class="head"><p>Disposition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frontend/</span></code>, Operator API, projections gouvernées</p></td>
+<td><p>KEEP</p></td>
+<td><p>chaîne canonique testée</p></td>
+</tr>
+<tr class="row-odd"><td><p>index, générateur documentaire, CURRENT_TASK</p></td>
+<td><p>KEEP</p></td>
+<td><p>affirmations périmées supprimées et reprise clarifiée</p></td>
+</tr>
+<tr class="row-even"><td><p>fonctions de <code class="docutils literal notranslate"><span class="pre">scripts/dashboard_api.py</span></code></p></td>
+<td><p>INTEGRATE</p></td>
+<td><p>compléter la parité utile ; transport conservé</p></td>
+</tr>
+<tr class="row-odd"><td><p>transports CryptoRadar/Telegram/email</p></td>
+<td><p>UNKNOWN pour retrait actuel</p></td>
+<td><p>consommateurs, parité et rollback à réobserver</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sdos_terminal/</span></code>, <code class="docutils literal notranslate"><span class="pre">infra/api/api_server.py</span></code>, <code class="docutils literal notranslate"><span class="pre">governance/status_dashboard.py</span></code></p></td>
+<td><p>UNKNOWN pour retrait actuel</p></td>
+<td><p>présence/dormance historique connue, usages contemporains non vérifiés</p></td>
+</tr>
+<tr class="row-odd"><td><p>launchers Windows/panels, <code class="docutils literal notranslate"><span class="pre">core/orchestration/orchestrate_*</span></code></p></td>
+<td><p>UNKNOWN pour déplacement/retrait</p></td>
+<td><p>#209 recense des entrées manquantes ; certains panels ont encore des importeurs/tests</p></td>
+</tr>
+<tr class="row-even"><td><p>README_CONSOLIDATED, anciens Quick Starts, rapports racine</p></td>
+<td><p>ARCHIVE au sens documentaire, emplacements conservés</p></td>
+<td><p>références source/docs encore présentes ; déplacement aveugle exclu</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">src/telegram/exchange_sync.py</span></code></p></td>
+<td><p>RETIRE candidat source hérité de #287</p></td>
+<td><p>hors app ; aucun retrait dans cette tranche</p></td>
+</tr>
+<tr class="row-even"><td><p>PPL/DecisionPacket JSONL, datasets, logs, sauvegardes</p></td>
+<td><p>KEEP</p></td>
+<td><p>preuves scientifiques/reprise</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Ménage réalisé : clarification des entrées de travail et de l’autorité des
+documents, sans suppression de fichier métier ou historique ni interruption de
+service. Les références restent consultables. La taille d’un dossier ou l’absence
+d’import statique ne suffit pas à prouver qu’il est inutilisé.</p>
+</section>
+<section id="verification-locale">
+<h3>Vérification locale<a class="headerlink" href="#verification-locale" title="Link to this heading">¶</a></h3>
+<p>Python 3.12.14 / Node 24.19.0, distincts de la CI Python 3.11 / Node 20.
+Données synthétiques produites via les vrais producteurs/publishers/readers/API ;
+aucun dataset Machine réel ouvert.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Vérification</p></th>
+<th class="head"><p>Résultat observé</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Build TypeScript/Vite</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>Transport/PWA</p></td>
+<td><p>7 PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>Vitest avec onze générateurs cross-stack</p></td>
+<td><p>376 PASS, zéro skip</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tests/cross_stack/</span></code> + <code class="docutils literal notranslate"><span class="pre">tests/observability/</span></code></p></td>
+<td><p>298 PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>API, FIN/PPL, burn-in/runtime-service/microstructure/U4 ciblés</p></td>
+<td><p>337 PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>U6 Chromium 1440/820/390, deux espaces, critères, exact FIN, erreurs et GET-only</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>npm audit avant ajout de l’outil visuel</p></td>
+<td><p>zéro vulnérabilité</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ruff baseline 0.15.8</p></td>
+<td><p>947 findings existants, zéro nouvelle violation</p></td>
+</tr>
+<tr class="row-even"><td><p>Générateur documentaire</p></td>
+<td><p>entrée canonique et rapports locaux distincts PASS</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Le premier Vitest sans fixtures avait 351 PASS / 25 skips : remplacé par le
+passage complet. Avertissements existants : config Vite ESM chargée comme
+CommonJS, dépréciation Starlette/httpx. Aucun baseline/gate/test affaibli.
+Ces vérifications ciblées ne certifient pas le corpus CI complet, U7 ou le runtime.
+Les captures et logs de cette session se trouvent hors des sources dans
+<code class="docutils literal notranslate"><span class="pre">/workspace/scratch/app-visual/</span></code> et <code class="docutils literal notranslate"><span class="pre">/workspace/scratch/app-*.log</span></code> ; les issues
+récupérées dans <code class="docutils literal notranslate"><span class="pre">/workspace/scratch/issues-review.json</span></code>. Ces chemins de session
+ne sont pas des artifacts scientifiques durables ni des publications admises.</p>
+<p>Aucune machine Desktop Commander connectée, aucune identité SSH/VPN configurée
+dans cet environnement. L’accès read-only a été demandé à l’opérateur. Les sorties
+déployées et le fonctionnement courant du burn-in restent <strong>non réobservés</strong>.
+#286 reste actif ; aucun changement runtime/Advisor/PPL/FIN/config/epoch/services.</p>
+</section>
+</section>
 </section>
 
         </article>
@@ -659,6 +882,13 @@ et Gate O. Cette matrice interdit de les présenter comme déjà déployés/rés
 <li><a class="reference internal" href="#cryptoradar-transfert-des-fonctions-et-pas-du-transport">CryptoRadar : transfert des fonctions et pas du transport</a></li>
 <li><a class="reference internal" href="#sorties-et-consommateurs-a-consolider">Sorties et consommateurs à consolider</a></li>
 <li><a class="reference internal" href="#resultat-limites">Résultat / limites</a></li>
+<li><a class="reference internal" href="#revue-application-et-consolidation-2026-10-03">Revue application et consolidation — 2026-10-03</a><ul>
+<li><a class="reference internal" href="#reprise-et-coherence-roadmap">Reprise et cohérence roadmap</a></li>
+<li><a class="reference internal" href="#faiblesses-et-ordre-utile">Faiblesses et ordre utile</a></li>
+<li><a class="reference internal" href="#classification-pour-le-menage">Classification pour le ménage</a></li>
+<li><a class="reference internal" href="#verification-locale">Vérification locale</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

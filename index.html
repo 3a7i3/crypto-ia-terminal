@@ -249,8 +249,11 @@
           <section id="documentation-hub-crypto-ai-terminal">
 <h1>Documentation Hub – crypto_ai_terminal<a class="headerlink" href="#documentation-hub-crypto-ai-terminal" title="Link to this heading">¶</a></h1>
 <blockquote>
-<div><p>Source of truth unique. Genere automatiquement le 2026-05-13 11:26.
-Pour regenerer : <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">project_os/doc_indexer.py</span></code></p>
+<div><p>Catalogue historique généré le 2026-05-13 11:26 ; entrée clarifiée le 2026-10-03.
+Pour regenerer : <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">project_os/doc_indexer.py</span></code>
+Entrée actuelle : <a class="reference internal" href="DEVELOPER_ENTRYPOINT.html"><span class="std std-doc">guide développeur</span></a>.
+Priorisation : <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/285">#285</a> ; app : <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/323">#323</a>.
+Les commandes des anciens guides ne constituent pas une autorisation runtime ; <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/286">#286</a> reste le garde-fou.</p>
 </div></blockquote>
 <hr class="docutils" />
 <section id="navigation-rapide">
@@ -263,16 +266,22 @@ Pour regenerer : <code class="docutils literal notranslate"><span class="pre">py
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Demarrer le systeme</p></td>
+<tr class="row-even"><td><p>Reprendre le travail actuel</p></td>
+<td><p><a class="reference internal" href="DEVELOPER_ENTRYPOINT.html"><span class="std std-doc">Entrée développeur</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Consulter les anciens guides</p></td>
 <td><p><a class="reference internal" href="#quick-start-setup">Quick Start</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>Comprendre l’architecture</p></td>
+<tr class="row-even"><td><p>Comprendre l’architecture</p></td>
 <td><p><a class="reference internal" href="#architecture-design">Architecture</a></p></td>
 </tr>
-<tr class="row-even"><td><p>Etat du projet (live)</p></td>
-<td><p><a class="reference internal" href="#project-os-etat-courant">Project OS</a></p></td>
+<tr class="row-odd"><td><p>Rapports locaux Project OS</p></td>
+<td><p><a class="reference internal" href="#project-os-rapports-locaux-non-certifies">Project OS</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>Roadmap et phases</p></td>
+<tr class="row-even"><td><p>Priorisation actuelle</p></td>
+<td><p><a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/285">Roadmap II · #285</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Plans et phases historiques</p></td>
 <td><p><a class="reference internal" href="#roadmap-planification">Roadmap</a></p></td>
 </tr>
 <tr class="row-even"><td><p>Un composant specifique</p></td>
@@ -286,11 +295,14 @@ Pour regenerer : <code class="docutils literal notranslate"><span class="pre">py
 </div>
 </section>
 <hr class="docutils" />
-<section id="project-os-etat-courant">
-<h2>Project OS — Etat courant<a class="headerlink" href="#project-os-etat-courant" title="Link to this heading">¶</a></h2>
+<section id="project-os-rapports-locaux-non-certifies">
+<h2>Project OS — Rapports locaux non certifiés<a class="headerlink" href="#project-os-rapports-locaux-non-certifies" title="Link to this heading">¶</a></h2>
+<p>Les chiffres ci-dessous sont ceux de l’index historique de mai. Ils ne sont pas
+une mesure actuelle de couverture CI, de maturité ou de santé runtime. Consulter
+les preuves datées des missions ; #207 documente notamment des cycles encore suivis.</p>
 <p><strong>Coverage tests :</strong> 30.1% (108 OK / 39 partiel / 342 manquant)
 <strong>Maturite globale :</strong> 2.25/5
-<strong>Cycles :</strong> aucun (propre)</p>
+<strong>Cycles consignés en mai :</strong> aucun ; ce constat historique ne clôture pas #207.</p>
 <div class="table-wrapper colwidths-auto docutils container">
 <table class="docutils align-default">
 <thead>
@@ -487,7 +499,7 @@ Pour regenerer : <code class="docutils literal notranslate"><span class="pre">py
 <tr class="row-even"><td><p><a class="reference internal" href="evolution/AIDE_GPT_EVOLUTION_DASHBOARD_FR.html"><span class="std std-doc">AIDE_GPT_EVOLUTION_DASHBOARD_FR.md</span></a></p></td>
 <td><p>🤖 Aide interactive – Assistant GPT pour l’écosystème évolutif</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#../quant_hedge_ai/_legacy/ARCHIVE.md"><span class="xref myst">ARCHIVE.md</span></a></p></td>
+<tr class="row-odd"><td><p><span class="xref myst">ARCHIVE.md</span></p></td>
 <td><p>Legacy Code Archive</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="divers/CHATBOT_EXTENSION.html"><span class="std std-doc">CHATBOT_EXTENSION.md</span></a></p></td>
@@ -526,7 +538,7 @@ Pour regenerer : <code class="docutils literal notranslate"><span class="pre">py
 <tr class="row-odd"><td><p><a class="reference internal" href="evolution/GPT_HELP_EVOLUTION_DASHBOARD_EN.html"><span class="std std-doc">GPT_HELP_EVOLUTION_DASHBOARD_EN.md</span></a></p></td>
 <td><p>🤖 Interactive Help – GPT Assistant for the Evolutionary Ecosystem</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#../quant_hedge_ai/_legacy/MIGRATION.md"><span class="xref myst">MIGRATION.md</span></a></p></td>
+<tr class="row-even"><td><p><span class="xref myst">MIGRATION.md</span></p></td>
 <td><p>Migration Guide</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="audit/RAPPORT_FINAL_SUPERVISION.html"><span class="std std-doc">RAPPORT_FINAL_SUPERVISION.md</span></a></p></td>
@@ -796,7 +808,7 @@ Pour regenerer : <code class="docutils literal notranslate"><span class="pre">py
             <ul>
 <li><a class="reference internal" href="#">Documentation Hub – crypto_ai_terminal</a><ul>
 <li><a class="reference internal" href="#navigation-rapide">Navigation rapide</a></li>
-<li><a class="reference internal" href="#project-os-etat-courant">Project OS — Etat courant</a></li>
+<li><a class="reference internal" href="#project-os-rapports-locaux-non-certifies">Project OS — Rapports locaux non certifiés</a></li>
 <li><a class="reference internal" href="#quick-start-setup">Quick Start &amp; Setup</a></li>
 <li><a class="reference internal" href="#architecture-design">Architecture &amp; Design</a></li>
 <li><a class="reference internal" href="#roadmap-planification">Roadmap &amp; Planification</a></li>
