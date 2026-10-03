@@ -1,3 +1,4 @@
+# Relance contrôlée après figement du lockfile audité.
 name: SEC-WEB-DEPS-01 — remédiation dépendances frontend
 
 on:
