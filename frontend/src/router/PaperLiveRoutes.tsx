@@ -12,6 +12,7 @@ import { PortfolioView } from "../views/PortfolioView";
 import { PplComparisonView } from "../views/PplComparisonView";
 import { SystemView } from "../views/SystemView";
 import { RuntimeServiceView } from "../views/RuntimeServiceView";
+import { StorageView } from "../views/StorageView";
 
 function usePaperLive(): PaperLiveOutletContext { return useOutletContext<PaperLiveOutletContext>(); }
 
@@ -43,5 +44,5 @@ export const PortfolioRoute: React.FC = () => { const { activeSnapshot } = usePa
 export const DecisionsRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <DecisionsView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
 export const LifecycleRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><PplCanonicalContext state={snapshotState} /><PplComparisonView /></>; };
 export const FinanceRoute: React.FC = () => <FinancialReconciliationView />;
-export const SystemRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return <><RuntimeServiceView />{activeSnapshot ? <SystemView snapshot={activeSnapshot} /> : <NoSnapshot domain="SYSTEM" />}</>; };
+export const SystemRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return <><RuntimeServiceView /><StorageView />{activeSnapshot ? <SystemView snapshot={activeSnapshot} /> : <NoSnapshot domain="SYSTEM" />}</>; };
 export const ScoresRoute: React.FC = () => <NotExposedView title="Scores" />;
