@@ -3,7 +3,9 @@
 Issue : #342  
 Parent : #323  
 Freeze : #286 — `ACTIVE_BURN_IN_IMMUTABILITY_GUARD`  
-Baseline de préparation : `main@bb3ac3bfc940423225dfb472a7762761bec59e3f`
+Baseline historique de préparation : `main@bb3ac3bfc940423225dfb472a7762761bec59e3f`
+
+Réconciliation sécurité : `main@5ca28389da2ff5290d3f47163900b151246b0584`, après fusion #344 / clôture #257. Lockfile conservé sans reconstruction : SHA-256 `eb92e11c58bcce63823631b89056371044d714d742637ecf2123b323a81a4576`. La CI U8 exige désormais zéro vulnérabilité, sans tolérance d'échec audit.
 
 ## 0. Statut
 
@@ -69,6 +71,7 @@ python scripts/app_unify_u8_preflight.py --expected-sha <EXACT_40_HEX_SHA>
 pytest -q tests/test_app_unify_u8_preflight.py
 cd frontend
 npm ci
+npm audit --audit-level=low
 npm run build
 npm test -- --run
 npm run test:runtime
@@ -84,7 +87,7 @@ Toutes doivent être vraies.
 | G1 | APP-UNIFY U7 source certifié |
 | G2 | SHA de déploiement exact, 40 hex, fusionné ; checks requis verts |
 | G3 | #202 : disposition explicite du boundary permissions/secrets |
-| G4 | #257 : `npm audit --json` courant capturé et disposition approuvée ; aucun `--force` |
+| G4 | #257 résolue dans la source retenue ; audit courant à zéro capturé sur le lockfile exact ; aucun `--force` |
 | G5 | préflight U8 source PASS sur le SHA exact |
 | G6 | checkpoint VPS READ-ONLY frais : services, ports, Tailscale, espace disque, versions |
 | G7 | rollback revu avec précédente release identifiable |
@@ -132,6 +135,8 @@ BASE=/opt/crypto-ai-terminal/operator
 RELEASE="$BASE/releases/$SHA"
 ```
 
+Prérequis de build : Node 20.19+ (ou version supportée par Vite 8) ; vérifier la version exacte du runner et de la future machine dans leurs preuves respectives. Aucun logiciel VPS n'est installé dans cette préparation.
+
 La release doit être créée dans un répertoire nouveau. Refuser si `$RELEASE` existe déjà avec une identité non prouvée.
 
 Procédure cible :
@@ -145,7 +150,7 @@ Procédure cible :
 7. créer `$RELEASE.tmp/.venv` ;
 8. installer uniquement `deploy/app_unify_u8/requirements-operator-api.txt` ;
 9. `npm ci` dans `frontend/` ;
-10. capturer le résultat de sécurité #257 ;
+10. exiger un audit npm courant à zéro et capturer le résultat de sécurité #257 ;
 11. lancer tests/build frontend ;
 12. supprimer les artefacts de build temporaires inutiles, mais conserver `frontend/dist` ;
 13. renommer `$RELEASE.tmp` vers `$RELEASE` ;

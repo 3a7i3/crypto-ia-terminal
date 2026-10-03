@@ -74,13 +74,12 @@ jobs:
       - name: Runtime transport tests
         run: npm run test:runtime
 
-      - name: Capture npm audit evidence
+      - name: Audit sécurité npm — zéro vulnérabilité
         id: audit
-        continue-on-error: true
         shell: bash
         run: |
           set +e
-          npm audit --json > npm-audit-u8.json
+          npm audit --audit-level=low --json > npm-audit-u8.json
           code=$?
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit "$code"
@@ -94,9 +93,9 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Report security debt without auto-fix
+      - name: Rappeler la gate sécurité sans correction automatique
         if: always()
         shell: bash
         run: |
-          echo "SEC-WEB-DEPS-01 audit exit code: ${{ steps.audit.outputs.exit_code }}"
-          echo "No npm audit fix --force is executed by this workflow."
+          echo "SEC-WEB-DEPS-01 — code de sortie audit : ${{ steps.audit.outputs.exit_code }}"
+          echo "Aucun npm audit fix --force exécuté ; un audit en échec bloque cette gate."
