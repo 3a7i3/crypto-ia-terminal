@@ -147,7 +147,7 @@ dispositions successives. Ne pas utiliser un commentaire ancien comme état actu
 | Priorité | Constat vérifié | Action suivante |
 |---|---|---|
 | 1 | source intégrée ≠ sorties réellement servies ; accès machine absent ici | vérifier endpoints, build et provenance en lecture seule |
-| 2 | `frontend/src/views/EventsView.tsx` est statique NON DÉPLOYÉ | contrat/producteur Centre d'événements avant retrait des notifications |
+| 2 | Events était statique à la base de cette revue | APP-EVENTS-01 #361 : contrat et chaîne passive implémentés en source ; publication runtime distincte, notifications conservées |
 | 2 | détail LMI raw/liq et projection stockage manquants dans la matrice | terminer les projections utiles avant retrait CryptoRadar |
 | 2 | grille Research source disponible, résultats réels non admis par cette tranche | sélectionner explicitement évaluations et assessments certifiés |
 | 3 | index documentaire prétendait être source unique/live avec chiffres de mai | entrée canonique et limites historiques clarifiées, générateur corrigé |
@@ -175,6 +175,23 @@ Ménage réalisé : clarification des entrées de travail et de l'autorité des
 documents, sans suppression de fichier métier ou historique ni interruption de
 service. Les références restent consultables. La taille d'un dossier ou l'absence
 d'import statique ne suffit pas à prouver qu'il est inutilisé.
+
+### Suite APP-EVENTS-01 — #361
+
+Depuis la base source `7d7b29669f9940f5e7e47b5b1c7d88371f067fbb`, le
+[contrat Events](../contracts/APP_EVENTS_01_CONTRACT.md) cadre trois sources
+explicitement sélectionnées : P12, audit supervision et projection lifecycle U2.
+Capture passive atomique → artifact → GET `/api/operator/v1/events` → vue
+indépendante `/paper-live/events`. UNKNOWN, source absente, source invalide,
+capture vide et données périmées restent distincts. Les corrections supervision
+restent comptées comme exclusions ; aucune activité moteur déduite des journaux.
+
+Validation locale synthétique : 389 tests frontend, 526 tests Python de la chaîne
+et surfaces voisines, puis 22 tests Events finaux ; build, 7 contrôles PWA et
+Ruff sans nouvelle violation. 16 captures Chromium 1440/390 couvrent sources,
+filtres, erreurs, provenance et overflow. Cette preuve ne certifie aucun
+endpoint ou producteur déployé. Pas de nouvelle workflow concurrente : le gate
+cross-stack existant porte aussi la preuve visuelle Events.
 
 ### Vérification locale
 
