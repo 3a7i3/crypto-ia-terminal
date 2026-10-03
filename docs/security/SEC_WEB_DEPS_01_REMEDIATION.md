@@ -128,3 +128,16 @@ uniquement lorsque le HEAD final de #344 satisfait :
 7. merge gouverné dans `main`.
 
 Aucun verdict de cette mission n'autorise un déploiement VPS.
+
+
+## 7. Complément — chaîne braces observée pendant la réconciliation U8
+
+Le 2026-10-03, les gates audit GitHub du HEAD U8 `3aa39031921c429819bd8c3c16b4c0437afaa27e` signalent cinq HIGH transitives autour de `braces` : braces, chokidar, micromatch, fast-glob et tailwindcss. Avis `GHSA-vfj7-8cjw-p6xm`, plage <=3.0.3, aucune version corrigée déclarée. Les résultats précédents à zéro restent des observations datées ; ils ne remplacent pas cet audit GitHub. #257 est rouverte, #343 reste Draft et bloquée.
+
+Remédiation source isolée depuis `main@5ca28389da2ff5290d3f47163900b151246b0584` : Tailwind 3 est classé RETIRE comme dépendance de build sans consommateur de styles dans l'app. Recherche sur les sources suivies : aucun @tailwind, @apply, @layer ni import Tailwind. Les composants utilisent les styles propres importés depuis tokens.css. Suppression de la dépendance directe et du plugin PostCSS ; configuration historique tailwind.config.js conservée, sans activation ni suppression de module Machine.
+
+Lockfile généré par `npm install --package-lock-only --ignore-scripts`, sans --force, --legacy-peer-deps ni édition manuelle. SHA-256 candidat : `56f2c88d3ef112c395574c8e7962391305f531875ee02d21b7d0f41d2453c1ac`. Les cinq packages de la chaîne vulnérable sont absents. Toutes les autres dépendances directes restent épinglées aux versions de #344.
+
+Preuve locale : installation et build PASS ; CSS et JavaScript de production identiques octet par octet au build #344, ce qui vérifie l'absence d'effet visuel/bundle de ce retrait. Le résultat local d'audit ne suffit pas : audit GitHub bloquant, Frontend CI, cross-stack, régressions et preuves visuelles doivent passer au HEAD de cette remédiation avant nouvelle clôture #257. Le lockfile précédent reste documenté comme historique ; U8 devra absorber ce complément et actualiser son identité de lockfile.
+
+Aucun accès ou changement VPS/runtime, aucune autorité PPL/FIN/Research/trading modifiée. #286 reste actif.
