@@ -199,7 +199,14 @@ def _load(name: str) -> Optional[Any]:
 
 
 def _project_os_status() -> list[str]:
-    lines = ["## Project OS — Etat courant", ""]
+    lines = [
+        "## Project OS — Rapports locaux non certifiés",
+        "",
+        "Ces chiffres proviennent des JSON locaux Project OS. Leur génération ne",
+        "certifie ni leur fraîcheur, ni la couverture CI, ni l'état du runtime.",
+        "Pour la priorisation et les preuves datées, consulter #285 et les missions liées.",
+        "",
+    ]
 
     state = _load("roadmap_state.json")
     coverage = _load("test_coverage.json")
@@ -212,7 +219,7 @@ def _project_os_status() -> list[str]:
         phases = state.get("phases", [])
         active = next((p for p in phases if p["status"] == "active"), None)
         lines.append(
-            f"**Phase active :** {phase}" + (f" — {active['name']}" if active else "")
+            f"**Phase déclarée dans le rapport local :** {phase}" + (f" — {active['name']}" if active else "")
         )
         blockers = [b for b in state.get("blockers", []) if not b.get("resolved")]
         if blockers:
@@ -241,7 +248,7 @@ def _project_os_status() -> list[str]:
         if cycles:
             lines.append(f"**Cycles :** {len(cycles)} detecte(s)")
         else:
-            lines.append("**Cycles :** aucun (propre)")
+            lines.append("**Cycles consignés dans ce rapport :** aucun ; périmètre et fraîcheur à vérifier")
         if lazy:
             lines.append(f"**Lazy pseudo-cycles :** {len(lazy)} (non bloquants)")
 
@@ -278,8 +285,11 @@ def build_index(md_files: list[Path], root: Path) -> str:
     sections: list[str] = [
         "# Documentation Hub -- crypto_ai_terminal",
         "",
-        f"> Source of truth unique. Genere automatiquement le {ts}.",
+        f"> Catalogue documentaire généré le {ts}. Les plans et rapports indexés peuvent être historiques.",
         "> Pour regenerer : `python project_os/doc_indexer.py`",
+        "> Entrée actuelle : [guide développeur](DEVELOPER_ENTRYPOINT.md).",
+        "> Priorisation : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) ; app : [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323).",
+        "> Les commandes des anciens guides ne constituent pas une autorisation runtime ; [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) reste le garde-fou.",
         "",
         "---",
         "",
@@ -287,10 +297,12 @@ def build_index(md_files: list[Path], root: Path) -> str:
         "",
         "| Besoin | Section |",
         "|--------|---------|",
-        "| Demarrer le systeme | [Quick Start](#quick-start--setup) |",
+        "| Reprendre le travail actuel | [Entrée développeur](DEVELOPER_ENTRYPOINT.md) |",
+        "| Consulter les anciens guides | [Quick Start](#quick-start--setup) |",
         "| Comprendre l'architecture | [Architecture](#architecture--design) |",
-        "| Etat du projet (live) | [Project OS](#project-os--etat-courant) |",
-        "| Roadmap et phases | [Roadmap](#roadmap--planification) |",
+        "| Rapports locaux Project OS | [Project OS](#project-os--rapports-locaux-non-certifiés) |",
+        "| Priorisation actuelle | [Roadmap II · #285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) |",
+        "| Plans et phases historiques | [Roadmap](#roadmap--planification) |",
         "| Un composant specifique | [Composants](#composants--modules) |",
         "| Rapports historiques | [Rapports](#rapports-historiques) |",
         "",
@@ -298,7 +310,7 @@ def build_index(md_files: list[Path], root: Path) -> str:
         "",
     ]
 
-    # Project OS status block (live)
+    # Local report block: generation does not establish freshness or authority.
     sections.extend(_project_os_status())
     sections.append("---")
     sections.append("")
