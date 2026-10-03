@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   produire-lockfile:
@@ -50,6 +50,14 @@ jobs:
           echo "npm audit exit code: ${AUDIT_EXIT_CODE}"
           echo "Aucun npm audit fix ni --force n'est exécuté."
 
+      - name: Refuser un lockfile encore vulnérable
+        shell: bash
+        run: |
+          if [ "${AUDIT_EXIT_CODE}" != "0" ]; then
+            echo "Audit npm non nul : le lockfile candidat ne sera pas commité."
+            exit 1
+          fi
+
       - name: Publier le lockfile et l'audit candidats
         uses: actions/upload-artifact@v4
         with:
@@ -59,3 +67,18 @@ jobs:
             frontend/sec-web-deps-01-audit.json
           if-no-files-found: error
           retention-days: 14
+
+      - name: Committer le lockfile certifié sur la branche
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfile déjà synchronisé."
+            exit 0
+          fi
+          git commit -m "SEC-WEB-DEPS-01: intégrer le lockfile audité sans vulnérabilité"
+          git push origin HEAD:sec/sec-web-deps-01
