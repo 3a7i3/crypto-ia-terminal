@@ -1,0 +1,2779 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>MACHINE-MATURITY Certification Catalog v0.1 - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/governance/machine_maturity/CERTIFICATION_CATALOG_v0.1.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/governance/machine_maturity/CERTIFICATION_CATALOG_v0.1.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="machine-maturity-certification-catalog-v0-1">
+<h1>MACHINE-MATURITY Certification Catalog v0.1<a class="headerlink" href="#machine-maturity-certification-catalog-v0-1" title="Link to this heading">¶</a></h1>
+<p>Status: FROZEN INPUT CANDIDATE for #365 MACHINE-MATURITY-01<br />
+Source framework: #362 MACHINE-MATURITY-00<br />
+Catalog version: <code class="docutils literal notranslate"><span class="pre">MACHINE-MATURITY-CATALOG-v0.1</span></code><br />
+Materialization base: <code class="docutils literal notranslate"><span class="pre">main&#64;da1973dd5c901a757e4fb7da45adee150500c9bd</span></code></p>
+<section id="canonicalization-rule">
+<h2>Canonicalization rule<a class="headerlink" href="#canonicalization-rule" title="Link to this heading">¶</a></h2>
+<p>This artifact is a byte-preserving governance materialization of the three R2
+catalog comments listed below, in ascending phase order R2-A → R2-B → R2-C.
+The Markdown bodies are copied verbatim after the separators.</p>
+<p>Canonical source comments:</p>
+<ul class="simple">
+<li><p>#362 comment 5971120146 — R2-A</p></li>
+<li><p>#362 comment 5971148753 — R2-B</p></li>
+<li><p>#362 comment 5971167870 — R2-C</p></li>
+</ul>
+<p>The Git blob identity of this file is the content-addressed <code class="docutils literal notranslate"><span class="pre">catalog_hash</span></code>
+used by MM-01 after review/merge. Editing this file creates a new catalog
+identity/version and cannot silently mutate v0.1.</p>
+<hr class="docutils" />
+<!-- BEGIN CANONICAL COMMENT 5971120146 -->
+</section>
+</section>
+<section id="r2-a-certification-catalog-v0-1-semantique-l0l3">
+<h1>R2-A — CERTIFICATION CATALOG v0.1 — SÉMANTIQUE + L0→L3<a class="headerlink" href="#r2-a-certification-catalog-v0-1-semantique-l0l3" title="Link to this heading">¶</a></h1>
+<p>Baseline R2 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;eeaec5ae29a72b765bb97feb46520032aba44e2a</span></code></p>
+<p>Cette baseline inclut désormais le merge contract-only de PR #348. Ce fait ajoute de la preuve ARCHITECTURE/SOURCE future pour L5/L6, mais <strong>aucune capacité runtime</strong>, aucun agent actif et aucune autorité supplémentaire.</p>
+<p>R2 transforme R1 en contrat normatif. Il n’émet aucun certificat de niveau.</p>
+</section>
+<hr class="docutils" />
+<section id="schema-normatif-dun-critere">
+<h1>1. Schéma normatif d’un critère<a class="headerlink" href="#schema-normatif-dun-critere" title="Link to this heading">¶</a></h1>
+<p>Chaque critère du Certification Catalog doit être représentable comme :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MachineMaturityCriterion {
+    criterion_id
+    level_id
+    title
+    statement
+
+    mandatory
+
+    proof_requirement {
+        all_of[]
+        one_of[]
+    }
+
+    accepted_evidence_types[]
+    forbidden_substitutions[]
+    dependencies[]
+    forbidden_states[]
+    revocation_invariants[]
+
+    current_assessment
+    satisfied_by[]
+    unresolved_reason
+}
+</pre></div>
+</div>
+<section id="current-assessment">
+<h2>1.1 current_assessment<a class="headerlink" href="#current-assessment" title="Link to this heading">¶</a></h2>
+<p>Valeurs autorisées dans R2 :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p></li>
+</ul>
+<section id="satisfied">
+<h3>SATISFIED<a class="headerlink" href="#satisfied" title="Link to this heading">¶</a></h3>
+<p>Toutes les classes de preuve exigées existent dans le corpus admissible, les dépendances du critère sont satisfaites au niveau de l’évidence, aucun forbidden state n’est actif pour ce critère et aucune substitution interdite n’a été utilisée.</p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span> <span class="pre">!=</span> <span class="pre">CERTIFIED</span></code></p>
+</section>
+<section id="unresolved">
+<h3>UNRESOLVED<a class="headerlink" href="#unresolved" title="Link to this heading">¶</a></h3>
+<p>Des preuves pertinentes existent, mais au moins une condition obligatoire reste non démontrée, contradictoire, trop ancienne, non agrégée ou conditionnelle.</p>
+</section>
+<section id="not-available">
+<h3>NOT_AVAILABLE<a class="headerlink" href="#not-available" title="Link to this heading">¶</a></h3>
+<p>Aucune preuve admissible ne démontre actuellement le critère.</p>
+</section>
+</section>
+<section id="mandatory">
+<h2>1.2 mandatory<a class="headerlink" href="#mandatory" title="Link to this heading">¶</a></h2>
+<p>Tous les critères R2 ci-dessous sont <code class="docutils literal notranslate"><span class="pre">mandatory=true</span></code> sauf mention explicite contraire.</p>
+<p>Aucun score moyen et aucun pourcentage ne peut compenser un mandatory criterion manquant.</p>
+</section>
+<section id="proof-requirement">
+<h2>1.3 proof_requirement<a class="headerlink" href="#proof-requirement" title="Link to this heading">¶</a></h2>
+<p>Syntaxe :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ALL_OF(A, B)
+ONE_OF(C, D)
+</pre></div>
+</div>
+<p>Exemple :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ALL_OF(
+  GOVERNANCE_PROOF,
+  ONE_OF(SOURCE_PROOF, ARCHITECTURE_PROOF)
+)
+</pre></div>
+</div>
+</section>
+<section id="accepted-evidence">
+<h2>1.4 accepted evidence<a class="headerlink" href="#accepted-evidence" title="Link to this heading">¶</a></h2>
+<p>Peuvent être admis selon le critère :</p>
+<ul class="simple">
+<li><p>verdict GitHub avec scope explicite;</p></li>
+<li><p>code/contrat versionné au SHA exact;</p></li>
+<li><p>CI exacte;</p></li>
+<li><p>durable artifact avec identité/hash;</p></li>
+<li><p>runtime witness horodaté;</p></li>
+<li><p>experiment manifest / dataset / publication immuable;</p></li>
+<li><p>browser/UX proof;</p></li>
+<li><p>security boundary proof;</p></li>
+<li><p>operator/governance authorization;</p></li>
+<li><p>rollback/quiescence proof.</p></li>
+</ul>
+<p>Une issue, un commentaire ou un nom de feature seuls ne suffisent pas.</p>
+</section>
+<section id="forbidden-substitutions-globales">
+<h2>1.5 forbidden substitutions globales<a class="headerlink" href="#forbidden-substitutions-globales" title="Link to this heading">¶</a></h2>
+<p>Interdictions applicables à tout le catalogue :</p>
+<ul class="simple">
+<li><p>SOURCE_PROOF → RUNTIME_PROOF;</p></li>
+<li><p>ARCHITECTURE_PROOF → deployed capability;</p></li>
+<li><p>CI green → runtime behavior;</p></li>
+<li><p>screenshot synthétique → runtime fact;</p></li>
+<li><p>experiment PASS → machine-level certification;</p></li>
+<li><p>historical proof → current runtime proof sans identité compatible;</p></li>
+<li><p>UNKNOWN / UNRESOLVED / NOT_AVAILABLE → 0 / false / healthy;</p></li>
+<li><p>NON_DEPLOYED → available;</p></li>
+<li><p>merged PR → certified capability;</p></li>
+<li><p>issue closed → certification;</p></li>
+<li><p>feature existence → level satisfaction;</p></li>
+<li><p>upper-level evidence → missing lower-level criterion.</p></li>
+</ul>
+</section>
+<section id="dependances-et-certification">
+<h2>1.6 dépendances et certification<a class="headerlink" href="#dependances-et-certification" title="Link to this heading">¶</a></h2>
+<p>Un niveau Lx ne peut être formellement certifié que si :</p>
+<ol class="arabic simple">
+<li><p>tous ses mandatory criteria = <code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code>;</p></li>
+<li><p>tous les niveaux L0…L(x-1) possèdent une certification valide;</p></li>
+<li><p>aucune revocation/dependency invalidation n’est active;</p></li>
+<li><p>un evidence manifest borné existe;</p></li>
+<li><p>un <code class="docutils literal notranslate"><span class="pre">MachineLevelCertification</span></code> est émis.</p></li>
+</ol>
+<p>R2 n’exécute pas l’étape 5.</p>
+</section>
+<section id="revocation">
+<h2>1.7 révocation<a class="headerlink" href="#revocation" title="Link to this heading">¶</a></h2>
+<p>Un certificat historique n’est jamais effacé.</p>
+<p>Deux mécanismes doivent être distingués :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DIRECT_REVOCATION</span></code> : un invariant du niveau certifié est démontré faux;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DEPENDENCY_INVALIDATION</span></code> : un niveau inférieur requis n’est plus valide.</p></li>
+</ul>
+<p>Dans les deux cas, le <code class="docutils literal notranslate"><span class="pre">Formal</span> <span class="pre">Certified</span> <span class="pre">Frontier</span></code> doit reculer jusqu’au dernier niveau dont la chaîne reste valide.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l0-constitutional-foundation">
+<h1>2. L0 — CONSTITUTIONAL FOUNDATION<a class="headerlink" href="#l0-constitutional-foundation" title="Link to this heading">¶</a></h1>
+<section id="purpose">
+<h2>PURPOSE<a class="headerlink" href="#purpose" title="Link to this heading">¶</a></h2>
+<p>Prouver que la machine possède une constitution de vérité, d’autorité, de preuve et de changement suffisamment stricte pour empêcher qu’une feature, une observation ou une absence de donnée soit confondue avec une capacité certifiée.</p>
+</section>
+<section id="entry-conditions">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#entry-conditions" title="Link to this heading">¶</a></h2>
+<p>Aucune certification de niveau précédente requise.</p>
+</section>
+<hr class="docutils" />
+<section id="l0-g1-authority-constitution-domain-separation">
+<h2>L0-G1 — Authority constitution &amp; domain separation<a class="headerlink" href="#l0-g1-authority-constitution-domain-separation" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les autorités Decision / PAPER-PPL / FIN / Research / Operator / Agent / TESTNET-LIVE doivent être explicitement séparées, avec interdiction de promotion implicite.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#148, #180/#184, #237, #240, #284, #286, contrats d’autorité.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>architecture diagram seule;</p></li>
+<li><p>nom de service;</p></li>
+<li><p>présence d’un module;</p></li>
+<li><p>absence d’écriture observée.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>aucune.</p>
+<p><strong>forbidden states</strong></p>
+<ul class="simple">
+<li><p>dual authority non gouvernée;</p></li>
+<li><p>fallback silencieux entre autorités;</p></li>
+<li><p>agent/Research/UI pouvant devenir autorité implicite.</p></li>
+</ul>
+<p><strong>revocation invariants</strong></p>
+<p>Révoquer L0 si une nouvelle voie permet une mutation authoritative sans passer par une autorité explicitement gouvernée ou si deux sources concurrentes revendiquent simultanément la même vérité authoritative.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+<p><strong>satisfied by</strong></p>
+<p>MM-EV-L0-008 + MM-EV-L2-001 + MM-EV-L3-004.</p>
+</section>
+<hr class="docutils" />
+<section id="l0-g2-proof-type-separation-no-proof-substitution">
+<h2>L0-G2 — Proof-type separation / no proof substitution<a class="headerlink" href="#l0-g2-proof-type-separation-no-proof-substitution" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>SOURCE, RUNTIME, EXPERIMENT, ARCHITECTURE, GOVERNANCE, UX et SECURITY doivent rester des classes distinctes; aucune classe plus faible ne peut être substituée à une classe requise.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#362 R1-A, historique #148, missions séparant explicitement SOURCE PROOF / RUNTIME PROOF.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>toutes les substitutions globales §1.5.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>un verdict global construit à partir d’une preuve de classe incorrecte.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Toute certification nouvelle qui traite SOURCE comme RUNTIME sans preuve séparée invalide ce critère.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l0-g3-fail-closed-epistemic-semantics">
+<h2>L0-G3 — Fail-closed epistemic semantics<a class="headerlink" href="#l0-g3-fail-closed-epistemic-semantics" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>, <code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code>, <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>, <code class="docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code>, <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code> et zéro explicite doivent conserver des sémantiques non interchangeables.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#201, #268, #237/#248, #307/#315, #362 R1-A.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>null→0;</p></li>
+<li><p>missing→false;</p></li>
+<li><p>unavailable→empty healthy state;</p></li>
+<li><p>N/A→zero;</p></li>
+<li><p>non deployed→available.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L0-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>consumer canonique fabriquant un zéro ou un PASS depuis une absence.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Toute régression canonique transformant missing/unresolved en valeur factuelle révoque ce critère.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l0-g4-governed-change-control">
+<h2>L0-G4 — Governed change control<a class="headerlink" href="#l0-g4-governed-change-control" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les changements à portée scientifique/opérationnelle doivent être bornés par identité source, scope, tests, autorisation lorsque nécessaire, preuves et rollback/stop conditions.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#199, #211, #212, #214, #218→#233, #255, #278/#279, #286.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>CI générique sans SHA;</p></li>
+<li><p>owner intent implicite;</p></li>
+<li><p>merge sans scope;</p></li>
+<li><p>remediation cachée dans certification-only.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L0-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>mutation non attribuable ou non bornée d’une surface authoritative.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Une mutation authoritative non traçable ou un bypass volontaire d’un gate obligatoire invalide L0-G4.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l0-g5-immutable-evidence-history-supersession-revocation-boundary">
+<h2>L0-G5 — Immutable evidence history, supersession &amp; revocation boundary<a class="headerlink" href="#l0-g5-immutable-evidence-history-supersession-revocation-boundary" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les preuves historiques restent append-only/logiquement immuables; une preuve ultérieure peut supersede une conclusion mais ne doit pas réécrire l’historique. Les certifications de niveau doivent être révocables sans suppression.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>historique #225 remediation→certified, #231 contract correction→final certification, #268 resync→certification, #362 R1 EvidenceRecord disposition/supersession.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>suppression d’un ancien FAIL;</p></li>
+<li><p>édition rétroactive pour faire croire qu’un blocker n’a jamais existé;</p></li>
+<li><p>certificat mutable en place.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L0-G2, L0-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>historique impossible à reconstruire ou certificat remplacé sans chaîne.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Si evidence lineage/supersession n’est plus reconstructible ou si un certificat peut être muté sans trace, révoquer.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+<section id="l0-r2-assessment">
+<h3>L0 R2 assessment<a class="headerlink" href="#l0-r2-assessment" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">5/5</span> <span class="pre">mandatory</span> <span class="pre">criteria</span> <span class="pre">=</span> <span class="pre">SATISFIED</span></code></p>
+<p>Statut de niveau R2 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">READY_FOR_REVIEW</span></code></p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_0_CERTIFIED</span></code> n’est émis.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l1-observable-machine">
+<h1>3. L1 — OBSERVABLE MACHINE<a class="headerlink" href="#l1-observable-machine" title="Link to this heading">¶</a></h1>
+<section id="id1">
+<h2>PURPOSE<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<p>Prouver que la machine peut exposer son état et ses décisions de manière structurée, provenance-bound, fail-closed et non-authoritative, avec des preuves runtime suffisantes pour distinguer état réel, stale, absent et dégradé.</p>
+</section>
+<section id="id2">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
+<p>L0 evidence assessment = SATISFIED.
+La certification formelle future exigera L0 officiellement CERTIFIED.</p>
+</section>
+<hr class="docutils" />
+<section id="l1-g1-structured-machine-observation-decision-provenance">
+<h2>L1-G1 — Structured machine observation &amp; decision provenance<a class="headerlink" href="#l1-g1-structured-machine-observation-decision-provenance" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les décisions et états critiques doivent être observables avec identités, timestamps et provenance, sans dépendre uniquement de logs narratifs.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>DecisionPacket/DecisionIdentity, operator snapshots, #223 provenance runtime, #175 producer artifacts.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>log text seul; screenshot seul.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G2, L0-G3.</p>
+<p><strong>forbidden states</strong></p>
+<p>état courant sans timestamp/provenance ou origine impossible à attribuer.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Perte durable des identités/timestamps/provenance sur les observations canoniques.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l1-g2-durable-event-truth-deterministic-replay">
+<h2>L1-G2 — Durable event truth &amp; deterministic replay<a class="headerlink" href="#l1-g2-durable-event-truth-deterministic-replay" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Au moins une vérité lifecycle canonique doit être append-only/durable, ordonnée, idempotente et rejouable de manière déterministe.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#154 PPL-02B + #167 runtime SHADOW + #180/#184 authority cutover.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>JSONL legacy simplement cohérent; snapshot mutable; mémoire process.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L0-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>duplicate event identity, replay divergent, corruption silencieusement acceptée.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Échec reproductible du replay déterministe ou append non idempotent.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l1-g3-read-only-operator-observation-surface">
+<h2>L1-G3 — Read-only operator observation surface<a class="headerlink" href="#l1-g3-read-only-operator-observation-surface" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Une surface opérateur doit pouvoir lire la machine sans obtenir par défaut une autorité de mutation.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">UX_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#162 WEB-01, #164 WEB-01B, #175 WEB-02.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>frontend source-only; API mutante non séparée; direct file read depuis React.</p>
+<p><strong>dependencies</strong></p>
+<p>L1-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>mutation implicite depuis une route/surface présentée comme observation.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Si l’interface read-only acquiert un side effect non gouverné, révoquer.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l1-g4-provenance-freshness-uncertainty-visible">
+<h2>L1-G4 — Provenance / freshness / uncertainty visible<a class="headerlink" href="#l1-g4-provenance-freshness-uncertainty-visible" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les observations doivent exposer provenance, fraîcheur et états d’incertitude sans fake health/convergence.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#162, #171 finding/remediation lineage, #175, #223, #309.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>freshness recalculée arbitrairement côté UI; UNKNOWN masqué; stale présenté live.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G3, L1-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>source future-skew/non attribuée traitée comme saine; stale silencieux.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Toute présentation canonique de données stale/unresolved comme live/known.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l1-g5-runtime-health-recovery-observability">
+<h2>L1-G5 — Runtime health / recovery observability<a class="headerlink" href="#l1-g5-runtime-health-recovery-observability" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Le runtime doit pouvoir prouver process identity, restart/recovery state et continuité des artefacts critiques.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#164, #167, #174, #175, #223, #309, #319.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>source tests seuls; systemd template sans observation réelle.</p>
+<p><strong>dependencies</strong></p>
+<p>L1-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>service supposé running sans witness; restart ayant muté des faits sans attribution.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Perte de capacité à attribuer restart/process/runtime identity sur les surfaces déclarées canoniques.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l1-g6-observability-is-non-authoritative">
+<h2>L1-G6 — Observability is non-authoritative<a class="headerlink" href="#l1-g6-observability-is-non-authoritative" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les surfaces d’observabilité ne doivent ni recalculer ni modifier la vérité qu’elles exposent.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>WEB-01/02, #241 domain separation, Direction contracts.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>React formula; UI-side accounting; observation writer mutating PPL/FIN.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L1-G3.</p>
+<p><strong>forbidden states</strong></p>
+<p>consumer devenant source de vérité scientifique.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Toute dépendance authoritative inversée Operator/UI → PPL/FIN/Research.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+<section id="l1-r2-assessment">
+<h3>L1 R2 assessment<a class="headerlink" href="#l1-r2-assessment" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">6/6</span> <span class="pre">mandatory</span> <span class="pre">criteria</span> <span class="pre">=</span> <span class="pre">SATISFIED</span></code></p>
+<p>Statut de niveau R2 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">READY_FOR_REVIEW</span></code></p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFIED</span></code>.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l2-governed-paper-machine">
+<h1>4. L2 — GOVERNED PAPER MACHINE<a class="headerlink" href="#l2-governed-paper-machine" title="Link to this heading">¶</a></h1>
+<section id="id3">
+<h2>PURPOSE<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h2>
+<p>Prouver qu’un lifecycle PAPER possède une autorité unique et rejouable, une identité d’expérience/config/capital gouvernée, une finance déterministe/réconciliable et au moins une expérience PAPER complètement clôturée et certifiée.</p>
+</section>
+<section id="id4">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h2>
+<p>L0/L1 evidence assessments SATISFIED.
+Certification future : L0/L1 formellement CERTIFIED.</p>
+</section>
+<hr class="docutils" />
+<section id="l2-g1-single-governed-paper-lifecycle-authority">
+<h2>L2-G1 — Single governed PAPER lifecycle authority<a class="headerlink" href="#l2-g1-single-governed-paper-lifecycle-authority" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#180/#181/#182/#183/#184, verdict <code class="docutils literal notranslate"><span class="pre">PPL_02E_RUNTIME_CUTOVER_CERTIFIED</span></code>.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>SHADOW authority; Legacy+PPL dual authority; compatibility ledger.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L1-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>deux lifecycle authorities actives ou fallback silencieux.</p>
+<p><strong>revocation invariants</strong></p>
+<p>Réapparition d’un second authoritative writer.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l2-g2-replay-complete-lifecycle-restart-determinism">
+<h2>L2-G2 — Replay-complete lifecycle &amp; restart determinism<a class="headerlink" href="#l2-g2-replay-complete-lifecycle-restart-determinism" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>PPL schema v2, #222, #232, #246, #255.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>reconstruction depuis config courante; legacy inferred facts.</p>
+<p><strong>dependencies</strong></p>
+<p>L2-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>restart modifiant OPEN/CLOSE/fees/capital ou nécessitant données inventées.</p>
+<p><strong>revocation invariants</strong></p>
+<p>replay divergent ou recovery non déterministe.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l2-g3-governed-epoch-config-capital-identity">
+<h2>L2-G3 — Governed epoch / config / capital identity<a class="headerlink" href="#l2-g3-governed-epoch-config-capital-identity" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#219/#220/#222/#225/#226.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>Git SHA seul; env partiel; capital fallback.</p>
+<p><strong>dependencies</strong></p>
+<p>L2-G1, L0-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>epoch/config/capital non fingerprintés ou mismatch accepté.</p>
+<p><strong>revocation invariants</strong></p>
+<p>lifecycle scientifique poursuivi sous config non liée au manifest.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l2-g4-controlled-admission-runtime-authority-boundary">
+<h2>L2-G4 — Controlled admission &amp; runtime authority boundary<a class="headerlink" href="#l2-g4-controlled-admission-runtime-authority-boundary" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#225/#230/#231/#255.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>process running = admissions open; signal actionable = trade accepted.</p>
+<p><strong>dependencies</strong></p>
+<p>L2-G1, L2-G3.</p>
+<p><strong>forbidden states</strong></p>
+<p>admission ouverte sans owner/gate; Watchdog/LIVE implicite.</p>
+<p><strong>revocation invariants</strong></p>
+<p>nouvelle admission hors overlay/gate gouverné.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l2-g5-financial-semantics-deterministic-projection">
+<h2>L2-G5 — Financial semantics &amp; deterministic projection<a class="headerlink" href="#l2-g5-financial-semantics-deterministic-projection" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#244 FIN-00 + #245 FIN-01 + #246 deterministic replay.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>PPL realized_pnl = FIN realized_pnl sans définition; UI formulas.</p>
+<p><strong>dependencies</strong></p>
+<p>L2-G1, L2-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>double release; capital créé/détruit silencieusement; unknown marks→0.</p>
+<p><strong>revocation invariants</strong></p>
+<p>projection financière non déterministe ou double application.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l2-g6-reconciliation-no-silent-correction">
+<h2>L2-G6 — Reconciliation / no silent correction<a class="headerlink" href="#l2-g6-reconciliation-no-silent-correction" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">SOURCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#247 FIN-02 + #256 Track D.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>arrondi silencieux; divergence cachée; non-comparable marqué equal.</p>
+<p><strong>dependencies</strong></p>
+<p>L2-G5.</p>
+<p><strong>forbidden states</strong></p>
+<p>écart matériel non visible ou unresolved capital masqué.</p>
+<p><strong>revocation invariants</strong></p>
+<p>reconciliation comparable hors tolérance non signalée.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l2-g7-completed-governed-scientific-paper-experiment">
+<h2>L2-G7 — Completed governed scientific PAPER experiment<a class="headerlink" href="#l2-g7-completed-governed-scientific-paper-experiment" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(EXPERIMENT_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#231/#233/#255/#256.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>burn-in actif; population partielle; source-only replay.</p>
+<p><strong>dependencies</strong></p>
+<p>L2-G1…G6.</p>
+<p><strong>forbidden states</strong></p>
+<p>open residual, unresolved lifecycle caché, admissions encore ouvertes durant final certification.</p>
+<p><strong>revocation invariants</strong></p>
+<p>preuve gouvernée que la population certifiée a été modifiée/réécrite ou que son identité n’est plus reconstructible.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+<section id="l2-r2-assessment">
+<h3>L2 R2 assessment<a class="headerlink" href="#l2-r2-assessment" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">7/7</span> <span class="pre">mandatory</span> <span class="pre">criteria</span> <span class="pre">=</span> <span class="pre">SATISFIED</span></code></p>
+<p>Statut de niveau R2 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">READY_FOR_REVIEW</span></code></p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_2_CERTIFIED</span></code>.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l3-scientific-research-machine">
+<h1>5. L3 — SCIENTIFIC RESEARCH MACHINE<a class="headerlink" href="#l3-scientific-research-machine" title="Link to this heading">¶</a></h1>
+<section id="id5">
+<h2>PURPOSE<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h2>
+<p>Prouver qu’une machine peut transformer des faits PAPER immuables en datasets Research identifiés, replayables et diagnostiquables, produire des candidats gouvernés et préserver strictement la frontière Research → active epoch.</p>
+</section>
+<section id="id6">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h2>
+<p>L0→L2 evidence assessments SATISFIED.
+Certification future : L0→L2 formellement CERTIFIED.</p>
+</section>
+<hr class="docutils" />
+<section id="l3-g1-immutable-paper-research-dataset-provenance">
+<h2>L3-G1 — Immutable PAPER → Research dataset/provenance<a class="headerlink" href="#l3-g1-immutable-paper-research-dataset-provenance" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#238 governed exports + #282 O4/O6-B.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>copie de fichiers sans manifest; dataset latest implicite.</p>
+<p><strong>dependencies</strong></p>
+<p>L2-G7, L0-G5.</p>
+<p><strong>forbidden states</strong></p>
+<p>dataset non lié à source_boundary/epoch/provenance.</p>
+<p><strong>revocation invariants</strong></p>
+<p>même dataset_id reproduisant des bytes/faits différents.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g2-deterministic-research-replay">
+<h2>L3-G2 — Deterministic Research replay<a class="headerlink" href="#l3-g2-deterministic-research-replay" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p>
+<p>plus au moins une preuve de publication/replay sur dataset réel :</p>
+<p><code class="docutils literal notranslate"><span class="pre">ONE_OF(EXPERIMENT_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#239 + #282 O5/O7.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>backtest non borné; replay dépendant de données live implicites.</p>
+<p><strong>dependencies</strong></p>
+<p>L3-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>same inputs → different scientific result identity.</p>
+<p><strong>revocation invariants</strong></p>
+<p>non-déterminisme reproductible sur dataset/config identiques.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g3-reproducible-diagnostics-attribution">
+<h2>L3-G3 — Reproducible diagnostics / attribution<a class="headerlink" href="#l3-g3-reproducible-diagnostics-attribution" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#248 + #282 O6-C.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>Sharpe inventé; causalité depuis association; métrique sans N/window/population.</p>
+<p><strong>dependencies</strong></p>
+<p>L3-G1, L3-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>metric sans provenance ou NOT_AVAILABLE converti en estimation autoritative.</p>
+<p><strong>revocation invariants</strong></p>
+<p>diagnostic canonique non reproductible ou population mixing.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g4-candidate-registry-governed-promotion-boundary">
+<h2>L3-G4 — Candidate registry &amp; governed promotion boundary<a class="headerlink" href="#l3-g4-candidate-registry-governed-promotion-boundary" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#240 <code class="docutils literal notranslate"><span class="pre">RL_CANDIDATE_PROMOTION_BOUNDARY_CERTIFIED</span></code>.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>diff libre non lié à dataset/run; candidate = promoted.</p>
+<p><strong>dependencies</strong></p>
+<p>L3-G2, L3-G3.</p>
+<p><strong>forbidden states</strong></p>
+<p>same-epoch promotion; Research recording AUTHORIZED/EXECUTED without external governance.</p>
+<p><strong>revocation invariants</strong></p>
+<p>voie permettant promotion sans future epoch ou sans evidence chain.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g5-market-paper-research-domain-separation">
+<h2>L3-G5 — Market / PAPER / Research domain separation<a class="headerlink" href="#l3-g5-market-paper-research-domain-separation" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">UX_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#241 + APP source boundaries supporting.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>PnL agrégé PAPER+Research; candidate shown ACTIVE.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L3-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>cross-domain population mixing dans une métrique canonique.</p>
+<p><strong>revocation invariants</strong></p>
+<p>surface canonique fusionnant les domaines sans provenance.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g6-same-epoch-no-feedback-invariant">
+<h2>L3-G6 — Same-epoch no-feedback invariant<a class="headerlink" href="#l3-g6-same-epoch-no-feedback-invariant" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p>et, lorsqu’une epoch Research-observed est active :</p>
+<p><code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#242 source certification + #286 guard + #282 runtime observation.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>simple absence de code observée; promesse documentaire seule pendant epoch active.</p>
+<p><strong>dependencies</strong></p>
+<p>L3-G4, L2-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>Research/candidate modifiant stratégie/config/risk/sizing de la même epoch.</p>
+<p><strong>revocation invariants</strong></p>
+<p>toute preuve de feedback Research→same active epoch.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g7-governed-active-experiment-capture-replay-diagnostic-publication">
+<h2>L3-G7 — Governed active-experiment capture / replay / diagnostic / publication<a class="headerlink" href="#l3-g7-governed-active-experiment-capture-replay-diagnostic-publication" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(EXPERIMENT_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#277/#278/#279/#280/#274/#281/#282 O1→O9.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>F00 historique uniquement; source-only future burn-in contract.</p>
+<p><strong>dependencies</strong></p>
+<p>L3-G1, L3-G2, L3-G3, L3-G6.</p>
+<p><strong>forbidden states</strong></p>
+<p>active experiment sans immutable capture boundary ou publication Research non traçable.</p>
+<p><strong>revocation invariants</strong></p>
+<p>capture/pub Research modifiant l’epoch ou non reproductible.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+<p><strong>note</strong></p>
+<p>La finalisation du burn-in n’est pas requise par ce critère. Ce critère certifie la <strong>capacité Research sur expérience active</strong>, pas la conclusion scientifique de l’expérience.</p>
+</section>
+<hr class="docutils" />
+<section id="l3-g8-governed-research-stack-integration-provenance">
+<h2>L3-G8 — Governed Research stack integration / provenance<a class="headerlink" href="#l3-g8-governed-research-stack-integration-provenance" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#275 integration certification + exact-source cold deploy #279 comme supporting runtime lineage.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>stack branch non intégré; source HEAD sans ancestry.</p>
+<p><strong>dependencies</strong></p>
+<p>L3-G1…G6.</p>
+<p><strong>forbidden states</strong></p>
+<p>runtime Research/burn-in exécuté sur source non identifiable ou stack divergence non tracée.</p>
+<p><strong>revocation invariants</strong></p>
+<p>perte de lineage entre stack certifiée et source utilisée pour les expériences futures.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+<section id="l3-r2-assessment">
+<h3>L3 R2 assessment<a class="headerlink" href="#l3-r2-assessment" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">8/8</span> <span class="pre">mandatory</span> <span class="pre">criteria</span> <span class="pre">=</span> <span class="pre">SATISFIED</span></code></p>
+<p>Statut de niveau R2 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">READY_FOR_REVIEW</span></code></p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_3_CERTIFIED</span></code>.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="r2-a-conclusion">
+<h1>R2-A conclusion<a class="headerlink" href="#r2-a-conclusion" title="Link to this heading">¶</a></h1>
+<p>À la lumière du catalogue normatif, R1 est confirmé :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>L0 = READY_FOR_REVIEW
+L1 = READY_FOR_REVIEW
+L2 = READY_FOR_REVIEW
+L3 = READY_FOR_REVIEW
+</pre></div>
+</div>
+<p>Mais :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>FORMAL_CERTIFIED_FRONTIER = NOT_AVAILABLE
+</pre></div>
+</div>
+<p>reste inchangé jusqu’à émission de MachineLevelCertification distincts.</p>
+<!-- END CANONICAL COMMENT 5971120146 -->
+<hr class="docutils" />
+<!-- BEGIN CANONICAL COMMENT 5971148753 -->
+</section>
+<section id="r2-b-certification-catalog-v0-1-l4l9">
+<h1>R2-B — CERTIFICATION CATALOG v0.1 — L4→L9<a class="headerlink" href="#r2-b-certification-catalog-v0-1-l4l9" title="Link to this heading">¶</a></h1>
+<p>Baseline identique :</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;eeaec5ae29a72b765bb97feb46520032aba44e2a</span></code></p>
+<p>Rappel : un critère supérieur peut déjà posséder une preuve partielle ou même être <code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code> sans que le niveau soit ouvert/certifiable. La chaîne de certification reste strictement séquentielle.</p>
+</section>
+<hr class="docutils" />
+<section id="l4-operator-machine">
+<h1>6. L4 — OPERATOR MACHINE<a class="headerlink" href="#l4-operator-machine" title="Link to this heading">¶</a></h1>
+<section id="id7">
+<h2>PURPOSE<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h2>
+<p>Prouver qu’un opérateur humain peut comprendre l’état global de Crypto AI Terminal depuis une application canonique, avec vérité producteur→projection→API→UI, provenance, sécurité, lisibilité et isolation runtime, sans que l’interface invente une autorité.</p>
+</section>
+<section id="id8">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h2>
+<p>L0→L3 evidence assessments SATISFIED.
+Certification future : L0→L3 formellement CERTIFIED.</p>
+</section>
+<hr class="docutils" />
+<section id="l4-g1-operator-truth-data-parity">
+<h2>L4-G1 — Operator Truth &amp; Data Parity<a class="headerlink" href="#l4-g1-operator-truth-data-parity" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les domaines opérateur principaux doivent être exposés à partir de producteurs/projections gouvernés, sans recomputation de vérité côté React et avec disponibilité/freshness explicites.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">UX_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#304 D4, #328 U2, #323 U2b/U3a/U3b, #336 U4, #338 U6.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>fixture/screenshot synthétique comme runtime fact;</p></li>
+<li><p>frontend calculant PnL/lifecycle/classification;</p></li>
+<li><p>valeur absente transformée en zéro;</p></li>
+<li><p>API lisant directement un fichier authoritative sans projection/reader contract lorsque le contrat impose une projection.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L1-G3, L1-G4, L1-G6, L3-G5.</p>
+<p><strong>forbidden states</strong></p>
+<ul class="simple">
+<li><p>React devient producteur de vérité;</p></li>
+<li><p>domain parity revendiquée alors que le producer est absent;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code> présenté comme zéro/healthy.</p></li>
+</ul>
+<p><strong>revocation invariants</strong></p>
+<p>Toute recomputation canonique côté UI ou substitution silencieuse d’une source gouvernée par une donnée de présentation invalide ce critère.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l4-g2-app-unify-global-source-certification">
+<h2>L4-G2 — APP-UNIFY Global Source Certification<a class="headerlink" href="#l4-g2-app-unify-global-source-certification" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>L’Operator App unifiée doit disposer d’un verdict source global agrégeant toutes les tranches nécessaires au périmètre L4, sur un SHA exact, avec tests/cross-stack/visual/security contracts et limites explicites.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>verdict global exact :</p>
+<p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_SOURCE_CERTIFIED</span></code></p>
+<p>ou futur verdict MACHINE-MATURITY explicitement équivalent et borné.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>somme de U2/U2b/U3/U4/U6;</p></li>
+<li><p>merge de tranches;</p></li>
+<li><p>CI verte isolée;</p></li>
+<li><p>U8 preparation.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L4-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>tranches intégrées sans revue globale du produit/source.</p>
+<p><strong>revocation invariants</strong></p>
+<p>régression source globale rendant invalide le contrat opérateur unifié.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l4-g3-operator-app-runtime-certification">
+<h2>L4-G3 — Operator App Runtime Certification<a class="headerlink" href="#l4-g3-operator-app-runtime-certification" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>L’application canonique doit être effectivement déployée et observée sur son plan de release isolé, avec producer→artifact→reader→API→browser réel et sans perturbation de l’Advisor.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">UX_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>futur verdict :</p>
+<p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_RUNTIME_CERTIFIED</span></code></p>
+<p>avec release SHA exacte, listeners, browser/PWA, artifacts réels, Advisor non-interference, rollback.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>U8 PREP;</p></li>
+<li><p>CryptoRadar runtime precedent;</p></li>
+<li><p>source visual proof;</p></li>
+<li><p>local dev server.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L4-G2, L4-G5, L4-G7.</p>
+<p><strong>forbidden states</strong></p>
+<p>Operator App déclarée canonique alors que runtime non déployé/non observé.</p>
+<p><strong>revocation invariants</strong></p>
+<p>déploiement divergeant du source certifié, perte d’isolation ou mutation de l’Advisor induite par le plan opérateur.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l4-g4-operator-decision-trust-boundary">
+<h2>L4-G4 — Operator Decision Trust Boundary<a class="headerlink" href="#l4-g4-operator-decision-trust-boundary" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>L’Operator App doit afficher honnêtement la capacité de décision humaine : une queue non déployée reste <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code>; si une queue/action devient opérationnelle, identité, signataires, sources, clés et anti-rollback doivent être gouvernés avant toute mutation.</p>
+<p><strong>proof requirement</strong></p>
+<p>Pour L4 READ-ONLY :</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(ARCHITECTURE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF)</span></code></p>
+<p>Si <code class="docutils literal notranslate"><span class="pre">operational=true</span></code> ou action mutante :</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(ARCHITECTURE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#307, #313, #315 Gate S + état explicite Gate O.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>prototype durable = queue opérationnelle;</p></li>
+<li><p>UI button = authority;</p></li>
+<li><p>human acceptance = merge/deploy/PAPER mutation.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L0-G4.</p>
+<p><strong>forbidden states</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">operational=true</span></code> avec Gate O ouverte;</p></li>
+<li><p>fake decisions;</p></li>
+<li><p>source registry inventé;</p></li>
+<li><p>action humaine déclenchant directement merge/deploy/runtime authority hors gate.</p></li>
+</ul>
+<p><strong>revocation invariants</strong></p>
+<p>Si une mutation devient possible alors qu’un des contrôles Gate O requis manque, révoquer immédiatement ce critère.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code> pour le scope L4 READ-ONLY actuel.</p>
+<p><strong>important</strong></p>
+<p>#315 Gate O ouverte n’empêche pas une certification L4 strictement READ-ONLY si la capacité reste honnêtement <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code>. Elle devient obligatoire avant toute revendication de queue/action opérationnelle.</p>
+</section>
+<hr class="docutils" />
+<section id="l4-g5-source-runtime-isolation">
+<h2>L4-G5 — Source / Runtime Isolation<a class="headerlink" href="#l4-g5-source-runtime-isolation" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Le plan de release Operator doit être séparé du checkout runtime de l’Advisor et consommer les artefacts autorisés en lecture seule.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(ARCHITECTURE_PROOF,</span> <span class="pre">SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#342/U8 architecture + future runtime deployment proof.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>runbook non exécuté;</p></li>
+<li><p>précédent CryptoRadar seul;</p></li>
+<li><p>absence de restart supposée.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L0-G4, L1-G5.</p>
+<p><strong>forbidden states</strong></p>
+<p>Operator release déplaçant/modifiant le checkout gelé de l’Advisor ou obtenant une write path vers PPL/FIN/epoch.</p>
+<p><strong>revocation invariants</strong></p>
+<p>tout déploiement Operator nécessitant mutation non gouvernée du runtime machine.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+<p><strong>reason</strong></p>
+<p>ARCHITECTURE/SOURCE existent; runtime APP-UNIFY séparé n’est pas encore démontré.</p>
+</section>
+<hr class="docutils" />
+<section id="l4-g6-human-ux-mobile-accessibility">
+<h2>L4-G6 — Human UX / Mobile / Accessibility<a class="headerlink" href="#l4-g6-human-ux-mobile-accessibility" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>L’interface canonique doit rester compréhensible sur desktop/mobile, préserver les états épistémiques et fournir une accessibilité vérifiée sur le périmètre L4.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">UX_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>D4 visual proofs, U2/U3/U4/U6 desktop/mobile, semantic rendering tests; futur audit/accessibility aggregate.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>une seule capture;</p></li>
+<li><p>responsive CSS non testé;</p></li>
+<li><p>couleurs seules pour transmettre l’état;</p></li>
+<li><p>valeur technique cachée pour simplifier la vue.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L4-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>overflow bloquant, information critique uniquement color-coded, états UNKNOWN/STALE masqués.</p>
+<p><strong>revocation invariants</strong></p>
+<p>régression visuelle/accessibilité rendant une preuve ou un état machine indiscernable.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+<p><strong>reason</strong></p>
+<p>fort corpus UX/mobile source, mais aucune preuve globale d’accessibilité L4 agrégée n’a été identifiée.</p>
+</section>
+<hr class="docutils" />
+<section id="l4-g7-security-access-deployment-boundary">
+<h2>L4-G7 — Security / Access / Deployment Boundary<a class="headerlink" href="#l4-g7-security-access-deployment-boundary" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>L’accès opérateur et le déploiement doivent être privés/fail-closed, authentifiés lorsqu’exigé, secrets bornés, listeners maîtrisés et rollback isolé.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SECURITY_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>WEB-01B historique, #319 CryptoRadar comme précédent, #342 U8 security/deployment plan, futur runtime Operator proof.</p>
+<p><strong>forbidden substitutions</strong></p>
+<ul class="simple">
+<li><p>source config;</p></li>
+<li><p>tailnet design non testé;</p></li>
+<li><p>auth UI sans rejection runtime;</p></li>
+<li><p>autre service sécurisé comme preuve de l’Operator App.</p></li>
+</ul>
+<p><strong>dependencies</strong></p>
+<p>L4-G5.</p>
+<p><strong>forbidden states</strong></p>
+<p>exposition publique non gouvernée, mutation API implicite, secrets imprimés, rollback touchant l’Advisor.</p>
+<p><strong>revocation invariants</strong></p>
+<p>perte du fail-closed access boundary ou exposition non autorisée.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l4-g8-l4-certification-pack">
+<h2>L4-G8 — L4 Certification Pack<a class="headerlink" href="#l4-g8-l4-certification-pack" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Un pack canonique doit agréger source SHA, runtime SHA/release, contracts, preuve data parity, UX, security, isolation, unresolved items, rollback et criterion matrix sans inventer de PASS.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>futur artifact/versioned certification pack + evidence manifest.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>commentaire ad hoc; issue status; somme de verdicts partiels.</p>
+<p><strong>dependencies</strong></p>
+<p>L4-G1…G7.</p>
+<p><strong>forbidden states</strong></p>
+<p>pack incomplet déclarant L4 READY/CERTIFIED.</p>
+<p><strong>revocation invariants</strong></p>
+<p>evidence pack non reproductible ou perdant son binding aux identités certifiées.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<section id="l4-r2-assessment">
+<h3>L4 R2 assessment<a class="headerlink" href="#l4-r2-assessment" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>SATISFIED : G1, G4</p></li>
+<li><p>UNRESOLVED : G5, G6, G7</p></li>
+<li><p>NOT_AVAILABLE : G2, G3, G8</p></li>
+</ul>
+<p>Niveau :</p>
+<p><code class="docutils literal notranslate"><span class="pre">IN_PROGRESS</span> <span class="pre">/</span> <span class="pre">EVIDENCE_INSUFFICIENT_FOR_CERTIFICATION_REVIEW</span></code></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l5-self-maintaining-forest">
+<h1>7. L5 — SELF-MAINTAINING FOREST<a class="headerlink" href="#l5-self-maintaining-forest" title="Link to this heading">¶</a></h1>
+<section id="id9">
+<h2>PURPOSE<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h2>
+<p>Prouver qu’un sous-système de maintenance peut observer la machine, ouvrir des problèmes gouvernés, produire des propositions de maintenance isolées, les faire vérifier et les présenter à l’humain sans acquérir d’autorité de merge/deploy/PAPER.</p>
+</section>
+<section id="id10">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h2>
+<p>L0→L4 formellement CERTIFIED.</p>
+<p>Planning horizon actuel :</p>
+<p><code class="docutils literal notranslate"><span class="pre">DESIGNED</span> <span class="pre">/</span> <span class="pre">IN</span> <span class="pre">DESIGN</span></code></p>
+<p>PR #348 désormais fusionnée reste contract-only.</p>
+</section>
+<hr class="docutils" />
+<section id="l5-g1-forest-maintenance-constitution">
+<h2>L5-G1 — Forest maintenance constitution<a class="headerlink" href="#l5-g1-forest-maintenance-constitution" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Le Forest doit posséder un contrat versionné de scope, objets, états, identités, permissions et interdictions.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(ARCHITECTURE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">SOURCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#284 + PR #348 lorsque ses questions critiques/actes de gouvernance requis sont fermés.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>vision #284 seule; merge #348 seul; verdict “READY_FOR_CERTIFICATION” proposé mais non certifié.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L0-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>registre sans propriétaire, anti-rollback non défini, stockage/indépendance critiques non résolus.</p>
+<p><strong>revocation invariants</strong></p>
+<p>contrat permettant au Forest d’acheter/obtenir autorité.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+<p><strong>reason</strong></p>
+<p>PR #348 est fusionnée et validée contractuellement, mais son propre texte conserve registrar, ancre anti-retour, stockage Q10, indépendance forte et CODEOWNERS non résolus; les verdicts A0/A1 restent proposés/non certifiés.</p>
+</section>
+<hr class="docutils" />
+<section id="l5-g2-governed-problem-registry">
+<h2>L5-G2 — Governed Problem Registry<a class="headerlink" href="#l5-g2-governed-problem-registry" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Les problèmes détectés doivent avoir identité, provenance, déduplication, statut et evidence bundle durables.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future Problem Registry implementation/runtime.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>GitHub issue libre; log warning; candidate bounty sans problem identity.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>problème sans source/provenance ou suppressible sans audit.</p>
+<p><strong>revocation invariants</strong></p>
+<p>registry perdant identité/déduplication/audit.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l5-g3-machine-self-observation-problem-discovery">
+<h2>L5-G3 — Machine self-observation → problem discovery<a class="headerlink" href="#l5-g3-machine-self-observation-problem-discovery" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Le Forest doit détecter au moins une classe de problème depuis des observations gouvernées sans mutation du runtime observé.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future bounded discovery campaign.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>détection manuelle saisie comme autonome; alerte hardcodée.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G2, L1-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>scanner/agent modifiant la source observée pour produire son problème.</p>
+<p><strong>revocation invariants</strong></p>
+<p>feedback observateur→runtime non gouverné.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l5-g4-isolated-maintenance-proposal-workspace">
+<h2>L5-G4 — Isolated maintenance proposal/workspace<a class="headerlink" href="#l5-g4-isolated-maintenance-proposal-workspace" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Une maintenance doit être réalisée dans un workspace/branch sandbox sans écrire dans le runtime actif.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future sandbox/branch execution proof.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>Claude/Codex session manuelle; PR humaine; local checkout partagé.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>worker écrivant main/runtime directement.</p>
+<p><strong>revocation invariants</strong></p>
+<p>perte isolation sandbox/branch.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l5-g5-independent-verification-before-human-decision">
+<h2>L5-G5 — Independent verification before human decision<a class="headerlink" href="#l5-g5-independent-verification-before-human-decision" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Une proposition de maintenance doit être vérifiée par une voie indépendante de l’auteur avant présentation comme VALIDATED.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future reviewer/verification runtime with author/reviewer identities.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>self-review; CI seule; modèle auteur réutilisé sans indépendance déclarée.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>proposal passant directement WORKING→ACCEPTED.</p>
+<p><strong>revocation invariants</strong></p>
+<p>contournement de REVIEW/VALIDATED.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l5-g6-human-authority-no-automatic-merge-deploy">
+<h2>L5-G6 — Human authority / no automatic merge-deploy<a class="headerlink" href="#l5-g6-human-authority-no-automatic-merge-deploy" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Le Forest peut proposer/valider; il ne peut ni merge, ni deploy, ni restart, ni modifier PAPER/epoch sans une autorité externe explicitement gouvernée.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future end-to-end negative authority proof.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>documentation seule.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G5, L0-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>auto-merge/deploy/restart.</p>
+<p><strong>revocation invariants</strong></p>
+<p>toute voie automatique Forest→production authority.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l5-g7-maintenance-audit-rollback-outcome-evidence">
+<h2>L5-G7 — Maintenance audit / rollback / outcome evidence<a class="headerlink" href="#l5-g7-maintenance-audit-rollback-outcome-evidence" title="Link to this heading">¶</a></h2>
+<p><strong>Statement</strong></p>
+<p>Chaque intervention acceptée doit conserver provenance, diff, tests, décision humaine, déploiement séparé si autorisé, outcome et rollback.</p>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future maintenance lifecycle completed end-to-end.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>PR merged = outcome; deploy sans post-proof.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G4, L5-G5, L5-G6.</p>
+<p><strong>forbidden states</strong></p>
+<p>maintenance sans rollback ou outcome non attribuable.</p>
+<p><strong>revocation invariants</strong></p>
+<p>incapacité à reconstruire une intervention Forest.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<section id="l5-r2-assessment">
+<h3>L5 R2 assessment<a class="headerlink" href="#l5-r2-assessment" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>G1 = UNRESOLVED</p></li>
+<li><p>G2…G7 = NOT_AVAILABLE</p></li>
+</ul>
+<p>Certification status :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">DESIGNED</span> <span class="pre">/</span> <span class="pre">IN</span> <span class="pre">DESIGN</span></code></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l6-governed-agent-engineering">
+<h1>8. L6 — GOVERNED AGENT ENGINEERING<a class="headerlink" href="#l6-governed-agent-engineering" title="Link to this heading">¶</a></h1>
+<section id="id11">
+<h2>PURPOSE<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h2>
+<p>Prouver que des agents identifiés peuvent prendre en charge des travaux d’ingénierie dans des frontières de capacités, coûts et autorité gouvernées, avec collaboration et revue indépendantes, sans disposer du droit final de production.</p>
+</section>
+<section id="id12">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h2>
+<p>L0→L5 formellement CERTIFIED.</p>
+</section>
+<hr class="docutils" />
+<section id="l6-g1-agent-identity-capability-registry">
+<h2>L6-G1 — Agent identity &amp; capability registry<a class="headerlink" href="#l6-g1-agent-identity-capability-registry" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future certified Agent Registry + runtime identity issuance.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>JSON Schema seule; agent name/prompt; PR #348 contract-only.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>agent anonyme ou capability non déclarée.</p>
+<p><strong>revocation invariants</strong></p>
+<p>identité réutilisable/collision non détectée ou capability escalation.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l6-g2-capability-scoped-sandbox-execution">
+<h2>L6-G2 — Capability-scoped sandbox execution<a class="headerlink" href="#l6-g2-capability-scoped-sandbox-execution" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future agent sandbox with filesystem/network/tool allowlists.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>branch convention sans enforcement.</p>
+<p><strong>dependencies</strong></p>
+<p>L6-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>agent accédant hors scope ou runtime actif.</p>
+<p><strong>revocation invariants</strong></p>
+<p>sandbox escape/capability bypass.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l6-g3-governed-problem-bounty-lifecycle">
+<h2>L6-G3 — Governed Problem/Bounty lifecycle<a class="headerlink" href="#l6-g3-governed-problem-bounty-lifecycle" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future Problem+Bounty registries and lifecycle evidence.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>issue GitHub = bounty; AIC promise.</p>
+<p><strong>dependencies</strong></p>
+<p>L5-G2, L6-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>claim/work sans budget/scope/evidence.</p>
+<p><strong>revocation invariants</strong></p>
+<p>bounty pouvant changer scope/criteria rétroactivement sans audit.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l6-g4-independent-reviewer-validator-agents">
+<h2>L6-G4 — Independent reviewer / validator agents<a class="headerlink" href="#l6-g4-independent-reviewer-validator-agents" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future author/reviewer separation and validation trace.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>same agent role renamed; CI alone.</p>
+<p><strong>dependencies</strong></p>
+<p>L6-G1, L6-G2, L6-G3.</p>
+<p><strong>forbidden states</strong></p>
+<p>self-validation accepted as independent.</p>
+<p><strong>revocation invariants</strong></p>
+<p>independence broken without visibility.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l6-g5-engineering-artifact-provenance">
+<h2>L6-G5 — Engineering artifact provenance<a class="headerlink" href="#l6-g5-engineering-artifact-provenance" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>agent task→branch→commit→PR→tests lineage.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>chat transcript; generated patch without identity.</p>
+<p><strong>dependencies</strong></p>
+<p>L6-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>commit/PR impossible à lier à task/agent/evidence.</p>
+<p><strong>revocation invariants</strong></p>
+<p>loss of lineage or artifact tamper undetected.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l6-g6-compute-cost-internal-economy-accounting">
+<h2>L6-G6 — Compute / cost / internal economy accounting<a class="headerlink" href="#l6-g6-compute-cost-internal-economy-accounting" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future immutable cost/economy ledger.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>token budget text; AIC number without ledger.</p>
+<p><strong>dependencies</strong></p>
+<p>L6-G1, L6-G3.</p>
+<p><strong>forbidden states</strong></p>
+<p>récompense sans résultat validé ou coût non attribuable.</p>
+<p><strong>revocation invariants</strong></p>
+<p>double payment, negative/forged balances, untraceable compute.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l6-g7-human-merge-deploy-authority-remains-external">
+<h2>L6-G7 — Human merge/deploy authority remains external<a class="headerlink" href="#l6-g7-human-merge-deploy-authority-remains-external" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">SECURITY_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>negative authorization tests + explicit operator gate.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>policy prose seule.</p>
+<p><strong>dependencies</strong></p>
+<p>L6-G2…G6.</p>
+<p><strong>forbidden states</strong></p>
+<p>agent merge/deploy/PAPER authority direct.</p>
+<p><strong>revocation invariants</strong></p>
+<p>toute escalade agent→production sans gate humain.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l6-g8-multi-agent-collaboration-reproducibility">
+<h2>L6-G8 — Multi-agent collaboration reproducibility<a class="headerlink" href="#l6-g8-multi-agent-collaboration-reproducibility" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future completed multi-agent engineering campaign reproducible/auditable.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>plusieurs agents configurés mais non exécutés.</p>
+<p><strong>dependencies</strong></p>
+<p>L6-G1…G7.</p>
+<p><strong>forbidden states</strong></p>
+<p>handoffs non traçables, contradictions silently resolved.</p>
+<p><strong>revocation invariants</strong></p>
+<p>campagne agentique non reconstructible.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<section id="l6-r2-assessment">
+<h3>L6 R2 assessment<a class="headerlink" href="#l6-r2-assessment" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">8/8</span> <span class="pre">=</span> <span class="pre">NOT_AVAILABLE</span></code></p>
+<p>Certification status :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">FUTURE</span> <span class="pre">/</span> <span class="pre">DESIGN</span></code></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l7-autonomous-test-environment">
+<h1>9. L7 — AUTONOMOUS TEST ENVIRONMENT<a class="headerlink" href="#l7-autonomous-test-environment" title="Link to this heading">¶</a></h1>
+<section id="id13">
+<h2>PURPOSE<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h2>
+<p>Prouver qu’un environnement autonome peut générer/exécuter/évaluer des scénarios de test dans une enceinte hermétique, reproductible et indépendante de la production, puis publier des preuves gouvernées sans promotion automatique.</p>
+</section>
+<section id="id14">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h2>
+<p>L0→L6 formellement CERTIFIED.</p>
+<p>Planning horizon actuel :</p>
+<p><code class="docutils literal notranslate"><span class="pre">LOCKED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g1-hermetic-test-substrate">
+<h2>L7-G1 — Hermetic test substrate<a class="headerlink" href="#l7-g1-hermetic-test-substrate" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>#201 TI-00, #267 HERM-02, Scientific Data Guard.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>tests partageant les artefacts prod.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G3, L0-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>test write leak vers données scientifiques/runtime.</p>
+<p><strong>revocation invariants</strong></p>
+<p>nouvelle contamination silencieuse.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g2-deterministic-orchestration-exact-head-execution">
+<h2>L7-G2 — Deterministic orchestration &amp; exact-head execution<a class="headerlink" href="#l7-g2-deterministic-orchestration-exact-head-execution" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>CI exact-head, orchestration integrity, deterministic replay/test gates.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>retry-until-green non attribué; floating branch evidence.</p>
+<p><strong>dependencies</strong></p>
+<p>L7-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>résultat de test sans source identity.</p>
+<p><strong>revocation invariants</strong></p>
+<p>test verdict impossible à reproduire sur exact inputs.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g3-autonomous-scenario-generation">
+<h2>L7-G3 — Autonomous scenario generation<a class="headerlink" href="#l7-g3-autonomous-scenario-generation" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future autonomous test scenario generation campaign.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>parametrized tests écrits manuellement.</p>
+<p><strong>dependencies</strong></p>
+<p>L7-G1, L7-G2, L6-G1.</p>
+<p><strong>forbidden states</strong></p>
+<p>scenario generator écrivant production.</p>
+<p><strong>revocation invariants</strong></p>
+<p>generated test cannot be reproduced or attributed.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g4-candidate-system-sandbox-under-autonomous-test">
+<h2>L7-G4 — Candidate/system sandbox under autonomous test<a class="headerlink" href="#l7-g4-candidate-system-sandbox-under-autonomous-test" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future isolated execution of candidate versions.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>CI on main only.</p>
+<p><strong>dependencies</strong></p>
+<p>L7-G1, L6-G2.</p>
+<p><strong>forbidden states</strong></p>
+<p>candidate test touching production state/network beyond policy.</p>
+<p><strong>revocation invariants</strong></p>
+<p>sandbox boundary breach.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g5-independent-evaluation-adversarial-verification">
+<h2>L7-G5 — Independent evaluation &amp; adversarial verification<a class="headerlink" href="#l7-g5-independent-evaluation-adversarial-verification" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future evaluator separate from generator/author.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>self-score.</p>
+<p><strong>dependencies</strong></p>
+<p>L7-G3, L7-G4, L6-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>candidate qualifies itself.</p>
+<p><strong>revocation invariants</strong></p>
+<p>loss of evaluator independence.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g6-no-production-mutation-from-autonomous-testing">
+<h2>L7-G6 — No production mutation from autonomous testing<a class="headerlink" href="#l7-g6-no-production-mutation-from-autonomous-testing" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">SECURITY_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>negative mutation tests on real automation boundary.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>source grep alone.</p>
+<p><strong>dependencies</strong></p>
+<p>L7-G4.</p>
+<p><strong>forbidden states</strong></p>
+<p>test environment can merge/deploy/write PAPER/exchange.</p>
+<p><strong>revocation invariants</strong></p>
+<p>any unauthorized production side effect.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g7-reproducible-test-evidence-publication">
+<h2>L7-G7 — Reproducible test evidence publication<a class="headerlink" href="#l7-g7-reproducible-test-evidence-publication" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future immutable test-run manifests/artifacts.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>CI URL alone.</p>
+<p><strong>dependencies</strong></p>
+<p>L7-G2…G5.</p>
+<p><strong>forbidden states</strong></p>
+<p>run evidence mutable/unbound.</p>
+<p><strong>revocation invariants</strong></p>
+<p>same run identity resolving to different content.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l7-g8-autonomous-closed-test-loop">
+<h2>L7-G8 — Autonomous closed test loop<a class="headerlink" href="#l7-g8-autonomous-closed-test-loop" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future problem/candidate→generated tests→evaluation→human-ready decision package end-to-end.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>manual orchestration.</p>
+<p><strong>dependencies</strong></p>
+<p>L7-G1…G7.</p>
+<p><strong>forbidden states</strong></p>
+<p>automatic promotion/deployment from test verdict.</p>
+<p><strong>revocation invariants</strong></p>
+<p>test loop crosses the human authority boundary.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<section id="l7-r2-assessment">
+<h3>L7 R2 assessment<a class="headerlink" href="#l7-r2-assessment" title="Link to this heading">¶</a></h3>
+<p>Substrate pre-exists :</p>
+<ul class="simple">
+<li><p>G1 SATISFIED</p></li>
+<li><p>G2 SATISFIED</p></li>
+</ul>
+<p>Autonomous capability :</p>
+<ul class="simple">
+<li><p>G3…G8 NOT_AVAILABLE</p></li>
+</ul>
+<p>Certification status :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">LOCKED</span></code></p>
+<p>Upper-level substrate evidence does not bypass L5/L6 dependencies.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l8-governed-capital-machine">
+<h1>10. L8 — GOVERNED CAPITAL MACHINE<a class="headerlink" href="#l8-governed-capital-machine" title="Link to this heading">¶</a></h1>
+<section id="id15">
+<h2>PURPOSE<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h2>
+<p>Prouver qu’une machine peut gérer une autorité de capital non-PAPER sous contrôle gouverné, avec custody/secrets, allocation, risk, execution, reconciliation, kill/rollback et limites humaines explicites.</p>
+</section>
+<section id="id16">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h2>
+<p>L0→L7 formellement CERTIFIED.
+Autorisation juridique/opérationnelle explicite du mode de capital concerné.</p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">LOCKED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g1-non-paper-capital-authority-contract">
+<h2>L8-G1 — Non-PAPER capital authority contract<a class="headerlink" href="#l8-g1-non-paper-capital-authority-contract" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(ARCHITECTURE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future TESTNET/REAL capital authority contract.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>FIN PAPER; PPL; hypothetical exchange mode.</p>
+<p><strong>dependencies</strong></p>
+<p>L0-G1, L2-G5.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g2-credential-custody-secret-boundary">
+<h2>L8-G2 — Credential / custody / secret boundary<a class="headerlink" href="#l8-g2-credential-custody-secret-boundary" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SECURITY_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future credential custody/rotation/access proof.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>.env presence; masked log.</p>
+<p><strong>dependencies</strong></p>
+<p>L8-G1.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g3-governed-capital-allocation-treasury-authority">
+<h2>L8-G3 — Governed capital allocation / Treasury authority<a class="headerlink" href="#l8-g3-governed-capital-allocation-treasury-authority" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future FIN-03/treasury equivalent.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>PAPER capital projections.</p>
+<p><strong>dependencies</strong></p>
+<p>L8-G1, L8-G2.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g4-real-test-execution-authority-fail-closed-risk-boundary">
+<h2>L8-G4 — Real/test execution authority &amp; fail-closed risk boundary<a class="headerlink" href="#l8-g4-real-test-execution-authority-fail-closed-risk-boundary" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">SECURITY_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future explicitly authorized execution campaign.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>simulated fills; code path existence.</p>
+<p><strong>dependencies</strong></p>
+<p>L8-G1…G3.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g5-external-reconciliation">
+<h2>L8-G5 — External reconciliation<a class="headerlink" href="#l8-g5-external-reconciliation" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future exchange/account readback vs internal books.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>PAPER FIN-02.</p>
+<p><strong>dependencies</strong></p>
+<p>L8-G3, L8-G4.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g6-capital-kill-rollback-incident-containment">
+<h2>L8-G6 — Capital kill / rollback / incident containment<a class="headerlink" href="#l8-g6-capital-kill-rollback-incident-containment" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">SECURITY_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future bounded emergency/rollback proof.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>documented command never tested.</p>
+<p><strong>dependencies</strong></p>
+<p>L8-G4.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g7-human-capital-authority-cannot-be-bought-or-bypassed">
+<h2>L8-G7 — Human capital authority cannot be bought or bypassed<a class="headerlink" href="#l8-g7-human-capital-authority-cannot-be-bought-or-bypassed" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(GOVERNANCE_PROOF,</span> <span class="pre">SECURITY_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future negative proof that agents/AIC/Research cannot grant capital authority.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>#284 policy prose seule.</p>
+<p><strong>dependencies</strong></p>
+<p>L6-G7, L8-G4.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-g8-governed-capital-certification-pack">
+<h2>L8-G8 — Governed capital certification pack<a class="headerlink" href="#l8-g8-governed-capital-certification-pack" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF,</span> <span class="pre">SECURITY_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future capital-cert evidence manifest.</p>
+<p><strong>dependencies</strong></p>
+<p>L8-G1…G7.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<section id="l8-r2-assessment">
+<h3>L8 R2 assessment<a class="headerlink" href="#l8-r2-assessment" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">8/8</span> <span class="pre">=</span> <span class="pre">NOT_AVAILABLE</span></code></p>
+<p>Les preuves FIN/PPL PAPER sont explicitement <strong>inadmissibles comme substitut</strong> à une preuve non-PAPER.</p>
+<p>Certification status :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">LOCKED</span></code></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l9-adaptive-research-organization">
+<h1>11. L9 — ADAPTIVE RESEARCH ORGANIZATION<a class="headerlink" href="#l9-adaptive-research-organization" title="Link to this heading">¶</a></h1>
+<section id="id17">
+<h2>PURPOSE<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h2>
+<p>Prouver qu’un ensemble gouverné de capacités Research/Engineering/Agents peut maintenir une mémoire institutionnelle, formuler des hypothèses, allouer des ressources, lancer des expériences, apprendre entre epochs et améliorer l’organisation sans auto-modifier une autorité active ni supprimer le contrôle humain.</p>
+</section>
+<section id="id18">
+<h2>ENTRY_CONDITIONS<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h2>
+<p>L0→L8 formellement CERTIFIED.</p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">VISION</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g1-institutional-knowledge-lineage-memory">
+<h2>L9-G1 — Institutional knowledge / lineage memory<a class="headerlink" href="#l9-g1-institutional-knowledge-lineage-memory" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future governed institutional memory with immutable lineage.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>chat history; README; model memory.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g2-hypothesis-portfolio-research-agenda-governance">
+<h2>L9-G2 — Hypothesis portfolio &amp; research agenda governance<a class="headerlink" href="#l9-g2-hypothesis-portfolio-research-agenda-governance" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future hypothesis/research portfolio registry.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>issue backlog.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g3-adaptive-resource-allocation">
+<h2>L9-G3 — Adaptive resource allocation<a class="headerlink" href="#l9-g3-adaptive-resource-allocation" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future governed allocation of compute/data/agent budgets.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>AIC design proposal.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g4-cross-epoch-learning-without-same-epoch-feedback">
+<h2>L9-G4 — Cross-epoch learning without same-epoch feedback<a class="headerlink" href="#l9-g4-cross-epoch-learning-without-same-epoch-feedback" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(EXPERIMENT_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future sequence of certified epochs showing learning applied only to future boundaries.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>same-epoch tuning; retrospective narrative.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g5-multi-agent-human-organizational-decision-separation">
+<h2>L9-G5 — Multi-agent / human organizational decision separation<a class="headerlink" href="#l9-g5-multi-agent-human-organizational-decision-separation" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future organizational decision chain with explicit authorities.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>majority vote d’agents = human authority.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g6-self-improvement-evaluation-anti-goodhart-controls">
+<h2>L9-G6 — Self-improvement evaluation &amp; anti-Goodhart controls<a class="headerlink" href="#l9-g6-self-improvement-evaluation-anti-goodhart-controls" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(EXPERIMENT_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future independent validation populations / holdouts / anti-self-scoring mechanisms.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>training/evaluation on same evidence without declaration.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g7-organizational-incident-revocation-capability">
+<h2>L9-G7 — Organizational incident / revocation capability<a class="headerlink" href="#l9-g7-organizational-incident-revocation-capability" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future proof that agents/capabilities/budgets/certifications can be suspended/revoked with audit.</p>
+<p><strong>forbidden substitutions</strong></p>
+<p>manual deletion.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-g8-adaptive-organization-certification-pack">
+<h2>L9-G8 — Adaptive organization certification pack<a class="headerlink" href="#l9-g8-adaptive-organization-certification-pack" title="Link to this heading">¶</a></h2>
+<p><strong>proof requirement</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">EXPERIMENT_PROOF,</span> <span class="pre">GOVERNANCE_PROOF,</span> <span class="pre">SECURITY_PROOF)</span></code></p>
+<p><strong>accepted evidence</strong></p>
+<p>future end-to-end organizational evidence manifest.</p>
+<p><strong>dependencies</strong></p>
+<p>L9-G1…G7.</p>
+<p><strong>assessment</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<section id="l9-r2-assessment">
+<h3>L9 R2 assessment<a class="headerlink" href="#l9-r2-assessment" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">8/8</span> <span class="pre">=</span> <span class="pre">NOT_AVAILABLE</span></code></p>
+<p>Certification status :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">VISION</span></code></p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="r2-b-conclusion">
+<h1>R2-B conclusion<a class="headerlink" href="#r2-b-conclusion" title="Link to this heading">¶</a></h1>
+<p>Le catalogue rend maintenant explicite qu’il existe trois situations très différentes :</p>
+<ol class="arabic simple">
+<li><p><strong>preuves complètes mais pas encore certification formelle</strong> — L0→L3;</p></li>
+<li><p><strong>niveau réellement en construction avec gaps identifiés</strong> — L4;</p></li>
+<li><p><strong>architecture/vision future sans capability proof</strong> — L5→L9.</p></li>
+</ol>
+<p>La fusion de PR #348 ne modifie pas cette frontière :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PR #348 merged
+= SOURCE/ARCHITECTURE evidence
+
+PR #348 merged
+!= Forest runtime
+
+PR #348 merged
+!= Agent runtime
+
+PR #348 merged
+!= L5/L6 certification
+</pre></div>
+</div>
+<!-- END CANONICAL COMMENT 5971148753 -->
+<hr class="docutils" />
+<!-- BEGIN CANONICAL COMMENT 5971167870 -->
+</section>
+<section id="r2-c-matrice-canonique-gap-pack-l4-et-closure-r2">
+<h1>R2-C — MATRICE CANONIQUE, GAP PACK L4 ET CLOSURE R2<a class="headerlink" href="#r2-c-matrice-canonique-gap-pack-l4-et-closure-r2" title="Link to this heading">¶</a></h1>
+<p>Baseline :</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;eeaec5ae29a72b765bb97feb46520032aba44e2a</span></code></p>
+<p>Catalog version :</p>
+<p><code class="docutils literal notranslate"><span class="pre">MACHINE-MATURITY-CATALOG-v0.1</span></code></p>
+<p>Nombre de critères mandatory :</p>
+<p><code class="docutils literal notranslate"><span class="pre">73</span></code></p>
+<p>Aucun score pondéré, moyenne ou pourcentage n’est autorisé comme décision de certification.</p>
+</section>
+<hr class="docutils" />
+<section id="matrice-agregee">
+<h1>1. Matrice agrégée<a class="headerlink" href="#matrice-agregee" title="Link to this heading">¶</a></h1>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Level</p></th>
+<th class="head text-right"><p>Mandatory</p></th>
+<th class="head text-right"><p>SATISFIED</p></th>
+<th class="head text-right"><p>UNRESOLVED</p></th>
+<th class="head text-right"><p>NOT_AVAILABLE</p></th>
+<th class="head"><p>Level evidence state</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>L0 Constitutional Foundation</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>5</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>0</p></td>
+<td><p>READY_FOR_REVIEW</p></td>
+</tr>
+<tr class="row-odd"><td><p>L1 Observable Machine</p></td>
+<td class="text-right"><p>6</p></td>
+<td class="text-right"><p>6</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>0</p></td>
+<td><p>READY_FOR_REVIEW</p></td>
+</tr>
+<tr class="row-even"><td><p>L2 Governed PAPER Machine</p></td>
+<td class="text-right"><p>7</p></td>
+<td class="text-right"><p>7</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>0</p></td>
+<td><p>READY_FOR_REVIEW</p></td>
+</tr>
+<tr class="row-odd"><td><p>L3 Scientific Research Machine</p></td>
+<td class="text-right"><p>8</p></td>
+<td class="text-right"><p>8</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>0</p></td>
+<td><p>READY_FOR_REVIEW</p></td>
+</tr>
+<tr class="row-even"><td><p>L4 Operator Machine</p></td>
+<td class="text-right"><p>8</p></td>
+<td class="text-right"><p>2</p></td>
+<td class="text-right"><p>3</p></td>
+<td class="text-right"><p>3</p></td>
+<td><p>IN_PROGRESS</p></td>
+</tr>
+<tr class="row-odd"><td><p>L5 Self-Maintaining Forest</p></td>
+<td class="text-right"><p>7</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>1</p></td>
+<td class="text-right"><p>6</p></td>
+<td><p>NOT_STARTED</p></td>
+</tr>
+<tr class="row-even"><td><p>L6 Governed Agent Engineering</p></td>
+<td class="text-right"><p>8</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>8</p></td>
+<td><p>NOT_STARTED</p></td>
+</tr>
+<tr class="row-odd"><td><p>L7 Autonomous Test Environment</p></td>
+<td class="text-right"><p>8</p></td>
+<td class="text-right"><p>2</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>6</p></td>
+<td><p>NOT_STARTED / LOCKED</p></td>
+</tr>
+<tr class="row-even"><td><p>L8 Governed Capital Machine</p></td>
+<td class="text-right"><p>8</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>8</p></td>
+<td><p>NOT_STARTED / LOCKED</p></td>
+</tr>
+<tr class="row-odd"><td><p>L9 Adaptive Research Organization</p></td>
+<td class="text-right"><p>8</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>8</p></td>
+<td><p>NOT_STARTED / VISION</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code> signifie uniquement que le corpus admissible remplit le critère R2.</p>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span> <span class="pre">!=</span> <span class="pre">CERTIFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="frontieres-apres-r2">
+<h1>2. Frontières après R2<a class="headerlink" href="#frontieres-apres-r2" title="Link to this heading">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>FORMAL_CERTIFIED_FRONTIER
+= NOT_AVAILABLE
+
+EVIDENCE_DEMONSTRATED_FRONTIER
+= L3 — Scientific Research Machine
+
+DEVELOPMENT_FRONTIER
+= L4 — Operator Machine
+
+NEXT_FORMAL_CERTIFICATION_TARGET
+= L0 — Constitutional Foundation
+
+NEXT_FRONTIER_ADVANCEMENT_TARGET
+= L4 — Operator Machine
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="gap-pack-canonique-l4">
+<h1>3. Gap Pack canonique L4<a class="headerlink" href="#gap-pack-canonique-l4" title="Link to this heading">¶</a></h1>
+<section id="id19">
+<h2>L4-G1 — Operator Truth &amp; Data Parity<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code></p>
+<p>Source/UX evidence suffisante pour le critère.</p>
+</section>
+<section id="id20">
+<h2>L4-G2 — APP-UNIFY Global Source Certification<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<p>Manque :</p>
+<p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_SOURCE_CERTIFIED</span></code></p>
+<p>Les tranches U2/U2b/U3/U4/U6 ne peuvent pas être additionnées implicitement pour fabriquer ce verdict.</p>
+<p>Exit proof attendu :</p>
+<ul class="simple">
+<li><p>scope global APP-UNIFY borné;</p></li>
+<li><p>exact source HEAD;</p></li>
+<li><p>data contracts;</p></li>
+<li><p>cross-stack;</p></li>
+<li><p>full frontend/backend tests;</p></li>
+<li><p>visual/mobile;</p></li>
+<li><p>accessibility aggregate;</p></li>
+<li><p>security/source boundary;</p></li>
+<li><p>unresolved items;</p></li>
+<li><p>explicit no-runtime claim si source-only.</p></li>
+</ul>
+</section>
+<section id="id21">
+<h2>L4-G3 — Operator App Runtime Certification<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<p>Manque :</p>
+<p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_RUNTIME_CERTIFIED</span></code></p>
+<p>#342 est PREP/NO DEPLOY.</p>
+<p>Exit proof attendu :</p>
+<ul class="simple">
+<li><p>exact immutable release SHA;</p></li>
+<li><p>release plane isolé sous <code class="docutils literal notranslate"><span class="pre">/opt/crypto-ai-terminal/operator/releases/&lt;SHA&gt;</span></code>;</p></li>
+<li><p>API/Web services réels;</p></li>
+<li><p>listeners réels;</p></li>
+<li><p>browser/PWA réel;</p></li>
+<li><p>governed artifact paths;</p></li>
+<li><p>producer→artifact→reader→API→browser;</p></li>
+<li><p>Advisor identity/non-interference before/after;</p></li>
+<li><p>rollback Operator-only;</p></li>
+<li><p>no write path vers PPL/FIN/epoch;</p></li>
+<li><p>private/fail-closed access.</p></li>
+</ul>
+<p>Governance blocker courant :</p>
+<p>#286 reste actif.</p>
+<p>Donc cette gate runtime ne peut être exécutée qu’après une autorisation distincte compatible avec le burn-in.</p>
+</section>
+<section id="id22">
+<h2>L4-G4 — Operator Decision Trust Boundary<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span></code> pour L4 READ-ONLY.</p>
+<p>État honnête :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code></p>
+<p>Gate O #315 :</p>
+<p><code class="docutils literal notranslate"><span class="pre">OPEN</span> <span class="pre">/</span> <span class="pre">NON</span> <span class="pre">RÉSOLU</span></code></p>
+<p>Gate O devient obligatoire seulement avant <code class="docutils literal notranslate"><span class="pre">operational=true</span></code> ou avant toute action OperatorDecision mutante.</p>
+<p>L4 ne doit jamais exiger de fabriquer une queue opérationnelle uniquement pour obtenir une certification read-only.</p>
+</section>
+<section id="id23">
+<h2>L4-G5 — Source / Runtime Isolation<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+<p>Établi :</p>
+<ul class="simple">
+<li><p>architecture U8;</p></li>
+<li><p>release plane séparé;</p></li>
+<li><p>checkout Advisor séparé;</p></li>
+<li><p>read-only artifact contract.</p></li>
+</ul>
+<p>Manque :</p>
+<ul class="simple">
+<li><p>preuve runtime APP-UNIFY réelle de cette isolation.</p></li>
+</ul>
+</section>
+<section id="id24">
+<h2>L4-G6 — Human UX / Mobile / Accessibility<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+<p>Établi :</p>
+<ul class="simple">
+<li><p>nombreuses preuves desktop/mobile;</p></li>
+<li><p>semantic states;</p></li>
+<li><p>no fake zero;</p></li>
+<li><p>no horizontal-overflow evidence sur plusieurs tranches.</p></li>
+</ul>
+<p>Manque :</p>
+<ul class="simple">
+<li><p>preuve/accessibility aggregate au périmètre global L4.</p></li>
+</ul>
+<p>La résolution doit être intégrée à L4-G2, pas créer un second produit.</p>
+</section>
+<section id="id25">
+<h2>L4-G7 — Security / Access / Deployment Boundary<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code></p>
+<p>Établi :</p>
+<ul class="simple">
+<li><p>WEB-01B precedent;</p></li>
+<li><p>CryptoRadar #319 precedent;</p></li>
+<li><p>U8 security/deployment design.</p></li>
+</ul>
+<p>Manque :</p>
+<ul class="simple">
+<li><p>preuve runtime de l’Operator App canonique elle-même.</p></li>
+</ul>
+</section>
+<section id="id26">
+<h2>L4-G8 — L4 Certification Pack<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<p>Doit être produit seulement après G1→G7.</p>
+<p>Minimum conceptuel :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>L4CertificationPack {
+  catalog_version
+  catalog_hash
+
+  source_certification_ref
+  source_sha
+
+  runtime_certification_ref
+  runtime_release_sha
+
+  operator_data_contract_refs[]
+  runtime_artifact_refs[]
+
+  ux_proof_refs[]
+  accessibility_proof_refs[]
+  security_proof_refs[]
+  isolation_proof_refs[]
+
+  decision_trust_state
+
+  unresolved_items[]
+  rollback_ref
+
+  criterion_matrix
+  evidence_manifest_hash
+}
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="ordre-recommande-pour-fermer-l4-plus-tard">
+<h1>4. Ordre recommandé pour fermer L4 plus tard<a class="headerlink" href="#ordre-recommande-pour-fermer-l4-plus-tard" title="Link to this heading">¶</a></h1>
+<p>Sous #286, source work seulement :</p>
+<ol class="arabic simple">
+<li><p>compléter le périmètre APP-UNIFY restant;</p></li>
+<li><p>produire l’aggregate accessibility/UX proof;</p></li>
+<li><p>lancer la revue globale source;</p></li>
+<li><p>obtenir <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_SOURCE_CERTIFIED</span></code>.</p></li>
+</ol>
+<p>Ensuite seulement, lorsqu’une mission runtime distincte devient autorisée :</p>
+<ol class="arabic simple" start="5">
+<li><p>exécuter les gates U8 G0→G8;</p></li>
+<li><p>certifier runtime isolation/security/data fidelity;</p></li>
+<li><p>obtenir <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_RUNTIME_CERTIFIED</span></code>;</p></li>
+<li><p>assembler L4 Certification Pack;</p></li>
+<li><p>soumettre L4 à MACHINE-MATURITY certification review.</p></li>
+</ol>
+<p>#315 Gate O reste hors chemin critique si OperatorDecision demeure strictement <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="machinelevelcertification-minimum-fige-par-r2">
+<h1>5. MachineLevelCertification — minimum figé par R2<a class="headerlink" href="#machinelevelcertification-minimum-fige-par-r2" title="Link to this heading">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MachineLevelCertification {
+    schema_version
+
+    level_id
+    level_name
+    catalog_version
+    catalog_hash
+
+    certification_status
+    certified_at_utc
+    certification_authority
+
+    source_identity
+    runtime_identity
+
+    criterion_results[]
+    evidence_record_ids[]
+    evidence_manifest_hash
+
+    unresolved_items[]
+    accepted_not_applicable[]
+
+    previous_certification_hash
+    supersedes_certification_hash
+
+    revocation_invariants[]
+    revocation_ref
+
+    decision_ref
+    certification_hash
+}
+</pre></div>
+</div>
+<p>Règles :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">criterion_results[]</span></code> inclut tous les mandatory criteria;</p></li>
+<li><p>aucune ligne mandatory ne peut être UNRESOLVED/NOT_AVAILABLE lors d’un PASS;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">accepted_not_applicable[]</span></code> doit être autorisé par le critère;</p></li>
+<li><p>certificat immutable;</p></li>
+<li><p>recertification = nouvel artefact;</p></li>
+<li><p>revocation = nouvel artefact/référence;</p></li>
+<li><p>previous/supersedes hashes construisent la chaîne.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="machinematuritysnapshot-minimum-fige-par-r2">
+<h1>6. MachineMaturitySnapshot — minimum figé par R2<a class="headerlink" href="#machinematuritysnapshot-minimum-fige-par-r2" title="Link to this heading">¶</a></h1>
+<p>Le snapshot futur est une projection des certificats et états, jamais le moteur de certification.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MachineMaturitySnapshot {
+    schema_version
+    catalog_version
+    generated_at_utc
+
+    formal_certified_frontier
+    evidence_demonstrated_frontier
+    development_frontier
+
+    next_formal_certification_target
+    next_frontier_advancement_target
+
+    levels[]
+
+    active_experiments[]
+    active_governance_guards[]
+    blockers[]
+
+    source_refs[]
+    snapshot_hash
+}
+</pre></div>
+</div>
+<p>Chaque niveau expose séparément :</p>
+<ul class="simple">
+<li><p>level_id;</p></li>
+<li><p>certification_status;</p></li>
+<li><p>planning_horizon_state;</p></li>
+<li><p>criterion_counts;</p></li>
+<li><p>certification_ref;</p></li>
+<li><p>revocation_state.</p></li>
+</ul>
+<p>Le snapshot ne peut jamais calculer un <code class="docutils literal notranslate"><span class="pre">CERTIFIED</span></code> depuis le nombre de critères verts.</p>
+<p>Il ne peut que lire un <code class="docutils literal notranslate"><span class="pre">MachineLevelCertification</span></code> valide.</p>
+</section>
+<hr class="docutils" />
+<section id="effet-de-la-fusion-pr-348-pendant-r2">
+<h1>7. Effet de la fusion PR #348 pendant R2<a class="headerlink" href="#effet-de-la-fusion-pr-348-pendant-r2" title="Link to this heading">¶</a></h1>
+<p>PR #348 a été fusionnée après R1 :</p>
+<ul class="simple">
+<li><p>head : <code class="docutils literal notranslate"><span class="pre">18f7c159f207159243cb0227773427f2a209b26a</span></code>;</p></li>
+<li><p>merge/main : <code class="docutils literal notranslate"><span class="pre">eeaec5ae29a72b765bb97feb46520032aba44e2a</span></code>;</p></li>
+<li><p>scope : docs + JSON Schema;</p></li>
+<li><p>aucun worker/runtime/provider/GitHub writer/AIC ledger/deploy/PAPER mutation.</p></li>
+</ul>
+<p>Son propre texte précise :</p>
+<ul class="simple">
+<li><p>verdicts A0/A1 proposés, non certifiés;</p></li>
+<li><p>registrar non résolu;</p></li>
+<li><p>ancre anti-retour non résolue;</p></li>
+<li><p>stockage Q10 non résolu;</p></li>
+<li><p>indépendance forte non résolue;</p></li>
+<li><p>CODEOWNERS non résolu;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code> reste inatteignable.</p></li>
+</ul>
+<p>R2 classe donc :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>L5-G1 = UNRESOLVED
+L6 runtime criteria = NOT_AVAILABLE
+</pre></div>
+</div>
+<p>Cette fusion ne change ni Evidence-Demonstrated Frontier ni Development Frontier.</p>
+</section>
+<hr class="docutils" />
+<section id="prerequis-de-machine-maturity-01">
+<h1>8. Prérequis de MACHINE-MATURITY-01<a class="headerlink" href="#prerequis-de-machine-maturity-01" title="Link to this heading">¶</a></h1>
+<p>La rétro-certification L0/L1 peut être ouverte uniquement après revue/adoption du catalogue R2.</p>
+<section id="phase-a-l0">
+<h2>Phase A — L0<a class="headerlink" href="#phase-a-l0" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>freeze catalog version/hash;</p></li>
+<li><p>freeze EvidenceRecord set utilisé;</p></li>
+<li><p>vérifier L0-G1…G5;</p></li>
+<li><p>rechercher contradictions/supersessions;</p></li>
+<li><p>produire L0 evidence manifest;</p></li>
+<li><p>émettre soit :</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">LEVEL_0_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LEVEL_0_CERTIFICATION_REMEDIATION_REQUIRED</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="phase-b-l1">
+<h2>Phase B — L1<a class="headerlink" href="#phase-b-l1" title="Link to this heading">¶</a></h2>
+<p>Seulement si L0 = CERTIFIED.</p>
+<ul class="simple">
+<li><p>vérifier L1-G1…G6;</p></li>
+<li><p>distinguer historique et état requis;</p></li>
+<li><p>produire L1 evidence manifest;</p></li>
+<li><p>émettre soit :</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFICATION_REMEDIATION_REQUIRED</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+<p>Aucune rétro-certification L2/L3 dans la même décision si L0/L1 échouent.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="verdict-r2">
+<h1>9. Verdict R2<a class="headerlink" href="#verdict-r2" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">MACHINE_MATURITY_R2_CERTIFICATION_CATALOG_READY_FOR_REVIEW</span></code></p>
+<p>Cela signifie :</p>
+<ul class="simple">
+<li><p>vocabulaire défini;</p></li>
+<li><p>schema criterion défini;</p></li>
+<li><p>73 mandatory criteria définis;</p></li>
+<li><p>L0→L9 catalogués;</p></li>
+<li><p>preuves requises définies;</p></li>
+<li><p>substitutions interdites définies;</p></li>
+<li><p>dépendances définies;</p></li>
+<li><p>forbidden states définis;</p></li>
+<li><p>revocation invariants définis;</p></li>
+<li><p>current assessment calculé;</p></li>
+<li><p>gap pack L4 défini;</p></li>
+<li><p>minimum MachineLevelCertification défini;</p></li>
+<li><p>minimum MachineMaturitySnapshot défini.</p></li>
+</ul>
+<p>Cela ne signifie PAS :</p>
+<ul class="simple">
+<li><p>adoption irrévocable du catalogue;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LEVEL_0_CERTIFIED</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFIED</span></code>;</p></li>
+<li><p>modification runtime;</p></li>
+<li><p>finalisation #282;</p></li>
+<li><p>levée #286;</p></li>
+<li><p>fermeture #315;</p></li>
+<li><p>activation Forest/agents;</p></li>
+<li><p>capacité L5/L6.</p></li>
+</ul>
+<p>Aucune mutation runtime/PAPER/PPL/FIN/epoch/config/strategy/risk/sizing/Watchdog/TESTNET/LIVE/exchange n’a été effectuée par R2.</p>
+<!-- END CANONICAL COMMENT 5971167870 -->
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">MACHINE-MATURITY Certification Catalog v0.1</a><ul>
+<li><a class="reference internal" href="#canonicalization-rule">Canonicalization rule</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r2-a-certification-catalog-v0-1-semantique-l0l3">R2-A — CERTIFICATION CATALOG v0.1 — SÉMANTIQUE + L0→L3</a></li>
+<li><a class="reference internal" href="#schema-normatif-dun-critere">1. Schéma normatif d’un critère</a><ul>
+<li><a class="reference internal" href="#current-assessment">1.1 current_assessment</a><ul>
+<li><a class="reference internal" href="#satisfied">SATISFIED</a></li>
+<li><a class="reference internal" href="#unresolved">UNRESOLVED</a></li>
+<li><a class="reference internal" href="#not-available">NOT_AVAILABLE</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mandatory">1.2 mandatory</a></li>
+<li><a class="reference internal" href="#proof-requirement">1.3 proof_requirement</a></li>
+<li><a class="reference internal" href="#accepted-evidence">1.4 accepted evidence</a></li>
+<li><a class="reference internal" href="#forbidden-substitutions-globales">1.5 forbidden substitutions globales</a></li>
+<li><a class="reference internal" href="#dependances-et-certification">1.6 dépendances et certification</a></li>
+<li><a class="reference internal" href="#revocation">1.7 révocation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l0-constitutional-foundation">2. L0 — CONSTITUTIONAL FOUNDATION</a><ul>
+<li><a class="reference internal" href="#purpose">PURPOSE</a></li>
+<li><a class="reference internal" href="#entry-conditions">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l0-g1-authority-constitution-domain-separation">L0-G1 — Authority constitution &amp; domain separation</a></li>
+<li><a class="reference internal" href="#l0-g2-proof-type-separation-no-proof-substitution">L0-G2 — Proof-type separation / no proof substitution</a></li>
+<li><a class="reference internal" href="#l0-g3-fail-closed-epistemic-semantics">L0-G3 — Fail-closed epistemic semantics</a></li>
+<li><a class="reference internal" href="#l0-g4-governed-change-control">L0-G4 — Governed change control</a></li>
+<li><a class="reference internal" href="#l0-g5-immutable-evidence-history-supersession-revocation-boundary">L0-G5 — Immutable evidence history, supersession &amp; revocation boundary</a><ul>
+<li><a class="reference internal" href="#l0-r2-assessment">L0 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l1-observable-machine">3. L1 — OBSERVABLE MACHINE</a><ul>
+<li><a class="reference internal" href="#id1">PURPOSE</a></li>
+<li><a class="reference internal" href="#id2">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l1-g1-structured-machine-observation-decision-provenance">L1-G1 — Structured machine observation &amp; decision provenance</a></li>
+<li><a class="reference internal" href="#l1-g2-durable-event-truth-deterministic-replay">L1-G2 — Durable event truth &amp; deterministic replay</a></li>
+<li><a class="reference internal" href="#l1-g3-read-only-operator-observation-surface">L1-G3 — Read-only operator observation surface</a></li>
+<li><a class="reference internal" href="#l1-g4-provenance-freshness-uncertainty-visible">L1-G4 — Provenance / freshness / uncertainty visible</a></li>
+<li><a class="reference internal" href="#l1-g5-runtime-health-recovery-observability">L1-G5 — Runtime health / recovery observability</a></li>
+<li><a class="reference internal" href="#l1-g6-observability-is-non-authoritative">L1-G6 — Observability is non-authoritative</a><ul>
+<li><a class="reference internal" href="#l1-r2-assessment">L1 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l2-governed-paper-machine">4. L2 — GOVERNED PAPER MACHINE</a><ul>
+<li><a class="reference internal" href="#id3">PURPOSE</a></li>
+<li><a class="reference internal" href="#id4">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l2-g1-single-governed-paper-lifecycle-authority">L2-G1 — Single governed PAPER lifecycle authority</a></li>
+<li><a class="reference internal" href="#l2-g2-replay-complete-lifecycle-restart-determinism">L2-G2 — Replay-complete lifecycle &amp; restart determinism</a></li>
+<li><a class="reference internal" href="#l2-g3-governed-epoch-config-capital-identity">L2-G3 — Governed epoch / config / capital identity</a></li>
+<li><a class="reference internal" href="#l2-g4-controlled-admission-runtime-authority-boundary">L2-G4 — Controlled admission &amp; runtime authority boundary</a></li>
+<li><a class="reference internal" href="#l2-g5-financial-semantics-deterministic-projection">L2-G5 — Financial semantics &amp; deterministic projection</a></li>
+<li><a class="reference internal" href="#l2-g6-reconciliation-no-silent-correction">L2-G6 — Reconciliation / no silent correction</a></li>
+<li><a class="reference internal" href="#l2-g7-completed-governed-scientific-paper-experiment">L2-G7 — Completed governed scientific PAPER experiment</a><ul>
+<li><a class="reference internal" href="#l2-r2-assessment">L2 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l3-scientific-research-machine">5. L3 — SCIENTIFIC RESEARCH MACHINE</a><ul>
+<li><a class="reference internal" href="#id5">PURPOSE</a></li>
+<li><a class="reference internal" href="#id6">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l3-g1-immutable-paper-research-dataset-provenance">L3-G1 — Immutable PAPER → Research dataset/provenance</a></li>
+<li><a class="reference internal" href="#l3-g2-deterministic-research-replay">L3-G2 — Deterministic Research replay</a></li>
+<li><a class="reference internal" href="#l3-g3-reproducible-diagnostics-attribution">L3-G3 — Reproducible diagnostics / attribution</a></li>
+<li><a class="reference internal" href="#l3-g4-candidate-registry-governed-promotion-boundary">L3-G4 — Candidate registry &amp; governed promotion boundary</a></li>
+<li><a class="reference internal" href="#l3-g5-market-paper-research-domain-separation">L3-G5 — Market / PAPER / Research domain separation</a></li>
+<li><a class="reference internal" href="#l3-g6-same-epoch-no-feedback-invariant">L3-G6 — Same-epoch no-feedback invariant</a></li>
+<li><a class="reference internal" href="#l3-g7-governed-active-experiment-capture-replay-diagnostic-publication">L3-G7 — Governed active-experiment capture / replay / diagnostic / publication</a></li>
+<li><a class="reference internal" href="#l3-g8-governed-research-stack-integration-provenance">L3-G8 — Governed Research stack integration / provenance</a><ul>
+<li><a class="reference internal" href="#l3-r2-assessment">L3 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r2-a-conclusion">R2-A conclusion</a></li>
+<li><a class="reference internal" href="#r2-b-certification-catalog-v0-1-l4l9">R2-B — CERTIFICATION CATALOG v0.1 — L4→L9</a></li>
+<li><a class="reference internal" href="#l4-operator-machine">6. L4 — OPERATOR MACHINE</a><ul>
+<li><a class="reference internal" href="#id7">PURPOSE</a></li>
+<li><a class="reference internal" href="#id8">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l4-g1-operator-truth-data-parity">L4-G1 — Operator Truth &amp; Data Parity</a></li>
+<li><a class="reference internal" href="#l4-g2-app-unify-global-source-certification">L4-G2 — APP-UNIFY Global Source Certification</a></li>
+<li><a class="reference internal" href="#l4-g3-operator-app-runtime-certification">L4-G3 — Operator App Runtime Certification</a></li>
+<li><a class="reference internal" href="#l4-g4-operator-decision-trust-boundary">L4-G4 — Operator Decision Trust Boundary</a></li>
+<li><a class="reference internal" href="#l4-g5-source-runtime-isolation">L4-G5 — Source / Runtime Isolation</a></li>
+<li><a class="reference internal" href="#l4-g6-human-ux-mobile-accessibility">L4-G6 — Human UX / Mobile / Accessibility</a></li>
+<li><a class="reference internal" href="#l4-g7-security-access-deployment-boundary">L4-G7 — Security / Access / Deployment Boundary</a></li>
+<li><a class="reference internal" href="#l4-g8-l4-certification-pack">L4-G8 — L4 Certification Pack</a><ul>
+<li><a class="reference internal" href="#l4-r2-assessment">L4 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l5-self-maintaining-forest">7. L5 — SELF-MAINTAINING FOREST</a><ul>
+<li><a class="reference internal" href="#id9">PURPOSE</a></li>
+<li><a class="reference internal" href="#id10">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l5-g1-forest-maintenance-constitution">L5-G1 — Forest maintenance constitution</a></li>
+<li><a class="reference internal" href="#l5-g2-governed-problem-registry">L5-G2 — Governed Problem Registry</a></li>
+<li><a class="reference internal" href="#l5-g3-machine-self-observation-problem-discovery">L5-G3 — Machine self-observation → problem discovery</a></li>
+<li><a class="reference internal" href="#l5-g4-isolated-maintenance-proposal-workspace">L5-G4 — Isolated maintenance proposal/workspace</a></li>
+<li><a class="reference internal" href="#l5-g5-independent-verification-before-human-decision">L5-G5 — Independent verification before human decision</a></li>
+<li><a class="reference internal" href="#l5-g6-human-authority-no-automatic-merge-deploy">L5-G6 — Human authority / no automatic merge-deploy</a></li>
+<li><a class="reference internal" href="#l5-g7-maintenance-audit-rollback-outcome-evidence">L5-G7 — Maintenance audit / rollback / outcome evidence</a><ul>
+<li><a class="reference internal" href="#l5-r2-assessment">L5 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l6-governed-agent-engineering">8. L6 — GOVERNED AGENT ENGINEERING</a><ul>
+<li><a class="reference internal" href="#id11">PURPOSE</a></li>
+<li><a class="reference internal" href="#id12">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l6-g1-agent-identity-capability-registry">L6-G1 — Agent identity &amp; capability registry</a></li>
+<li><a class="reference internal" href="#l6-g2-capability-scoped-sandbox-execution">L6-G2 — Capability-scoped sandbox execution</a></li>
+<li><a class="reference internal" href="#l6-g3-governed-problem-bounty-lifecycle">L6-G3 — Governed Problem/Bounty lifecycle</a></li>
+<li><a class="reference internal" href="#l6-g4-independent-reviewer-validator-agents">L6-G4 — Independent reviewer / validator agents</a></li>
+<li><a class="reference internal" href="#l6-g5-engineering-artifact-provenance">L6-G5 — Engineering artifact provenance</a></li>
+<li><a class="reference internal" href="#l6-g6-compute-cost-internal-economy-accounting">L6-G6 — Compute / cost / internal economy accounting</a></li>
+<li><a class="reference internal" href="#l6-g7-human-merge-deploy-authority-remains-external">L6-G7 — Human merge/deploy authority remains external</a></li>
+<li><a class="reference internal" href="#l6-g8-multi-agent-collaboration-reproducibility">L6-G8 — Multi-agent collaboration reproducibility</a><ul>
+<li><a class="reference internal" href="#l6-r2-assessment">L6 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l7-autonomous-test-environment">9. L7 — AUTONOMOUS TEST ENVIRONMENT</a><ul>
+<li><a class="reference internal" href="#id13">PURPOSE</a></li>
+<li><a class="reference internal" href="#id14">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l7-g1-hermetic-test-substrate">L7-G1 — Hermetic test substrate</a></li>
+<li><a class="reference internal" href="#l7-g2-deterministic-orchestration-exact-head-execution">L7-G2 — Deterministic orchestration &amp; exact-head execution</a></li>
+<li><a class="reference internal" href="#l7-g3-autonomous-scenario-generation">L7-G3 — Autonomous scenario generation</a></li>
+<li><a class="reference internal" href="#l7-g4-candidate-system-sandbox-under-autonomous-test">L7-G4 — Candidate/system sandbox under autonomous test</a></li>
+<li><a class="reference internal" href="#l7-g5-independent-evaluation-adversarial-verification">L7-G5 — Independent evaluation &amp; adversarial verification</a></li>
+<li><a class="reference internal" href="#l7-g6-no-production-mutation-from-autonomous-testing">L7-G6 — No production mutation from autonomous testing</a></li>
+<li><a class="reference internal" href="#l7-g7-reproducible-test-evidence-publication">L7-G7 — Reproducible test evidence publication</a></li>
+<li><a class="reference internal" href="#l7-g8-autonomous-closed-test-loop">L7-G8 — Autonomous closed test loop</a><ul>
+<li><a class="reference internal" href="#l7-r2-assessment">L7 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l8-governed-capital-machine">10. L8 — GOVERNED CAPITAL MACHINE</a><ul>
+<li><a class="reference internal" href="#id15">PURPOSE</a></li>
+<li><a class="reference internal" href="#id16">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l8-g1-non-paper-capital-authority-contract">L8-G1 — Non-PAPER capital authority contract</a></li>
+<li><a class="reference internal" href="#l8-g2-credential-custody-secret-boundary">L8-G2 — Credential / custody / secret boundary</a></li>
+<li><a class="reference internal" href="#l8-g3-governed-capital-allocation-treasury-authority">L8-G3 — Governed capital allocation / Treasury authority</a></li>
+<li><a class="reference internal" href="#l8-g4-real-test-execution-authority-fail-closed-risk-boundary">L8-G4 — Real/test execution authority &amp; fail-closed risk boundary</a></li>
+<li><a class="reference internal" href="#l8-g5-external-reconciliation">L8-G5 — External reconciliation</a></li>
+<li><a class="reference internal" href="#l8-g6-capital-kill-rollback-incident-containment">L8-G6 — Capital kill / rollback / incident containment</a></li>
+<li><a class="reference internal" href="#l8-g7-human-capital-authority-cannot-be-bought-or-bypassed">L8-G7 — Human capital authority cannot be bought or bypassed</a></li>
+<li><a class="reference internal" href="#l8-g8-governed-capital-certification-pack">L8-G8 — Governed capital certification pack</a><ul>
+<li><a class="reference internal" href="#l8-r2-assessment">L8 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l9-adaptive-research-organization">11. L9 — ADAPTIVE RESEARCH ORGANIZATION</a><ul>
+<li><a class="reference internal" href="#id17">PURPOSE</a></li>
+<li><a class="reference internal" href="#id18">ENTRY_CONDITIONS</a></li>
+<li><a class="reference internal" href="#l9-g1-institutional-knowledge-lineage-memory">L9-G1 — Institutional knowledge / lineage memory</a></li>
+<li><a class="reference internal" href="#l9-g2-hypothesis-portfolio-research-agenda-governance">L9-G2 — Hypothesis portfolio &amp; research agenda governance</a></li>
+<li><a class="reference internal" href="#l9-g3-adaptive-resource-allocation">L9-G3 — Adaptive resource allocation</a></li>
+<li><a class="reference internal" href="#l9-g4-cross-epoch-learning-without-same-epoch-feedback">L9-G4 — Cross-epoch learning without same-epoch feedback</a></li>
+<li><a class="reference internal" href="#l9-g5-multi-agent-human-organizational-decision-separation">L9-G5 — Multi-agent / human organizational decision separation</a></li>
+<li><a class="reference internal" href="#l9-g6-self-improvement-evaluation-anti-goodhart-controls">L9-G6 — Self-improvement evaluation &amp; anti-Goodhart controls</a></li>
+<li><a class="reference internal" href="#l9-g7-organizational-incident-revocation-capability">L9-G7 — Organizational incident / revocation capability</a></li>
+<li><a class="reference internal" href="#l9-g8-adaptive-organization-certification-pack">L9-G8 — Adaptive organization certification pack</a><ul>
+<li><a class="reference internal" href="#l9-r2-assessment">L9 R2 assessment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r2-b-conclusion">R2-B conclusion</a></li>
+<li><a class="reference internal" href="#r2-c-matrice-canonique-gap-pack-l4-et-closure-r2">R2-C — MATRICE CANONIQUE, GAP PACK L4 ET CLOSURE R2</a></li>
+<li><a class="reference internal" href="#matrice-agregee">1. Matrice agrégée</a></li>
+<li><a class="reference internal" href="#frontieres-apres-r2">2. Frontières après R2</a></li>
+<li><a class="reference internal" href="#gap-pack-canonique-l4">3. Gap Pack canonique L4</a><ul>
+<li><a class="reference internal" href="#id19">L4-G1 — Operator Truth &amp; Data Parity</a></li>
+<li><a class="reference internal" href="#id20">L4-G2 — APP-UNIFY Global Source Certification</a></li>
+<li><a class="reference internal" href="#id21">L4-G3 — Operator App Runtime Certification</a></li>
+<li><a class="reference internal" href="#id22">L4-G4 — Operator Decision Trust Boundary</a></li>
+<li><a class="reference internal" href="#id23">L4-G5 — Source / Runtime Isolation</a></li>
+<li><a class="reference internal" href="#id24">L4-G6 — Human UX / Mobile / Accessibility</a></li>
+<li><a class="reference internal" href="#id25">L4-G7 — Security / Access / Deployment Boundary</a></li>
+<li><a class="reference internal" href="#id26">L4-G8 — L4 Certification Pack</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ordre-recommande-pour-fermer-l4-plus-tard">4. Ordre recommandé pour fermer L4 plus tard</a></li>
+<li><a class="reference internal" href="#machinelevelcertification-minimum-fige-par-r2">5. MachineLevelCertification — minimum figé par R2</a></li>
+<li><a class="reference internal" href="#machinematuritysnapshot-minimum-fige-par-r2">6. MachineMaturitySnapshot — minimum figé par R2</a></li>
+<li><a class="reference internal" href="#effet-de-la-fusion-pr-348-pendant-r2">7. Effet de la fusion PR #348 pendant R2</a></li>
+<li><a class="reference internal" href="#prerequis-de-machine-maturity-01">8. Prérequis de MACHINE-MATURITY-01</a><ul>
+<li><a class="reference internal" href="#phase-a-l0">Phase A — L0</a></li>
+<li><a class="reference internal" href="#phase-b-l1">Phase B — L1</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#verdict-r2">9. Verdict R2</a></li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

@@ -1,0 +1,1352 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>MACHINE-MATURITY Evidence Ledger v0.1 - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/governance/machine_maturity/EVIDENCE_LEDGER_v0.1.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/governance/machine_maturity/EVIDENCE_LEDGER_v0.1.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="machine-maturity-evidence-ledger-v0-1">
+<h1>MACHINE-MATURITY Evidence Ledger v0.1<a class="headerlink" href="#machine-maturity-evidence-ledger-v0-1" title="Link to this heading">¶</a></h1>
+<p>Status: FROZEN INPUT CANDIDATE for #365 MACHINE-MATURITY-01<br />
+Source framework: #362 MACHINE-MATURITY-00<br />
+Evidence ledger version: <code class="docutils literal notranslate"><span class="pre">MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1</span></code><br />
+Materialization base: <code class="docutils literal notranslate"><span class="pre">main&#64;da1973dd5c901a757e4fb7da45adee150500c9bd</span></code></p>
+<section id="canonicalization-rule">
+<h2>Canonicalization rule<a class="headerlink" href="#canonicalization-rule" title="Link to this heading">¶</a></h2>
+<p>This artifact is a byte-preserving governance materialization of #362
+comment 5971018149 (R1-B — Evidence Ledger rétroactif v0.1).</p>
+<p>The Git blob identity of this file is the content-addressed
+<code class="docutils literal notranslate"><span class="pre">evidence_ledger_hash</span></code> used by MM-01 after review/merge.</p>
+<p>No evidence record may be added to MM-01 after input freeze except through an
+explicit governed EvidenceCorpusAmendment with a new identity.</p>
+<hr class="docutils" />
+<!-- BEGIN CANONICAL COMMENT 5971018149 -->
+</section>
+</section>
+<section id="r1-b-evidence-ledger-retroactif-v0-1">
+<h1>R1-B — EVIDENCE LEDGER RÉTROACTIF v0.1<a class="headerlink" href="#r1-b-evidence-ledger-retroactif-v0-1" title="Link to this heading">¶</a></h1>
+<p>Baseline d’audit :</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;23c6f45ad68c754c10e4bbf7aa6bb36740b68ebe</span></code></p>
+<p>Règle : chaque ligne ci-dessous est un <strong>EvidenceRecord</strong>, pas un certificat de niveau. Un même verdict peut satisfaire plusieurs critères mais ne change jamais directement le statut d’un niveau en <code class="docutils literal notranslate"><span class="pre">CERTIFIED</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="l0-constitutional-foundation">
+<h1>L0 — CONSTITUTIONAL FOUNDATION<a class="headerlink" href="#l0-constitutional-foundation" title="Link to this heading">¶</a></h1>
+<section id="mm-ev-l0-001-pre-f00-governed-remediation-chain">
+<h2>MM-EV-L0-001 — Pre-F00 governed remediation chain<a class="headerlink" href="#mm-ev-l0-001-pre-f00-governed-remediation-chain" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #211</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">PRE_F00_SOURCE_REMEDIATION_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G2,</span> <span class="pre">L0-G3,</span> <span class="pre">L0-G4,</span> <span class="pre">L0-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limites : n’autorise ni déploiement, ni F00, ni burn-in.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l0-002-orchestration-integrity">
+<h2>MM-EV-L0-002 — Orchestration integrity<a class="headerlink" href="#mm-ev-l0-002-orchestration-integrity" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #199</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">CI_ORCH_01_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l0-003-scientific-data-test-isolation">
+<h2>MM-EV-L0-003 — Scientific data test isolation<a class="headerlink" href="#mm-ev-l0-003-scientific-data-test-isolation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #201</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">TI_00_SCIENTIFIC_DATA_TEST_ISOLATION_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G3,</span> <span class="pre">L0-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l0-004-coverage-contract">
+<h2>MM-EV-L0-004 — Coverage contract<a class="headerlink" href="#mm-ev-l0-004-coverage-contract" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #212</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">CI_COV_01_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l0-005-deterministic-test-coverage-governance">
+<h2>MM-EV-L0-005 — Deterministic test/coverage governance<a class="headerlink" href="#mm-ev-l0-005-deterministic-test-coverage-governance" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #214</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">CI_COVERALLS_01_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G4,</span> <span class="pre">L0-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l0-006-ambient-persistence-isolation">
+<h2>MM-EV-L0-006 — Ambient persistence isolation<a class="headerlink" href="#mm-ev-l0-006-ambient-persistence-isolation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #267</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">HERM_02_TEST_PERSISTENCE_ISOLATION_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G3,</span> <span class="pre">L0-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l0-007-unknown-unresolved-accounting-semantics">
+<h2>MM-EV-L0-007 — UNKNOWN/UNRESOLVED accounting semantics<a class="headerlink" href="#mm-ev-l0-007-unknown-unresolved-accounting-semantics" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #268</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">ACC_01_UNRESOLVED_ACCOUNTING_BOUNDARY_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G3,</span> <span class="pre">L0-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve clé : missing/unresolved PnL n’est pas converti en 0; <code class="docutils literal notranslate"><span class="pre">0.0</span></code> est BREAKEVEN, pas WIN.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l0-008-active-burn-in-immutability-constitution">
+<h2>MM-EV-L0-008 — Active burn-in immutability constitution<a class="headerlink" href="#mm-ev-l0-008-active-burn-in-immutability-constitution" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #286</p></li>
+<li><p>état : <code class="docutils literal notranslate"><span class="pre">ACTIVE_BURN_IN_IMMUTABILITY_GUARD</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L0-G1,</span> <span class="pre">L0-G2,</span> <span class="pre">L0-G4,</span> <span class="pre">L0-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : état de gouvernance actif, pas certificat de niveau.</p></li>
+</ul>
+<section id="assessment-l0">
+<h3>Assessment L0<a class="headerlink" href="#assessment-l0" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">EVIDENCE_SUFFICIENT_FOR_CERTIFICATION_REVIEW</span></code></p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_0_CERTIFIED</span></code> n’est émis.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l1-observable-machine">
+<h1>L1 — OBSERVABLE MACHINE<a class="headerlink" href="#l1-observable-machine" title="Link to this heading">¶</a></h1>
+<section id="mm-ev-l1-001-durable-paper-event-truth">
+<h2>MM-EV-L1-001 — Durable PAPER event truth<a class="headerlink" href="#mm-ev-l1-001-durable-paper-event-truth" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #154 / PR #155</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">PPL_02B_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G2</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : durable append, ordre/sequence, event identity, idempotence, atomicité/corruption, replay déterministe.</p></li>
+<li><p>limite : aucune autorité PAPER runtime accordée par ce verdict.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-002-operator-web-local-read-only-runtime">
+<h2>MM-EV-L1-002 — Operator Web local read-only runtime<a class="headerlink" href="#mm-ev-l1-002-operator-web-local-read-only-runtime" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #162</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WEB_01_FINAL_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF,</span> <span class="pre">UX_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G3,</span> <span class="pre">L1-G4,</span> <span class="pre">L1-G5,</span> <span class="pre">L1-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limites historiques conservées : canonical snapshot était <code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span> <span class="pre">/</span> <span class="pre">SNAPSHOT_MISSING</span></code> à cette certification.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-003-private-pwa-controlled-access">
+<h2>MM-EV-L1-003 — Private PWA controlled access<a class="headerlink" href="#mm-ev-l1-003-private-pwa-controlled-access" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #164 / PR #166</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WEB_01B_PRIVATE_PWA_RUNTIME_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SECURITY_PROOF,</span> <span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G3,</span> <span class="pre">L1-G5,</span> <span class="pre">L1-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : loopback-only, tailnet HTTPS, PWA réelle, cache runtime interdit, perte réseau fail-closed.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-004-ppl-shadow-observation-convergence-runtime">
+<h2>MM-EV-L1-004 — PPL SHADOW observation/convergence runtime<a class="headerlink" href="#mm-ev-l1-004-ppl-shadow-observation-convergence-runtime" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #167</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">PPL_02D_SHADOW_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G2,</span> <span class="pre">L1-G4,</span> <span class="pre">L1-G5,</span> <span class="pre">L1-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : ACTIVE→DEGRADED→ACTIVE, replay, immutable store, pas de double lifecycle, legacy reste autoritaire.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-005-universe-runtime-recertification">
+<h2>MM-EV-L1-005 — Universe runtime recertification<a class="headerlink" href="#mm-ev-l1-005-universe-runtime-recertification" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #174</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">OPS_C_RUNTIME_RECERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-006-ppl-comparator-runtime">
+<h2>MM-EV-L1-006 — PPL comparator runtime<a class="headerlink" href="#mm-ev-l1-006-ppl-comparator-runtime" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #175</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WEB_02_PPL_COMPARATOR_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF,</span> <span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G3,</span> <span class="pre">L1-G4,</span> <span class="pre">L1-G5,</span> <span class="pre">L1-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : producer→API→frontend fidelity, uncertainty explicite, pas de fake convergence, responsive runtime proof.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-007-ppl-scientific-capital-provenance">
+<h2>MM-EV-L1-007 — PPL scientific-capital provenance<a class="headerlink" href="#mm-ev-l1-007-ppl-scientific-capital-provenance" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #223</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WALLET_PPL_PROVENANCE_OBSERVABILITY_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G1,</span> <span class="pre">L1-G4,</span> <span class="pre">L1-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-008-architecture-surface-forensic">
+<h2>MM-EV-L1-008 — Architecture surface forensic<a class="headerlink" href="#mm-ev-l1-008-architecture-surface-forensic" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #287</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">ARCH_CONSOLIDATION_FORENSIC_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G4,</span> <span class="pre">L1-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-009-runtime-unknown-evidence-pack">
+<h2>MM-EV-L1-009 — Runtime UNKNOWN evidence pack<a class="headerlink" href="#mm-ev-l1-009-runtime-unknown-evidence-pack" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #309</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">ARCH_CONSOLIDATION_RUNTIME_UNKNOWN_EVIDENCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G4,</span> <span class="pre">L1-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>limite : résout des UNKNOWNs; n’autorise aucun cleanup.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l1-010-cryptoradar-isolated-secure-runtime-precedent">
+<h2>MM-EV-L1-010 — CryptoRadar isolated secure runtime precedent<a class="headerlink" href="#mm-ev-l1-010-cryptoradar-isolated-secure-runtime-precedent" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #319</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">SEC_CRYPTORADAR_02_RUNTIME_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SECURITY_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L1-G3,</span> <span class="pre">L1-G5,</span> <span class="pre">L1-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>limite : preuve de CryptoRadar, pas certification runtime de l’Operator App APP-UNIFY.</p></li>
+</ul>
+<section id="assessment-l1">
+<h3>Assessment L1<a class="headerlink" href="#assessment-l1" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">EVIDENCE_SUFFICIENT_FOR_CERTIFICATION_REVIEW</span></code></p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFIED</span></code> n’est émis.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l2-governed-paper-machine">
+<h1>L2 — GOVERNED PAPER MACHINE<a class="headerlink" href="#l2-governed-paper-machine" title="Link to this heading">¶</a></h1>
+<section id="mm-ev-l2-001-single-ppl-paper-lifecycle-authority">
+<h2>MM-EV-L2-001 — Single PPL PAPER lifecycle authority<a class="headerlink" href="#mm-ev-l2-001-single-ppl-paper-lifecycle-authority" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>sources : #180/#184, avec chaîne R1→R4 #181/#182/#183/#184</p></li>
+<li><p>verdict final : <code class="docutils literal notranslate"><span class="pre">PPL_02E_RUNTIME_CUTOVER_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G1,</span> <span class="pre">L2-G2</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : PPL devient autorité lifecycle persistante/rejouable; Legacy devient projection compatibility/research.</p></li>
+<li><p>notes : les verdicts R1/R2/R3/R4 <code class="docutils literal notranslate"><span class="pre">SOURCE_READY</span></code> restent des preuves source intermédiaires, pas des runtime proofs.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-002-f00-preflight-governed-source-runtime-boundary">
+<h2>MM-EV-L2-002 — F00 preflight governed source/runtime boundary<a class="headerlink" href="#mm-ev-l2-002-f00-preflight-governed-source-runtime-boundary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #218</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_PREFLIGHT_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G2,</span> <span class="pre">L2-G3,</span> <span class="pre">L2-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-003-experiment-manifest-rotation-contract">
+<h2>MM-EV-L2-003 — Experiment manifest rotation contract<a class="headerlink" href="#mm-ev-l2-003-experiment-manifest-rotation-contract" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #220</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">EPOCH_01_MANIFEST_ROTATION_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G3</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-004-governed-f00-epoch-creation">
+<h2>MM-EV-L2-004 — Governed F00 epoch creation<a class="headerlink" href="#mm-ev-l2-004-governed-f00-epoch-creation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #219</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">EPOCH_01_1000_CAPITAL_CREATED_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G3</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : un EPOCH_CREATED, capital 1000, PB=0, services arrêtés, predecessor explicite.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-005-runtime-bootstrap-replay-boundary">
+<h2>MM-EV-L2-005 — Runtime bootstrap / replay boundary<a class="headerlink" href="#mm-ev-l2-005-runtime-bootstrap-replay-boundary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #222</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">EPOCH_01_RUNTIME_BOOTSTRAP_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G2,</span> <span class="pre">L2-G3,</span> <span class="pre">L2-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-006-full-experiment-configuration-freeze">
+<h2>MM-EV-L2-006 — Full experiment configuration freeze<a class="headerlink" href="#mm-ev-l2-006-full-experiment-configuration-freeze" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #226</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_EXPERIMENT_CONFIG_FREEZE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF,</span> <span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G3</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : 258 paramètres matériels capturés; source/epoch/config hash liés; admission encore fermée pendant capture.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-007-f00-start-precheck">
+<h2>MM-EV-L2-007 — F00 start precheck<a class="headerlink" href="#mm-ev-l2-007-f00-start-precheck" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #225</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_START_PRECHECK_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G3,</span> <span class="pre">L2-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>supersedes : verdict historique <code class="docutils literal notranslate"><span class="pre">F00_START_PRECHECK_REMEDIATION_REQUIRED</span></code> après correction #226.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-008-governed-admission-activation">
+<h2>MM-EV-L2-008 — Governed admission activation<a class="headerlink" href="#mm-ev-l2-008-governed-admission-activation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #230</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_ADMISSION_ACTIVATION_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-009-first-authoritative-f00-lifecycle-event">
+<h2>MM-EV-L2-009 — First authoritative F00 lifecycle event<a class="headerlink" href="#mm-ev-l2-009-first-authoritative-f00-lifecycle-event" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #231</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_FIRST_LIFECYCLE_EVENT_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G4,</span> <span class="pre">L2-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : premier POSITION_OPENED durable; T0 scientifique explicite.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-010-f00-restart-continuity">
+<h2>MM-EV-L2-010 — F00 restart continuity<a class="headerlink" href="#mm-ev-l2-010-f00-restart-continuity" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #232</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_RUNTIME_RESUME_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G2,</span> <span class="pre">L2-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-011-first-completed-lifecycle">
+<h2>MM-EV-L2-011 — First completed lifecycle<a class="headerlink" href="#mm-ev-l2-011-first-completed-lifecycle" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #233</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_FIRST_COMPLETED_LIFECYCLE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G2,</span> <span class="pre">L2-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-012-financial-semantics-constitution">
+<h2>MM-EV-L2-012 — Financial semantics constitution<a class="headerlink" href="#mm-ev-l2-012-financial-semantics-constitution" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #244</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">FIN_00_FINANCIAL_SEMANTICS_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite explicite : <code class="docutils literal notranslate"><span class="pre">RUNTIME:</span> <span class="pre">N/A</span> <span class="pre">—</span> <span class="pre">FIN-00</span> <span class="pre">is</span> <span class="pre">contract-only</span></code>.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-013-paper-financial-institute-v1">
+<h2>MM-EV-L2-013 — PAPER Financial Institute v1<a class="headerlink" href="#mm-ev-l2-013-paper-financial-institute-v1" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #245</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">FIN_01_PAPER_FINANCIAL_INSTITUTE_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : runtime NOT ACTIVATED par ce verdict.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-014-ppl-fin-restart-replay-determinism">
+<h2>MM-EV-L2-014 — PPL/FIN restart &amp; replay determinism<a class="headerlink" href="#mm-ev-l2-014-ppl-fin-restart-replay-determinism" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #246</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">PPL_FINANCIAL_RECOVERY_REPLAY_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G2,</span> <span class="pre">L2-G5,</span> <span class="pre">L2-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : PRE/POST byte identity, deterministic FIN snapshots; marks indisponibles restent UNRESOLVED.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-015-financial-reconciliation-cockpit">
+<h2>MM-EV-L2-015 — Financial reconciliation cockpit<a class="headerlink" href="#mm-ev-l2-015-financial-reconciliation-cockpit" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #247</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">FIN_02_RECONCILIATION_COCKPIT_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF,</span> <span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : live artifact/API/browser fidelity + isolation/non-mutation.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-016-f00-controlled-drain-and-quiescence">
+<h2>MM-EV-L2-016 — F00 controlled drain and quiescence<a class="headerlink" href="#mm-ev-l2-016-f00-controlled-drain-and-quiescence" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #255</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_DRAIN_COMPLETE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G2,</span> <span class="pre">L2-G4,</span> <span class="pre">L2-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : 27 events, 13 OPEN, 13 CLOSE, 0 unresolved, 0 open; final PPL digest stable.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l2-017-final-f00-scientific-certification">
+<h2>MM-EV-L2-017 — Final F00 scientific certification<a class="headerlink" href="#mm-ev-l2-017-final-f00-scientific-certification" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #256</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">F00_FINAL_SCIENTIFIC_EXPERIMENT_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF,</span> <span class="pre">SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L2-G1,</span> <span class="pre">L2-G2,</span> <span class="pre">L2-G3,</span> <span class="pre">L2-G5,</span> <span class="pre">L2-G6,</span> <span class="pre">L2-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : immutable identity, lifecycle completeness, financial interpretation, FIN reconciliation, source/runtime closure.</p></li>
+</ul>
+<section id="assessment-l2">
+<h3>Assessment L2<a class="headerlink" href="#assessment-l2" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">EVIDENCE_SUFFICIENT_FOR_CERTIFICATION_REVIEW</span></code></p>
+<p>La preuve L2 ne repose pas sur l’existence de PAPER dans le code. Elle repose sur une chaîne réelle d’autorité, epoch, runtime, lifecycle, finance, replay et expérience complète.</p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_2_CERTIFIED</span></code> n’est émis.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l3-scientific-research-machine">
+<h1>L3 — SCIENTIFIC RESEARCH MACHINE<a class="headerlink" href="#l3-scientific-research-machine" title="Link to this heading">¶</a></h1>
+<section id="mm-ev-l3-001-immutable-paper-research-dataset">
+<h2>MM-EV-L3-001 — Immutable PAPER → Research dataset<a class="headerlink" href="#mm-ev-l3-001-immutable-paper-research-dataset" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #238</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">RL_DATA_01_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G1</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : dataset_id/source_boundary_id déterministes, deux exports gouvernés identiques, source immuable.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-002-deterministic-research-replay">
+<h2>MM-EV-L3-002 — Deterministic Research replay<a class="headerlink" href="#mm-ev-l3-002-deterministic-research-replay" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #239</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">RL_REPLAY_01_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G2</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : publication F00 reproduite indépendamment, same research_run_id/config hash, components byte-identical.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-003-performance-diagnostics">
+<h2>MM-EV-L3-003 — Performance diagnostics<a class="headerlink" href="#mm-ev-l3-003-performance-diagnostics" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #248</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">RL_DIAG_01_PERFORMANCE_DIAGNOSTICS_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G3</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve importante : capability matrix explicite; Sharpe, mark-to-market DD, turnover, etc. restent NOT_AVAILABLE lorsque non prouvés.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-004-candidate-promotion-boundary">
+<h2>MM-EV-L3-004 — Candidate &amp; promotion boundary<a class="headerlink" href="#mm-ev-l3-004-candidate-promotion-boundary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #240</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">RL_CANDIDATE_PROMOTION_BOUNDARY_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G4,</span> <span class="pre">L3-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuve : 15 gates, deterministic candidate/evaluation/promotion identities, same-epoch promotion interdite, future epoch obligatoire.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-005-three-domain-operator-separation">
+<h2>MM-EV-L3-005 — Three-domain operator separation<a class="headerlink" href="#mm-ev-l3-005-three-domain-operator-separation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #241</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WEB_RL_01_THREE_DOMAIN_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G5</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : source certification, pas runtime Research deployment.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-006-burn-in-no-feedback-contract">
+<h2>MM-EV-L3-006 — Burn-in no-feedback contract<a class="headerlink" href="#mm-ev-l3-006-burn-in-no-feedback-contract" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #242</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">RL_BURNIN_NO_FEEDBACK_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite explicite : runtime proof NOT PERFORMED par #242; burn-in authorization NONE à ce stade.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-007-research-stack-integrated-to-main">
+<h2>MM-EV-L3-007 — Research stack integrated to main<a class="headerlink" href="#mm-ev-l3-007-research-stack-integrated-to-main" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #275</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">RL_RESEARCH_STACK_MAIN_INTEGRATION_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G8</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : aucune action runtime par cette mission.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-008-pre-burn-in-persistence-isolation">
+<h2>MM-EV-L3-008 — Pre-burn-in persistence isolation<a class="headerlink" href="#mm-ev-l3-008-pre-burn-in-persistence-isolation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #267</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">HERM_02_TEST_PERSISTENCE_ISOLATION_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G1,</span> <span class="pre">L3-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-009-pre-burn-in-unresolved-accounting-boundary">
+<h2>MM-EV-L3-009 — Pre-burn-in unresolved accounting boundary<a class="headerlink" href="#mm-ev-l3-009-pre-burn-in-unresolved-accounting-boundary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #268</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">ACC_01_UNRESOLVED_ACCOUNTING_BOUNDARY_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G1,</span> <span class="pre">L3-G3</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-010-burn-in-quiescent-transition-boundary">
+<h2>MM-EV-L3-010 — Burn-in quiescent transition boundary<a class="headerlink" href="#mm-ev-l3-010-burn-in-quiescent-transition-boundary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #278</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">BURN_IN_BOUNDED_QUIESCENCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-011-cold-deployment-of-integrated-research-burn-in-source">
+<h2>MM-EV-L3-011 — Cold deployment of integrated Research/burn-in source<a class="headerlink" href="#mm-ev-l3-011-cold-deployment-of-integrated-research-burn-in-source" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #279</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">BURN_IN_COLD_SOURCE_DEPLOY_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G7,</span> <span class="pre">L3-G8</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>preuve : exact detached source replacement while authority stopped; F00 durable boundary unchanged.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-012-burn-in-config-identity-freeze">
+<h2>MM-EV-L3-012 — Burn-in config/identity freeze<a class="headerlink" href="#mm-ev-l3-012-burn-in-config-identity-freeze" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #280</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">BURN_IN_PREFREEZE_IDENTITY_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-013-burn-in-runtime-preflight">
+<h2>MM-EV-L3-013 — Burn-in runtime preflight<a class="headerlink" href="#mm-ev-l3-013-burn-in-runtime-preflight" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #277</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">BURN_IN_RUNTIME_PREFLIGHT_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-014-burn-in-manifest">
+<h2>MM-EV-L3-014 — Burn-in manifest<a class="headerlink" href="#mm-ev-l3-014-burn-in-manifest" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #274</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">BURN_IN_MANIFEST_V3_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-015-burn-in-epoch-birth">
+<h2>MM-EV-L3-015 — Burn-in epoch birth<a class="headerlink" href="#mm-ev-l3-015-burn-in-epoch-birth" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #274</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">BURN_IN_EPOCH_CREATED_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : certifie la naissance de l’epoch, pas l’activation.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-016-burn-in-activation-first-lifecycle">
+<h2>MM-EV-L3-016 — Burn-in activation + first lifecycle<a class="headerlink" href="#mm-ev-l3-016-burn-in-activation-first-lifecycle" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #281</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">BURN_IN_ACTIVATION_AND_FIRST_LIFECYCLE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+</ul>
+</section>
+<section id="mm-ev-l3-017-active-burn-in-scientific-chain">
+<h2>MM-EV-L3-017 — Active burn-in scientific chain<a class="headerlink" href="#mm-ev-l3-017-active-burn-in-scientific-chain" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #282</p></li>
+<li><p>état : <code class="docutils literal notranslate"><span class="pre">ACTIVE_BURN_IN_OBSERVATION</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">EXPERIMENT_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L3-G1,</span> <span class="pre">L3-G2,</span> <span class="pre">L3-G3,</span> <span class="pre">L3-G6,</span> <span class="pre">L3-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>preuves actuellement enregistrées :</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">O1_CHECKPOINT_PASS_WITH_2_OPEN</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O2_PPL_FINANCIAL_RECONCILIATION_PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O3_RUNTIME_PROVENANCE_CONFIG_FREEZE_PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O4_PREFIX_CAPTURE_01_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O5_FACTUAL_REPLAY_DETERMINISTIC=PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O6_A_CAUSAL_EVIDENCE_COVERAGE=PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O6_B_ENRICHED_CAPTURE_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O6_C_DIAGNOSTIC_DETERMINISTIC=PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O7_IMMUTABLE_RESEARCH_PUBLICATION=PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O8_APPEND_ONLY_INTEGRITY=PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O8_READ_ONLY_PPL_CHECKPOINT=PASS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">O9_A_DEADLINE_CLASSIFICATION=PASS</span></code></p></li>
+</ul>
+</li>
+<li><p>limite impérative :</p>
+<ul>
+<li><p>burn-in final : NON CERTIFIÉ;</p></li>
+<li><p>final dataset : <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code>;</p></li>
+<li><p>la présence de 2 OPEN au dernier boundary documenté n’est pas une défaillance L3;</p></li>
+<li><p>aucun verdict de fin d’expérience n’est inféré.</p></li>
+</ul>
+</li>
+</ul>
+<section id="assessment-l3">
+<h3>Assessment L3<a class="headerlink" href="#assessment-l3" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">EVIDENCE_SUFFICIENT_FOR_CERTIFICATION_REVIEW</span></code></p>
+<p>R1 considère désormais L3 comme la <strong>Evidence-Demonstrated Frontier</strong>, sous réserve d’une revue formelle MACHINE-MATURITY-03 après certification séquentielle de L0→L2.</p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_3_CERTIFIED</span></code> n’est émis.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l4-operator-machine">
+<h1>L4 — OPERATOR MACHINE<a class="headerlink" href="#l4-operator-machine" title="Link to this heading">¶</a></h1>
+<section id="mm-ev-l4-001-direction-d4-aggregate-source">
+<h2>MM-EV-L4-001 — Direction D4 aggregate source<a class="headerlink" href="#mm-ev-l4-001-direction-d4-aggregate-source" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #304</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D4_FINAL_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G1,</span> <span class="pre">L4-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : aucun runtime verdict autorisé par D4E.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-002-operatordecision-governance-contract">
+<h2>MM-EV-L4-002 — OperatorDecision governance contract<a class="headerlink" href="#mm-ev-l4-002-operatordecision-governance-contract" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #307</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D5A_DECISION_QUEUE_CONTRACT_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>limite : documentation-only; queue réelle absente.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-003-operatordecision-source-producer-prototype">
+<h2>MM-EV-L4-003 — OperatorDecision source producer prototype<a class="headerlink" href="#mm-ev-l4-003-operatordecision-source-producer-prototype" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #313</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">WEB_DIR_01_D5B_R1_GOVERNED_PRODUCER_SOURCE_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>limite : in-memory/source prototype; <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code>.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-004-durable-producer-gate-s">
+<h2>MM-EV-L4-004 — Durable producer Gate S<a class="headerlink" href="#mm-ev-l4-004-durable-producer-gate-s" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #315</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">D5B_R2_PROTOTYPE_SOURCE_ACCEPTED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G4</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>blocker : Gate O = <code class="docutils literal notranslate"><span class="pre">OPEN</span> <span class="pre">/</span> <span class="pre">NON</span> <span class="pre">RÉSOLU</span></code>.</p></li>
+<li><p>six décisions opérationnelles réelles restent manquantes.</p></li>
+<li><p>conséquence : aucune queue D5C réelle, aucun <code class="docutils literal notranslate"><span class="pre">operational=True</span></code>, aucune action D5D, aucun D5E.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-005-app-unify-source-slices">
+<h2>MM-EV-L4-005 — APP-UNIFY source slices<a class="headerlink" href="#mm-ev-l4-005-app-unify-source-slices" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #323 + sous-missions</p></li>
+<li><p>verdicts observés :</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U2_BURN_IN_STATUS_SOURCE_READY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U2B_RUNTIME_SERVICE_SOURCE_READY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U3A_SCANNER_SOURCE_READY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U3B_MICROSTRUCTURE_SOURCE_READY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U4_RESEARCH_PUBLICATION_SOURCE_READY</span></code></p></li>
+</ul>
+</li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G1,</span> <span class="pre">L4-G5,</span> <span class="pre">L4-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>règle : <code class="docutils literal notranslate"><span class="pre">RUNTIME_SERVICE_SOURCE_READY</span></code> reste SOURCE, pas RUNTIME.</p></li>
+<li><p>manquant : <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_SOURCE_CERTIFIED</span></code>.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-006-burninstatus-source-projection">
+<h2>MM-EV-L4-006 — BurnInStatus source projection<a class="headerlink" href="#mm-ev-l4-006-burninstatus-source-projection" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #328</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U2_BURN_IN_STATUS_SOURCE_READY</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G1,</span> <span class="pre">L4-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : source-only; <code class="docutils literal notranslate"><span class="pre">finalization_state</span> <span class="pre">=</span> <span class="pre">NOT_AVAILABLE</span></code>.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-007-research-publication-presentation-chain">
+<h2>MM-EV-L4-007 — Research publication presentation chain<a class="headerlink" href="#mm-ev-l4-007-research-publication-presentation-chain" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #336</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U4_RESEARCH_PUBLICATION_SOURCE_READY</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G1,</span> <span class="pre">L4-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite : aucune certification scientifique émise par le builder; zéro ligne publiée != registre vide.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-008-machine-laboratoire-u6">
+<h2>MM-EV-L4-008 — Machine/Laboratoire U6<a class="headerlink" href="#mm-ev-l4-008-machine-laboratoire-u6" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #338</p></li>
+<li><p>état : source intégrée et CI/visual proofs PASS</p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">UX_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G1,</span> <span class="pre">L4-G6</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite explicite dans l’issue :
+<code class="docutils literal notranslate"><span class="pre">Cette</span> <span class="pre">tranche</span> <span class="pre">ne</span> <span class="pre">constitue</span> <span class="pre">pas</span> <span class="pre">encore</span> <span class="pre">la</span> <span class="pre">certification</span> <span class="pre">globale</span> <span class="pre">APP_UNIFY_01_SOURCE_CERTIFIED</span></code>.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-009-u8-isolated-deployment-design">
+<h2>MM-EV-L4-009 — U8 isolated deployment design<a class="headerlink" href="#mm-ev-l4-009-u8-isolated-deployment-design" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #342 / PR #343</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_U8_VPS_PREPARED_NOT_AUTHORIZED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF,</span> <span class="pre">SECURITY_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G5,</span> <span class="pre">L4-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">ADMISSIBLE</span></code></p></li>
+<li><p>limite absolue :
+<code class="docutils literal notranslate"><span class="pre">RUNTIME</span> <span class="pre">:</span> <span class="pre">AUCUNE</span> <span class="pre">MODIFICATION</span></code>
+aucun accès VPS / aucun déploiement; G0–G8 restent nécessaires.</p></li>
+</ul>
+</section>
+<section id="mm-ev-l4-010-cryptoradar-secure-isolated-runtime-precedent">
+<h2>MM-EV-L4-010 — CryptoRadar secure isolated-runtime precedent<a class="headerlink" href="#mm-ev-l4-010-cryptoradar-secure-isolated-runtime-precedent" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>source : #319</p></li>
+<li><p>verdict : <code class="docutils literal notranslate"><span class="pre">SEC_CRYPTORADAR_02_RUNTIME_CERTIFIED</span></code></p></li>
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p>supporting : <code class="docutils literal notranslate"><span class="pre">SECURITY_PROOF</span></code></p></li>
+<li><p>maps : <code class="docutils literal notranslate"><span class="pre">L4-G5,</span> <span class="pre">L4-G7</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>limite : prouve le pattern d’isolation d’une surface, pas <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_RUNTIME_CERTIFIED</span></code>.</p></li>
+</ul>
+<section id="missing-mandatory-l4-evidence">
+<h3>Missing mandatory L4 evidence<a class="headerlink" href="#missing-mandatory-l4-evidence" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">L4-G2</span></code> : <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_SOURCE_CERTIFIED</span></code> — <strong>NOT_AVAILABLE</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L4-G3</span></code> : <code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_RUNTIME_CERTIFIED</span></code> — <strong>NOT_AVAILABLE</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L4-G4</span></code> : frontière read-only honnête existe; Gate O reste ouverte si une capacité mutante est revendiquée.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L4-G5</span></code> : architecture d’isolation prête, preuve runtime APP-UNIFY absente.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L4-G6</span></code> : nombreuses preuves UX/mobile source; agrégation globale L4 encore absente.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L4-G7</span></code> : sécurité/source préparée + précédent CryptoRadar; runtime Operator App non prouvé.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L4-G8</span></code> : L4 Certification Pack — <strong>NOT_AVAILABLE</strong></p></li>
+</ul>
+</section>
+<section id="assessment-l4">
+<h3>Assessment L4<a class="headerlink" href="#assessment-l4" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">IN_PROGRESS</span> <span class="pre">/</span> <span class="pre">EVIDENCE_INSUFFICIENT_FOR_CERTIFICATION_REVIEW</span></code></p>
+<p>L4 est la <strong>Development Frontier</strong>.</p>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="l5-self-maintaining-forest">
+<h1>L5 — SELF-MAINTAINING FOREST<a class="headerlink" href="#l5-self-maintaining-forest" title="Link to this heading">¶</a></h1>
+<p>Evidence :</p>
+<ul class="simple">
+<li><p>#284 : <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE</span> <span class="pre">FUTURE</span> <span class="pre">/</span> <span class="pre">AUCUNE</span> <span class="pre">AUTORITÉ</span> <span class="pre">RUNTIME</span></code></p></li>
+<li><p>PR #348 : contract-only Forest Maintenance / Agent Registry, séparée de #362.</p></li>
+</ul>
+<p>Classification :</p>
+<ul class="simple">
+<li><p>primary : <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_PROOF</span></code></p></li>
+<li><p>disposition : <code class="docutils literal notranslate"><span class="pre">SUPPORTING_ONLY</span></code></p></li>
+<li><p>capability runtime : <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code></p></li>
+</ul>
+<p>Assessment :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code> au sens certification.
+Planning horizon : <code class="docutils literal notranslate"><span class="pre">DESIGNED</span> <span class="pre">/</span> <span class="pre">IN</span> <span class="pre">DESIGN</span></code>.</p>
+<p>Aucune preuve L5 de self-maintenance exécutée n’est admissible.</p>
+</section>
+<hr class="docutils" />
+<section id="l6-governed-agent-engineering">
+<h1>L6 — GOVERNED AGENT ENGINEERING<a class="headerlink" href="#l6-governed-agent-engineering" title="Link to this heading">¶</a></h1>
+<p>Evidence :</p>
+<ul class="simple">
+<li><p>#284 / PR #348 décrivent les frontières agents, registry, bounties, AIC et gouvernance.</p></li>
+</ul>
+<p>Classification :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_PROOF</span></code> uniquement.</p></li>
+<li><p>agents runtime : <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code></p></li>
+<li><p>aucune autorité agentique.</p></li>
+</ul>
+<p>Assessment :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code> au sens certification.
+Planning horizon : <code class="docutils literal notranslate"><span class="pre">FUTURE</span> <span class="pre">/</span> <span class="pre">DESIGN</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="l7-autonomous-test-environment">
+<h1>L7 — AUTONOMOUS TEST ENVIRONMENT<a class="headerlink" href="#l7-autonomous-test-environment" title="Link to this heading">¶</a></h1>
+<p>Aucune preuve démontrant un environnement agentique autonome certifié n’a été identifiée.</p>
+<p>Assessment :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">LOCKED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l8-governed-capital-machine">
+<h1>L8 — GOVERNED CAPITAL MACHINE<a class="headerlink" href="#l8-governed-capital-machine" title="Link to this heading">¶</a></h1>
+<p>FIN PAPER V1 est réel et soutient L2, mais il ne suffit pas à L8.</p>
+<p>Faits actuels :</p>
+<ul class="simple">
+<li><p>FIN-03 : non commencé / différé;</p></li>
+<li><p>FIN-04 TESTNET/REAL Treasury : non commencé;</p></li>
+<li><p>TESTNET/LIVE : non autorisés;</p></li>
+<li><p>capital réel : aucune autorité.</p></li>
+</ul>
+<p>Assessment :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">LOCKED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="l9-adaptive-research-organization">
+<h1>L9 — ADAPTIVE RESEARCH ORGANIZATION<a class="headerlink" href="#l9-adaptive-research-organization" title="Link to this heading">¶</a></h1>
+<p>#285/#284 contiennent une vision institutionnelle, mais aucune organisation adaptative autonome gouvernée n’est démontrée end-to-end.</p>
+<p>Assessment :</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_STARTED</span></code></p>
+<p>Planning horizon :</p>
+<p><code class="docutils literal notranslate"><span class="pre">VISION</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="r1-b-frontieres-apres-retro-mapping">
+<h1>R1-B — FRONTIÈRES APRÈS RÉTRO-MAPPING<a class="headerlink" href="#r1-b-frontieres-apres-retro-mapping" title="Link to this heading">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Formal Certified Frontier
+NOT_AVAILABLE
+
+Evidence-Demonstrated Frontier
+L3 — Scientific Research Machine
+
+Development Frontier
+L4 — Operator Machine
+
+Next Formal Certification Target
+L0 — Constitutional Foundation
+
+Next Frontier Advancement Target
+L4 — Operator Machine
+</pre></div>
+</div>
+<section id="point-scientifique-essentiel">
+<h2>Point scientifique essentiel<a class="headerlink" href="#point-scientifique-essentiel" title="Link to this heading">¶</a></h2>
+<p>Le burn-in actif #282 reste un axe séparé :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Machine evidence-demonstrated frontier = L3
+Active experiment = ACTIVE_BURN_IN_OBSERVATION
+Burn-in final certification = NOT_AVAILABLE
+Final burn-in dataset = NOT_AVAILABLE
+</pre></div>
+</div>
+<p>Ces faits ne sont pas contradictoires.</p>
+</section>
+<section id="r1-b-conclusion">
+<h2>R1-B conclusion<a class="headerlink" href="#r1-b-conclusion" title="Link to this heading">¶</a></h2>
+<p>L0, L1, L2 et L3 possèdent chacun un corpus suffisant pour <strong>entrer en revue de certification</strong>, mais aucun niveau n’est encore machine-level CERTIFIED.</p>
+<p>L4 possède une quantité importante de source/UX/architecture evidence mais manque encore des preuves globales obligatoires.</p>
+<p>L5+ ne peut pas hériter de maturité depuis des designs futurs.</p>
+<p>Aucun <code class="docutils literal notranslate"><span class="pre">LEVEL_X_CERTIFIED</span></code> n’est émis par R1-B.</p>
+<!-- END CANONICAL COMMENT 5971018149 -->
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">MACHINE-MATURITY Evidence Ledger v0.1</a><ul>
+<li><a class="reference internal" href="#canonicalization-rule">Canonicalization rule</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#r1-b-evidence-ledger-retroactif-v0-1">R1-B — EVIDENCE LEDGER RÉTROACTIF v0.1</a></li>
+<li><a class="reference internal" href="#l0-constitutional-foundation">L0 — CONSTITUTIONAL FOUNDATION</a><ul>
+<li><a class="reference internal" href="#mm-ev-l0-001-pre-f00-governed-remediation-chain">MM-EV-L0-001 — Pre-F00 governed remediation chain</a></li>
+<li><a class="reference internal" href="#mm-ev-l0-002-orchestration-integrity">MM-EV-L0-002 — Orchestration integrity</a></li>
+<li><a class="reference internal" href="#mm-ev-l0-003-scientific-data-test-isolation">MM-EV-L0-003 — Scientific data test isolation</a></li>
+<li><a class="reference internal" href="#mm-ev-l0-004-coverage-contract">MM-EV-L0-004 — Coverage contract</a></li>
+<li><a class="reference internal" href="#mm-ev-l0-005-deterministic-test-coverage-governance">MM-EV-L0-005 — Deterministic test/coverage governance</a></li>
+<li><a class="reference internal" href="#mm-ev-l0-006-ambient-persistence-isolation">MM-EV-L0-006 — Ambient persistence isolation</a></li>
+<li><a class="reference internal" href="#mm-ev-l0-007-unknown-unresolved-accounting-semantics">MM-EV-L0-007 — UNKNOWN/UNRESOLVED accounting semantics</a></li>
+<li><a class="reference internal" href="#mm-ev-l0-008-active-burn-in-immutability-constitution">MM-EV-L0-008 — Active burn-in immutability constitution</a><ul>
+<li><a class="reference internal" href="#assessment-l0">Assessment L0</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l1-observable-machine">L1 — OBSERVABLE MACHINE</a><ul>
+<li><a class="reference internal" href="#mm-ev-l1-001-durable-paper-event-truth">MM-EV-L1-001 — Durable PAPER event truth</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-002-operator-web-local-read-only-runtime">MM-EV-L1-002 — Operator Web local read-only runtime</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-003-private-pwa-controlled-access">MM-EV-L1-003 — Private PWA controlled access</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-004-ppl-shadow-observation-convergence-runtime">MM-EV-L1-004 — PPL SHADOW observation/convergence runtime</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-005-universe-runtime-recertification">MM-EV-L1-005 — Universe runtime recertification</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-006-ppl-comparator-runtime">MM-EV-L1-006 — PPL comparator runtime</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-007-ppl-scientific-capital-provenance">MM-EV-L1-007 — PPL scientific-capital provenance</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-008-architecture-surface-forensic">MM-EV-L1-008 — Architecture surface forensic</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-009-runtime-unknown-evidence-pack">MM-EV-L1-009 — Runtime UNKNOWN evidence pack</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-010-cryptoradar-isolated-secure-runtime-precedent">MM-EV-L1-010 — CryptoRadar isolated secure runtime precedent</a><ul>
+<li><a class="reference internal" href="#assessment-l1">Assessment L1</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l2-governed-paper-machine">L2 — GOVERNED PAPER MACHINE</a><ul>
+<li><a class="reference internal" href="#mm-ev-l2-001-single-ppl-paper-lifecycle-authority">MM-EV-L2-001 — Single PPL PAPER lifecycle authority</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-002-f00-preflight-governed-source-runtime-boundary">MM-EV-L2-002 — F00 preflight governed source/runtime boundary</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-003-experiment-manifest-rotation-contract">MM-EV-L2-003 — Experiment manifest rotation contract</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-004-governed-f00-epoch-creation">MM-EV-L2-004 — Governed F00 epoch creation</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-005-runtime-bootstrap-replay-boundary">MM-EV-L2-005 — Runtime bootstrap / replay boundary</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-006-full-experiment-configuration-freeze">MM-EV-L2-006 — Full experiment configuration freeze</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-007-f00-start-precheck">MM-EV-L2-007 — F00 start precheck</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-008-governed-admission-activation">MM-EV-L2-008 — Governed admission activation</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-009-first-authoritative-f00-lifecycle-event">MM-EV-L2-009 — First authoritative F00 lifecycle event</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-010-f00-restart-continuity">MM-EV-L2-010 — F00 restart continuity</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-011-first-completed-lifecycle">MM-EV-L2-011 — First completed lifecycle</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-012-financial-semantics-constitution">MM-EV-L2-012 — Financial semantics constitution</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-013-paper-financial-institute-v1">MM-EV-L2-013 — PAPER Financial Institute v1</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-014-ppl-fin-restart-replay-determinism">MM-EV-L2-014 — PPL/FIN restart &amp; replay determinism</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-015-financial-reconciliation-cockpit">MM-EV-L2-015 — Financial reconciliation cockpit</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-016-f00-controlled-drain-and-quiescence">MM-EV-L2-016 — F00 controlled drain and quiescence</a></li>
+<li><a class="reference internal" href="#mm-ev-l2-017-final-f00-scientific-certification">MM-EV-L2-017 — Final F00 scientific certification</a><ul>
+<li><a class="reference internal" href="#assessment-l2">Assessment L2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l3-scientific-research-machine">L3 — SCIENTIFIC RESEARCH MACHINE</a><ul>
+<li><a class="reference internal" href="#mm-ev-l3-001-immutable-paper-research-dataset">MM-EV-L3-001 — Immutable PAPER → Research dataset</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-002-deterministic-research-replay">MM-EV-L3-002 — Deterministic Research replay</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-003-performance-diagnostics">MM-EV-L3-003 — Performance diagnostics</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-004-candidate-promotion-boundary">MM-EV-L3-004 — Candidate &amp; promotion boundary</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-005-three-domain-operator-separation">MM-EV-L3-005 — Three-domain operator separation</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-006-burn-in-no-feedback-contract">MM-EV-L3-006 — Burn-in no-feedback contract</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-007-research-stack-integrated-to-main">MM-EV-L3-007 — Research stack integrated to main</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-008-pre-burn-in-persistence-isolation">MM-EV-L3-008 — Pre-burn-in persistence isolation</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-009-pre-burn-in-unresolved-accounting-boundary">MM-EV-L3-009 — Pre-burn-in unresolved accounting boundary</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-010-burn-in-quiescent-transition-boundary">MM-EV-L3-010 — Burn-in quiescent transition boundary</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-011-cold-deployment-of-integrated-research-burn-in-source">MM-EV-L3-011 — Cold deployment of integrated Research/burn-in source</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-012-burn-in-config-identity-freeze">MM-EV-L3-012 — Burn-in config/identity freeze</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-013-burn-in-runtime-preflight">MM-EV-L3-013 — Burn-in runtime preflight</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-014-burn-in-manifest">MM-EV-L3-014 — Burn-in manifest</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-015-burn-in-epoch-birth">MM-EV-L3-015 — Burn-in epoch birth</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-016-burn-in-activation-first-lifecycle">MM-EV-L3-016 — Burn-in activation + first lifecycle</a></li>
+<li><a class="reference internal" href="#mm-ev-l3-017-active-burn-in-scientific-chain">MM-EV-L3-017 — Active burn-in scientific chain</a><ul>
+<li><a class="reference internal" href="#assessment-l3">Assessment L3</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l4-operator-machine">L4 — OPERATOR MACHINE</a><ul>
+<li><a class="reference internal" href="#mm-ev-l4-001-direction-d4-aggregate-source">MM-EV-L4-001 — Direction D4 aggregate source</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-002-operatordecision-governance-contract">MM-EV-L4-002 — OperatorDecision governance contract</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-003-operatordecision-source-producer-prototype">MM-EV-L4-003 — OperatorDecision source producer prototype</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-004-durable-producer-gate-s">MM-EV-L4-004 — Durable producer Gate S</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-005-app-unify-source-slices">MM-EV-L4-005 — APP-UNIFY source slices</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-006-burninstatus-source-projection">MM-EV-L4-006 — BurnInStatus source projection</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-007-research-publication-presentation-chain">MM-EV-L4-007 — Research publication presentation chain</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-008-machine-laboratoire-u6">MM-EV-L4-008 — Machine/Laboratoire U6</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-009-u8-isolated-deployment-design">MM-EV-L4-009 — U8 isolated deployment design</a></li>
+<li><a class="reference internal" href="#mm-ev-l4-010-cryptoradar-secure-isolated-runtime-precedent">MM-EV-L4-010 — CryptoRadar secure isolated-runtime precedent</a><ul>
+<li><a class="reference internal" href="#missing-mandatory-l4-evidence">Missing mandatory L4 evidence</a></li>
+<li><a class="reference internal" href="#assessment-l4">Assessment L4</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#l5-self-maintaining-forest">L5 — SELF-MAINTAINING FOREST</a></li>
+<li><a class="reference internal" href="#l6-governed-agent-engineering">L6 — GOVERNED AGENT ENGINEERING</a></li>
+<li><a class="reference internal" href="#l7-autonomous-test-environment">L7 — AUTONOMOUS TEST ENVIRONMENT</a></li>
+<li><a class="reference internal" href="#l8-governed-capital-machine">L8 — GOVERNED CAPITAL MACHINE</a></li>
+<li><a class="reference internal" href="#l9-adaptive-research-organization">L9 — ADAPTIVE RESEARCH ORGANIZATION</a></li>
+<li><a class="reference internal" href="#r1-b-frontieres-apres-retro-mapping">R1-B — FRONTIÈRES APRÈS RÉTRO-MAPPING</a><ul>
+<li><a class="reference internal" href="#point-scientifique-essentiel">Point scientifique essentiel</a></li>
+<li><a class="reference internal" href="#r1-b-conclusion">R1-B conclusion</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
