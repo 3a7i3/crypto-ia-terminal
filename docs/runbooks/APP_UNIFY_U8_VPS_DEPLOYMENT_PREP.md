@@ -5,7 +5,7 @@ Parent : #323
 Freeze : #286 — `ACTIVE_BURN_IN_IMMUTABILITY_GUARD`
 Baseline historique de préparation : `main@bb3ac3bfc940423225dfb472a7762761bec59e3f`
 
-Réconciliation sécurité : `main@5ca28389da2ff5290d3f47163900b151246b0584`, après fusion #344 / clôture #257. Lockfile conservé sans reconstruction : SHA-256 `eb92e11c58bcce63823631b89056371044d714d742637ecf2123b323a81a4576`. La CI U8 exige désormais zéro vulnérabilité, sans tolérance d'échec audit.
+Réconciliation sécurité finale : `main@042b229477a7c314e0e547709b46140f67fe7e69`, après fusion #344 et du complément #346 / clôture finale #257. Lockfile conservé sans reconstruction : SHA-256 `56f2c88d3ef112c395574c8e7962391305f531875ee02d21b7d0f41d2453c1ac`. La CI U8 exige désormais zéro vulnérabilité, sans tolérance d'échec audit.
 
 ## 0. Statut
 
