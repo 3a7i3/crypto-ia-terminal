@@ -109,3 +109,101 @@ honnête tant que les artifacts réels ne sont pas publiés.
 Restent des chantiers de preuve/producer distincts : stockage, liq/raw LMI
 contractualisés, consommateurs des anciens transports, sources KPI historiques
 et Gate O. Cette matrice interdit de les présenter comme déjà déployés/résolus.
+
+## Revue application et consolidation — 2026-10-03
+
+Demande opérateur : reprise des issues, tests de l'app et de ses sorties, ménage
+source sans toucher au burn-in. Branche locale `audit/app-coherence-cleanup`,
+base examinée `385b8c9cdd4f0f67fd58898ba18f6a37b5e308a4`.
+Ce complément conserve la photographie U4 ci-dessus et utilise cet inventaire
+existant comme liste de travail, sans créer de nouveau rapport concurrent.
+
+### Reprise et cohérence roadmap
+
+Corpus récupéré : 109 issues distinctes du dépôt et 858 commentaires, par
+recherches ascendante/descendante (limite 100 par appel) et complément récent.
+Il ne certifie pas l'exhaustivité de l'historique GitHub ni toutes les discussions
+de PR. Les dispositions finales priment sur les anciens blocs/commentaires.
+
+| Mission | Dernière disposition consultée | Conséquence |
+|---|---|---|
+| #285 / #323 | app unique prioritaire, burn-in protégé | visibilité et consolidation source |
+| #338 / #339 | Machine/Lab intégré en source | aucune preuve de déploiement induite |
+| #340 / #341 | façade documentaire intégrée | ancien pointeur CURRENT_TASK à remplacer |
+| #342 / #343 | préparation U8 intégrée, NOT_AUTHORIZED | publication/appareil sous gates G0–G8 séparées |
+| #257 / #344 / #346 | sécurité remédiée | ancien total de vulnérabilités dépassé ; audit frais local à zéro |
+| #315 | Gate S accepté, Gate O ouvert | queue/actions opérationnelles encore bloquées |
+| #287 / #309 | forensic et observation runtime historique terminées | réobserver les consommateurs avant retrait |
+| #349 / #350–#355 / #207 | triage intégré, reliquats distincts | rapport PASS ne signifie pas défauts corrigés |
+| #209 / #284 | orchestration legacy différée / économie contractuelle | ne pas ajouter de couplage au cockpit courant |
+
+Exemples de bruit administratif : les premiers commentaires de #342 décrivent
+encore une PR Draft non fusionnée et une sécurité bloquante, alors que son corps
+consigne la préparation intégrée après remédiation. #257 a connu plusieurs
+dispositions successives. Ne pas utiliser un commentaire ancien comme état actuel.
+
+### Faiblesses et ordre utile
+
+| Priorité | Constat vérifié | Action suivante |
+|---|---|---|
+| 1 | source intégrée ≠ sorties réellement servies ; accès machine absent ici | vérifier endpoints, build et provenance en lecture seule |
+| 2 | `frontend/src/views/EventsView.tsx` est statique NON DÉPLOYÉ | contrat/producteur Centre d'événements avant retrait des notifications |
+| 2 | détail LMI raw/liq et projection stockage manquants dans la matrice | terminer les projections utiles avant retrait CryptoRadar |
+| 2 | grille Research source disponible, résultats réels non admis par cette tranche | sélectionner explicitement évaluations et assessments certifiés |
+| 3 | index documentaire prétendait être source unique/live avec chiffres de mai | entrée canonique et limites historiques clarifiées, générateur corrigé |
+| 3 | CURRENT_TASK pointait #340 déjà intégrée | reprise actuelle et reliquats explicités |
+| différée | Scores, queue Direction, économie et orchestration legacy | garder indisponible/différé jusqu'aux contrats et gates applicables |
+
+### Classification pour le ménage
+
+Une classification source n'établit pas l'absence de consommateurs runtime.
+L'observation de dormance dans #309 est historique, pas une preuve de retrait actuel.
+
+| Surface / fichiers | Classification de cette revue | Disposition |
+|---|---|---|
+| `frontend/`, Operator API, projections gouvernées | KEEP | chaîne canonique testée |
+| index, générateur documentaire, CURRENT_TASK | KEEP | affirmations périmées supprimées et reprise clarifiée |
+| fonctions de `scripts/dashboard_api.py` | INTEGRATE | compléter la parité utile ; transport conservé |
+| transports CryptoRadar/Telegram/email | UNKNOWN pour retrait actuel | consommateurs, parité et rollback à réobserver |
+| `sdos_terminal/`, `infra/api/api_server.py`, `governance/status_dashboard.py` | UNKNOWN pour retrait actuel | présence/dormance historique connue, usages contemporains non vérifiés |
+| launchers Windows/panels, `core/orchestration/orchestrate_*` | UNKNOWN pour déplacement/retrait | #209 recense des entrées manquantes ; certains panels ont encore des importeurs/tests |
+| README_CONSOLIDATED, anciens Quick Starts, rapports racine | ARCHIVE au sens documentaire, emplacements conservés | références source/docs encore présentes ; déplacement aveugle exclu |
+| `src/telegram/exchange_sync.py` | RETIRE candidat source hérité de #287 | hors app ; aucun retrait dans cette tranche |
+| PPL/DecisionPacket JSONL, datasets, logs, sauvegardes | KEEP | preuves scientifiques/reprise |
+
+Ménage réalisé : clarification des entrées de travail et de l'autorité des
+documents, sans suppression de fichier métier ou historique ni interruption de
+service. Les références restent consultables. La taille d'un dossier ou l'absence
+d'import statique ne suffit pas à prouver qu'il est inutilisé.
+
+### Vérification locale
+
+Python 3.12.14 / Node 24.19.0, distincts de la CI Python 3.11 / Node 20.
+Données synthétiques produites via les vrais producteurs/publishers/readers/API ;
+aucun dataset Machine réel ouvert.
+
+| Vérification | Résultat observé |
+|---|---|
+| Build TypeScript/Vite | PASS |
+| Transport/PWA | 7 PASS |
+| Vitest avec onze générateurs cross-stack | 376 PASS, zéro skip |
+| `tests/cross_stack/` + `tests/observability/` | 298 PASS |
+| API, FIN/PPL, burn-in/runtime-service/microstructure/U4 ciblés | 337 PASS |
+| U6 Chromium 1440/820/390, deux espaces, critères, exact FIN, erreurs et GET-only | PASS |
+| npm audit avant ajout de l'outil visuel | zéro vulnérabilité |
+| Ruff baseline 0.15.8 | 947 findings existants, zéro nouvelle violation |
+| Générateur documentaire | entrée canonique et rapports locaux distincts PASS |
+
+Le premier Vitest sans fixtures avait 351 PASS / 25 skips : remplacé par le
+passage complet. Avertissements existants : config Vite ESM chargée comme
+CommonJS, dépréciation Starlette/httpx. Aucun baseline/gate/test affaibli.
+Ces vérifications ciblées ne certifient pas le corpus CI complet, U7 ou le runtime.
+Les captures et logs de cette session se trouvent hors des sources dans
+`/workspace/scratch/app-visual/` et `/workspace/scratch/app-*.log` ; les issues
+récupérées dans `/workspace/scratch/issues-review.json`. Ces chemins de session
+ne sont pas des artifacts scientifiques durables ni des publications admises.
+
+Aucune machine Desktop Commander connectée, aucune identité SSH/VPN configurée
+dans cet environnement. L'accès read-only a été demandé à l'opérateur. Les sorties
+déployées et le fonctionnement courant du burn-in restent **non réobservés**.
+#286 reste actif ; aucun changement runtime/Advisor/PPL/FIN/config/epoch/services.
