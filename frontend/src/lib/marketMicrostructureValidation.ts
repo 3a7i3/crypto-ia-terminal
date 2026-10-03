@@ -1,3 +1,4 @@
+import { detailLabels, type DetailName } from "./marketMicrostructureDetail";
 import type { MarketMicrostructureSnapshot } from "./marketMicrostructureTypes";
 const states = ["accumulation", "distribution", "absorption_buy", "absorption_sell", "fragility_up", "fragility_down", "compression", "expansion", "exhaustion_buy", "exhaustion_sell", "vacuum_up", "vacuum_down", "conflict", "quiet"];
 const metrics = ["state_confidence", "price", "price_change_bps", "buy_pressure_pct", "sell_pressure_pct", "buy_flow_usd", "sell_flow_usd", "total_flow_usd", "resistance", "fragility"];
@@ -15,9 +16,41 @@ function utc(x: unknown): number | null {
 }
 function close(a: number, b: number): boolean { return Math.abs(a - b) <= Math.max(1e-6, Math.abs(b) * 1e-12); }
 
+function validDetail(x: unknown, source: number, read: number): boolean {
+  if (!exact(x, Object.keys(detailLabels))) return false;
+  const counts = ["window_ms", "buy_count", "sell_count", "large_buy_count", "large_sell_count"];
+  const signed = ["buy_acceleration", "sell_acceleration", "net_liquidity_change_usd"];
+  const ratios = ["pressure_ratio", "cancellation_rate_bid", "cancellation_rate_ask", "fragility_score", "absorption_ratio", "absorption", "fragility", "canc_bid", "canc_ask"];
+  for (const name of Object.keys(detailLabels) as DetailName[]) {
+    const group = x[name];
+    if (group === null) continue;
+    const fields = Object.keys(detailLabels[name]);
+    const temporal = name !== "state_components";
+    if (!exact(group, [...fields, ...(temporal ? ["observed_at_utc", "observation_age_s", "freshness_classification"] : []), ...(name === "liquidity" ? ["observation_evidence"] : [])])) return false;
+    if (name === "liquidity" && group.observation_evidence !== "SOURCE_VALUES_ONLY") return false;
+    for (const key of fields) {
+      const v = group[key];
+      if (v === null) continue;
+      if (key === "dominant_side") { if (!member(v, ["buy", "sell", "neutral"])) return false; }
+      else if (counts.includes(key)) { if (!unsigned(v)) return false; }
+      else if (!finite(v) || (!signed.includes(key) && v < 0) || (ratios.includes(key) && v > 1)) return false;
+    }
+    if (temporal) {
+      const stamp = utc(group.observed_at_utc), age = group.observation_age_s;
+      if (group.observed_at_utc === null) {
+        if (age !== null || group.freshness_classification !== "UNKNOWN") return false;
+      } else {
+        if (stamp === null || stamp < 0 || stamp > source || !finite(age) || age < 0 || !close(age, read - stamp)) return false;
+        if (group.freshness_classification !== (age > 15 || read - source > 15 ? "STALE" : "FRESH")) return false;
+      }
+    }
+  }
+  return true;
+}
+
 export function validateMarketMicrostructureSnapshot(x: unknown): x is MarketMicrostructureSnapshot {
   if (!exact(x, ["schema_version", "product", "domain", "authority", "mode", "generated_at_utc", "source_updated_at_utc", "source_artifact_sha256", "exchange", "unit_contract_source", "unit_contract_degraded", "pressure_field_count", "coverage", "rows", "read_at_utc", "source_age_s", "freshness_classification"])) return false;
-  if (x.schema_version !== "1.0.0" || x.product !== "MarketMicrostructureSnapshot" || x.domain !== "market_microstructure" || x.authority !== "OBSERVATIONAL_TELEMETRY" || x.mode !== "READ_ONLY") return false;
+  if (!member(x.schema_version, ["1.0.0", "1.1.0"]) || x.product !== "MarketMicrostructureSnapshot" || x.domain !== "market_microstructure" || x.authority !== "OBSERVATIONAL_TELEMETRY" || x.mode !== "READ_ONLY") return false;
   const source = utc(x.source_updated_at_utc), generated = utc(x.generated_at_utc), read = utc(x.read_at_utc);
   if (source === null || generated === null || read === null || source < 0 || source > generated || generated > read) return false;
   if (!finite(x.source_age_s) || x.source_age_s < 0 || !close(x.source_age_s, read - source) || x.freshness_classification !== (x.source_age_s > 15 ? "STALE" : "FRESH")) return false;
@@ -29,7 +62,8 @@ export function validateMarketMicrostructureSnapshot(x: unknown): x is MarketMic
   const symbols = new Set<string>();
   let observed = 0, streamable = 0;
   for (const row of x.rows) {
-    if (!exact(row, rowKeys) || typeof row.symbol !== "string" || !/^[A-Z0-9][A-Z0-9_/-]{0,63}$/.test(row.symbol) || symbols.has(row.symbol) || typeof row.stream_requested !== "boolean") return false;
+    if (!exact(row, [...rowKeys, ...(x.schema_version === "1.1.0" ? ["detail"] : [])]) || typeof row.symbol !== "string" || !/^[A-Z0-9][A-Z0-9_/-]{0,63}$/.test(row.symbol) || symbols.has(row.symbol) || typeof row.stream_requested !== "boolean") return false;
+    if (x.schema_version === "1.1.0" && (row.availability === "UNAVAILABLE" ? row.detail !== null : !validDetail(row.detail, source, read))) return false;
     symbols.add(row.symbol); streamable += Number(row.stream_requested);
     if (row.availability === "UNAVAILABLE") {
       if (!member(row.unavailable_reason, ["SOURCE_UNAVAILABLE", "NO_OBSERVATION"]) || rowKeys.filter((key) => !["symbol", "stream_requested", "availability", "unavailable_reason", "freshness_classification"].includes(key)).some((key) => row[key] !== null) || row.freshness_classification !== "NOT_AVAILABLE") return false;

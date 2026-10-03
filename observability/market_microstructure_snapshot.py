@@ -12,7 +12,7 @@ from pathlib import Path
 
 from observability.market_microstructure_artifact import read_document
 from observability.market_microstructure_contract import (
-    MAX_BYTES, MAX_SYMBOLS, ROW_KEYS, STATES, finite, symbol, unsigned,
+    DETAIL_FIELDS, MAX_BYTES, MAX_SYMBOLS, ROW_KEYS, STATES, finite, symbol, unsigned,
     validate_microstructure_snapshot,
 )
 
@@ -46,6 +46,28 @@ def _metric(doc, key):
     return value
 
 
+def _detail(st, source_time):
+    result = {}
+    for name, fields in DETAIL_FIELDS.items():
+        raw = st.get(name)
+        if raw is None:
+            result[name] = None
+            continue
+        if not isinstance(raw, dict):
+            raise ValueError("INVALID_METRIC_GROUP")
+        group = {key: raw.get(key) for key in fields}
+        if name != "state_components":
+            stamp = raw.get("timestamp_ms")
+            if stamp is not None and (not unsigned(stamp) or stamp / 1000 > source_time):
+                raise ValueError("INVALID_OBSERVATION_TIMESTAMP")
+            group["observed_at_utc"] = None if stamp is None else iso(stamp / 1000)
+        if name == "liquidity":
+            # The unchanged engine also publishes fallback zeros before any book.
+            group["observation_evidence"] = "SOURCE_VALUES_ONLY"
+        result[name] = group
+    return result
+
+
 def build_microstructure_snapshot(source: Path = DEFAULT_SOURCE, *, now_fn=time.time):
     doc, raw = read_document(Path(source), limit=524_288)
     now = float(now_fn())
@@ -64,7 +86,7 @@ def build_microstructure_snapshot(source: Path = DEFAULT_SOURCE, *, now_fn=time.
         cov = coverage[sym]
         if not isinstance(cov, dict) or cov.get("status") not in {"LIVE", "STALE", "UNAVAILABLE"} or cov.get("stream_requested") is not (sym in streamable):
             raise ValueError("INVALID_SOURCE_COVERAGE")
-        row = dict.fromkeys(ROW_KEYS)
+        row = dict.fromkeys(ROW_KEYS | {"detail"})
         row.update(symbol=sym, stream_requested=sym in streamable)
         st = states.get(sym)
         if cov["status"] == "UNAVAILABLE" or st is None:
@@ -82,7 +104,8 @@ def build_microstructure_snapshot(source: Path = DEFAULT_SOURCE, *, now_fn=time.
             if state is not None and state not in STATES:
                 raise ValueError("INVALID_STATE")
             row.update(state=state, state_confidence=_metric(st, "state_confidence"), price=_metric(st, "price"), price_change_bps=_metric(st, "price_change_bps"))
-            flow, resistance = st.get("flow", {}), st.get("resistance", {})
+            row["detail"] = _detail(st, source_time)
+            flow, resistance = st.get("flow") or {}, st.get("resistance") or {}
             if not isinstance(flow, dict) or not isinstance(resistance, dict):
                 raise ValueError("INVALID_METRIC_GROUP")
             row["flow_window_ms"] = flow.get("window_ms")
@@ -109,7 +132,7 @@ def build_microstructure_snapshot(source: Path = DEFAULT_SOURCE, *, now_fn=time.
     if not isinstance(stats, dict):
         raise ValueError("INVALID_SOURCE_STATS")
     result = {
-        "schema_version": "1.0.0", "product": "MarketMicrostructureSnapshot",
+        "schema_version": "1.1.0", "product": "MarketMicrostructureSnapshot",
         "domain": "market_microstructure", "authority": "OBSERVATIONAL_TELEMETRY", "mode": "READ_ONLY",
         "generated_at_utc": iso(now), "source_updated_at_utc": iso(source_time),
         "source_artifact_sha256": hashlib.sha256(raw).hexdigest(), "exchange": doc.get("exchange"),

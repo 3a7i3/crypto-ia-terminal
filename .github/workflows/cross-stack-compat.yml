@@ -84,7 +84,7 @@ jobs:
         working-directory: frontend
         env:
           CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
-        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx
+        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx src/test/LmiDetail.compat.test.tsx
 
       - name: Install browser for Events and Storage desktop/mobile proof
         working-directory: frontend
