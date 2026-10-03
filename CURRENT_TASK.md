@@ -1,22 +1,21 @@
-# Centre d’événements — APP-EVENTS-01
+# Stockage Machine — APP-STORAGE-01
 
-Mission : [#361](https://github.com/3a7i3/crypto-ia-terminal/issues/361), parent
-[#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323), priorisation
+Mission [#368](https://github.com/3a7i3/crypto-ia-terminal/issues/368), parent
+[#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323), roadmap
 [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
 
-Sources, contrat fermé et implémentation passive dans l’app :
-[APP_EVENTS_01_CONTRACT](docs/contracts/APP_EVENTS_01_CONTRACT.md).
-Base source `7d7b29669f9940f5e7e47b5b1c7d88371f067fbb` ; branche `feat/app-events-01`.
-Vérifier la disposition GitHub avant reprise ; fusion source ≠ publication runtime.
+Suite du Centre d’événements #361/#364 intégré. Combler le reliquat de stockage
+CryptoRadar dans Système, sans ouvrir les DecisionPacket JSONL.
+[Contrat APP-STORAGE-01](docs/contracts/APP_STORAGE_01_CONTRACT.md).
+Base source `8aad0ac42705f50e626aa802340a23c8b5c94aa9` ; branche `feat/app-storage-01`.
+Vérifier la disposition GitHub avant reprise ; source intégrée ≠ runtime déployé.
 
-Trois sources explicites : alertes P12, audit supervision et lifecycles déjà
-projetés par U2. Capture atomique séparée, API GET-only, vue indépendante.
-Aucun journal PPL lu par l’API/frontend, aucun moteur ou autoheal activé.
+Capture bornée des métadonnées de fichiers, volume logique exact en octets,
+projection atomique séparée, API GET-only et carte indépendante sur Système.
+Unknown, absent, vide, erreur ou mutation concurrente restent distincts.
+Lecture HTTP commune Events/Stockage, sérialisée et bornée à 10 s.
 
-La consolidation [#359](https://github.com/3a7i3/crypto-ia-terminal/issues/359)
-a été intégrée par #360. L’[inventaire application](docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md#revue-application-et-consolidation--2026-10-03)
-conserve les résultats de cette tranche précédente.
-
-[Entrée développeur](docs/DEVELOPER_ENTRYPOINT.md). Tests locaux synthétiques ;
-aucune observation Machine nouvelle. Burn-in [#282](https://github.com/3a7i3/crypto-ia-terminal/issues/282)
-et garde-fou [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) inchangés.
+[Entrée développeur](docs/DEVELOPER_ENTRYPOINT.md) ;
+[inventaire de parité](docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md).
+Tests et captures locaux synthétiques ; aucun accès VPS configuré dans la session.
+Burn-in #282 et garde-fou #286 intact ; aucun retrait de transport/CryptoRadar.
