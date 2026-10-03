@@ -385,7 +385,7 @@ async def test_reconcile_recreates_done_task():
 
 
 @pytest.mark.asyncio
-async def test_reconcile_does_not_restart_alive_task():
+async def test_reconcile_does_not_restart_alive_task(monkeypatch):
     """
     Une task vivante (done=False) pour un symbole dans la watchlist ne doit
     PAS être annulée ou recréée par _reconcile().
@@ -405,6 +405,10 @@ async def test_reconcile_does_not_restart_alive_task():
     obs.store.set_watchlist = MagicMock()
     obs._recorder = None
     obs.exchange = "mexc"
+    # Le lifecycle des tâches est indépendant de la disponibilité MEXC.
+    obs._validate_watchlist = AsyncMock(return_value=(["BTCUSDT"], {}))
+    http_access = MagicMock(side_effect=AssertionError("Accès HTTP interdit"))
+    monkeypatch.setattr("urllib.request.urlopen", http_access)
 
     # Task vivante qui attend
     alive_event = asyncio.Event()
@@ -425,6 +429,10 @@ async def test_reconcile_does_not_restart_alive_task():
     assert obs._tasks["BTCUSDT"] is alive_task
     mock_run.assert_not_called()
 
+    assert obs._validate_watchlist.await_count == 1
+    obs._validate_watchlist.assert_awaited_with(["BTCUSDT"])
+    http_access.assert_not_called()
+
     # Cleanup
     alive_event.set()
     await alive_task
@@ -436,7 +444,7 @@ async def test_reconcile_does_not_restart_alive_task():
 
 
 @pytest.mark.asyncio
-async def test_reconcile_repeated_no_duplicate():
+async def test_reconcile_repeated_no_duplicate(monkeypatch):
     """
     Deux appels successifs à _reconcile() ne doivent pas créer deux tasks
     actives pour le même symbole.
@@ -456,6 +464,10 @@ async def test_reconcile_repeated_no_duplicate():
     obs.store.set_watchlist = MagicMock()
     obs._recorder = None
     obs.exchange = "mexc"
+    # Le lifecycle des tâches est indépendant de la disponibilité MEXC.
+    obs._validate_watchlist = AsyncMock(return_value=(["BTCUSDT", "ETHUSDT"], {}))
+    http_access = MagicMock(side_effect=AssertionError("Accès HTTP interdit"))
+    monkeypatch.setattr("urllib.request.urlopen", http_access)
 
     alive_event = asyncio.Event()
 
@@ -493,6 +505,10 @@ async def test_reconcile_repeated_no_duplicate():
     # Une seule task par symbole, pas de doublon
     assert len(obs._tasks) == 2
 
+    assert obs._validate_watchlist.await_count == 2
+    obs._validate_watchlist.assert_awaited_with(["BTCUSDT", "ETHUSDT"])
+    http_access.assert_not_called()
+
     # Cleanup
     alive_event.set()
     await task_btc
@@ -515,7 +531,7 @@ async def test_stream_live_trade_dead_orderbook_alive_raises_pipeline_error():
       du trade feeder et lever StreamPipelineError sur le chemin "event reçu".
     """
     from market_data.stream import MultiExchangeStream, StreamPipelineError
-    from market_data.connectors.base import BaseConnector, NormalizedTrade, NormalizedOrderBook
+    from market_data.connectors.base import BaseConnector, NormalizedOrderBook
 
     class _TradeDeadOBAliveConnector(BaseConnector):
         """Connecteur mock : stream_trades se termine immédiatement, orderbook est infini."""
@@ -633,7 +649,7 @@ async def test_stream_live_connection_closed_terminates_trade_feeder():
     et terminer. Le pipeline doit détecter la mort du feeder via _check_required_feeders.
     """
     from market_data.stream import MultiExchangeStream, StreamPipelineError
-    from market_data.connectors.base import BaseConnector, NormalizedTrade, NormalizedOrderBook
+    from market_data.connectors.base import BaseConnector, NormalizedOrderBook
 
     class _ConnectionClosedConnector(BaseConnector):
         @property
