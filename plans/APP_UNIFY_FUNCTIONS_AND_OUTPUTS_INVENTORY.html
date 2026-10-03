@@ -696,8 +696,8 @@ dispositions successives. Ne pas utiliser un commentaire ancien comme état actu
 <td><p>vérifier endpoints, build et provenance en lecture seule</p></td>
 </tr>
 <tr class="row-odd"><td><p>2</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">frontend/src/views/EventsView.tsx</span></code> est statique NON DÉPLOYÉ</p></td>
-<td><p>contrat/producteur Centre d’événements avant retrait des notifications</p></td>
+<td><p>Events était statique à la base de cette revue</p></td>
+<td><p>APP-EVENTS-01 #361 : contrat et chaîne passive implémentés en source ; publication runtime distincte, notifications conservées</p></td>
 </tr>
 <tr class="row-even"><td><p>2</p></td>
 <td><p>détail LMI raw/liq et projection stockage manquants dans la matrice</p></td>
@@ -779,6 +779,22 @@ L’observation de dormance dans #309 est historique, pas une preuve de retrait 
 documents, sans suppression de fichier métier ou historique ni interruption de
 service. Les références restent consultables. La taille d’un dossier ou l’absence
 d’import statique ne suffit pas à prouver qu’il est inutilisé.</p>
+</section>
+<section id="suite-app-events-01-361">
+<h3>Suite APP-EVENTS-01 — #361<a class="headerlink" href="#suite-app-events-01-361" title="Link to this heading">¶</a></h3>
+<p>Depuis la base source <code class="docutils literal notranslate"><span class="pre">7d7b29669f9940f5e7e47b5b1c7d88371f067fbb</span></code>, le
+<a class="reference internal" href="../contracts/APP_EVENTS_01_CONTRACT.html"><span class="std std-doc">contrat Events</span></a> cadre trois sources
+explicitement sélectionnées : P12, audit supervision et projection lifecycle U2.
+Capture passive atomique → artifact → GET <code class="docutils literal notranslate"><span class="pre">/api/operator/v1/events</span></code> → vue
+indépendante <code class="docutils literal notranslate"><span class="pre">/paper-live/events</span></code>. UNKNOWN, source absente, source invalide,
+capture vide et données périmées restent distincts. Les corrections supervision
+restent comptées comme exclusions ; aucune activité moteur déduite des journaux.</p>
+<p>Validation locale synthétique : 390 tests frontend, 526 tests Python de la chaîne
+et surfaces voisines, puis 22 tests Events finaux ; build, 7 contrôles PWA et
+Ruff sans nouvelle violation. 16 captures Chromium 1440/390 couvrent sources,
+filtres, erreurs, provenance et overflow. Cette preuve ne certifie aucun
+endpoint ou producteur déployé. Pas de nouvelle workflow concurrente : le gate
+cross-stack existant porte aussi la preuve visuelle Events.</p>
 </section>
 <section id="verification-locale">
 <h3>Vérification locale<a class="headerlink" href="#verification-locale" title="Link to this heading">¶</a></h3>
@@ -886,6 +902,7 @@ déployées et le fonctionnement courant du burn-in restent <strong>non réobser
 <li><a class="reference internal" href="#reprise-et-coherence-roadmap">Reprise et cohérence roadmap</a></li>
 <li><a class="reference internal" href="#faiblesses-et-ordre-utile">Faiblesses et ordre utile</a></li>
 <li><a class="reference internal" href="#classification-pour-le-menage">Classification pour le ménage</a></li>
+<li><a class="reference internal" href="#suite-app-events-01-361">Suite APP-EVENTS-01 — #361</a></li>
 <li><a class="reference internal" href="#verification-locale">Vérification locale</a></li>
 </ul>
 </li>
