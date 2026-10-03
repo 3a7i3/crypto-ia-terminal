@@ -1,24 +1,21 @@
-# Reprise application et consolidation — 2026-10-03
+# Stockage Machine — APP-STORAGE-01
 
-Mission : [APP-CLEANUP-01 · #359](https://github.com/3a7i3/crypto-ia-terminal/issues/359).
+Mission [#368](https://github.com/3a7i3/crypto-ia-terminal/issues/368), parent
+[#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323), roadmap
+[#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
 
-Demande opérateur : revoir les issues, tester l'app et ses sorties, classer les
-chantiers inachevés et réduire le bruit documentaire. Burn-in intact.
+Suite du Centre d’événements #361/#364 intégré. Combler le reliquat de stockage
+CryptoRadar dans Système, sans ouvrir les DecisionPacket JSONL.
+[Contrat APP-STORAGE-01](docs/contracts/APP_STORAGE_01_CONTRACT.md).
+Base source `8aad0ac42705f50e626aa802340a23c8b5c94aa9` ; branche `feat/app-storage-01`.
+Vérifier la disposition GitHub avant reprise ; source intégrée ≠ runtime déployé.
 
-Base source : `385b8c9cdd4f0f67fd58898ba18f6a37b5e308a4`.
-Branche locale : `audit/app-coherence-cleanup`. Cette reprise ne certifie ni U7
-globalement, ni le runtime. Voir l'[inventaire et les résultats](docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md#revue-application-et-consolidation--2026-10-03).
+Capture bornée des métadonnées de fichiers, volume logique exact en octets,
+projection atomique séparée, API GET-only et carte indépendante sur Système.
+Unknown, absent, vide, erreur ou mutation concurrente restent distincts.
+Lecture HTTP commune Events/Stockage, sérialisée et bornée à 10 s.
 
-DOC-CANON #340/#341 est déjà intégré. U8 #342/#343 est préparé en source,
-sans autorisation de déploiement. #257 est remédiée après #344/#346 ; #315
-Gate O reste ouvert. Les premiers commentaires ne décrivent pas forcément
-l'état final : vérifier les dispositions des issues.
-
-Entrée de travail : [docs/DEVELOPER_ENTRYPOINT.md](docs/DEVELOPER_ENTRYPOINT.md).
-Tests locaux sur données synthétiques ; aucun accès machine disponible ici.
-
-Priorisation : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
-Cockpit : [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323).
-Garde-fou : [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) actif.
-Burn-in : [#282](https://github.com/3a7i3/crypto-ia-terminal/issues/282), checkpoints
-READ-ONLY distincts ; aucune nouvelle observation VPS dans cette reprise.
+[Entrée développeur](docs/DEVELOPER_ENTRYPOINT.md) ;
+[inventaire de parité](docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md).
+Tests et captures locaux synthétiques ; aucun accès VPS configuré dans la session.
+Burn-in #282 et garde-fou #286 intact ; aucun retrait de transport/CryptoRadar.

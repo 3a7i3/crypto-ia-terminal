@@ -44,7 +44,7 @@ producteur/consommateurs et d'alimentation avant présentation de résultats.
 | Events LMI historiques | `/api/lmi/events`, adapter | Machine · CryptoRadar | ancienne route filtre les **états actuels** notables ; aucun journal temporel certifié trouvé |
 | Détail LMI complet | `/api/lmi/symbol/{symbol}` | Machine · détail Microstructure | core metrics intégrées ; `state_components`/raw/liq détaillée restent à contractualiser |
 | Horizon / observer / radar secondaires | `scripts/systemd/crypto-market-*.service`, producers | Machine · Marché / Système | unités source existantes ; dépendances/consommateurs runtime non recertifiés |
-| Volumes filesystem DecisionPacket | ancien `/api/status` | Machine · Système / Stockage | projection storage manquante ; ne pas placer dans Market |
+| Volumes filesystem DecisionPacket | ancien `/api/status` | Machine · Système / Stockage | APP-STORAGE-01 #368 : fichiers réguliers et octets logiques exacts ; source seulement, aucun journal ouvert |
 | Replay factuel | `research_replay/` | Lab · Évaluations | publication immutable + U4 ; moteur jamais lancé par l'app |
 | Diagnostic / attribution | `research_diag/` | Lab · Évaluations / détails | aggregates publiés via U4, contraintes scientifiques conservées |
 | Catalogue candidate | `research_candidate/registry.py` | Lab · Stratégies/candidats | contrats/publisher existants ; raccordement présentation à construire |
@@ -73,7 +73,7 @@ producteur/consommateurs et d'alimentation avant présentation de résultats.
 | `/api/scan` | Scanner | U3a, intégré ; données live à recertifier séparément |
 | `/api/symbol/{symbol}` | détail agrégats symbole | détail safe U3a ; LONG/SHORT exacts non publiés |
 | `/api/signals` | niveaux Entry/SL/TP/R historiques | domaine Decisions/Portfolio, pas une permission de trade dans Market |
-| `/api/status` | derniers packets + taille/fichiers | population/fraîcheur Market existantes ; stockage requiert une projection System |
+| `/api/status` | derniers packets + taille/fichiers | population/fraîcheur Market existantes ; stockage System via APP-STORAGE-01 #368, publication runtime distincte |
 | `/api/lmi/status` | couverture/état | U3b intégré |
 | `/api/lmi/table` | métriques microstructure | U3b intégré |
 | `/api/lmi/symbol/{symbol}` | détail complet | metrics intégrées, champs raw non repris aveuglément |
@@ -106,7 +106,7 @@ classement et leurs preuves doivent être **publiés explicitement** ; aucun
 lancé au clic. Le tableau peut être livré en source avec état indisponible
 honnête tant que les artifacts réels ne sont pas publiés.
 
-Restent des chantiers de preuve/producer distincts : stockage, liq/raw LMI
+Restent des chantiers de preuve/producer distincts à cette photographie U4 : stockage, liq/raw LMI
 contractualisés, consommateurs des anciens transports, sources KPI historiques
 et Gate O. Cette matrice interdit de les présenter comme déjà déployés/résolus.
 
@@ -147,8 +147,8 @@ dispositions successives. Ne pas utiliser un commentaire ancien comme état actu
 | Priorité | Constat vérifié | Action suivante |
 |---|---|---|
 | 1 | source intégrée ≠ sorties réellement servies ; accès machine absent ici | vérifier endpoints, build et provenance en lecture seule |
-| 2 | `frontend/src/views/EventsView.tsx` est statique NON DÉPLOYÉ | contrat/producteur Centre d'événements avant retrait des notifications |
-| 2 | détail LMI raw/liq et projection stockage manquants dans la matrice | terminer les projections utiles avant retrait CryptoRadar |
+| 2 | Events était statique à la base de cette revue | APP-EVENTS-01 #361 : contrat et chaîne passive implémentés en source ; publication runtime distincte, notifications conservées |
+| 2 | détail LMI raw/liq encore hors parité ; stockage manquant à la base | APP-STORAGE-01 #368 comble stockage en source ; terminer LMI et preuves runtime avant retrait CryptoRadar |
 | 2 | grille Research source disponible, résultats réels non admis par cette tranche | sélectionner explicitement évaluations et assessments certifiés |
 | 3 | index documentaire prétendait être source unique/live avec chiffres de mai | entrée canonique et limites historiques clarifiées, générateur corrigé |
 | 3 | CURRENT_TASK pointait #340 déjà intégrée | reprise actuelle et reliquats explicités |
@@ -175,6 +175,23 @@ Ménage réalisé : clarification des entrées de travail et de l'autorité des
 documents, sans suppression de fichier métier ou historique ni interruption de
 service. Les références restent consultables. La taille d'un dossier ou l'absence
 d'import statique ne suffit pas à prouver qu'il est inutilisé.
+
+### Suite APP-EVENTS-01 — #361
+
+Depuis la base source `7d7b29669f9940f5e7e47b5b1c7d88371f067fbb`, le
+[contrat Events](../contracts/APP_EVENTS_01_CONTRACT.md) cadre trois sources
+explicitement sélectionnées : P12, audit supervision et projection lifecycle U2.
+Capture passive atomique → artifact → GET `/api/operator/v1/events` → vue
+indépendante `/paper-live/events`. UNKNOWN, source absente, source invalide,
+capture vide et données périmées restent distincts. Les corrections supervision
+restent comptées comme exclusions ; aucune activité moteur déduite des journaux.
+
+Validation locale synthétique : 390 tests frontend, 526 tests Python de la chaîne
+et surfaces voisines, puis 22 tests Events finaux ; build, 7 contrôles PWA et
+Ruff sans nouvelle violation. 16 captures Chromium 1440/390 couvrent sources,
+filtres, erreurs, provenance et overflow. Cette preuve ne certifie aucun
+endpoint ou producteur déployé. Pas de nouvelle workflow concurrente : le gate
+cross-stack existant porte aussi la preuve visuelle Events.
 
 ### Vérification locale
 
@@ -207,3 +224,22 @@ Aucune machine Desktop Commander connectée, aucune identité SSH/VPN configuré
 dans cet environnement. L'accès read-only a été demandé à l'opérateur. Les sorties
 déployées et le fonctionnement courant du burn-in restent **non réobservés**.
 #286 reste actif ; aucun changement runtime/Advisor/PPL/FIN/config/epoch/services.
+
+
+### Suite APP-STORAGE-01 — #368
+
+Le [contrat de stockage](../contracts/APP_STORAGE_01_CONTRACT.md) reprend
+`dp_files` et le volume de `/api/status` sous forme de métadonnées bornées, sans
+ouvrir les journaux, avec octets logiques exacts. Répertoire explicite, enfants
+directs, fichiers réguliers seulement ; limites/changements/erreurs rendent
+les métriques null. Capture atomique séparée → GET `/api/operator/v1/storage`
+→ carte indépendante sur Système. Aucun calcul de packets, capacité disque
+ou santé Advisor. Le détail liq/raw LMI et les consommateurs runtime restent
+hors de cette parité ; aucun retrait CryptoRadar admis.
+
+Validation locale synthétique : 403 tests frontend, 545 tests Python ciblés,
+build TypeScript/Vite, 7 contrôles PWA et Ruff sans nouvelle violation. 32
+captures Chromium 1440/390 pour Events et Stockage ; sources indisponibles,
+mutations, vide, stale, filtres, provenance et overflow. Le même gate cross-stack
+sert les deux surfaces ; lecture HTTP et script visuel mutualisés, pas de workflow
+concurrente. Aucune preuve Machine réelle ni action VPS.

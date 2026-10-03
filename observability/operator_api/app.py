@@ -25,6 +25,9 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from observability.operator_api.event_center_reader import EventCenterReader
+from observability.operator_api.storage_reader import StorageSnapshotReader
+
 from observability.operator_api.market_microstructure_reader import (
     DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
     MarketMicrostructureReader,
@@ -82,6 +85,8 @@ app = FastAPI(
 # external exposure/auth remains a deployment/security responsibility.
 
 _reader = SafeSnapshotReader()
+_event_center_reader = EventCenterReader()
+_storage_reader = StorageSnapshotReader()
 _microstructure_reader = MarketMicrostructureReader()
 _runtime_service_reader = RuntimeServiceSnapshotReader()
 _burn_in_status_reader = BurnInStatusSnapshotReader()
@@ -108,6 +113,44 @@ def configure_reader(
 
 def get_reader() -> SafeSnapshotReader:
     return _reader
+
+
+def get_event_center_reader() -> EventCenterReader:
+    return _event_center_reader
+
+
+def get_storage_reader() -> StorageSnapshotReader:
+    return _storage_reader
+
+
+def configure_storage_reader(path, *, now_fn=None) -> StorageSnapshotReader:
+    global _storage_reader
+    _storage_reader = StorageSnapshotReader(path, **({} if now_fn is None else {"now_fn": now_fn}))
+    return _storage_reader
+
+
+@app.get("/api/operator/v1/storage")
+def get_storage() -> Any:
+    result = get_storage_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
+
+
+def configure_event_center_reader(path, *, now_fn=None) -> EventCenterReader:
+    global _event_center_reader
+    kwargs = {} if now_fn is None else {"now_fn": now_fn}
+    _event_center_reader = EventCenterReader(path, **kwargs)
+    return _event_center_reader
+
+
+@app.get("/api/operator/v1/events")
+def get_events() -> Any:
+    """Transport one passive presentation artifact; no alert engine or journal."""
+    result = get_event_center_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
 
 
 def configure_market_reader(
@@ -508,6 +551,10 @@ def get_research_lab() -> Any:
 
 __all__ = [
     "app",
+    "get_storage_reader",
+    "configure_storage_reader",
+    "get_event_center_reader",
+    "configure_event_center_reader",
     "configure_reader",
     "get_reader",
     "get_microstructure_reader",
