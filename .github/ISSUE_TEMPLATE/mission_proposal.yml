@@ -1,0 +1,87 @@
+name: Proposer une mission gouvernée
+description: Proposer une amélioration bornée sous MASTER ROADMAP II, sans s’attribuer d’autorité.
+title: "[PROPOSITION] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Frontière de gouvernance
+
+        Les propositions ne font pas autorité. PAPER produit les faits ; Research produit les hypothèses.
+
+        Flux requis : `PAPER → DATASET → RESEARCH → CANDIDATE → FUTURE EPOCH`.
+
+        Aucun flux `RESEARCH → ACTIVE PAPER EPOCH` n’est admis. #286 reste applicable. Cette issue **ne constitue pas une mission rémunérée**, sauf déclaration explicite du propriétaire au statut `BOUNTY_OPEN`.
+  - type: input
+    id: parent
+    attributes:
+      label: Roadmap ou mission parente
+      description: Toute nouvelle mission doit être rattachée à #285 ou à une mission enfant gouvernée.
+      placeholder: "#285"
+      value: "#285"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème candidat
+      description: Décrivez le problème observé sans présenter une hypothèse non vérifiée comme un fait.
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Preuves existantes
+      description: Séparez SOURCE PROOF et RUNTIME PROOF ; conservez les SHA exacts, IDs d’epoch, empreintes de configuration, dates, trace_id et empreintes d’artefacts. Identifiez les références historiques.
+      placeholder: |
+        SOURCE PROOF:
+        RUNTIME PROOF:
+        UNKNOWN / NOT_AVAILABLE:
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Périmètre borné proposé
+      description: Identifiez les fichiers ou composants exacts, les livrables attendus et les exclusions.
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Cible prévue
+      options:
+        - Documentation uniquement
+        - Changement source pour une évolution future
+        - Research non autoritaire
+        - Candidat pour une future epoch PAPER
+        - UNKNOWN / examen forensique nécessaire
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests requis et critères de réfutation
+      description: Définissez ce qui pourrait réfuter la proposition et les preuves nécessaires avant tout verdict PASS.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risques, rollback et frontières d’autorité
+      description: Précisez les risques de sécurité, de contamination scientifique et de runtime, ainsi que le rollback.
+    validations:
+      required: true
+  - type: checkboxes
+    id: guardrails
+    attributes:
+      label: Garde-fous
+      options:
+        - label: Cette proposition n’autorise aucun changement de l’epoch burn-in active.
+          required: true
+        - label: Cette proposition n’autorise ni déploiement, merge, restart, TESTNET, LIVE, écriture exchange ou autorité autonome d’un agent.
+          required: true
+        - label: Les éléments UNKNOWN resteront inchangés jusqu’à leur résolution.
+          required: true
+        - label: Je comprends que cette proposition n’est pas rémunérée sans déclaration BOUNTY_OPEN explicite du propriétaire, montant et conditions d’acceptation.
+          required: true

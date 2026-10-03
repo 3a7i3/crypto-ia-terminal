@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Signalement privé de vulnérabilité
+    url: https://github.com/3a7i3/crypto-ia-terminal/security/advisories/new
+    about: Signalez en privé les secrets exposés, vulnérabilités exploitables et autres informations sensibles. Ne divulguez aucun secret dans une issue publique.
