@@ -1,0 +1,201 @@
+{
+  "schema_version": "MACHINE_MATURITY_SNAPSHOT_V1",
+  "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
+  "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+  "generated_from_source_main_sha": "db194c9237c729426530cc141ebd2da9aba4cef2",
+  "projection_semantics": "READ_ONLY_PROJECTION_OF_CERTIFICATION_AND_GOVERNANCE_ARTIFACTS",
+  "formal_certified_frontier": "L0",
+  "evidence_demonstrated_frontier": "L3",
+  "development_frontier": "L4",
+  "next_formal_certification_target": "L1",
+  "next_frontier_advancement_target": "L4",
+  "levels": [
+    {
+      "level_id": "L0",
+      "name": "Constitutional Foundation",
+      "certification_status": "CERTIFIED",
+      "planning_horizon_state": "CURRENT",
+      "criterion_counts": {
+        "mandatory": 5,
+        "satisfied": 5,
+        "unresolved": 0,
+        "not_available": 0
+      },
+      "certification_ref": "docs/governance/machine_maturity/LEVEL_0_MACHINE_LEVEL_CERTIFICATION_v1.json",
+      "certification_hash": "a20ac417ae677127198a1a8bc55208b2f2e560f83b59c6916911e448bd87c459",
+      "revocation_state": "NONE"
+    },
+    {
+      "level_id": "L1",
+      "name": "Observable Machine",
+      "certification_status": "READY_FOR_REVIEW",
+      "planning_horizon_state": "CURRENT",
+      "criterion_counts": {
+        "mandatory": 6,
+        "satisfied": 6,
+        "unresolved": 0,
+        "not_available": 0
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L2",
+      "name": "Governed PAPER Machine",
+      "certification_status": "READY_FOR_REVIEW",
+      "planning_horizon_state": "CURRENT",
+      "criterion_counts": {
+        "mandatory": 7,
+        "satisfied": 7,
+        "unresolved": 0,
+        "not_available": 0
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L3",
+      "name": "Scientific Research Machine",
+      "certification_status": "READY_FOR_REVIEW",
+      "planning_horizon_state": "CURRENT",
+      "criterion_counts": {
+        "mandatory": 8,
+        "satisfied": 8,
+        "unresolved": 0,
+        "not_available": 0
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L4",
+      "name": "Operator Machine",
+      "certification_status": "IN_PROGRESS",
+      "planning_horizon_state": "CURRENT",
+      "criterion_counts": {
+        "mandatory": 8,
+        "satisfied": 2,
+        "unresolved": 3,
+        "not_available": 3
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L5",
+      "name": "Self-Maintaining Forest",
+      "certification_status": "NOT_STARTED",
+      "planning_horizon_state": "DESIGNED_IN_DESIGN",
+      "criterion_counts": {
+        "mandatory": 7,
+        "satisfied": 0,
+        "unresolved": 1,
+        "not_available": 6
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L6",
+      "name": "Governed Agent Engineering",
+      "certification_status": "NOT_STARTED",
+      "planning_horizon_state": "FUTURE_DESIGN",
+      "criterion_counts": {
+        "mandatory": 8,
+        "satisfied": 0,
+        "unresolved": 0,
+        "not_available": 8
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L7",
+      "name": "Autonomous Test Environment",
+      "certification_status": "NOT_STARTED",
+      "planning_horizon_state": "LOCKED",
+      "criterion_counts": {
+        "mandatory": 8,
+        "satisfied": 2,
+        "unresolved": 0,
+        "not_available": 6
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L8",
+      "name": "Governed Capital Machine",
+      "certification_status": "NOT_STARTED",
+      "planning_horizon_state": "LOCKED",
+      "criterion_counts": {
+        "mandatory": 8,
+        "satisfied": 0,
+        "unresolved": 0,
+        "not_available": 8
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    },
+    {
+      "level_id": "L9",
+      "name": "Adaptive Research Organization",
+      "certification_status": "NOT_STARTED",
+      "planning_horizon_state": "VISION",
+      "criterion_counts": {
+        "mandatory": 8,
+        "satisfied": 0,
+        "unresolved": 0,
+        "not_available": 8
+      },
+      "certification_ref": "NOT_AVAILABLE",
+      "revocation_state": "NOT_APPLICABLE"
+    }
+  ],
+  "active_experiments": [
+    {
+      "ref": "#282",
+      "state": "ACTIVE_BURN_IN_OBSERVATION",
+      "final_scientific_verdict": "NOT_AVAILABLE"
+    }
+  ],
+  "active_governance_guards": [
+    {
+      "ref": "#286",
+      "state": "ACTIVE_BURN_IN_IMMUTABILITY_GUARD"
+    },
+    {
+      "ref": "#315",
+      "state": "GATE_O_OPEN_NON_RESOLVED",
+      "scope": "OperatorDecision operational trust boundary"
+    }
+  ],
+  "blockers": [
+    {
+      "ref": "L4-G2",
+      "state": "NOT_AVAILABLE",
+      "detail": "APP_UNIFY_01_SOURCE_CERTIFIED"
+    },
+    {
+      "ref": "L4-G3",
+      "state": "NOT_AVAILABLE",
+      "detail": "APP_UNIFY_01_RUNTIME_CERTIFIED"
+    },
+    {
+      "ref": "L4-G8",
+      "state": "NOT_AVAILABLE",
+      "detail": "L4 Certification Pack"
+    }
+  ],
+  "source_refs": [
+    "#365",
+    "#362",
+    "#285",
+    "#282",
+    "#286",
+    "#315",
+    "#323"
+  ],
+  "projection_rule": "CERTIFIED status is read from an effective MachineLevelCertification artifact; it is never inferred from criterion counts.",
+  "l0_certificate_hash": "a20ac417ae677127198a1a8bc55208b2f2e560f83b59c6916911e448bd87c459"
+}
