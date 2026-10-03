@@ -47,6 +47,7 @@ export const PaperLiveShell: React.FC = () => {
   const independentRoute = activeDomain === "market" ||
     location.pathname === "/paper-live/lifecycle" ||
     location.pathname === "/paper-live/burn-in" ||
+    location.pathname === "/paper-live/events" ||
     location.pathname === "/paper-live/finance";
 
   return (
