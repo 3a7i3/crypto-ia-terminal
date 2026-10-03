@@ -14,6 +14,7 @@
 |--------|---------|
 | Reprendre le travail actuel | [Entrée développeur](DEVELOPER_ENTRYPOINT.md) |
 | Contrat du Centre d’événements | [APP-EVENTS-01](contracts/APP_EVENTS_01_CONTRACT.md) |
+| Stockage des DecisionPackets | [APP-STORAGE-01](contracts/APP_STORAGE_01_CONTRACT.md) |
 | Consulter les anciens guides | [Quick Start](#quick-start--setup) |
 | Comprendre l'architecture | [Architecture](#architecture--design) |
 | Rapports locaux Project OS | [Project OS](#project-os--rapports-locaux-non-certifiés) |

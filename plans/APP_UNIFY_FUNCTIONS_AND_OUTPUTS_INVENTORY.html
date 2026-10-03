@@ -382,7 +382,7 @@ producteur/consommateurs et d’alimentation avant présentation de résultats.<
 <tr class="row-even"><td><p>Volumes filesystem DecisionPacket</p></td>
 <td><p>ancien <code class="docutils literal notranslate"><span class="pre">/api/status</span></code></p></td>
 <td><p>Machine · Système / Stockage</p></td>
-<td><p>projection storage manquante ; ne pas placer dans Market</p></td>
+<td><p>APP-STORAGE-01 #368 : fichiers réguliers et octets logiques exacts ; source seulement, aucun journal ouvert</p></td>
 </tr>
 <tr class="row-odd"><td><p>Replay factuel</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">research_replay/</span></code></p></td>
@@ -513,7 +513,7 @@ producteur/consommateurs et d’alimentation avant présentation de résultats.<
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/api/status</span></code></p></td>
 <td><p>derniers packets + taille/fichiers</p></td>
-<td><p>population/fraîcheur Market existantes ; stockage requiert une projection System</p></td>
+<td><p>population/fraîcheur Market existantes ; stockage System via APP-STORAGE-01 #368, publication runtime distincte</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/api/lmi/status</span></code></p></td>
 <td><p>couverture/état</p></td>
@@ -610,7 +610,7 @@ classement et leurs preuves doivent être <strong>publiés explicitement</strong
 <code class="docutils literal notranslate"><span class="pre">latest</span></code> implicite, classement depuis le nom d’un module ou pipeline autonome
 lancé au clic. Le tableau peut être livré en source avec état indisponible
 honnête tant que les artifacts réels ne sont pas publiés.</p>
-<p>Restent des chantiers de preuve/producer distincts : stockage, liq/raw LMI
+<p>Restent des chantiers de preuve/producer distincts à cette photographie U4 : stockage, liq/raw LMI
 contractualisés, consommateurs des anciens transports, sources KPI historiques
 et Gate O. Cette matrice interdit de les présenter comme déjà déployés/résolus.</p>
 </section>
@@ -700,8 +700,8 @@ dispositions successives. Ne pas utiliser un commentaire ancien comme état actu
 <td><p>APP-EVENTS-01 #361 : contrat et chaîne passive implémentés en source ; publication runtime distincte, notifications conservées</p></td>
 </tr>
 <tr class="row-even"><td><p>2</p></td>
-<td><p>détail LMI raw/liq et projection stockage manquants dans la matrice</p></td>
-<td><p>terminer les projections utiles avant retrait CryptoRadar</p></td>
+<td><p>détail LMI raw/liq encore hors parité ; stockage manquant à la base</p></td>
+<td><p>APP-STORAGE-01 #368 comble stockage en source ; terminer LMI et preuves runtime avant retrait CryptoRadar</p></td>
 </tr>
 <tr class="row-odd"><td><p>2</p></td>
 <td><p>grille Research source disponible, résultats réels non admis par cette tranche</p></td>
@@ -852,6 +852,23 @@ dans cet environnement. L’accès read-only a été demandé à l’opérateur.
 déployées et le fonctionnement courant du burn-in restent <strong>non réobservés</strong>.
 #286 reste actif ; aucun changement runtime/Advisor/PPL/FIN/config/epoch/services.</p>
 </section>
+<section id="suite-app-storage-01-368">
+<h3>Suite APP-STORAGE-01 — #368<a class="headerlink" href="#suite-app-storage-01-368" title="Link to this heading">¶</a></h3>
+<p>Le <a class="reference internal" href="../contracts/APP_STORAGE_01_CONTRACT.html"><span class="std std-doc">contrat de stockage</span></a> reprend
+<code class="docutils literal notranslate"><span class="pre">dp_files</span></code> et le volume de <code class="docutils literal notranslate"><span class="pre">/api/status</span></code> sous forme de métadonnées bornées, sans
+ouvrir les journaux, avec octets logiques exacts. Répertoire explicite, enfants
+directs, fichiers réguliers seulement ; limites/changements/erreurs rendent
+les métriques null. Capture atomique séparée → GET <code class="docutils literal notranslate"><span class="pre">/api/operator/v1/storage</span></code>
+→ carte indépendante sur Système. Aucun calcul de packets, capacité disque
+ou santé Advisor. Le détail liq/raw LMI et les consommateurs runtime restent
+hors de cette parité ; aucun retrait CryptoRadar admis.</p>
+<p>Validation locale synthétique : 403 tests frontend, 545 tests Python ciblés,
+build TypeScript/Vite, 7 contrôles PWA et Ruff sans nouvelle violation. 32
+captures Chromium 1440/390 pour Events et Stockage ; sources indisponibles,
+mutations, vide, stale, filtres, provenance et overflow. Le même gate cross-stack
+sert les deux surfaces ; lecture HTTP et script visuel mutualisés, pas de workflow
+concurrente. Aucune preuve Machine réelle ni action VPS.</p>
+</section>
 </section>
 </section>
 
@@ -904,6 +921,7 @@ déployées et le fonctionnement courant du burn-in restent <strong>non réobser
 <li><a class="reference internal" href="#classification-pour-le-menage">Classification pour le ménage</a></li>
 <li><a class="reference internal" href="#suite-app-events-01-361">Suite APP-EVENTS-01 — #361</a></li>
 <li><a class="reference internal" href="#verification-locale">Vérification locale</a></li>
+<li><a class="reference internal" href="#suite-app-storage-01-368">Suite APP-STORAGE-01 — #368</a></li>
 </ul>
 </li>
 </ul>
