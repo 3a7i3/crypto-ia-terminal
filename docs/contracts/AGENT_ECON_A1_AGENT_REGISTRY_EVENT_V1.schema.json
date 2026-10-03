@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:crypto-ia-terminal:agent-econ:a1:agent-registry-event:v1",
+  "title": "AGENT_REGISTRY_EVENT_V1",
+  "description": "Declarative schema of one AgentRegistryEvent (AGENT-ECON A1). CONTRACT ONLY: no registry, store or writer exists. JSON Schema cannot express: event_id and event_hash recomputation, global contiguity of registry_sequence, per-agent contiguity of agent_transition_ordinal, previous_event_hash == event_hash of sequence N-1, sorted order of evidence_refs, agent_spec_id continuity and escalation classification. Those are VALIDATOR rules (see docs/contracts/AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT.md sections 9 and 10).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_schema",
+    "event_id",
+    "registry_sequence",
+    "agent_transition_ordinal",
+    "agent_id",
+    "agent_spec_id",
+    "event_type",
+    "previous_state",
+    "new_state",
+    "reason_code",
+    "reason_detail",
+    "evidence_refs",
+    "occurred_at_utc",
+    "previous_event_hash",
+    "event_hash"
+  ],
+  "properties": {
+    "event_schema": {
+      "const": "AGENT_REGISTRY_EVENT_V1"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "registry_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "agent_transition_ordinal": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "agent_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "agent_spec_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "event_type": {
+      "enum": [
+        "AGENT_REGISTERED",
+        "AGENT_REINSTATED",
+        "AGENT_RETIRED",
+        "AGENT_SPEC_REVISED",
+        "AGENT_SUSPENDED"
+      ]
+    },
+    "previous_state": {
+      "enum": [
+        null,
+        "REGISTERED",
+        "SUSPENDED"
+      ]
+    },
+    "new_state": {
+      "enum": [
+        "REGISTERED",
+        "SUSPENDED",
+        "RETIRED"
+      ]
+    },
+    "reason_code": {
+      "enum": [
+        "REGISTRATION_INITIAL",
+        "REINSTATEMENT_GOVERNANCE",
+        "RETIREMENT_GOVERNANCE",
+        "RETIREMENT_SUPERSEDED_BY_NEW_AGENT",
+        "SPEC_REVISION_ESCALATING",
+        "SPEC_REVISION_NON_ESCALATING",
+        "SPEC_REVISION_REDUCING",
+        "SUSPENSION_GOVERNANCE",
+        "SUSPENSION_INCIDENT"
+      ]
+    },
+    "reason_detail": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 1000
+    },
+    "evidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "pattern": "^(github:issue:[1-9][0-9]{0,8}|github:pr:[1-9][0-9]{0,8}@[0-9a-f]{40}|git:commit:[0-9a-f]{40}|sha256:[0-9a-f]{64})$"
+      },
+      "description": "Closed reference grammar (github:issue:N | github:pr:N@sha40 | git:commit:sha40 | sha256:hex64). At least one reference is mandatory for every event: no evidence-free transition."
+    },
+    "occurred_at_utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,6})?Z$"
+    },
+    "previous_event_hash": {
+      "type": "string",
+      "pattern": "^(GENESIS|[0-9a-f]{64})$"
+    },
+    "event_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AGENT_REGISTERED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_state": {
+            "type": "null"
+          },
+          "new_state": {
+            "const": "REGISTERED"
+          },
+          "reason_code": {
+            "enum": [
+              "REGISTRATION_INITIAL"
+            ]
+          },
+          "agent_transition_ordinal": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AGENT_SPEC_REVISED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_state": {
+            "enum": [
+              "REGISTERED",
+              "SUSPENDED"
+            ]
+          },
+          "new_state": {
+            "enum": [
+              "REGISTERED",
+              "SUSPENDED"
+            ]
+          },
+          "reason_code": {
+            "enum": [
+              "SPEC_REVISION_ESCALATING",
+              "SPEC_REVISION_NON_ESCALATING",
+              "SPEC_REVISION_REDUCING"
+            ]
+          },
+          "agent_transition_ordinal": {
+            "minimum": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AGENT_SUSPENDED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_state": {
+            "const": "REGISTERED"
+          },
+          "new_state": {
+            "const": "SUSPENDED"
+          },
+          "reason_code": {
+            "enum": [
+              "SUSPENSION_GOVERNANCE",
+              "SUSPENSION_INCIDENT"
+            ]
+          },
+          "agent_transition_ordinal": {
+            "minimum": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AGENT_REINSTATED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_state": {
+            "const": "SUSPENDED"
+          },
+          "new_state": {
+            "const": "REGISTERED"
+          },
+          "reason_code": {
+            "enum": [
+              "REINSTATEMENT_GOVERNANCE"
+            ]
+          },
+          "agent_transition_ordinal": {
+            "minimum": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AGENT_RETIRED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_state": {
+            "enum": [
+              "REGISTERED",
+              "SUSPENDED"
+            ]
+          },
+          "new_state": {
+            "const": "RETIRED"
+          },
+          "reason_code": {
+            "enum": [
+              "RETIREMENT_GOVERNANCE",
+              "RETIREMENT_SUPERSEDED_BY_NEW_AGENT"
+            ]
+          },
+          "agent_transition_ordinal": {
+            "minimum": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "registry_sequence": {
+            "const": 1
+          }
+        },
+        "required": [
+          "registry_sequence"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_event_hash": {
+            "const": "GENESIS"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "previous_event_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}
