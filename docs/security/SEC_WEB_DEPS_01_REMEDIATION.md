@@ -1,8 +1,8 @@
 # SEC-WEB-DEPS-01 — Remédiation gouvernée des dépendances frontend
 
-Issue : #257  
-Pull Request : #344  
-Date : 2026-10-03  
+Issue : #257
+Pull Request : #344
+Date : 2026-10-03
 Statut : source en certification, aucun déploiement VPS
 
 ## 1. Objet
