@@ -1,0 +1,1205 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>AGENT-ECON A0 — Forest Maintenance Contract - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/contracts/AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/contracts/AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="agent-econ-a0-forest-maintenance-contract">
+<h1>AGENT-ECON A0 — Forest Maintenance Contract<a class="headerlink" href="#agent-econ-a0-forest-maintenance-contract" title="Link to this heading">¶</a></h1>
+<p>Statut : <strong>SOURCE CONTRACT V1 / RÉCONCILIATION R1.1 / CONTRACT-ONLY / NON DÉPLOYÉ</strong>
+Constitution : <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_V1</span></code>
+Verdict proposé : <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION</span></code>
+(pas <code class="docutils literal notranslate"><span class="pre">CERTIFIED</span></code> : la certification appartient à la revue et à la gouvernance humaine).
+Réconciliation R1 : cette version intègre les meilleures propriétés d’une conception
+indépendante parallèle (PR #347, <code class="docutils literal notranslate"><span class="pre">INDEPENDENT_DESIGN_REFERENCE</span></code>) dans la ligne canonique
+(PR #348, <code class="docutils literal notranslate"><span class="pre">CANONICAL_RECONCILIATION_TARGET</span></code>). Aucune troisième PR.</p>
+<p>Parent : <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/284">#284 — AGENT-ECON-00</a>
+Roadmap : <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/285">#285</a> ·
+Garde-fou : <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/286">#286</a>
+(<code class="docutils literal notranslate"><span class="pre">ACTIVE_BURN_IN_IMMUTABILITY_GUARD</span></code>) ·
+Gate encore ouverte : <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/315">#315</a>
+(Gate O, WEB-DIR-01-D5B-R2).
+Base source observée à la rédaction : <code class="docutils literal notranslate"><span class="pre">main&#64;c561fae406950bf7813102b5b3f59c32388566d0</span></code>
+(base historique de ce document, pas HEAD perpétuel).</p>
+<p>Documents compagnons :
+<a class="reference internal" href="AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT.html"><span class="std std-doc">A1 — Agent Registry</span></a> ·
+<a class="reference internal" href="AGENT_ECON_A1_CAPABILITY_CATALOG.html"><span class="std std-doc">A1 — Capability Catalog &amp; Matrix</span></a> ·
+<a class="reference download internal" download="" href="../_downloads/f025e027c3015357d59be3880e6be0ea/AGENT_ECON_A1_AGENT_SPEC_V1.schema.json"><span class="xref download myst">schéma AgentSpec</span></a> ·
+<a class="reference download internal" download="" href="../_downloads/8ad53c954d40ce823975e134d73235af/AGENT_ECON_A1_AGENT_REGISTRY_EVENT_V1.schema.json"><span class="xref download myst">schéma AgentRegistryEvent</span></a> ·
+<a class="reference internal" href="../forensics/AGENT_ECON_A0_GITHUB_AGENTS_INVENTORY.html"><span class="std std-doc">inventaire <code class="docutils literal notranslate"><span class="pre">.github/agents</span></code></span></a>.</p>
+<hr class="docutils" />
+<section id="ce-que-ce-document-est-et-nest-pas">
+<h2>0. Ce que ce document est, et n’est pas<a class="headerlink" href="#ce-que-ce-document-est-et-nest-pas" title="Link to this heading">¶</a></h2>
+<p>C’est la <strong>constitution</strong> des futurs agents de maintenance de la forêt de code.
+Elle est écrite <em>avant</em> tout worker, pour que l’autonomie future soit plus difficile
+à mal construire.</p>
+<p>Ce document <strong>n’autorise</strong> : aucun agent, worker, scheduler, provider de modèle,
+écriture GitHub, ledger AIC, registre Problem/Bounty, déploiement, restart, mutation
+PAPER/PPL/FIN, écriture exchange, ni aucun changement de la machine active sous #286.
+Il ne crée aucune donnée : l’état des agents, bounties et AIC reste <strong><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code></strong>
+(≠ vide, ≠ zéro). Une surface qui présenterait « N agents actifs » avant l’existence
+d’un producteur gouverné violerait ce contrat.</p>
+<p>Principe racine :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>AGENT CAPABILITY != AUTHORITY
+</pre></div>
+</div>
+<p>L’économie peut acheter du travail et de la recherche ; elle ne peut jamais acheter
+l’autorité (<a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/284">#284</a>).</p>
+</section>
+<hr class="docutils" />
+<section id="invariants-racines">
+<h2>1. Invariants racines<a class="headerlink" href="#invariants-racines" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>CAPABILITY      != AUTHORITY
+OBSERVATION     != AUTHORITY
+PROPOSAL        != AUTHORITY
+CODE            != AUTHORITY
+REVIEW          != AUTHORITY
+REPUTATION      != AUTHORITY
+AIC             != AUTHORITY
+AGENT CONSENSUS != AUTHORITY
+</pre></div>
+</div>
+<p>Même si plusieurs agents sont d’accord, ils ne fabriquent ni autorité humaine, ni
+autorité runtime, PAPER, TESTNET ou LIVE.</p>
+<p>Séparation de domaines :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>FOREST MAINTENANCE != TRADING RUNTIME != PPL AUTHORITY != FIN AUTHORITY
+                   != RESEARCH AUTHORITY != HUMAN GOVERNANCE
+</pre></div>
+</div>
+<p>Invariants hérités, non réinterprétés ici (CLAUDE.md §1) :
+<code class="docutils literal notranslate"><span class="pre">SOURCE</span> <span class="pre">PROOF</span> <span class="pre">≠</span> <span class="pre">RUNTIME</span> <span class="pre">PROOF</span></code> · <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">≠</span> <span class="pre">0</span></code> · <code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span> <span class="pre">≠</span> <span class="pre">vide</span></code> ·
+<code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span> <span class="pre">IS</span> <span class="pre">DATA</span></code> · l’intelligence n’est pas l’autorité.</p>
+</section>
+<hr class="docutils" />
+<section id="definitions">
+<h2>2. Définitions<a class="headerlink" href="#definitions" title="Link to this heading">¶</a></h2>
+<p><strong>Agent.</strong> Une identité logique stable (<code class="docutils literal notranslate"><span class="pre">agent_id</span></code>), décrite par des <code class="docutils literal notranslate"><span class="pre">AgentSpec</span></code>
+versionnées et immuables (<code class="docutils literal notranslate"><span class="pre">agent_spec_id</span></code>), qui déclarent classe, plafond d’action,
+capacités, périmètre et lien d’exécution. Un agent <strong>n’est pas</strong> un processus, un
+modèle, un credential, un wallet ni une autorité. Qu’un agent soit <em>connu du registre</em>
+(<code class="docutils literal notranslate"><span class="pre">REGISTERED</span></code>) ne signifie jamais qu’il tourne.</p>
+<p><strong>Capability.</strong> Un permis <strong>nommé, borné et issu d’un catalogue fermé</strong>
+(<a class="reference internal" href="AGENT_ECON_A1_CAPABILITY_CATALOG.html"><span class="std std-doc">catalogue</span></a>) d’accomplir une classe d’action
+non-autoritaire ou d’émettre une classe d’artefact non-autoritaire. Une capability est
+nécessaire mais jamais suffisante pour qu’un effet devienne contraignant. Elle est
+déclarée dans la spec ; son application effective relève d’un point d’enforcement
+externe à l’agent (futur, A6) — la déclaration seule ne protège rien et ne prouve rien.</p>
+<p><strong>Authority.</strong> Le pouvoir de rendre un état <em>contraignant</em> pour le système ou pour
+l’opérateur. Deux faces, aucune détenue par un agent :</p>
+<ol class="arabic simple">
+<li><p><em>autorité de décision</em> — accepter/rejeter, merger, déployer, ouvrir/autoriser une
+epoch, promouvoir, activer TESTNET/LIVE, écrire sur exchange. Détenue par
+<code class="docutils literal notranslate"><span class="pre">HUMAN_OPERATOR</span></code> (cf. D5A) via les gates gouvernées ;</p></li>
+<li><p><em>autorité de vérité</em> — PPL pour le lifecycle, FIN pour la valeur financière. Les
+agents les <strong>lisent</strong> (exports certifiés) ; ils ne les écrivent jamais.</p></li>
+</ol>
+<p><strong>Évidence ≠ autorité.</strong> Une sortie d’agent est une <em>proposition avec preuves</em>
+(<code class="docutils literal notranslate"><span class="pre">CANDIDATE_PROBLEM</span></code>, <code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC</span></code>, <code class="docutils literal notranslate"><span class="pre">BOUNTY_DRAFT</span></code>, etc.). Elle est inspectable,
+critiquable, bloquable ; elle ne lie personne.</p>
+<p><strong>Indépendance.</strong> Voir §8. Elle réduit l’erreur corrélée ; elle ne crée jamais d’autorité.</p>
+<p><strong>Forest Maintenance Fabric.</strong> L’ensemble futur d’agents, registres et workflows qui
+maintiennent le dépôt. Capacité future :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>observe → detect → document → diagnose → propose
+        → implement in isolation → independently verify → submit to human governance
+</pre></div>
+</div>
+<p>Jamais :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>observe → decide → mutate active runtime
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="flux-admis-et-interdits">
+<h2>3. Flux admis et interdits<a class="headerlink" href="#flux-admis-et-interdits" title="Link to this heading">¶</a></h2>
+<p>Admis (aligné #286) : <code class="docutils literal notranslate"><span class="pre">PAPER</span> <span class="pre">FACTS</span> <span class="pre">→</span> <span class="pre">DATASET</span> <span class="pre">immuable</span> <span class="pre">→</span> <span class="pre">Research/Agents</span> <span class="pre">→</span> <span class="pre">CANDIDATE/PR</span> <span class="pre">→</span> <span class="pre">REVIEW</span> <span class="pre">→</span> <span class="pre">HUMAN/GOVERNANCE</span> <span class="pre">→</span> <span class="pre">FUTURE</span> <span class="pre">STATE</span></code>.</p>
+<p>Interdit : <code class="docutils literal notranslate"><span class="pre">AGENT</span> <span class="pre">→</span> <span class="pre">ACTIVE</span> <span class="pre">PAPER</span> <span class="pre">AUTHORITY</span></code>, <code class="docutils literal notranslate"><span class="pre">Research/Agent</span> <span class="pre">→</span> <span class="pre">même</span> <span class="pre">epoch</span> <span class="pre">active</span></code>,
+<code class="docutils literal notranslate"><span class="pre">agent</span> <span class="pre">→</span> <span class="pre">merge/deploy</span></code>, <code class="docutils literal notranslate"><span class="pre">consensus</span> <span class="pre">d'agents</span> <span class="pre">→</span> <span class="pre">décision</span> <span class="pre">humaine</span></code>.</p>
+<p>Une session d’outil invoquée par l’opérateur (par exemple une session Claude Code
+travaillant sur une mission nommée) <strong>n’est pas un agent de la forêt</strong> : elle n’est pas
+dans un registre, et ses autorisations (« merger quand tout est vert » sous #315,
+exceptions bornées sous #286) sont des <strong>actes <code class="docutils literal notranslate"><span class="pre">HUMAN_DECISION</span></code> adressés à cette
+session</strong>, dans leur périmètre daté. A0 ne les accorde ni ne les révoque, et un agent
+enregistré ne peut en hériter ni se les déléguer (<code class="docutils literal notranslate"><span class="pre">AUTHORITY_DELEGATE</span></code>, §6).</p>
+</section>
+<hr class="docutils" />
+<section id="niveaux-forestiers-f0f4">
+<h2>4. Niveaux forestiers F0–F4<a class="headerlink" href="#niveaux-forestiers-f0f4" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">agent_class</span></code> décrit le <strong>métier</strong> ; <code class="docutils literal notranslate"><span class="pre">maintenance_level</span></code> décrit le <strong>plafond d’action</strong>.
+Ne pas les confondre. Le plafond n’est jamais augmenté par la réputation, l’AIC ou un
+consensus (§7).</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Niveau</p></th>
+<th class="head"><p>Rôle</p></th>
+<th class="head"><p>Peut</p></th>
+<th class="head"><p>Ne peut jamais</p></th>
+<th class="head"><p>Admissible dans <code class="docutils literal notranslate"><span class="pre">AGENT_SPEC_V1</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>F0 — SENSOR</strong></p></td>
+<td><p>observation seule</p></td>
+<td><p>lire dépôt, chercher, lire CI/métadonnées GitHub, lire artefacts gouvernés, analyse statique ; renvoyer un <code class="docutils literal notranslate"><span class="pre">OBSERVATION_REPORT</span></code> <em>transitoire</em> à l’invocateur</p></td>
+<td><p>écrire quoi que ce soit ; émettre un artefact gouverné</p></td>
+<td><p>oui</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>F1 — SCOUT / PROBLEM FINDER</strong></p></td>
+<td><p>trouver</p></td>
+<td><p>tout F0 + proposer un <code class="docutils literal notranslate"><span class="pre">CANDIDATE_PROBLEM</span></code> avec preuves</p></td>
+<td><p>coder ; certifier son propre constat ; ouvrir un bounty</p></td>
+<td><p>oui</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>F2 — DIAGNOSTICIAN / CURATOR</strong></p></td>
+<td><p>vérifier, dédupliquer, caractériser</p></td>
+<td><p>tout F1 + <code class="docutils literal notranslate"><span class="pre">VERIFIED_PROBLEM</span></code> (revendication), <code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC</span></code>, <code class="docutils literal notranslate"><span class="pre">BOUNTY_DRAFT</span></code>, <code class="docutils literal notranslate"><span class="pre">SCOPE_DRAFT</span></code>, <code class="docutils literal notranslate"><span class="pre">ACCEPTANCE_CRITERIA_DRAFT</span></code></p></td>
+<td><p>exécuter la solution ; déployer ; financer ; vérifier un problème qu’il a lui-même proposé</p></td>
+<td><p>oui</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>F3 — ISOLATED BUILDER</strong></p></td>
+<td><p>construire en isolation</p></td>
+<td><p><strong>FUTUR</strong> : <code class="docutils literal notranslate"><span class="pre">SOURCE_EDIT_ISOLATED</span></code>, <code class="docutils literal notranslate"><span class="pre">TEST_RUN_ISOLATED</span></code>, <code class="docutils literal notranslate"><span class="pre">BRANCH_PREPARE</span></code>, <code class="docutils literal notranslate"><span class="pre">PR_PREPARE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MAIN_MERGE</span></code>, <code class="docutils literal notranslate"><span class="pre">RUNTIME_DEPLOY</span></code> ; valider indépendamment son propre travail ; toute capacité de review</p></td>
+<td><p><strong>non — vocabulaire réservé</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>F4 — INDEPENDENT VERIFIER</strong></p></td>
+<td><p>vérifier de façon indépendante</p></td>
+<td><p><strong>FUTUR</strong> : <code class="docutils literal notranslate"><span class="pre">TEST_REVIEW</span></code>, <code class="docutils literal notranslate"><span class="pre">SECURITY_REVIEW</span></code>, <code class="docutils literal notranslate"><span class="pre">DATA_PROVENANCE_REVIEW</span></code>, <code class="docutils literal notranslate"><span class="pre">STATISTICAL_REVIEW</span></code>, <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE_REVIEW</span></code>, <code class="docutils literal notranslate"><span class="pre">GOVERNANCE_REVIEW</span></code> ; <strong>peut bloquer</strong></p></td>
+<td><p>accepter à la place de l’opérateur ; merger ; éditer le travail qu’il relit</p></td>
+<td><p><strong>non — vocabulaire réservé</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Règles :</p>
+<ul class="simple">
+<li><p><strong>Plafonds cumulatifs F0 → F1 → F2.</strong> Un niveau inclut les capabilities du niveau
+inférieur : F1 = F0 + proposition de <code class="docutils literal notranslate"><span class="pre">CANDIDATE_PROBLEM</span></code> ; F2 = F1 + vérification,
+déduplication, caractérisation, diagnostic, brouillons. Cumulatif ≠ auto-validation :
+voir <code class="docutils literal notranslate"><span class="pre">A2_REQUIRED_INVARIANT</span></code> au §8.</p></li>
+<li><p>F3 et F4 sont <strong>définis</strong> pour que leurs contraintes soient fixées avant leur
+existence : ce sont des termes <strong>connus et réservés</strong>, pas des inconnus. Leurs valeurs
+et capacités sont <strong>rejetées</strong> par <code class="docutils literal notranslate"><span class="pre">AGENT_SPEC_V1</span></code> (<code class="docutils literal notranslate"><span class="pre">RESERVED_CAPABILITY</span></code> pour une
+capability, <code class="docutils literal notranslate"><span class="pre">CLASS_LEVEL_INADMISSIBLE</span></code> pour un niveau ou une classe). Les admettre exige une nouvelle version de schéma,
+amendée par gouvernance après que les contrats A6/A7 existent (§14).</p></li>
+<li><p><strong>L’humain n’est pas F5.</strong> La gouvernance humaine est un domaine externe aux agents.
+Il n’existe ni niveau, ni classe, ni capability qui la représente (§5).</p></li>
+<li><p>Un F4 peut <strong>bloquer</strong> ; l’absence de blocage n’est pas une acceptation. Un « PASS »
+d’un agent est une absence de finding, jamais un accord.</p></li>
+<li><p>F0 est lecture seule : il n’émet aucun artefact gouverné (un rapport rendu à
+l’invocateur est une réponse transitoire, non persistée par l’agent, non-evidence tant
+qu’un écrivain gouverné ne l’a pas persistée avec provenance).</p></li>
+</ul>
+<p>La matrice complète (capabilities autorisées/interdites, indépendance requise, sorties
+permises) est dans le <a class="reference internal" href="AGENT_ECON_A1_CAPABILITY_CATALOG.html"><span class="std std-doc">catalogue</span></a> et encodée dans
+le schéma, pas seulement décrite.</p>
+</section>
+<hr class="docutils" />
+<section id="human-gate-hors-du-domaine-des-agents">
+<h2>5. Human Gate — hors du domaine des agents<a class="headerlink" href="#human-gate-hors-du-domaine-des-agents" title="Link to this heading">¶</a></h2>
+<p>Les actions suivantes ne sont <strong>jamais</strong> des capabilities d’agent, à aucun niveau,
+même réservé :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>HUMAN_ACCEPT   HUMAN_REJECT   MERGE_AUTHORIZATION
+DEPLOY_AUTHORIZATION   EPOCH_AUTHORIZATION   PROMOTION_AUTHORIZATION
+</pre></div>
+</div>
+<p>Elles appartiennent à <code class="docutils literal notranslate"><span class="pre">HUMAN_OPERATOR</span></code> et s’exercent via les gates gouvernées
+(protections GitHub, gates runtime, D5A/D5B). Cette mission ne construit <strong>aucun</strong>
+mécanisme opérationnel pour ces actions. Elles n’apparaissent dans aucune énumération
+de capability : un spec qui en porte une est rejeté <code class="docutils literal notranslate"><span class="pre">FORBIDDEN_AUTHORITY_REQUESTED</span></code>
+(distinct de <code class="docutils literal notranslate"><span class="pre">UNKNOWN_CAPABILITY</span></code>, pour que la tentative soit lisible dans l’audit).</p>
+<p>L’agrément d’une action humaine ne contourne ni CI, ni review, ni protections de
+branche, ni gates runtime/epoch/déploiement, ni TESTNET/LIVE (D5A §3).</p>
+</section>
+<hr class="docutils" />
+<section id="forbidden-authority-set-liste-constitutionnelle-fermee">
+<h2>6. Forbidden Authority Set — liste constitutionnelle fermée<a class="headerlink" href="#forbidden-authority-set-liste-constitutionnelle-fermee" title="Link to this heading">¶</a></h2>
+<p>Ce sont des <strong>invariants</strong>, pas des valeurs par défaut. Aucun niveau, classe, spec,
+statut économique, réputation, consensus ou version future de registre ne peut en
+accorder un. Aucune ne figure dans l’énumération des capabilities.</p>
+<p>Ensemble minimal exigé par la mission (20) :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Token</p></th>
+<th class="head"><p>Interdiction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAIN_MERGE</span></code></p></td>
+<td><p>fusionner vers <code class="docutils literal notranslate"><span class="pre">main</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RUNTIME_DEPLOY</span></code></p></td>
+<td><p>déployer sur un runtime/VPS</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ADVISOR_RESTART</span></code></p></td>
+<td><p>redémarrer/recharger l’Advisor</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SYSTEMD_MUTATE</span></code></p></td>
+<td><p>modifier unités/état systemd</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ACTIVE_EPOCH_MUTATE</span></code></p></td>
+<td><p>modifier l’epoch active, son manifest, son <code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PPL_AUTHORITY_WRITE</span></code></p></td>
+<td><p>écrire dans l’autorité lifecycle PPL</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FIN_AUTHORITY_WRITE</span></code></p></td>
+<td><p>écrire dans l’autorité financière FIN</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TRADING_CONFIG_MUTATE</span></code></p></td>
+<td><p>modifier stratégie, signaux, seuils, calibration, config d’expérience</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RISK_MUTATE</span></code></p></td>
+<td><p>modifier le risk</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SIZING_MUTATE</span></code></p></td>
+<td><p>modifier le sizing et le capital</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS_MUTATE</span></code></p></td>
+<td><p>modifier <code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SECRET_VALUE_READ</span></code></p></td>
+<td><p>lire la valeur d’un secret</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EXCHANGE_WRITE</span></code></p></td>
+<td><p>écrire sur un exchange</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TESTNET_ENABLE</span></code></p></td>
+<td><p>activer TESTNET</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LIVE_ENABLE</span></code></p></td>
+<td><p>activer LIVE</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HUMAN_DECISION</span></code></p></td>
+<td><p>produire une décision humaine ou s’y substituer</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RESEARCH_PROMOTION_EXECUTE</span></code></p></td>
+<td><p>exécuter une promotion Research</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AUTHORITY_DELEGATE</span></code></p></td>
+<td><p>déléguer, transférer ou re-déléguer une autorité</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AIC_BUY_AUTHORITY</span></code></p></td>
+<td><p>acheter de l’autorité avec l’AIC</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">REPUTATION_GRANT_AUTHORITY</span></code></p></td>
+<td><p>accorder de l’autorité par la réputation</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Extensions canoniques de la réconciliation R1 (exactement 4), chacune justifiée par un
+invariant du dépôt déjà posé ailleurs ; elles resserrent et n’élargissent aucune capacité :</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Token</p></th>
+<th class="head"><p>Interdiction</p></th>
+<th class="head"><p>Fondement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AGENT_REGISTRY_MUTATE</span></code></p></td>
+<td><p>toute mutation autonome du registre : auto-enregistrement, auto-révision de spec (niveau, capabilities, périmètre), suspension d’un autre agent, réintégration, retrait</p></td>
+<td><p>sans cela une révision est une escalade de privilège par soi-même ; le registre n’est écrit que par un registrar sur décision humaine (A1 §7.4)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CONSENSUS_AUTHORITY_ASSERT</span></code></p></td>
+<td><p>traiter un accord/quorum d’agents comme autorité</p></td>
+<td><p>principe <code class="docutils literal notranslate"><span class="pre">AGENT</span> <span class="pre">CONSENSUS</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code> (§7.5)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GOVERNANCE_GATE_BYPASS</span></code></p></td>
+<td><p>contourner ou neutraliser une gate de gouvernance : protections de branche, CI et checks requis, review requise, manipulation d’un baseline ou suppression/désactivation d’un test destinée à franchir une gate</p></td>
+<td><p>CLAUDE.md §4–§5 : ni baseline modifiée, ni test supprimé pour masquer une régression</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EVIDENCE_MUTATE</span></code></p></td>
+<td><p>modifier ou supprimer des preuves immuables ou historiques : logs, JSONL, datasets immuables, sauvegardes, specs publiées, événements de registre</p></td>
+<td><p>CLAUDE.md §5 : préserver l’audit et la reprise</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Total : <strong>24 tokens</strong>, liste <strong>fermée</strong>.</p>
+<p><strong>Mapping de migration des noms de brouillon.</strong> Les deux conceptions indépendantes avaient
+choisi des noms différents pour les mêmes interdits. Aucun de ces noms n’a été fusionné
+dans <code class="docutils literal notranslate"><span class="pre">main</span></code> ; ils ne sont <strong>pas</strong> des alias acceptés : un validateur les classe
+<code class="docutils literal notranslate"><span class="pre">UNKNOWN_CAPABILITY</span></code> comme tout autre jeton absent de l’ensemble.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Nom de brouillon</p></th>
+<th class="head"><p>Source</p></th>
+<th class="head"><p>Token canonique</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AGENT_SPEC_SELF_REVISE</span></code></p></td>
+<td><p>#348 avant R1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AGENT_REGISTRY_MUTATE</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AGENT_REGISTRY_WRITE</span></code></p></td>
+<td><p>#347</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AGENT_REGISTRY_MUTATE</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GATE_NEUTRALIZE</span></code></p></td>
+<td><p>#348 avant R1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOVERNANCE_GATE_BYPASS</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PROTECTION_BYPASS</span></code></p></td>
+<td><p>#347</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOVERNANCE_GATE_BYPASS</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CONSENSUS_AUTHORITY_ASSERT</span></code></p></td>
+<td><p>#348 avant R1</p></td>
+<td><p>inchangé</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EVIDENCE_MUTATE</span></code></p></td>
+<td><p>#348 avant R1</p></td>
+<td><p>inchangé</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Étendre cet ensemble est un amendement constitutionnel (§14), jamais un effet de bord
+d’un spec ou d’un worker.</p>
+<p>Application : ces tokens sont <strong>absents</strong> de l’énumération de capabilities du schéma ;
+un token interdit présenté comme capability est rejeté avec le code
+<code class="docutils literal notranslate"><span class="pre">FORBIDDEN_AUTHORITY_REQUESTED</span></code>, un token inconnu avec <code class="docutils literal notranslate"><span class="pre">UNKNOWN_CAPABILITY</span></code>, un token
+F3/F4 réservé avec <code class="docutils literal notranslate"><span class="pre">RESERVED_CAPABILITY</span></code>. Les trois rejettent ; la distinction sert
+l’audit.</p>
+</section>
+<hr class="docutils" />
+<section id="preuve-de-separation-des-autorites">
+<h2>7. Preuve de séparation des autorités<a class="headerlink" href="#preuve-de-separation-des-autorites" title="Link to this heading">¶</a></h2>
+<p>Chaque affirmation est liée à un mécanisme vérifiable, pas à une intention.</p>
+<section id="capability-authority">
+<h3>7.1 <code class="docutils literal notranslate"><span class="pre">CAPABILITY</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code><a class="headerlink" href="#capability-authority" title="Link to this heading">¶</a></h3>
+<p>Le catalogue ne contient que des actions <em>non-autoritaires</em> (lire, chercher, proposer,
+vérifier, diagnostiquer, préparer un brouillon). Toute action autoritaire est dans §5/§6,
+donc hors énumération : <strong>il n’existe aucune valeur de capability qui soit une autorité</strong>.
+<code class="docutils literal notranslate"><span class="pre">authority_policy.authority_ceiling</span></code> est la constante <code class="docutils literal notranslate"><span class="pre">NO_RUNTIME_AUTHORITY</span></code> ; une
+capability ne peut pas relever ce plafond car il n’est pas dérivé des capabilities.</p>
+</section>
+<section id="aic-authority">
+<h3>7.2 <code class="docutils literal notranslate"><span class="pre">AIC</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code><a class="headerlink" href="#aic-authority" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">authority_policy.economic_status_grants_authority</span> <span class="pre">=</span> <span class="pre">false</span></code> (constante) ;
+<code class="docutils literal notranslate"><span class="pre">AIC_BUY_AUTHORITY</span></code> est interdit. L’AIC est une unité comptable interne, non
+transférable, sans valeur externe (#284) ; elle alloue du compute et rémunère une
+<em>preuve acceptée</em>, jamais une autorité. Aucun champ d’<code class="docutils literal notranslate"><span class="pre">AgentSpec</span></code> ni d’événement de
+registre ne porte de solde AIC (A4 est hors A1).</p>
+</section>
+<section id="reputation-authority">
+<h3>7.3 <code class="docutils literal notranslate"><span class="pre">REPUTATION</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code><a class="headerlink" href="#reputation-authority" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">reputation_grants_authority</span> <span class="pre">=</span> <span class="pre">false</span></code> (constante) ; <code class="docutils literal notranslate"><span class="pre">REPUTATION_GRANT_AUTHORITY</span></code>
+interdit. La réputation (A11, futur) pourra prioriser l’attention portée à un agent ;
+elle ne modifie ni <code class="docutils literal notranslate"><span class="pre">maintenance_level</span></code>, ni capabilities, ni plafond.</p>
+</section>
+<section id="proposal-code-review-observation-authority">
+<h3>7.4 <code class="docutils literal notranslate"><span class="pre">PROPOSAL</span> <span class="pre">/</span> <span class="pre">CODE</span> <span class="pre">/</span> <span class="pre">REVIEW</span> <span class="pre">/</span> <span class="pre">OBSERVATION</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code><a class="headerlink" href="#proposal-code-review-observation-authority" title="Link to this heading">¶</a></h3>
+<p>Chaque sortie permise est une proposition ou un constat ; la transition vers un effet
+contraignant passe par un tiers (F2 vérifie F1 ; F4 relit F3 ; l’humain décide). Un F4
+ne possède que le droit de <strong>bloquer</strong> ; son silence n’accepte rien.</p>
+</section>
+<section id="agent-consensus-authority">
+<h3>7.5 <code class="docutils literal notranslate"><span class="pre">AGENT</span> <span class="pre">CONSENSUS</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code><a class="headerlink" href="#agent-consensus-authority" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">consensus_grants_authority</span> <span class="pre">=</span> <span class="pre">false</span></code> (constante) ; <code class="docutils literal notranslate"><span class="pre">CONSENSUS_AUTHORITY_ASSERT</span></code> interdit.
+Raison de fond : plusieurs agents peuvent partager un même modèle, un même contexte ou
+les mêmes biais. N accords valent <strong>un</strong> faisceau de preuves aux erreurs corrélées, pas
+N garanties indépendantes. Aucun quorum n’est défini ; aucun seuil ne convertit un
+accord en <code class="docutils literal notranslate"><span class="pre">HUMAN_DECISION</span></code>, en merge ou en déploiement. Les agents de la forêt ne
+disposent d’aucun mécanisme de vote qui produise un effet.</p>
+</section>
+<section id="bis-registered-running-et-hash-chain-authenticity">
+<h3>7.5 bis <code class="docutils literal notranslate"><span class="pre">REGISTERED</span> <span class="pre">!=</span> <span class="pre">RUNNING</span></code> et <code class="docutils literal notranslate"><span class="pre">HASH_CHAIN</span> <span class="pre">!=</span> <span class="pre">AUTHENTICITY</span></code><a class="headerlink" href="#bis-registered-running-et-hash-chain-authenticity" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">REGISTERED</span></code> est la projection d’un événement de registre : une identité connue. Aucun
+champ de spec ou d’événement ne désigne un processus, un binding (<code class="docutils literal notranslate"><span class="pre">execution_binding</span></code>
+est la constante <code class="docutils literal notranslate"><span class="pre">UNBOUND</span></code>) ni une permission d’agir. <code class="docutils literal notranslate"><span class="pre">ACTIVE</span></code> n’existe pas.</p></li>
+<li><p>Une hash-chain atteste l’<strong>intégrité</strong> d’une suite d’événements. Elle n’atteste ni
+l’<strong>authenticité de l’écrivain</strong>, ni la <strong>complétude de la queue</strong>, ni une <strong>autorité
+humaine</strong> : <code class="docutils literal notranslate"><span class="pre">integrity</span> <span class="pre">!=</span> <span class="pre">authenticity</span> <span class="pre">!=</span> <span class="pre">tail</span> <span class="pre">completeness</span> <span class="pre">!=</span> <span class="pre">human</span> <span class="pre">authority</span></code>. Registrar
+authentifié et ancre anti-retour sont <code class="docutils literal notranslate"><span class="pre">UNRESOLVED</span></code> ; la disponibilité <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code> du
+registre est donc <strong>inatteignable</strong> (A1 §7.3 et §9.4).</p></li>
+</ul>
+</section>
+<section id="point-dapplication">
+<h3>7.6 Point d’application<a class="headerlink" href="#point-dapplication" title="Link to this heading">¶</a></h3>
+<p>Aujourd’hui l’enforcement est <strong>structurel au niveau du contrat</strong> : énumérations
+fermées, constantes, <code class="docutils literal notranslate"><span class="pre">additionalProperties:</span> <span class="pre">false</span></code>, absence de toute capability
+autoritaire. Il n’existe pas de runtime : ce document ne prétend pas qu’un agent
+<em>ne peut pas</em> agir, seulement qu’aucune spec valide ne <em>déclare</em> un pouvoir
+autoritaire. L’enforcement d’exécution (sandbox, permissions) est A6, hors mission.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="independance">
+<h2>8. Indépendance<a class="headerlink" href="#independance" title="Link to this heading">¶</a></h2>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">own_work_review_forbidden</span> <span class="pre">=</span> <span class="pre">true</span></code> et <code class="docutils literal notranslate"><span class="pre">independent_review_required</span> <span class="pre">=</span> <span class="pre">true</span></code> sont des
+<strong>constantes</strong> de toute spec V1 (aucune valeur <code class="docutils literal notranslate"><span class="pre">false</span></code> n’existe).</p></li>
+<li><p>Un agent ne vérifie pas (<code class="docutils literal notranslate"><span class="pre">PROBLEM_VERIFY</span></code>) un <code class="docutils literal notranslate"><span class="pre">CANDIDATE_PROBLEM</span></code> qu’il a proposé ;
+un F4 futur ne relit pas un travail dont il est l’auteur ni un diff auquel il a
+contribué.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">A2_REQUIRED_INVARIANT</span></code></strong> (exigence imposée à la future mission A2, non implémentée ici) :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>problem.created_by_agent_id != verification.verified_by_agent_id
+</pre></div>
+</div>
+<p>Un agent F2 dispose, par cumul de plafond, des capabilities F1 et F2 ; il <strong>ne peut
+pas</strong> vérifier un problème qu’il a lui-même proposé. Le contrat A1 ne peut pas le
+faire respecter (il ne contient aucun problème) ; A2 ne peut pas être déclaré
+complet sans cette contrainte.</p>
+</li>
+<li><p><strong>Limite connue.</strong> Dans A1, « indépendant » n’est vérifiable que comme
+<code class="docutils literal notranslate"><span class="pre">agent_id</span></code> différent. Ce n’est <strong>pas</strong> une preuve d’indépendance épistémique : deux
+<code class="docutils literal notranslate"><span class="pre">agent_id</span></code> peuvent être servis par le même modèle. L’indépendance sert à réduire
+l’erreur ; elle ne remplace aucune gate humaine. Une définition plus forte (famille de
+modèle, credential, contexte distincts) est reportée à A7 et signalée en questions
+ouvertes.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="compatibilite-avec-le-garde-fou-286">
+<h2>9. Compatibilité avec le garde-fou #286<a class="headerlink" href="#compatibilite-avec-le-garde-fou-286" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Élément gelé par #286</p></th>
+<th class="head"><p>Comment A0/A1 l’empêche</p></th>
+<th class="head"><p>Preuve possible</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>stratégie, signaux, seuils, calibration</p></td>
+<td><p>aucune capability d’écriture ; <code class="docutils literal notranslate"><span class="pre">TRADING_CONFIG_MUTATE</span></code> interdit</p></td>
+<td><p>enum fermée</p></td>
+</tr>
+<tr class="row-odd"><td><p>risk, sizing, capital, <code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RISK_MUTATE</span></code>, <code class="docutils literal notranslate"><span class="pre">SIZING_MUTATE</span></code>, <code class="docutils literal notranslate"><span class="pre">PB_MAX_POSITIONS_MUTATE</span></code> interdits</p></td>
+<td><p>enum fermée</p></td>
+</tr>
+<tr class="row-even"><td><p>epoch, manifest, <code class="docutils literal notranslate"><span class="pre">paper_epoch_id</span></code>, autorité PPL/FIN</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ACTIVE_EPOCH_MUTATE</span></code>, <code class="docutils literal notranslate"><span class="pre">PPL_AUTHORITY_WRITE</span></code>, <code class="docutils literal notranslate"><span class="pre">FIN_AUTHORITY_WRITE</span></code> interdits ; aucun domaine runtime dans <code class="docutils literal notranslate"><span class="pre">artifact_domains</span></code></p></td>
+<td><p>enum fermée</p></td>
+</tr>
+<tr class="row-odd"><td><p>Advisor, systemd, Watchdog, VPS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ADVISOR_RESTART</span></code>, <code class="docutils literal notranslate"><span class="pre">SYSTEMD_MUTATE</span></code>, <code class="docutils literal notranslate"><span class="pre">RUNTIME_DEPLOY</span></code> interdits ; <strong>aucune capability de lecture runtime n’existe</strong></p></td>
+<td><p>enum fermée</p></td>
+</tr>
+<tr class="row-even"><td><p>TESTNET/LIVE, exchange</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TESTNET_ENABLE</span></code>, <code class="docutils literal notranslate"><span class="pre">LIVE_ENABLE</span></code>, <code class="docutils literal notranslate"><span class="pre">EXCHANGE_WRITE</span></code> interdits</p></td>
+<td><p>enum fermée</p></td>
+</tr>
+<tr class="row-odd"><td><p>secrets</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SECRET_VALUE_READ</span></code> interdit ; <code class="docutils literal notranslate"><span class="pre">credential_mode</span> <span class="pre">=</span> <span class="pre">NONE</span></code> ; chemins <code class="docutils literal notranslate"><span class="pre">.env*</span></code>/clés/<code class="docutils literal notranslate"><span class="pre">secrets/</span></code> refusés</p></td>
+<td><p>schéma</p></td>
+</tr>
+<tr class="row-even"><td><p>Research → même epoch</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RESEARCH_PROMOTION_EXECUTE</span></code> interdit</p></td>
+<td><p>enum fermée</p></td>
+</tr>
+<tr class="row-odd"><td><p>freeze levé automatiquement</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HUMAN_DECISION</span></code>, <code class="docutils literal notranslate"><span class="pre">EPOCH_AUTHORIZATION</span></code> hors domaine agent</p></td>
+<td><p>§5</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Conséquence assumée : <strong>aucun agent de la forêt n’a de lecture runtime/VPS</strong>. Les
+checkpoints VPS READ-ONLY restent des missions humaines distinctes (#282, #309). Si un
+besoin de lecture runtime apparaît, c’est un amendement constitutionnel, pas une
+capability.</p>
+</section>
+<hr class="docutils" />
+<section id="semantique-detat">
+<h2>10. Sémantique d’état<a class="headerlink" href="#semantique-detat" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">REGISTERED</span></code> = <em>identité connue du registre</em>. <strong>Jamais</strong> « worker en exécution ».
+<code class="docutils literal notranslate"><span class="pre">ACTIVE</span></code> est volontairement absent du vocabulaire.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NON</span> <span class="pre">DÉPLOYÉ</span></code> ≠ registre vide : l’absence d’artefact est <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code>, pas « 0 agent ».</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">≠</span> <span class="pre">0</span></code> : un registre non lisible, non vérifiable ou rompu donne <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> /
+<code class="docutils literal notranslate"><span class="pre">NOT_CERTIFIABLE</span></code> pour chaque agent, jamais un décompte.</p></li>
+<li><p>Tant qu’aucun mécanisme authentifié de complétude n’existe (même famille que la
+Gate O de #315), les seules réponses légitimes sur « combien d’agents » sont
+<code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code> ou <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> ; un décompte est interdit.</p></li>
+<li><p>Aucune donnée synthétique (« 3 agents actifs », « 120 AIC », « 5 bounties ») ne
+doit apparaître dans l’Operator App.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="migration-des-anciens-github-agents">
+<h2>11. Migration des anciens <code class="docutils literal notranslate"><span class="pre">.github/agents</span></code><a class="headerlink" href="#migration-des-anciens-github-agents" title="Link to this heading">¶</a></h2>
+<p>Les profils existants sont des <strong>artefacts historiques/candidats</strong>, non une autorité.
+Aucun n’est déclaré compatible sans inspection ; aucun n’est modifié par cette mission.
+Statuts : <code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code> · <code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> · <code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code>.</p>
+<p>Règles :</p>
+<ol class="arabic simple">
+<li><p>Un profil legacy n’acquiert <strong>aucune</strong> capability de par son texte ; son pouvoir
+effectif est <code class="docutils literal notranslate"><span class="pre">tools</span></code> déclaré + comportement de la plateforme (non vérifié ici),
+pas la prose. La prose restrictive n’est pas un enforcement.</p></li>
+<li><p>Migrer = produire une <code class="docutils literal notranslate"><span class="pre">AgentSpec</span></code> neuve, validée par le schéma, par PR humaine.
+Un profil dont les pouvoirs ne s’expriment pas dans le catalogue (exécution d’ordres,
+<code class="docutils literal notranslate"><span class="pre">edit</span></code>/<code class="docutils literal notranslate"><span class="pre">execute</span></code>, réseau externe, lecture runtime) n’est <strong>pas</strong> migré tel quel.</p></li>
+<li><p>Un profil qui décrit une capacité d’exécution d’ordres (<code class="docutils literal notranslate"><span class="pre">sniper-engine</span></code>) ou
+d’édition/exécution large avec délégation (<code class="docutils literal notranslate"><span class="pre">hedge-fund-architect</span></code>) est
+<code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code> tant qu’il n’est pas réécrit/archivé par décision
+humaine (classification CLAUDE.md §5 : <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> = ne pas supprimer).</p></li>
+<li><p>Le vocabulaire de verdict auto-certifiant des profils (<code class="docutils literal notranslate"><span class="pre">*_COMPLETE</span></code>, <code class="docutils literal notranslate"><span class="pre">CLOSED</span></code>,
+<code class="docutils literal notranslate"><span class="pre">PASS</span></code>) ne vaut pas certification (§1) ; il doit être renommé lors de la migration.</p></li>
+</ol>
+<p>Diagnostic complet par fichier :
+<a class="reference internal" href="../forensics/AGENT_ECON_A0_GITHUB_AGENTS_INVENTORY.html"><span class="std std-doc">AGENT_ECON_A0_GITHUB_AGENTS_INVENTORY.md</span></a>.</p>
+</section>
+<hr class="docutils" />
+<section id="phases-et-frontieres">
+<h2>12. Phases et frontières<a class="headerlink" href="#phases-et-frontieres" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>A0 Forest Contract → A1 Agent Registry → A2 Problem Registry → A3 Bounty Registry
+→ A4 Economy Ledger / AIC → A5 Cost Accounting → A6 Worker Sandbox
+→ A7 Independent Review → A8 GitHub Automation
+</pre></div>
+</div>
+<p>(La numérotation A0–A8 est celle de #284 ; seul l’intitulé de A0 diffère — voir §16, I9.)</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Phase</p></th>
+<th class="head"><p>Propriétaire de</p></th>
+<th class="head"><p>Interdit dans les phases précédentes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A0</p></td>
+<td><p>constitution, plafonds, interdits</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p>A1</p></td>
+<td><p>identité, spec, états, événements, intégrité des agents</p></td>
+<td><p>tout ce qui suit</p></td>
+</tr>
+<tr class="row-even"><td><p>A2</p></td>
+<td><p>problèmes, cycle <code class="docutils literal notranslate"><span class="pre">CANDIDATE_PROBLEM</span> <span class="pre">→</span> <span class="pre">VERIFIED_PROBLEM</span></code></p></td>
+<td><p>registre de problèmes dans A1</p></td>
+</tr>
+<tr class="row-odd"><td><p>A3</p></td>
+<td><p>bounties</p></td>
+<td><p>bounty/claim/récompense dans A1–A2</p></td>
+</tr>
+<tr class="row-even"><td><p>A4</p></td>
+<td><p>ledger AIC, wallets, treasury</p></td>
+<td><p>solde/wallet/AIC dans A1–A3</p></td>
+</tr>
+<tr class="row-odd"><td><p>A5</p></td>
+<td><p>coût réel API/compute</p></td>
+<td><p>coût dans A1–A4</p></td>
+</tr>
+<tr class="row-even"><td><p>A6</p></td>
+<td><p>sandbox, branches/PR isolées, enforcement runtime</p></td>
+<td><p>worker, scheduler, provider, credential avant A6</p></td>
+</tr>
+<tr class="row-odd"><td><p>A7</p></td>
+<td><p>review indépendante (F4)</p></td>
+<td><p>review exécutable avant A7</p></td>
+</tr>
+<tr class="row-even"><td><p>A8</p></td>
+<td><p>automatisation GitHub</p></td>
+<td><p>toute mutation GitHub avant A8</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>A1 ne contient <strong>aucune</strong> logique de A2+ : pas de Problem Registry, de bounty, de wallet,
+de balance AIC, de worker, de scheduler, de mutation GitHub.</p>
+</section>
+<hr class="docutils" />
+<section id="criteres-dacceptation-a0-questions-et-reponses">
+<h2>13. Critères d’acceptation A0 — questions et réponses<a class="headerlink" href="#criteres-dacceptation-a0-questions-et-reponses" title="Link to this heading">¶</a></h2>
+<p>Si une réponse reste ambiguë, A0 n’est pas fini. Chaque réponse est ancrée.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Question</p></th>
+<th class="head"><p>Réponse</p></th>
+<th class="head"><p>Ancre</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>Qu’est-ce qu’un agent ?</p></td>
+<td><p>identité logique stable + specs immuables ; ni processus, ni modèle, ni autorité</p></td>
+<td><p>§2</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>Qu’est-ce qu’une capability ?</p></td>
+<td><p>permis nommé, borné, de catalogue fermé, non-autoritaire ; nécessaire jamais suffisante</p></td>
+<td><p>§2, catalogue</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>Qu’est-ce qu’une authority ?</p></td>
+<td><p>pouvoir de rendre un état contraignant : décision (humain) et vérité (PPL/FIN) ; aucune détenue par un agent</p></td>
+<td><p>§2, §5, §6</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>Que sont F0–F4 ?</p></td>
+<td><p>plafonds d’action : lire / proposer / vérifier / construire en isolation (réservé) / relire indépendamment (réservé)</p></td>
+<td><p>§4</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>Qui peut détecter ?</p></td>
+<td><p>F1 propose un <code class="docutils literal notranslate"><span class="pre">CANDIDATE_PROBLEM</span></code> ; F0 observe ; F2 vérifie</p></td>
+<td><p>§4</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>Qui peut coder ?</p></td>
+<td><p>aucun agent en V1 ; F3 (futur, isolé, jamais merge/deploy) ; l’humain via la gouvernance</p></td>
+<td><p>§4, §3</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p>Qui peut reviewer ?</p></td>
+<td><p>F4 (futur) ; jamais l’auteur ; peut bloquer, pas accepter</p></td>
+<td><p>§4, §8</p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p>Qui peut merger ?</p></td>
+<td><p>aucun agent (<code class="docutils literal notranslate"><span class="pre">MAIN_MERGE</span></code>, <code class="docutils literal notranslate"><span class="pre">MERGE_AUTHORIZATION</span></code>) ; l’humain via les protections</p></td>
+<td><p>§5, §6</p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p>Qui peut déployer ?</p></td>
+<td><p>aucun agent (<code class="docutils literal notranslate"><span class="pre">RUNTIME_DEPLOY</span></code>, <code class="docutils literal notranslate"><span class="pre">DEPLOY_AUTHORIZATION</span></code>) ; l’humain sous gate runtime</p></td>
+<td><p>§5, §6, §9</p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p></td>
+<td><p>Qui peut modifier PAPER ?</p></td>
+<td><p>aucun agent ; aucun domaine runtime/PPL/FIN n’existe dans le périmètre</p></td>
+<td><p>§6, §9</p></td>
+</tr>
+<tr class="row-even"><td><p>11</p></td>
+<td><p>L’AIC peut-il acheter de l’autorité ?</p></td>
+<td><p>non : constante <code class="docutils literal notranslate"><span class="pre">false</span></code> + <code class="docutils literal notranslate"><span class="pre">AIC_BUY_AUTHORITY</span></code> interdit</p></td>
+<td><p>§7.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>12</p></td>
+<td><p>La réputation ?</p></td>
+<td><p>non : constante <code class="docutils literal notranslate"><span class="pre">false</span></code> + <code class="docutils literal notranslate"><span class="pre">REPUTATION_GRANT_AUTHORITY</span></code> interdit</p></td>
+<td><p>§7.3</p></td>
+</tr>
+<tr class="row-even"><td><p>13</p></td>
+<td><p>Le consensus d’agents ?</p></td>
+<td><p>non : constante <code class="docutils literal notranslate"><span class="pre">false</span></code> + <code class="docutils literal notranslate"><span class="pre">CONSENSUS_AUTHORITY_ASSERT</span></code> interdit ; erreurs corrélées</p></td>
+<td><p>§7.5</p></td>
+</tr>
+<tr class="row-odd"><td><p>14</p></td>
+<td><p>Un agent peut-il reviewer son propre travail ?</p></td>
+<td><p>non : constante <code class="docutils literal notranslate"><span class="pre">own_work_review_forbidden</span> <span class="pre">=</span> <span class="pre">true</span></code></p></td>
+<td><p>§8</p></td>
+</tr>
+<tr class="row-even"><td><p>15</p></td>
+<td><p>Que signifie <code class="docutils literal notranslate"><span class="pre">REGISTERED</span></code> ?</p></td>
+<td><p>identité connue du registre, pas worker actif</p></td>
+<td><p>§10</p></td>
+</tr>
+<tr class="row-odd"><td><p>16</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">agent_id</span></code> vs <code class="docutils literal notranslate"><span class="pre">agent_spec_id</span></code> ?</p></td>
+<td><p>logique stable (namespace, nom canonique, classe) vs version exacte et matérielle d’une spec</p></td>
+<td><p>A1 §2</p></td>
+</tr>
+<tr class="row-even"><td><p>17</p></td>
+<td><p>Capability inconnue ?</p></td>
+<td><p>rejet (<code class="docutils literal notranslate"><span class="pre">UNKNOWN_CAPABILITY</span></code>), jamais de repli permissif</p></td>
+<td><p>§6, catalogue</p></td>
+</tr>
+<tr class="row-odd"><td><p>18</p></td>
+<td><p>Migration des anciens <code class="docutils literal notranslate"><span class="pre">.github/agents</span></code> ?</p></td>
+<td><p>nouvelle spec par PR humaine ; legacy jamais hérité ; diagnostic par fichier</p></td>
+<td><p>§11, inventaire</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="amendement-et-fail-closed">
+<h2>14. Amendement et fail-closed<a class="headerlink" href="#amendement-et-fail-closed" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Deux dimensions de version, à ne pas confondre.</strong> <code class="docutils literal notranslate"><span class="pre">agent_schema</span></code> (<code class="docutils literal notranslate"><span class="pre">AGENT_SPEC_V1</span></code>)
+est la version <strong>technique</strong> de la forme d’une spec ; <code class="docutils literal notranslate"><span class="pre">constitution_version</span></code>
+(<code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_V1</span></code>) est la version <strong>normative</strong> de la constitution sous
+laquelle une spec a été produite. Le schéma technique peut évoluer sans modification
+constitutionnelle, et la constitution peut évoluer sans exactement la même mutation
+structurelle. Toute spec déclare explicitement sa <code class="docutils literal notranslate"><span class="pre">constitution_version</span></code>, qui est
+<strong>matérielle</strong> (entre dans <code class="docutils literal notranslate"><span class="pre">agent_spec_id</span></code>).</p></li>
+<li><p>Cette constitution et ses listes fermées (capabilities, interdits, gate humaine,
+niveaux, classes) ne sont modifiables que par une <strong>PR humaine</strong> gouvernée, avec
+nouvel identifiant de constitution et, si la forme change, incrément de <code class="docutils literal notranslate"><span class="pre">agent_schema</span></code>.
+Aucune sortie d’agent, aucune spec,
+aucun consensus, aucun statut économique n’amende la constitution.</p></li>
+<li><p>Toute valeur inconnue (capability, classe, niveau, champ, état, événement, raison)
+est <strong>rejetée</strong>. Il n’existe aucun repli permissif ni valeur par défaut tacite.</p></li>
+<li><p>Aucune réparation silencieuse : une anomalie d’intégrité rend le registre non
+certifiable, elle n’est jamais corrigée par le lecteur ni par l’agent.</p></li>
+<li><p>Une spec V1 valide reste une <em>déclaration bien formée</em>, pas une autorisation.</p></li>
+<li><p>La modification de profils ou de contrats par un agent ne vaut pas gouvernance ;
+voir §16, I8 sur la protection CODEOWNERS.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="non-goals-absolus-de-cette-mission">
+<h2>15. Non-goals absolus de cette mission<a class="headerlink" href="#non-goals-absolus-de-cette-mission" title="Link to this heading">¶</a></h2>
+<p>Aucun fichier <code class="docutils literal notranslate"><span class="pre">worker.py</span></code>, <code class="docutils literal notranslate"><span class="pre">runner.py</span></code>, <code class="docutils literal notranslate"><span class="pre">scheduler.py</span></code>, <code class="docutils literal notranslate"><span class="pre">daemon.py</span></code>, <code class="docutils literal notranslate"><span class="pre">provider.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">claude_client.py</span></code>, <code class="docutils literal notranslate"><span class="pre">openai_client.py</span></code>, <code class="docutils literal notranslate"><span class="pre">github_writer.py</span></code>, <code class="docutils literal notranslate"><span class="pre">wallet.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">treasury.py</span></code>, <code class="docutils literal notranslate"><span class="pre">bounty_registry.py</span></code>, <code class="docutils literal notranslate"><span class="pre">problem_registry.py</span></code>, <code class="docutils literal notranslate"><span class="pre">runtime_service.py</span></code>, ni
+<code class="docutils literal notranslate"><span class="pre">agent_economy/*.py</span></code>. Aucune dépendance (LangChain, CrewAI, AutoGen, autre) ajoutée.
+Aucun loader, service, registre exécutable. Aucun provider binding réel. Aucun
+changement frontend. Aucun SSH, restart, déploiement.</p>
+<p>Cette mission ne contient aucune autorisation, plus récente et vérifiée dans #284, pour
+une implémentation source A1 : le dernier état lu de #284 (statut courant du
+2026-10-01 + deux commentaires du 2026-09-27) indique <code class="docutils literal notranslate"><span class="pre">ARCHITECTURE</span> <span class="pre">FUTURE</span> <span class="pre">/</span> <span class="pre">AUCUNE</span> <span class="pre">AUTORITÉ</span> <span class="pre">RUNTIME</span></code> et « documentation/contract-only ». <strong>FAIL CLOSED : contract-only.</strong></p>
+</section>
+<hr class="docutils" />
+<section id="incoherences-observees-non-corrigees-hors-scope">
+<h2>16. Incohérences observées (non corrigées hors scope)<a class="headerlink" href="#incoherences-observees-non-corrigees-hors-scope" title="Link to this heading">¶</a></h2>
+<p>Classement : <code class="docutils literal notranslate"><span class="pre">OBSERVED</span> <span class="pre">|</span> <span class="pre">NEEDS_REVIEW</span> <span class="pre">|</span> <span class="pre">BLOCKING</span> <span class="pre">|</span> <span class="pre">NON_BLOCKING</span></code>.
+<code class="docutils literal notranslate"><span class="pre">BLOCKING</span></code> s’entend « bloque la migration/l’étape indiquée », pas cette mission.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Classe</p></th>
+<th class="head"><p>Observation</p></th>
+<th class="head"><p>Preuve</p></th>
+<th class="head"><p>Composant</p></th>
+<th class="head"><p>Risque</p></th>
+<th class="head"><p>Mission future</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>I1</p></td>
+<td><p>BLOCKING (migration)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sniper-engine.agent.md</span></code> décrit l’exécution d’ordres « en quelques secondes » ; aucun front matter, aucun <code class="docutils literal notranslate"><span class="pre">tools</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/agents/sniper-engine.agent.md</span></code> (20 lignes)</p></td>
+<td><p>profil legacy</p></td>
+<td><p>si chargé par la plateforme sans restriction, intention d’exécution d’ordres</p></td>
+<td><p>réécriture/archivage par décision humaine ; hors #286</p></td>
+</tr>
+<tr class="row-odd"><td><p>I2</p></td>
+<td><p>BLOCKING (migration)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hedge-fund-architect</span></code> : <code class="docutils literal notranslate"><span class="pre">tools:</span> <span class="pre">[read,</span> <span class="pre">edit,</span> <span class="pre">search,</span> <span class="pre">execute,</span> <span class="pre">agent,</span> <span class="pre">todo]</span></code>, <code class="docutils literal notranslate"><span class="pre">agents:</span> <span class="pre">[sniper-engine]</span></code> (délégation transitive vers I1), règle « jamais de live <em>sauf si l’utilisateur le demande</em> », chemins <code class="docutils literal notranslate"><span class="pre">crypto_quant_v16/</span></code>, <code class="docutils literal notranslate"><span class="pre">main_v16.py</span></code> absents de l’arbre suivi</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/agents/hedge-fund-architect.agent.md</span></code> ; <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">ls-files</span></code></p></td>
+<td><p>profil legacy</p></td>
+<td><p>pouvoir d’édition+exécution large ; contourne #286 si invoqué ; représentation d’architecture périmée</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code> ; décision humaine d’archiver ou réécrire</p></td>
+</tr>
+<tr class="row-even"><td><p>I3</p></td>
+<td><p>NEEDS_REVIEW</p></td>
+<td><p>5 profils (<code class="docutils literal notranslate"><span class="pre">security-Guardian-agent</span></code>, <code class="docutils literal notranslate"><span class="pre">statistician-agent</span></code>, <code class="docutils literal notranslate"><span class="pre">system-diagnostic</span></code>, <code class="docutils literal notranslate"><span class="pre">../repo-architect</span></code>, <code class="docutils literal notranslate"><span class="pre">../research-scientist</span></code>) ont un <code class="docutils literal notranslate"><span class="pre">---</span></code> d’ouverture <strong>sans fermeture</strong> et <strong>aucun <code class="docutils literal notranslate"><span class="pre">tools</span></code></strong> : pouvoirs non déclarés, restrictions seulement en prose</p></td>
+<td><p>lecture des fichiers</p></td>
+<td><p>profils legacy</p></td>
+<td><p>enforcement indéterminé ; comportement par défaut de la plateforme <strong>non vérifié ici</strong> (INFERRED, pas prouvé)</p></td>
+<td><p>vérifier la sémantique plateforme en lecture seule ; migrer</p></td>
+</tr>
+<tr class="row-odd"><td><p>I4</p></td>
+<td><p>NEEDS_REVIEW, NON_BLOCKING</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/copilot-instructions.md</span></code> décrit une architecture legacy (<code class="docutils literal notranslate"><span class="pre">crypto_quant_v16</span></code>, <code class="docutils literal notranslate"><span class="pre">quant-ai-system</span></code>, <code class="docutils literal notranslate"><span class="pre">main_v16.py</span></code>) absente de l’arbre</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/copilot-instructions.md</span></code></p></td>
+<td><p>instructions agent</p></td>
+<td><p>guide un agent vers des chemins périmés</p></td>
+<td><p>revue documentaire</p></td>
+</tr>
+<tr class="row-even"><td><p>I5</p></td>
+<td><p>NEEDS_REVIEW</p></td>
+<td><p>autres surfaces d’instruction agent <strong>non inventoriées</strong> par cette mission : <code class="docutils literal notranslate"><span class="pre">.github/prompts/*.prompt.md</span></code>, <code class="docutils literal notranslate"><span class="pre">.github/instructions/</span></code>, <code class="docutils literal notranslate"><span class="pre">.github/skills/</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ls</span> <span class="pre">.github</span></code></p></td>
+<td><p>surfaces d’instruction</p></td>
+<td><p>capacités implicites non évaluées</p></td>
+<td><p>étendre l’inventaire</p></td>
+</tr>
+<tr class="row-odd"><td><p>I6</p></td>
+<td><p>NON_BLOCKING</p></td>
+<td><p>numérotation ADR dupliquée (deux <code class="docutils literal notranslate"><span class="pre">0019</span></code>, deux <code class="docutils literal notranslate"><span class="pre">0020</span></code>, deux <code class="docutils literal notranslate"><span class="pre">0008</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">docs/adr/</span></code></p></td>
+<td><p>ADR</p></td>
+<td><p>ambiguïté de référence ; ce contrat cite les ADR <strong>par nom de fichier</strong></p></td>
+<td><p>hygiène ADR</p></td>
+</tr>
+<tr class="row-even"><td><p>I7</p></td>
+<td><p>NEEDS_REVIEW, NON_BLOCKING</p></td>
+<td><p>verdicts auto-labellisés (<code class="docutils literal notranslate"><span class="pre">CARTOGRAPHY_COMPLETE</span></code>, <code class="docutils literal notranslate"><span class="pre">DATA_PROVENANCE_COMPLETE</span></code>, <code class="docutils literal notranslate"><span class="pre">DECISION_GRAPH_CLOSED</span></code>, <code class="docutils literal notranslate"><span class="pre">READY_FOR_PROMPT</span></code>, <code class="docutils literal notranslate"><span class="pre">PASS</span></code>)</p></td>
+<td><p>profils lecture seule</p></td>
+<td><p>vocabulaire</p></td>
+<td><p>lecture comme certification</p></td>
+<td><p>renommage à la migration</p></td>
+</tr>
+<tr class="row-odd"><td><p>I8</p></td>
+<td><p><strong>NEEDS_REVIEW</strong> — <strong>BLOCKING avant toute mutation GitHub autonome / A8</strong> ; <strong>NON_BLOCKING</strong> pour la réconciliation de contrat A0/A1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/CODEOWNERS</span></code> couvre <code class="docutils literal notranslate"><span class="pre">/.github/</span></code> (profils d’agents) et <code class="docutils literal notranslate"><span class="pre">/CLAUDE.md</span></code>, mais <strong>pas</strong> <code class="docutils literal notranslate"><span class="pre">docs/contracts/</span></code> : cette constitution et ses schémas ne sont <strong>pas</strong> protégés par CODEOWNERS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/CODEOWNERS</span></code> (32 lignes)</p></td>
+<td><p>gouvernance GitHub</p></td>
+<td><p>une PR rédigée par un agent pourrait modifier la constitution sans revue du propriétaire si les protections de branche ne l’exigent pas (<strong>non vérifié ici</strong> ; les protections de branche n’ont pas été lues)</p></td>
+<td><p>mission de protections GitHub distincte (CLAUDE.md §4) ; <strong>non faite ici</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>I9</p></td>
+<td><p>NON_BLOCKING</p></td>
+<td><p>#284 intitule A0 « contrat économique et frontières » ; cette mission livre A0 sous le nom « Forest Maintenance Contract » (domaine de maintenance seulement). La partie économique (AIC, ledger, coûts) relève de A4/A5 et n’est pas couverte ici. Les phases A1–A8 sont alignées avec #284 (A7 y est nommée « Reviewer/Validator agents », A8 « GitHub issue/PR automation »)</p></td>
+<td><p>issue #284</p></td>
+<td><p>roadmap</p></td>
+<td><p>un lecteur pourrait croire A0 « contrat économique » livré</p></td>
+<td><p>aligner l’intitulé de #284 après revue humaine ; livrer le contrat économique avec A4/A5</p></td>
+</tr>
+<tr class="row-odd"><td><p>I10</p></td>
+<td><p>OBSERVED</p></td>
+<td><p>pas de précédent <code class="docutils literal notranslate"><span class="pre">*.schema.json</span></code> : les JSON machine-lisibles de <code class="docutils literal notranslate"><span class="pre">docs/contracts/</span></code> sont des profils/revues, pas des JSON Schemas</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">docs/contracts/</span></code></p></td>
+<td><p>conventions</p></td>
+<td><p>—</p></td>
+<td><p>voir A1 §2</p></td>
+</tr>
+<tr class="row-even"><td><p>I11</p></td>
+<td><p>OBSERVED</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RL-CANDIDATE</span></code> registre : événements avec <code class="docutils literal notranslate"><span class="pre">event_id</span></code> déterministe, <code class="docutils literal notranslate"><span class="pre">registry_sequence</span></code>, ordinal par objet, <strong>sans</strong> chaîne de hash ; D5B durable : chaîne de hash avec <code class="docutils literal notranslate"><span class="pre">GENESIS</span></code>. A1 reprend les deux idées</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">research_candidate/registry.py</span></code>, <code class="docutils literal notranslate"><span class="pre">observability/operator_decisions/durable_store.py</span></code></p></td>
+<td><p>précédents</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="verdict">
+<h2>17. Verdict<a class="headerlink" href="#verdict" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION</span></code> (proposition ; non certifié).</p>
+<p><strong>Portée de certification.</strong> Ce verdict ne couvre que le sous-périmètre contractuel
+<code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT</span></code> (et <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT</span></code>). Il ne
+clôt <strong>pas</strong> l’A0 économique de #284 : AIC, Treasury, wallets et comptabilité des coûts
+restent du travail futur (A4/A5). Non déclaré : <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_ECONOMIC_CONTRACT_COMPLETE</span></code>.</p>
+<p>Non déclaré : <code class="docutils literal notranslate"><span class="pre">CERTIFIED</span></code>, <code class="docutils literal notranslate"><span class="pre">AGENT_ECONOMY_DEPLOYED</span></code>,
+<code class="docutils literal notranslate"><span class="pre">AGENT_ECONOMY_ARCHITECTURE_CERTIFIED</span></code>. Aucune autorité runtime n’est créée ou
+modifiée ; #286 reste actif.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">AGENT-ECON A0 — Forest Maintenance Contract</a><ul>
+<li><a class="reference internal" href="#ce-que-ce-document-est-et-nest-pas">0. Ce que ce document est, et n’est pas</a></li>
+<li><a class="reference internal" href="#invariants-racines">1. Invariants racines</a></li>
+<li><a class="reference internal" href="#definitions">2. Définitions</a></li>
+<li><a class="reference internal" href="#flux-admis-et-interdits">3. Flux admis et interdits</a></li>
+<li><a class="reference internal" href="#niveaux-forestiers-f0f4">4. Niveaux forestiers F0–F4</a></li>
+<li><a class="reference internal" href="#human-gate-hors-du-domaine-des-agents">5. Human Gate — hors du domaine des agents</a></li>
+<li><a class="reference internal" href="#forbidden-authority-set-liste-constitutionnelle-fermee">6. Forbidden Authority Set — liste constitutionnelle fermée</a></li>
+<li><a class="reference internal" href="#preuve-de-separation-des-autorites">7. Preuve de séparation des autorités</a><ul>
+<li><a class="reference internal" href="#capability-authority">7.1 <code class="docutils literal notranslate"><span class="pre">CAPABILITY</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code></a></li>
+<li><a class="reference internal" href="#aic-authority">7.2 <code class="docutils literal notranslate"><span class="pre">AIC</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code></a></li>
+<li><a class="reference internal" href="#reputation-authority">7.3 <code class="docutils literal notranslate"><span class="pre">REPUTATION</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code></a></li>
+<li><a class="reference internal" href="#proposal-code-review-observation-authority">7.4 <code class="docutils literal notranslate"><span class="pre">PROPOSAL</span> <span class="pre">/</span> <span class="pre">CODE</span> <span class="pre">/</span> <span class="pre">REVIEW</span> <span class="pre">/</span> <span class="pre">OBSERVATION</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code></a></li>
+<li><a class="reference internal" href="#agent-consensus-authority">7.5 <code class="docutils literal notranslate"><span class="pre">AGENT</span> <span class="pre">CONSENSUS</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code></a></li>
+<li><a class="reference internal" href="#bis-registered-running-et-hash-chain-authenticity">7.5 bis <code class="docutils literal notranslate"><span class="pre">REGISTERED</span> <span class="pre">!=</span> <span class="pre">RUNNING</span></code> et <code class="docutils literal notranslate"><span class="pre">HASH_CHAIN</span> <span class="pre">!=</span> <span class="pre">AUTHENTICITY</span></code></a></li>
+<li><a class="reference internal" href="#point-dapplication">7.6 Point d’application</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#independance">8. Indépendance</a></li>
+<li><a class="reference internal" href="#compatibilite-avec-le-garde-fou-286">9. Compatibilité avec le garde-fou #286</a></li>
+<li><a class="reference internal" href="#semantique-detat">10. Sémantique d’état</a></li>
+<li><a class="reference internal" href="#migration-des-anciens-github-agents">11. Migration des anciens <code class="docutils literal notranslate"><span class="pre">.github/agents</span></code></a></li>
+<li><a class="reference internal" href="#phases-et-frontieres">12. Phases et frontières</a></li>
+<li><a class="reference internal" href="#criteres-dacceptation-a0-questions-et-reponses">13. Critères d’acceptation A0 — questions et réponses</a></li>
+<li><a class="reference internal" href="#amendement-et-fail-closed">14. Amendement et fail-closed</a></li>
+<li><a class="reference internal" href="#non-goals-absolus-de-cette-mission">15. Non-goals absolus de cette mission</a></li>
+<li><a class="reference internal" href="#incoherences-observees-non-corrigees-hors-scope">16. Incohérences observées (non corrigées hors scope)</a></li>
+<li><a class="reference internal" href="#verdict">17. Verdict</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

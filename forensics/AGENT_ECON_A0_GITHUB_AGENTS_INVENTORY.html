@@ -1,0 +1,815 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" />
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>AGENT-ECON A0 — Inventaire des profils .github/agents/*.agent.md - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/forensics/AGENT_ECON_A0_GITHUB_AGENTS_INVENTORY.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/forensics/AGENT_ECON_A0_GITHUB_AGENTS_INVENTORY.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="agent-econ-a0-inventaire-des-profils-github-agents-agent-md">
+<h1>AGENT-ECON A0 — Inventaire des profils <code class="docutils literal notranslate"><span class="pre">.github/agents/*.agent.md</span></code><a class="headerlink" href="#agent-econ-a0-inventaire-des-profils-github-agents-agent-md" title="Link to this heading">¶</a></h1>
+<p>Statut : <strong>DIAGNOSTIC SOURCE / READ-ONLY / RÉCONCILIATION R1</strong> — aucun profil ni aucune surface d’instruction n’est modifié par cette mission.
+Base : <code class="docutils literal notranslate"><span class="pre">main&#64;c561fae406950bf7813102b5b3f59c32388566d0</span></code>.
+Constitution évaluée : <a class="reference internal" href="../contracts/AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.html"><span class="std std-doc">A0 — Forest Maintenance Contract</span></a> ·
+<a class="reference internal" href="../contracts/AGENT_ECON_A1_CAPABILITY_CATALOG.html"><span class="std std-doc">catalogue</span></a>.
+Parent : <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/284">#284</a> · garde-fou
+<a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/286">#286</a>.</p>
+<p>Ces profils sont des <strong>artefacts historiques/candidats, pas une autorité</strong>. Chaque
+fichier a été lu en entier. Aucun n’est déclaré compatible sans inspection.</p>
+<section id="limites-de-cette-preuve">
+<h2>Limites de cette preuve<a class="headerlink" href="#limites-de-cette-preuve" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>SOURCE PROOF seulement.</strong> Aucune observation de la plateforme qui exécute ces
+profils (GitHub Copilot) ni du VPS. Le comportement par défaut d’un front matter sans
+<code class="docutils literal notranslate"><span class="pre">tools</span></code> n’a <strong>pas</strong> pu être vérifié (accès à la documentation plateforme bloqué par le
+proxy d’egress de la session) : il est marqué <em>non vérifié</em>. Un pouvoir effectif
+inconnu est traité comme <strong>non borné</strong> (fail-closed), pas comme nul.</p></li>
+<li><p>La prose restrictive d’un profil (« READ-ONLY », « ne modifie rien ») <strong>n’est pas un
+enforcement</strong> ; seul un <code class="docutils literal notranslate"><span class="pre">tools</span></code> explicite l’est, sous réserve du comportement plateforme.</p></li>
+<li><p>L’historique git des profils ne montre que des commits sans rapport avec les agents
+(<code class="docutils literal notranslate"><span class="pre">b2a7d7d</span></code>, <code class="docutils literal notranslate"><span class="pre">a499b79</span></code>) : l’<strong>auteur et l’intention d’origine sont <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></strong>
+depuis <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code> seul.</p></li>
+</ul>
+<p>Statuts : <code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code> · <code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> · <code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code>.
+« Niveau V1 » = plafond admissible dans <code class="docutils literal notranslate"><span class="pre">AGENT_SPEC_V1</span></code> (F0–F2) ; F3/F4 sont réservés.</p>
+</section>
+<hr class="docutils" />
+<section id="tableau-de-synthese">
+<h2>1. Tableau de synthèse<a class="headerlink" href="#tableau-de-synthese" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>#</p></th>
+<th class="head"><p>Profil</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">tools</span></code> déclaré</p></th>
+<th class="head"><p>Écriture / exécution</p></th>
+<th class="head"><p>Classe future</p></th>
+<th class="head"><p>Niveau recommandé</p></th>
+<th class="head"><p>Statut</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">data-provenance-auditor</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code></p></td>
+<td><p>non</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DATA_STEWARD</span></code></p></td>
+<td><p>F2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">decision-path-forensic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code></p></td>
+<td><p>non</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FORENSIC</span></code></p></td>
+<td><p>F2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hedge-fund-architect</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[read,</span> <span class="pre">edit,</span> <span class="pre">search,</span> <span class="pre">execute,</span> <span class="pre">agent,</span> <span class="pre">todo]</span></code> + <code class="docutils literal notranslate"><span class="pre">agents:</span> <span class="pre">[sniper-engine]</span></code></p></td>
+<td><p><strong>oui : édition, exécution, délégation</strong></p></td>
+<td><p>aucune enregistrable (<code class="docutils literal notranslate"><span class="pre">ENGINEER</span></code> réservé)</p></td>
+<td><p>aucun en V1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mission-preparation-researcher</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[&quot;read&quot;,&quot;search&quot;,&quot;web&quot;]</span></code></p></td>
+<td><p>non, mais <strong>réseau externe</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CURATOR</span></code></p></td>
+<td><p>F2 (sans <code class="docutils literal notranslate"><span class="pre">web</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">observability-cartographer</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code></p></td>
+<td><p>non</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SENSOR</span></code></p></td>
+<td><p>F0</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">repository-cartographer</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code></p></td>
+<td><p>non</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SENSOR</span></code></p></td>
+<td><p>F0</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security-Guardian-agent</span></code></p></td>
+<td><p><strong>aucun</strong> (front matter non fermé)</p></td>
+<td><p><strong>indéterminé</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SECURITY</span></code></p></td>
+<td><p>F4 réservé ; V1 intérimaire F2 diagnostic seul</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sniper-engine</span></code></p></td>
+<td><p><strong>aucun</strong> (pas de front matter)</p></td>
+<td><p><strong>décrit l’exécution d’ordres</strong></p></td>
+<td><p>aucune</p></td>
+<td><p>aucun</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">statistician-agent</span></code></p></td>
+<td><p><strong>aucun</strong> (front matter non fermé)</p></td>
+<td><p><strong>indéterminé</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEWER</span></code> (réservé)</p></td>
+<td><p>F4 réservé ; non enregistrable en V1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">system-diagnostic</span></code></p></td>
+<td><p><strong>aucun</strong> (front matter non fermé)</p></td>
+<td><p><strong>indéterminé</strong> ; décrit des commandes VPS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SRE</span></code></p></td>
+<td><p>F2 sans lecture runtime</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Aucun profil n’est <code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code> <em>sans</em> remédiation : « candidat » signifie
+qu’une <code class="docutils literal notranslate"><span class="pre">AgentSpec</span></code> neuve est envisageable par PR humaine, pas que le fichier est valide.</p>
+</section>
+<hr class="docutils" />
+<section id="fiches-par-profil">
+<h2>2. Fiches par profil<a class="headerlink" href="#fiches-par-profil" title="Link to this heading">¶</a></h2>
+<p>Champs : nom · objectif actuel · pouvoirs déclarés · capacité écriture/exécution ·
+implications runtime · compatibilité A0 · classe/niveau recommandés · statut ·
+remédiation requise.</p>
+<section id="data-provenance-auditor-180-lignes">
+<h3>2.1 <code class="docutils literal notranslate"><span class="pre">data-provenance-auditor</span></code> — 180 lignes<a class="headerlink" href="#data-provenance-auditor-180-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Audit READ-ONLY des datasets : producteurs, consommateurs, identifiants,
+fraîcheur, schémas, rétention, joignabilité.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> Front matter fermé ; <code class="docutils literal notranslate"><span class="pre">tools:</span> <span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code> ;
+<code class="docutils literal notranslate"><span class="pre">disable-model-invocation:</span> <span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">user-invocable:</span> <span class="pre">true</span></code> (invocation par l’opérateur
+uniquement) ; <code class="docutils literal notranslate"><span class="pre">metadata.mode:</span> <span class="pre">read-only</span></code>.</p></li>
+<li><p><strong>Écriture/exécution.</strong> Aucune déclarée ; prose « Aucune modification… ».</p></li>
+<li><p><strong>Runtime.</strong> Aucun. Précise de ne pas mesurer de doublons runtime depuis le code seul ;
+renvoie les mesures runtime à une « mission séparée ».</p></li>
+<li><p><strong>Compatibilité A0.</strong> Compatible avec F2 (rapport = <code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC</span></code>). Écarts : verdicts
+<code class="docutils literal notranslate"><span class="pre">DATA_PROVENANCE_COMPLETE/PARTIAL/BLOCKED</span></code> auto-labellisés (A0 §16 I7) ; périmètre
+non déclaré sous forme de <code class="docutils literal notranslate"><span class="pre">scope_policy</span></code>.</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">DATA_STEWARD</span></code>, F2 ; <code class="docutils literal notranslate"><span class="pre">REPOSITORY_READ</span></code>, <code class="docutils literal notranslate"><span class="pre">REPOSITORY_SEARCH</span></code>,
+<code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC_PRODUCE</span></code>.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Écrire une <code class="docutils literal notranslate"><span class="pre">AgentSpec</span></code> (chemins de lecture explicites, hors <code class="docutils literal notranslate"><span class="pre">.env*</span></code>) ;
+renommer les verdicts en constat non certifiant ; ne pas hériter de pouvoirs au-delà
+du catalogue.</p></li>
+</ul>
+</section>
+<section id="decision-path-forensic-167-lignes">
+<h3>2.2 <code class="docutils literal notranslate"><span class="pre">decision-path-forensic</span></code> — 167 lignes<a class="headerlink" href="#decision-path-forensic-167-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Forensic READ-ONLY de tout chemin pouvant influencer signal, gate,
+sizing, exécution ; recherche de bypass.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> <code class="docutils literal notranslate"><span class="pre">tools:</span> <span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code>, invocation utilisateur seule,
+<code class="docutils literal notranslate"><span class="pre">mode:</span> <span class="pre">read-only</span></code>.</p></li>
+<li><p><strong>Écriture/exécution.</strong> Aucune.</p></li>
+<li><p><strong>Runtime.</strong> Aucun ; classe des chemins <code class="docutils literal notranslate"><span class="pre">DECISION_ACTIVE</span></code>/<code class="docutils literal notranslate"><span class="pre">EXECUTION_ACTIVE</span></code> mais
+sans les modifier. Énonce <code class="docutils literal notranslate"><span class="pre">OBSERVATION</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code>, <code class="docutils literal notranslate"><span class="pre">RECOMMENDED</span> <span class="pre">!=</span> <span class="pre">APPLIED</span></code>
+(cohérent avec A0 §1).</p></li>
+<li><p><strong>Compatibilité A0.</strong> Compatible F2. Écart : verdicts <code class="docutils literal notranslate"><span class="pre">DECISION_GRAPH_CLOSED</span></code> etc.</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">FORENSIC</span></code>, F2 ; <code class="docutils literal notranslate"><span class="pre">REPOSITORY_READ</span></code>, <code class="docutils literal notranslate"><span class="pre">REPOSITORY_SEARCH</span></code>,
+<code class="docutils literal notranslate"><span class="pre">STATIC_ANALYSIS</span></code>, <code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC_PRODUCE</span></code>.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Spec + renommage des verdicts.</p></li>
+</ul>
+</section>
+<section id="hedge-fund-architect-104-lignes-bloque">
+<h3>2.3 <code class="docutils literal notranslate"><span class="pre">hedge-fund-architect</span></code> — 104 lignes — <strong>BLOQUÉ</strong><a class="headerlink" href="#hedge-fund-architect-104-lignes-bloque" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Construire/étendre/déboguer un « AI Hedge Fund Trading System » :
+market discovery, memecoin scanner, sniper engine, bot doctor, strategy lab,
+Telegram, dashboard.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> <code class="docutils literal notranslate"><span class="pre">tools:</span> <span class="pre">[read,</span> <span class="pre">edit,</span> <span class="pre">search,</span> <span class="pre">execute,</span> <span class="pre">agent,</span> <span class="pre">todo]</span></code> ;
+<code class="docutils literal notranslate"><span class="pre">agents:</span> <span class="pre">[sniper-engine]</span></code> (délégation vers le profil 2.8, donc <strong>accessibilité
+transitive</strong> d’une description d’exécution d’ordres).</p></li>
+<li><p><strong>Écriture/exécution.</strong> <strong>Oui, large</strong> (<code class="docutils literal notranslate"><span class="pre">edit</span></code> + <code class="docutils literal notranslate"><span class="pre">execute</span></code> + sous-agent).</p></li>
+<li><p><strong>Runtime.</strong> Demande de scaffolder <code class="docutils literal notranslate"><span class="pre">sniper_engine/trade_executor.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mempool_listener.py</span></code>, etc. ; traite « Bot Doctor » comme porte de validation des
+trades (représentation d’architecture ancienne). La règle « Paper trading by default —
+never enable live trading <strong>unless the user explicitly requests it</strong> » ouvre une
+voie d’activation LIVE par simple demande, contraire à #286 et à A0
+(<code class="docutils literal notranslate"><span class="pre">LIVE_ENABLE</span></code>/<code class="docutils literal notranslate"><span class="pre">EXCHANGE_WRITE</span></code> interdits).</p></li>
+<li><p><strong>Architecture périmée (vérifié par <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">ls-files</span></code>).</strong> <code class="docutils literal notranslate"><span class="pre">crypto_quant_v16/</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quant-hedge-ai/</span></code> (avec tiret), <code class="docutils literal notranslate"><span class="pre">crypto_quant_v16/v26/bot_doctor.py</span></code> et
+<code class="docutils literal notranslate"><span class="pre">main_v16.py</span></code> <strong>n’existent pas</strong> dans l’arbre suivi ; <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/</span></code> (underscore)
+existe, ainsi que <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/main_v91.py</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/agents/{whales,strategy,market,risk}/</span></code>
+et <code class="docutils literal notranslate"><span class="pre">supervision/bot_doctor.py</span></code>. Le profil décrit donc un état antérieur.</p></li>
+<li><p><strong>Compatibilité A0.</strong> <strong>Incompatible</strong> : <code class="docutils literal notranslate"><span class="pre">edit</span></code>/<code class="docutils literal notranslate"><span class="pre">execute</span></code>/délégation hors catalogue ;
+voie vers LIVE ; périmètre trading (domaine séparé de la forêt).</p></li>
+<li><p><strong>Spec envisagée.</strong> Aucune. <code class="docutils literal notranslate"><span class="pre">ENGINEER</span></code> est réservé (F3) ; aucune spec V1 valide
+ne peut représenter ce profil.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Décision humaine : archiver (<code class="docutils literal notranslate"><span class="pre">ARCHIVE</span></code>) ou réécrire. Classification
+CLAUDE.md §5 : <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> ⇒ <strong>ne pas supprimer</strong>. Ne lui accorder aucun droit
+automatique. Ne pas le modifier dans cette mission.</p></li>
+</ul>
+</section>
+<section id="mission-preparation-researcher-193-lignes">
+<h3>2.4 <code class="docutils literal notranslate"><span class="pre">mission-preparation-researcher</span></code> — 193 lignes<a class="headerlink" href="#mission-preparation-researcher-193-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Préparer un « Evidence Pack » READ-ONLY avant une mission (architecture,
+code, tests, ADR, risques, critères d’acceptation proposés).</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> <code class="docutils literal notranslate"><span class="pre">tools:</span> <span class="pre">[&quot;read&quot;,&quot;search&quot;,&quot;web&quot;]</span></code>, invocation utilisateur seule,
+<code class="docutils literal notranslate"><span class="pre">mode:</span> <span class="pre">read-only</span></code>.</p></li>
+<li><p><strong>Écriture/exécution.</strong> Aucune ; <strong><code class="docutils literal notranslate"><span class="pre">web</span></code> = lecture réseau externe</strong>, sans équivalent
+dans le catalogue (aucune capability réseau n’existe, volontairement).</p></li>
+<li><p><strong>Runtime.</strong> Aucun. Sépare <code class="docutils literal notranslate"><span class="pre">REPOSITORY</span> <span class="pre">EVIDENCE</span></code> de <code class="docutils literal notranslate"><span class="pre">EXTERNAL</span> <span class="pre">REFERENCE</span></code>.</p></li>
+<li><p><strong>Compatibilité A0.</strong> Compatible F2 <strong>sans</strong> <code class="docutils literal notranslate"><span class="pre">web</span></code> (sorties <code class="docutils literal notranslate"><span class="pre">SCOPE_DRAFT</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ACCEPTANCE_CRITERIA_DRAFT</span></code>). <code class="docutils literal notranslate"><span class="pre">web</span></code> : décision humaine requise (amender A0 ou retirer).
+Verdicts <code class="docutils literal notranslate"><span class="pre">READY_FOR_PROMPT</span></code> etc. auto-labellisés.</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">CURATOR</span></code>, F2 ; <code class="docutils literal notranslate"><span class="pre">REPOSITORY_READ</span></code>, <code class="docutils literal notranslate"><span class="pre">REPOSITORY_SEARCH</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SCOPE_DRAFT_PREPARE</span></code>, <code class="docutils literal notranslate"><span class="pre">ACCEPTANCE_CRITERIA_DRAFT_PREPARE</span></code>.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Trancher <code class="docutils literal notranslate"><span class="pre">web</span></code> (retrait ou amendement constitutionnel humain) ;
+renommer les verdicts.</p></li>
+</ul>
+</section>
+<section id="observability-cartographer-173-lignes">
+<h3>2.5 <code class="docutils literal notranslate"><span class="pre">observability-cartographer</span></code> — 173 lignes<a class="headerlink" href="#observability-cartographer-173-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Cartographie READ-ONLY des métriques, snapshots, dashboards, bots
+Telegram et sources de vérité opérateur.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> <code class="docutils literal notranslate"><span class="pre">tools:</span> <span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code>, invocation utilisateur seule.</p></li>
+<li><p><strong>Écriture/exécution.</strong> Aucune.</p></li>
+<li><p><strong>Runtime.</strong> Aucun ; inventorie des bots Telegram par nom (pas de secret).</p></li>
+<li><p><strong>Compatibilité A0.</strong> Compatible F0 (rapport transitoire) ; ses classifications sont
+des constats. Verdicts <code class="docutils literal notranslate"><span class="pre">OBSERVABILITY_MAP_COMPLETE</span></code> etc.</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">SENSOR</span></code>, F0 ; <code class="docutils literal notranslate"><span class="pre">REPOSITORY_READ</span></code>, <code class="docutils literal notranslate"><span class="pre">REPOSITORY_SEARCH</span></code>.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Spec ; si son rapport doit être <strong>persisté</strong> comme preuve, cela
+exige F2 (<code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC_PRODUCE</span></code>) ou un écrivain gouverné — à décider à la migration.</p></li>
+</ul>
+</section>
+<section id="repository-cartographer-189-lignes">
+<h3>2.6 <code class="docutils literal notranslate"><span class="pre">repository-cartographer</span></code> — 189 lignes<a class="headerlink" href="#repository-cartographer-189-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Cartographie READ-ONLY de l’architecture, modules, call graphs, états
+persistants.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> <code class="docutils literal notranslate"><span class="pre">tools:</span> <span class="pre">[&quot;read&quot;,&quot;search&quot;]</span></code>, invocation utilisateur seule.</p></li>
+<li><p><strong>Écriture/exécution.</strong> Aucune ; interdictions détaillées en prose (cohérentes avec
+<code class="docutils literal notranslate"><span class="pre">tools</span></code>).</p></li>
+<li><p><strong>Runtime.</strong> Aucun.</p></li>
+<li><p><strong>Compatibilité A0.</strong> Compatible F0. Recouvre partiellement <code class="docutils literal notranslate"><span class="pre">repo-architect</span></code> (annexe A).
+Verdicts <code class="docutils literal notranslate"><span class="pre">CARTOGRAPHY_COMPLETE/PARTIAL/BLOCKED</span></code>.</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">SENSOR</span></code>, F0 ; <code class="docutils literal notranslate"><span class="pre">REPOSITORY_READ</span></code>, <code class="docutils literal notranslate"><span class="pre">REPOSITORY_SEARCH</span></code>,
+<code class="docutils literal notranslate"><span class="pre">STATIC_ANALYSIS</span></code>.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">MIGRATION_CANDIDATE</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Spec ; dédoublonner avec <code class="docutils literal notranslate"><span class="pre">repo-architect</span></code>.</p></li>
+</ul>
+</section>
+<section id="security-guardian-agent-119-lignes">
+<h3>2.7 <code class="docutils literal notranslate"><span class="pre">security-Guardian-agent</span></code> — 119 lignes<a class="headerlink" href="#security-guardian-agent-119-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Vérifier sécurité, invariants de gouvernance, frontières
+Research/Paper/Live ; relire branche/diff/commits.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> Front matter <strong>ouvert sans fermeture</strong>, seuls <code class="docutils literal notranslate"><span class="pre">name</span></code> et
+<code class="docutils literal notranslate"><span class="pre">description</span></code> ; <strong>aucun <code class="docutils literal notranslate"><span class="pre">tools</span></code></strong>. Comportement plateforme d’un <code class="docutils literal notranslate"><span class="pre">tools</span></code> omis : <strong>non
+vérifié</strong> (traité comme non borné).</p></li>
+<li><p><strong>Écriture/exécution.</strong> Indéterminée ; prose « Ne jamais… ».</p></li>
+<li><p><strong>Runtime.</strong> Cite <code class="docutils literal notranslate"><span class="pre">GlobalRiskGate</span></code>, <code class="docutils literal notranslate"><span class="pre">RuntimeStateMachine</span></code>, <code class="docutils literal notranslate"><span class="pre">SAFE_MODE</span></code> : ces symboles
+<strong>existent</strong> (<code class="docutils literal notranslate"><span class="pre">risk/global_risk_gate.py</span></code>, <code class="docutils literal notranslate"><span class="pre">quant_hedge_ai/runtime/runtime_state_machine.py</span></code>).</p></li>
+<li><p><strong>Compatibilité A0.</strong> Sa fonction (relecture sécurité) est <code class="docutils literal notranslate"><span class="pre">SECURITY_REVIEW</span></code> = F4
+<strong>réservé</strong> ; elle ne peut être enregistrée en V1 qu’en diagnostic F2. Écarts : « Tu
+es le dernier rempart » (auto-attribution d’autorité finale, contraire à
+<code class="docutils literal notranslate"><span class="pre">REVIEW</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code>) ; verdict <code class="docutils literal notranslate"><span class="pre">PASS</span></code> (absence de finding ≠ acceptation).</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">SECURITY</span></code> ; F4 réservé ; V1 intérimaire F2 (<code class="docutils literal notranslate"><span class="pre">REPOSITORY_READ</span></code>,
+<code class="docutils literal notranslate"><span class="pre">REPOSITORY_SEARCH</span></code>, <code class="docutils literal notranslate"><span class="pre">STATIC_ANALYSIS</span></code>, <code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC_PRODUCE</span></code>) <strong>sans</strong> fonction de
+veto.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Fermer le front matter ; déclarer <code class="docutils literal notranslate"><span class="pre">tools</span></code> en lecture ; retirer
+« dernier rempart » ; borner <code class="docutils literal notranslate"><span class="pre">BLOCK</span></code> à un <em>finding bloquant</em> d’un futur F4.</p></li>
+</ul>
+</section>
+<section id="sniper-engine-20-lignes-bloque">
+<h3>2.8 <code class="docutils literal notranslate"><span class="pre">sniper-engine</span></code> — 20 lignes — <strong>BLOQUÉ</strong><a class="headerlink" href="#sniper-engine-20-lignes-bloque" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> « Exécution rapide sur les opportunités de trading (sniping) ».</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> <strong>Aucun front matter</strong> : ni <code class="docutils literal notranslate"><span class="pre">name</span></code>, ni <code class="docutils literal notranslate"><span class="pre">description</span></code>, ni
+<code class="docutils literal notranslate"><span class="pre">tools</span></code>. Chargeabilité par la plateforme <strong>inconnue</strong> ; atteignable par délégation
+depuis <code class="docutils literal notranslate"><span class="pre">hedge-fund-architect</span></code> (2.3).</p></li>
+<li><p><strong>Écriture/exécution.</strong> Décrit « Exécute des ordres d’achat/vente en quelques
+secondes », « Achat instantané », sur « pools de liquidité » et « nouveaux tokens ».</p></li>
+<li><p><strong>Runtime.</strong> Si activé avec des outils : écriture d’ordres = <code class="docutils literal notranslate"><span class="pre">EXCHANGE_WRITE</span></code>
+(interdit, A0 §6). Contraire à #286. L’exemple « Résultat : +12% en 2 minutes » est
+une performance <strong>illustrative non sourcée</strong> ; ne pas la lire comme un fait.</p></li>
+<li><p><strong>Compatibilité A0.</strong> <strong>Incompatible</strong> tant que réécrit. Aucune classe/niveau V1 ne
+peut le représenter.</p></li>
+<li><p><strong>Spec envisagée.</strong> Aucune.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">BLOCKED_LEGACY_RECONCILIATION</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Décision humaine : <code class="docutils literal notranslate"><span class="pre">ARCHIVE</span></code> ou réécriture sans exécution. <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code>
+⇒ ne pas supprimer. Ne pas modifier ici. Retirer la référence <code class="docutils literal notranslate"><span class="pre">agents:</span> <span class="pre">[sniper-engine]</span></code>
+fait partie de la réconciliation de <code class="docutils literal notranslate"><span class="pre">hedge-fund-architect</span></code>.</p></li>
+</ul>
+</section>
+<section id="statistician-agent-132-lignes">
+<h3>2.9 <code class="docutils literal notranslate"><span class="pre">statistician-agent</span></code> — 132 lignes<a class="headerlink" href="#statistician-agent-132-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> « Contre-pouvoir statistique » : biais, validité, <code class="docutils literal notranslate"><span class="pre">INSUFFICIENT</span> <span class="pre">EVIDENCE</span></code>.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> Front matter non fermé ; <strong>aucun <code class="docutils literal notranslate"><span class="pre">tools</span></code></strong> (comportement
+plateforme non vérifié).</p></li>
+<li><p><strong>Écriture/exécution.</strong> Indéterminée ; fonction purement analytique en prose.</p></li>
+<li><p><strong>Runtime.</strong> Aucun.</p></li>
+<li><p><strong>Compatibilité A0.</strong> Fonction = <code class="docutils literal notranslate"><span class="pre">STATISTICAL_REVIEW</span></code> (F4 <strong>réservé</strong>). Verdicts
+<code class="docutils literal notranslate"><span class="pre">SUPPORTED/PROMISING/…/REJECTED</span></code> : <code class="docutils literal notranslate"><span class="pre">SUPPORTED</span></code> pourrait être lu comme une acceptation
+(A0 §1). Chevauche le domaine Research (Q6).</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">REVIEWER</span></code> (réservé) ⇒ <strong>non enregistrable en V1</strong> ; pas de spec
+intérimaire recommandée (la déguiser en <code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC</span></code> F2 travestirait une fonction
+de review).</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> (bloqué par un niveau réservé, pas par un risque).</p></li>
+<li><p><strong>Remédiation.</strong> Fermer le front matter, déclarer des outils de lecture, renommer les
+verdicts ; attendre A7.</p></li>
+</ul>
+</section>
+<section id="system-diagnostic-139-lignes">
+<h3>2.10 <code class="docutils literal notranslate"><span class="pre">system-diagnostic</span></code> — 139 lignes<a class="headerlink" href="#system-diagnostic-139-lignes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Objectif.</strong> Diagnostic Linux/VPS/systemd/processus/réseau/runtime.</p></li>
+<li><p><strong>Pouvoirs déclarés.</strong> Front matter non fermé ; <strong>aucun <code class="docutils literal notranslate"><span class="pre">tools</span></code></strong>. Liste des
+commandes « non destructives » (<code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">journalctl</span></code>, <code class="docutils literal notranslate"><span class="pre">ps</span></code>, <code class="docutils literal notranslate"><span class="pre">ss</span></code>, <code class="docutils literal notranslate"><span class="pre">lsof</span></code>,
+<code class="docutils literal notranslate"><span class="pre">df</span></code>, <code class="docutils literal notranslate"><span class="pre">free</span></code>, …) et règle d’escalade humaine avant tout arrêt/modification.</p></li>
+<li><p><strong>Écriture/exécution.</strong> Indéterminée ; la prose interdit restart/suppression/kill.</p></li>
+<li><p><strong>Runtime.</strong> <strong>Vise le VPS/runtime</strong> : exige une lecture runtime que A0 exclut
+volontairement. Si des outils d’exécution étaient disponibles par défaut, ce profil
+pourrait toucher le runtime gelé (#286).</p></li>
+<li><p><strong>Compatibilité A0.</strong> Partie dépôt compatible (<code class="docutils literal notranslate"><span class="pre">SRE</span></code>, F2) ; partie runtime hors forêt.</p></li>
+<li><p><strong>Spec envisagée.</strong> <code class="docutils literal notranslate"><span class="pre">SRE</span></code>, F2, <code class="docutils literal notranslate"><span class="pre">REPOSITORY_READ</span></code>, <code class="docutils literal notranslate"><span class="pre">REPOSITORY_SEARCH</span></code>,
+<code class="docutils literal notranslate"><span class="pre">DIAGNOSTIC_PRODUCE</span></code>, <strong>sans</strong> lecture runtime.</p></li>
+<li><p><strong>Statut.</strong> <code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code>.</p></li>
+<li><p><strong>Remédiation.</strong> Scinder dépôt/runtime ; les checkpoints VPS READ-ONLY restent des
+<strong>missions humaines distinctes</strong> (#282, #309) ; fermer le front matter.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="constats-transverses">
+<h2>3. Constats transverses<a class="headerlink" href="#constats-transverses" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>Classe</p></th>
+<th class="head"><p>Constat</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>X1</p></td>
+<td><p>NEEDS_REVIEW</p></td>
+<td><p>4 profils sur 10 (7, 8, 9, 10) n’ont aucun <code class="docutils literal notranslate"><span class="pre">tools</span></code> ; leur pouvoir effectif dépend d’un comportement plateforme <strong>non vérifié ici</strong>. Le profil 3 déclare un <code class="docutils literal notranslate"><span class="pre">tools</span></code> explicite mais très large (<code class="docutils literal notranslate"><span class="pre">edit</span></code>, <code class="docutils literal notranslate"><span class="pre">execute</span></code>, <code class="docutils literal notranslate"><span class="pre">agent</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>X2</p></td>
+<td><p>BLOCKING (migration)</p></td>
+<td><p>profils 3 et 8 : exécution d’ordres/édition+exécution+délégation (voir fiches)</p></td>
+</tr>
+<tr class="row-even"><td><p>X3</p></td>
+<td><p>NEEDS_REVIEW</p></td>
+<td><p>verdicts auto-labellisés dans les profils lecture seule (A0 §16 I7)</p></td>
+</tr>
+<tr class="row-odd"><td><p>X4</p></td>
+<td><p>OBSERVED</p></td>
+<td><p>seuls 5 profils portent <code class="docutils literal notranslate"><span class="pre">disable-model-invocation:</span> <span class="pre">true</span></code> + <code class="docutils literal notranslate"><span class="pre">user-invocable:</span> <span class="pre">true</span></code> (1, 2, 4, 5, 6) ; les autres n’ont pas cette garde déclarée</p></td>
+</tr>
+<tr class="row-even"><td><p>X5</p></td>
+<td><p>NON_BLOCKING</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">repository-cartographer</span></code> et <code class="docutils literal notranslate"><span class="pre">repo-architect</span></code> (annexe) se recouvrent</p></td>
+</tr>
+<tr class="row-odd"><td><p>X6</p></td>
+<td><p>OBSERVED</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.github/CODEOWNERS</span></code> couvre <code class="docutils literal notranslate"><span class="pre">/.github/</span></code> : modifier un profil exige déjà une revue du propriétaire (si les protections de branche l’imposent : non lu ici)</p></td>
+</tr>
+<tr class="row-even"><td><p>X7</p></td>
+<td><p>NEEDS_REVIEW — <strong>BLOCKING avant mutation GitHub autonome / A8</strong> ; NON_BLOCKING pour la réconciliation A0/A1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">docs/contracts/</span></code> (constitution, catalogue, schémas) n’est <strong>pas</strong> explicitement couvert par <code class="docutils literal notranslate"><span class="pre">.github/CODEOWNERS</span></code> (A0 §16 I8) ; mission de protections distincte, non faite ici</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="annexe-a-profils-hors-du-motif-demande-observes-non-migres">
+<h2>Annexe A — profils hors du motif demandé (observés, non migrés)<a class="headerlink" href="#annexe-a-profils-hors-du-motif-demande-observes-non-migres" title="Link to this heading">¶</a></h2>
+<p>Deux profils <code class="docutils literal notranslate"><span class="pre">*.agent.md</span></code> existent <strong>hors</strong> de <code class="docutils literal notranslate"><span class="pre">.github/agents/</span></code>, à la racine de
+<code class="docutils literal notranslate"><span class="pre">.github/</span></code>. Ils ne faisaient pas partie du périmètre demandé ; ils sont notés pour ne
+pas laisser de surface d’agent non vue. Même lecture intégrale.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Profil</p></th>
+<th class="head"><p>Lignes</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">tools</span></code></p></th>
+<th class="head"><p>Résumé</p></th>
+<th class="head"><p>Statut proposé</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.github/repo-architect.agent.md</span></code></p></td>
+<td><p>103</p></td>
+<td><p>aucun ; front matter non fermé</p></td>
+<td><p>cartographie d’architecture ; « NE MODIFIE PAS LE CODE » (prose) ; renvoie des spécifications à « Test Engineer » / « Engineer/implementation workflow », <strong>qui n’existent pas</strong> parmi les profils</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> ; classe envisagée <code class="docutils literal notranslate"><span class="pre">SENSOR</span></code> F0 ; chevauche <code class="docutils literal notranslate"><span class="pre">repository-cartographer</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.github/research-scientist.agent.md</span></code></p></td>
+<td><p>139</p></td>
+<td><p>aucun ; front matter non fermé</p></td>
+<td><p>conception d’expériences reproductibles ; cite <code class="docutils literal notranslate"><span class="pre">GlobalRiskGate</span></code> et « paramètres Live »</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> ; classe <code class="docutils literal notranslate"><span class="pre">RESEARCH</span></code> plafonnée F1 en V1 ; frontière Research ↔ forêt (A1 Q6)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="annexe-b-autres-surfaces-dinstruction-observees-r1">
+<h2>Annexe B — autres surfaces d’instruction observées (R1)<a class="headerlink" href="#annexe-b-autres-surfaces-dinstruction-observees-r1" title="Link to this heading">¶</a></h2>
+<p>Surfaces lues en <strong>en-tête et sections clés</strong> (pas intégralement), classées pour ne
+laisser aucune surface d’instruction non vue. Aucune n’est modifiée ni activée ; aucune
+n’est une autorité ; aucune ne confère de capability.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Surface</p></th>
+<th class="head"><p>Lignes</p></th>
+<th class="head"><p>Ce qu’elle déclare</p></th>
+<th class="head"><p>Constat</p></th>
+<th class="head"><p>Statut proposé</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.github/copilot-instructions.md</span></code></p></td>
+<td><p>88</p></td>
+<td><p>priorités et commandes pour <code class="docutils literal notranslate"><span class="pre">quant-hedge-ai</span></code>, <code class="docutils literal notranslate"><span class="pre">crypto_quant_v16</span></code>, <code class="docutils literal notranslate"><span class="pre">quant-ai-system</span></code> (Windows/PowerShell) ; « Prefer paper/simulated… unless the user explicitly asks for live-trading changes »</p></td>
+<td><p>décrit une architecture absente de l’arbre ; permet des changements LIVE « sur demande explicite » (contraire à #286 et à A0 <code class="docutils literal notranslate"><span class="pre">LIVE_ENABLE</span></code>) ; consignes de lancement de la machine</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> (NEEDS_REVIEW, NON_BLOCKING pour A0/A1)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.github/prompts/memecoin-scanner.prompt.md</span></code></p></td>
+<td><p>23</p></td>
+<td><p>scanner des memecoins, prioriser « le potentiel de pump », envoyer des alertes</p></td>
+<td><p>domaine trading ; aucun front matter</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.github/prompts/bot-doctor-migration-plan.prompt.md</span></code></p></td>
+<td><p>51</p></td>
+<td><p>plan de migration Bot Doctor (<code class="docutils literal notranslate"><span class="pre">agent:</span> <span class="pre">&quot;agent&quot;</span></code>)</p></td>
+<td><p>domaine trading ; planification seulement</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.github/prompts/bot-doctor-ticket-generator.prompt.md</span></code></p></td>
+<td><p>48</p></td>
+<td><p>génération de tickets (<code class="docutils literal notranslate"><span class="pre">agent:</span> <span class="pre">&quot;agent&quot;</span></code>)</p></td>
+<td><p>idem</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.github/prompts/enhance-bot-platform-doctor.prompt.md</span></code></p></td>
+<td><p>141</p></td>
+<td><p>spécification Telegram + Multi-HF + copy trading, « optional live-trading activation path »</p></td>
+<td><p>prévoit un chemin d’activation LIVE ; cibles legacy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> ; fort risque si invoqué</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.github/instructions/bot-doctor.instructions.md</span></code></p></td>
+<td><p>49</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">applyTo</span></code> <code class="docutils literal notranslate"><span class="pre">**/bot_doctor*</span></code>, <code class="docutils literal notranslate"><span class="pre">**/risk_engine*</span></code>… ; « Every trade execution path MUST call Bot Doctor » ; patron <code class="docutils literal notranslate"><span class="pre">_place_order</span></code></p></td>
+<td><p>instruction appliquée automatiquement à des chemins de risque ; rend un contrôle de trade obligatoire en prose</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> (NEEDS_REVIEW)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.github/skills/crypto-quant-windows-runbook/SKILL.md</span></code></p></td>
+<td><p>175</p></td>
+<td><p>lancer dashboards et boucles autonomes sur Windows (<code class="docutils literal notranslate"><span class="pre">user-invocable:</span> <span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">disable-model-invocation:</span> <span class="pre">false</span></code>)</p></td>
+<td><p><strong>invocable par le modèle</strong> ; consignes de lancement de la machine ; architecture legacy</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">REVIEW_REQUIRED</span></code> ; seule surface relevée avec invocation modèle autorisée</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.github/hooks/pre-commit</span></code>, <code class="docutils literal notranslate"><span class="pre">pre-commit-dashboards</span></code></p></td>
+<td><p>4 et 7</p></td>
+<td><p>régénèrent des tables de dashboards au commit</p></td>
+<td><p>scripts shell, pas des agents ; hors modèle d’agent ; effet local <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">add</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OBSERVED</span></code>, hors périmètre</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Les profils <code class="docutils literal notranslate"><span class="pre">repo-architect</span></code> et <code class="docutils literal notranslate"><span class="pre">research-scientist</span></code> sont en annexe A. Aucune de ces
+surfaces n’est migrée vers un <code class="docutils literal notranslate"><span class="pre">AgentSpec</span></code> ; une migration éventuelle suit les règles du
+§11 de <a class="reference internal" href="../contracts/AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.html#migration-des-anciens-github-agents"><span class="std std-ref">A0</span></a>.
+Mission future recommandée : revue humaine de ces surfaces (retrait, archivage ou
+réécriture) — non faite ici, <code class="docutils literal notranslate"><span class="pre">UNKNOWN</span></code> ⇒ ne pas supprimer.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">AGENT-ECON A0 — Inventaire des profils <code class="docutils literal notranslate"><span class="pre">.github/agents/*.agent.md</span></code></a><ul>
+<li><a class="reference internal" href="#limites-de-cette-preuve">Limites de cette preuve</a></li>
+<li><a class="reference internal" href="#tableau-de-synthese">1. Tableau de synthèse</a></li>
+<li><a class="reference internal" href="#fiches-par-profil">2. Fiches par profil</a><ul>
+<li><a class="reference internal" href="#data-provenance-auditor-180-lignes">2.1 <code class="docutils literal notranslate"><span class="pre">data-provenance-auditor</span></code> — 180 lignes</a></li>
+<li><a class="reference internal" href="#decision-path-forensic-167-lignes">2.2 <code class="docutils literal notranslate"><span class="pre">decision-path-forensic</span></code> — 167 lignes</a></li>
+<li><a class="reference internal" href="#hedge-fund-architect-104-lignes-bloque">2.3 <code class="docutils literal notranslate"><span class="pre">hedge-fund-architect</span></code> — 104 lignes — <strong>BLOQUÉ</strong></a></li>
+<li><a class="reference internal" href="#mission-preparation-researcher-193-lignes">2.4 <code class="docutils literal notranslate"><span class="pre">mission-preparation-researcher</span></code> — 193 lignes</a></li>
+<li><a class="reference internal" href="#observability-cartographer-173-lignes">2.5 <code class="docutils literal notranslate"><span class="pre">observability-cartographer</span></code> — 173 lignes</a></li>
+<li><a class="reference internal" href="#repository-cartographer-189-lignes">2.6 <code class="docutils literal notranslate"><span class="pre">repository-cartographer</span></code> — 189 lignes</a></li>
+<li><a class="reference internal" href="#security-guardian-agent-119-lignes">2.7 <code class="docutils literal notranslate"><span class="pre">security-Guardian-agent</span></code> — 119 lignes</a></li>
+<li><a class="reference internal" href="#sniper-engine-20-lignes-bloque">2.8 <code class="docutils literal notranslate"><span class="pre">sniper-engine</span></code> — 20 lignes — <strong>BLOQUÉ</strong></a></li>
+<li><a class="reference internal" href="#statistician-agent-132-lignes">2.9 <code class="docutils literal notranslate"><span class="pre">statistician-agent</span></code> — 132 lignes</a></li>
+<li><a class="reference internal" href="#system-diagnostic-139-lignes">2.10 <code class="docutils literal notranslate"><span class="pre">system-diagnostic</span></code> — 139 lignes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#constats-transverses">3. Constats transverses</a></li>
+<li><a class="reference internal" href="#annexe-a-profils-hors-du-motif-demande-observes-non-migres">Annexe A — profils hors du motif demandé (observés, non migrés)</a></li>
+<li><a class="reference internal" href="#annexe-b-autres-surfaces-dinstruction-observees-r1">Annexe B — autres surfaces d’instruction observées (R1)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
