@@ -1,0 +1,47 @@
+{
+  "mission": "AUDIT-ENRICH-RECON-01",
+  "issue": 349,
+  "observed_date_utc": "2026-10-03",
+  "scope": "SOURCE_ONLY_SYNTHETIC_AND_STATIC",
+  "source_sha": "c561fae406950bf7813102b5b3f59c32388566d0",
+  "historical_pr": 260,
+  "historical_head": "70d41b32119ff0a58c22051c4d698befa7bb4b12",
+  "python": "3.12.14",
+  "pytest": "9.1.1",
+  "vps_access": false,
+  "runtime_observed": false,
+  "business_source_changed": false,
+  "guard_286": "ACTIVE_BURN_IN_IMMUTABILITY_GUARD",
+  "unknown_reproduction": {
+    "input_pnl": [
+      2.0,
+      -1.0,
+      null
+    ],
+    "paired_trades": 3,
+    "win_count": 1,
+    "loss_count": 2,
+    "win_rate": 0.3333333333333333,
+    "violations": [],
+    "warnings": [],
+    "real_dataset_opened": false
+  },
+  "offline_tests": {
+    "blocked_boundary": "urllib.request.urlopen",
+    "failures": 2,
+    "duration_seconds": 0.19,
+    "observed_exception": "KeyError: BTCUSDT",
+    "outbound_request_executed": false
+  },
+  "missions": {
+    "A-01": 350,
+    "A-02": 351,
+    "A-04": 352,
+    "A-05": 353,
+    "A-06": 354,
+    "A-07": 207,
+    "OUTIL": 355
+  },
+  "verdict": "AUDIT_ENRICH_RECON_01_TRIAGED_SOURCE_ONLY",
+  "remediation_certified": false
+}

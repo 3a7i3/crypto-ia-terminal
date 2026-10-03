@@ -1,0 +1,97 @@
+name: Signaler un défaut
+description: Décrire un défaut reproductible avec des preuves exactes et leur portée.
+title: "[BUG] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Avis pour le dépôt public
+
+        Cette issue **ne constitue pas une mission rémunérée**. Une rémunération exige une mission explicitement ouverte par le propriétaire avec le statut `BOUNTY_OPEN` et des conditions définies.
+
+        Ne publiez aucune clé API, aucun jeton, mot de passe, endpoint privé, identifiant exchange/VPS, donnée personnelle ou journal contenant des secrets. Utilisez le signalement privé pour les vulnérabilités sensibles.
+
+        Séparez **SOURCE PROOF** et **RUNTIME PROOF**. `UNKNOWN != 0`, `UNRESOLVED != ZERO` et `NOT_AVAILABLE != ZERO`. #286 protège le burn-in ; une référence historique ne prouve pas l’état actuel du runtime.
+  - type: dropdown
+    id: evidence_scope
+    attributes:
+      label: Portée des preuves
+      description: Sélectionnez la portée réellement observée. La source seule ne prouve pas le comportement déployé.
+      options:
+        - SOURCE PROOF uniquement
+        - RUNTIME PROOF uniquement
+        - SOURCE PROOF et RUNTIME PROOF
+        - UNKNOWN / pas encore établi
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Comportement observé
+      description: Décrivez l’observation exacte, sa date et ses identifiants disponibles ; distinguez une preuve fraîche d’une référence historique.
+      placeholder: "Observé le ... ; trace_id ... ; événement ... ; sortie exacte ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+      description: Indiquez l’invariant attendu ou le contrat documenté.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction minimale
+      description: Fournissez une reproduction bornée et sûre, sans demander de mutation en production.
+    validations:
+      required: true
+  - type: input
+    id: source_sha
+    attributes:
+      label: SHA source
+      description: SHA exact du commit, ou NOT_AVAILABLE avec une explication dans les preuves.
+      placeholder: "SHA de 40 caractères ou NOT_AVAILABLE"
+    validations:
+      required: true
+  - type: input
+    id: epoch_id
+    attributes:
+      label: ID d’epoch
+      description: ID exact d’epoch si la preuve concerne le runtime ; sinon NOT_APPLICABLE.
+      placeholder: "ID d’epoch ou NOT_APPLICABLE"
+    validations:
+      required: true
+  - type: input
+    id: config_hash
+    attributes:
+      label: Empreinte de configuration
+      description: Empreinte exacte de configuration si la preuve concerne le runtime ; sinon NOT_APPLICABLE.
+      placeholder: "Empreinte de configuration ou NOT_APPLICABLE"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Preuves et artefacts
+      description: Reliez les journaux non sensibles, tests, captures, datasets ou issues précédentes. Retirez les secrets avant publication.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact scientifique et opérationnel
+      description: Décrivez les invariants et autorités concernés, ainsi que l’implication éventuelle du burn-in actif.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Déclaration de sécurité
+      options:
+        - label: Je n’ai inclus aucun identifiant, secret, donnée personnelle ou détail privé d’infrastructure.
+          required: true
+        - label: Je comprends que ce signalement n’autorise ni mutation d’une epoch PAPER active, ni déploiement, restart de service ou écriture exchange.
+          required: true
+        - label: Je comprends qu’ouvrir ou résoudre cette issue ne donne aucun droit à rémunération sans contrat BOUNTY_OPEN explicite du propriétaire.
+          required: true
