@@ -1,7 +1,7 @@
 # AGENT-ECON A1 — Agent Registry Contract
 
-Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1 / CONTRACT-ONLY / NON DÉPLOYÉ** — conçu, **pas exécuté**.
-Verdict de livraison : `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_READY_FOR_REVIEW`
+Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1.1 / CONTRACT-ONLY / NON DÉPLOYÉ** — conçu, **pas exécuté**.
+Verdict proposé : `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_1_READY_FOR_CERTIFICATION`
 (pas `CERTIFIED`).
 Réconciliation R1 : PR #347 = `INDEPENDENT_DESIGN_REFERENCE`, PR #348 =
 `CANONICAL_RECONCILIATION_TARGET` (voir [A0](AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md)).
@@ -150,8 +150,12 @@ l'artefact publié*, et c'est lui qui rend `AGENT_SPEC_PROVENANCE_CONFLICT` dét
 Parce que `agent_spec_id` n'inclut pas la provenance, une chaîne qui ne ferait que
 référencer `agent_spec_id` ne protégerait pas `created_from_ref` / `created_at_utc`. Le
 contrat lie donc le hash d'artefact **dans l'événement** (champ `spec_artifact_hash`,
-§8.2), donc dans `event_hash`. Cet ajout à l'événement #348 est une décision R1 signalée
-pour revue (Q9).
+§8.2), donc dans `event_hash`. Décision retenue (Q9, résolue R1.1) : le champ est
+**requis**, couvert par `event_hash`, et **hors** `event_id`. Justification : `event_id`
+identifie la transition logique ; AW-03 n'admet qu'un artefact publié canonique par
+`agent_spec_id` ; un artefact différent pour le même `agent_spec_id` est un échec de
+provenance / collision, pas un second événement logique légitime ; AC-04 et AE-11
+rejettent toute incohérence (fail closed).
 
 **Concept uniquement.** Aucun stockage, aucun writer, aucun code n'est créé ni défini
 ici ; la mission A1 SOURCE implémentera le calcul sous les règles AW-01…AW-06.
@@ -405,8 +409,11 @@ un humain** ; il rend seulement l'affirmation inspectable (voir Q1).
 event_hash = SHA256( canonical_json( event without the field "event_hash" ) )
 ```
 
-Il couvre donc `previous_event_hash`, `registry_sequence`, `occurred_at_utc`,
-`reason_detail` et `event_id`. Le premier événement porte `previous_event_hash =
+Comme la formule porte sur l'événement entier privé de `event_hash`, il couvre donc
+`registry_sequence`, `previous_event_hash`, `occurred_at_utc`, `reason_detail`,
+`event_id`, `agent_spec_id`, `spec_artifact_hash`, `evidence_refs`, `reason_code`, les
+états, et tous les autres champs de l'événement, sauf `event_hash` lui-même. Cette
+précision ne modifie pas la formule. Le premier événement porte `previous_event_hash =
 "GENESIS"` (littéral, comme `durable_store.py`).
 
 ---
@@ -576,7 +583,7 @@ Une mission ultérieure peut implémenter, **sans réinventer les règles de gou
 | `agent_id` déterministe | §2.1 | vecteurs issus d'entrées gouvernées ; stabilité à travers `agent_schema` |
 | `agent_spec_id` déterministe | §2.2, §3 | sensibilité matérielle / insensibilité provenance |
 | validation de capabilities | catalogue §1–§4 | trois codes de rejet distincts |
-| validation d'événements | §8, AE-01…AE-10 | un cas négatif par ID |
+| validation d'événements | §8, AE-01…AE-11 | un cas négatif par ID |
 | projection d'états | §7, AP-01…AP-06 | rupture ⇒ `NOT_CERTIFIABLE` ; aucun `ACTIVE` ; aucun décompte |
 | publication write-once | §11, AW-01…AW-06 | concurrence, identique, collision, spec absente |
 | vérification de chaîne | §9, AC-01…AC-06 | troncature, réordonnancement, réécriture, doublon, trou |
@@ -593,6 +600,12 @@ Tests proposés (noms indicatifs, **non livrés**) : `test_unknown_capability_re
 `test_event_after_retired_rejected`, `test_reinstate_revalidates_spec`,
 `test_revision_class_must_match_computed`, `test_write_once_collision_fails_closed`,
 `test_registry_absent_is_non_deployed_not_zero`.
+
+Exigences d'acceptation **futures** de la mission SOURCE (non implémentées ici), au
+minimum : `test_spec_artifact_hash_exact_bytes`,
+`test_spec_artifact_hash_provenance_sensitive`,
+`test_spec_artifact_hash_mismatch_rejected`,
+`test_same_agent_spec_id_different_artifact_is_provenance_conflict`.
 
 ### Golden vectors (exigence pour la mission SOURCE)
 
@@ -626,15 +639,17 @@ La mission SOURCE reste soumise à : #284 l'autorisant explicitement ; #286 acti
 | Q6 | Frontière domaine Research ↔ forêt (`RESEARCH`, `STRATEGY` plafonnés F1) | leurs sorties doivent entrer par les contrats `RL-*`, pas par la forêt |
 | Q7 | Qui peut ajouter des événements « dans le sens sûr » (`SUSPENDED`, `RETIRED`) sans le cérémonial complet ? | compromis disponibilité du frein / contrôle d'accès |
 | Q8 | Protection CODEOWNERS de `docs/contracts/AGENT_ECON_*` | non couverte (A0 §16, I8) ; `NEEDS_REVIEW`, bloquant avant toute mutation GitHub autonome (A8), non bloquant pour A0/A1 |
-| Q9 | Le champ `spec_artifact_hash` ajouté à l'événement (R1) est-il retenu ? | sans lui, `created_from_ref` / `created_at_utc` ne sont couverts par aucun hash chaîné ; à valider avant la mission SOURCE |
+| Q9 | **RÉSOLUE R1.1 — `spec_artifact_hash` RETENU** (requis dans l'événement, couvert par `event_hash`, hors `event_id`) | sans lui, `created_from_ref` / `created_at_utc` ne seraient couverts par aucun hash chaîné ; rationale en §2.3 |
 | Q10 | Lieu de stockage des specs publiées et des événements | non décidé ici ; ADR de la mission SOURCE |
 
 ---
 
 ## 15. Verdict
 
-`AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_READY_FOR_REVIEW`
+`AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_1_READY_FOR_CERTIFICATION` (proposition ; non certifié).
 
-Non déclaré : `CERTIFIED`, `AGENT_ECONOMY_DEPLOYED`,
+Portée : sous-périmètre contractuel du registre d'agents uniquement ; l'A0 économique de
+#284 (AIC, Treasury, wallets, coûts : A4/A5) n'est pas clos. Non déclaré :
+`AGENT_ECON_A0_ECONOMIC_CONTRACT_COMPLETE`, `CERTIFIED`, `AGENT_ECONOMY_DEPLOYED`,
 `AGENT_ECONOMY_ARCHITECTURE_CERTIFIED`. Aucune capacité d'exécution n'est créée ;
 #286 reste actif.

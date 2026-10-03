@@ -1,8 +1,8 @@
 # AGENT-ECON A0 — Forest Maintenance Contract
 
-Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1 / CONTRACT-ONLY / NON DÉPLOYÉ**
+Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1.1 / CONTRACT-ONLY / NON DÉPLOYÉ**
 Constitution : `AGENT_ECON_A0_FOREST_V1`
-Verdict de livraison : `AGENT_ECON_A0_FOREST_CONTRACT_R1_READY_FOR_REVIEW`
+Verdict proposé : `AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION`
 (pas `CERTIFIED` : la certification appartient à la revue et à la gouvernance humaine).
 Réconciliation R1 : cette version intègre les meilleures propriétés d'une conception
 indépendante parallèle (PR #347, `INDEPENDENT_DESIGN_REFERENCE`) dans la ligne canonique
@@ -162,8 +162,9 @@ Règles :
   déduplication, caractérisation, diagnostic, brouillons. Cumulatif ≠ auto-validation :
   voir `A2_REQUIRED_INVARIANT` au §8.
 - F3 et F4 sont **définis** pour que leurs contraintes soient fixées avant leur
-  existence, mais leurs valeurs et capacités sont **rejetées** par `AGENT_SPEC_V1`
-  (valeur inconnue → rejet). Les admettre exige une nouvelle version de schéma,
+  existence : ce sont des termes **connus et réservés**, pas des inconnus. Leurs valeurs
+  et capacités sont **rejetées** par `AGENT_SPEC_V1` (`RESERVED_CAPABILITY` pour une
+  capability, `CLASS_LEVEL_INADMISSIBLE` pour un niveau ou une classe). Les admettre exige une nouvelle version de schéma,
   amendée par gouvernance après que les contrats A6/A7 existent (§14).
 - **L'humain n'est pas F5.** La gouvernance humaine est un domaine externe aux agents.
   Il n'existe ni niveau, ni classe, ni capability qui la représente (§5).
@@ -255,8 +256,10 @@ dans `main` ; ils ne sont **pas** des alias acceptés : un validateur les classe
 | `GATE_NEUTRALIZE` | #348 avant R1 | `GOVERNANCE_GATE_BYPASS` |
 | `PROTECTION_BYPASS` | #347 | `GOVERNANCE_GATE_BYPASS` |
 | `CONSENSUS_AUTHORITY_ASSERT` | #348 avant R1 | inchangé |
-| `EVIDENCE_MUTATE` | #348 avant R1 | inchangé | L'étendre est un amendement constitutionnel
-(§14), jamais un effet de bord d'un spec ou d'un worker.
+| `EVIDENCE_MUTATE` | #348 avant R1 | inchangé |
+
+Étendre cet ensemble est un amendement constitutionnel (§14), jamais un effet de bord
+d'un spec ou d'un worker.
 
 Application : ces tokens sont **absents** de l'énumération de capabilities du schéma ;
 un token interdit présenté comme capability est rejeté avec le code
@@ -532,7 +535,12 @@ Classement : `OBSERVED | NEEDS_REVIEW | BLOCKING | NON_BLOCKING`.
 
 ## 17. Verdict
 
-`AGENT_ECON_A0_FOREST_CONTRACT_R1_READY_FOR_REVIEW`
+`AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION` (proposition ; non certifié).
+
+**Portée de certification.** Ce verdict ne couvre que le sous-périmètre contractuel
+`AGENT_ECON_A0_FOREST_CONTRACT` (et `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT`). Il ne
+clôt **pas** l'A0 économique de #284 : AIC, Treasury, wallets et comptabilité des coûts
+restent du travail futur (A4/A5). Non déclaré : `AGENT_ECON_A0_ECONOMIC_CONTRACT_COMPLETE`.
 
 Non déclaré : `CERTIFIED`, `AGENT_ECONOMY_DEPLOYED`,
 `AGENT_ECONOMY_ARCHITECTURE_CERTIFIED`. Aucune autorité runtime n'est créée ou
