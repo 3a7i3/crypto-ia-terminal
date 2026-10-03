@@ -34,14 +34,14 @@ jobs:
         run: |
           set -euo pipefail
           rm -f package-lock.json
-          npm install --package-lock-only --ignore-scripts
+          npx --yes npm@12.1.0 install --package-lock-only --ignore-scripts
 
       - name: Capturer l'audit candidat
         working-directory: frontend
         shell: bash
         run: |
           set +e
-          npm audit --package-lock-only --json > sec-web-deps-01-audit.json
+          npx --yes npm@12.1.0 audit --package-lock-only --json > sec-web-deps-01-audit.json
           echo "AUDIT_EXIT_CODE=$?" >> "$GITHUB_ENV"
           exit 0
 
