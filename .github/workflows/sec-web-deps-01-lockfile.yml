@@ -30,13 +30,11 @@ jobs:
 
       - name: Régénérer uniquement le lockfile
         working-directory: frontend
-        run: >-
-          npm install --package-lock-only --ignore-scripts --save=false
-          react-router-dom@7.18.4
-          @vitejs/plugin-react@6.1.1
-          postcss@8.5.28
-          vite@8.3.2
-          vitest@4.1.11
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts
 
       - name: Capturer l'audit candidat
         working-directory: frontend
