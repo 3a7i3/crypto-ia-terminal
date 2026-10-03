@@ -365,7 +365,7 @@ stderr ou données source brutes dans l’erreur. Aucun compteur synthétique.</
 </tr>
 <tr class="row-even"><td><p>lmi_symbol détail</p></td>
 <td><p>cartes observationnelles avec fenêtre flux</p></td>
-<td><p>liquidité détaillée/state_components/raw hors tranche</p></td>
+<td><p>détails typés ajoutés par APP-LMI-DETAIL-01 ci-dessous ; raw libre exclu</p></td>
 </tr>
 <tr class="row-odd"><td><p>lmi_events</p></td>
 <td><p>filtre notable à la capture</p></td>
@@ -399,6 +399,49 @@ unknown timestamps, populations/empty, absence d’overflow et mutations.</p>
 service/timer, PPL/FIN/epoch/config/risk/sizing/Watchdog/exchange. #286 ACTIVE.
 Rollback source : revert de la PR U3b, suppression de la consommation de cette
 projection ; aucun retrait de producteur ou service autorisé par ce rollback.</p>
+</section>
+<section id="app-lmi-detail-01-extension-source-1-1-370-2026-10-03">
+<h2>APP-LMI-DETAIL-01 — extension source 1.1 (#370, 2026-10-03)<a class="headerlink" href="#app-lmi-detail-01-extension-source-1-1-370-2026-10-03" title="Link to this heading">¶</a></h2>
+<p>Le producteur passif publie désormais 1.1.0 ; le reader GET et React acceptent
+également 1.0.0, sans inventer de détail pour un ancien artifact. Chaque ligne
+1.1 possède <code class="docutils literal notranslate"><span class="pre">detail</span></code> : null si indisponible, sinon quatre groupes fermés,
+<code class="docutils literal notranslate"><span class="pre">flow</span></code>, <code class="docutils literal notranslate"><span class="pre">liquidity</span></code>, <code class="docutils literal notranslate"><span class="pre">resistance</span></code>, <code class="docutils literal notranslate"><span class="pre">state_components</span></code>. Groupe absent/null reste
+null ; champ absent reste null ; zéro publié reste zéro. Champs inconnus du
+sidecar exclus. Un champ connu invalide rejette la publication atomique en
+préservant l’artifact précédent. Aucune lecture du sidecar par React/API.</p>
+<p>Allowlist normative : <code class="docutils literal notranslate"><span class="pre">DETAIL_FIELDS</span></code> dans le contrat Python et
+<code class="docutils literal notranslate"><span class="pre">detailLabels</span></code> dans React, vérifiées via la fixture M produite par la chaîne
+réelle. Flux : volumes et tailles USD, comptes entiers, fenêtre ms, côté
+buy/sell/neutral, pression 0–1, variations de débit signées USD/s (différence
+entre deux débits ; ce ne sont pas des accélérations USD/s²). Résistance :
+volume USD, déplacement absolu bps, résistance USD/bps, fragilité/absorption
+0–1. Liquidité : ajouts, retraits hors consommation et consommation séparés
+bid/ask en USD, annulations 0–1, variation nette signée USD copiée. Cette
+variation utilise les retraits bruts côté producteur ; aucune reconstruction
+à partir des seuls retraits hors consommation. Composantes : pressure_ratio,
+absorption, fragility, displacement_bps, canc_bid, canc_ask copiés uniquement.</p>
+<p>Flux, liquidité et résistance portent leur propre date source facultative.
+GET calcule âge/fraîcheur à partir de cette date, jamais de celle du
+PressureField. Date manquante → UNKNOWN ; source ou groupe âgé de plus de
+15 s → STALE. Composantes rattachées à l’état : aucune date indépendante
+publiée ou inventée. Les valeurs détaillées sont affichées via String(number)
+sans nouvel arrondi, après les arrondis déjà faits par le producteur LMI.
+La provenance contractSize globale reste visible pour toutes les mesures USD.</p>
+<p>Limite essentielle : LMIEngine publie aussi une LiquidityDynamics remplie de
+zéros avant la première observation de carnet. Le sidecar ne permet pas de
+prouver l’origine de ces zéros. <code class="docutils literal notranslate"><span class="pre">observation_evidence:</span> <span class="pre">SOURCE_VALUES_ONLY</span></code>
+est donc constant ; fraîcheur et valeurs ne certifient jamais un carnet
+observé. L’app expose cette limite même pour des valeurs fraîches/non nulles.
+Profondeur et intervalle de comparaison ne sont pas sérialisés : inconnus.</p>
+<p>Parité <code class="docutils literal notranslate"><span class="pre">/api/lmi/symbol</span></code> : résumé existant conservé, détail typé des quatre
+groupes ajoutés ; les anciens totaux arrondis added/removed/consumed sont
+remplacés par leurs valeurs bid/ask explicites. Le payload <code class="docutils literal notranslate"><span class="pre">raw</span></code> historique
+n’est pas exporté librement : seules les mesures autorisées sont reprises.
+Journal WS, process running, retrait CryptoRadar et runtime restent hors
+tranche. Aucun moteur/service/config/burn-in modifié. Rollback : revert source
+1.1 ; lecture 1.0 compatible, aucun rollback runtime requis ou exécuté.</p>
+<p>Preuves : tests atomiques/temps/invalides/privacy et chaîne Python→GET→React ;
+script visuel existant étendu aux détails et snapshots legacy, desktop/mobile.</p>
 </section>
 </section>
 
@@ -445,6 +488,7 @@ projection ; aucun retrait de producteur ou service autorisé par ce rollback.</
 <li><a class="reference internal" href="#temps-et-erreurs">Temps et erreurs</a></li>
 <li><a class="reference internal" href="#matrice-de-parite-lmi">Matrice de parité LMI</a></li>
 <li><a class="reference internal" href="#preuves-et-frontieres">Preuves et frontières</a></li>
+<li><a class="reference internal" href="#app-lmi-detail-01-extension-source-1-1-370-2026-10-03">APP-LMI-DETAIL-01 — extension source 1.1 (#370, 2026-10-03)</a></li>
 </ul>
 </li>
 </ul>
