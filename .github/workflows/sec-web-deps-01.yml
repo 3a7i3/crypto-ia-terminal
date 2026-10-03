@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   lockfile-candidate:
@@ -48,6 +48,21 @@ jobs:
             frontend/npm-audit-candidat.json
           if-no-files-found: error
           retention-days: 14
+
+      - name: Commiter le lockfile exact s'il a changé
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- frontend/package-lock.json; then
+            echo "LOCKFILE_DEJA_IDENTIQUE=1"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          git commit -m "SEC-WEB-DEPS-01 : figer le lockfile npm audité"
+          git push origin "HEAD:${{ github.head_ref }}"
 
   validation-lock-commite:
     runs-on: ubuntu-latest
