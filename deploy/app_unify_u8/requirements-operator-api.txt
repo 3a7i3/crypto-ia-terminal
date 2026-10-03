@@ -1,0 +1,4 @@
+# APP-UNIFY U8 — minimal runtime dependencies for the read-only Operator API.
+# This environment is deliberately separate from the Advisor/trading venv.
+fastapi==0.136.1
+uvicorn==0.46.0

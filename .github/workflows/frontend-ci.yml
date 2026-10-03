@@ -10,11 +10,15 @@ on:
     paths:
       - "frontend/**"
       - ".github/workflows/frontend-ci.yml"
+      - "deploy/app_unify_u8/**"
+      - ".github/workflows/app-unify-u8-prep.yml"
   push:
     branches: [main]
     paths:
       - "frontend/**"
       - ".github/workflows/frontend-ci.yml"
+      - "deploy/app_unify_u8/**"
+      - ".github/workflows/app-unify-u8-prep.yml"
 
 permissions:
   contents: read
