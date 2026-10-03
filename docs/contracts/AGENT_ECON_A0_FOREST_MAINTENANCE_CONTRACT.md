@@ -1,8 +1,12 @@
 # AGENT-ECON A0 — Forest Maintenance Contract
 
-Statut : **SOURCE CONTRACT V1 / CONTRACT-ONLY / NON DÉPLOYÉ**
-Verdict de livraison : `AGENT_ECON_A0_FOREST_CONTRACT_READY_FOR_REVIEW`
+Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1 / CONTRACT-ONLY / NON DÉPLOYÉ**
+Constitution : `AGENT_ECON_A0_FOREST_V1`
+Verdict de livraison : `AGENT_ECON_A0_FOREST_CONTRACT_R1_READY_FOR_REVIEW`
 (pas `CERTIFIED` : la certification appartient à la revue et à la gouvernance humaine).
+Réconciliation R1 : cette version intègre les meilleures propriétés d'une conception
+indépendante parallèle (PR #347, `INDEPENDENT_DESIGN_REFERENCE`) dans la ligne canonique
+(PR #348, `CANONICAL_RECONCILIATION_TARGET`). Aucune troisième PR.
 
 Parent : [#284 — AGENT-ECON-00](https://github.com/3a7i3/crypto-ia-terminal/issues/284)
 Roadmap : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) ·
@@ -153,6 +157,10 @@ consensus (§7).
 
 Règles :
 
+- **Plafonds cumulatifs F0 → F1 → F2.** Un niveau inclut les capabilities du niveau
+  inférieur : F1 = F0 + proposition de `CANDIDATE_PROBLEM` ; F2 = F1 + vérification,
+  déduplication, caractérisation, diagnostic, brouillons. Cumulatif ≠ auto-validation :
+  voir `A2_REQUIRED_INVARIANT` au §8.
 - F3 et F4 sont **définis** pour que leurs contraintes soient fixées avant leur
   existence, mais leurs valeurs et capacités sont **rejetées** par `AGENT_SPEC_V1`
   (valeur inconnue → rejet). Les admettre exige une nouvelle version de schéma,
@@ -223,17 +231,31 @@ Ensemble minimal exigé par la mission (20) :
 | `AIC_BUY_AUTHORITY` | acheter de l'autorité avec l'AIC |
 | `REPUTATION_GRANT_AUTHORITY` | accorder de l'autorité par la réputation |
 
-Extensions proposées par ce contrat (4), chacune justifiée par un invariant du dépôt
-déjà posé ailleurs ; elles resserrent et n'élargissent aucune capacité :
+Extensions canoniques de la réconciliation R1 (exactement 4), chacune justifiée par un
+invariant du dépôt déjà posé ailleurs ; elles resserrent et n'élargissent aucune capacité :
 
 | Token | Interdiction | Fondement |
 |---|---|---|
-| `AGENT_SPEC_SELF_REVISE` | qu'un agent révise sa propre spec, son niveau ou ses capabilities | sans cela une révision est une escalade de privilège par soi-même |
+| `AGENT_REGISTRY_MUTATE` | toute mutation autonome du registre : auto-enregistrement, auto-révision de spec (niveau, capabilities, périmètre), suspension d'un autre agent, réintégration, retrait | sans cela une révision est une escalade de privilège par soi-même ; le registre n'est écrit que par un registrar sur décision humaine (A1 §7.4) |
 | `CONSENSUS_AUTHORITY_ASSERT` | traiter un accord/quorum d'agents comme autorité | principe `AGENT CONSENSUS != AUTHORITY` (§7.5) |
-| `GATE_NEUTRALIZE` | désactiver/contourner CI, protections de branche, checks requis, baselines, tests | CLAUDE.md §4–§5 : ni baseline modifiée, ni test supprimé pour masquer une régression |
-| `EVIDENCE_MUTATE` | modifier/supprimer logs, JSONL, datasets immuables, sauvegardes, preuves | CLAUDE.md §5 : préserver l'audit et la reprise |
+| `GOVERNANCE_GATE_BYPASS` | contourner ou neutraliser une gate de gouvernance : protections de branche, CI et checks requis, review requise, manipulation d'un baseline ou suppression/désactivation d'un test destinée à franchir une gate | CLAUDE.md §4–§5 : ni baseline modifiée, ni test supprimé pour masquer une régression |
+| `EVIDENCE_MUTATE` | modifier ou supprimer des preuves immuables ou historiques : logs, JSONL, datasets immuables, sauvegardes, specs publiées, événements de registre | CLAUDE.md §5 : préserver l'audit et la reprise |
 
-Total : **24 tokens**, liste **fermée**. L'étendre est un amendement constitutionnel
+Total : **24 tokens**, liste **fermée**.
+
+**Mapping de migration des noms de brouillon.** Les deux conceptions indépendantes avaient
+choisi des noms différents pour les mêmes interdits. Aucun de ces noms n'a été fusionné
+dans `main` ; ils ne sont **pas** des alias acceptés : un validateur les classe
+`UNKNOWN_CAPABILITY` comme tout autre jeton absent de l'ensemble.
+
+| Nom de brouillon | Source | Token canonique |
+|---|---|---|
+| `AGENT_SPEC_SELF_REVISE` | #348 avant R1 | `AGENT_REGISTRY_MUTATE` |
+| `AGENT_REGISTRY_WRITE` | #347 | `AGENT_REGISTRY_MUTATE` |
+| `GATE_NEUTRALIZE` | #348 avant R1 | `GOVERNANCE_GATE_BYPASS` |
+| `PROTECTION_BYPASS` | #347 | `GOVERNANCE_GATE_BYPASS` |
+| `CONSENSUS_AUTHORITY_ASSERT` | #348 avant R1 | inchangé |
+| `EVIDENCE_MUTATE` | #348 avant R1 | inchangé | L'étendre est un amendement constitutionnel
 (§14), jamais un effet de bord d'un spec ou d'un worker.
 
 Application : ces tokens sont **absents** de l'énumération de capabilities du schéma ;
@@ -285,6 +307,17 @@ N garanties indépendantes. Aucun quorum n'est défini ; aucun seuil ne converti
 accord en `HUMAN_DECISION`, en merge ou en déploiement. Les agents de la forêt ne
 disposent d'aucun mécanisme de vote qui produise un effet.
 
+### 7.5 bis `REGISTERED != RUNNING` et `HASH_CHAIN != AUTHENTICITY`
+
+- `REGISTERED` est la projection d'un événement de registre : une identité connue. Aucun
+  champ de spec ou d'événement ne désigne un processus, un binding (`execution_binding`
+  est la constante `UNBOUND`) ni une permission d'agir. `ACTIVE` n'existe pas.
+- Une hash-chain atteste l'**intégrité** d'une suite d'événements. Elle n'atteste ni
+  l'**authenticité de l'écrivain**, ni la **complétude de la queue**, ni une **autorité
+  humaine** : `integrity != authenticity != tail completeness != human authority`. Registrar
+  authentifié et ancre anti-retour sont `UNRESOLVED` ; la disponibilité `AVAILABLE` du
+  registre est donc **inatteignable** (A1 §7.3 et §9.4).
+
 ### 7.6 Point d'application
 
 Aujourd'hui l'enforcement est **structurel au niveau du contrat** : énumérations
@@ -302,6 +335,16 @@ autoritaire. L'enforcement d'exécution (sandbox, permissions) est A6, hors miss
 - Un agent ne vérifie pas (`PROBLEM_VERIFY`) un `CANDIDATE_PROBLEM` qu'il a proposé ;
   un F4 futur ne relit pas un travail dont il est l'auteur ni un diff auquel il a
   contribué.
+- **`A2_REQUIRED_INVARIANT`** (exigence imposée à la future mission A2, non implémentée ici) :
+
+  ```text
+  problem.created_by_agent_id != verification.verified_by_agent_id
+  ```
+
+  Un agent F2 dispose, par cumul de plafond, des capabilities F1 et F2 ; il **ne peut
+  pas** vérifier un problème qu'il a lui-même proposé. Le contrat A1 ne peut pas le
+  faire respecter (il ne contient aucun problème) ; A2 ne peut pas être déclaré
+  complet sans cette contrainte.
 - **Limite connue.** Dans A1, « indépendant » n'est vérifiable que comme
   `agent_id` différent. Ce n'est **pas** une preuve d'indépendance épistémique : deux
   `agent_id` peuvent être servis par le même modèle. L'indépendance sert à réduire
@@ -428,9 +471,17 @@ Si une réponse reste ambiguë, A0 n'est pas fini. Chaque réponse est ancrée.
 
 ## 14. Amendement et fail-closed
 
+- **Deux dimensions de version, à ne pas confondre.** `agent_schema` (`AGENT_SPEC_V1`)
+  est la version **technique** de la forme d'une spec ; `constitution_version`
+  (`AGENT_ECON_A0_FOREST_V1`) est la version **normative** de la constitution sous
+  laquelle une spec a été produite. Le schéma technique peut évoluer sans modification
+  constitutionnelle, et la constitution peut évoluer sans exactement la même mutation
+  structurelle. Toute spec déclare explicitement sa `constitution_version`, qui est
+  **matérielle** (entre dans `agent_spec_id`).
 - Cette constitution et ses listes fermées (capabilities, interdits, gate humaine,
   niveaux, classes) ne sont modifiables que par une **PR humaine** gouvernée, avec
-  incrément de version de schéma (`agent_schema`). Aucune sortie d'agent, aucune spec,
+  nouvel identifiant de constitution et, si la forme change, incrément de `agent_schema`.
+  Aucune sortie d'agent, aucune spec,
   aucun consensus, aucun statut économique n'amende la constitution.
 - Toute valeur inconnue (capability, classe, niveau, champ, état, événement, raison)
   est **rejetée**. Il n'existe aucun repli permissif ni valeur par défaut tacite.
@@ -472,7 +523,7 @@ Classement : `OBSERVED | NEEDS_REVIEW | BLOCKING | NON_BLOCKING`.
 | I5 | NEEDS_REVIEW | autres surfaces d'instruction agent **non inventoriées** par cette mission : `.github/prompts/*.prompt.md`, `.github/instructions/`, `.github/skills/` | `ls .github` | surfaces d'instruction | capacités implicites non évaluées | étendre l'inventaire |
 | I6 | NON_BLOCKING | numérotation ADR dupliquée (deux `0019`, deux `0020`, deux `0008`) | `docs/adr/` | ADR | ambiguïté de référence ; ce contrat cite les ADR **par nom de fichier** | hygiène ADR |
 | I7 | NEEDS_REVIEW, NON_BLOCKING | verdicts auto-labellisés (`CARTOGRAPHY_COMPLETE`, `DATA_PROVENANCE_COMPLETE`, `DECISION_GRAPH_CLOSED`, `READY_FOR_PROMPT`, `PASS`) | profils lecture seule | vocabulaire | lecture comme certification | renommage à la migration |
-| I8 | **NEEDS_REVIEW (BLOCKING pour A8)** | `.github/CODEOWNERS` couvre `/.github/` (profils d'agents) et `/CLAUDE.md`, mais **pas** `docs/contracts/` : cette constitution et ses schémas ne sont **pas** protégés par CODEOWNERS | `.github/CODEOWNERS` (32 lignes) | gouvernance GitHub | une PR rédigée par un agent pourrait modifier la constitution sans revue du propriétaire si les protections de branche ne l'exigent pas (**non vérifié ici**) | mission de protections GitHub distincte (CLAUDE.md §4) ; **non faite ici** |
+| I8 | **NEEDS_REVIEW** — **BLOCKING avant toute mutation GitHub autonome / A8** ; **NON_BLOCKING** pour la réconciliation de contrat A0/A1 | `.github/CODEOWNERS` couvre `/.github/` (profils d'agents) et `/CLAUDE.md`, mais **pas** `docs/contracts/` : cette constitution et ses schémas ne sont **pas** protégés par CODEOWNERS | `.github/CODEOWNERS` (32 lignes) | gouvernance GitHub | une PR rédigée par un agent pourrait modifier la constitution sans revue du propriétaire si les protections de branche ne l'exigent pas (**non vérifié ici** ; les protections de branche n'ont pas été lues) | mission de protections GitHub distincte (CLAUDE.md §4) ; **non faite ici** |
 | I9 | NON_BLOCKING | #284 intitule A0 « contrat économique et frontières » ; cette mission livre A0 sous le nom « Forest Maintenance Contract » (domaine de maintenance seulement). La partie économique (AIC, ledger, coûts) relève de A4/A5 et n'est pas couverte ici. Les phases A1–A8 sont alignées avec #284 (A7 y est nommée « Reviewer/Validator agents », A8 « GitHub issue/PR automation ») | issue #284 | roadmap | un lecteur pourrait croire A0 « contrat économique » livré | aligner l'intitulé de #284 après revue humaine ; livrer le contrat économique avec A4/A5 |
 | I10 | OBSERVED | pas de précédent `*.schema.json` : les JSON machine-lisibles de `docs/contracts/` sont des profils/revues, pas des JSON Schemas | `docs/contracts/` | conventions | — | voir A1 §2 |
 | I11 | OBSERVED | `RL-CANDIDATE` registre : événements avec `event_id` déterministe, `registry_sequence`, ordinal par objet, **sans** chaîne de hash ; D5B durable : chaîne de hash avec `GENESIS`. A1 reprend les deux idées | `research_candidate/registry.py`, `observability/operator_decisions/durable_store.py` | précédents | — | — |
@@ -481,7 +532,7 @@ Classement : `OBSERVED | NEEDS_REVIEW | BLOCKING | NON_BLOCKING`.
 
 ## 17. Verdict
 
-`AGENT_ECON_A0_FOREST_CONTRACT_READY_FOR_REVIEW`
+`AGENT_ECON_A0_FOREST_CONTRACT_R1_READY_FOR_REVIEW`
 
 Non déclaré : `CERTIFIED`, `AGENT_ECONOMY_DEPLOYED`,
 `AGENT_ECONOMY_ARCHITECTURE_CERTIFIED`. Aucune autorité runtime n'est créée ou

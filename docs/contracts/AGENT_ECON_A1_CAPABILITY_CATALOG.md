@@ -1,6 +1,6 @@
 # AGENT-ECON A1 — Capability Catalog & Matrix
 
-Statut : **SOURCE CONTRACT V1 / CONTRACT-ONLY / NON DÉPLOYÉ**
+Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1 / CONTRACT-ONLY / NON DÉPLOYÉ**
 Dépend de : [A0 — Forest Maintenance Contract](AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md)
 Appliqué par : [`AGENT_SPEC_V1.schema.json`](AGENT_ECON_A1_AGENT_SPEC_V1.schema.json)
 Base source observée : `main@c561fae406950bf7813102b5b3f59c32388566d0`.
@@ -54,6 +54,11 @@ Tri lexicographique = ordre canonique des tableaux dans une spec.
 
 Remarques normatives :
 
+- **Plafonds cumulatifs F0 → F1 → F2** (A0 §4) : F1 = F0 + proposition ; F2 = F1 + curation.
+  `A2_REQUIRED_INVARIANT` (A0 §8) : `problem.created_by_agent_id !=
+  verification.verified_by_agent_id`. Un agent F2 qui possède `CANDIDATE_PROBLEM_PROPOSE`
+  **et** `PROBLEM_VERIFY` ne peut pas vérifier son propre problème ; ce n'est pas
+  exprimable dans A1 (aucun problème n'y existe) et A2 devra l'imposer.
 - Les noms `VERIFIED_PROBLEM`, `BOUNTY_DRAFT`… sont des **types d'artefact**
   (sorties de proposition). Leur *cycle de vie* (`CANDIDATE_PROBLEM → VERIFIED_PROBLEM
   → BOUNTY_OPEN…`) appartient à A2/A3 ; A1 ne l'implémente pas.
@@ -106,7 +111,7 @@ PPL_AUTHORITY_WRITE  FIN_AUTHORITY_WRITE  TRADING_CONFIG_MUTATE  RISK_MUTATE
 SIZING_MUTATE  PB_MAX_POSITIONS_MUTATE  SECRET_VALUE_READ  EXCHANGE_WRITE
 TESTNET_ENABLE  LIVE_ENABLE  HUMAN_DECISION  RESEARCH_PROMOTION_EXECUTE
 AUTHORITY_DELEGATE  AIC_BUY_AUTHORITY  REPUTATION_GRANT_AUTHORITY
-AGENT_SPEC_SELF_REVISE  CONSENSUS_AUTHORITY_ASSERT  GATE_NEUTRALIZE  EVIDENCE_MUTATE
+AGENT_REGISTRY_MUTATE  CONSENSUS_AUTHORITY_ASSERT  GOVERNANCE_GATE_BYPASS  EVIDENCE_MUTATE
 ```
 
 Human Gate (6, jamais capabilities d'agent à aucun niveau) :
@@ -190,7 +195,7 @@ mission d'implémentation.
 | F4 ne merge pas | S : F4 réservé ; `MAIN_MERGE` interdit | F4 + `MAIN_MERGE` ⇒ rejet |
 | aucun niveau n'a l'autorité humaine | S : `human_decision = false` constante ; §4 hors énumération | `human_decision=true` ⇒ rejet ; `HUMAN_ACCEPT` en capability ⇒ `FORBIDDEN_AUTHORITY_REQUESTED` |
 | capability inconnue ⇒ rejet | S : `enum` fermé ; V : classement des jetons §1 | jeton `TELEPORT` ⇒ `UNKNOWN_CAPABILITY` |
-| cohérence capability ↔ périmètre | V (non exprimable en JSON Schema) : tableau §2 « Périmètre requis » | `REPOSITORY_READ` avec `repository_read_paths` vide ⇒ `SCOPE_CAPABILITY_INCOHERENT` ; `github_surfaces` non vide sans `GITHUB_METADATA_READ`/`CI_READ` ⇒ idem |
+| cohérence capability ↔ périmètre | **S** pour le couplage présence/absence (liste de scope non vide ssi la capability correspondante est déclarée) ; **V** pour la correspondance capability → surfaces/domaines autorisés (tableau §2 « Périmètre requis ») | `REPOSITORY_READ` avec `repository_read_paths` vide ⇒ rejet schéma ; `github_surfaces` non vide sans `GITHUB_METADATA_READ`/`CI_READ` ⇒ rejet schéma ; `CI_READ` seul avec surface `ISSUES` ⇒ `SCOPE_CAPABILITY_INCOHERENT` (V) |
 
 Ces vérifications du **schéma** ont été exercées par un banc jetable lors de la
 rédaction (cf. rapport de mission) ; ce banc n'est pas livré. Les règles marquées V ne
@@ -204,7 +209,8 @@ L'énumération `capabilities` du schéma et la matrice par niveau sont **dériv
 document. Règles :
 
 1. Toute modification du catalogue, des niveaux ou des classes change le schéma **dans
-   la même PR** et incrémente `agent_schema` (A0 §14).
+   la même PR**, incrémente `agent_schema` si la forme change et, si une règle
+   constitutionnelle change, la `constitution_version` (A0 §14).
 2. La mission A1 SOURCE doit livrer un test qui compare mécaniquement cette table
    (jetons des §2–§4 et §6) au schéma ; une divergence fait échouer la CI.
 3. Cette mission n'ajoute **aucun** test (aucun consommateur Python n'existe) ;

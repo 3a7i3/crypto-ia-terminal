@@ -1,6 +1,6 @@
 # AGENT-ECON A0 — Inventaire des profils `.github/agents/*.agent.md`
 
-Statut : **DIAGNOSTIC SOURCE / READ-ONLY** — aucun profil n'est modifié par cette mission.
+Statut : **DIAGNOSTIC SOURCE / READ-ONLY / RÉCONCILIATION R1** — aucun profil ni aucune surface d'instruction n'est modifié par cette mission.
 Base : `main@c561fae406950bf7813102b5b3f59c32388566d0`.
 Constitution évaluée : [A0 — Forest Maintenance Contract](../contracts/AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md) ·
 [catalogue](../contracts/AGENT_ECON_A1_CAPABILITY_CATALOG.md).
@@ -251,7 +251,8 @@ remédiation requise.
 | X3 | NEEDS_REVIEW | verdicts auto-labellisés dans les profils lecture seule (A0 §16 I7) |
 | X4 | OBSERVED | seuls 5 profils portent `disable-model-invocation: true` + `user-invocable: true` (1, 2, 4, 5, 6) ; les autres n'ont pas cette garde déclarée |
 | X5 | NON_BLOCKING | `repository-cartographer` et `repo-architect` (annexe) se recouvrent |
-| X6 | OBSERVED | `.github/CODEOWNERS` couvre `/.github/` : modifier un profil exige déjà une revue du propriétaire ; `docs/contracts/` n'est pas couvert (A0 §16 I8) |
+| X6 | OBSERVED | `.github/CODEOWNERS` couvre `/.github/` : modifier un profil exige déjà une revue du propriétaire (si les protections de branche l'imposent : non lu ici) |
+| X7 | NEEDS_REVIEW — **BLOCKING avant mutation GitHub autonome / A8** ; NON_BLOCKING pour la réconciliation A0/A1 | `docs/contracts/` (constitution, catalogue, schémas) n'est **pas** explicitement couvert par `.github/CODEOWNERS` (A0 §16 I8) ; mission de protections distincte, non faite ici |
 
 ---
 
@@ -266,11 +267,25 @@ pas laisser de surface d'agent non vue. Même lecture intégrale.
 | `.github/repo-architect.agent.md` | 103 | aucun ; front matter non fermé | cartographie d'architecture ; « NE MODIFIE PAS LE CODE » (prose) ; renvoie des spécifications à « Test Engineer » / « Engineer/implementation workflow », **qui n'existent pas** parmi les profils | `REVIEW_REQUIRED` ; classe envisagée `SENSOR` F0 ; chevauche `repository-cartographer` |
 | `.github/research-scientist.agent.md` | 139 | aucun ; front matter non fermé | conception d'expériences reproductibles ; cite `GlobalRiskGate` et « paramètres Live » | `REVIEW_REQUIRED` ; classe `RESEARCH` plafonnée F1 en V1 ; frontière Research ↔ forêt (A1 Q6) |
 
-## Annexe B — autres surfaces d'instruction non inventoriées
+## Annexe B — autres surfaces d'instruction observées (R1)
 
-Non auditées par cette mission (A0 §16 I5) : `.github/copilot-instructions.md`
-(décrit une architecture legacy absente de l'arbre : `crypto_quant_v16`,
-`quant-ai-system`, `main_v16.py`), `.github/prompts/*.prompt.md`
-(`memecoin-scanner`, `bot-doctor-*`, `enhance-bot-platform-doctor`),
-`.github/instructions/bot-doctor.instructions.md`, `.github/skills/`. Classe
-`NEEDS_REVIEW` ; mission future d'extension de l'inventaire.
+Surfaces lues en **en-tête et sections clés** (pas intégralement), classées pour ne
+laisser aucune surface d'instruction non vue. Aucune n'est modifiée ni activée ; aucune
+n'est une autorité ; aucune ne confère de capability.
+
+| Surface | Lignes | Ce qu'elle déclare | Constat | Statut proposé |
+|---|---|---|---|---|
+| `.github/copilot-instructions.md` | 88 | priorités et commandes pour `quant-hedge-ai`, `crypto_quant_v16`, `quant-ai-system` (Windows/PowerShell) ; « Prefer paper/simulated… unless the user explicitly asks for live-trading changes » | décrit une architecture absente de l'arbre ; permet des changements LIVE « sur demande explicite » (contraire à #286 et à A0 `LIVE_ENABLE`) ; consignes de lancement de la machine | `REVIEW_REQUIRED` (NEEDS_REVIEW, NON_BLOCKING pour A0/A1) |
+| `.github/prompts/memecoin-scanner.prompt.md` | 23 | scanner des memecoins, prioriser « le potentiel de pump », envoyer des alertes | domaine trading ; aucun front matter | `REVIEW_REQUIRED` |
+| `.github/prompts/bot-doctor-migration-plan.prompt.md` | 51 | plan de migration Bot Doctor (`agent: "agent"`) | domaine trading ; planification seulement | `REVIEW_REQUIRED` |
+| `.github/prompts/bot-doctor-ticket-generator.prompt.md` | 48 | génération de tickets (`agent: "agent"`) | idem | `REVIEW_REQUIRED` |
+| `.github/prompts/enhance-bot-platform-doctor.prompt.md` | 141 | spécification Telegram + Multi-HF + copy trading, « optional live-trading activation path » | prévoit un chemin d'activation LIVE ; cibles legacy | `REVIEW_REQUIRED` ; fort risque si invoqué |
+| `.github/instructions/bot-doctor.instructions.md` | 49 | `applyTo` `**/bot_doctor*`, `**/risk_engine*`… ; « Every trade execution path MUST call Bot Doctor » ; patron `_place_order` | instruction appliquée automatiquement à des chemins de risque ; rend un contrôle de trade obligatoire en prose | `REVIEW_REQUIRED` (NEEDS_REVIEW) |
+| `.github/skills/crypto-quant-windows-runbook/SKILL.md` | 175 | lancer dashboards et boucles autonomes sur Windows (`user-invocable: true`, `disable-model-invocation: false`) | **invocable par le modèle** ; consignes de lancement de la machine ; architecture legacy | `REVIEW_REQUIRED` ; seule surface relevée avec invocation modèle autorisée |
+| `.github/hooks/pre-commit`, `pre-commit-dashboards` | 4 et 7 | régénèrent des tables de dashboards au commit | scripts shell, pas des agents ; hors modèle d'agent ; effet local `git add` | `OBSERVED`, hors périmètre |
+
+Les profils `repo-architect` et `research-scientist` sont en annexe A. Aucune de ces
+surfaces n'est migrée vers un `AgentSpec` ; une migration éventuelle suit les règles du
+§11 de [A0](../contracts/AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md#11-migration-des-anciens-githubagents).
+Mission future recommandée : revue humaine de ces surfaces (retrait, archivage ou
+réécriture) — non faite ici, `UNKNOWN` ⇒ ne pas supprimer.

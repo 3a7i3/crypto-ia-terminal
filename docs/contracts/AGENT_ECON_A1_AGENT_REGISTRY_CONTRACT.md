@@ -1,8 +1,10 @@
 # AGENT-ECON A1 — Agent Registry Contract
 
-Statut : **SOURCE CONTRACT V1 / CONTRACT-ONLY / NON DÉPLOYÉ** — conçu, **pas exécuté**.
-Verdict de livraison : `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_READY_FOR_REVIEW`
+Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1 / CONTRACT-ONLY / NON DÉPLOYÉ** — conçu, **pas exécuté**.
+Verdict de livraison : `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_READY_FOR_REVIEW`
 (pas `CERTIFIED`).
+Réconciliation R1 : PR #347 = `INDEPENDENT_DESIGN_REFERENCE`, PR #348 =
+`CANONICAL_RECONCILIATION_TARGET` (voir [A0](AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md)).
 
 Parent : [#284](https://github.com/3a7i3/crypto-ia-terminal/issues/284) · Constitution :
 [A0 — Forest Maintenance Contract](AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md) ·
@@ -57,7 +59,9 @@ exprimer est listé en §9 comme règle de **validateur** (V), jamais supposé c
 
 ## 2. Identités
 
-Deux identités distinctes, toutes deux SHA-256 hexadécimal minuscule (64 caractères).
+Trois niveaux conceptuels distincts, tous SHA-256 hexadécimal minuscule (64 caractères) :
+l'identité **logique** (`agent_id`), l'identité de la **matière** d'une spec
+(`agent_spec_id`) et l'identité de l'**artefact publié** (`spec_artifact_hash`, §2.3).
 
 ### 2.1 `agent_id` — identité logique stable
 
@@ -95,7 +99,7 @@ Conséquences :
 ```text
 agent_spec_id = SHA256( canonical_json({
     "agent_spec_identity_schema": "agent-econ.a1.agent-spec-identity.v1",
-    "agent_schema", "agent_id", "spec_revision",
+    "agent_schema", "constitution_version", "agent_id", "spec_revision",
     "namespace", "canonical_name", "display_name",
     "agent_class", "maintenance_level", "purpose",
     "capabilities", "scope_policy", "independence_policy",
@@ -107,10 +111,14 @@ Toute modification **matérielle** change `agent_spec_id`.
 
 | Appartient à `agent_spec_id` | N'appartient **pas** |
 |---|---|
-| tous les champs *énoncés* de la spec ci-dessus, `agent_id`, `agent_schema`, `spec_revision`, `supersedes_spec_id` | `agent_spec_id` lui-même (circularité) ; **provenance** : `created_from_ref`, `created_at_utc` |
+| tous les champs *énoncés* de la spec ci-dessus, `agent_id`, `agent_schema`, `constitution_version`, `spec_revision`, `supersedes_spec_id` | `agent_spec_id` lui-même (circularité) ; **provenance** : `created_from_ref`, `created_at_utc` |
 
 Justifications :
 
+- `agent_schema` (version technique de la forme) et `constitution_version` (version
+  normative sous laquelle la spec a été produite) sont **deux dimensions distinctes**,
+  toutes deux matérielles : une même matière sous une autre constitution est une autre
+  spec (A0 §14). La constitution n'est pas dérivée du schéma ni inversement.
 - `display_name` et `purpose` sont **matériels** : un changement est une nouvelle
   révision. Cela évite toute mutation « non matérielle » d'un artefact write-once.
 - `spec_revision` et `supersedes_spec_id` sont matériels : revenir à un contenu antérieur
@@ -118,9 +126,37 @@ Justifications :
 - La provenance est exclue : deux publications du même contenu à des instants différents
   désignent la même spec. Mais l'artefact publié est **write-once** : republier le même
   `agent_spec_id` avec une autre provenance est un conflit (`AGENT_SPEC_PROVENANCE_CONFLICT`,
-  §12), pas un écrasement.
+  §11), pas un écrasement.
 
-### 2.3 Ce qui est vérifié par un banc jetable
+### 2.3 `spec_artifact_hash` — identité de l'artefact publié (concept de contrat)
+
+```text
+spec_artifact_hash = SHA256( octets exacts de l'artefact AgentSpec publié )
+```
+
+Les octets sont ceux de la sérialisation de publication (§11, AW-03), **provenance
+incluse** (`created_from_ref`, `created_at_utc`, et le champ `agent_spec_id` lui-même).
+
+| Concept | Identifie | Change si… |
+|---|---|---|
+| `agent_id` | l'identité logique durable | namespace, nom canonique ou classe changent |
+| `agent_spec_id` | l'**identité de la matière** de la spec | un champ matériel change |
+| `spec_artifact_hash` | l'**identité de l'artefact publié** | un seul octet de l'artefact change, provenance comprise |
+
+Donc : même matière → même `agent_spec_id` ; provenance ou date différente →
+`spec_artifact_hash` différent. Il sépare *identité de la matière* et *identité de
+l'artefact publié*, et c'est lui qui rend `AGENT_SPEC_PROVENANCE_CONFLICT` détectable.
+
+Parce que `agent_spec_id` n'inclut pas la provenance, une chaîne qui ne ferait que
+référencer `agent_spec_id` ne protégerait pas `created_from_ref` / `created_at_utc`. Le
+contrat lie donc le hash d'artefact **dans l'événement** (champ `spec_artifact_hash`,
+§8.2), donc dans `event_hash`. Cet ajout à l'événement #348 est une décision R1 signalée
+pour revue (Q9).
+
+**Concept uniquement.** Aucun stockage, aucun writer, aucun code n'est créé ni défini
+ici ; la mission A1 SOURCE implémentera le calcul sous les règles AW-01…AW-06.
+
+### 2.4 Ce qui est vérifié par un banc jetable
 
 Lors de la rédaction, une implémentation de référence **jetable (non livrée)** a vérifié :
 déterminisme ; `agent_id` stable à travers une révision et un changement de
@@ -129,8 +165,9 @@ déterminisme ; `agent_id` stable à travers une révision et un changement de
 révision, insensible à la provenance ; NFC ≠ NFD donnent des hash différents (donc la
 normalisation NFC est une règle de validateur obligatoire, AS-03). **Aucun vecteur de
 test n'est publié ici** : un hash d'agent fictif pourrait être pris pour un agent
-réel. Les vecteurs doivent être produits par la mission A1 SOURCE depuis des entrées
-gouvernées, jamais depuis un agent de démonstration.
+réel, et la formule d'identité a changé pendant la réconciliation R1
+(`constitution_version` désormais matériel ; les hash d'un brouillon antérieur ne sont
+pas valides). Voir §13 pour les golden vectors de la mission SOURCE.
 
 ---
 
@@ -158,12 +195,14 @@ sha256_hex(v)      = lowercase hex of SHA-256(canonical_bytes(v))
 
 ## 4. `AgentSpec` V1
 
-Les contraintes **S** sont portées par le schéma ; **V** exige un validateur (le schéma
-ne peut pas les exprimer).
+Légende : **S** = contrainte portée par le schéma JSON ; **V** = règle d'un futur
+validateur/implémentation source, que le schéma ne peut pas exprimer. Le contrat ne
+prétend jamais qu'une règle V est vérifiée par le schéma.
 
 | Champ | Contrainte | |
 |---|---|---|
-| `agent_schema` | constante `AGENT_SPEC_V1` | S |
+| `agent_schema` | constante `AGENT_SPEC_V1` (version **technique** de la forme) | S |
+| `constitution_version` | constante `AGENT_ECON_A0_FOREST_V1` (version **normative** ; distincte d'`agent_schema` ; matérielle) | S |
 | `agent_id` | sha256 hex ; = recalcul §2.1 | S + V |
 | `agent_spec_id` | sha256 hex ; = recalcul §2.2 | S + V |
 | `spec_revision` | entier ≥ 1 ; `1` ⇔ `supersedes_spec_id = null` ; sinon `supersedes_spec_id` = sha256 | S ; continuité V |
@@ -174,10 +213,10 @@ ne peut pas les exprimer).
 | `maintenance_level` | `F0`/`F1`/`F2` ; F3/F4 **rejetés** (réservés) ; max. par classe | S |
 | `purpose` | 20–600 car. | S ; NFC V |
 | `capabilities` | non vide ; énumération fermée ; ⊆ ensemble du niveau ; triée/unique | S ; ordre V |
-| `scope_policy.repository_read_paths` | chemins relatifs POSIX/globs ; pas d'absolu, `..`, `\`, `.env*`, `*.pem/.key/.p12/.pfx`, `id_rsa*`/`id_ed25519*`, répertoire `secret(s)/` | S ; ordre V |
-| `scope_policy.repository_write_paths_future` | **tableau vide obligatoire** en V1 (F3 réservé) | S |
-| `scope_policy.github_surfaces` | `BRANCHES` `CHECK_RUNS` `COMMITS` `ISSUES` `PULL_REQUESTS` `WORKFLOW_RUNS` — **lecture seule** | S ; cohérence V |
-| `scope_policy.artifact_domains` | `CI_ARTIFACTS` `GOVERNANCE_DOCUMENTS` `OPERATOR_API_PROJECTIONS` `PAPER_CERTIFIED_EXPORTS` `RESEARCH_DATASETS_IMMUTABLE` `RESEARCH_PUBLICATIONS` — **lecture seule** ; aucun domaine runtime/VPS/PPL-ledger/FIN-ledger/exchange/secret | S ; cohérence V |
+| `scope_policy.repository_read_paths` | grammaire simple : **fichier exact relatif** OU **préfixe de dossier relatif se terminant par `/`** ; aucun glob (`*` `**` `?` `[]`), aucun chemin absolu, `..`, `//`, `\`, `.env*`, `*.pem/.key/.p12/.pfx`, `id_rsa*`/`id_ed25519*`, répertoire `secret(s)/` ; non vide ssi `REPOSITORY_READ`, `REPOSITORY_SEARCH` ou `STATIC_ANALYSIS` | S ; ordre V |
+| `scope_policy.repository_write_paths_future` | **tableau vide obligatoire** en V1 : aucune capability d'édition n'est enregistrable avant A6 (F3 réservé) | S |
+| `scope_policy.github_surfaces` | `BRANCHES` `CHECK_RUNS` `COMMITS` `ISSUES` `PULL_REQUESTS` `WORKFLOW_RUNS` — **lecture seule** ; non vide ssi `CI_READ` ou `GITHUB_METADATA_READ` | S (couplage) ; correspondance capability↔surface V |
+| `scope_policy.artifact_domains` | `CI_ARTIFACTS` `GOVERNANCE_DOCUMENTS` `OPERATOR_API_PROJECTIONS` `PAPER_CERTIFIED_EXPORTS` `RESEARCH_DATASETS_IMMUTABLE` `RESEARCH_PUBLICATIONS` — **lecture seule** ; non vide ssi `GOVERNED_ARTIFACT_READ` ; aucun domaine runtime/VPS/PPL-ledger/FIN-ledger/exchange/secret | S |
 | `independence_policy.own_work_review_forbidden` | constante `true` | S |
 | `independence_policy.independent_review_required` | constante `true` | S |
 | `authority_policy.authority_ceiling` | constante `NO_RUNTIME_AUTHORITY` | S |
@@ -270,15 +309,16 @@ plus valide, la réintégration est rejetée ; une révision est nécessaire d'a
 | `NOT_CERTIFIABLE` | la chaîne ou une règle est violée (§9.3) ; tous les états d'agents sont `UNKNOWN` |
 | `AVAILABLE` | chaîne intégralement vérifiée **et** complétude attestée |
 
-Tant qu'aucun mécanisme authentifié de complétude/anti-retour n'existe (§9.4, même
-famille que la Gate O de #315), un décompte d'agents ne peut être affiché ni contractualisé :
+`AVAILABLE` est **inatteignable** tant que le *registrar authentifié* est `UNRESOLVED` et que
+l'*ancre anti-retour / de complétude* est `UNRESOLVED` (§9.4, même famille que la Gate O de
+#315). Tant qu'aucun mécanisme authentifié de complétude/anti-retour n'existe, un décompte d'agents ne peut être affiché ni contractualisé :
 `NON_DEPLOYED` ou `UNKNOWN`. Un registre vide-mais-attesté est `AVAILABLE` avec liste vide ;
 un registre absent n'est jamais « vide ». `UNKNOWN ≠ 0`.
 
 ### 7.4 Qui peut écrire (A1)
 
 - **Aucun agent** ne peut enregistrer, réviser, suspendre, réintégrer ni retirer un
-  agent, y compris lui-même (`AGENT_SPEC_SELF_REVISE`, `AUTHORITY_DELEGATE`).
+  agent, y compris lui-même (`AGENT_REGISTRY_MUTATE`, `AUTHORITY_DELEGATE`).
 - Un agent peut *proposer* ; l'ajout d'un événement est l'acte d'un **registrar** agissant
   sur une décision de gouvernance humaine (PR humaine fusionnée).
 - Le registrar n'existe pas et n'est pas défini : son identité et son authentification
@@ -304,6 +344,7 @@ registry_sequence         entier ≥ 1, global, contigu (§9.1)
 agent_transition_ordinal  entier ≥ 1, par agent, contigu (§9.1)
 agent_id                  sha256
 agent_spec_id             sha256 — spec courante APRÈS l'événement
+spec_artifact_hash        sha256 — octets exacts de l'artefact publié de cette spec (§2.3 ; ajout R1)
 event_type                énumération fermée (§8.1)
 previous_state            null | REGISTERED | SUSPENDED
 new_state                 REGISTERED | SUSPENDED | RETIRED
@@ -326,7 +367,7 @@ event_id = SHA256( canonical_json({
 }) )
 ```
 
-Exclus : `registry_sequence`, `occurred_at_utc`, `reason_detail`, hashes de chaîne —
+Exclus : `registry_sequence`, `occurred_at_utc`, `reason_detail`, `spec_artifact_hash`, hashes de chaîne —
 sur le modèle de `candidate_event_identity`. Une requête répétée désigne le même
 `event_id` ; elle est idempotente si l'événement existe à l'identique, sinon rejetée
 (AC-04).
@@ -336,16 +377,18 @@ sur le modèle de `candidate_event_identity`. Une requête répétée désigne l
 Fermée ; toute autre forme est rejetée :
 
 ```text
-github:issue:<entier>
-github:pr:<entier>@<sha40>
+github:issue:<owner>/<repo>#<number>
+github:pr:<owner>/<repo>#<number>@<sha40>
 git:commit:<sha40>
 sha256:<hex64>
 ```
 
-Pas d'URL libre ni de texte libre (empêche aussi qu'un secret soit glissé dans une
-référence). Tout événement a ≥ 1 référence : **aucune transition sans preuve**.
+Les références GitHub portent `<owner>/<repo>` : un numéro nu est ambigu entre dépôts
+et n'est plus admis. Pas d'URL libre ni de texte libre (empêche aussi qu'un secret soit
+glissé dans une référence). Une `evidence_ref` est une **citation vérifiable**, pas la
+preuve d'une autorisation humaine. Tout événement a ≥ 1 référence : **aucune transition sans preuve**.
 `AGENT_REGISTERED`, `AGENT_SPEC_REVISED` (escalade) et `AGENT_REINSTATED` exigent en
-outre ≥ 1 référence `github:pr:…@sha40` ou `git:commit:…` (règle V AE-09) qui ancre la
+outre ≥ 1 référence `github:pr:<owner>/<repo>#<n>@<sha40>` ou `git:commit:<sha40>` (règle V AE-09) qui ancre la
 spec dans une source gouvernée. **Le registre ne vérifie pas qu'elle est approuvée par
 un humain** ; il rend seulement l'affirmation inspectable (voir Q1).
 
@@ -403,7 +446,7 @@ Aucune n'est réparée silencieusement. Toute violation ⇒ rejet de l'ajout, ou
 | AS-10 | `independence_policy` = constantes exactes | `INDEPENDENCE_POLICY_VIOLATION` |
 | AS-11 | `agent_id` et `agent_spec_id` = recalculs | `IDENTITY_MISMATCH` |
 | AS-12 | révision 1 ⇔ pas de prédécesseur ; révision n+1 supersede la spec courante du **même** `agent_id`, `spec_revision` = courant+1 | `SUPERSESSION_BREAK` |
-| AS-13 | cohérence capability ↔ périmètre (catalogue §2) | `SCOPE_CAPABILITY_INCOHERENT` |
+| AS-13 | cohérence capability ↔ périmètre (catalogue §2). Le **couplage** présence/absence (liste de scope non vide ssi la capability correspondante) est aussi porté par le schéma (S) ; la **correspondance** capability → surfaces/domaines autorisés reste V | `SCOPE_CAPABILITY_INCOHERENT` |
 
 **Événement (`AE-`)**
 
@@ -416,9 +459,10 @@ Aucune n'est réparée silencieusement. Toute violation ⇒ rejet de l'ajout, ou
 | AE-05 | état précédent = état projeté courant ; transition légale (§7.2) ; révision conserve l'état | `ILLEGAL_TRANSITION` |
 | AE-06 | `reason_code` compatible avec `event_type` | `REASON_CODE_MISMATCH` |
 | AE-07 | `evidence_refs` non vide, grammaire fermée, triée/unique | `EVIDENCE_INVALID` |
-| AE-08 | la spec référencée est **publiée** (§12), son `agent_id` = celui de l'événement ; REGISTERED ⇒ `spec_revision = 1` ; REVISED ⇒ supersede la courante ; SUSPENDED/RETIRED ⇒ `agent_spec_id` inchangé ; REINSTATED ⇒ spec courante revalidée (AS-01…AS-13) | `SPEC_REFERENCE_INVALID` |
+| AE-08 | la spec référencée est **publiée** (§11), son `agent_id` = celui de l'événement ; REGISTERED ⇒ `spec_revision = 1` ; REVISED ⇒ supersede la courante ; SUSPENDED/RETIRED ⇒ `agent_spec_id` inchangé ; REINSTATED ⇒ spec courante revalidée (AS-01…AS-13) | `SPEC_REFERENCE_INVALID` |
 | AE-09 | ancrage source exigé (§8.4) | `SOURCE_ANCHOR_MISSING` |
 | AE-10 | `reason_code` d'une révision = classification calculée (§10) | `REVISION_CLASS_MISMATCH` |
+| AE-11 | `spec_artifact_hash` = SHA-256 des octets de l'artefact publié pour `agent_spec_id` (§2.3) ; deux artefacts de même `agent_spec_id` aux octets différents ⇒ `AGENT_SPEC_PROVENANCE_CONFLICT` | `SPEC_ARTIFACT_HASH_MISMATCH` |
 
 **Chaîne (`AC-`)**
 
@@ -429,7 +473,7 @@ Aucune n'est réparée silencieusement. Toute violation ⇒ rejet de l'ajout, ou
 | AC-03 | `agent_transition_ordinal` commence à 1 et est contigu par agent | `ORDINAL_GAP` |
 | AC-04 | `event_id` unique ; une réémission identique est idempotente (`ALREADY_APPENDED_IDENTICAL`), toute autre collision est rejetée | `EVENT_ID_COLLISION` |
 | AC-05 | aucun événement après `AGENT_RETIRED` pour cet agent | `EVENT_AFTER_TERMINAL` |
-| AC-06 | régression d'horodatage : **anomalie rapportée**, jamais rupture ; l'ordre d'autorité est `registry_sequence` | `TIMESTAMP_REGRESSION` (WARN) |
+| AC-06 | `registry_sequence` est **l'ordre canonique** ; `occurred_at_utc` n'ordonne rien. Une régression d'horodatage (`occurred_at_utc` < celui de l'événement précédent) est une **anomalie rapportée (WARN)**, conservée comme donnée, et **n'est jamais à elle seule** une rupture ni `NOT_CERTIFIABLE` ; elle n'y contribue que combinée à une contradiction plus grave démontrée (AC-01…AC-05, AE-03/04). UNRESOLVED IS DATA | `TIMESTAMP_REGRESSION` (WARN) |
 
 **Projection (`AP-`)**
 
@@ -450,7 +494,11 @@ réparation silencieuse** : ni recalcul de hash, ni réécriture, ni troncature 
 repartir ». Une récupération est une décision de gouvernance humaine avec preuve
 conservée (CLAUDE.md §5 : préserver journaux/preuves).
 
-### 9.4 Limites : intégrité ≠ authenticité ≠ autorité
+### 9.4 Limites : intégrité ≠ authenticité de l'écrivain ≠ complétude de la queue ≠ autorité humaine
+
+```text
+hash-chain integrity != writer authenticity != tail completeness != human authority
+```
 
 La chaîne détecte une corruption ou une édition **partielle**. Elle **ne détecte pas** :
 
@@ -472,8 +520,9 @@ approuvé l'agent.
 Calcul **déterministe** entre la spec courante `P` et la nouvelle `N` (même `agent_id`) :
 
 1. `ESCALATING` si **au moins un** accroissement : niveau(N) > niveau(P) ; `capabilities(N) ⊄ capabilities(P)` ;
-   un chemin de `repository_read_paths(N)` absent à l'identique de `P` (les globs ne
-   se comparent pas par inclusion : toute chaîne ajoutée ou modifiée est une escalade) ;
+   un chemin de `repository_read_paths(N)` absent à l'identique de `P` (fichier exact ou
+   préfixe de dossier : deux préfixes ne se comparent pas par inclusion ; toute chaîne
+   ajoutée ou modifiée est une escalade) ;
    `github_surfaces(N) ⊄ P` ; `artifact_domains(N) ⊄ P`.
 2. sinon `REDUCING` si au moins une réduction stricte (niveau plus bas, ou ensemble
    strictement plus petit).
@@ -495,7 +544,7 @@ Sur le modèle de `publish_candidate` :
 |---|---|
 | AW-01 | une spec est publiée sous une clé = `agent_spec_id` (sous `agent_id`) ; emplacement choisi par la mission SOURCE, **hors** de tout répertoire lu/écrit par Advisor, PPL, FIN ou PAPER |
 | AW-02 | création exclusive atomique (`O_CREAT\|O_EXCL`, fsync), permissions restreintes |
-| AW-03 | octets publiés = `json.dumps(spec, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=2) + "\n"` ; identique ⇒ `ALREADY_EXISTS_IDENTICAL` ; octets différents sous le même `agent_spec_id` ⇒ `AGENT_SPEC_PROVENANCE_CONFLICT` (même matière, provenance différente) ou `AGENT_SPEC_ID_COLLISION_OR_CORRUPTION` (matière différente) — **jamais d'écrasement** |
+| AW-03 | octets publiés = `json.dumps(spec, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=2) + "\n"` ; identique ⇒ `ALREADY_EXISTS_IDENTICAL` ; octets différents sous le même `agent_spec_id` ⇒ `AGENT_SPEC_PROVENANCE_CONFLICT` (même matière, provenance différente) ou `AGENT_SPEC_ID_COLLISION_OR_CORRUPTION` (matière différente) — **jamais d'écrasement**. `spec_artifact_hash` (§2.3) = SHA-256 de ces octets |
 | AW-04 | la spec est publiée **avant** l'événement qui la référence ; un événement référençant une spec non publiée est rejeté (AE-08) |
 | AW-05 | une spec publiée n'est jamais modifiée ni supprimée, même pour un agent `RETIRED` |
 | AW-06 | la publication d'une spec **ne crée aucun état** : l'état naît uniquement d'un événement |
@@ -545,6 +594,21 @@ Tests proposés (noms indicatifs, **non livrés**) : `test_unknown_capability_re
 `test_revision_class_must_match_computed`, `test_write_once_collision_fails_closed`,
 `test_registry_absent_is_non_deployed_not_zero`.
 
+### Golden vectors (exigence pour la mission SOURCE)
+
+Ce contrat ne publie **aucun** vecteur (§2.4). La mission A1 SOURCE devra produire des
+golden vectors cryptographiques déterministes (`agent_id`, `agent_spec_id`,
+`spec_artifact_hash`, `event_id`, `event_hash`, chaîne de 2+ événements) **recalculés
+depuis la formule certifiée de ce contrat**, sous un emplacement de test explicitement
+étiqueté, par exemple `tests/agent_economy/fixtures/`, avec la sémantique :
+
+```text
+FIXTURE_ONLY   NOT_REGISTRY_DATA   NOT_OPERATOR_DATA   NOT_DEPLOYED
+```
+
+Aucun vecteur n'est jamais une donnée de registre ni un agent ; aucun hash d'une
+conception antérieure n'est repris.
+
 La mission SOURCE reste soumise à : #284 l'autorisant explicitement ; #286 actif
 (aucun changement runtime) ; revue indépendante ; CI au HEAD exact.
 
@@ -561,13 +625,15 @@ La mission SOURCE reste soumise à : #284 l'autorisant explicitement ; #286 acti
 | Q5 | Une lecture runtime read-only est-elle un jour souhaitable pour SRE/forensic ? | exclue par A0 §9 ; amendement humain requis |
 | Q6 | Frontière domaine Research ↔ forêt (`RESEARCH`, `STRATEGY` plafonnés F1) | leurs sorties doivent entrer par les contrats `RL-*`, pas par la forêt |
 | Q7 | Qui peut ajouter des événements « dans le sens sûr » (`SUSPENDED`, `RETIRED`) sans le cérémonial complet ? | compromis disponibilité du frein / contrôle d'accès |
-| Q8 | Protection CODEOWNERS de `docs/contracts/AGENT_ECON_*` | non couverte (A0 §16, I8) |
+| Q8 | Protection CODEOWNERS de `docs/contracts/AGENT_ECON_*` | non couverte (A0 §16, I8) ; `NEEDS_REVIEW`, bloquant avant toute mutation GitHub autonome (A8), non bloquant pour A0/A1 |
+| Q9 | Le champ `spec_artifact_hash` ajouté à l'événement (R1) est-il retenu ? | sans lui, `created_from_ref` / `created_at_utc` ne sont couverts par aucun hash chaîné ; à valider avant la mission SOURCE |
+| Q10 | Lieu de stockage des specs publiées et des événements | non décidé ici ; ADR de la mission SOURCE |
 
 ---
 
 ## 15. Verdict
 
-`AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_READY_FOR_REVIEW`
+`AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_READY_FOR_REVIEW`
 
 Non déclaré : `CERTIFIED`, `AGENT_ECONOMY_DEPLOYED`,
 `AGENT_ECONOMY_ARCHITECTURE_CERTIFIED`. Aucune capacité d'exécution n'est créée ;

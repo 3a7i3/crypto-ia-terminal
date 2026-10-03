@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:crypto-ia-terminal:agent-econ:a1:agent-registry-event:v1",
   "title": "AGENT_REGISTRY_EVENT_V1",
-  "description": "Declarative schema of one AgentRegistryEvent (AGENT-ECON A1). CONTRACT ONLY: no registry, store or writer exists. JSON Schema cannot express: event_id and event_hash recomputation, global contiguity of registry_sequence, per-agent contiguity of agent_transition_ordinal, previous_event_hash == event_hash of sequence N-1, sorted order of evidence_refs, agent_spec_id continuity and escalation classification. Those are VALIDATOR rules (see docs/contracts/AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT.md sections 9 and 10).",
+  "description": "Declarative schema of one AgentRegistryEvent (AGENT-ECON A1, reconciliation R1). CONTRACT ONLY: no registry, store or writer exists. S = expressed here. V = future validator, NOT expressed here: event_id/event_hash/spec_artifact_hash recomputation, global contiguity of registry_sequence, per-agent contiguity of agent_transition_ordinal, previous_event_hash == event_hash of sequence N-1, sorted order of evidence_refs, agent_spec_id continuity, escalation classification, and the TIMESTAMP_REGRESSION anomaly (occurred_at_utc is NOT an ordering key; registry_sequence is). See docs/contracts/AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT.md sections 8, 9 and 10.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,6 +12,7 @@
     "agent_transition_ordinal",
     "agent_id",
     "agent_spec_id",
+    "spec_artifact_hash",
     "event_type",
     "previous_state",
     "new_state",
@@ -45,6 +46,11 @@
     "agent_spec_id": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "spec_artifact_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the exact bytes of the published AgentSpec artifact (provenance included) referenced by agent_spec_id. Binds the artifact, which agent_spec_id deliberately does not cover (created_from_ref, created_at_utc), into the hash chain. Contract only: no storage, no writer."
     },
     "event_type": {
       "enum": [
@@ -96,9 +102,9 @@
       "maxItems": 32,
       "items": {
         "type": "string",
-        "pattern": "^(github:issue:[1-9][0-9]{0,8}|github:pr:[1-9][0-9]{0,8}@[0-9a-f]{40}|git:commit:[0-9a-f]{40}|sha256:[0-9a-f]{64})$"
+        "pattern": "^(github:issue:[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}#[1-9][0-9]{0,8}|github:pr:[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}#[1-9][0-9]{0,8}@[0-9a-f]{40}|git:commit:[0-9a-f]{40}|sha256:[0-9a-f]{64})$"
       },
-      "description": "Closed reference grammar (github:issue:N | github:pr:N@sha40 | git:commit:sha40 | sha256:hex64). At least one reference is mandatory for every event: no evidence-free transition."
+      "description": "Closed reference grammar: github:issue:<owner>/<repo>#<n> | github:pr:<owner>/<repo>#<n>@<sha40> | git:commit:<sha40> | sha256:<hex64>. No free URL, no free text. A reference is a verifiable citation; it does NOT by itself prove human authorization. At least one reference is mandatory for every event: no evidence-free transition."
     },
     "occurred_at_utc": {
       "type": "string",
