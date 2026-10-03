@@ -24,7 +24,7 @@ import { ResearchStrategyBoardView } from "./views/ResearchStrategyBoardView";
 import { ResearchLabView } from "./views/ResearchLabView";
 
 const App: React.FC = () => (
-  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+  <BrowserRouter>
     <Routes>
       <Route path="/" element={<Navigate to="/paper-live" replace />} />
       <Route path="/paper-live" element={<PaperLiveShell />}>
