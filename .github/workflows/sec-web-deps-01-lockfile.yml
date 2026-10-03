@@ -1,0 +1,57 @@
+name: SEC-WEB-DEPS-01 Lockfile Candidate
+
+on:
+  pull_request:
+    paths:
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - "frontend/src/App.tsx"
+      - ".github/workflows/sec-web-deps-01-lockfile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  produire-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du HEAD exact
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Régénérer uniquement le lockfile
+        working-directory: frontend
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Capturer l'audit candidat
+        working-directory: frontend
+        shell: bash
+        run: |
+          set +e
+          npm audit --package-lock-only --json > sec-web-deps-01-audit.json
+          echo "AUDIT_EXIT_CODE=$?" >> "$GITHUB_ENV"
+          exit 0
+
+      - name: Résumé sans correction automatique
+        run: |
+          echo "npm audit exit code: ${AUDIT_EXIT_CODE}"
+          echo "Aucun npm audit fix ni --force n'est exécuté."
+
+      - name: Publier le lockfile et l'audit candidats
+        uses: actions/upload-artifact@v4
+        with:
+          name: sec-web-deps-01-candidate
+          path: |
+            frontend/package-lock.json
+            frontend/sec-web-deps-01-audit.json
+          if-no-files-found: error
+          retention-days: 14
