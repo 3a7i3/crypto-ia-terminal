@@ -111,7 +111,7 @@ stderr ou données source brutes dans l'erreur. Aucun compteur synthétique.
 | lmi_table état/confiance/prix | copiés, null si absents | pas de quiet/prix zéro inventés |
 | buy/sell pressure et flux | projection des mesures source | précision conservée, provenance USD globale affichée |
 | résistance / fragilité | mesures source et unités | pas de clamp/score inventé |
-| lmi_symbol détail | cartes observationnelles avec fenêtre flux | liquidité détaillée/state_components/raw hors tranche |
+| lmi_symbol détail | cartes observationnelles avec fenêtre flux | détails typés ajoutés par APP-LMI-DETAIL-01 ci-dessous ; raw libre exclu |
 | lmi_events | filtre notable à la capture | inclut historique étiqueté ; pas de journal d'événements |
 | stale basé sur age_ms figé | temps source et PressureField à chaque GET | pas de LIVE revendiqué |
 | ghost states legacy | exclus par watchlist explicite | ancien sidecar incomplet rejeté, pas population fabriquée |
@@ -134,3 +134,51 @@ SOURCE ONLY : aucun déploiement/VPS, restart Advisor, modification LMI engine,
 service/timer, PPL/FIN/epoch/config/risk/sizing/Watchdog/exchange. #286 ACTIVE.
 Rollback source : revert de la PR U3b, suppression de la consommation de cette
 projection ; aucun retrait de producteur ou service autorisé par ce rollback.
+
+## APP-LMI-DETAIL-01 — extension source 1.1 (#370, 2026-10-03)
+
+Le producteur passif publie désormais 1.1.0 ; le reader GET et React acceptent
+également 1.0.0, sans inventer de détail pour un ancien artifact. Chaque ligne
+1.1 possède `detail` : null si indisponible, sinon quatre groupes fermés,
+`flow`, `liquidity`, `resistance`, `state_components`. Groupe absent/null reste
+null ; champ absent reste null ; zéro publié reste zéro. Champs inconnus du
+sidecar exclus. Un champ connu invalide rejette la publication atomique en
+préservant l’artifact précédent. Aucune lecture du sidecar par React/API.
+
+Allowlist normative : `DETAIL_FIELDS` dans le contrat Python et
+`detailLabels` dans React, vérifiées via la fixture M produite par la chaîne
+réelle. Flux : volumes et tailles USD, comptes entiers, fenêtre ms, côté
+buy/sell/neutral, pression 0–1, variations de débit signées USD/s (différence
+entre deux débits ; ce ne sont pas des accélérations USD/s²). Résistance :
+volume USD, déplacement absolu bps, résistance USD/bps, fragilité/absorption
+0–1. Liquidité : ajouts, retraits hors consommation et consommation séparés
+bid/ask en USD, annulations 0–1, variation nette signée USD copiée. Cette
+variation utilise les retraits bruts côté producteur ; aucune reconstruction
+à partir des seuls retraits hors consommation. Composantes : pressure_ratio,
+absorption, fragility, displacement_bps, canc_bid, canc_ask copiés uniquement.
+
+Flux, liquidité et résistance portent leur propre date source facultative.
+GET calcule âge/fraîcheur à partir de cette date, jamais de celle du
+PressureField. Date manquante → UNKNOWN ; source ou groupe âgé de plus de
+15 s → STALE. Composantes rattachées à l’état : aucune date indépendante
+publiée ou inventée. Les valeurs détaillées sont affichées via String(number)
+sans nouvel arrondi, après les arrondis déjà faits par le producteur LMI.
+La provenance contractSize globale reste visible pour toutes les mesures USD.
+
+Limite essentielle : LMIEngine publie aussi une LiquidityDynamics remplie de
+zéros avant la première observation de carnet. Le sidecar ne permet pas de
+prouver l’origine de ces zéros. `observation_evidence: SOURCE_VALUES_ONLY`
+est donc constant ; fraîcheur et valeurs ne certifient jamais un carnet
+observé. L’app expose cette limite même pour des valeurs fraîches/non nulles.
+Profondeur et intervalle de comparaison ne sont pas sérialisés : inconnus.
+
+Parité `/api/lmi/symbol` : résumé existant conservé, détail typé des quatre
+groupes ajoutés ; les anciens totaux arrondis added/removed/consumed sont
+remplacés par leurs valeurs bid/ask explicites. Le payload `raw` historique
+n’est pas exporté librement : seules les mesures autorisées sont reprises.
+Journal WS, process running, retrait CryptoRadar et runtime restent hors
+tranche. Aucun moteur/service/config/burn-in modifié. Rollback : revert source
+1.1 ; lecture 1.0 compatible, aucun rollback runtime requis ou exécuté.
+
+Preuves : tests atomiques/temps/invalides/privacy et chaîne Python→GET→React ;
+script visuel existant étendu aux détails et snapshots legacy, desktop/mobile.

@@ -76,6 +76,20 @@ class MarketMicrostructureReader:
                 if source_age > STALE_AFTER_S or age > STALE_AFTER_S
                 else "FRESH"
             )
+            if doc["schema_version"] == "1.1.0" and row["detail"] is not None:
+                detail = dict(row["detail"])
+                for name in ("flow", "liquidity", "resistance"):
+                    group = detail[name]
+                    if group is None:
+                        continue
+                    stamp = utc_seconds(group["observed_at_utc"])
+                    group_age = None if stamp is None else now - stamp
+                    detail[name] = {
+                        **group, "observation_age_s": group_age,
+                        "freshness_classification": "UNKNOWN" if group_age is None else "STALE"
+                        if group_age > STALE_AFTER_S or source_age > STALE_AFTER_S else "FRESH",
+                    }
+                row = {**row, "detail": detail}
             rows.append(
                 {
                     **row,

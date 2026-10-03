@@ -244,3 +244,63 @@ def test_contract_rejects_negative_age_even_within_numeric_tolerance(source, tmp
     else:
         transport["rows"][0]["observation_age_s"] = -1e-8
     assert not validate_microstructure_snapshot(transport, transport=True)
+
+
+def test_detail_group_freshness_is_independent_and_values_remain_exact(source, tmp_path):
+    artifact, doc = publish(source, tmp_path)
+    assert doc["schema_version"] == "1.1.0"
+    result = MarketMicrostructureReader(artifact, now_fn=lambda: NOW + 2).read()
+    assert result.ok
+    row = result.snapshot["rows"][0]
+    assert row["freshness_classification"] == "FRESH"
+    detail = row["detail"]
+    assert detail["flow"]["freshness_classification"] == "FRESH"
+    assert detail["liquidity"]["freshness_classification"] == "STALE"
+    assert detail["liquidity"]["observation_age_s"] == 42
+    assert detail["resistance"]["freshness_classification"] == "UNKNOWN"
+    assert detail["liquidity"]["net_liquidity_change_usd"] == -462.375
+    assert detail["flow"]["buy_acceleration"] == -123.4567
+    assert detail["liquidity"]["ask_added_usd"] == 0
+    assert "MUST_NOT_ESCAPE" not in json.dumps(result.snapshot)
+
+
+def test_legacy_snapshot_still_reads_without_fabricated_detail(source, tmp_path):
+    artifact, doc = publish(source, tmp_path)
+    doc["schema_version"] = "1.0.0"
+    for row in doc["rows"]:
+        del row["detail"]
+    artifact.write_text(json.dumps(doc))
+    result = MarketMicrostructureReader(artifact, now_fn=lambda: NOW + 2).read()
+    assert result.ok and all("detail" not in row for row in result.snapshot["rows"])
+
+
+@pytest.mark.parametrize("group,key,value", [
+    ("liquidity", "bid_added_usd", -1), ("liquidity", "cancellation_rate_bid", 1.01),
+    ("flow", "buy_count", 1.5), ("flow", "buy_acceleration", True),
+    ("flow", "dominant_side", "private"), ("state_components", "fragility", -1),
+    ("resistance", "absorption_ratio", float("inf")),
+    ("liquidity", "timestamp_ms", int((NOW + 1) * 1000)),
+])
+def test_invalid_detail_keeps_previous_artifact(source, tmp_path, group, key, value):
+    artifact, _ = publish(source, tmp_path)
+    before = artifact.read_bytes()
+    raw = lmi_source()
+    raw["symbols"]["BTCUSDT"][group][key] = value
+    source.write_text(json.dumps(raw))
+    with pytest.raises(ValueError):
+        producer.write_microstructure_snapshot(source, artifact, now_fn=lambda: NOW)
+    assert artifact.read_bytes() == before
+
+
+def test_zero_liquidity_never_attests_book_observation(source, tmp_path):
+    raw = lmi_source()
+    group = raw["symbols"]["BTCUSDT"]["liquidity"]
+    for key in list(group):
+        if key != "raw":
+            group[key] = int(NOW * 1000) if key == "timestamp_ms" else 0
+    source.write_text(json.dumps(raw))
+    artifact, _ = publish(source, tmp_path)
+    detail = MarketMicrostructureReader(artifact, now_fn=lambda: NOW + 2).read().snapshot["rows"][0]["detail"]
+    assert detail["liquidity"]["freshness_classification"] == "FRESH"
+    assert detail["liquidity"]["observation_evidence"] == "SOURCE_VALUES_ONLY"
+    assert detail["liquidity"]["bid_added_usd"] == 0
