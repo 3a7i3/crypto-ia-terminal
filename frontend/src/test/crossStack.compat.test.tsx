@@ -16,10 +16,18 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
+import { ResearchLabView } from "../views/ResearchLabView";
+import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
+import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
+import { validateFinancialReconciliationSnapshot } from "../lib/financialReconciliationValidation";
+import { validateMarketMicrostructureSnapshot } from "../lib/marketMicrostructureValidation";
+import { MarketView } from "../views/MarketView";
 import { validateOperatorSnapshot } from "../lib/snapshotValidation";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
 import { validatePplComparisonSnapshot } from "../lib/pplComparisonValidation";
 import { validateResearchLabSnapshot } from "../lib/researchLabValidation";
+import { validateBurnInStatusSnapshot } from "../lib/burnInStatusValidation";
+import { validateRuntimeServiceSnapshot } from "../lib/runtimeServiceValidation";
 import type { OperatorSnapshot, ApiStructuredError } from "../types";
 
 const FIXTURES_DIR =
@@ -45,6 +53,21 @@ function jsonResponse(body: unknown, status: number) {
 describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer -> real API -> frontend)", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("P: preserves exact producer financial strings while a tiny nonzero delta never looks like zero", async () => {
+    const f = loadFixture("P_financial_clarity");
+    expect(f.http_status).toBe(200);
+    expect(f._proof?.existing_fin_producer_invoked).toBe(true);
+    const before = JSON.stringify(f.body);
+    expect(validateFinancialReconciliationSnapshot(f.body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(f.body, 200)));
+    render(<FinancialReconciliationView />);
+    await screen.findByText("Financial Truth");
+    const view = screen.getByTestId("financial-reconciliation-view");
+    expect(view).toHaveTextContent("< 0,01");
+    expect(view).toHaveTextContent((f.body as any).reconciliation.unreconciled_capital);
+    expect(JSON.stringify(f.body)).toBe(before);
   });
 
   it("A: accepts the exact producer-generated JSON unchanged and renders every canonical cockpit view", async () => {
@@ -268,4 +291,136 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     );
   });
 
+  it("J U2: exact PPL producer/API burn-in JSON renders governed history without direct JSONL access", async () => {
+    const canonical = loadFixture("A_minimal_canonical");
+    const burnIn = loadFixture("J_burn_in");
+    expect(canonical.http_status).toBe(200);
+    expect(burnIn.http_status).toBe(200);
+    expect(validateOperatorSnapshot(canonical.body)).toBe(true);
+    expect(validateBurnInStatusSnapshot(burnIn.body)).toBe(true);
+    expect(burnIn._proof?.producer_authority).toBe("PPL_AUTHORITY_PRESENTATION");
+    expect(burnIn._proof?.artifact_is_regular_file).toBe(true);
+    expect(burnIn._proof?.ppl_lock_created).toBe(false);
+    expect(burnIn._proof?.lifecycle_total).toBe(3);
+    expect(burnIn._proof?.history_rows).toBe(3);
+
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/operator/v1/burn-in") {
+        return Promise.resolve(jsonResponse(burnIn.body, 200));
+      }
+      if (url === "/api/operator/v1/snapshot") {
+        return Promise.resolve(jsonResponse(canonical.body, 200));
+      }
+      return Promise.resolve(jsonResponse({ error_code: "UNEXPECTED_TEST_URL" }, 404));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("tab-paper"));
+    fireEvent.click(screen.getByTestId("tab-burn-in"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("burnin-view")).toHaveTextContent("BURN-IN-EPOCH-CROSS-STACK"),
+    );
+    const view = screen.getByTestId("burnin-view");
+    expect(view).toHaveTextContent("Historique des ordres PAPER");
+    expect(view).toHaveTextContent("BTC/USDT");
+    expect(view).toHaveTextContent("ETH/USDT");
+    expect(view).toHaveTextContent("SOL/USDT");
+    expect(view).toHaveTextContent("UNRESOLVED");
+    expect(view).toHaveTextContent("PB_MAX_POSITIONS");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/operator/v1/burn-in",
+      { method: "GET" },
+    );
+  });
+
+  it("K U2b: exact host producer/API JSON renders independently of a missing Advisor snapshot", async () => {
+    const fixture = loadFixture("K_runtime_service");
+    expect(fixture.http_status).toBe(200);
+    expect(validateRuntimeServiceSnapshot(fixture.body)).toBe(true);
+    expect(fixture._proof?.producer_authority).toBe("HOST_SYSTEMD_OBSERVATION");
+    expect(fixture._proof?.artifact_is_regular_file).toBe(true);
+    expect(fixture._proof?.deployment_evidence_unchanged).toBe(true);
+    window.history.replaceState({}, "", "/paper-live/system");
+    const fetchMock = vi.fn().mockImplementation((url) => Promise.resolve(String(url).endsWith("/runtime-service") ? jsonResponse(fixture.body, 200) : jsonResponse({ error_code: "SNAPSHOT_MISSING" }, 503)));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("host-cross-stack"));
+    const view = screen.getByTestId("runtime-service-view");
+    expect(view).toHaveTextContent("MainPID à la capture4321");
+    expect(view).toHaveTextContent("NRestarts0");
+    expect(view).toHaveTextContent("b".repeat(40));
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
+    expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/runtime-service", { method: "GET", signal: expect.any(AbortSignal) });
+  });
+
+});
+
+
+describe.skipIf(!HAS_FIXTURES)("U3a scanner real producer → API → React", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("finds and drills into a symbol beyond the old top 20, preserving coverage and source values", async () => {
+    const fixture = loadFixture("L_scanner");
+    expect(fixture.http_status).toBe(200);
+    expect(validateMarketRadarSnapshot(fixture.body)).toBe(true);
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MarketView />);
+    await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(50));
+    expect(screen.getByTestId("market-scanner-coverage")).toHaveTextContent("50 ligne(s) publiée(s) sur 60");
+    fireEvent.change(screen.getByLabelText("Recherche symbole"), { target: { value: "s25" } });
+    expect(screen.getByTestId("market-opportunity-row")).toHaveTextContent("S25/USDT");
+    fireEvent.click(screen.getAllByRole("button", { name: "Détail S25/USDT" })[0]);
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("86.7");
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("SHORT");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe.skipIf(!HAS_FIXTURES)("U3b LMI real producer → API → React", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("accepts the exact microstructure projection and preserves observed, stale and unavailable facts", async () => {
+    const fixture = loadFixture("M_microstructure");
+    expect(fixture.http_status).toBe(200);
+    expect(fixture._proof?.source_unchanged).toBe(true);
+    expect(validateMarketMicrostructureSnapshot(fixture.body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    render(<MarketMicrostructureView />);
+    await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
+    const rows = screen.getAllByTestId("microstructure-row");
+    expect(rows[0]).toHaveTextContent("accumulation");
+    expect(rows[0]).toHaveTextContent("0,8123");
+    expect(rows[1]).toHaveTextContent("STALE");
+    expect(rows[2]).toHaveTextContent("NOT_AVAILABLE");
+    expect(screen.getByTestId("microstructure-view")).not.toHaveTextContent("GHOSTUSDT");
+    expect(screen.getByTestId("microstructure-view")).not.toHaveTextContent("MUST_NOT_ESCAPE");
+  });
+});
+
+
+describe.skipIf(!HAS_FIXTURES)("U4 certified Research publication → builder → API → React", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it("admits exact builder-authored JSON and preserves metrics, hashes and scientific limits", async () => {
+    const fixture = loadFixture("N_research_publication");
+    expect(fixture.http_status).toBe(200);
+    expect(fixture._proof?.builder_invoked).toBe(true);
+    expect(validateResearchLabSnapshot(fixture.body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    render(<ResearchLabView />);
+    await waitFor(() => expect(screen.getByTestId("research-domain-banner")).toBeVisible());
+    const view = screen.getByTestId("research-lab-view");
+    expect(view).toHaveTextContent("LOW_SAMPLE");
+    expect(view).toHaveTextContent("Candidate catalog NOT_AVAILABLE");
+    expect(view).toHaveTextContent("mark_to_market_max_drawdown");
+    expect(view).toHaveTextContent("NOT_AVAILABLE");
+    expect(view).toHaveTextContent("closed_population_fees_usd");
+    fireEvent.click(screen.getByText("Full Research provenance"));
+    expect(screen.getByTestId("research-source-artifacts")).toHaveTextContent(String(fixture._proof?.manifest_sha256));
+    expect(screen.getByTestId("research-source-artifacts")).toHaveTextContent(String(fixture._proof?.diagnostic_sha256));
+    expect(screen.queryByTestId("research-candidate-card")).not.toBeInTheDocument();
+  });
 });

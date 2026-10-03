@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MarketView } from "../views/MarketView";
 
 function jsonResponse(body: unknown, status = 200) {
@@ -98,4 +98,90 @@ describe("MarketView", () => {
     await waitFor(() => expect(screen.getByTestId("market-error")).toBeInTheDocument());
     expect(screen.getByTestId("market-view")).toHaveTextContent("MARKET_SNAPSHOT_MISSING");
   });
+});
+
+function scannerSnapshot() {
+  const doc = marketSnapshot();
+  doc.universe_size = 60;
+  doc.actionable_count = 55;
+  doc.top_opportunities = [
+    { ...doc.top_opportunities[0], symbol: "BTC/USDT" },
+    { ...doc.top_opportunities[0], symbol: "ETH/USDT", dominant_side: "SHORT" },
+    { ...doc.top_opportunities[0], symbol: "SOL/USDT", dominant_side: "MIXED" },
+  ];
+  return doc;
+}
+
+describe("U3a scanner", () => {
+  it("combines search and side filters without reranking or refetching, resets and distinguishes no match", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(scannerSnapshot()));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MarketView />);
+    await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(3));
+    expect(screen.getByTestId("market-scanner-coverage")).toHaveTextContent("Couverture partielle");
+    fireEvent.change(screen.getByLabelText("Biais dominant"), { target: { value: "SHORT" } });
+    expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(1);
+    expect(screen.getByTestId("market-opportunity-card")).toHaveTextContent("ETH/USDT");
+    fireEvent.change(screen.getByLabelText("Recherche symbole"), { target: { value: "  eth  " } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Détail ETH/USDT" })[0]);
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("packets au seuil ≥ 65");
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("exacts non disponibles");
+    fireEvent.change(screen.getByLabelText("Recherche symbole"), { target: { value: "BTC" } });
+    expect(screen.queryByTestId("market-symbol-detail")).not.toBeInTheDocument();
+    expect(screen.getByTestId("market-filter-empty")).toHaveTextContent("Le marché n’est pas déclaré vide");
+    expect(screen.queryByTestId("market-empty")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Réinitialiser" }));
+    expect(screen.getAllByTestId("market-opportunity-row").map((r) => r.textContent)).toEqual([
+      expect.stringContaining("BTC/USDT"), expect.stringContaining("ETH/USDT"), expect.stringContaining("SOL/USDT"),
+    ]);
+    fireEvent.change(screen.getByLabelText("Biais dominant"), { target: { value: "MIXED" } });
+    expect(screen.getByTestId("market-opportunity-row")).toHaveTextContent("SOL/USDT");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/market", { method: "GET" });
+  });
+
+  it("shows stale detail as historical and preserves explicit empty evidence", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot("STALE"))));
+    render(<MarketView />);
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("STALE"));
+    fireEvent.click(screen.getAllByRole("button", { name: "Détail BTC/USDT" })[0]);
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("STALE · historique");
+    expect(screen.getByTestId("market-view")).toHaveTextContent("état actuel du marché INCONNU");
+    fireEvent.click(screen.getByRole("button", { name: "Fermer le détail" }));
+    expect(screen.queryByTestId("market-symbol-detail")).not.toBeInTheDocument();
+  });
+
+  it("rejects inconsistent coverage in HTTP 200 data", async () => {
+    const doc = scannerSnapshot();
+    doc.actionable_count = 1;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(doc)));
+    render(<MarketView />);
+    await waitFor(() => expect(screen.getByTestId("market-error")).toBeInTheDocument());
+    expect(screen.queryByTestId("market-scanner-coverage")).not.toBeInTheDocument();
+  });
+});
+
+
+it("resolves selected detail from replacement snapshots and hides it on polling error", async () => {
+  vi.useFakeTimers();
+  try {
+    const first = marketSnapshot();
+    const second = marketSnapshot();
+    second.top_opportunities[0].avg_confidence = 70;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(first))
+      .mockResolvedValueOnce(jsonResponse(second))
+      .mockResolvedValueOnce(jsonResponse({ error_code: "MARKET_SNAPSHOT_MISSING" }, 503));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MarketView />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    fireEvent.click(screen.getAllByRole("button", { name: "Détail BTC/USDT" })[0]);
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("75.0");
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("70.0");
+    expect(screen.getByTestId("market-symbol-detail")).not.toHaveTextContent("75.0");
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    expect(screen.getByTestId("market-error")).toHaveTextContent("MARKET unavailable");
+    expect(screen.queryByTestId("market-symbol-detail")).not.toBeInTheDocument();
+  } finally { vi.useRealTimers(); }
 });

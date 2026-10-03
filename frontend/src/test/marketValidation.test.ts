@@ -56,3 +56,12 @@ describe("validateMarketRadarSnapshot", () => {
     expect(validateMarketRadarSnapshot(bad)).toBe(false);
   });
 });
+
+
+it.each(["duplicate", "too_many_rows", "count_over_universe"])("rejects incoherent scanner coverage: %s", (kind) => {
+  const doc = marketSnapshot();
+  if (kind === "duplicate") { doc.top_opportunities.push({ ...doc.top_opportunities[0] }); doc.actionable_count = 2; }
+  else if (kind === "too_many_rows") doc.actionable_count = 0;
+  else doc.universe_size = 0;
+  expect(validateMarketRadarSnapshot(doc)).toBe(false);
+});

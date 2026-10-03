@@ -7,15 +7,19 @@ engines.
 
 from __future__ import annotations
 
-import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
+from observability.research_evidence_io import EvidenceReadError, read_evidence
 from observability.research_lab_schema import validate_research_lab_snapshot
 
 DEFAULT_RESEARCH_LAB_SNAPSHOT_PATH = Path(
-    "databases/research_presentation/research_lab_snapshot.json"
+    os.getenv(
+        "RESEARCH_LAB_SNAPSHOT_PATH",
+        "databases/research_presentation/research_lab_snapshot.json",
+    )
 )
 
 
@@ -25,10 +29,6 @@ class ResearchLabReadResult:
     snapshot: Optional[dict[str, Any]] = None
     error_code: Optional[str] = None
     error_message: Optional[str] = None
-
-
-def _reject_json_constant(value: str) -> None:
-    raise ValueError(f"non-finite JSON constant {value}")
 
 
 class ResearchLabSnapshotReader:
@@ -47,30 +47,27 @@ class ResearchLabSnapshotReader:
             return ResearchLabReadResult(
                 ok=False,
                 error_code="RESEARCH_LAB_SNAPSHOT_MISSING",
-                error_message=f"Research Lab presentation snapshot not found: {self._path}",
+                error_message="Research Lab presentation snapshot not found.",
             )
-        if not self._path.is_file():
+        if self._path.is_symlink() or not self._path.is_file():
             return ResearchLabReadResult(
                 ok=False,
                 error_code="RESEARCH_LAB_INVALID_PATH",
                 error_message="Research Lab presentation path is not a regular file.",
             )
         try:
-            doc = json.loads(
-                self._path.read_text(encoding="utf-8"),
-                parse_constant=_reject_json_constant,
-            )
-        except (OSError, UnicodeError) as exc:
+            doc, _ = read_evidence(self._path, limit=1024 * 1024)
+        except (OSError, UnicodeError):
             return ResearchLabReadResult(
                 ok=False,
                 error_code="RESEARCH_LAB_UNREADABLE",
-                error_message=str(exc),
+                error_message="Research Lab presentation could not be read safely.",
             )
-        except (json.JSONDecodeError, ValueError) as exc:
+        except (EvidenceReadError, ValueError, RecursionError):
             return ResearchLabReadResult(
                 ok=False,
                 error_code="RESEARCH_LAB_MALFORMED_JSON",
-                error_message=str(exc),
+                error_message="Research Lab presentation could not be read safely.",
             )
 
         if not validate_research_lab_snapshot(doc):

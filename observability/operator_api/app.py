@@ -25,6 +25,23 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from observability.operator_api.market_microstructure_reader import (
+    DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
+    MarketMicrostructureReader,
+)
+
+from observability.operator_api.runtime_service_reader import (
+    DEFAULT_RUNTIME_SERVICE_PATH,
+    DEFAULT_STALE_AFTER_S as DEFAULT_RUNTIME_SERVICE_STALE_AFTER_S,
+    RuntimeServiceSnapshotReader,
+)
+
+from observability.operator_api.burn_in_status_reader import (
+    DEFAULT_BURN_IN_STATUS_PATH,
+    DEFAULT_STALE_AFTER_S as DEFAULT_BURN_IN_STATUS_STALE_AFTER_S,
+    BurnInStatusReadResult,
+    BurnInStatusSnapshotReader,
+)
 from observability.operator_api.financial_reconciliation_reader import (
     DEFAULT_FINANCIAL_RECONCILIATION_PATH,
     DEFAULT_FINANCIAL_RECONCILIATION_STALE_AFTER_S,
@@ -45,6 +62,7 @@ from observability.operator_api.ppl_comparison_reader import (
     PplComparisonSnapshotReader,
 )
 from observability.operator_api.reader import SafeSnapshotReader, SnapshotReadResult
+from observability.operator_api.research_strategy_board_reader import ResearchStrategyBoardReader
 from observability.operator_api.research_lab_reader import (
     DEFAULT_RESEARCH_LAB_SNAPSHOT_PATH,
     ResearchLabReadResult,
@@ -64,10 +82,14 @@ app = FastAPI(
 # external exposure/auth remains a deployment/security responsibility.
 
 _reader = SafeSnapshotReader()
+_microstructure_reader = MarketMicrostructureReader()
+_runtime_service_reader = RuntimeServiceSnapshotReader()
+_burn_in_status_reader = BurnInStatusSnapshotReader()
 _market_reader = MarketSnapshotReader()
 _ppl_comparison_reader = PplComparisonSnapshotReader()
 _financial_reconciliation_reader = FinancialReconciliationSnapshotReader()
 _research_lab_reader = ResearchLabSnapshotReader()
+_research_strategy_board_reader = ResearchStrategyBoardReader()
 
 
 def configure_reader(
@@ -106,6 +128,57 @@ def configure_market_reader(
         kwargs["now_fn"] = now_fn
     _market_reader = MarketSnapshotReader(path=market_snapshot_path, **kwargs)
     return _market_reader
+
+
+def get_microstructure_reader() -> MarketMicrostructureReader:
+    return _microstructure_reader
+
+
+def configure_microstructure_reader(
+    path: Path = DEFAULT_MICROSTRUCTURE_PATH, *, now_fn=None
+) -> MarketMicrostructureReader:
+    global _microstructure_reader
+    kwargs = {} if now_fn is None else {"now_fn": now_fn}
+    _microstructure_reader = MarketMicrostructureReader(path, **kwargs)
+    return _microstructure_reader
+
+
+def get_runtime_service_reader() -> RuntimeServiceSnapshotReader:
+    return _runtime_service_reader
+
+
+def configure_runtime_service_reader(
+    path: Path = DEFAULT_RUNTIME_SERVICE_PATH,
+    *,
+    stale_after_s: float = DEFAULT_RUNTIME_SERVICE_STALE_AFTER_S,
+    now_fn=None,
+) -> RuntimeServiceSnapshotReader:
+    global _runtime_service_reader
+    kwargs: dict[str, Any] = {"stale_after_s": stale_after_s}
+    if now_fn is not None:
+        kwargs["now_fn"] = now_fn
+    _runtime_service_reader = RuntimeServiceSnapshotReader(path, **kwargs)
+    return _runtime_service_reader
+
+
+def get_burn_in_status_reader() -> BurnInStatusSnapshotReader:
+    return _burn_in_status_reader
+
+
+def configure_burn_in_status_reader(
+    path: Path = DEFAULT_BURN_IN_STATUS_PATH,
+    *,
+    stale_after_s: float = DEFAULT_BURN_IN_STATUS_STALE_AFTER_S,
+    now_fn=None,
+) -> BurnInStatusSnapshotReader:
+    """Replace the U2 presentation reader without touching PPL."""
+
+    global _burn_in_status_reader
+    kwargs: Dict[str, Any] = {"stale_after_s": stale_after_s}
+    if now_fn is not None:
+        kwargs["now_fn"] = now_fn
+    _burn_in_status_reader = BurnInStatusSnapshotReader(path=path, **kwargs)
+    return _burn_in_status_reader
 
 
 def get_market_reader() -> MarketSnapshotReader:
@@ -191,6 +264,16 @@ def _failure_response(result: SnapshotReadResult) -> JSONResponse:
             "error_code": result.error_code,
             "error_message": result.error_message,
             "retries_used": result.retries_used,
+        },
+    )
+
+
+def _burn_in_status_failure_response(result: BurnInStatusReadResult) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error_code": result.error_code,
+            "error_message": result.error_message,
         },
     )
 
@@ -345,6 +428,38 @@ def get_financial_reconciliation() -> Any:
     return payload
 
 
+@app.get("/api/operator/v1/market-microstructure")
+def get_market_microstructure() -> Any:
+    """Only the passive presentation artifact, never the LMI sidecar itself."""
+    result = get_microstructure_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
+
+
+@app.get("/api/operator/v1/runtime-service")
+def get_runtime_service() -> Any:
+    """Transport only the passive host/systemd observation artifact."""
+    result = get_runtime_service_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
+
+
+@app.get("/api/operator/v1/burn-in")
+def get_burn_in_status() -> Any:
+    """Transport only the validated U2 atomic presentation artifact."""
+
+    result = get_burn_in_status_reader().read()
+    if not result.ok:
+        return _burn_in_status_failure_response(result)
+
+    payload = dict(result.snapshot or {})
+    payload["snapshot_age_s"] = result.snapshot_age_s
+    payload["freshness_classification"] = result.freshness_classification
+    return payload
+
+
 @app.get("/api/operator/v1/market")
 def get_market() -> Any:
     """Return only the validated CryptoRadar presentation artifact.
@@ -361,6 +476,19 @@ def get_market() -> Any:
     payload["snapshot_age_s"] = result.snapshot_age_s
     payload["freshness_classification"] = result.freshness_classification
     return payload
+
+
+def get_research_strategy_board_reader() -> ResearchStrategyBoardReader:
+    return _research_strategy_board_reader
+
+
+@app.get("/api/operator/v1/research-strategies")
+def get_research_strategies() -> Any:
+    """Transport only the strategy presentation artifact; no source/evaluation I/O."""
+    result = get_research_strategy_board_reader().read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code})
+    return result.snapshot
 
 
 @app.get("/api/operator/v1/research-lab")
@@ -382,6 +510,12 @@ __all__ = [
     "app",
     "configure_reader",
     "get_reader",
+    "get_microstructure_reader",
+    "configure_microstructure_reader",
+    "get_runtime_service_reader",
+    "configure_runtime_service_reader",
+    "configure_burn_in_status_reader",
+    "get_burn_in_status_reader",
     "configure_market_reader",
     "get_market_reader",
     "configure_ppl_comparison_reader",

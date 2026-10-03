@@ -153,6 +153,55 @@ const validDecision = {
   first_blocker: { value: "risk_gate", semantics: "PRESENT", authority: "OBSERVATIONAL_TELEMETRY" },
 };
 
+describe("validateOperatorSnapshot — U1 closed portfolio_status contract", () => {
+  it("accepts the canonical portfolio_status shape", () => {
+    const snap = baseSnapshot();
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+
+  it("rejects a fractional canonical paper_open_positions_count", () => {
+    const snap = baseSnapshot();
+    snap.portfolio.paper_open_positions_count = { value: 1.5, semantics: "PRESENT" } as never;
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects an invented portfolio_status admission_state", () => {
+    const snap = baseSnapshot();
+    (snap.portfolio.portfolio_status as unknown as Record<string, unknown>).admission_state = "FULL";
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects a negative or fractional portfolio_status count", () => {
+    const negative = baseSnapshot();
+    (negative.portfolio.portfolio_status as unknown as Record<string, unknown>).hard_position_limit = -1;
+    expect(validateOperatorSnapshot(negative)).toBe(false);
+
+    const fractional = baseSnapshot();
+    (fractional.portfolio.portfolio_status as unknown as Record<string, unknown>).current_positions = 1.5;
+    expect(validateOperatorSnapshot(fractional)).toBe(false);
+  });
+
+  it("rejects malformed portfolio_status count maps", () => {
+    const snap = baseSnapshot();
+    (snap.portfolio.portfolio_status as unknown as Record<string, unknown>).positions_by_regime = {
+      trend: "2",
+    };
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("rejects unknown extra portfolio_status keys", () => {
+    const snap = baseSnapshot();
+    (snap.portfolio.portfolio_status as unknown as Record<string, unknown>).synthetic_health = "OK";
+    expect(validateOperatorSnapshot(snap)).toBe(false);
+  });
+
+  it("still accepts an omitted portfolio_status when the producer cannot materialize it", () => {
+    const snap = baseSnapshot();
+    delete snap.portfolio.portfolio_status;
+    expect(validateOperatorSnapshot(snap)).toBe(true);
+  });
+});
+
 describe("validateOperatorSnapshot — R1.1 domain spine (Correction A)", () => {
   it("case 1: portfolio.status = object -> false", () => {
     const snap = baseSnapshot();

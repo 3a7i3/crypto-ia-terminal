@@ -173,6 +173,10 @@ def validate_market_snapshot(doc: Any) -> bool:
         return False
     if not all(_valid_row(row) for row in opportunities):
         return False
+    if len(opportunities) > doc["actionable_count"] or doc["actionable_count"] > doc["universe_size"]:
+        return False
+    if len({row["symbol"] for row in opportunities}) != len(opportunities):
+        return False
     return True
 
 

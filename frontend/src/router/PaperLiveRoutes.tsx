@@ -4,12 +4,14 @@ import type { SnapshotState } from "../lib/snapshotClient";
 import type { PaperLiveOutletContext } from "../shells/PaperLiveShell";
 import { DecisionsView } from "../views/DecisionsView";
 import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
+import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
 import { MarketView } from "../views/MarketView";
 import { NotExposedView } from "../views/NotExposedView";
 import { OverviewView } from "../views/OverviewView";
 import { PortfolioView } from "../views/PortfolioView";
 import { PplComparisonView } from "../views/PplComparisonView";
 import { SystemView } from "../views/SystemView";
+import { RuntimeServiceView } from "../views/RuntimeServiceView";
 
 function usePaperLive(): PaperLiveOutletContext { return useOutletContext<PaperLiveOutletContext>(); }
 
@@ -36,10 +38,10 @@ const PplCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
 };
 
 export const OverviewRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <OverviewView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
-export const MarketRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><MarketCanonicalContext state={snapshotState} /><MarketView /></>; };
+export const MarketRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><MarketCanonicalContext state={snapshotState} /><MarketView /><MarketMicrostructureView /></>; };
 export const PortfolioRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <PortfolioView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
 export const DecisionsRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <DecisionsView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
 export const LifecycleRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><PplCanonicalContext state={snapshotState} /><PplComparisonView /></>; };
 export const FinanceRoute: React.FC = () => <FinancialReconciliationView />;
-export const SystemRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <SystemView snapshot={activeSnapshot} /> : <NoSnapshot domain="SYSTEM" />; };
+export const SystemRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return <><RuntimeServiceView />{activeSnapshot ? <SystemView snapshot={activeSnapshot} /> : <NoSnapshot domain="SYSTEM" />}</>; };
 export const ScoresRoute: React.FC = () => <NotExposedView title="Scores" />;

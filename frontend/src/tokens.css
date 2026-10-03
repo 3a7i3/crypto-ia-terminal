@@ -1,18 +1,18 @@
 /* ── Design tokens — Crypto AI Terminal ─────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+/* System fonts keep the operator shell available without external font requests. */
 
 :root {
   /* Backgrounds */
-  --bg-dark:      #0f172a;
-  --bg-card:      #1e293b;
+  --bg-dark:      #0b1220;
+  --bg-card:      #18263b;
   --bg-card-soft: #182235;
   --bg-hover:     #263348;
-  --bg-border:    #2d3f55;
+  --bg-border:    #3d526e;
 
   /* Text */
   --text-pri:     #f8fafc;
-  --text-sec:     #94a3b8;
-  --text-muted:   #64748b;
+  --text-sec:     #c8d5e5;
+  --text-muted:   #b0bed1;
 
   /* Functional palette */
   --accent:       #00e0ff;
@@ -21,7 +21,7 @@
   --ok-dim:       rgba(34, 197, 94, 0.10);
   --warn:         #f59e0b;
   --warn-dim:     rgba(245, 158, 11, 0.10);
-  --danger:       #ef4444;
+  --danger:       #ff7077;
   --danger-dim:   rgba(239, 68, 68, 0.10);
   --neutral:      #6b7280;
   --neutral-dim:  rgba(107, 114, 128, 0.12);
@@ -64,7 +64,7 @@
   --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
   /* Radius */
-  --r-card:       8px;
+  --r-card:       14px;
   --r-chip:       4px;
 }
 

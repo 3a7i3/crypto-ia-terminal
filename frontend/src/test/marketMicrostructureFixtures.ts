@@ -1,0 +1,96 @@
+import type { MarketMicrostructureSnapshot } from "../lib/marketMicrostructureTypes";
+
+// Test-only shape; separate M cross-stack fixture exercises production generation.
+export function microstructureFixture(): MarketMicrostructureSnapshot {
+  return {
+  "authority": "OBSERVATIONAL_TELEMETRY",
+  "coverage": {
+    "observed": 2,
+    "requested": 3,
+    "streamable": 2,
+    "unavailable": 1
+  },
+  "domain": "market_microstructure",
+  "exchange": "mexc",
+  "generated_at_utc": "2026-09-14T20:00:00.000Z",
+  "mode": "READ_ONLY",
+  "pressure_field_count": 123,
+  "product": "MarketMicrostructureSnapshot",
+  "rows": [
+    {
+      "availability": "OBSERVED",
+      "buy_flow_usd": 12500.25,
+      "buy_pressure_pct": 71.43,
+      "flow_window_ms": 10000,
+      "fragility": 0.9877,
+      "notable": true,
+      "observed_at_utc": "2026-09-14T19:59:59.000Z",
+      "price": 65000,
+      "price_change_bps": 1.5,
+      "resistance": 12345.67,
+      "sell_flow_usd": 5000.75,
+      "sell_pressure_pct": 28.569999999999997,
+      "state": "accumulation",
+      "state_confidence": 0.8123,
+      "stream_requested": true,
+      "symbol": "BTCUSDT",
+      "total_flow_usd": 17501.0,
+      "unavailable_reason": null,
+      "observation_age_s": 3.0,
+      "freshness_classification": "FRESH"
+    },
+    {
+      "availability": "OBSERVED",
+      "buy_flow_usd": null,
+      "buy_pressure_pct": null,
+      "flow_window_ms": null,
+      "fragility": null,
+      "notable": false,
+      "observed_at_utc": "2026-09-14T19:59:30.000Z",
+      "price": 0,
+      "price_change_bps": null,
+      "resistance": null,
+      "sell_flow_usd": null,
+      "sell_pressure_pct": null,
+      "state": "quiet",
+      "state_confidence": 0,
+      "stream_requested": true,
+      "symbol": "ETHUSDT",
+      "total_flow_usd": null,
+      "unavailable_reason": null,
+      "observation_age_s": 32.0,
+      "freshness_classification": "STALE"
+    },
+    {
+      "availability": "UNAVAILABLE",
+      "buy_flow_usd": null,
+      "buy_pressure_pct": null,
+      "flow_window_ms": null,
+      "fragility": null,
+      "notable": null,
+      "observed_at_utc": null,
+      "price": null,
+      "price_change_bps": null,
+      "resistance": null,
+      "sell_flow_usd": null,
+      "sell_pressure_pct": null,
+      "state": null,
+      "state_confidence": null,
+      "stream_requested": false,
+      "symbol": "WAITUSDT",
+      "total_flow_usd": null,
+      "unavailable_reason": "SOURCE_UNAVAILABLE",
+      "observation_age_s": null,
+      "freshness_classification": "NOT_AVAILABLE"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_artifact_sha256": "3f1d7892e71a24241a79e5985031aa6c646c089df416b3be51e7d610cf8561f9",
+  "source_updated_at_utc": "2026-09-14T20:00:00.000Z",
+  "unit_contract_degraded": false,
+  "unit_contract_source": "api",
+  "read_at_utc": "2026-09-14T20:00:02.000Z",
+  "source_age_s": 2.0,
+  "freshness_classification": "FRESH"
+};
+}

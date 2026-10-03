@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDecimalText } from "../lib/decimalPresentation";
 import { useFinancialReconciliation } from "../lib/financialReconciliationClient";
 import type {
   FinancialReconciliationRecord,
@@ -8,6 +9,12 @@ import "../financial-reconciliation.css";
 
 function display(value: string | null): string {
   return value === null ? "UNAVAILABLE" : value;
+}
+
+const AMOUNT_FIELDS = new Set(["cash_available", "capital_reserved", "capital_unresolved", "fees_paid", "realized_pnl", "book_capital_at_cost"]);
+function recordDisplay(field: string, value: string | null): string {
+  const raw = display(value);
+  return AMOUNT_FIELDS.has(field) ? formatDecimalText(raw) : raw;
 }
 
 function tone(status: FinancialReconciliationStatus): string {
@@ -24,7 +31,10 @@ const Metric: React.FC<{
 }> = ({ label, value, hint }) => (
   <div className="fin-metric">
     <span>{label}</span>
-    <strong>{value}</strong>
+    <strong className={value === "UNAVAILABLE" ? "fin-value-unavailable" : undefined}>{typeof value === "string" ? formatDecimalText(value) : value}</strong>
+    {typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value) && (
+      <details className="fin-metric-exact"><summary>Valeur exacte</summary><code>{value}</code></details>
+    )}
     {hint && <small>{hint}</small>}
   </div>
 );
@@ -35,10 +45,10 @@ const RecordRow: React.FC<{ row: FinancialReconciliationRecord }> = ({ row }) =>
       <strong>{row.field}</strong>
       <small>{row.source_kind} · {row.source_id}</small>
     </td>
-    <td>{display(row.projected_value)}</td>
-    <td>{display(row.observed_value)}</td>
-    <td>{display(row.delta_observed_minus_projected)}</td>
-    <td>{display(row.unreconciled_amount)}</td>
+    <td>{recordDisplay(row.field, row.projected_value)}</td>
+    <td>{recordDisplay(row.field, row.observed_value)}</td>
+    <td>{recordDisplay(row.field, row.delta_observed_minus_projected)}</td>
+    <td>{recordDisplay(row.field, row.unreconciled_amount)}</td>
     <td>
       <span className={"fin-status fin-status-" + tone(row.status)}>
         {row.status.replaceAll("_", " ")}
@@ -47,8 +57,12 @@ const RecordRow: React.FC<{ row: FinancialReconciliationRecord }> = ({ row }) =>
     </td>
     <td>
       <details>
-        <summary>evidence</summary>
+        <summary>Valeurs exactes & preuves</summary>
         <div className="fin-evidence">
+          <div><span>Projeté exact</span><code>{display(row.projected_value)}</code></div>
+          <div><span>Observé exact</span><code>{display(row.observed_value)}</code></div>
+          <div><span>Écart exact</span><code>{display(row.delta_observed_minus_projected)}</code></div>
+          <div><span>Non réconcilié exact</span><code>{display(row.unreconciled_amount)}</code></div>
           <div><span>Projected</span><code>{row.projected_provenance}</code></div>
           <div><span>Observed</span><code>{row.observed_provenance}</code></div>
           {row.note && <p>{row.note}</p>}
@@ -122,7 +136,7 @@ export const FinancialReconciliationView: React.FC = () => {
           </div>
         </div>
 
-        <div className="fin-provenance">
+        <details className="fin-provenance-details"><summary>Provenance financière</summary><div className="fin-provenance">
           <div><span>Epoch</span><code>{snapshot.paper_epoch_id}</code></div>
           <div><span>FIN snapshot</span><code>{snapshot.financial_snapshot_id.slice(0, 16)}…</code></div>
           <div><span>FIN-02 SHA</span><code>{snapshot.reconciliation_code_sha}</code></div>
@@ -130,7 +144,7 @@ export const FinancialReconciliationView: React.FC = () => {
           <div><span>Model</span><code>{snapshot.financial_model}</code></div>
           <div><span>Asset</span><code>{snapshot.asset}</code></div>
           <div><span>FIN evidence</span><code>{fin.evidence_status}</code></div>
-        </div>
+        </div></details>
       </section>
 
       <section className="fin-metrics" aria-label="Financial truth summary">
@@ -187,6 +201,27 @@ export const FinancialReconciliationView: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="fin-mobile-records" data-testid="fin-mobile-records">
+          {snapshot.records.map((row) => (
+            <article className="fin-record-card" key={row.record_id}>
+              <div className="fin-record-head"><strong>{row.field}</strong><span className={"fin-status fin-status-" + tone(row.status)}>{row.status.replaceAll("_", " ")}</span></div>
+              <dl className="fin-record-values">
+                <div><dt>FIN projeté</dt><dd>{recordDisplay(row.field, row.projected_value)}</dd></div>
+                <div><dt>Observé</dt><dd>{recordDisplay(row.field, row.observed_value)}</dd></div>
+                <div><dt>Écart</dt><dd>{recordDisplay(row.field, row.delta_observed_minus_projected)}</dd></div>
+                <div><dt>Non réconcilié</dt><dd>{recordDisplay(row.field, row.unreconciled_amount)}</dd></div>
+              </dl>
+              <details><summary>Valeurs exactes & preuves</summary><div className="fin-evidence">
+                <div><span>Projeté</span><code>{display(row.projected_value)}</code></div>
+                <div><span>Observé</span><code>{display(row.observed_value)}</code></div>
+                <div><span>Écart</span><code>{display(row.delta_observed_minus_projected)}</code></div>
+                <div><span>Non réconcilié</span><code>{display(row.unreconciled_amount)}</code></div>
+                <div><span>Source</span><code>{row.projected_provenance} · {row.observed_provenance}</code></div>
+                <div>{row.comparability} · {row.freshness}</div>{row.note && <p>{row.note}</p>}
+              </div></details>
+            </article>
+          ))}
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { SpaceNavigation } from "../components/SpaceNavigation";
 import { ModeBadge } from "../components/ModeBadge";
 import { SnapshotStatusBanner } from "../components/SnapshotStatusBanner";
 import { useOperatorSnapshot, type SnapshotState } from "../lib/snapshotClient";
@@ -12,14 +13,14 @@ export interface PaperLiveOutletContext {
 
 const mainLinks = [
   { to: "/paper-live", label: "Vue générale", glyph: "◉", testId: "tab-overview", end: true },
-  { to: "/paper-live/market", label: "Marché", glyph: "↗", testId: "tab-market" },
-  { to: "/paper-live/portfolio", label: "PAPER", glyph: "▣", testId: "tab-paper" },
-  { to: "/research", label: "Recherche", glyph: "◇", testId: "tab-research" },
+  { to: "/paper-live/market", label: "CryptoRadar", glyph: "↗", testId: "tab-market" },
+  { to: "/paper-live/portfolio", label: "Portefeuille", glyph: "▣", testId: "tab-paper" },
   { to: "/paper-live/system", label: "Système", glyph: "⚙", testId: "tab-system" },
 ];
 
 const paperLinks = [
   { to: "/paper-live/portfolio", label: "Portefeuille", testId: "tab-portfolio" },
+  { to: "/paper-live/burn-in", label: "Burn-in", testId: "tab-burn-in" },
   { to: "/paper-live/decisions", label: "Décisions", testId: "tab-decisions" },
   { to: "/paper-live/lifecycle", label: "Lifecycle PPL", testId: "tab-ppl" },
   { to: "/paper-live/finance", label: "Finance", testId: "tab-finance" },
@@ -45,11 +46,13 @@ export const PaperLiveShell: React.FC = () => {
   const activeDomain = domain(location.pathname);
   const independentRoute = activeDomain === "market" ||
     location.pathname === "/paper-live/lifecycle" ||
+    location.pathname === "/paper-live/burn-in" ||
     location.pathname === "/paper-live/finance";
 
   return (
     <div className="operator-shell" data-testid="paper-live-shell">
       <header className="operator-header">
+        <SpaceNavigation />
         <div className="operator-header-row">
           <div className="operator-brand-group">
             <span className="operator-brand">CRYPTO<span className="operator-brand-accent">AI</span></span>

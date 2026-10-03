@@ -62,8 +62,8 @@ def _event_line(event: LedgerEvent) -> bytes:
     ) + b"\n"
 
 
-def _events() -> list[LedgerEvent]:
-    return [
+def _events(*, leave_last_open: bool = False) -> list[LedgerEvent]:
+    events = [
         make_epoch_created_event(
             event_id="event-1",
             paper_epoch_id="TEST-EPOCH",
@@ -159,6 +159,7 @@ def _events() -> list[LedgerEvent]:
             schema_version=2,
         ),
     ]
+    return events[:-1] if leave_last_open else events
 
 
 def _packet(
@@ -286,8 +287,9 @@ def _build_dataset(
     *,
     drop_packet: bool = False,
     tamper_chain: bool = False,
+    leave_last_open: bool = False,
 ) -> Path:
-    events = _events()
+    events = _events(leave_last_open=leave_last_open)
     ppl_raw = b"".join(_event_line(event) for event in events)
     f00_manifest_raw = b'{"fixture":"manifest"}\n'
     f00_config_raw = b'{"fixture":"config"}\n'
@@ -436,6 +438,28 @@ def test_a4_reconciles_factual_pnl_and_context(tmp_path: Path) -> None:
     assert result.numeric_context["features_mtf_strength"]["winner_mean"] is not None
     assert result.concentration["status"] == "COMPLETE"
 
+
+
+
+def test_fee_reconciliation_includes_entry_fees_for_open_positions(
+    tmp_path: Path,
+) -> None:
+    root = _build_dataset(tmp_path, leave_last_open=True)
+
+    result = diagnose_factual_dataset(
+        root,
+        replay_code_sha="a" * 40,
+        diag_code_sha="b" * 40,
+    )
+
+    assert result.summary["n"] == 2
+    assert result.summary["terminal_realized_pnl_usd"] == pytest.approx(4.6)
+    assert result.summary["fees_usd"] == pytest.approx(0.4)
+    assert result.summary["closed_population_fees_usd"] == pytest.approx(0.4)
+    assert result.summary["non_closed_entry_fees_usd"] == pytest.approx(0.1)
+    assert result.summary["terminal_fees_paid_usd"] == pytest.approx(0.5)
+    assert result.summary["pnl_reconciliation"] == "PASS"
+    assert result.summary["fee_reconciliation"] == "PASS"
 
 def test_ppl_geometry_remains_authoritative_over_packet_geometry(tmp_path: Path) -> None:
     root = _build_dataset(tmp_path)

@@ -1,22 +1,22 @@
-name: Governed mission proposal
-description: Propose a bounded improvement under MASTER ROADMAP II without claiming authority.
-title: "[PROPOSAL] "
+name: Proposer une mission gouvernée
+description: Proposer une amélioration bornée sous MASTER ROADMAP II, sans s’attribuer d’autorité.
+title: "[PROPOSITION] "
 body:
   - type: markdown
     attributes:
       value: |
-        ## Governance boundary
+        ## Frontière de gouvernance
 
-        Proposals are non-authoritative. PAPER produces facts; Research produces hypotheses.
+        Les propositions ne font pas autorité. PAPER produit les faits ; Research produit les hypothèses.
 
-        Required flow: `PAPER → DATASET → RESEARCH → CANDIDATE → FUTURE EPOCH`.
+        Flux requis : `PAPER → DATASET → RESEARCH → CANDIDATE → FUTURE EPOCH`.
 
-        Never propose `RESEARCH → ACTIVE PAPER EPOCH`. This issue is **not a bounty** unless the owner explicitly changes its lifecycle to `BOUNTY_OPEN`.
+        Aucun flux `RESEARCH → ACTIVE PAPER EPOCH` n’est admis. #286 reste applicable. Cette issue **ne constitue pas une mission rémunérée**, sauf déclaration explicite du propriétaire au statut `BOUNTY_OPEN`.
   - type: input
     id: parent
     attributes:
-      label: Parent roadmap or mission
-      description: Every new mission must be linked to #285 or to a governed child mission.
+      label: Roadmap ou mission parente
+      description: Toute nouvelle mission doit être rattachée à #285 ou à une mission enfant gouvernée.
       placeholder: "#285"
       value: "#285"
     validations:
@@ -24,15 +24,15 @@ body:
   - type: textarea
     id: problem
     attributes:
-      label: Candidate problem
-      description: Describe the observed problem without presenting an unverified hypothesis as fact.
+      label: Problème candidat
+      description: Décrivez le problème observé sans présenter une hypothèse non vérifiée comme un fait.
     validations:
       required: true
   - type: textarea
     id: proof
     attributes:
-      label: Existing proof
-      description: Separate SOURCE PROOF from RUNTIME PROOF and preserve exact SHAs, epoch IDs, config hashes, timestamps, trace IDs, and artefact hashes.
+      label: Preuves existantes
+      description: Séparez SOURCE PROOF et RUNTIME PROOF ; conservez les SHA exacts, IDs d’epoch, empreintes de configuration, dates, trace_id et empreintes d’artefacts. Identifiez les références historiques.
       placeholder: |
         SOURCE PROOF:
         RUNTIME PROOF:
@@ -42,46 +42,46 @@ body:
   - type: textarea
     id: scope
     attributes:
-      label: Proposed bounded scope
-      description: Identify exact files or components, expected outputs, and exclusions.
+      label: Périmètre borné proposé
+      description: Identifiez les fichiers ou composants exacts, les livrables attendus et les exclusions.
     validations:
       required: true
   - type: dropdown
     id: target
     attributes:
-      label: Intended target
+      label: Cible prévue
       options:
-        - Documentation only
-        - Source-only future change
-        - Research non-authoritative
-        - Future PAPER epoch candidate
-        - UNKNOWN / requires forensic
+        - Documentation uniquement
+        - Changement source pour une évolution future
+        - Research non autoritaire
+        - Candidat pour une future epoch PAPER
+        - UNKNOWN / examen forensique nécessaire
     validations:
       required: true
   - type: textarea
     id: tests
     attributes:
-      label: Required tests and falsification criteria
-      description: Define what could disprove the proposal and what evidence is required before any PASS.
+      label: Tests requis et critères de réfutation
+      description: Définissez ce qui pourrait réfuter la proposition et les preuves nécessaires avant tout verdict PASS.
     validations:
       required: true
   - type: textarea
     id: risks
     attributes:
-      label: Risks, rollback, and authority boundary
-      description: Include security, scientific contamination, runtime and rollback considerations.
+      label: Risques, rollback et frontières d’autorité
+      description: Précisez les risques de sécurité, de contamination scientifique et de runtime, ainsi que le rollback.
     validations:
       required: true
   - type: checkboxes
     id: guardrails
     attributes:
-      label: Guardrails
+      label: Garde-fous
       options:
-        - label: This proposal does not authorize a change to the active burn-in epoch.
+        - label: Cette proposition n’autorise aucun changement de l’epoch burn-in active.
           required: true
-        - label: This proposal does not authorize deployment, merge, restart, TESTNET, LIVE, exchange writes, or autonomous agent authority.
+        - label: Cette proposition n’autorise ni déploiement, merge, restart, TESTNET, LIVE, écriture exchange ou autorité autonome d’un agent.
           required: true
-        - label: UNKNOWN items will remain untouched until resolved.
+        - label: Les éléments UNKNOWN resteront inchangés jusqu’à leur résolution.
           required: true
-        - label: I understand that this proposal is unpaid unless the owner explicitly declares BOUNTY_OPEN with amount and acceptance terms.
+        - label: Je comprends que cette proposition n’est pas rémunérée sans déclaration BOUNTY_OPEN explicite du propriétaire, montant et conditions d’acceptation.
           required: true

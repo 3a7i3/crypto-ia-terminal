@@ -154,14 +154,14 @@ def _nonempty(value: Any) -> bool:
 
 
 def _nonnegative_int(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2**53 - 1
 
 
 def _finite_number(value: Any) -> bool:
     return (
         isinstance(value, (int, float))
         and not isinstance(value, bool)
-        and math.isfinite(float(value))
+        and math.isfinite(value)
     )
 
 
@@ -378,7 +378,7 @@ def _valid_candidate_registry(doc: Any, *, artifact_refs: set[str]) -> bool:
     return True
 
 
-def validate_research_lab_snapshot(doc: Any) -> bool:
+def _validate_research_lab_snapshot(doc: Any) -> bool:
     """Closed-schema admission gate for WEB-RL Research presentation data."""
 
     if not isinstance(doc, dict) or set(doc) != _TOP_KEYS:
@@ -457,6 +457,14 @@ def validate_research_lab_snapshot(doc: Any) -> bool:
         if doc["candidate_registry"]["candidate_count"] != 0:
             return False
     return True
+
+
+def validate_research_lab_snapshot(doc: Any) -> bool:
+    """Malformed JSON structures must fail admission, never raise into a GET."""
+    try:
+        return _validate_research_lab_snapshot(doc)
+    except (TypeError, ValueError, OverflowError, RecursionError):
+        return False
 
 
 def canonical_snapshot_bytes(doc: Mapping[str, Any]) -> bytes:

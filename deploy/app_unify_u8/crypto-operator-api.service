@@ -1,0 +1,58 @@
+# APP-UNIFY U8 PREP — NOT AUTHORIZED FOR INSTALLATION while #286 is active.
+# Future governed unit for an isolated, read-only Operator API release.
+[Unit]
+Description=Crypto AI Terminal — APP-UNIFY Operator API (isolated read-only)
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mathieu
+WorkingDirectory=/opt/crypto-ai-terminal/operator/current
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=TZ=UTC
+Environment=PYTHONPATH=/opt/crypto-ai-terminal/operator/current
+
+# Explicit governed runtime-artifact boundary. Code comes from /opt; facts are
+# read from the separate machine-runtime tree. No implicit WorkingDirectory data.
+Environment=OPERATOR_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/operator_snapshot.json
+Environment=OPERATOR_RUNTIME_MANIFEST_PATH=/home/mathieu/crypto_ai_terminal/databases/operator_runtime_manifest.json
+Environment=RADAR_MARKET_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/cryptoradar_market_snapshot.json
+Environment=PPL_COMPARISON_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/ppl_comparison_snapshot.json
+Environment=FINANCIAL_RECONCILIATION_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/financial_reconciliation_snapshot.json
+Environment=BURN_IN_STATUS_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/burn_in_status_snapshot.json
+Environment=RUNTIME_SERVICE_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/runtime_service_snapshot.json
+Environment=MARKET_MICROSTRUCTURE_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/market_microstructure_snapshot.json
+Environment=RESEARCH_LAB_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/research_presentation/research_lab_snapshot.json
+Environment=RESEARCH_STRATEGY_BOARD_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/research_presentation/research_strategy_board.json
+Environment=RADAR_MARKET_STALE_AFTER_S=90
+Environment=PPL_COMPARISON_STALE_AFTER_S=90
+Environment=BURN_IN_STATUS_STALE_AFTER_S=90
+
+ExecStart=/opt/crypto-ai-terminal/operator/current/.venv/bin/python -m uvicorn observability.operator_api.app:app --host 127.0.0.1 --port 8090 --no-access-log
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto_operator_api_u8
+Nice=10
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/home/mathieu/crypto_ai_terminal/databases
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

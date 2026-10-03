@@ -1,97 +1,97 @@
-name: Bug report
-description: Report a reproducible source or runtime defect with exact evidence.
+name: Signaler un défaut
+description: Décrire un défaut reproductible avec des preuves exactes et leur portée.
 title: "[BUG] "
 body:
   - type: markdown
     attributes:
       value: |
-        ## Public repository notice
+        ## Avis pour le dépôt public
 
-        This issue is **not a paid bounty**. Payment exists only when the repository owner explicitly opens and labels a mission `BOUNTY_OPEN`.
+        Cette issue **ne constitue pas une mission rémunérée**. Une rémunération exige une mission explicitement ouverte par le propriétaire avec le statut `BOUNTY_OPEN` et des conditions définies.
 
-        Never publish API keys, tokens, passwords, private endpoints, personal data, exchange credentials, VPS credentials, or raw secret-bearing logs. Use the private security reporting link for sensitive vulnerabilities.
+        Ne publiez aucune clé API, aucun jeton, mot de passe, endpoint privé, identifiant exchange/VPS, donnée personnelle ou journal contenant des secrets. Utilisez le signalement privé pour les vulnérabilités sensibles.
 
-        Keep **SOURCE PROOF** and **RUNTIME PROOF** separate. `UNRESOLVED != ZERO` and `NOT_AVAILABLE != ZERO`.
+        Séparez **SOURCE PROOF** et **RUNTIME PROOF**. `UNKNOWN != 0`, `UNRESOLVED != ZERO` et `NOT_AVAILABLE != ZERO`. #286 protège le burn-in ; une référence historique ne prouve pas l’état actuel du runtime.
   - type: dropdown
     id: evidence_scope
     attributes:
-      label: Evidence scope
-      description: Select the scope actually observed. Do not infer runtime behavior from source alone.
+      label: Portée des preuves
+      description: Sélectionnez la portée réellement observée. La source seule ne prouve pas le comportement déployé.
       options:
-        - SOURCE PROOF only
-        - RUNTIME PROOF only
-        - SOURCE PROOF and RUNTIME PROOF
-        - UNKNOWN / not yet established
+        - SOURCE PROOF uniquement
+        - RUNTIME PROOF uniquement
+        - SOURCE PROOF et RUNTIME PROOF
+        - UNKNOWN / pas encore établi
     validations:
       required: true
   - type: textarea
     id: observed
     attributes:
-      label: Observed behavior
-      description: State exactly what was observed, including timestamps and identifiers where available.
-      placeholder: "Observed at ...; trace_id ...; event ...; exact output ..."
+      label: Comportement observé
+      description: Décrivez l’observation exacte, sa date et ses identifiants disponibles ; distinguez une preuve fraîche d’une référence historique.
+      placeholder: "Observé le ... ; trace_id ... ; événement ... ; sortie exacte ..."
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Expected behavior
-      description: Describe the expected invariant or documented contract.
+      label: Comportement attendu
+      description: Indiquez l’invariant attendu ou le contrat documenté.
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
-      label: Minimal reproduction
-      description: Provide safe, bounded reproduction steps. Do not request production mutation.
+      label: Reproduction minimale
+      description: Fournissez une reproduction bornée et sûre, sans demander de mutation en production.
     validations:
       required: true
   - type: input
     id: source_sha
     attributes:
-      label: Source SHA
-      description: Exact commit SHA, or NOT_AVAILABLE with an explanation below.
-      placeholder: "40-character SHA or NOT_AVAILABLE"
+      label: SHA source
+      description: SHA exact du commit, ou NOT_AVAILABLE avec une explication dans les preuves.
+      placeholder: "SHA de 40 caractères ou NOT_AVAILABLE"
     validations:
       required: true
   - type: input
     id: epoch_id
     attributes:
-      label: Epoch ID
-      description: Exact epoch ID when runtime evidence is involved; otherwise NOT_APPLICABLE.
-      placeholder: "Epoch ID or NOT_APPLICABLE"
+      label: ID d’epoch
+      description: ID exact d’epoch si la preuve concerne le runtime ; sinon NOT_APPLICABLE.
+      placeholder: "ID d’epoch ou NOT_APPLICABLE"
     validations:
       required: true
   - type: input
     id: config_hash
     attributes:
-      label: Config hash
-      description: Exact config hash when runtime evidence is involved; otherwise NOT_APPLICABLE.
-      placeholder: "Config hash or NOT_APPLICABLE"
+      label: Empreinte de configuration
+      description: Empreinte exacte de configuration si la preuve concerne le runtime ; sinon NOT_APPLICABLE.
+      placeholder: "Empreinte de configuration ou NOT_APPLICABLE"
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
-      label: Evidence and artefacts
-      description: Link non-sensitive logs, tests, screenshots, datasets, or prior issues. Redact secrets before posting.
+      label: Preuves et artefacts
+      description: Reliez les journaux non sensibles, tests, captures, datasets ou issues précédentes. Retirez les secrets avant publication.
     validations:
       required: true
   - type: textarea
     id: impact
     attributes:
-      label: Scientific and operational impact
-      description: Explain affected invariants, authority boundary, and whether the active burn-in could be involved.
+      label: Impact scientifique et opérationnel
+      description: Décrivez les invariants et autorités concernés, ainsi que l’implication éventuelle du burn-in actif.
     validations:
       required: true
   - type: checkboxes
     id: safety
     attributes:
-      label: Safety declaration
+      label: Déclaration de sécurité
       options:
-        - label: I did not include credentials, secrets, personal data, or private infrastructure details.
+        - label: Je n’ai inclus aucun identifiant, secret, donnée personnelle ou détail privé d’infrastructure.
           required: true
-        - label: I understand that this report grants no permission to modify an active PAPER epoch, deploy, restart services, or write to an exchange.
+        - label: Je comprends que ce signalement n’autorise ni mutation d’une epoch PAPER active, ni déploiement, restart de service ou écriture exchange.
           required: true
-        - label: I understand that opening or solving this issue creates no payment entitlement unless the owner explicitly declares a BOUNTY_OPEN contract.
+        - label: Je comprends qu’ouvrir ou résoudre cette issue ne donne aucun droit à rémunération sans contrat BOUNTY_OPEN explicite du propriétaire.
           required: true

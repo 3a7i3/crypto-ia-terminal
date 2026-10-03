@@ -1,3 +1,4 @@
+import { runtimeServiceFixture } from "./runtimeServiceFixtures";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
@@ -95,6 +96,7 @@ describe("App", () => {
   beforeEach(() => {
     fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
+      if (url === "/api/operator/v1/runtime-service") return Promise.resolve(jsonResponse(runtimeServiceFixture()));
       if (url === "/api/operator/v1/market") return Promise.resolve(jsonResponse(baseMarketSnapshot()));
       if (url === "/api/operator/v1/ppl-comparison") return Promise.resolve(jsonResponse(basePplComparisonSnapshot()));
       return Promise.resolve(jsonResponse(baseSnapshot()));
@@ -120,9 +122,10 @@ describe("App", () => {
     fireEvent.click(screen.getByTestId("tab-system"));
     expect(screen.getByTestId("system-view")).toBeInTheDocument();
 
-    // None of these canonical advisor panels triggers an independent-domain
-    // request. MARKET and WEB-02 PPL fetch only when their tabs mount.
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("ÉTAT OBSERVÉ · active"));
+    // Canonical panels share one Advisor request; System separately reads host evidence.
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "/api/operator/v1/snapshot")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "/api/operator/v1/runtime-service")).toHaveLength(1);
   });
 
   it("renders WEB-02 as an independent observational domain", async () => {
@@ -150,8 +153,8 @@ describe("App", () => {
     expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT");
     expect(screen.queryByTestId("not-exposed-label")).toBeNull();
 
-    // Canonical snapshot + MARKET subrouter fetch.
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // Canonical snapshot, scanner and independent LMI source.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
 
     fireEvent.click(screen.getByTestId("tab-system"));
     fireEvent.click(screen.getByTestId("tab-scores"));
@@ -164,6 +167,7 @@ describe("App", () => {
   it("keeps MARKET independently healthy when the canonical snapshot is explicitly missing", async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
+      if (url === "/api/operator/v1/runtime-service") return Promise.resolve(jsonResponse(runtimeServiceFixture()));
       if (url === "/api/operator/v1/market") return Promise.resolve(jsonResponse(baseMarketSnapshot()));
       return Promise.resolve(jsonResponse({ error_code: "SNAPSHOT_MISSING", error_message: "canonical artifact absent" }, 503));
     });
