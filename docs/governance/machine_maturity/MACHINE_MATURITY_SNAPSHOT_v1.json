@@ -198,5 +198,9 @@
   ],
   "projection_rule": "CERTIFIED status is read from an effective MachineLevelCertification artifact; it is never inferred from criterion counts.",
   "l0_certificate_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
-  "l0_evidence_corpus_amendment_hash": "dda4fa51e2a5dc3744087e45247d9d927ccbe65c"
+  "l0_evidence_corpus_amendment_hash": "dda4fa51e2a5dc3744087e45247d9d927ccbe65c",
+  "generated_at_utc": "2026-10-04T01:55:58Z",
+  "snapshot_hash_algorithm": "sha256_canonical_json_excluding_snapshot_hash",
+  "snapshot_hash_scope": "All fields of this object except snapshot_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
+  "snapshot_hash": "73f17869c33d61534c44731edafe02fba741a474429b6183b1b78ced673594eb"
 }
