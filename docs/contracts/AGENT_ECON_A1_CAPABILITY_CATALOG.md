@@ -1,6 +1,6 @@
 # AGENT-ECON A1 — Capability Catalog & Matrix
 
-Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1.1 / CONTRACT-ONLY / NON DÉPLOYÉ**
+Statut : **SOURCE CONTRACT V1 / CERTIFIÉ R1.1 (contrat/schéma ; voir A0 §17 et A1 §15) / CONTRACT-ONLY / NON DÉPLOYÉ**
 Dépend de : [A0 — Forest Maintenance Contract](AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md)
 Appliqué par : [`AGENT_SPEC_V1.schema.json`](AGENT_ECON_A1_AGENT_SPEC_V1.schema.json)
 Base source observée : `main@c561fae406950bf7813102b5b3f59c32388566d0`.

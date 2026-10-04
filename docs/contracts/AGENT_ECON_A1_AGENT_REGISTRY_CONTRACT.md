@@ -1,8 +1,8 @@
 # AGENT-ECON A1 — Agent Registry Contract
 
-Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1.1 / CONTRACT-ONLY / NON DÉPLOYÉ** — conçu, **pas exécuté**.
-Verdict proposé : `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_1_READY_FOR_CERTIFICATION`
-(pas `CERTIFIED`).
+Statut : **SOURCE CONTRACT V1 / CERTIFIÉ R1.1 (contrat/schéma) / CONTRACT-ONLY / NON DÉPLOYÉ** — conçu, **pas exécuté**.
+Verdict (décision humaine de l'opérateur) : `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_1_CERTIFIED`
+(voir §15).
 Réconciliation R1 : PR #347 = `INDEPENDENT_DESIGN_REFERENCE`, PR #348 =
 `CANONICAL_RECONCILIATION_TARGET` (voir [A0](AGENT_ECON_A0_FOREST_MAINTENANCE_CONTRACT.md)).
 
@@ -646,10 +646,29 @@ La mission SOURCE reste soumise à : #284 l'autorisant explicitement ; #286 acti
 
 ## 15. Verdict
 
-`AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_1_READY_FOR_CERTIFICATION` (proposition ; non certifié).
+`AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT_R1_1_CERTIFIED`
+
+Source certifiée : PR #348, tête `18f7c159f207159243cb0227773427f2a209b26a` (CI verte, revue humaine R1.1).
+Fusion de canonicalisation : `eeaec5ae29a72b765bb97feb46520032aba44e2a`. La fusion a précédé la rédaction de cette
+mention ; elle est acceptée (`MERGE_ACCEPTED`) et cette mention la complète
+(`POST_MERGE_CERTIFICATION`).
+
+Périmètre certifié : constitution A0 Forest, contrat A1, schémas AgentSpec V1 et
+AgentRegistryEvent V1, frontière capability / autorité, modèle d'identité, conception
+append-only / hash-chain.
+
+**CERTIFIED** signifie : architecture de **contrat / schéma** certifiée. Cela ne signifie
+**pas** : Agent Registry implémenté ou déployé, agents en exécution, workers
+disponibles, AIC actif, Problem Registry ou Bounty Registry actifs, autorité runtime,
+autorité PAPER, mutation GitHub autonome.
+
+Restent non résolus par conception : identité et authentification du registrar ;
+ancre anti-retour / complétude ; stockage durable du registre ; indépendance forte des
+reviewers ; couverture CODEOWNERS. `AVAILABLE` reste inatteignable. F3 et F4 restent
+`RESERVED`. L'Agent Registry reste `NON_DEPLOYED`.
 
 Portée : sous-périmètre contractuel du registre d'agents uniquement ; l'A0 économique de
 #284 (AIC, Treasury, wallets, coûts : A4/A5) n'est pas clos. Non déclaré :
-`AGENT_ECON_A0_ECONOMIC_CONTRACT_COMPLETE`, `CERTIFIED`, `AGENT_ECONOMY_DEPLOYED`,
+`AGENT_ECON_A0_ECONOMIC_CONTRACT_COMPLETE`, `AGENT_ECONOMY_DEPLOYED`,
 `AGENT_ECONOMY_ARCHITECTURE_CERTIFIED`. Aucune capacité d'exécution n'est créée ;
 #286 reste actif.
