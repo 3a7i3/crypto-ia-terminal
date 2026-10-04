@@ -1,0 +1,155 @@
+{
+  "schema_version": "MACHINE_LEVEL_CERTIFICATION_V1",
+  "level_id": "L1",
+  "level_name": "Observable Machine",
+  "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
+  "catalog_hash_algorithm": "git_blob_sha1",
+  "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+  "certification_status": "CERTIFIED",
+  "certified_at_utc": "2026-10-04T20:48:42Z",
+  "certification_time_basis": "formal_review_merge_commit",
+  "certification_authority": "MACHINE_MATURITY_01_GOVERNED_REVIEW",
+  "decision_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/365#issuecomment-5984365372",
+  "effectivity_rule": "CERTIFICATION_EFFECTIVE_WHEN_THIS_IMMUTABLE_ARTIFACT_IS_PRESENT_ON_MAIN",
+  "certification_basis": "RETROSPECTIVE_DURABLE_L1_CAPABILITY",
+  "source_identity": {
+    "repository": "3a7i3/crypto-ia-terminal",
+    "review_merge_main_sha": "c2b54da779f927ec5477c05eb8583e8a1873e159",
+    "formal_review_blob": "bcd4b3c9c7973045f81e9bb8bace4081ee6d934f",
+    "formal_review_pr": 375,
+    "evidence_manifest_blob": "a24c0250c03588e7706337a9794fb19000c92ab4"
+  },
+  "runtime_identity": {
+    "state": "NOT_AVAILABLE",
+    "claim": "NOT_CLAIMED",
+    "proof_semantics": "HISTORICAL_RUNTIME_PROOF != CURRENT_DEPLOYMENT_PROOF",
+    "rationale": "L1 certifies a retrospective durable observability capability from frozen historical runtime evidence bound through the evidence manifest. No current VPS witness was collected; no current Operator API/PWA PID, runtime SHA, runtime health, schema-v2 replay deployment or canonical snapshot availability is claimed, and none is a certification prerequisite of the frozen catalog."
+  },
+  "criterion_results": [
+    {
+      "criterion_id": "L1-G1",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L1-G2",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L1-G3",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L1-G4",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L1-G5",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L1-G6",
+      "mandatory": true,
+      "status": "SATISFIED"
+    }
+  ],
+  "evidence_record_ids": [
+    "MM-EV-L1-001",
+    "MM-EV-L1-002",
+    "MM-EV-L1-003",
+    "MM-EV-L1-004",
+    "MM-EV-L1-005",
+    "MM-EV-L1-006",
+    "MM-EV-L1-007",
+    "MM-EV-L1-008",
+    "MM-EV-L1-009",
+    "MM-EV-L1-010"
+  ],
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142"
+  },
+  "input_manifest": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "f42ce8783152ee88de8ae3b90af2dd870c75e0df",
+    "r0_merge_main_sha": "8aad0ac42705f50e626aa802340a23c8b5c94aa9",
+    "verdict": "MACHINE_MATURITY_01_INPUTS_FROZEN"
+  },
+  "evidence_manifest_hash_algorithm": "git_blob_sha1",
+  "evidence_manifest_hash": "a24c0250c03588e7706337a9794fb19000c92ab4",
+  "criteria_digest_algorithm": "sha256_canonical_json",
+  "criteria_digest": "ebace0cd5cf1487e8dc7fbee1fd2d7eebe92f1db753ab41d01e6bbcc78cb3a86",
+  "criteria_digest_scope": "criterion_results only, UTF-8 canonical JSON recursively sorted by object key, arrays in declared order",
+  "unresolved_items": [],
+  "accepted_not_applicable": [],
+  "previous_certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
+  "supersedes_certification_hash": "NOT_AVAILABLE",
+  "revocation_invariants": [
+    "L1-G1: Perte durable des identités/timestamps/provenance sur les observations canoniques.",
+    "L1-G2: Échec reproductible du replay déterministe ou append non idempotent.",
+    "L1-G3: Si l’interface read-only acquiert un side effect non gouverné, révoquer.",
+    "L1-G4: Toute présentation canonique de données stale/unresolved comme live/known.",
+    "L1-G5: Perte de capacité à attribuer restart/process/runtime identity sur les surfaces déclarées canoniques.",
+    "L1-G6: Toute dépendance authoritative inversée Operator/UI → PPL/FIN/Research."
+  ],
+  "revocation_ref": "NOT_AVAILABLE",
+  "post_review_revocation_sweep": {
+    "from_main_sha": "747114daa9c7c0bef4992d2dba19f7dd402a423a",
+    "through_main_sha": "c2b54da779f927ec5477c05eb8583e8a1873e159",
+    "delta_refs": [
+      "#375 MACHINE-MATURITY-01 L1 formal certification review (adds LEVEL_1_FORMAL_REVIEW_v1.md and LEVEL_1_EVIDENCE_MANIFEST_v1.json only)"
+    ],
+    "classification": "NO_REVOCATION",
+    "active_contradictions": 0,
+    "result": "NONE_FOUND",
+    "notes": [
+      "The only delta between the reviewed baseline and the certification base is the governance-only #375 merge; no source, runtime or configuration file changed.",
+      "The delta is not admitted as new positive L1 evidence.",
+      "Limitation retained: frozen runtime proof #167 exercised store schema 1 only; schema-2 runtime replay is not claimed.",
+      "Superseded context retained: #171/#172 MARKET provenance-label defect; no EvidenceCorpusAmendment required."
+    ]
+  },
+  "evidence_corpus_amendments": [],
+  "evidence_corpus_amendment_disposition": "NOT_REQUIRED",
+  "issue_refs": [
+    365,
+    362,
+    286,
+    285,
+    154,
+    162,
+    164,
+    167,
+    174,
+    175,
+    223,
+    287,
+    309,
+    319,
+    171,
+    172
+  ],
+  "pr_refs": [
+    375,
+    372,
+    155,
+    166
+  ],
+  "test_refs": [
+    {
+      "pr": 375,
+      "head_sha": "c1ca7f86d62060e70d725bad508c9e16d893d8d3",
+      "workflow_summary": "24 SUCCESS / 1 SKIPPED / 0 FAILED (check runs at that head)"
+    }
+  ],
+  "formal_certified_frontier_after_effective": "L1",
+  "next_formal_certification_target_after_effective": "L2",
+  "certification_hash_algorithm": "sha256_canonical_json_excluding_certification_hash",
+  "certification_hash_scope": "All fields of this object except certification_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
+  "certification_hash": "0e9fc9042f4fe2b54e31dbcdf79c185286ff1270ec610949765ac25405614ae2"
+}
