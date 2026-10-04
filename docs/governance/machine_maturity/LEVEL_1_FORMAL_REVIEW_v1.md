@@ -254,6 +254,66 @@ Current-source negative revocation checks:
 
 **Active L1 revocation findings: 0.**
 
+## Independent re-verification (Phase B, exact main 747114da)
+
+This section records a second, independent pass over the frozen sources and
+current main. It adds no positive evidence and changes no criterion verdict.
+
+Corrections to the first pass:
+
+1. **#171 / #172 (WEB-OBS-TIME-01) was not examined.** The ledger omits it from
+   the frozen L1 subset although the catalog lists it under L1-G4. #171 found,
+   after the #162/#164 certifications, that MARKET could show `FRESH` while the
+   source provenance timestamp was a timezone-naive UTC string rendered as ~+7h
+   in the future. It was remediated and runtime-certified in #172
+   (`WEB_OBS_TIME_01_RUNTIME_CERTIFIED`).
+   Disposition: `SUPERSEDED` for the MARKET provenance-label defect.
+   MM-EV-L1-002/-003 are therefore **not** accepted as evidence that MARKET
+   source timestamps were sound; they remain accepted for read-only/loopback
+   behaviour. #172 is **not** admitted as positive evidence (post-R0, no
+   amendment). L1-G4 does not rest on MARKET: it rests on #175 (STALE→FRESH,
+   PARTIAL/UNRESOLVED), #162 (explicit 503 SNAPSHOT_MISSING) and #223. Current
+   main source retains `SNAPSHOT_CLOCK_SKEW_FUTURE_TIMESTAMP`
+   (`observability/operator_api/reader.py`), UTC normalization
+   (`observability/market_radar_snapshot.py`) and naive-timestamp rejection
+   (`observability/operator_api/market_reader.py`).
+   An optional EvidenceCorpusAmendment adding #171/#172 would strengthen G4; it
+   is not required for the verdict.
+
+2. **`paper_trading/durable_event_store.py` changed after #155.** The blob on
+   main (`cd457fc3…`) differs from the #155 merge (`a2b54537…`). The change adds
+   schema version 2 (`_SUPPORTED_SCHEMA_VERSIONS = {1, 2}`; POSITION_OPENED
+   gains `tp_price`, `sl_price`, `timeout_at`, `recovery_eligible_until`, with
+   validation). Schema 1 validation is unchanged; fsync, locking, identity,
+   idempotence, sequence and corruption guards are untouched by the diff.
+   Disposition: `NO_REVOCATION` with `LIMITATION`: the frozen runtime proof
+   (#167) exercised schema 1 only; schema 2 runtime replay is not covered by the
+   frozen corpus and is not claimed.
+   `paper_trading/ppl_authority_runtime.py` (explicit burn-in epoch identity,
+   a5e95c2) was also inspected: additive, no store-semantics change.
+
+3. Source re-run on main for the store/replay/provenance suites
+   (`test_durable_event_store`, `test_ppl_02e_r2_replay`,
+   `test_ppl_recovery_01_replay_certification`,
+   `test_obs_wallet_ppl_01_provenance`): 87 passed. This is SOURCE evidence only.
+
+Historical versus current:
+
+- Durable historical capability evidence: MM-EV-L1-001…007 (Sept 15–20) and
+  -009/-010 (Sept 28–30), each with its original source/runtime identity.
+- Current deployment claims: **none made.** No current runtime witness was
+  collected in this review (read-only, no VPS access). `HISTORICAL_RUNTIME_PROOF
+  != CURRENT_DEPLOYMENT_PROOF`; a certificate must not be read as stating that
+  the present runtime runs these versions.
+- Unavailable current claims: schema 2 runtime replay; current Operator API /
+  PWA process identity; current canonical snapshot availability.
+
+Other verified points: 15 route decorators in `observability/operator_api/app.py`,
+all GET; no file-write primitive in `observability/operator_api/*.py`; `sw.js`
+blob identical to the #166 merge (`af92fb95…`); L0 identities and certificate
+hash recomputed and matching; main still equals 747114da; #373 untouched
+(`STALE_HANDOFF_CANDIDATE`).
+
 ## Aggregate result
 
 - mandatory criteria: 6

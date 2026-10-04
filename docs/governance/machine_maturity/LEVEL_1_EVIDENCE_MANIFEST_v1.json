@@ -293,6 +293,16 @@
       "later_change": "Later observability/app work may provide additional projections/snapshots.",
       "disposition": "HISTORICAL_LIMITATION_RETAINED",
       "certification_effect": "Used as evidence of fail-closed missing-state semantics, not as a current availability claim."
+    },
+    {
+      "evidence": [
+        "MM-EV-L1-002",
+        "MM-EV-L1-003"
+      ],
+      "historical_fact": "MARKET could show FRESH while source_updated_at_utc was a timezone-naive UTC string rendered ~+7h in the future (found in #171 after #162/#164).",
+      "later_change": "#172 normalized source timestamps to explicit UTC and the API rejects naive values; WEB_OBS_TIME_01_RUNTIME_CERTIFIED.",
+      "disposition": "SUPERSEDED_MARKET_PROVENANCE_LABEL_DEFECT",
+      "certification_effect": "MM-EV-L1-002/-003 not accepted as proof of MARKET source-timestamp soundness. #172 not admitted as positive evidence (post-R0). L1-G4 does not rest on MARKET; optional EvidenceCorpusAmendment for #171/#172 not required."
     }
   ],
   "current_repository_revocation_sweep": {
@@ -345,9 +355,26 @@
         "ref": "#372",
         "disposition": "GOVERNANCE_ONLY_L0_CERTIFICATE",
         "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "paper_trading/durable_event_store.py schema v2 (blob cd457fc3 vs #155 a2b54537)",
+        "disposition": "ADDITIVE_BACKWARD_COMPATIBLE_SCHEMA_V2_SOURCE_CHANGE",
+        "result": "NO_L1_REVOCATION",
+        "limitation": "Frozen runtime proof #167 exercised schema 1 only; schema 2 runtime replay not claimed. Source suites: 87 passed on main."
+      },
+      {
+        "ref": "paper_trading/ppl_authority_runtime.py a5e95c2 (burn-in epoch identity)",
+        "disposition": "ADDITIVE_EPOCH_IDENTITY",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#171/#172",
+        "disposition": "SUPERSEDED_MARKET_PROVENANCE_LABEL_DEFECT",
+        "result": "NO_L1_REVOCATION"
       }
     ],
-    "active_revocation_findings": []
+    "active_revocation_findings": [],
+    "current_deployment_claims": "NONE: historical runtime proofs are not current deployment proof."
   },
   "evidence_amendment_required": false,
   "aggregate": {
@@ -360,7 +387,7 @@
   },
   "formal_review": {
     "hash_algorithm": "git_blob_sha1",
-    "hash": "7295653428256849bdec70afb652d65d8f899808",
+    "hash": "c71235d38237d9052575975f5607261568e347a6",
     "path": "docs/governance/machine_maturity/LEVEL_1_FORMAL_REVIEW_v1.md"
   }
 }
