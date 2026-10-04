@@ -71,20 +71,30 @@ sauvegardes restent des preuves ; elles ne sont pas des interfaces concurrentes
 
 ## État source de référence
 
-Reconstruction DOC-CANON-01 du 2026-10-02 depuis
-`053c8540a012b2c2c7a9bc5e76585a1425858f73` : U4 Research (#337) et la tranche
-Machine/Laboratoire (#339, mission #338 terminée) sont fusionnés en source.
-Cela inclut Scanner, LMI, projections burn-in/services et tableau passif des
-stratégies. L'admission des vrais résultats Lab, les écarts de parité CryptoRadar
-et la certification globale U7 restent distincts. Les captures de test ne sont
-pas des résultats de production.
+Synchronisation DOC-CANON-02 du 2026-10-04 depuis
+`main@a057d4e972cd60ee32710d59f327b4185f3af287`.
 
-La référence runtime consignée sous #286 demeure `116634be…` ; cette page
-ne fait aucune nouvelle observation VPS. Les références complètes et la méthode
-pour vérifier la fraîcheur d'une preuve sont dans l'entrée développeur.
-La publication U8 et le retrait du dashboard standalone exigent leurs gates.
-[#315 Gate O](https://github.com/3a7i3/crypto-ia-terminal/issues/315) reste ouvert ;
-le prototype source n'est pas une file de décisions opérationnelles.
+La chaîne Machine Maturity est désormais formellement certifiée jusqu'à
+**L1 — Observable Machine**. Le certificat canonique L1 v2 porte le hash
+`49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf`;
+il lie explicitement L0 comme prédécesseur et conserve le premier certificat L1
+comme historique superseded. L2 et L3 sont `READY_FOR_REVIEW`, pas certifiés.
+L4 reste `IN_PROGRESS`.
+
+Côté produit, les tranches APP-UNIFY déjà fusionnées couvrent notamment
+Machine/Laboratoire, burn-in/services, Scanner, LMI détaillé, Research, Events
+et Stockage. Elles restent des preuves source. La certification globale U7
+`APP_UNIFY_01_SOURCE_CERTIFIED` n'est pas encore émise et U8 runtime reste
+une gate séparée.
+
+Le burn-in #282 n'est pas finalisé et #286 demeure
+`ACTIVE_BURN_IN_IMMUTABILITY_GUARD`. La référence runtime consignée reste
+`116634be…` ; cette page ne crée aucune observation VPS fraîche. #315 Gate O
+reste ouvert et OperatorDecision opérationnel demeure non déployé.
+
+Les PR administratives obsolètes #373 et #345 sont fermées sans merge ;
+#374 Agent Registry reste parquée en DRAFT/source-only. Les états et preuves
+GitHub datés priment toujours sur ce résumé.
 
 Voir le [plan Machine/Lab](docs/plans/APP_UNIFY_MACHINE_LAB_PRODUCT_PLAN.md),
 [l'inventaire de capacités](docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md)
