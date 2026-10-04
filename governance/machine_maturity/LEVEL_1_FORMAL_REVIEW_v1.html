@@ -1,0 +1,911 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>MACHINE-MATURITY-01 — L1 Formal Review v1 - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/governance/machine_maturity/LEVEL_1_FORMAL_REVIEW_v1.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/governance/machine_maturity/LEVEL_1_FORMAL_REVIEW_v1.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="machine-maturity-01-l1-formal-review-v1">
+<h1>MACHINE-MATURITY-01 — L1 Formal Review v1<a class="headerlink" href="#machine-maturity-01-l1-formal-review-v1" title="Link to this heading">¶</a></h1>
+<p>Status: <code class="docutils literal notranslate"><span class="pre">FORMAL_REVIEW_COMPLETE</span> <span class="pre">/</span> <span class="pre">CANDIDATE_ONLY</span></code><br />
+Parent mission: #365<br />
+Framework: #362<br />
+Roadmap: #285<br />
+L0 effective via: #372</p>
+<section id="decision-candidate">
+<h2>Decision candidate<a class="headerlink" href="#decision-candidate" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFIED</span></code></p>
+<p>This is a <strong>formal-review candidate only</strong>. It is not yet an effective
+MachineLevelCertification(L1) and does not advance the effective Formal
+Certified Frontier beyond L0.</p>
+<p>Effective frontier remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FORMAL_CERTIFIED_FRONTIER</span> <span class="pre">=</span> <span class="pre">L0</span></code></p>
+<p>until a separate immutable MachineLevelCertification(L1) artifact is reviewed
+and merged under the frozen catalog rules.</p>
+</section>
+<section id="entry-condition">
+<h2>Entry condition<a class="headerlink" href="#entry-condition" title="Link to this heading">¶</a></h2>
+<p>PASS.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LEVEL_0_CERTIFIED</span></code></p></li>
+<li><p>effective L0 main SHA:
+<code class="docutils literal notranslate"><span class="pre">747114daa9c7c0bef4992d2dba19f7dd402a423a</span></code></p></li>
+<li><p>L0 certification hash:
+<code class="docutils literal notranslate"><span class="pre">d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0</span></code></p></li>
+</ul>
+</section>
+<section id="frozen-identities">
+<h2>Frozen identities<a class="headerlink" href="#frozen-identities" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Catalog: <code class="docutils literal notranslate"><span class="pre">MACHINE-MATURITY-CATALOG-v0.1</span></code></p></li>
+<li><p>catalog blob: <code class="docutils literal notranslate"><span class="pre">2c8392c24bb8be1078f9570111b9364034686af3</span></code></p></li>
+<li><p>Evidence Ledger: <code class="docutils literal notranslate"><span class="pre">MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1</span></code></p></li>
+<li><p>ledger blob: <code class="docutils literal notranslate"><span class="pre">267680f65f620c329dc0ef989ae7fbce329ef142</span></code></p></li>
+<li><p>MM-01 Input Manifest blob:
+<code class="docutils literal notranslate"><span class="pre">f42ce8783152ee88de8ae3b90af2dd870c75e0df</span></code></p></li>
+<li><p>review base: <code class="docutils literal notranslate"><span class="pre">main&#64;747114daa9c7c0bef4992d2dba19f7dd402a423a</span></code></p></li>
+<li><p>bounded L1 EvidenceRecords: <code class="docutils literal notranslate"><span class="pre">MM-EV-L1-001…MM-EV-L1-010</span></code></p></li>
+</ul>
+<p>No post-R0 evidence was admitted as new positive criterion evidence. Later
+changes were inspected only for contradiction, supersession and revocation.
+No EvidenceCorpusAmendment is required for this review.</p>
+</section>
+<section id="source-forensic-reviewed">
+<h2>Source forensic reviewed<a class="headerlink" href="#source-forensic-reviewed" title="Link to this heading">¶</a></h2>
+<p>Frozen sources were re-read:</p>
+<ul class="simple">
+<li><p>#154 / PR #155 — PPL-02B durable event truth</p></li>
+<li><p>#162 — WEB-01 FINAL</p></li>
+<li><p>#164 / PR #166 — WEB-01B private PWA + runtime remediation</p></li>
+<li><p>#167 — PPL-02D SHADOW runtime</p></li>
+<li><p>#174 — OPS-C runtime recertification</p></li>
+<li><p>#175 — WEB-02 PPL comparator</p></li>
+<li><p>#223 — truthful PPL scientific-capital provenance</p></li>
+<li><p>#287 — architecture surface forensic</p></li>
+<li><p>#309 — bounded VPS runtime UNKNOWN evidence</p></li>
+<li><p>#319 — secure CryptoRadar runtime precedent</p></li>
+</ul>
+</section>
+<section id="criterion-decisions">
+<h2>Criterion decisions<a class="headerlink" href="#criterion-decisions" title="Link to this heading">¶</a></h2>
+<section id="l1-g1-structured-machine-observation-decision-provenance">
+<h3>L1-G1 — Structured machine observation &amp; decision provenance<a class="headerlink" href="#l1-g1-structured-machine-observation-decision-provenance" title="Link to this heading">¶</a></h3>
+<p><strong>Verdict: SATISFIED</strong></p>
+<p>Requirement:
+<code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code>.</p>
+<p>Accepted frozen evidence:</p>
+<ul class="simple">
+<li><p>MM-EV-L1-007 / #223</p></li>
+<li><p>MM-EV-L1-006 / #175</p></li>
+</ul>
+<p>#223 demonstrates source + runtime provenance for critical scientific capital:
+explicit PPL authority, exact epoch, <code class="docutils literal notranslate"><span class="pre">provenance=PPL_REPLAY</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">legacy_fallback=disabled</span></code>. #175 demonstrates timestamped producer materialization,
+authority/provenance and transport of producer-authored observations.</p>
+<p>Dependencies L0-G2/L0-G3 are certified through effective L0.</p>
+<p>No current state without provenance/timestamp was found as a canonical
+substitute. Narrative logs or screenshots were not used alone.</p>
+</section>
+<section id="l1-g2-durable-event-truth-deterministic-replay">
+<h3>L1-G2 — Durable event truth &amp; deterministic replay<a class="headerlink" href="#l1-g2-durable-event-truth-deterministic-replay" title="Link to this heading">¶</a></h3>
+<p><strong>Verdict: SATISFIED</strong></p>
+<p>Requirement:
+<code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code>.</p>
+<p>Accepted frozen evidence:</p>
+<ul class="simple">
+<li><p>MM-EV-L1-001 / #154 / PR #155</p></li>
+<li><p>MM-EV-L1-004 / #167</p></li>
+</ul>
+<p>#154/#155 establish append-only durability, canonical event identity,
+idempotent append, per-epoch sequence ordering, POSIX locking, fsync,
+fail-closed corruption handling and deterministic replay. #167 provides real
+runtime restart/replay, ON→OFF→ON same-epoch continuity, exact OPEN/CLOSE
+capture, no duplicate semantic lifecycle and DEGRADED→ACTIVE recovery.</p>
+<p>The historical authority state in #167 is superseded: PPL later became the
+governed PAPER authority. That supersession does not invalidate the replay,
+identity, durability or recovery proof and is not reused as a current authority
+claim.</p>
+<p>Current-main source inspection still contains the certified store invariants.
+No duplicate-identity or replay-divergence revocation evidence was found.</p>
+</section>
+<section id="l1-g3-read-only-operator-observation-surface">
+<h3>L1-G3 — Read-only operator observation surface<a class="headerlink" href="#l1-g3-read-only-operator-observation-surface" title="Link to this heading">¶</a></h3>
+<p><strong>Verdict: SATISFIED</strong></p>
+<p>Requirement:
+<code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">UX_PROOF)</span></code>.</p>
+<p>Accepted frozen evidence:</p>
+<ul class="simple">
+<li><p>MM-EV-L1-002 / #162</p></li>
+<li><p>MM-EV-L1-003 / #164/#166</p></li>
+<li><p>MM-EV-L1-006 / #175</p></li>
+<li><p>MM-EV-L1-010 / #319 as supporting-only precedent</p></li>
+</ul>
+<p>#162 proves the canonical local Operator API/Web read-only runtime and real
+browser surface. #164/#166 prove the private PWA path, runtime-data cache
+exclusion, fail-closed disconnect semantics and real Chromium remediation.
+#175 proves producer→API→frontend comparison fidelity without trading mutation.</p>
+<p>Current-main inspection found 15 route decorators in
+<code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code>, all GET. No POST/PUT/DELETE/PATCH
+operator route was found. The PWA service-worker blob remains identical to the
+#166 certified version.</p>
+<p>No direct frontend trading-store access or observation-side trading action was
+accepted as evidence.</p>
+</section>
+<section id="l1-g4-provenance-freshness-uncertainty-visible">
+<h3>L1-G4 — Provenance / freshness / uncertainty visible<a class="headerlink" href="#l1-g4-provenance-freshness-uncertainty-visible" title="Link to this heading">¶</a></h3>
+<p><strong>Verdict: SATISFIED</strong></p>
+<p>Requirement:
+<code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code>.</p>
+<p>Accepted frozen evidence:</p>
+<ul class="simple">
+<li><p>MM-EV-L1-002, -004, -006, -007</p></li>
+<li><p>MM-EV-L1-008/-009 as supporting evidence</p></li>
+</ul>
+<p>#162 historically proves explicit <code class="docutils literal notranslate"><span class="pre">SNAPSHOT_MISSING</span> <span class="pre">/</span> <span class="pre">UNRESOLVED</span></code> semantics.
+#175 proves raw provenance, PARTIAL/UNRESOLVED states and an observed
+STALE→FRESH transition without fabricated convergence. #223 proves exact
+authority/epoch/provenance labelling.</p>
+<p>The historical SNAPSHOT_MISSING state is not asserted as current availability;
+it is retained only as fail-closed evidence.</p>
+<p>Later APP-UNIFY source work (#330/#332/#334/#361/#368/#370) continues to make
+missing/null/zero/stale distinctions explicit and remains source-only. It was
+reviewed only as revocation-negative evidence, not admitted as new frozen L1
+positive evidence.</p>
+</section>
+<section id="l1-g5-runtime-health-recovery-observability">
+<h3>L1-G5 — Runtime health / recovery observability<a class="headerlink" href="#l1-g5-runtime-health-recovery-observability" title="Link to this heading">¶</a></h3>
+<p><strong>Verdict: SATISFIED</strong></p>
+<p>Requirement:
+<code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code>.</p>
+<p>Accepted frozen runtime evidence:
+MM-EV-L1-002…010 as applicable.</p>
+<p>The frozen corpus contains repeated runtime witnesses for:</p>
+<ul class="simple">
+<li><p>service/process identity;</p></li>
+<li><p>restart/recovery;</p></li>
+<li><p>same-epoch replay;</p></li>
+<li><p>artifact continuity;</p></li>
+<li><p>fail-closed degradation/recovery;</p></li>
+<li><p>listener/runtime identity;</p></li>
+<li><p>controlled start/stop and quiescence.</p></li>
+</ul>
+<p>Notable witnesses include #162, #164/#166, #167, #174, #175, #223, #309 and
+#319.</p>
+<p>These are dated runtime proofs. They are treated as durable inherited
+certification evidence only because the current-main revocation sweep found no
+later change demonstrating loss of the capability. No source-only service
+template was substituted for runtime evidence.</p>
+</section>
+<section id="l1-g6-observability-is-non-authoritative">
+<h3>L1-G6 — Observability is non-authoritative<a class="headerlink" href="#l1-g6-observability-is-non-authoritative" title="Link to this heading">¶</a></h3>
+<p><strong>Verdict: SATISFIED</strong></p>
+<p>Requirement:
+<code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code>.</p>
+<p>Accepted frozen evidence:</p>
+<ul class="simple">
+<li><p>MM-EV-L1-002</p></li>
+<li><p>MM-EV-L1-003</p></li>
+<li><p>MM-EV-L1-004</p></li>
+<li><p>MM-EV-L1-006</p></li>
+<li><p>MM-EV-L1-010 supporting-only</p></li>
+</ul>
+<p>#162/#164 keep Web/PWA presentation read-only. #167 demonstrates that SHADOW
+failure cannot take over or corrupt the then-authoritative lifecycle. #175
+declares comparator authority <code class="docutils literal notranslate"><span class="pre">OBSERVATIONAL_TELEMETRY</span></code> and prohibits
+repair/reconstruction from becoming truth.</p>
+<p>The later governed PPL authority cutover supersedes the historical authority
+labels from #167/#175 but not the invariant that observability remains
+downstream/non-authoritative.</p>
+<p>Current main still has no operational OperatorDecision path:
+#315 Gate O remains <code class="docutils literal notranslate"><span class="pre">OPEN</span> <span class="pre">/</span> <span class="pre">NON_RESOLVED</span></code>, <code class="docutils literal notranslate"><span class="pre">operational=True</span></code> remains
+blocked, and no Operator API mutation route was found.</p>
+</section>
+</section>
+<section id="contradiction-supersession-review">
+<h2>Contradiction / supersession review<a class="headerlink" href="#contradiction-supersession-review" title="Link to this heading">¶</a></h2>
+<p>Two historical states were explicitly superseded without invalidating L1:</p>
+<ol class="arabic simple">
+<li><p><strong>PPL SHADOW / authority NONE in #167/#175</strong><br />
+Later governed cutover changed PAPER authority. The historical authority
+value is not reused as current truth. Replay/recovery and
+non-authoritative-observation evidence remains valid.</p></li>
+<li><p><strong>WEB-01 canonical SNAPSHOT_MISSING in #162</strong><br />
+This remains historical fail-closed evidence, not a current availability
+assertion.</p></li>
+</ol>
+<p>No historical FAIL/remediation sequence was erased or rewritten.</p>
+</section>
+<section id="revocation-sweep-through-current-main">
+<h2>Revocation sweep through current main<a class="headerlink" href="#revocation-sweep-through-current-main" title="Link to this heading">¶</a></h2>
+<p>Reviewed through:</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;747114daa9c7c0bef4992d2dba19f7dd402a423a</span></code></p>
+<p>Post-freeze material changes examined for L1 impact include:</p>
+<ul class="simple">
+<li><p>#315 — OperatorDecision prototype remains source-only/non-operational;</p></li>
+<li><p>#330 — source-only read-only RuntimeService projection;</p></li>
+<li><p>#332 — source-only observational Scanner;</p></li>
+<li><p>#334 — source-only read-only microstructure projection;</p></li>
+<li><p>#361 — source-only GET-only Event Center;</p></li>
+<li><p>#368 — source-only GET-only storage metadata;</p></li>
+<li><p>#370 — source-only GET-only LMI detail;</p></li>
+<li><p>#372 — governance-only L0 certificate.</p></li>
+</ul>
+<p>Current-source negative revocation checks:</p>
+<ul class="simple">
+<li><p>Operator API route decorators inspected: GET-only;</p></li>
+<li><p>no mutating OperatorDecision activation;</p></li>
+<li><p>PWA runtime-data cache exclusion remains;</p></li>
+<li><p>durable PPL store retains fsync/locking/idempotence/sequence/corruption guards;</p></li>
+<li><p>PPL scientific-capital provenance labels remain;</p></li>
+<li><p>no evidence found of observer→PPL/FIN/Research authority inversion.</p></li>
+</ul>
+<p><strong>Active L1 revocation findings: 0.</strong></p>
+</section>
+<section id="independent-re-verification-phase-b-exact-main-747114da">
+<h2>Independent re-verification (Phase B, exact main 747114da)<a class="headerlink" href="#independent-re-verification-phase-b-exact-main-747114da" title="Link to this heading">¶</a></h2>
+<p>This section records a second, independent pass over the frozen sources and
+current main. It adds no positive evidence and changes no criterion verdict.</p>
+<p>Corrections to the first pass:</p>
+<ol class="arabic simple">
+<li><p><strong>#171 / #172 (WEB-OBS-TIME-01) was not examined.</strong> The ledger omits it from
+the frozen L1 subset although the catalog lists it under L1-G4. #171 found,
+after the #162/#164 certifications, that MARKET could show <code class="docutils literal notranslate"><span class="pre">FRESH</span></code> while the
+source provenance timestamp was a timezone-naive UTC string rendered as ~+7h
+in the future. It was remediated and runtime-certified in #172
+(<code class="docutils literal notranslate"><span class="pre">WEB_OBS_TIME_01_RUNTIME_CERTIFIED</span></code>).
+Disposition: <code class="docutils literal notranslate"><span class="pre">SUPERSEDED</span></code> for the MARKET provenance-label defect.
+MM-EV-L1-002/-003 are therefore <strong>not</strong> accepted as evidence that MARKET
+source timestamps were sound; they remain accepted for read-only/loopback
+behaviour. #172 is <strong>not</strong> admitted as positive evidence (post-R0, no
+amendment). L1-G4 does not rest on MARKET: it rests on #175 (STALE→FRESH,
+PARTIAL/UNRESOLVED), #162 (explicit 503 SNAPSHOT_MISSING) and #223. Current
+main source retains <code class="docutils literal notranslate"><span class="pre">SNAPSHOT_CLOCK_SKEW_FUTURE_TIMESTAMP</span></code>
+(<code class="docutils literal notranslate"><span class="pre">observability/operator_api/reader.py</span></code>), UTC normalization
+(<code class="docutils literal notranslate"><span class="pre">observability/market_radar_snapshot.py</span></code>) and naive-timestamp rejection
+(<code class="docutils literal notranslate"><span class="pre">observability/operator_api/market_reader.py</span></code>).
+An optional EvidenceCorpusAmendment adding #171/#172 would strengthen G4; it
+is not required for the verdict.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">paper_trading/durable_event_store.py</span></code> changed after #155.</strong> The blob on
+main (<code class="docutils literal notranslate"><span class="pre">cd457fc3…</span></code>) differs from the #155 merge (<code class="docutils literal notranslate"><span class="pre">a2b54537…</span></code>). The change adds
+schema version 2 (<code class="docutils literal notranslate"><span class="pre">_SUPPORTED_SCHEMA_VERSIONS</span> <span class="pre">=</span> <span class="pre">{1,</span> <span class="pre">2}</span></code>; POSITION_OPENED
+gains <code class="docutils literal notranslate"><span class="pre">tp_price</span></code>, <code class="docutils literal notranslate"><span class="pre">sl_price</span></code>, <code class="docutils literal notranslate"><span class="pre">timeout_at</span></code>, <code class="docutils literal notranslate"><span class="pre">recovery_eligible_until</span></code>, with
+validation). Schema 1 validation is unchanged; fsync, locking, identity,
+idempotence, sequence and corruption guards are untouched by the diff.
+Disposition: <code class="docutils literal notranslate"><span class="pre">NO_REVOCATION</span></code> with <code class="docutils literal notranslate"><span class="pre">LIMITATION</span></code>: the frozen runtime proof
+(#167) exercised schema 1 only; schema 2 runtime replay is not covered by the
+frozen corpus and is not claimed.
+<code class="docutils literal notranslate"><span class="pre">paper_trading/ppl_authority_runtime.py</span></code> (explicit burn-in epoch identity,
+a5e95c2) was also inspected: additive, no store-semantics change.</p></li>
+<li><p>Source re-run on main for the store/replay/provenance suites
+(<code class="docutils literal notranslate"><span class="pre">test_durable_event_store</span></code>, <code class="docutils literal notranslate"><span class="pre">test_ppl_02e_r2_replay</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_ppl_recovery_01_replay_certification</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_obs_wallet_ppl_01_provenance</span></code>): 87 passed. This is SOURCE evidence only.</p></li>
+</ol>
+<p>Historical versus current:</p>
+<ul class="simple">
+<li><p>Durable historical capability evidence: MM-EV-L1-001…007 (Sept 15–20) and
+-009/-010 (Sept 28–30), each with its original source/runtime identity.</p></li>
+<li><p>Current deployment claims: <strong>none made.</strong> No current runtime witness was
+collected in this review (read-only, no VPS access). <code class="docutils literal notranslate"><span class="pre">HISTORICAL_RUNTIME_PROOF</span> <span class="pre">!=</span> <span class="pre">CURRENT_DEPLOYMENT_PROOF</span></code>; a certificate must not be read as stating that
+the present runtime runs these versions.</p></li>
+<li><p>Unavailable current claims: schema 2 runtime replay; current Operator API /
+PWA process identity; current canonical snapshot availability.</p></li>
+</ul>
+<p>Other verified points: 15 route decorators in <code class="docutils literal notranslate"><span class="pre">observability/operator_api/app.py</span></code>,
+all GET; no file-write primitive in <code class="docutils literal notranslate"><span class="pre">observability/operator_api/*.py</span></code>; <code class="docutils literal notranslate"><span class="pre">sw.js</span></code>
+blob identical to the #166 merge (<code class="docutils literal notranslate"><span class="pre">af92fb95…</span></code>); L0 identities and certificate
+hash recomputed and matching; main still equals 747114da; #373 untouched
+(<code class="docutils literal notranslate"><span class="pre">STALE_HANDOFF_CANDIDATE</span></code>).</p>
+</section>
+<section id="aggregate-result">
+<h2>Aggregate result<a class="headerlink" href="#aggregate-result" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>mandatory criteria: 6</p></li>
+<li><p>SATISFIED: 6</p></li>
+<li><p>UNRESOLVED: 0</p></li>
+<li><p>NOT_AVAILABLE: 0</p></li>
+<li><p>active revocation findings: 0</p></li>
+</ul>
+<p>Formal review decision candidate:</p>
+<p><code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFIED</span></code></p>
+<p>Again: this candidate is not effective until the review itself passes its exact
+head controls and is merged, followed by a separate immutable
+MachineLevelCertification(L1) artifact and its own governed effectivity gate.</p>
+</section>
+<section id="guardrails">
+<h2>Guardrails<a class="headerlink" href="#guardrails" title="Link to this heading">¶</a></h2>
+<p>Certification-only / documentation-governance scope.</p>
+<p>No Advisor restart/deploy, runtime checkout movement, PAPER/PPL/FIN mutation,
+epoch/config mutation, strategy/signal/risk/sizing change, PB_MAX_POSITIONS,
+Watchdog, TESTNET/LIVE, exchange write, OperatorDecision operational
+activation, agent/bounty/AIC activation, or #282 finalization.</p>
+</section>
+<section id="exact-frozen-evidence-identity-audit-and-completed-protocol">
+<h2>Exact frozen-evidence identity audit and completed protocol<a class="headerlink" href="#exact-frozen-evidence-identity-audit-and-completed-protocol" title="Link to this heading">¶</a></h2>
+<p>Additional source review at <code class="docutils literal notranslate"><span class="pre">main&#64;747114daa9c7c0bef4992d2dba19f7dd402a423a</span></code> from existing candidate
+<code class="docutils literal notranslate"><span class="pre">06a6157f12392b58275640eb6393ebd3eb783466</span></code>. The branch already contained the completed review and
+manifest; no new mission, remote branch or PR was created.</p>
+<p>All ten records were checked against their original issues, full comment
+threads, exact source PR metadata and versioned evidence. Publication timestamps
+below are GitHub timestamps, not fabricated command/witness times. Missing
+command times, source identities and process IDs remain explicit limitations.
+No newly collected positive runtime evidence was used.</p>
+<section id="mm-ev-l1-001">
+<h3>MM-EV-L1-001<a class="headerlink" href="#mm-ev-l1-001" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> SOURCE_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">PPL_02B_SOURCE_CERTIFIED</span></code>.
+<strong>Time:</strong> Source merge 2026-09-14T22:46:52Z; final checkpoint publication 2026-09-16T00:39:14Z.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/154#issuecomment-5690267300; PR #155.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;merge_sha&quot;:</span> <span class="pre">&quot;cb20d6c04f3d471dad24f401cec0b25378236268&quot;,</span> <span class="pre">&quot;reviewed_head&quot;:</span> <span class="pre">&quot;ba633aa6288991218b3a66dbc2836fab0a68493e&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;reason&quot;:</span> <span class="pre">&quot;This</span> <span class="pre">is</span> <span class="pre">source</span> <span class="pre">certification,</span> <span class="pre">not</span> <span class="pre">PPL</span> <span class="pre">runtime</span> <span class="pre">proof.&quot;,</span> <span class="pre">&quot;state&quot;:</span> <span class="pre">&quot;NOT_APPLICABLE&quot;}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Durable append, event identity/idempotence, epoch sequence, locking/fsync, detectable corruption, deterministic replay source contract.</p>
+<p><strong>Does not demonstrate:</strong> PAPER authority Runtime deployment or current runtime replay</p>
+<p><strong>Limitations:</strong> 57 store / 160 projector-store / 274 PAPER tests are historical source gates, not runtime witnesses.</p>
+<p><strong>Supersession/current relevance:</strong> NO_REVOCATION: schema 1 store semantics retained; later schema 2 is additive, outside frozen runtime coverage.</p>
+</section>
+<section id="mm-ev-l1-002">
+<h3>MM-EV-L1-002<a class="headerlink" href="#mm-ev-l1-002" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF, SOURCE_PROOF, UX_PROOF, GOVERNANCE_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">WEB_01_FINAL_CERTIFIED</span></code>.
+<strong>Time:</strong> 2026-09-15; exact time of consolidated commands NOT_AVAILABLE; publication 2026-09-15T22:36:00Z.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/162#issuecomment-5689016236; docs/certification/WEB_01_FINAL_CERTIFICATION.md.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;certification_merge_sha&quot;:</span> <span class="pre">&quot;16e8b17b6275612baa9a57367906cb68b2e1c5bb&quot;,</span> <span class="pre">&quot;certification_record_sha&quot;:</span> <span class="pre">&quot;5935d565393207599a5d6e87278ac166e768bce4&quot;,</span> <span class="pre">&quot;functional_runtime_sha&quot;:</span> <span class="pre">&quot;aeebdd1744e54ccc95bd93002af0e3944f4a7618&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;listeners&quot;:</span> <span class="pre">[&quot;127.0.0.1:8090&quot;,</span> <span class="pre">&quot;127.0.0.1:8181&quot;],</span> <span class="pre">&quot;market_snapshot_pid&quot;:</span> <span class="pre">2218746,</span> <span class="pre">&quot;operator_api_pid&quot;:</span> <span class="pre">2208782,</span> <span class="pre">&quot;operator_web_pid&quot;:</span> <span class="pre">2224150,</span> <span class="pre">&quot;web_restart_pids&quot;:</span> <span class="pre">[2217390,</span> <span class="pre">2224150]}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Real local read-only browser/API transport; POST 405; service restart/recovery; explicit 503 SNAPSHOT_MISSING.</p>
+<p><strong>Does not demonstrate:</strong> Canonical snapshot availability Sound MARKET source timestamp before #171/#172 Current deployment</p>
+<p><strong>Limitations:</strong> UNRESOLVED / SNAPSHOT_MISSING retained. GENERAL_CI = NON_GREEN / PRE_EXISTING_DEBT retained. No remote/PWA certification at this stage.</p>
+<p><strong>Supersession/current relevance:</strong> LIMITATION: snapshot missing is historical, not silently superseded by availability. SUPERSEDED: #171 MARKET provenance-label defect; not accepted as MARKET source-time soundness evidence. NO_REVOCATION: read-only/missing-state/recovery evidence remains bounded and admissible.</p>
+</section>
+<section id="mm-ev-l1-003">
+<h3>MM-EV-L1-003<a class="headerlink" href="#mm-ev-l1-003" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF, SECURITY_PROOF, UX_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">WEB_01B_PRIVATE_PWA_RUNTIME_CERTIFIED</span></code>.
+<strong>Time:</strong> 2026-09-16; final attestation published 2026-09-16T00:34:44Z (not an exact command timestamp).</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/164#issuecomment-5690150760; https://github.com/3a7i3/crypto-ia-terminal/issues/164#issuecomment-5690228028; https://github.com/3a7i3/crypto-ia-terminal/issues/164#issuecomment-5690233371; PR #166.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;deployed_sha&quot;:</span> <span class="pre">&quot;f86a561eb487954b2b9e770a4238298e0db022cf&quot;,</span> <span class="pre">&quot;reviewed_remediation_head&quot;:</span> <span class="pre">&quot;64ac3ac3fc4f6013b05c82beed5020f74a5893d7&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;browser&quot;:</span> <span class="pre">&quot;Real</span> <span class="pre">Chromium</span> <span class="pre">replacement</span> <span class="pre">proof</span> <span class="pre">and</span> <span class="pre">installed</span> <span class="pre">Android</span> <span class="pre">PWA&quot;,</span> <span class="pre">&quot;listeners&quot;:</span> <span class="pre">[&quot;127.0.0.1:8181&quot;,</span> <span class="pre">&quot;127.0.0.1:8090&quot;],</span> <span class="pre">&quot;pids&quot;:</span> <span class="pre">&quot;NOT_AVAILABLE</span> <span class="pre">in</span> <span class="pre">final</span> <span class="pre">compact</span> <span class="pre">attestation&quot;,</span> <span class="pre">&quot;services&quot;:</span> <span class="pre">[&quot;crypto-operator-web.service:</span> <span class="pre">active&quot;,</span> <span class="pre">&quot;crypto-operator-api.service:</span> <span class="pre">active&quot;]}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Runtime-data cache exclusion (CACHED_RUNTIME_URLS=0); private-link failure/recovery; replacement causes one reload; loopback boundary.</p>
+<p><strong>Does not demonstrate:</strong> Trading authority Current APP-UNIFY deployment MARKET source-time soundness before #171/#172</p>
+<p><strong>Limitations:</strong> Original CONTROLLERCHANGE_WITHOUT_APP_RELOAD failure retained; causally remediated by #166. Canonical snapshot missing remains explicit.</p>
+<p><strong>Supersession/current relevance:</strong> SUPERSEDED: worker defect by #166 and MARKET label defect by #172. NO_REVOCATION: current sw.js/pwa-policy.js match the deployed #166 source.</p>
+</section>
+<section id="mm-ev-l1-004">
+<h3>MM-EV-L1-004<a class="headerlink" href="#mm-ev-l1-004" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF, SOURCE_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">PPL_02D_SHADOW_CERTIFIED</span></code>.
+<strong>Time:</strong> 2026-09-17 through 2026-09-18; recovery boot 2026-09-18T00:04:14Z; final publication 2026-09-18T00:24:35Z.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/167#issuecomment-5710356607; https://github.com/3a7i3/crypto-ia-terminal/issues/167#issuecomment-5723098301; https://github.com/3a7i3/crypto-ia-terminal/issues/167#issuecomment-5723107540; PR #168.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;deployed_sha&quot;:</span> <span class="pre">&quot;cdedbf41fb1579feedac355cd8d1b2d0ff94ffa2&quot;,</span> <span class="pre">&quot;merge_sha&quot;:</span> <span class="pre">&quot;4bdc9eeb33e0a18b4724808efd4475814973b017&quot;,</span> <span class="pre">&quot;reviewed_head&quot;:</span> <span class="pre">&quot;57834fac6e3ef2a2dc46decb5f62c626689bceab&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;authority&quot;:</span> <span class="pre">&quot;Legacy</span> <span class="pre">PAPER</span> <span class="pre">only;</span> <span class="pre">PPL</span> <span class="pre">SHADOW/NONE&quot;,</span> <span class="pre">&quot;boot_timestamp_utc&quot;:</span> <span class="pre">&quot;2026-09-17T06:56:47Z&quot;,</span> <span class="pre">&quot;durable_sequences&quot;:</span> <span class="pre">[1,</span> <span class="pre">2,</span> <span class="pre">3],</span> <span class="pre">&quot;durable_store_sha256&quot;:</span> <span class="pre">&quot;a9b2829a67259faeec4531013b2f5cb0d5d9599afb4d2acec08a97eb838e1842&quot;,</span> <span class="pre">&quot;epoch&quot;:</span> <span class="pre">&quot;PPL02D-SHADOW-001-20260917T064605Z&quot;,</span> <span class="pre">&quot;on_off_on_pids&quot;:</span> <span class="pre">[2360637,</span> <span class="pre">2361599,</span> <span class="pre">2362068,</span> <span class="pre">2362407],</span> <span class="pre">&quot;process_instance_id&quot;:</span> <span class="pre">&quot;6150e997-f16b-4ea3-983b-dae686725161&quot;,</span> <span class="pre">&quot;recovery_pid&quot;:</span> <span class="pre">2432921}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Same-epoch runtime restart/replay and ON/OFF/ON; exact OPEN/CLOSE; no duplicate lifecycle; DEGRADED isolation/recovery; unchanged store.</p>
+<p><strong>Does not demonstrate:</strong> PPL authority transfer Schema 2 runtime lifecycle replay Current deployment</p>
+<p><strong>Limitations:</strong> SHADOW proof only; historical runtime schema 1. Legacy PnL rounding boundary is explicit, not silent normalization.</p>
+<p><strong>Supersession/current relevance:</strong> SUPERSEDED: authority-state labels by separately governed #180/#184; SHADOW epoch never promoted. NO_REVOCATION: durable replay/identity/isolation capability remains, with schema/version limits.</p>
+</section>
+<section id="mm-ev-l1-005">
+<h3>MM-EV-L1-005<a class="headerlink" href="#mm-ev-l1-005" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">OPS_C_RUNTIME_RECERTIFIED</span></code>.
+<strong>Time:</strong> 2026-09-16; publication 2026-09-16T08:28:32Z; exact command time NOT_AVAILABLE.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/174#issuecomment-5694460643.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;context_is_exact_witness_attestation&quot;:</span> <span class="pre">false,</span> <span class="pre">&quot;historical_context_sha&quot;:</span> <span class="pre">&quot;4bdc9eeb33e0a18b4724808efd4475814973b017&quot;,</span> <span class="pre">&quot;witness_source_sha&quot;:</span> <span class="pre">&quot;NOT_AVAILABLE</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">compact</span> <span class="pre">#174</span> <span class="pre">witness&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;config_and_live_fingerprint_sha256&quot;:</span> <span class="pre">&quot;e13ea29cc0e7db839d7c0f4291ed1468897ab21872f57a34477af7d8d0e33108&quot;,</span> <span class="pre">&quot;execution_evidence_sha256&quot;:</span> <span class="pre">&quot;a8933dcbe09fe95d68ef9f95b472594c1d695c6be593249f2b249a17e725ef18&quot;,</span> <span class="pre">&quot;scan_evidence_sha256&quot;:</span> <span class="pre">&quot;d7b8b5ed615004841893cc6d3772c5f81372fbddd8f4e8f4c150ebac7ef3f70f&quot;,</span> <span class="pre">&quot;universe_count&quot;:</span> <span class="pre">124}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Attributed 135→125→124 population correction; config/live equality and independent domain evidence; fail-closed boot gate.</p>
+<p><strong>Does not demonstrate:</strong> Current universe/config Standalone satisfaction of mandatory L1-G5</p>
+<p><strong>Limitations:</strong> SUPPORTING_ONLY; exact process/source identity not fully repeated in compact witness; never infer it from a nearby source commit.</p>
+<p><strong>Supersession/current relevance:</strong> LIMITATION: retained as context only; no current configuration or primary runtime proof inferred.</p>
+</section>
+<section id="mm-ev-l1-006">
+<h3>MM-EV-L1-006<a class="headerlink" href="#mm-ev-l1-006" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF, SOURCE_PROOF, UX_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">WEB_02_PPL_COMPARATOR_CERTIFIED</span></code>.
+<strong>Time:</strong> Producer materialization 2026-09-18T05:40:11Z; final publication 2026-09-18T06:29:00Z.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/175#issuecomment-5725712454; https://github.com/3a7i3/crypto-ia-terminal/issues/175#issuecomment-5725730597; https://github.com/3a7i3/crypto-ia-terminal/issues/175#issuecomment-5725777513; https://github.com/3a7i3/crypto-ia-terminal/issues/175#issuecomment-5726113855; PR #176; PR #179.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;deployed_sha&quot;:</span> <span class="pre">&quot;992cf7ca509ef2173d220c93f571cf335a6210a0&quot;,</span> <span class="pre">&quot;implementation_merge_sha&quot;:</span> <span class="pre">&quot;28a3dbf5d1ca27d991d904e0d752f21a354f0292&quot;,</span> <span class="pre">&quot;remediation_head&quot;:</span> <span class="pre">&quot;982ab1dba01b81af1b2f9fa1b0db543896610a97&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;advisor_pids&quot;:</span> <span class="pre">[13258,</span> <span class="pre">19434],</span> <span class="pre">&quot;browser_ci_run&quot;:</span> <span class="pre">35310346436,</span> <span class="pre">&quot;browser_scope&quot;:</span> <span class="pre">&quot;Synthetic</span> <span class="pre">responsive</span> <span class="pre">browser</span> <span class="pre">proof</span> <span class="pre">on</span> <span class="pre">exact</span> <span class="pre">deployed</span> <span class="pre">SHA,</span> <span class="pre">combined</span> <span class="pre">with</span> <span class="pre">separately</span> <span class="pre">observed</span> <span class="pre">production-served</span> <span class="pre">bundle;</span> <span class="pre">not</span> <span class="pre">a</span> <span class="pre">production</span> <span class="pre">browser</span> <span class="pre">fault</span> <span class="pre">injection.&quot;,</span> <span class="pre">&quot;comparison_snapshot_sha256&quot;:</span> <span class="pre">&quot;d49780f9c103e6237636f91319e4763ff94a73c21e93541dc8854bdfa0e40e2d&quot;,</span> <span class="pre">&quot;durable_store_sha256&quot;:</span> <span class="pre">&quot;e8dc5032b9a4ed8da723c607c1fa8e0a54e894c251e3059de767dd127054453d&quot;,</span> <span class="pre">&quot;epoch&quot;:</span> <span class="pre">&quot;PPL02D-SHADOW-002-20260918T040705Z&quot;,</span> <span class="pre">&quot;operator_snapshot_sha256&quot;:</span> <span class="pre">&quot;ed8b3b5e3826ca0c4c38721a5227cf7d79a94294c9dc507b0dd4dd659e375aba&quot;,</span> <span class="pre">&quot;process_instance_id&quot;:</span> <span class="pre">&quot;2fb3ae82-c78f-446e-8908-388cc05be9fd&quot;,</span> <span class="pre">&quot;web_pid&quot;:</span> <span class="pre">11940}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Structured producer artifacts with source/process/cycle/epoch identity; producer→API→proxy raw payload fidelity; STALE→FRESH and PARTIAL/UNRESOLVED; unchanged financial journals.</p>
+<p><strong>Does not demonstrate:</strong> Current Legacy/PPL authority labels Production OFF/DEGRADED fault injection Perfectly isolated live codepath test Current APP-UNIFY deployment</p>
+<p><strong>Limitations:</strong> OFF/DEGRADED assertions used deployed codepaths; concurrent Scientific Data Guard artifact changes were observed. Domain aggregate decision counters/freshness and boot_alive remain UNKNOWN; per-symbol decision projection is PARTIAL. A responsive fixture alone is not accepted as runtime proof.</p>
+<p><strong>Supersession/current relevance:</strong> SUPERSEDED: authority labels and Legacy-vs-SHADOW comparison mode by #180/#184; current mode explicitly AUTHORITY_STATUS. NO_REVOCATION: current builder blob unchanged from deployed #175; later close-transition guard preserves fail-passive behavior.</p>
+</section>
+<section id="mm-ev-l1-007">
+<h3>MM-EV-L1-007<a class="headerlink" href="#mm-ev-l1-007" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF, SOURCE_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">WALLET_PPL_PROVENANCE_OBSERVABILITY_CERTIFIED</span></code>.
+<strong>Time:</strong> 2026-09-20; publication 2026-09-20T09:30:53Z; exact command timestamp NOT_AVAILABLE.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/223#issuecomment-5748963658; PR #224.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;deployed_sha&quot;:</span> <span class="pre">&quot;8ff542a7dee2a9c1159ba3f7518ed34633ec1ac1&quot;,</span> <span class="pre">&quot;reviewed_head&quot;:</span> <span class="pre">&quot;09960a7fdaaedd722790e30725a49e59042f6012&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;epoch&quot;:</span> <span class="pre">&quot;F00-EPOCH-01-20260920T084335Z&quot;,</span> <span class="pre">&quot;epoch_sha256&quot;:</span> <span class="pre">&quot;9e7fb63d85f7e9849f4a53ae8c297613987f46bd05e5b42bc28e1cbcaade17ac&quot;,</span> <span class="pre">&quot;manifest_sha256&quot;:</span> <span class="pre">&quot;1d7a3386b2eb2ec7a0f253500ecd2431379c45047698b33f84ae0e08644553af&quot;,</span> <span class="pre">&quot;post_stop&quot;:</span> <span class="pre">&quot;Advisor</span> <span class="pre">and</span> <span class="pre">Watchdog</span> <span class="pre">MainPID=0,</span> <span class="pre">NRestarts=0,</span> <span class="pre">inactive/dead&quot;,</span> <span class="pre">&quot;start_pid&quot;:</span> <span class="pre">225981}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Observed PPL scientific-capital authority/epoch/PPL_REPLAY/legacy_fallback=disabled; controlled start/stop and unchanged artifacts.</p>
+<p><strong>Does not demonstrate:</strong> Structured decision observation by log line alone Current deployed epoch or capital Any new admission authority</p>
+<p><strong>Limitations:</strong> Narrative provenance line cannot alone satisfy structured L1-G1; paired with #175 structured artifacts and exact source. PB_MAX_POSITIONS=0 belongs to the historical witness, not current #286 admission value.</p>
+<p><strong>Supersession/current relevance:</strong> NO_REVOCATION: source provenance wording retained; later explicit burn-in epoch differs and is not overwritten.</p>
+</section>
+<section id="mm-ev-l1-008">
+<h3>MM-EV-L1-008<a class="headerlink" href="#mm-ev-l1-008" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> ARCHITECTURE_PROOF, GOVERNANCE_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">ARCH_CONSOLIDATION_FORENSIC_CERTIFIED</span></code>.
+<strong>Time:</strong> Source-forensic September 27–28; closure publication 2026-09-28T02:06:38Z.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/287#issuecomment-5862018997; PR #306; docs/forensics/ARCH_CONSOLIDATE_01_FORENSIC.md.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;merge_sha&quot;:</span> <span class="pre">&quot;71bdda7bd786a5e7dc39d8d845b233ed9b0b1640&quot;,</span> <span class="pre">&quot;reviewed_head&quot;:</span> <span class="pre">&quot;59b02c17dffc3b7d4fcef2623c666c9c644c8f8f&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;reason&quot;:</span> <span class="pre">&quot;Static</span> <span class="pre">forensic,</span> <span class="pre">no</span> <span class="pre">runtime</span> <span class="pre">observation</span> <span class="pre">by</span> <span class="pre">this</span> <span class="pre">record.&quot;,</span> <span class="pre">&quot;state&quot;:</span> <span class="pre">&quot;NOT_APPLICABLE&quot;}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Inventory, scope, UNKNOWN boundaries, competing observational presentation paths and consumers.</p>
+<p><strong>Does not demonstrate:</strong> Runtime health/recovery Deployed service availability Cleanup authorization</p>
+<p><strong>Limitations:</strong> SUPPORTING_ONLY. Architecture evidence rejected as RUNTIME_PROOF for L1-G5. Source-present dormant components do not become available.</p>
+<p><strong>Supersession/current relevance:</strong> SUPERSEDED: some runtime UNKNOWNs answered by -009; historical inventory not overwritten. LIMITATION: parallel presentation aggregation is not certified PPL/FIN/Research truth.</p>
+</section>
+<section id="mm-ev-l1-009">
+<h3>MM-EV-L1-009<a class="headerlink" href="#mm-ev-l1-009" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF, GOVERNANCE_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">ARCH_CONSOLIDATION_RUNTIME_UNKNOWN_EVIDENCE_CERTIFIED</span></code>.
+<strong>Time:</strong> 2026-09-28T01:41:18Z</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/309#issuecomment-5861857789; https://github.com/3a7i3/crypto-ia-terminal/issues/309#issuecomment-5862015364; PR #311; docs/forensics/ARCH_CONSOLIDATE_01B_RUNTIME_EVIDENCE.md.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;checkout_is_current_main_or_loaded_process_sha&quot;:</span> <span class="pre">false,</span> <span class="pre">&quot;evidence_head&quot;:</span> <span class="pre">&quot;32362fcf1c44ed0f547dd7ac50fa185cb61609db&quot;,</span> <span class="pre">&quot;evidence_merge_sha&quot;:</span> <span class="pre">&quot;c932544d5be74f2216ec4898da710b961074a57f&quot;,</span> <span class="pre">&quot;vps_checkout_sha&quot;:</span> <span class="pre">&quot;116634be0d3c015cce1cfa58be7da7255414fbfd&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;advisor_pid&quot;:</span> <span class="pre">882633,</span> <span class="pre">&quot;dashboard_pid&quot;:</span> <span class="pre">425,</span> <span class="pre">&quot;host&quot;:</span> <span class="pre">&quot;crypto-advisor-2&quot;,</span> <span class="pre">&quot;market_snapshot_pid&quot;:</span> <span class="pre">490629,</span> <span class="pre">&quot;operator_api_pid&quot;:</span> <span class="pre">502983,</span> <span class="pre">&quot;operator_api_source_sha256&quot;:</span> <span class="pre">&quot;e475c3888b901513124935a4cb5c9286d45bbb17a4a09c41067a4add7ddb2496&quot;,</span> <span class="pre">&quot;operator_web_pid&quot;:</span> <span class="pre">11940}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Eight bounded service/process/listener/timer mappings, including canonical Operator API/Web; explicit absent/failed components.</p>
+<p><strong>Does not demonstrate:</strong> Current process identity Cleanup/retirement All services healthy Audit checkout equals every loaded process version</p>
+<p><strong>Limitations:</strong> SUPPORTING_ONLY. Narrator failed; dormant services not running; no implicit zero/healthy. Exact deployed source fingerprints are distinct from Git checkout identity.</p>
+<p><strong>Supersession/current relevance:</strong> SUPERSEDED: dashboard 0.0.0.0:8050 exposure/PID by -010 isolated release; do not reuse as current bind. NO_REVOCATION: bounded Operator mapping evidence remains dated.</p>
+</section>
+<section id="mm-ev-l1-010">
+<h3>MM-EV-L1-010<a class="headerlink" href="#mm-ev-l1-010" title="Link to this heading">¶</a></h3>
+<p><strong>Proof classes:</strong> RUNTIME_PROOF, SECURITY_PROOF.
+<strong>Original verdict:</strong> <code class="docutils literal notranslate"><span class="pre">SEC_CRYPTORADAR_02_RUNTIME_CERTIFIED</span></code>.
+<strong>Time:</strong> Cutover start 2026-09-30T02:59:15Z; final commands around 18:40–18:43Z, exact command times not captured; later publication 2026-10-01T01:30:41Z.</p>
+<p><strong>Original evidence:</strong> https://github.com/3a7i3/crypto-ia-terminal/issues/319#issuecomment-5917618369; https://github.com/3a7i3/crypto-ia-terminal/issues/319#issuecomment-5918725039; https://github.com/3a7i3/crypto-ia-terminal/issues/319#issuecomment-5922896261.</p>
+<p><strong>Exact source identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;advisor_checkout_sha&quot;:</span> <span class="pre">&quot;116634be0d3c015cce1cfa58be7da7255414fbfd&quot;,</span> <span class="pre">&quot;isolated_release_sha&quot;:</span> <span class="pre">&quot;0c0c6212e104a4b1742ebc79d8e9d99ef7cfea7b&quot;}</span></code>.</p>
+<p><strong>Runtime identity:</strong> <code class="docutils literal notranslate"><span class="pre">{&quot;advisor_pid&quot;:</span> <span class="pre">882633,</span> <span class="pre">&quot;advisor_start_utc&quot;:</span> <span class="pre">&quot;2026-09-27T03:03:57Z&quot;,</span> <span class="pre">&quot;dashboard_pid_at_cutover&quot;:</span> <span class="pre">1168303,</span> <span class="pre">&quot;dashboard_pid_later_attestation&quot;:</span> <span class="pre">1236604,</span> <span class="pre">&quot;listener&quot;:</span> <span class="pre">&quot;127.0.0.1:8050&quot;,</span> <span class="pre">&quot;release_path&quot;:</span> <span class="pre">&quot;/opt/cryptoradar-dashboard/releases/0c0c6212e104&quot;,</span> <span class="pre">&quot;tailnet_route&quot;:</span> <span class="pre">&quot;8443→8050;</span> <span class="pre">existing</span> <span class="pre">443→8181</span> <span class="pre">preserved&quot;}</span></code>.</p>
+<p><strong>Demonstrates:</strong> Isolated authenticated loopback CryptoRadar runtime, nonempty DP/LMI, bounded restart with unchanged Advisor.</p>
+<p><strong>Does not demonstrate:</strong> APP-UNIFY runtime certification Scientific burn-in completion GCP ingress proof Independent off-tailnet test Current process identity</p>
+<p><strong>Limitations:</strong> SUPPORTING_ONLY; operator-provided historical output, not a VPS connection in this review. Consumed #286 exception grants no new mutation. Later PID differs; do not collapse distinct historical witnesses.</p>
+<p><strong>Supersession/current relevance:</strong> SUPERSEDED: old CryptoRadar public bind in -009; secure isolated predecessor replaces that fact only. NO_REVOCATION: observer remains separate from trading authority.</p>
+</section>
+<section id="mandatory-criterion-protocol-completion">
+<h3>Mandatory criterion protocol completion<a class="headerlink" href="#mandatory-criterion-protocol-completion" title="Link to this heading">¶</a></h3>
+<p>Each criterion is mandatory. Final vocabulary is exactly SATISFIED,
+UNRESOLVED or NOT_AVAILABLE; all six bounded capability verdicts remain
+SATISFIED. The machine-readable manifest mirrors the requirements, accepted
+records, rejected uses, dependencies, forbidden-state checks, revocation and
+limitations below.</p>
+<section id="l1-g1-final-satisfied">
+<h4>L1-G1 — final SATISFIED<a class="headerlink" href="#l1-g1-final-satisfied" title="Link to this heading">¶</a></h4>
+<p><strong>Requirement:</strong> <code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code>.</p>
+<p><strong>Accepted frozen evidence:</strong> MM-EV-L1-007, MM-EV-L1-006.</p>
+<p><strong>Accepted basis:</strong> #223 proves runtime scientific-capital provenance with explicit authority, epoch and provenance=PPL_REPLAY while source tests prove the same authority-specific semantics. #175 provides producer-authored runtime observation with explicit authority/provenance and timestamped materialization through the read-only transport chain.</p>
+<p><strong>Rejected evidence/uses:</strong> MM-EV-L1-007 log wording alone: not a structured decision record. MM-EV-L1-008 static inventory alone: no runtime witness.</p>
+<p><strong>Rejected substitutions:</strong> narrative log text alone screenshot alone source-only implementation as runtime proof</p>
+<p><strong>Forbidden states checked:</strong> No source-less substitute accepted: #175 binds source SHA/process/cycle/epoch and raw producer artifacts. Decision aggregate remains PARTIAL/UNKNOWN; no fabricated complete decision pipeline.</p>
+<p><strong>Limitations:</strong> Retrospective structured-observation capability, not proof every current decision has a non-null identity. The #175 exact-source builder exposes packet_id/context_id/created_cycle_id/created_at and source-declared UNKNOWN for unavailable values; materialized operator snapshot bound by SHA-256.</p>
+<p><strong>Dependencies checked:</strong> L0-G2: SATISFIED: effective L0 certificate; L0-G3: SATISFIED: effective L0 certificate.</p>
+<p><strong>Revocation result:</strong> <code class="docutils literal notranslate"><span class="pre">NO_REVOCATION</span> <span class="pre">/</span> <span class="pre">NONE_FOUND</span></code> within the bounded inherited capability; no current-deployment assertion.</p>
+</section>
+<section id="l1-g2-final-satisfied">
+<h4>L1-G2 — final SATISFIED<a class="headerlink" href="#l1-g2-final-satisfied" title="Link to this heading">¶</a></h4>
+<p><strong>Requirement:</strong> <code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code>.</p>
+<p><strong>Accepted frozen evidence:</strong> MM-EV-L1-001, MM-EV-L1-004.</p>
+<p><strong>Accepted basis:</strong> #154/#155 certify durable append, event identity/idempotence, sequence ordering, fsync/locking, fail-closed corruption handling and deterministic replay. #167 proves real runtime ON/OFF/ON same-epoch continuity, deterministic projection/replay, exact OPEN/CLOSE capture, failure isolation and recovery without duplicate lifecycle effects.</p>
+<p><strong>Rejected evidence/uses:</strong> MM-EV-L1-001 source certification alone cannot supply runtime proof. Later #180/#184/#196/#203 not admitted as new positive L1 evidence.</p>
+<p><strong>Rejected substitutions:</strong> legacy JSONL coherence alone mutable snapshot process memory source replay without runtime witness</p>
+<p><strong>Forbidden states checked:</strong> Current store rejects identity collisions, physical duplicate IDs, malformed/partial records, epoch mismatch and sequence gaps/regressions. Schema 1 durable source and SHADOW replay retained; current projector adds schema 2 with strict same-epoch version checks.</p>
+<p><strong>Limitations:</strong> Frozen runtime proof exercised schema 1; schema 2 authoritative OPEN/CLOSE and present deployment not certified by this review. #195/#196 adverse CLOSE replay risk was real; superseded in current source by #203 prospective project-before-append. No runtime recertification of #203 inferred.</p>
+<p><strong>Dependencies checked:</strong> L0-G1: SATISFIED: effective L0 certificate; L0-G4: SATISFIED: effective L0 certificate.</p>
+<p><strong>Revocation result:</strong> <code class="docutils literal notranslate"><span class="pre">NO_REVOCATION</span> <span class="pre">/</span> <span class="pre">NONE_FOUND</span></code> within the bounded inherited capability; no current-deployment assertion.</p>
+</section>
+<section id="l1-g3-final-satisfied">
+<h4>L1-G3 — final SATISFIED<a class="headerlink" href="#l1-g3-final-satisfied" title="Link to this heading">¶</a></h4>
+<p><strong>Requirement:</strong> <code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">UX_PROOF)</span></code>.</p>
+<p><strong>Accepted frozen evidence:</strong> MM-EV-L1-002, MM-EV-L1-003, MM-EV-L1-006, MM-EV-L1-010.</p>
+<p><strong>Accepted basis:</strong> #162 certifies local Operator Web/API runtime, loopback listeners, real browser navigation and mutation rejection. #164/#166 certify private PWA runtime, network-fail-closed behavior, no runtime API caching, real Chromium update behavior and continued loopback-only API/Web listeners. #175 certifies read-only comparator producer→API→frontend fidelity. #319 is supporting secure-runtime precedent; it is not substituted for Operator App runtime certification.</p>
+<p><strong>Rejected evidence/uses:</strong> MM-EV-L1-010 supporting CryptoRadar precedent cannot replace canonical Operator runtime/UX evidence. Synthetic screenshot or CI visual proof alone is not a production runtime witness.</p>
+<p><strong>Rejected substitutions:</strong> frontend source-only mutating API presented as observation direct React reads of trading stores CryptoRadar runtime as substitute for Operator App runtime</p>
+<p><strong>Forbidden states checked:</strong> 15 current canonical Operator route decorators, all GET; no observation trading write path found. Native frontend proxy excludes mutating API methods; current clients request GET and consume producer values.</p>
+<p><strong>Limitations:</strong> #162 canonical snapshot remained UNRESOLVED / SNAPSHOT_MISSING. #175 responsive CI is an exact-source synthetic browser adjunct to independent production-service/payload observations, not a production browser fault-injection test. No APP-UNIFY deployment claim.</p>
+<p><strong>Dependencies checked:</strong> L1-G1: SATISFIED: this bounded L1 criterion matrix.</p>
+<p><strong>Revocation result:</strong> <code class="docutils literal notranslate"><span class="pre">NO_REVOCATION</span> <span class="pre">/</span> <span class="pre">NONE_FOUND</span></code> within the bounded inherited capability; no current-deployment assertion.</p>
+</section>
+<section id="l1-g4-final-satisfied">
+<h4>L1-G4 — final SATISFIED<a class="headerlink" href="#l1-g4-final-satisfied" title="Link to this heading">¶</a></h4>
+<p><strong>Requirement:</strong> <code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF)</span></code>.</p>
+<p><strong>Accepted frozen evidence:</strong> MM-EV-L1-002, MM-EV-L1-004, MM-EV-L1-006, MM-EV-L1-007, MM-EV-L1-008, MM-EV-L1-009.</p>
+<p><strong>Accepted basis:</strong> #162 preserves SNAPSHOT_MISSING/UNRESOLVED rather than fabricating healthy replacement values. #175 proves raw provenance, explicit PARTIAL/UNRESOLVED states and live STALE→FRESH classification without fake convergence. #223 proves authority/epoch/provenance labelling for scientific capital. #287/#309 provide supporting runtime/source topology evidence and preserve UNKNOWN boundaries.</p>
+<p><strong>Rejected evidence/uses:</strong> MM-EV-L1-002/-003 cannot prove pre-remediation MARKET source timestamps sound (#171). #172 corrected runtime result not admitted as positive evidence without amendment. MM-EV-L1-008 architecture alone cannot prove runtime freshness.</p>
+<p><strong>Rejected substitutions:</strong> UI-invented freshness UNKNOWN hidden as zero/healthy stale rendered as live future-skew/unattributed data treated healthy</p>
+<p><strong>Forbidden states checked:</strong> #175 live STALE cycle 1 (~174s) then FRESH cycle 2 with distinct process/cycle/epoch attribution; PARTIAL=3 and UNRESOLVED=1 retained. Current canonical readers reject future generation time, keep missing manifest identity UNKNOWN/LAST_KNOWN, and do not infer health from freshness. Current MARKET UTC normalization/naive rejection inspected only for active contradiction; no old #171 defect remains in source.</p>
+<p><strong>Limitations:</strong> Historical missing snapshot preserved; no current snapshot availability inferred. Source-domain aggregate timestamps/freshness and boot_alive remain UNKNOWN when no producer exists. No new positive #171/#172 record used; G4 rests on independently frozen #175/#223 and missing-state #162 evidence.</p>
+<p><strong>Dependencies checked:</strong> L0-G3: SATISFIED: effective L0 certificate; L1-G1: SATISFIED: this bounded L1 criterion matrix.</p>
+<p><strong>Revocation result:</strong> <code class="docutils literal notranslate"><span class="pre">NO_REVOCATION</span> <span class="pre">/</span> <span class="pre">NONE_FOUND</span></code> within the bounded inherited capability; no current-deployment assertion.</p>
+</section>
+<section id="l1-g5-final-satisfied">
+<h4>L1-G5 — final SATISFIED<a class="headerlink" href="#l1-g5-final-satisfied" title="Link to this heading">¶</a></h4>
+<p><strong>Requirement:</strong> <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code>.</p>
+<p><strong>Accepted frozen evidence:</strong> MM-EV-L1-002, MM-EV-L1-003, MM-EV-L1-004, MM-EV-L1-006, MM-EV-L1-007, MM-EV-L1-009, MM-EV-L1-010.</p>
+<p><strong>Context only:</strong> MM-EV-L1-005, MM-EV-L1-008; neither is mandatory runtime proof.</p>
+<p><strong>Accepted basis:</strong> #162/#164 establish service/listener/browser runtime and controlled recovery evidence. #167 establishes runtime identity, same-epoch restart/replay, DEGRADED→ACTIVE recovery and artifact continuity. #174 provides bounded runtime recertification with exact live/config fingerprints and fail-closed universe evidence. #175 records governed Advisor restart/process identity and unchanged critical PAPER/PPL artifacts. #223 proves controlled start/stop, process quiescence and artifact invariance. #309/#319 provide supporting process/service/listener identity evidence.</p>
+<p><strong>Rejected evidence/uses:</strong> MM-EV-L1-008 has ARCHITECTURE_PROOF/GOVERNANCE_PROOF only; rejected as RUNTIME_PROOF. MM-EV-L1-005 incomplete compact source/process identity: supporting context only, not mandatory proof. Source-only RuntimeService projection, systemd templates and existing source tests cannot replace runtime witnesses.</p>
+<p><strong>Rejected substitutions:</strong> systemd template without observation source tests alone assumed-running service without witness</p>
+<p><strong>Forbidden states checked:</strong> #162 actual service/PID/listener restart; #167 process UUID/source/boot/epoch plus unchanged replay stream; #175 governed restart/materialization; #223 controlled quiescence. No service running claim derived from source existence, snapshot freshness or boot_alive UNKNOWN.</p>
+<p><strong>Limitations:</strong> No current VPS witness collected; current service/process health remains NOT_AVAILABLE to this review. #309 includes failed narrator and not-running components; no all-services-healthy certification. #174 remains supporting-only with identity gap explicitly retained.</p>
+<p><strong>Dependencies checked:</strong> L1-G1: SATISFIED: this bounded L1 criterion matrix.</p>
+<p><strong>Revocation result:</strong> <code class="docutils literal notranslate"><span class="pre">NO_REVOCATION</span> <span class="pre">/</span> <span class="pre">NONE_FOUND</span></code> within the bounded inherited capability; no current-deployment assertion.</p>
+</section>
+<section id="l1-g6-final-satisfied">
+<h4>L1-G6 — final SATISFIED<a class="headerlink" href="#l1-g6-final-satisfied" title="Link to this heading">¶</a></h4>
+<p><strong>Requirement:</strong> <code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code>.</p>
+<p><strong>Accepted frozen evidence:</strong> MM-EV-L1-002, MM-EV-L1-003, MM-EV-L1-004, MM-EV-L1-006, MM-EV-L1-010.</p>
+<p><strong>Accepted basis:</strong> #162/#164 certify observation-only Web/PWA paths without trading authority. #167 demonstrates SHADOW failure isolation and explicitly non-authoritative observation. #175 comparator authority is OBSERVATIONAL_TELEMETRY and cannot repair or mutate PAPER/PPL truth. #319 is supporting secure observation precedent and does not create new authority.</p>
+<p><strong>Rejected evidence/uses:</strong> MM-EV-L1-010 cannot certify APP-UNIFY runtime or give trading authority. Standalone CryptoRadar/Telegram presentation aggregation is not authoritative PPL/FIN/Research truth. Current source implementation or merged status alone cannot create operational OperatorDecision authority.</p>
+<p><strong>Rejected substitutions:</strong> React/UI accounting as truth observer writer mutating PPL/FIN observation result becoming execution authority supporting CryptoRadar proof replacing canonical Operator evidence</p>
+<p><strong>Forbidden states checked:</strong> Current API is GET-only; transports producer artifacts; no UI/API ledger mutation path found. Current comparison AUTHORITY_STATUS identifies PPL authority and Legacy compatibility; observation mode does not perform authority selection. #315 Gate O remains OPEN/NON_RESOLVED; operational=True remains blocked; Agent/Forest contract certification grants no worker authority.</p>
+<p><strong>Limitations:</strong> Certification concerns non-authoritative observation, not every historical bot/control surface. Historical Legacy/PPL SHADOW authority labels superseded; original failure-isolation facts remain bounded. No runtime trading/Research/FIN/PAPER/TESTNET/LIVE authority is granted.</p>
+<p><strong>Dependencies checked:</strong> L0-G1: SATISFIED: effective L0 certificate; L1-G3: SATISFIED: this bounded L1 criterion matrix.</p>
+<p><strong>Revocation result:</strong> <code class="docutils literal notranslate"><span class="pre">NO_REVOCATION</span> <span class="pre">/</span> <span class="pre">NONE_FOUND</span></code> within the bounded inherited capability; no current-deployment assertion.</p>
+</section>
+</section>
+<section id="additional-negative-revocation-findings">
+<h3>Additional negative revocation findings<a class="headerlink" href="#additional-negative-revocation-findings" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>SUPERSEDED — #195, #196, #203:</strong> Real P0 authoritative CLOSE could persist before semantic replay rejected it. e8e37202429d2542327d74edeecbe0cd9d65bcea; prospective project before append, durable projection checked after reload; current source retains this. Limitation: Not a defect demonstrated in frozen SHADOW schema 1. No #203 runtime deployment or new schema 2 positive proof admitted.</p></li>
+<li><p><strong>SUPERSEDED — #197/#205, #198/#206, #268/#273:</strong> Epoch/population/metadata baseline, notification provenance and missing-PnL measurement defects retained in historical issues. Current epoch-aware population, provenance-aware notification and UNRESOLVED/None/BREAKEVEN semantics inspected; no current canonical inversion accepted. Limitation: Source remediation is not current runtime certification; no new positive L1 records admitted.</p></li>
+<li><p><strong>NO_REVOCATION — 7270728f1b3314dab8436f313b8182d69edad360, #190/#194:</strong> Legacy quiescence extension renamed transition observation; guard extended to explicit lifecycle_transitions_in_flight &gt; 0. Current coherent capture still withholds artifacts mid-CLOSE, refuses fake comparison, keeps unavailable observations distinct. Limitation: Original #175 runtime proof does not cover every later authority/quiescence schema.</p></li>
+<li><p><strong>SUPERSEDED — MM-EV-L1-009, MM-EV-L1-010:</strong> CryptoRadar 0.0.0.0:8050/PID425 in Sept 28 pack replaced by isolated loopback release in Sept 30/Oct 1 witnesses. Source default loopback/security boundary retained; latest historical PID1236604 distinguished from cutover PID1168303. Limitation: No present PID/bind claim; no GCP ingress/off-tailnet test fabricated; consumed exception not renewed.</p></li>
+<li><p><strong>LIMITATION — #287, #309, #315:</strong> Dormant components, failed narrator, presentation duplication and non-operational OperatorDecision prototype remain bounded facts, not fabricated healthy/available. Canonical Operator observation retains GET-only and no authority inversion found. Limitation: No cleanup, all-services health, runtime Registry/Forest or OperatorDecision activation certified.</p></li>
+<li><p><strong>UNRESOLVED — Current deployment at review time:</strong> No current VPS collection; historical source/process evidence cannot establish present deployment. Excluded from certification scope; not a mandatory durable-capability criterion failure. Limitation: Current process identity, canonical snapshot availability and schema 2 runtime lifecycle remain unclaimed.</p></li>
+</ul>
+<p>These later refs are contradiction/supersession checks only. In particular,
+#172 and #203 are not admitted as new positive runtime proof. No
+EvidenceCorpusAmendment is required or used. If a future claim needs either
+new runtime record, stop for an explicit governed amendment before admission.</p>
+<p>Current-source comparison also confirms that the operator snapshot builder
+blob is unchanged from deployed #175 (<code class="docutils literal notranslate"><span class="pre">7a6b3ceefcd3bbb8ca2a22302e368983ed16ff87</span></code>);
+current store/projector blobs are respectively
+<code class="docutils literal notranslate"><span class="pre">cd457fc33ba020f55eed3d09ada3c4c8102dbcd8</span></code> and
+<code class="docutils literal notranslate"><span class="pre">20f421fef9885f9c412d57f3b8eff9bddb4b539c</span></code>. Version 2 adds lifecycle terms
+and rejects mixed versions; it does not remove schema 1 or weaken identity,
+sequence, fsync/locking/corruption guards. These are negative source checks,
+not a present-runtime proof.</p>
+<p>No active contradiction or revocation found in the reviewed source/history.
+Current deployment remains outside this review. L0 remains effective; the
+formal frontier stays L0. The six-criterion decision remains the review
+candidate <code class="docutils literal notranslate"><span class="pre">LEVEL_1_CERTIFIED</span></code>; exact final-head CI and governed review merge
+are required, followed by a separate L1 certificate mission.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">MACHINE-MATURITY-01 — L1 Formal Review v1</a><ul>
+<li><a class="reference internal" href="#decision-candidate">Decision candidate</a></li>
+<li><a class="reference internal" href="#entry-condition">Entry condition</a></li>
+<li><a class="reference internal" href="#frozen-identities">Frozen identities</a></li>
+<li><a class="reference internal" href="#source-forensic-reviewed">Source forensic reviewed</a></li>
+<li><a class="reference internal" href="#criterion-decisions">Criterion decisions</a><ul>
+<li><a class="reference internal" href="#l1-g1-structured-machine-observation-decision-provenance">L1-G1 — Structured machine observation &amp; decision provenance</a></li>
+<li><a class="reference internal" href="#l1-g2-durable-event-truth-deterministic-replay">L1-G2 — Durable event truth &amp; deterministic replay</a></li>
+<li><a class="reference internal" href="#l1-g3-read-only-operator-observation-surface">L1-G3 — Read-only operator observation surface</a></li>
+<li><a class="reference internal" href="#l1-g4-provenance-freshness-uncertainty-visible">L1-G4 — Provenance / freshness / uncertainty visible</a></li>
+<li><a class="reference internal" href="#l1-g5-runtime-health-recovery-observability">L1-G5 — Runtime health / recovery observability</a></li>
+<li><a class="reference internal" href="#l1-g6-observability-is-non-authoritative">L1-G6 — Observability is non-authoritative</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contradiction-supersession-review">Contradiction / supersession review</a></li>
+<li><a class="reference internal" href="#revocation-sweep-through-current-main">Revocation sweep through current main</a></li>
+<li><a class="reference internal" href="#independent-re-verification-phase-b-exact-main-747114da">Independent re-verification (Phase B, exact main 747114da)</a></li>
+<li><a class="reference internal" href="#aggregate-result">Aggregate result</a></li>
+<li><a class="reference internal" href="#guardrails">Guardrails</a></li>
+<li><a class="reference internal" href="#exact-frozen-evidence-identity-audit-and-completed-protocol">Exact frozen-evidence identity audit and completed protocol</a><ul>
+<li><a class="reference internal" href="#mm-ev-l1-001">MM-EV-L1-001</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-002">MM-EV-L1-002</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-003">MM-EV-L1-003</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-004">MM-EV-L1-004</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-005">MM-EV-L1-005</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-006">MM-EV-L1-006</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-007">MM-EV-L1-007</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-008">MM-EV-L1-008</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-009">MM-EV-L1-009</a></li>
+<li><a class="reference internal" href="#mm-ev-l1-010">MM-EV-L1-010</a></li>
+<li><a class="reference internal" href="#mandatory-criterion-protocol-completion">Mandatory criterion protocol completion</a><ul>
+<li><a class="reference internal" href="#l1-g1-final-satisfied">L1-G1 — final SATISFIED</a></li>
+<li><a class="reference internal" href="#l1-g2-final-satisfied">L1-G2 — final SATISFIED</a></li>
+<li><a class="reference internal" href="#l1-g3-final-satisfied">L1-G3 — final SATISFIED</a></li>
+<li><a class="reference internal" href="#l1-g4-final-satisfied">L1-G4 — final SATISFIED</a></li>
+<li><a class="reference internal" href="#l1-g5-final-satisfied">L1-G5 — final SATISFIED</a></li>
+<li><a class="reference internal" href="#l1-g6-final-satisfied">L1-G6 — final SATISFIED</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#additional-negative-revocation-findings">Additional negative revocation findings</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
