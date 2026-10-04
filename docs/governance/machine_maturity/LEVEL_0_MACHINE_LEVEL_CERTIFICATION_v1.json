@@ -1,0 +1,161 @@
+{
+  "schema_version": "MACHINE_LEVEL_CERTIFICATION_V1",
+  "level_id": "L0",
+  "level_name": "Constitutional Foundation",
+  "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
+  "catalog_hash_algorithm": "git_blob_sha1",
+  "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+  "certification_status": "CERTIFIED",
+  "certified_at_utc": "2026-10-03T20:06:56Z",
+  "certification_time_basis": "formal_review_merge_commit",
+  "certification_authority": "MACHINE_MATURITY_01_GOVERNED_REVIEW",
+  "decision_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/365#issuecomment-5973016663",
+  "effectivity_rule": "CERTIFICATION_EFFECTIVE_WHEN_THIS_IMMUTABLE_ARTIFACT_IS_PRESENT_ON_MAIN",
+  "source_identity": {
+    "repository": "3a7i3/crypto-ia-terminal",
+    "review_merge_main_sha": "db194c9237c729426530cc141ebd2da9aba4cef2",
+    "formal_review_blob": "2683424aaee7579f2eb712f960f4c93611cd41c5",
+    "formal_review_pr": 367
+  },
+  "runtime_identity": {
+    "state": "NOT_APPLICABLE",
+    "rationale": "L0 is a constitutional/source-governance certification and makes no current runtime deployment claim."
+  },
+  "criterion_results": [
+    {
+      "criterion_id": "L0-G1",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L0-G2",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L0-G3",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L0-G4",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L0-G5",
+      "mandatory": true,
+      "status": "SATISFIED"
+    }
+  ],
+  "evidence_record_ids": [
+    "MM-EV-L0-001",
+    "MM-EV-L0-002",
+    "MM-EV-L0-003",
+    "MM-EV-L0-004",
+    "MM-EV-L0-005",
+    "MM-EV-L0-006",
+    "MM-EV-L0-007",
+    "MM-EV-L0-008",
+    "MM-EV-L2-001",
+    "MM-EV-L2-007",
+    "MM-EV-L2-009",
+    "MM-EV-L3-004"
+  ],
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142"
+  },
+  "input_manifest": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "f42ce8783152ee88de8ae3b90af2dd870c75e0df",
+    "r0_merge_main_sha": "8aad0ac42705f50e626aa802340a23c8b5c94aa9",
+    "verdict": "MACHINE_MATURITY_01_INPUTS_FROZEN"
+  },
+  "evidence_manifest_hash_algorithm": "git_blob_sha1",
+  "evidence_manifest_hash": "bfd9ab2b3ca7cadfc65f4e6efd246004c2dd695f",
+  "criteria_digest_algorithm": "sha256_canonical_json",
+  "criteria_digest": "736f78c5596bb141aaa3900a8ed641cc2f74a56235646f36e3c25904b68ee96d",
+  "unresolved_items": [],
+  "accepted_not_applicable": [
+    {
+      "field": "runtime_identity",
+      "state": "NOT_APPLICABLE",
+      "basis": "No L0 criterion requires a current runtime deployment identity."
+    }
+  ],
+  "previous_certification_hash": "NOT_AVAILABLE",
+  "supersedes_certification_hash": "NOT_AVAILABLE",
+  "revocation_invariants": [
+    "No ungoverned dual authority for the same authoritative truth domain.",
+    "No proof-class substitution where the catalog requires a stronger proof class.",
+    "UNKNOWN/UNRESOLVED/NOT_AVAILABLE/NON_DEPLOYED remain distinct from explicit zero/false/available.",
+    "Authoritative changes remain scope/SHA/test/governance traceable.",
+    "Evidence and certification history remain immutable with explicit supersession/revocation lineage."
+  ],
+  "revocation_ref": "NOT_AVAILABLE",
+  "post_review_revocation_sweep": {
+    "through_main_sha": "d3719e0ff7acc437f8ff9112fccdc3df1cef122b",
+    "delta_refs": [
+      "#369 APP-STORAGE-01",
+      "#371 APP-LMI-DETAIL-01",
+      "#363 AGENT-ECON A0/A1 Post-Merge Contract Certification"
+    ],
+    "result": "NONE_FOUND",
+    "notes": [
+      "#369 remains FILESYSTEM_METADATA_OBSERVATION / READ_ONLY / GET-only / no runtime publication claim.",
+      "#371 remains OBSERVATIONAL_TELEMETRY / READ_ONLY / GET-only / no LMI engine or runtime authority change.",
+      "#363 certifies contract/schema architecture only; Agent Registry runtime remains NOT_IMPLEMENTED / NON_DEPLOYED, CAPABILITY != AUTHORITY, #286 active."
+    ]
+  },
+  "issue_refs": [
+    365,
+    362,
+    286,
+    268,
+    240,
+    211,
+    201,
+    199,
+    184,
+    180,
+    368,
+    370,
+    284
+  ],
+  "pr_refs": [
+    366,
+    367,
+    369,
+    371,
+    363
+  ],
+  "test_refs": [
+    {
+      "pr": 366,
+      "head_sha": "a7983b57184a6699a118cf50ed0ae342449b0d79",
+      "workflow_summary": "19/19 SUCCESS"
+    },
+    {
+      "pr": 367,
+      "head_sha": "1a25b2b8c60da911649a86c3616aa215390d6d17",
+      "workflow_summary": "19/19 SUCCESS"
+    }
+  ],
+  "formal_certified_frontier_after_effective": "L0",
+  "next_formal_certification_target_after_effective": "L1",
+  "certification_hash_algorithm": "sha256_canonical_json_excluding_certification_hash",
+  "certification_hash_scope": "All fields of this object except certification_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
+  "evidence_corpus_amendments": [
+    {
+      "amendment_id": "MM01-L0-EVIDENCE-AMENDMENT-001",
+      "hash_algorithm": "git_blob_sha1",
+      "hash": "dda4fa51e2a5dc3744087e45247d9d927ccbe65c",
+      "path": "docs/governance/machine_maturity/MACHINE_MATURITY_01_EVIDENCE_CORPUS_AMENDMENT_L0_v1.json",
+      "disposition": "GOVERNANCE_SUBSET_AMENDMENT_ONLY"
+    }
+  ],
+  "criteria_digest_scope": "criterion_results only, UTF-8 canonical JSON recursively sorted by object key, arrays in declared order",
+  "certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0"
+}
