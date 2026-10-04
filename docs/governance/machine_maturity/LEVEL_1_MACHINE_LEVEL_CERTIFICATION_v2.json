@@ -1,0 +1,111 @@
+{
+  "schema_version": "MACHINE_LEVEL_CERTIFICATION_V1",
+  "level_id": "L1",
+  "level_name": "Observable Machine",
+  "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
+  "catalog_hash_algorithm": "git_blob_sha1",
+  "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+  "certification_status": "CERTIFIED",
+  "certified_at_utc": "2026-10-04T22:26:38Z",
+  "certification_time_basis": "governed_recertification_candidate_generation",
+  "certification_authority": "MACHINE_MATURITY_01_GOVERNED_REVIEW",
+  "decision_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/378#issuecomment-5985120497",
+  "effectivity_rule": "CERTIFICATION_EFFECTIVE_WHEN_THIS_IMMUTABLE_ARTIFACT_IS_PRESENT_ON_MAIN",
+  "source_identity": {
+    "repository": "3a7i3/crypto-ia-terminal",
+    "review_merge_main_sha": "c2b54da779f927ec5477c05eb8583e8a1873e159",
+    "formal_review_blob": "bcd4b3c9c7973045f81e9bb8bace4081ee6d934f",
+    "formal_review_pr": 375,
+    "evidence_manifest_blob": "a24c0250c03588e7706337a9794fb19000c92ab4",
+    "evidence_manifest_canonical_sha256": "1a73ee02aa8492310041e0dd77eb387b5f765628b4f675e446436377df3dc712"
+  },
+  "runtime_identity": {
+    "state": "BOUNDED_HISTORICAL_RUNTIME_EVIDENCE",
+    "current_deployment_claim": "NOT_AVAILABLE",
+    "rationale": "L1 certification relies on frozen runtime evidence and a current-main revocation sweep. It certifies the durable Observable Machine capability, not current VPS process/service health or deployment identity."
+  },
+  "criterion_results": [
+    {"criterion_id": "L1-G1", "mandatory": true, "status": "SATISFIED"},
+    {"criterion_id": "L1-G2", "mandatory": true, "status": "SATISFIED"},
+    {"criterion_id": "L1-G3", "mandatory": true, "status": "SATISFIED"},
+    {"criterion_id": "L1-G4", "mandatory": true, "status": "SATISFIED"},
+    {"criterion_id": "L1-G5", "mandatory": true, "status": "SATISFIED"},
+    {"criterion_id": "L1-G6", "mandatory": true, "status": "SATISFIED"}
+  ],
+  "evidence_record_ids": [
+    "MM-EV-L1-001",
+    "MM-EV-L1-002",
+    "MM-EV-L1-003",
+    "MM-EV-L1-004",
+    "MM-EV-L1-005",
+    "MM-EV-L1-006",
+    "MM-EV-L1-007",
+    "MM-EV-L1-008",
+    "MM-EV-L1-009",
+    "MM-EV-L1-010"
+  ],
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142"
+  },
+  "input_manifest": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "f42ce8783152ee88de8ae3b90af2dd870c75e0df",
+    "r0_merge_main_sha": "8aad0ac42705f50e626aa802340a23c8b5c94aa9",
+    "verdict": "MACHINE_MATURITY_01_INPUTS_FROZEN"
+  },
+  "evidence_manifest_hash_algorithm": "git_blob_sha1",
+  "evidence_manifest_hash": "a24c0250c03588e7706337a9794fb19000c92ab4",
+  "evidence_manifest_canonical_hash_algorithm": "sha256_canonical_json_excluding_manifest_hash",
+  "evidence_manifest_canonical_hash": "1a73ee02aa8492310041e0dd77eb387b5f765628b4f675e446436377df3dc712",
+  "criteria_digest_algorithm": "sha256_canonical_json",
+  "criteria_digest": "ebace0cd5cf1487e8dc7fbee1fd2d7eebe92f1db753ab41d01e6bbcc78cb3a86",
+  "unresolved_items": [],
+  "accepted_not_applicable": [],
+  "previous_certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
+  "supersedes_certification_hash": "0800bd5c73cdda711c8b95bb27eeda201c199cc3a735c4d54cedfd9fc6e3ef26",
+  "predecessor_level_certification": {
+    "level_id": "L0",
+    "certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
+    "effective_main_sha": "747114daa9c7c0bef4992d2dba19f7dd402a423a"
+  },
+  "revocation_invariants": [
+    "Structured machine observations retain attributable source/provenance/time semantics; missing identity or completeness is never fabricated.",
+    "Durable event identity, ordering and replay remain fail-closed under duplicate, corrupt, partial or divergent evidence.",
+    "Operator observation surfaces remain read-only and cannot mutate PAPER/PPL/FIN/Research/exchange state.",
+    "Freshness, missing state, uncertainty and historical limitations remain explicit and are not promoted to healthy/current truth.",
+    "Runtime/recovery claims are not inferred from source presence, templates, UI state or snapshot age.",
+    "Observability remains downstream and non-authoritative; no observer result becomes execution, portfolio, financial or research authority without a separate governed transition."
+  ],
+  "revocation_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/378",
+  "post_review_revocation_sweep": {
+    "through_main_sha": "f3c5f1f5e60438e587393b148f1c9092a5513be4",
+    "delta_refs": [
+      "#376 MACHINE-MATURITY-01 L1 v1 certificate emission",
+      "#378 L1 chain recertification"
+    ],
+    "result": "NONE_FOUND",
+    "notes": [
+      "The merged v1 certificate remains immutable history and is superseded only for lineage correction.",
+      "The six L1 criterion results, Formal Review, Evidence Manifest, and bounded runtime semantics are unchanged.",
+      "No current VPS/process/deployment claim is added by this recertification."
+    ]
+  },
+  "issue_refs": [365,362,286,315,154,162,164,167,174,175,223,287,309,319,378],
+  "pr_refs": [372,375,155,166,376],
+  "test_refs": [
+    {
+      "pr": 375,
+      "head_sha": "c1ca7f86d62060e70d725bad508c9e16d893d8d3",
+      "workflow_summary": "19/19 SUCCESS"
+    }
+  ],
+  "formal_certified_frontier_after_effective": "L1",
+  "next_formal_certification_target_after_effective": "L2",
+  "certification_hash_algorithm": "sha256_canonical_json_excluding_certification_hash",
+  "certification_hash_scope": "All fields of this object except certification_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
+  "evidence_corpus_amendments": [],
+  "criteria_digest_scope": "criterion_results only, UTF-8 canonical JSON recursively sorted by object key, arrays in declared order",
+  "certification_hash": "49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf"
+}

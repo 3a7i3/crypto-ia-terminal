@@ -2,7 +2,7 @@
   "schema_version": "MACHINE_MATURITY_SNAPSHOT_V1",
   "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
   "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
-  "generated_from_source_main_sha": "c2b54da779f927ec5477c05eb8583e8a1873e159",
+  "generated_from_source_main_sha": "f3c5f1f5e60438e587393b148f1c9092a5513be4",
   "projection_semantics": "READ_ONLY_PROJECTION_OF_CERTIFICATION_AND_GOVERNANCE_ARTIFACTS",
   "formal_certified_frontier": "L1",
   "evidence_demonstrated_frontier": "L3",
@@ -15,12 +15,7 @@
       "name": "Constitutional Foundation",
       "certification_status": "CERTIFIED",
       "planning_horizon_state": "CURRENT",
-      "criterion_counts": {
-        "mandatory": 5,
-        "satisfied": 5,
-        "unresolved": 0,
-        "not_available": 0
-      },
+      "criterion_counts": {"mandatory":5,"satisfied":5,"unresolved":0,"not_available":0},
       "certification_ref": "docs/governance/machine_maturity/LEVEL_0_MACHINE_LEVEL_CERTIFICATION_v1.json",
       "certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
       "revocation_state": "NONE"
@@ -30,27 +25,17 @@
       "name": "Observable Machine",
       "certification_status": "CERTIFIED",
       "planning_horizon_state": "CURRENT",
-      "criterion_counts": {
-        "mandatory": 6,
-        "satisfied": 6,
-        "unresolved": 0,
-        "not_available": 0
-      },
-      "certification_ref": "docs/governance/machine_maturity/LEVEL_1_MACHINE_LEVEL_CERTIFICATION_v1.json",
+      "criterion_counts": {"mandatory":6,"satisfied":6,"unresolved":0,"not_available":0},
+      "certification_ref": "docs/governance/machine_maturity/LEVEL_1_MACHINE_LEVEL_CERTIFICATION_v2.json",
       "revocation_state": "NONE",
-      "certification_hash": "0800bd5c73cdda711c8b95bb27eeda201c199cc3a735c4d54cedfd9fc6e3ef26"
+      "certification_hash": "49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf"
     },
     {
       "level_id": "L2",
       "name": "Governed PAPER Machine",
       "certification_status": "READY_FOR_REVIEW",
       "planning_horizon_state": "CURRENT",
-      "criterion_counts": {
-        "mandatory": 7,
-        "satisfied": 7,
-        "unresolved": 0,
-        "not_available": 0
-      },
+      "criterion_counts": {"mandatory":7,"satisfied":7,"unresolved":0,"not_available":0},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     },
@@ -59,12 +44,7 @@
       "name": "Scientific Research Machine",
       "certification_status": "READY_FOR_REVIEW",
       "planning_horizon_state": "CURRENT",
-      "criterion_counts": {
-        "mandatory": 8,
-        "satisfied": 8,
-        "unresolved": 0,
-        "not_available": 0
-      },
+      "criterion_counts": {"mandatory":8,"satisfied":8,"unresolved":0,"not_available":0},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     },
@@ -73,12 +53,7 @@
       "name": "Operator Machine",
       "certification_status": "IN_PROGRESS",
       "planning_horizon_state": "CURRENT",
-      "criterion_counts": {
-        "mandatory": 8,
-        "satisfied": 2,
-        "unresolved": 3,
-        "not_available": 3
-      },
+      "criterion_counts": {"mandatory":8,"satisfied":2,"unresolved":3,"not_available":3},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     },
@@ -87,12 +62,7 @@
       "name": "Self-Maintaining Forest",
       "certification_status": "NOT_STARTED",
       "planning_horizon_state": "DESIGNED_IN_DESIGN",
-      "criterion_counts": {
-        "mandatory": 7,
-        "satisfied": 0,
-        "unresolved": 1,
-        "not_available": 6
-      },
+      "criterion_counts": {"mandatory":7,"satisfied":0,"unresolved":1,"not_available":6},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     },
@@ -101,12 +71,7 @@
       "name": "Governed Agent Engineering",
       "certification_status": "NOT_STARTED",
       "planning_horizon_state": "FUTURE_DESIGN",
-      "criterion_counts": {
-        "mandatory": 8,
-        "satisfied": 0,
-        "unresolved": 0,
-        "not_available": 8
-      },
+      "criterion_counts": {"mandatory":8,"satisfied":0,"unresolved":0,"not_available":8},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     },
@@ -115,12 +80,7 @@
       "name": "Autonomous Test Environment",
       "certification_status": "NOT_STARTED",
       "planning_horizon_state": "LOCKED",
-      "criterion_counts": {
-        "mandatory": 8,
-        "satisfied": 2,
-        "unresolved": 0,
-        "not_available": 6
-      },
+      "criterion_counts": {"mandatory":8,"satisfied":2,"unresolved":0,"not_available":6},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     },
@@ -129,12 +89,7 @@
       "name": "Governed Capital Machine",
       "certification_status": "NOT_STARTED",
       "planning_horizon_state": "LOCKED",
-      "criterion_counts": {
-        "mandatory": 8,
-        "satisfied": 0,
-        "unresolved": 0,
-        "not_available": 8
-      },
+      "criterion_counts": {"mandatory":8,"satisfied":0,"unresolved":0,"not_available":8},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     },
@@ -143,67 +98,29 @@
       "name": "Adaptive Research Organization",
       "certification_status": "NOT_STARTED",
       "planning_horizon_state": "VISION",
-      "criterion_counts": {
-        "mandatory": 8,
-        "satisfied": 0,
-        "unresolved": 0,
-        "not_available": 8
-      },
+      "criterion_counts": {"mandatory":8,"satisfied":0,"unresolved":0,"not_available":8},
       "certification_ref": "NOT_AVAILABLE",
       "revocation_state": "NOT_APPLICABLE"
     }
   ],
-  "active_experiments": [
-    {
-      "ref": "#282",
-      "state": "ACTIVE_BURN_IN_OBSERVATION",
-      "final_scientific_verdict": "NOT_AVAILABLE"
-    }
-  ],
+  "active_experiments": [{"ref":"#282","state":"ACTIVE_BURN_IN_OBSERVATION","final_scientific_verdict":"NOT_AVAILABLE"}],
   "active_governance_guards": [
-    {
-      "ref": "#286",
-      "state": "ACTIVE_BURN_IN_IMMUTABILITY_GUARD"
-    },
-    {
-      "ref": "#315",
-      "state": "GATE_O_OPEN_NON_RESOLVED",
-      "scope": "OperatorDecision operational trust boundary"
-    }
+    {"ref":"#286","state":"ACTIVE_BURN_IN_IMMUTABILITY_GUARD"},
+    {"ref":"#315","state":"GATE_O_OPEN_NON_RESOLVED","scope":"OperatorDecision operational trust boundary"}
   ],
   "blockers": [
-    {
-      "ref": "L4-G2",
-      "state": "NOT_AVAILABLE",
-      "detail": "APP_UNIFY_01_SOURCE_CERTIFIED"
-    },
-    {
-      "ref": "L4-G3",
-      "state": "NOT_AVAILABLE",
-      "detail": "APP_UNIFY_01_RUNTIME_CERTIFIED"
-    },
-    {
-      "ref": "L4-G8",
-      "state": "NOT_AVAILABLE",
-      "detail": "L4 Certification Pack"
-    }
+    {"ref":"L4-G2","state":"NOT_AVAILABLE","detail":"APP_UNIFY_01_SOURCE_CERTIFIED"},
+    {"ref":"L4-G3","state":"NOT_AVAILABLE","detail":"APP_UNIFY_01_RUNTIME_CERTIFIED"},
+    {"ref":"L4-G8","state":"NOT_AVAILABLE","detail":"L4 Certification Pack"}
   ],
-  "source_refs": [
-    "#365",
-    "#362",
-    "#285",
-    "#282",
-    "#286",
-    "#315",
-    "#323"
-  ],
+  "source_refs": ["#365","#362","#285","#282","#286","#315","#323","#378"],
   "projection_rule": "CERTIFIED status is read from an effective MachineLevelCertification artifact; it is never inferred from criterion counts.",
   "l0_certificate_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
   "l0_evidence_corpus_amendment_hash": "dda4fa51e2a5dc3744087e45247d9d927ccbe65c",
-  "generated_at_utc": "2026-10-04T21:03:00Z",
+  "generated_at_utc": "2026-10-04T22:26:38Z",
   "snapshot_hash_algorithm": "sha256_canonical_json_excluding_snapshot_hash",
   "snapshot_hash_scope": "All fields of this object except snapshot_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
-  "l1_certificate_hash": "0800bd5c73cdda711c8b95bb27eeda201c199cc3a735c4d54cedfd9fc6e3ef26",
+  "l1_certificate_hash": "49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf",
   "l1_evidence_manifest_hash": "1a73ee02aa8492310041e0dd77eb387b5f765628b4f675e446436377df3dc712",
-  "snapshot_hash": "9c5ed38f1dbecc706e141245582daba1a436a4f58fa683ddf3f4b1ff23da049d"
+  "snapshot_hash": "848e740f7190d15cc4332b40baa106ffceaf13fe61a62cbedecdce4acc468443"
 }
