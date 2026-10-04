@@ -1,0 +1,361 @@
+{
+  "schema_version": "MACHINE_LEVEL_EVIDENCE_MANIFEST_V1",
+  "mission_issue": 365,
+  "level_id": "L1",
+  "level_name": "Observable Machine",
+  "catalog": {
+    "version": "MACHINE-MATURITY-CATALOG-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+    "path": "docs/governance/machine_maturity/CERTIFICATION_CATALOG_v0.1.md"
+  },
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142",
+    "path": "docs/governance/machine_maturity/EVIDENCE_LEDGER_v0.1.md"
+  },
+  "input_manifest": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "f42ce8783152ee88de8ae3b90af2dd870c75e0df",
+    "path": "docs/governance/machine_maturity/MACHINE_MATURITY_01_INPUT_MANIFEST_v1.json",
+    "r0_merge_main": "8aad0ac42705f50e626aa802340a23c8b5c94aa9",
+    "r0_verdict": "MACHINE_MATURITY_01_INPUTS_FROZEN"
+  },
+  "predecessor_certification": {
+    "level_id": "L0",
+    "effective_main_sha": "747114daa9c7c0bef4992d2dba19f7dd402a423a",
+    "certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
+    "state": "LEVEL_0_CERTIFIED"
+  },
+  "frozen_l1_record_ids": [
+    "MM-EV-L1-001",
+    "MM-EV-L1-002",
+    "MM-EV-L1-003",
+    "MM-EV-L1-004",
+    "MM-EV-L1-005",
+    "MM-EV-L1-006",
+    "MM-EV-L1-007",
+    "MM-EV-L1-008",
+    "MM-EV-L1-009",
+    "MM-EV-L1-010"
+  ],
+  "criterion_results": [
+    {
+      "criterion_id": "L1-G1",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF)",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L1-007",
+        "MM-EV-L1-006"
+      ],
+      "source_refs": [
+        "#223",
+        "#175"
+      ],
+      "dependencies": [
+        "L0-G2",
+        "L0-G3"
+      ],
+      "evidence_basis": [
+        "#223 proves runtime scientific-capital provenance with explicit authority, epoch and provenance=PPL_REPLAY while source tests prove the same authority-specific semantics.",
+        "#175 provides producer-authored runtime observation with explicit authority/provenance and timestamped materialization through the read-only transport chain."
+      ],
+      "rejected_substitutions": [
+        "narrative log text alone",
+        "screenshot alone",
+        "source-only implementation as runtime proof"
+      ],
+      "historical_limitations": [
+        "Do not reuse the historical Legacy/PPL SHADOW authority state from #175 as a current authority claim."
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L1-G2",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF)",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L1-001",
+        "MM-EV-L1-004"
+      ],
+      "source_refs": [
+        "#154",
+        "PR #155",
+        "#167"
+      ],
+      "dependencies": [
+        "L0-G1",
+        "L0-G4"
+      ],
+      "evidence_basis": [
+        "#154/#155 certify durable append, event identity/idempotence, sequence ordering, fsync/locking, fail-closed corruption handling and deterministic replay.",
+        "#167 proves real runtime ON/OFF/ON same-epoch continuity, deterministic projection/replay, exact OPEN/CLOSE capture, failure isolation and recovery without duplicate lifecycle effects."
+      ],
+      "rejected_substitutions": [
+        "legacy JSONL coherence alone",
+        "mutable snapshot",
+        "process memory",
+        "source replay without runtime witness"
+      ],
+      "historical_limitations": [
+        "#167's PPL authority=NONE/legacy-authority state is historical and was later superseded by governed PPL authority cutover; replay/recovery evidence remains admissible."
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L1-G3",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF, UX_PROOF)",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L1-002",
+        "MM-EV-L1-003",
+        "MM-EV-L1-006",
+        "MM-EV-L1-010"
+      ],
+      "source_refs": [
+        "#162",
+        "#164",
+        "PR #166",
+        "#175",
+        "#319"
+      ],
+      "dependencies": [
+        "L1-G1"
+      ],
+      "evidence_basis": [
+        "#162 certifies local Operator Web/API runtime, loopback listeners, real browser navigation and mutation rejection.",
+        "#164/#166 certify private PWA runtime, network-fail-closed behavior, no runtime API caching, real Chromium update behavior and continued loopback-only API/Web listeners.",
+        "#175 certifies read-only comparator producer→API→frontend fidelity.",
+        "#319 is supporting secure-runtime precedent; it is not substituted for Operator App runtime certification."
+      ],
+      "rejected_substitutions": [
+        "frontend source-only",
+        "mutating API presented as observation",
+        "direct React reads of trading stores",
+        "CryptoRadar runtime as substitute for Operator App runtime"
+      ],
+      "historical_limitations": [
+        "#319 remains supporting-only for L1-G3."
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L1-G4",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF)",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L1-002",
+        "MM-EV-L1-004",
+        "MM-EV-L1-006",
+        "MM-EV-L1-007",
+        "MM-EV-L1-008",
+        "MM-EV-L1-009"
+      ],
+      "source_refs": [
+        "#162",
+        "#167",
+        "#175",
+        "#223",
+        "#287",
+        "#309"
+      ],
+      "dependencies": [
+        "L0-G3",
+        "L1-G1"
+      ],
+      "evidence_basis": [
+        "#162 preserves SNAPSHOT_MISSING/UNRESOLVED rather than fabricating healthy replacement values.",
+        "#175 proves raw provenance, explicit PARTIAL/UNRESOLVED states and live STALE→FRESH classification without fake convergence.",
+        "#223 proves authority/epoch/provenance labelling for scientific capital.",
+        "#287/#309 provide supporting runtime/source topology evidence and preserve UNKNOWN boundaries."
+      ],
+      "rejected_substitutions": [
+        "UI-invented freshness",
+        "UNKNOWN hidden as zero/healthy",
+        "stale rendered as live",
+        "future-skew/unattributed data treated healthy"
+      ],
+      "historical_limitations": [
+        "#162 SNAPSHOT_MISSING is retained as historical evidence of fail-closed semantics, not asserted as the current availability state."
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L1-G5",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "proof_requirement": "RUNTIME_PROOF",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L1-002",
+        "MM-EV-L1-003",
+        "MM-EV-L1-004",
+        "MM-EV-L1-005",
+        "MM-EV-L1-006",
+        "MM-EV-L1-007",
+        "MM-EV-L1-008",
+        "MM-EV-L1-009",
+        "MM-EV-L1-010"
+      ],
+      "source_refs": [
+        "#162",
+        "#164",
+        "#167",
+        "#174",
+        "#175",
+        "#223",
+        "#287",
+        "#309",
+        "#319"
+      ],
+      "dependencies": [
+        "L1-G1"
+      ],
+      "evidence_basis": [
+        "#162/#164 establish service/listener/browser runtime and controlled recovery evidence.",
+        "#167 establishes runtime identity, same-epoch restart/replay, DEGRADED→ACTIVE recovery and artifact continuity.",
+        "#174 provides bounded runtime recertification with exact live/config fingerprints and fail-closed universe evidence.",
+        "#175 records governed Advisor restart/process identity and unchanged critical PAPER/PPL artifacts.",
+        "#223 proves controlled start/stop, process quiescence and artifact invariance.",
+        "#309/#319 provide supporting process/service/listener identity evidence."
+      ],
+      "rejected_substitutions": [
+        "systemd template without observation",
+        "source tests alone",
+        "assumed-running service without witness"
+      ],
+      "historical_limitations": [
+        "Runtime observations are dated evidence; they are used as durable inherited proof only after the current-main revocation sweep finds no loss of the certified capability."
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L1-G6",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF, GOVERNANCE_PROOF)",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L1-002",
+        "MM-EV-L1-003",
+        "MM-EV-L1-004",
+        "MM-EV-L1-006",
+        "MM-EV-L1-010"
+      ],
+      "source_refs": [
+        "#162",
+        "#164",
+        "#167",
+        "#175",
+        "#319"
+      ],
+      "dependencies": [
+        "L0-G1",
+        "L1-G3"
+      ],
+      "evidence_basis": [
+        "#162/#164 certify observation-only Web/PWA paths without trading authority.",
+        "#167 demonstrates SHADOW failure isolation and explicitly non-authoritative observation.",
+        "#175 comparator authority is OBSERVATIONAL_TELEMETRY and cannot repair or mutate PAPER/PPL truth.",
+        "#319 is supporting secure observation precedent and does not create new authority."
+      ],
+      "rejected_substitutions": [
+        "React/UI accounting as truth",
+        "observer writer mutating PPL/FIN",
+        "observation result becoming execution authority",
+        "supporting CryptoRadar proof replacing canonical Operator evidence"
+      ],
+      "historical_limitations": [
+        "The legacy-vs-PPL authority state in #167/#175 was superseded; the non-authoritative observability invariant was not."
+      ],
+      "revocation_result": "NONE_FOUND"
+    }
+  ],
+  "historical_supersession_review": [
+    {
+      "evidence": [
+        "MM-EV-L1-004",
+        "MM-EV-L1-006"
+      ],
+      "historical_fact": "Legacy PAPER authoritative; PPL SHADOW/NONE",
+      "later_change": "Governed PPL authority cutover occurred after these witnesses.",
+      "disposition": "SUPERSEDED_AUTHORITY_STATE_ONLY",
+      "certification_effect": "Runtime replay/recovery/provenance/non-authoritative observation evidence remains admissible; historical authority value is not reused as current truth."
+    },
+    {
+      "evidence": [
+        "MM-EV-L1-002"
+      ],
+      "historical_fact": "CANONICAL_SNAPSHOT=UNRESOLVED / SNAPSHOT_MISSING",
+      "later_change": "Later observability/app work may provide additional projections/snapshots.",
+      "disposition": "HISTORICAL_LIMITATION_RETAINED",
+      "certification_effect": "Used as evidence of fail-closed missing-state semantics, not as a current availability claim."
+    }
+  ],
+  "current_repository_revocation_sweep": {
+    "reviewed_through_main": "747114daa9c7c0bef4992d2dba19f7dd402a423a",
+    "current_source_invariants": [
+      "observability/operator_api/app.py exposes 15 inspected route decorators and all are GET; no POST/PUT/DELETE/PATCH route decorator was found.",
+      "Operator API source still explicitly rejects instantiating trading authorities and transports producer-authored projections.",
+      "frontend/public/sw.js and pwa-policy.js retain the WEB-01B fail-closed cache boundary; the service-worker blob is unchanged from the #166 certified merge.",
+      "paper_trading/durable_event_store.py on current main still contains fsync, POSIX locking, EventIdentityCollisionError, ALREADY_EXISTS idempotence, sequence validation and fail-closed corruption handling.",
+      "core/advisor_loop.py still carries provenance=PPL_REPLAY and legacy_fallback=disabled for PPL scientific capital.",
+      "No operational=True OperatorDecision activation is present; #315 Gate O remains OPEN/NON_RESOLVED."
+    ],
+    "post_freeze_material_changes_reviewed": [
+      {
+        "ref": "#315",
+        "disposition": "SOURCE_ONLY_NON_OPERATIONAL_OPERATOR_DECISION_PROTOTYPE",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#330",
+        "disposition": "SOURCE_ONLY_READ_ONLY_RUNTIME_SERVICE_PROJECTION",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#332",
+        "disposition": "SOURCE_ONLY_OBSERVATIONAL_SCANNER",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#334",
+        "disposition": "SOURCE_ONLY_READ_ONLY_MICROSTRUCTURE_PROJECTION",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#361",
+        "disposition": "SOURCE_ONLY_GET_ONLY_EVENT_CENTER",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#368",
+        "disposition": "SOURCE_ONLY_GET_ONLY_STORAGE_METADATA",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#370",
+        "disposition": "SOURCE_ONLY_GET_ONLY_LMI_DETAIL",
+        "result": "NO_L1_REVOCATION"
+      },
+      {
+        "ref": "#372",
+        "disposition": "GOVERNANCE_ONLY_L0_CERTIFICATE",
+        "result": "NO_L1_REVOCATION"
+      }
+    ],
+    "active_revocation_findings": []
+  },
+  "evidence_amendment_required": false,
+  "aggregate": {
+    "mandatory_criteria": 6,
+    "satisfied": 6,
+    "unresolved": 0,
+    "not_available": 0,
+    "active_revocation_findings": 0,
+    "decision_candidate": "LEVEL_1_CERTIFIED"
+  }
+}
