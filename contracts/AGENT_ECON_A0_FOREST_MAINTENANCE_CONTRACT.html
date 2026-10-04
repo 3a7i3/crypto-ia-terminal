@@ -248,10 +248,10 @@
         <article role="main" id="furo-main-content">
           <section id="agent-econ-a0-forest-maintenance-contract">
 <h1>AGENT-ECON A0 — Forest Maintenance Contract<a class="headerlink" href="#agent-econ-a0-forest-maintenance-contract" title="Link to this heading">¶</a></h1>
-<p>Statut : <strong>SOURCE CONTRACT V1 / RÉCONCILIATION R1.1 / CONTRACT-ONLY / NON DÉPLOYÉ</strong>
+<p>Statut : <strong>SOURCE CONTRACT V1 / CERTIFIÉ R1.1 (contrat/schéma) / CONTRACT-ONLY / NON DÉPLOYÉ</strong>
 Constitution : <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_V1</span></code>
-Verdict proposé : <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION</span></code>
-(pas <code class="docutils literal notranslate"><span class="pre">CERTIFIED</span></code> : la certification appartient à la revue et à la gouvernance humaine).
+Verdict (décision humaine de l’opérateur) : <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT_R1_1_CERTIFIED</span></code>
+(voir §17).
 Réconciliation R1 : cette version intègre les meilleures propriétés d’une conception
 indépendante parallèle (PR #347, <code class="docutils literal notranslate"><span class="pre">INDEPENDENT_DESIGN_REFERENCE</span></code>) dans la ligne canonique
 (PR #348, <code class="docutils literal notranslate"><span class="pre">CANONICAL_RECONCILIATION_TARGET</span></code>). Aucune troisième PR.</p>
@@ -1110,12 +1110,24 @@ une implémentation source A1 : le dernier état lu de #284 (statut courant du
 <hr class="docutils" />
 <section id="verdict">
 <h2>17. Verdict<a class="headerlink" href="#verdict" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION</span></code> (proposition ; non certifié).</p>
+<p><code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT_R1_1_CERTIFIED</span></code></p>
+<p>Source certifiée : PR #348, tête <code class="docutils literal notranslate"><span class="pre">18f7c159f207159243cb0227773427f2a209b26a</span></code> (CI verte, revue humaine R1.1).
+Fusion de canonicalisation : <code class="docutils literal notranslate"><span class="pre">eeaec5ae29a72b765bb97feb46520032aba44e2a</span></code>. La fusion a précédé la rédaction de cette
+mention ; elle est acceptée (<code class="docutils literal notranslate"><span class="pre">MERGE_ACCEPTED</span></code>) et cette mention la complète
+(<code class="docutils literal notranslate"><span class="pre">POST_MERGE_CERTIFICATION</span></code>).</p>
+<p><strong>CERTIFIED</strong> signifie : architecture de <strong>contrat / schéma</strong> certifiée. Cela ne signifie
+<strong>pas</strong> : Agent Registry implémenté ou déployé, agents en exécution, workers
+disponibles, AIC actif, Problem Registry ou Bounty Registry actifs, autorité runtime,
+autorité PAPER, mutation GitHub autonome.</p>
+<p>Restent non résolus par conception : identité et authentification du registrar ;
+ancre anti-retour / complétude ; stockage durable du registre ; indépendance forte des
+reviewers ; couverture CODEOWNERS. <code class="docutils literal notranslate"><span class="pre">AVAILABLE</span></code> reste inatteignable. F3 et F4 restent
+<code class="docutils literal notranslate"><span class="pre">RESERVED</span></code>. L’Agent Registry reste <code class="docutils literal notranslate"><span class="pre">NON_DEPLOYED</span></code>.</p>
 <p><strong>Portée de certification.</strong> Ce verdict ne couvre que le sous-périmètre contractuel
 <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_FOREST_CONTRACT</span></code> (et <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT</span></code>). Il ne
 clôt <strong>pas</strong> l’A0 économique de #284 : AIC, Treasury, wallets et comptabilité des coûts
 restent du travail futur (A4/A5). Non déclaré : <code class="docutils literal notranslate"><span class="pre">AGENT_ECON_A0_ECONOMIC_CONTRACT_COMPLETE</span></code>.</p>
-<p>Non déclaré : <code class="docutils literal notranslate"><span class="pre">CERTIFIED</span></code>, <code class="docutils literal notranslate"><span class="pre">AGENT_ECONOMY_DEPLOYED</span></code>,
+<p>Non déclaré : <code class="docutils literal notranslate"><span class="pre">AGENT_ECONOMY_DEPLOYED</span></code>,
 <code class="docutils literal notranslate"><span class="pre">AGENT_ECONOMY_ARCHITECTURE_CERTIFIED</span></code>. Aucune autorité runtime n’est créée ou
 modifiée ; #286 reste actif.</p>
 </section>

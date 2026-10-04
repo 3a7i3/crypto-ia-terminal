@@ -1,9 +1,9 @@
 # AGENT-ECON A0 — Forest Maintenance Contract
 
-Statut : **SOURCE CONTRACT V1 / RÉCONCILIATION R1.1 / CONTRACT-ONLY / NON DÉPLOYÉ**
+Statut : **SOURCE CONTRACT V1 / CERTIFIÉ R1.1 (contrat/schéma) / CONTRACT-ONLY / NON DÉPLOYÉ**
 Constitution : `AGENT_ECON_A0_FOREST_V1`
-Verdict proposé : `AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION`
-(pas `CERTIFIED` : la certification appartient à la revue et à la gouvernance humaine).
+Verdict (décision humaine de l'opérateur) : `AGENT_ECON_A0_FOREST_CONTRACT_R1_1_CERTIFIED`
+(voir §17).
 Réconciliation R1 : cette version intègre les meilleures propriétés d'une conception
 indépendante parallèle (PR #347, `INDEPENDENT_DESIGN_REFERENCE`) dans la ligne canonique
 (PR #348, `CANONICAL_RECONCILIATION_TARGET`). Aucune troisième PR.
@@ -535,13 +535,28 @@ Classement : `OBSERVED | NEEDS_REVIEW | BLOCKING | NON_BLOCKING`.
 
 ## 17. Verdict
 
-`AGENT_ECON_A0_FOREST_CONTRACT_R1_1_READY_FOR_CERTIFICATION` (proposition ; non certifié).
+`AGENT_ECON_A0_FOREST_CONTRACT_R1_1_CERTIFIED`
+
+Source certifiée : PR #348, tête `18f7c159f207159243cb0227773427f2a209b26a` (CI verte, revue humaine R1.1).
+Fusion de canonicalisation : `eeaec5ae29a72b765bb97feb46520032aba44e2a`. La fusion a précédé la rédaction de cette
+mention ; elle est acceptée (`MERGE_ACCEPTED`) et cette mention la complète
+(`POST_MERGE_CERTIFICATION`).
+
+**CERTIFIED** signifie : architecture de **contrat / schéma** certifiée. Cela ne signifie
+**pas** : Agent Registry implémenté ou déployé, agents en exécution, workers
+disponibles, AIC actif, Problem Registry ou Bounty Registry actifs, autorité runtime,
+autorité PAPER, mutation GitHub autonome.
+
+Restent non résolus par conception : identité et authentification du registrar ;
+ancre anti-retour / complétude ; stockage durable du registre ; indépendance forte des
+reviewers ; couverture CODEOWNERS. `AVAILABLE` reste inatteignable. F3 et F4 restent
+`RESERVED`. L'Agent Registry reste `NON_DEPLOYED`.
 
 **Portée de certification.** Ce verdict ne couvre que le sous-périmètre contractuel
 `AGENT_ECON_A0_FOREST_CONTRACT` (et `AGENT_ECON_A1_AGENT_REGISTRY_CONTRACT`). Il ne
 clôt **pas** l'A0 économique de #284 : AIC, Treasury, wallets et comptabilité des coûts
 restent du travail futur (A4/A5). Non déclaré : `AGENT_ECON_A0_ECONOMIC_CONTRACT_COMPLETE`.
 
-Non déclaré : `CERTIFIED`, `AGENT_ECONOMY_DEPLOYED`,
+Non déclaré : `AGENT_ECONOMY_DEPLOYED`,
 `AGENT_ECONOMY_ARCHITECTURE_CERTIFIED`. Aucune autorité runtime n'est créée ou
 modifiée ; #286 reste actif.
