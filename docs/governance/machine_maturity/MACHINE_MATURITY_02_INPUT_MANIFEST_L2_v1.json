@@ -1,0 +1,515 @@
+{
+  "schema_version": "MACHINE_MATURITY_02_L2_INPUT_MANIFEST_V1",
+  "mission_issue": 384,
+  "framework_issue": 362,
+  "roadmap_issue": 285,
+  "level_id": "L2",
+  "level_name": "Governed PAPER Machine",
+  "review_base_main_sha": "1f0e858d53ef54b04d735ff2f849db2d345d77f5",
+  "scope": "FORMAL_RETRO_CERTIFICATION_L2_REVIEW_ONLY",
+  "catalog": {
+    "version": "MACHINE-MATURITY-CATALOG-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+    "path": "docs/governance/machine_maturity/CERTIFICATION_CATALOG_v0.1.md"
+  },
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142",
+    "path": "docs/governance/machine_maturity/EVIDENCE_LEDGER_v0.1.md"
+  },
+  "predecessor_certifications": [
+    {
+      "level_id": "L0",
+      "status": "CERTIFIED",
+      "certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0"
+    },
+    {
+      "level_id": "L1",
+      "status": "CERTIFIED",
+      "certification_path": "docs/governance/machine_maturity/LEVEL_1_MACHINE_LEVEL_CERTIFICATION_v2.json",
+      "certification_blob": "f0817ae6fad9555c80188a13d4998b2981d7e589",
+      "certification_hash": "49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf"
+    }
+  ],
+  "bounded_evidence_record_ids": [
+    "MM-EV-L2-001",
+    "MM-EV-L2-002",
+    "MM-EV-L2-003",
+    "MM-EV-L2-004",
+    "MM-EV-L2-005",
+    "MM-EV-L2-006",
+    "MM-EV-L2-007",
+    "MM-EV-L2-008",
+    "MM-EV-L2-009",
+    "MM-EV-L2-010",
+    "MM-EV-L2-011",
+    "MM-EV-L2-012",
+    "MM-EV-L2-013",
+    "MM-EV-L2-014",
+    "MM-EV-L2-015",
+    "MM-EV-L2-016",
+    "MM-EV-L2-017"
+  ],
+  "evidence_records": [
+    {
+      "evidence_record_id": "MM-EV-L2-001",
+      "source": "#180/#184",
+      "original_verdict": "PPL_02E_RUNTIME_CUTOVER_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "SOURCE_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps": [
+        "L2-G1",
+        "L2-G2"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-002",
+      "source": "#218",
+      "original_verdict": "F00_PREFLIGHT_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "SOURCE_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps": [
+        "L2-G2",
+        "L2-G3",
+        "L2-G4"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-003",
+      "source": "#220",
+      "original_verdict": "EPOCH_01_MANIFEST_ROTATION_SOURCE_CERTIFIED",
+      "primary_proof_class": "SOURCE_PROOF",
+      "supporting_proof_classes": [],
+      "maps": [
+        "L2-G3"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-004",
+      "source": "#219",
+      "original_verdict": "EPOCH_01_1000_CAPITAL_CREATED_CERTIFIED",
+      "primary_proof_class": "EXPERIMENT_PROOF",
+      "supporting_proof_classes": [
+        "RUNTIME_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps": [
+        "L2-G3"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-005",
+      "source": "#222",
+      "original_verdict": "EPOCH_01_RUNTIME_BOOTSTRAP_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "EXPERIMENT_PROOF"
+      ],
+      "maps": [
+        "L2-G2",
+        "L2-G3",
+        "L2-G4"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-006",
+      "source": "#226",
+      "original_verdict": "F00_EXPERIMENT_CONFIG_FREEZE_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "SOURCE_PROOF",
+        "EXPERIMENT_PROOF"
+      ],
+      "maps": [
+        "L2-G3"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-007",
+      "source": "#225",
+      "original_verdict": "F00_START_PRECHECK_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "EXPERIMENT_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps": [
+        "L2-G3",
+        "L2-G4"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-008",
+      "source": "#230",
+      "original_verdict": "F00_ADMISSION_ACTIVATION_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps": [
+        "L2-G4"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-009",
+      "source": "#231",
+      "original_verdict": "F00_FIRST_LIFECYCLE_EVENT_CERTIFIED",
+      "primary_proof_class": "EXPERIMENT_PROOF",
+      "supporting_proof_classes": [
+        "RUNTIME_PROOF"
+      ],
+      "maps": [
+        "L2-G4",
+        "L2-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-010",
+      "source": "#232",
+      "original_verdict": "F00_RUNTIME_RESUME_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "EXPERIMENT_PROOF"
+      ],
+      "maps": [
+        "L2-G2",
+        "L2-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-011",
+      "source": "#233",
+      "original_verdict": "F00_FIRST_COMPLETED_LIFECYCLE_CERTIFIED",
+      "primary_proof_class": "EXPERIMENT_PROOF",
+      "supporting_proof_classes": [
+        "RUNTIME_PROOF"
+      ],
+      "maps": [
+        "L2-G2",
+        "L2-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-012",
+      "source": "#244",
+      "original_verdict": "FIN_00_FINANCIAL_SEMANTICS_CERTIFIED",
+      "primary_proof_class": "SOURCE_PROOF",
+      "supporting_proof_classes": [
+        "ARCHITECTURE_PROOF"
+      ],
+      "maps": [
+        "L2-G5"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-013",
+      "source": "#245",
+      "original_verdict": "FIN_01_PAPER_FINANCIAL_INSTITUTE_SOURCE_CERTIFIED",
+      "primary_proof_class": "SOURCE_PROOF",
+      "supporting_proof_classes": [],
+      "maps": [
+        "L2-G5"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-014",
+      "source": "#246",
+      "original_verdict": "PPL_FINANCIAL_RECOVERY_REPLAY_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "SOURCE_PROOF"
+      ],
+      "maps": [
+        "L2-G2",
+        "L2-G5",
+        "L2-G6"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-015",
+      "source": "#247",
+      "original_verdict": "FIN_02_RECONCILIATION_COCKPIT_CERTIFIED",
+      "primary_proof_class": "RUNTIME_PROOF",
+      "supporting_proof_classes": [
+        "SOURCE_PROOF",
+        "UX_PROOF"
+      ],
+      "maps": [
+        "L2-G6"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-016",
+      "source": "#255",
+      "original_verdict": "F00_DRAIN_COMPLETE_CERTIFIED",
+      "primary_proof_class": "EXPERIMENT_PROOF",
+      "supporting_proof_classes": [
+        "RUNTIME_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps": [
+        "L2-G2",
+        "L2-G4",
+        "L2-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-017",
+      "source": "#256",
+      "original_verdict": "F00_FINAL_SCIENTIFIC_EXPERIMENT_CERTIFIED",
+      "primary_proof_class": "EXPERIMENT_PROOF",
+      "supporting_proof_classes": [
+        "RUNTIME_PROOF",
+        "SOURCE_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps": [
+        "L2-G1",
+        "L2-G2",
+        "L2-G3",
+        "L2-G5",
+        "L2-G6",
+        "L2-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    }
+  ],
+  "criterion_results": [
+    {
+      "criterion_id": "L2-G1",
+      "title": "Single governed PAPER lifecycle authority",
+      "mandatory": true,
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF, GOVERNANCE_PROOF)",
+      "dependencies": [
+        "L0-G1",
+        "L1-G2"
+      ],
+      "status": "SATISFIED",
+      "accepted_records": [
+        "MM-EV-L2-001",
+        "MM-EV-L2-017"
+      ],
+      "forbidden_state_check": "PASS — no active dual lifecycle authority or silent Legacy fallback found."
+    },
+    {
+      "criterion_id": "L2-G2",
+      "title": "Replay-complete lifecycle & restart determinism",
+      "mandatory": true,
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF)",
+      "dependencies": [
+        "L2-G1"
+      ],
+      "status": "SATISFIED",
+      "accepted_records": [
+        "MM-EV-L2-001",
+        "MM-EV-L2-002",
+        "MM-EV-L2-005",
+        "MM-EV-L2-010",
+        "MM-EV-L2-011",
+        "MM-EV-L2-014",
+        "MM-EV-L2-016",
+        "MM-EV-L2-017"
+      ],
+      "forbidden_state_check": "PASS — deterministic restart/replay proven; missing facts remain unresolved rather than reconstructed."
+    },
+    {
+      "criterion_id": "L2-G3",
+      "title": "Governed epoch / config / capital identity",
+      "mandatory": true,
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF, EXPERIMENT_PROOF)",
+      "dependencies": [
+        "L2-G1",
+        "L0-G4"
+      ],
+      "status": "SATISFIED",
+      "accepted_records": [
+        "MM-EV-L2-002",
+        "MM-EV-L2-003",
+        "MM-EV-L2-004",
+        "MM-EV-L2-005",
+        "MM-EV-L2-006",
+        "MM-EV-L2-007",
+        "MM-EV-L2-017"
+      ],
+      "forbidden_state_check": "PASS — F00 source/epoch/config/capital identities are fingerprinted and mismatch handling is fail-closed."
+    },
+    {
+      "criterion_id": "L2-G4",
+      "title": "Controlled admission & runtime authority boundary",
+      "mandatory": true,
+      "proof_requirement": "ALL_OF(RUNTIME_PROOF, GOVERNANCE_PROOF, EXPERIMENT_PROOF)",
+      "dependencies": [
+        "L2-G1",
+        "L2-G3"
+      ],
+      "status": "SATISFIED",
+      "accepted_records": [
+        "MM-EV-L2-002",
+        "MM-EV-L2-005",
+        "MM-EV-L2-007",
+        "MM-EV-L2-008",
+        "MM-EV-L2-009",
+        "MM-EV-L2-016"
+      ],
+      "forbidden_state_check": "PASS — F00 admission was explicitly gated and later drained; later burn-in admission is a separately governed successor epoch, not an F00 reopening."
+    },
+    {
+      "criterion_id": "L2-G5",
+      "title": "Financial semantics & deterministic projection",
+      "mandatory": true,
+      "proof_requirement": "ALL_OF(SOURCE_PROOF, RUNTIME_PROOF)",
+      "dependencies": [
+        "L2-G1",
+        "L2-G2"
+      ],
+      "status": "SATISFIED",
+      "accepted_records": [
+        "MM-EV-L2-012",
+        "MM-EV-L2-013",
+        "MM-EV-L2-014",
+        "MM-EV-L2-017"
+      ],
+      "forbidden_state_check": "PASS — no silent capital creation/destruction, double release or unknown-mark coercion accepted."
+    },
+    {
+      "criterion_id": "L2-G6",
+      "title": "Reconciliation / no silent correction",
+      "mandatory": true,
+      "proof_requirement": "ALL_OF(RUNTIME_PROOF, SOURCE_PROOF)",
+      "dependencies": [
+        "L2-G5"
+      ],
+      "status": "SATISFIED",
+      "accepted_records": [
+        "MM-EV-L2-014",
+        "MM-EV-L2-015",
+        "MM-EV-L2-017"
+      ],
+      "forbidden_state_check": "PASS — tolerance is explicit; comparable divergence is visible; non-comparable PPL-vs-FIN realized PnL is not falsely marked equal."
+    },
+    {
+      "criterion_id": "L2-G7",
+      "title": "Completed governed scientific PAPER experiment",
+      "mandatory": true,
+      "proof_requirement": "ALL_OF(EXPERIMENT_PROOF, RUNTIME_PROOF, GOVERNANCE_PROOF)",
+      "dependencies": [
+        "L2-G1",
+        "L2-G2",
+        "L2-G3",
+        "L2-G4",
+        "L2-G5",
+        "L2-G6"
+      ],
+      "status": "SATISFIED",
+      "accepted_records": [
+        "MM-EV-L2-009",
+        "MM-EV-L2-010",
+        "MM-EV-L2-011",
+        "MM-EV-L2-016",
+        "MM-EV-L2-017"
+      ],
+      "forbidden_state_check": "PASS — F00 certified population is terminal: 13 OPEN / 13 CLOSE / 0 unresolved / 0 residual open, with admissions closed during final certification."
+    }
+  ],
+  "positive_evidence_policy": "Only MM-EV-L2-001…MM-EV-L2-017 from the frozen Evidence Ledger are admitted as positive criterion evidence in this review.",
+  "post_freeze_evidence_policy": "Later evidence is used only for contradiction, supersession, dependency-invalidation and revocation review; it cannot silently satisfy a missing L2 proof class.",
+  "evidence_corpus_amendment_required": false,
+  "supersession_review": [
+    {
+      "finding": "#195 identified a pre-admission semantic durability defect after PPL cutover.",
+      "disposition": "NO_REVOCATION",
+      "rationale": "The forensic explicitly retained PPL-02E cutover certification; #196 remediated the defect before F00 admissions. Current source still performs semantic projection before durable append/fsync."
+    },
+    {
+      "finding": "F00 was later succeeded by BURN_IN_EXPERIMENT.",
+      "disposition": "GOVERNED_SUCCESSION_NO_REVOCATION",
+      "rationale": "#278 certified F00 quiescence; #279 preserved the final F00 digest during stopped cold deploy; #281 activated a distinct burn-in epoch under the same single PPL authority. The certified F00 population was not reopened."
+    }
+  ],
+  "post_freeze_revocation_sweep": {
+    "through_main_sha": "1f0e858d53ef54b04d735ff2f849db2d345d77f5",
+    "current_runtime_claim": "NOT_AVAILABLE",
+    "active_revocation_findings": 0,
+    "checks": [
+      "paper_trading/paper_authority.py unchanged from F00-final source baseline",
+      "paper_trading/mexc_simulator.py unchanged from F00-final source baseline",
+      "paper_trading/paper_portfolio_ledger.py unchanged from F00-final source baseline",
+      "paper_trading/durable_event_store.py unchanged from F00-final source baseline",
+      "infra/wallet_sync.py unchanged from F00-final source baseline",
+      "financial_institute core ledger/snapshot/recovery/reconciliation files unchanged from F00-final source baseline",
+      "ppl_authority_runtime.py change is additive BURN_IN_EXPERIMENT manifest/event-domain support; single PPL authority and semantic prevalidation remain",
+      "#282 current fresh runtime state is NOT_OBSERVED; historical runtime evidence is not promoted to current deployment truth",
+      "#286 ACTIVE_BURN_IN_IMMUTABILITY_GUARD remains active"
+    ],
+    "result": "NONE_FOUND"
+  },
+  "frozen_f00_identity": {
+    "epoch_id": "F00-EPOCH-01-20260920T084335Z",
+    "initial_virtual_capital": "1000.0",
+    "manifest_sha256": "1d7a3386b2eb2ec7a0f253500ecd2431379c45047698b33f84ae0e08644553af",
+    "config_snapshot_hash": "6a86a11b201778602eaa4575fbbdfde6dc253760b528cb79b72145d4ac417aae",
+    "final_ppl_sha256": "50220fdfd4a75d219795db518d77ab6c6574883eb74a6a8db9e26a6d8cf729b2",
+    "event_count": 27,
+    "position_opened": 13,
+    "position_closed": 13,
+    "position_unresolved": 0,
+    "residual_open": 0,
+    "final_cash": "1001.863570581569075825468382",
+    "final_realized_pnl": "1.863570581569075825468382173",
+    "fees_paid": "0.26",
+    "fin_state_digest": "e6b3155ca8d79617696906c2b5f8cb7986b926679555e25c8d27e95cda3f34cb",
+    "fin_snapshot_id": "e7bc4f1c4c4fa7b32e58d03f565a252404546165371dce3bc10e9c12e7b142f5"
+  },
+  "aggregate": {
+    "mandatory_criteria": 7,
+    "satisfied": 7,
+    "unresolved": 0,
+    "not_available": 0,
+    "active_revocation_findings": 0,
+    "decision_candidate": "LEVEL_2_CERTIFIED",
+    "effective_formal_frontier_before_machine_level_certification": "L1"
+  },
+  "forbidden_scope": [
+    "runtime mutation",
+    "Advisor restart/deploy",
+    "runtime checkout movement",
+    "PAPER/PPL/FIN mutation",
+    "epoch/config mutation",
+    "strategy/signal/risk/sizing change",
+    "PB_MAX_POSITIONS change",
+    "Watchdog",
+    "TESTNET",
+    "LIVE",
+    "exchange write",
+    "OperatorDecision operational activation",
+    "agent runtime activation",
+    "#282 finalization"
+  ],
+  "manifest_hash_algorithm": "sha256_canonical_json_excluding_manifest_hash",
+  "manifest_hash_scope": "All fields except manifest_hash; UTF-8 canonical JSON with recursively sorted object keys, arrays preserved, separators ',' ':', ensure_ascii=false.",
+  "manifest_hash": "66d7b189814f51dd2138df691dfd1c4ae5af2ee8e05bef3c67adddf0b210052f"
+}
