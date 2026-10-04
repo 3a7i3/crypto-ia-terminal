@@ -147,14 +147,15 @@
   "next_formal_certification_target_after_effective": "L1",
   "certification_hash_algorithm": "sha256_canonical_json_excluding_certification_hash",
   "certification_hash_scope": "All fields of this object except certification_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
-  "certification_hash": "e8717c16ebd3b7a2db5ed4fbb15beec652ddb385a5aca5ba6b27fb84b4f44734",
   "evidence_corpus_amendments": [
     {
       "amendment_id": "MM01-L0-EVIDENCE-AMENDMENT-001",
       "hash_algorithm": "git_blob_sha1",
       "hash": "dda4fa51e2a5dc3744087e45247d9d927ccbe65c",
-      "path": "docs/governance/machine_maturity/MACHINE_MATURITY_01_EVIDENCE_CORPUS_AMENDMENT_L0_v1.json"
+      "path": "docs/governance/machine_maturity/MACHINE_MATURITY_01_EVIDENCE_CORPUS_AMENDMENT_L0_v1.json",
+      "disposition": "GOVERNANCE_SUBSET_AMENDMENT_ONLY"
     }
   ],
-  "criteria_digest_scope": "criterion_results only, UTF-8 canonical JSON recursively sorted by object key, arrays in declared order"
+  "criteria_digest_scope": "criterion_results only, UTF-8 canonical JSON recursively sorted by object key, arrays in declared order",
+  "certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0"
 }
