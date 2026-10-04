@@ -22,7 +22,7 @@
         "not_available": 0
       },
       "certification_ref": "docs/governance/machine_maturity/LEVEL_0_MACHINE_LEVEL_CERTIFICATION_v1.json",
-      "certification_hash": "e8717c16ebd3b7a2db5ed4fbb15beec652ddb385a5aca5ba6b27fb84b4f44734",
+      "certification_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
       "revocation_state": "NONE"
     },
     {
@@ -197,6 +197,6 @@
     "#323"
   ],
   "projection_rule": "CERTIFIED status is read from an effective MachineLevelCertification artifact; it is never inferred from criterion counts.",
-  "l0_certificate_hash": "e8717c16ebd3b7a2db5ed4fbb15beec652ddb385a5aca5ba6b27fb84b4f44734",
+  "l0_certificate_hash": "d17b9b5c6be627aef559f82651d4421506b91aa3208e7284cab6348a38152eb0",
   "l0_evidence_corpus_amendment_hash": "dda4fa51e2a5dc3744087e45247d9d927ccbe65c"
 }
