@@ -1,21 +1,20 @@
-# Stockage Machine — APP-STORAGE-01
+# Détail LMI et liquidité CryptoRadar — APP-LMI-DETAIL-01
 
-Mission [#368](https://github.com/3a7i3/crypto-ia-terminal/issues/368), parent
+Mission [#370](https://github.com/3a7i3/crypto-ia-terminal/issues/370), parent
 [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323), roadmap
 [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
 
-Suite du Centre d’événements #361/#364 intégré. Combler le reliquat de stockage
-CryptoRadar dans Système, sans ouvrir les DecisionPacket JSONL.
-[Contrat APP-STORAGE-01](docs/contracts/APP_STORAGE_01_CONTRACT.md).
-Base source `8aad0ac42705f50e626aa802340a23c8b5c94aa9` ; branche `feat/app-storage-01`.
-Vérifier la disposition GitHub avant reprise ; source intégrée ≠ runtime déployé.
+Suite du stockage #368/#369 intégré. Détail par symbole : flux agressif,
+liquidité bid/ask, résistance et composantes de l’état, via projection passive
+fermée 1.1.0 et GET existant. Anciens artifacts 1.0.0 lisibles. Dates propres
+aux groupes, valeurs exactes/null/zéro, provenance contractSize et limite
+explicite des zéros de liquidité avant la première observation du carnet.
 
-Capture bornée des métadonnées de fichiers, volume logique exact en octets,
-projection atomique séparée, API GET-only et carte indépendante sur Système.
-Unknown, absent, vide, erreur ou mutation concurrente restent distincts.
-Lecture HTTP commune Events/Stockage, sérialisée et bornée à 10 s.
+[Contrat et extension](docs/contracts/APP_UNIFY_01_U3B_MICROSTRUCTURE_CONTRACT.md).
+Base source `d9cbb14d0b8a7f3818968f9de6871f435d9c87b3` ; branche `feat/app-lmi-detail-01`.
+Vérifier la disposition GitHub avant reprise ; source intégrée ≠ runtime déployé.
 
 [Entrée développeur](docs/DEVELOPER_ENTRYPOINT.md) ;
 [inventaire de parité](docs/plans/APP_UNIFY_FUNCTIONS_AND_OUTPUTS_INVENTORY.md).
-Tests et captures locaux synthétiques ; aucun accès VPS configuré dans la session.
-Burn-in #282 et garde-fou #286 intact ; aucun retrait de transport/CryptoRadar.
+Tests et captures synthétiques locaux ; aucun accès VPS configuré ici.
+Burn-in #282/#286 intact ; aucun moteur, service, transport ou retrait CryptoRadar.

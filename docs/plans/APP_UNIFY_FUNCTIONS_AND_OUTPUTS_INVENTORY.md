@@ -42,7 +42,7 @@ producteur/consommateurs et d'alimentation avant présentation de résultats.
 | Scanner / classement symboles | `observability/market_radar_snapshot.py` | Machine · CryptoRadar | U3a : top50, recherche, filtres, détail ; couverture partielle explicite |
 | Microstructure LMI | `trade_analysis/integrations/dashboard_adapter.py`, snapshot U3b | Machine · CryptoRadar | projection passive déjà intégrée |
 | Events LMI historiques | `/api/lmi/events`, adapter | Machine · CryptoRadar | ancienne route filtre les **états actuels** notables ; aucun journal temporel certifié trouvé |
-| Détail LMI complet | `/api/lmi/symbol/{symbol}` | Machine · détail Microstructure | core metrics intégrées ; `state_components`/raw/liq détaillée restent à contractualiser |
+| Détail LMI complet | `/api/lmi/symbol/{symbol}` | Machine · détail Microstructure | résumé + flux/liquidité bid–ask/résistance/composantes typés intégrés en source #370 ; raw libre exclu, observation carnet non attestée, runtime à certifier |
 | Horizon / observer / radar secondaires | `scripts/systemd/crypto-market-*.service`, producers | Machine · Marché / Système | unités source existantes ; dépendances/consommateurs runtime non recertifiés |
 | Volumes filesystem DecisionPacket | ancien `/api/status` | Machine · Système / Stockage | APP-STORAGE-01 #368 : fichiers réguliers et octets logiques exacts ; source seulement, aucun journal ouvert |
 | Replay factuel | `research_replay/` | Lab · Évaluations | publication immutable + U4 ; moteur jamais lancé par l'app |

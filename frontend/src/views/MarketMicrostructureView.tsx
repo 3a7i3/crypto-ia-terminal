@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useMarketMicrostructure } from "../lib/marketMicrostructureClient";
 import type { MicrostructureRow } from "../lib/marketMicrostructureTypes";
 
+import { detailLabels, type DetailName } from "../lib/marketMicrostructureDetail";
+
 const value = (v: number | null, suffix = "") => v === null ? "NOT_AVAILABLE" : `${v.toLocaleString("fr-FR", { maximumSignificantDigits: 10 })}${suffix}`;
 const Metrics: React.FC<{ row: MicrostructureRow }> = ({ row }) => <dl className="microstructure-metrics">
   <div><dt>Confiance état · 0–1</dt><dd>{value(row.state_confidence)}</dd></div>
@@ -15,6 +17,30 @@ const Metrics: React.FC<{ row: MicrostructureRow }> = ({ row }) => <dl className
   <div><dt>Résistance · USD/bps</dt><dd>{value(row.resistance)}</dd></div>
   <div><dt>Fragilité · 0–1</dt><dd>{value(row.fragility)}</dd></div>
 </dl>;
+
+const LmiDetail: React.FC<{ row: MicrostructureRow }> = ({ row }) => {
+  if (row.detail === undefined) return <p>Détail non publié · schéma 1.0</p>;
+  if (row.detail === null) return <p>Détail NOT_AVAILABLE</p>;
+  const titles = { flow: "Flux agressif", liquidity: "Liquidité CryptoRadar", resistance: "Résistance du marché", state_components: "Composantes de l’état publié" };
+  return <details className="market-provenance-details" data-testid="lmi-detail">
+    <summary>Détail LMI · {row.symbol}</summary>
+    <p>Valeurs exactes publiées par la source ; aucun recalcul d’état. Unités USD soumises à la provenance contractSize ci-dessus.</p>
+    {(Object.keys(detailLabels) as DetailName[]).map((name) => {
+      const group = row.detail![name];
+      const time = group && "observed_at_utc" in group ? group : null;
+      return <section key={name} data-testid={`lmi-detail-${name}`}>
+        <h3>{titles[name]}</h3>
+        {name === "liquidity" && <p>Valeurs source uniquement : le producteur peut publier des zéros avant la première observation du carnet. L’observation effective du carnet n’est pas attestée. Profondeur et intervalle de comparaison non publiés.</p>}
+        {name === "state_components" && <p>Composantes rattachées à l’état du symbole ; aucune date indépendante publiée.</p>}
+        {time && <p>{time.freshness_classification} · observation {time.observed_at_utc ?? "NOT_AVAILABLE"} · âge {time.observation_age_s === null ? "UNKNOWN" : `${String(time.observation_age_s)}s`}</p>}
+        {group === null ? <p>NOT_AVAILABLE · groupe non publié</p> : <dl className="microstructure-metrics">{Object.entries(detailLabels[name]).map(([key, label]) => {
+          const v = (group as unknown as Record<string, unknown>)[key];
+          return <div key={key}><dt>{label}</dt><dd>{v === null ? "NOT_AVAILABLE" : String(v)}</dd></div>;
+        })}</dl>}
+      </section>;
+    })}
+  </details>;
+};
 
 export const MarketMicrostructureView: React.FC = () => {
   const state = useMarketMicrostructure();
@@ -36,7 +62,7 @@ export const MarketMicrostructureView: React.FC = () => {
     <div className="microstructure-coverage" data-testid="microstructure-coverage">
       Demandés {m.coverage.requested} · Streamables {m.coverage.streamable} · Observés {m.coverage.observed} · Indisponibles {m.coverage.unavailable}
     </div>
-    <p data-testid="microstructure-units">Unités contractSize : {m.unit_contract_source} · {m.unit_contract_degraded === null ? "qualité INCONNUE" : m.unit_contract_degraded ? "DÉGRADÉES" : "aucune dégradation déclarée"}. Flux USD à lire avec cette provenance.</p>
+    <p data-testid="microstructure-units">Unités contractSize : {m.unit_contract_source} · {m.unit_contract_degraded === null ? "qualité INCONNUE" : m.unit_contract_degraded ? "DÉGRADÉES" : "aucune dégradation déclarée"}. Flux et liquidité USD à lire avec cette provenance.</p>
     <details className="market-provenance-details"><summary>Provenance LMI et fenêtre des mesures</summary>
       <p>{m.authority} · {m.exchange} · source {m.source_updated_at_utc} · publication {m.generated_at_utc} · lecture {m.read_at_utc}</p>
       <p className="microstructure-hash">Artifact source SHA256 : {m.source_artifact_sha256}</p>
@@ -54,7 +80,7 @@ export const MarketMicrostructureView: React.FC = () => {
         <div className="market-summary-row"><strong>{r.symbol}</strong><span>{r.freshness_classification}</span></div>
         <p>{r.availability === "UNAVAILABLE" ? `NOT_AVAILABLE · ${r.unavailable_reason}` : `${r.state ?? "UNKNOWN"} · ${r.freshness_classification === "FRESH" ? "état observé" : "état actuel INCONNU"}`}</p>
         <p>Stream demandé : {r.stream_requested ? "oui" : "non"} · observation {r.observed_at_utc ?? "NOT_AVAILABLE"} · âge {value(r.observation_age_s, "s")}</p>
-        {r.availability === "OBSERVED" && <><Metrics row={r} /><span>Notable à la capture : {r.notable === null ? "UNKNOWN" : r.notable ? "oui" : "non"}</span></>}
+        {r.availability === "OBSERVED" && <><Metrics row={r} /><LmiDetail row={r} /><span>Notable à la capture : {r.notable === null ? "UNKNOWN" : r.notable ? "oui" : "non"}</span></>}
       </article>)}
     </div>
     <p>Microstructure non autoritaire · aucun signal d’entrée, aucun ordre, aucune permission de trading. Scanner et LMI sont deux captures indépendantes.</p>

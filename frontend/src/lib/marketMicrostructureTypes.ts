@@ -1,5 +1,7 @@
+import type { MicrostructureDetail } from "./marketMicrostructureDetail";
 export type MicrostructureFreshness = "FRESH" | "STALE" | "UNKNOWN" | "NOT_AVAILABLE";
 export interface MicrostructureRow {
+  detail?: MicrostructureDetail | null;
   symbol: string;
   stream_requested: boolean;
   availability: "OBSERVED" | "UNAVAILABLE";
@@ -22,7 +24,7 @@ export interface MicrostructureRow {
   freshness_classification: MicrostructureFreshness;
 }
 export interface MarketMicrostructureSnapshot {
-  schema_version: "1.0.0";
+  schema_version: "1.0.0" | "1.1.0";
   product: "MarketMicrostructureSnapshot";
   domain: "market_microstructure";
   authority: "OBSERVATIONAL_TELEMETRY";

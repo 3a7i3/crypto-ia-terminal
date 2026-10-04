@@ -9,7 +9,7 @@ const scanner = JSON.parse(await readFile(".cross-stack-fixtures/L_scanner.json"
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 assert(fixture.http_status === 200 && fixture._proof.source_unchanged, "Invalid actual producer fixture");
 await mkdir(out, { recursive: true });
-const scenarios = ["fresh", "stale", "degraded", "unknown", "empty", "missing", "invalid", "network"];
+const scenarios = ["fresh", "stale", "degraded", "unknown", "empty", "missing", "invalid", "network", "legacy"];
 const browser = await chromium.launch({ headless: true });
 const errors = [], requests = [];
 try {
@@ -26,8 +26,13 @@ try {
         const body = structuredClone(fixture.body);
         if (scenario === "stale") {
           body.read_at_utc = "2026-09-14T20:02:00.000Z"; body.source_age_s = 120; body.freshness_classification = "STALE";
+          for (const r of body.rows) for (const name of ["flow", "liquidity", "resistance"]) {
+            const group = r.detail?.[name];
+            if (group?.observed_at_utc !== null && group?.observed_at_utc !== undefined) { group.observation_age_s += 118; group.freshness_classification = "STALE"; }
+          }
           for (const r of body.rows) if (r.observed_at_utc !== null) { r.observation_age_s += 118; r.freshness_classification = "STALE"; }
         }
+        if (scenario === "legacy") { body.schema_version = "1.0.0"; for (const r of body.rows) delete r.detail; }
         if (scenario === "degraded") { body.unit_contract_source = "fallback"; body.unit_contract_degraded = true; }
         if (scenario === "unknown") { body.rows[0].observed_at_utc = null; body.rows[0].observation_age_s = null; body.rows[0].freshness_classification = "UNKNOWN"; }
         if (scenario === "empty") { body.rows = []; body.coverage = { requested: 0, streamable: 0, observed: 0, unavailable: 0 }; body.pressure_field_count = 0; }
@@ -58,7 +63,14 @@ try {
           await page.getByRole("button", { name: "Réinitialiser LMI" }).click();
           assert(await page.getByTestId("microstructure-row").count() === 3, "Reset lost source population");
         }
-        await view.locator("summary").click();
+        await view.locator("summary").first().click();
+        for (const detail of await view.getByTestId("lmi-detail").all()) await detail.locator("summary").click();
+        if (scenario === "fresh") {
+          assert((await view.getByTestId("lmi-detail-liquidity").first().innerText()).includes("STALE"), "Liquidity inherited field freshness");
+          assert((await view.innerText()).includes("-462.375"), "Exact signed liquidity missing");
+          assert((await view.innerText()).includes("n’est pas attestée"), "Book evidence limitation missing");
+        }
+        if (scenario === "legacy") assert((await view.innerText()).includes("Détail non publié"), "Legacy snapshot rejected");
         assert((await view.innerText()).includes("OBSERVATIONAL_TELEMETRY"), "Provenance missing");
       }
       await view.scrollIntoViewIfNeeded();

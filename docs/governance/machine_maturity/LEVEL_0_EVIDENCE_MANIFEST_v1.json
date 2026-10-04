@@ -1,0 +1,204 @@
+{
+  "schema_version": "MACHINE_LEVEL_EVIDENCE_MANIFEST_V1",
+  "mission_issue": 365,
+  "level_id": "L0",
+  "level_name": "Constitutional Foundation",
+  "catalog": {
+    "version": "MACHINE-MATURITY-CATALOG-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+    "path": "docs/governance/machine_maturity/CERTIFICATION_CATALOG_v0.1.md"
+  },
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142",
+    "path": "docs/governance/machine_maturity/EVIDENCE_LEDGER_v0.1.md"
+  },
+  "input_manifest": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "f42ce8783152ee88de8ae3b90af2dd870c75e0df",
+    "path": "docs/governance/machine_maturity/MACHINE_MATURITY_01_INPUT_MANIFEST_v1.json",
+    "r0_merge_main": "8aad0ac42705f50e626aa802340a23c8b5c94aa9",
+    "r0_verdict": "MACHINE_MATURITY_01_INPUTS_FROZEN"
+  },
+  "formal_review": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "2683424aaee7579f2eb712f960f4c93611cd41c5",
+    "path": "docs/governance/machine_maturity/LEVEL_0_FORMAL_REVIEW_v1.md"
+  },
+  "criterion_results": [
+    {
+      "criterion_id": "L0-G1",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L0-008",
+        "MM-EV-L2-001",
+        "MM-EV-L3-004"
+      ],
+      "source_refs": [
+        "#180",
+        "#184",
+        "#240",
+        "#284",
+        "#286",
+        "#348",
+        "#364"
+      ],
+      "rejected_substitutions": [
+        "architecture diagram alone",
+        "service/module existence",
+        "absence of writes alone",
+        "merged PR as runtime authority"
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L0-G2",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L0-001",
+        "MM-EV-L0-008"
+      ],
+      "source_refs": [
+        "#211",
+        "#286",
+        "#362",
+        "#365"
+      ],
+      "rejected_substitutions": [
+        "SOURCE_PROOF as RUNTIME_PROOF",
+        "CI green as runtime behavior",
+        "merged PR as deployed capability",
+        "experiment pass as machine-level certification"
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L0-G3",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L0-001",
+        "MM-EV-L0-003",
+        "MM-EV-L0-006",
+        "MM-EV-L0-007"
+      ],
+      "source_refs": [
+        "#201",
+        "#267",
+        "#268",
+        "#361",
+        "#364"
+      ],
+      "rejected_substitutions": [
+        "null to zero",
+        "missing to false",
+        "NOT_AVAILABLE to healthy empty",
+        "NOT_APPLICABLE to zero",
+        "NON_DEPLOYED to AVAILABLE"
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L0-G4",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L0-001",
+        "MM-EV-L0-002",
+        "MM-EV-L0-003",
+        "MM-EV-L0-004",
+        "MM-EV-L0-005",
+        "MM-EV-L0-006",
+        "MM-EV-L0-008"
+      ],
+      "source_refs": [
+        "#199",
+        "#201",
+        "#211",
+        "#212",
+        "#214",
+        "#267",
+        "#286",
+        "#348",
+        "#364",
+        "#366"
+      ],
+      "rejected_substitutions": [
+        "generic CI without exact SHA",
+        "implicit owner intent",
+        "merge alone as governed scientific/runtime proof",
+        "hidden remediation inside certification-only work"
+      ],
+      "revocation_result": "NONE_FOUND"
+    },
+    {
+      "criterion_id": "L0-G5",
+      "mandatory": true,
+      "verdict": "SATISFIED",
+      "accepted_evidence_record_ids": [
+        "MM-EV-L0-001",
+        "MM-EV-L0-005",
+        "MM-EV-L0-007",
+        "MM-EV-L0-008",
+        "MM-EV-L2-007",
+        "MM-EV-L2-009"
+      ],
+      "source_refs": [
+        "#214",
+        "#225",
+        "#231",
+        "#268",
+        "#286",
+        "#362",
+        "#365",
+        "#366"
+      ],
+      "rejected_substitutions": [
+        "deleting historical FAIL/remediation evidence",
+        "rewriting history to erase blockers",
+        "mutable certificate replacement without lineage"
+      ],
+      "revocation_result": "NONE_FOUND"
+    }
+  ],
+  "rejected_evidence_classes_as_substitutes": [
+    "architecture-only evidence cannot substitute source/governance requirements",
+    "source-only evidence cannot substitute runtime proof where runtime is required",
+    "UI/fixture evidence cannot create authority",
+    "merged/closed state cannot create certification"
+  ],
+  "current_repository_revocation_sweep": {
+    "base_after_r1": "23c6f45ad68c754c10e4bbf7aa6bb36740b68ebe",
+    "reviewed_through_main": "8aad0ac42705f50e626aa802340a23c8b5c94aa9",
+    "post_r1_material_authority_changes": [
+      {
+        "ref": "#348",
+        "disposition": "CONTRACT_ONLY_NON_DEPLOYED",
+        "result": "NO_L0_REVOCATION"
+      },
+      {
+        "ref": "#364",
+        "disposition": "OBSERVATIONAL_PRESENTATION_READ_ONLY",
+        "result": "NO_L0_REVOCATION"
+      },
+      {
+        "ref": "#366",
+        "disposition": "GOVERNANCE_DOCUMENTATION_ONLY",
+        "result": "NO_L0_REVOCATION"
+      }
+    ],
+    "active_revocation_findings": []
+  },
+  "aggregate": {
+    "mandatory_criteria": 5,
+    "satisfied": 5,
+    "unresolved": 0,
+    "not_available": 0,
+    "active_revocation_findings": 0,
+    "decision_candidate": "LEVEL_0_CERTIFIED"
+  }
+}
