@@ -2,7 +2,7 @@
   "schema_version": "MACHINE_MATURITY_SNAPSHOT_V1",
   "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
   "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
-  "generated_from_source_main_sha": "26dddfb01cdad68378bf98c83c1c242ceb8db31a",
+  "generated_from_source_main_sha": "d3719e0ff7acc437f8ff9112fccdc3df1cef122b",
   "projection_semantics": "READ_ONLY_PROJECTION_OF_CERTIFICATION_AND_GOVERNANCE_ARTIFACTS",
   "formal_certified_frontier": "L0",
   "evidence_demonstrated_frontier": "L3",
@@ -22,7 +22,7 @@
         "not_available": 0
       },
       "certification_ref": "docs/governance/machine_maturity/LEVEL_0_MACHINE_LEVEL_CERTIFICATION_v1.json",
-      "certification_hash": "e1c75a38cdac0522c26d91dbfd2e7c190229006b8db68bc677af2a19e548bcd5",
+      "certification_hash": "939e861df8a74507e44f7772a949d9aa30af29672fd1aa63c703aa21295201ce",
       "revocation_state": "NONE"
     },
     {
@@ -197,5 +197,5 @@
     "#323"
   ],
   "projection_rule": "CERTIFIED status is read from an effective MachineLevelCertification artifact; it is never inferred from criterion counts.",
-  "l0_certificate_hash": "e1c75a38cdac0522c26d91dbfd2e7c190229006b8db68bc677af2a19e548bcd5"
+  "l0_certificate_hash": "939e861df8a74507e44f7772a949d9aa30af29672fd1aa63c703aa21295201ce"
 }
