@@ -357,5 +357,10 @@
     "not_available": 0,
     "active_revocation_findings": 0,
     "decision_candidate": "LEVEL_1_CERTIFIED"
+  },
+  "formal_review": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "7295653428256849bdec70afb652d65d8f899808",
+    "path": "docs/governance/machine_maturity/LEVEL_1_FORMAL_REVIEW_v1.md"
   }
 }
