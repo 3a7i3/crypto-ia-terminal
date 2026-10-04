@@ -96,12 +96,18 @@
   ],
   "revocation_ref": "NOT_AVAILABLE",
   "post_review_revocation_sweep": {
-    "through_main_sha": "26dddfb01cdad68378bf98c83c1c242ceb8db31a",
+    "through_main_sha": "d3719e0ff7acc437f8ff9112fccdc3df1cef122b",
     "delta_refs": [
       "#369 APP-STORAGE-01",
-      "#371 APP-LMI-DETAIL-01"
+      "#371 APP-LMI-DETAIL-01",
+      "#363 AGENT-ECON A0/A1 Post-Merge Contract Certification"
     ],
-    "result": "NONE_FOUND"
+    "result": "NONE_FOUND",
+    "notes": [
+      "#369 remains FILESYSTEM_METADATA_OBSERVATION / READ_ONLY / GET-only / no runtime publication claim.",
+      "#371 remains OBSERVATIONAL_TELEMETRY / READ_ONLY / GET-only / no LMI engine or runtime authority change.",
+      "#363 certifies contract/schema architecture only; Agent Registry runtime remains NOT_IMPLEMENTED / NON_DEPLOYED, CAPABILITY != AUTHORITY, #286 active."
+    ]
   },
   "issue_refs": [
     365,
@@ -115,13 +121,15 @@
     184,
     180,
     368,
-    370
+    370,
+    284
   ],
   "pr_refs": [
     366,
     367,
     369,
-    371
+    371,
+    363
   ],
   "test_refs": [
     {
@@ -139,5 +147,5 @@
   "next_formal_certification_target_after_effective": "L1",
   "certification_hash_algorithm": "sha256_canonical_json_excluding_certification_hash",
   "certification_hash_scope": "All fields of this object except certification_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
-  "certification_hash": "e1c75a38cdac0522c26d91dbfd2e7c190229006b8db68bc677af2a19e548bcd5"
+  "certification_hash": "939e861df8a74507e44f7772a949d9aa30af29672fd1aa63c703aa21295201ce"
 }
