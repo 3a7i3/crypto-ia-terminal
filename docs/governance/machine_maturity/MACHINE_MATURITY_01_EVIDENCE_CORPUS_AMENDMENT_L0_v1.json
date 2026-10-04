@@ -1,0 +1,34 @@
+{
+  "schema_version": "MACHINE_MATURITY_EVIDENCE_CORPUS_AMENDMENT_V1",
+  "mission_issue": 365,
+  "level_id": "L0",
+  "amendment_id": "MM01-L0-EVIDENCE-AMENDMENT-001",
+  "reason": "L0-G5 formal review uses historical remediation/supersession lineage from #225 and #231. Their EvidenceRecords MM-EV-L2-007 and MM-EV-L2-009 were already inside the globally frozen Evidence Ledger v0.1 (62 records) but were not listed in the direct L0/L1 subset of the R0 input manifest. This amendment makes that use explicit before certificate effectivity.",
+  "base_input_manifest": {
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "f42ce8783152ee88de8ae3b90af2dd870c75e0df",
+    "path": "docs/governance/machine_maturity/MACHINE_MATURITY_01_INPUT_MANIFEST_v1.json"
+  },
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142"
+  },
+  "additions": [
+    {
+      "evidence_record_id": "MM-EV-L2-007",
+      "source_ref": "#225",
+      "use": "L0-G5 supersession/remediation lineage"
+    },
+    {
+      "evidence_record_id": "MM-EV-L2-009",
+      "source_ref": "#231",
+      "use": "L0-G5 historical correction/final-certification lineage"
+    }
+  ],
+  "evidence_bytes_changed": false,
+  "evidence_ledger_changed": false,
+  "new_external_evidence_added": false,
+  "disposition": "GOVERNANCE_SUBSET_AMENDMENT_ONLY",
+  "required_before_effective_certificate": true
+}
