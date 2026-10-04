@@ -249,10 +249,11 @@
           <section id="entree-developpeur-canonique">
 <h1>Entrée développeur canonique<a class="headerlink" href="#entree-developpeur-canonique" title="Link to this heading">¶</a></h1>
 <p>Lire cette page avant de reprendre Crypto AI Terminal, puis
-<span class="xref myst">CLAUDE.md</span> et la mission applicable. Reconstruction documentaire
-DOC-CANON-01 / <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/340">#340</a>, depuis
-<code class="docutils literal notranslate"><span class="pre">main&#64;053c8540a012b2c2c7a9bc5e76585a1425858f73</span></code>, le 2026-10-02.
-Aucune observation VPS n’est réalisée par cette page.</p>
+<span class="xref myst">CLAUDE.md</span> et la mission applicable. État courant synchronisé par
+DOC-CANON-02 / <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/380">#380</a>
+depuis <code class="docutils literal notranslate"><span class="pre">main&#64;a057d4e972cd60ee32710d59f327b4185f3af287</span></code>, le 2026-10-04.
+La reconstruction DOC-CANON-01 / #340 du 2026-10-02 reste une référence
+historique. Aucune observation VPS n’est réalisée par cette page.</p>
 <section id="ce-quest-le-projet">
 <h2>1. Ce qu’est le projet<a class="headerlink" href="#ce-quest-le-projet" title="Link to this heading">¶</a></h2>
 <p>Une infrastructure quantitative expérimentale : observations marché,
@@ -294,6 +295,12 @@ et ses preuves depuis une app, sans confondre présentation et autorité.</p>
 <tr class="row-odd"><td><p><a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/315">#315</a></p></td>
 <td><p>OperatorDecision : Gate S source accepté, Gate O ouvert à cette base</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/362">#362</a>, <a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/365">#365</a></p></td>
+<td><p>Machine Maturity : L0/L1 certifiés ; L2 prochain niveau formel</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://github.com/3a7i3/crypto-ia-terminal/issues/380">#380</a></p></td>
+<td><p>synchronisation documentaire courante</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -324,9 +331,9 @@ active, performance réelle ou publication scientifique admise.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Base source</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">053c8540a012b2c2c7a9bc5e76585a1425858f73</span></code></p></td>
-<td><p>merge #339, après U4 #337 ; base historique de ce document, pas HEAD perpétuel</p></td>
+<tr class="row-even"><td><p>Base source de cette synchronisation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">a057d4e972cd60ee32710d59f327b4185f3af287</span></code></p></td>
+<td><p>Machine Maturity L1 v2 effectif ; base documentaire, pas preuve runtime</p></td>
 </tr>
 <tr class="row-odd"><td><p>Runtime source</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">116634be0d3c015cce1cfa58be7da7255414fbfd</span></code></p></td>
@@ -414,9 +421,12 @@ Ne pas refactoriser les trois arbres runtime ou le monolithe Advisor comme
 </section>
 <section id="choisir-la-mission-et-preserver-le-travail-existant">
 <h2>7. Choisir la mission et préserver le travail existant<a class="headerlink" href="#choisir-la-mission-et-preserver-le-travail-existant" title="Link to this heading">¶</a></h2>
-<p>Lire #285, le scope du parent et les sous-gates. U4 #337 et #338/#339 sont
-fusionnés en source ; ne pas les traiter comme PR ouvertes. U7 global, les
-écarts CryptoRadar, l’admission réelle Lab et U8 demeurent des tranches distinctes.</p>
+<p>Lire #285, le scope du parent et les sous-gates. La frontière Machine
+Maturity formelle est L1 ; L2 puis L3 doivent rester des certifications
+séquentielles séparées. U4 #337 et #338/#339 sont fusionnés en source ; ne pas
+les traiter comme PR ouvertes. U7 global, l’admission réelle Lab et U8 demeurent
+des tranches distinctes. #374 Agent Registry est parquée source-only et ne doit
+pas devenir un chantier parallèle implicite.</p>
 <p>#266 n’est pas à merger/rebaser/cherry-pick : ses enseignements documentaires
 sont reconstruits depuis la base actuelle. BUGS, #297 et #260 sont hors scope
 DOC-CANON-01. Le nettoyage administratif des cinq PR Research déjà absorbées

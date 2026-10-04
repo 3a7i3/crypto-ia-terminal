@@ -1,10 +1,11 @@
 # Entrée développeur canonique
 
 Lire cette page avant de reprendre Crypto AI Terminal, puis
-[CLAUDE.md](../CLAUDE.md) et la mission applicable. Reconstruction documentaire
-DOC-CANON-01 / [#340](https://github.com/3a7i3/crypto-ia-terminal/issues/340), depuis
-`main@053c8540a012b2c2c7a9bc5e76585a1425858f73`, le 2026-10-02.
-Aucune observation VPS n'est réalisée par cette page.
+[CLAUDE.md](../CLAUDE.md) et la mission applicable. État courant synchronisé par
+DOC-CANON-02 / [#380](https://github.com/3a7i3/crypto-ia-terminal/issues/380)
+depuis `main@a057d4e972cd60ee32710d59f327b4185f3af287`, le 2026-10-04.
+La reconstruction DOC-CANON-01 / #340 du 2026-10-02 reste une référence
+historique. Aucune observation VPS n'est réalisée par cette page.
 
 ## 1. Ce qu'est le projet
 
@@ -25,6 +26,8 @@ et ses preuves depuis une app, sans confondre présentation et autorité.
 | [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323) | cockpit unifié et séquence source/UI |
 | [#282](https://github.com/3a7i3/crypto-ia-terminal/issues/282), [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) | observations burn-in datées / garde-fou |
 | [#315](https://github.com/3a7i3/crypto-ia-terminal/issues/315) | OperatorDecision : Gate S source accepté, Gate O ouvert à cette base |
+| [#362](https://github.com/3a7i3/crypto-ia-terminal/issues/362), [#365](https://github.com/3a7i3/crypto-ia-terminal/issues/365) | Machine Maturity : L0/L1 certifiés ; L2 prochain niveau formel |
+| [#380](https://github.com/3a7i3/crypto-ia-terminal/issues/380) | synchronisation documentaire courante |
 
 Lire les mises à jour, commentaires et verdicts réels ; une issue OPEN ne
 signifie pas que toutes ses phases sont autorisées. Une vieille page racine ne
@@ -47,7 +50,7 @@ active, performance réelle ou publication scientifique admise.
 
 | Référence à cette reconstruction | Valeur | Nature |
 |---|---|---|
-| Base source | `053c8540a012b2c2c7a9bc5e76585a1425858f73` | merge #339, après U4 #337 ; base historique de ce document, pas HEAD perpétuel |
+| Base source de cette synchronisation | `a057d4e972cd60ee32710d59f327b4185f3af287` | Machine Maturity L1 v2 effectif ; base documentaire, pas preuve runtime |
 | Runtime source | `116634be0d3c015cce1cfa58be7da7255414fbfd` | référence consignée sous #286 |
 | Epoch | `BURN-IN-EPOCH-01-20260926T064144Z` | identité consignée sous #282/#286 |
 | Config hash | `9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4` | identité consignée sous #286 |
@@ -103,9 +106,12 @@ Ne pas refactoriser les trois arbres runtime ou le monolithe Advisor comme
 
 ## 7. Choisir la mission et préserver le travail existant
 
-Lire #285, le scope du parent et les sous-gates. U4 #337 et #338/#339 sont
-fusionnés en source ; ne pas les traiter comme PR ouvertes. U7 global, les
-écarts CryptoRadar, l'admission réelle Lab et U8 demeurent des tranches distinctes.
+Lire #285, le scope du parent et les sous-gates. La frontière Machine
+Maturity formelle est L1 ; L2 puis L3 doivent rester des certifications
+séquentielles séparées. U4 #337 et #338/#339 sont fusionnés en source ; ne pas
+les traiter comme PR ouvertes. U7 global, l'admission réelle Lab et U8 demeurent
+des tranches distinctes. #374 Agent Registry est parquée source-only et ne doit
+pas devenir un chantier parallèle implicite.
 
 #266 n'est pas à merger/rebaser/cherry-pick : ses enseignements documentaires
 sont reconstruits depuis la base actuelle. BUGS, #297 et #260 sont hors scope
