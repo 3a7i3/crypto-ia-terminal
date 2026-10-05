@@ -1,0 +1,194 @@
+{
+  "schema_version": "MACHINE_LEVEL_CERTIFICATION_V1",
+  "level_id": "L2",
+  "level_name": "Governed PAPER Machine",
+  "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
+  "catalog_hash_algorithm": "git_blob_sha1",
+  "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+  "certification_status": "CERTIFIED",
+  "certified_at_utc": "2026-10-05T02:47:31Z",
+  "certification_time_basis": "formal_review_merge_main_timestamp_bound_candidate_generation",
+  "certification_authority": "MACHINE_MATURITY_02_GOVERNED_REVIEW",
+  "decision_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/384#issuecomment-5987239240",
+  "effectivity_rule": "CERTIFICATION_EFFECTIVE_WHEN_THIS_IMMUTABLE_ARTIFACT_IS_PRESENT_ON_MAIN",
+  "source_identity": {
+    "repository": "3a7i3/crypto-ia-terminal",
+    "review_merge_main_sha": "e9c47ab78a751051c1c6aa72155b1bc4055b7ba8",
+    "formal_review_blob": "c042bc9205d3a48fac7558d6ed8f3f8eef9414d9",
+    "formal_review_pr": 385,
+    "input_manifest_blob": "0182bfe9aab3c51f8e494c57043aea8d3d53f761",
+    "input_manifest_canonical_sha256": "66d7b189814f51dd2138df691dfd1c4ae5af2ee8e05bef3c67adddf0b210052f"
+  },
+  "runtime_identity": {
+    "state": "BOUNDED_HISTORICAL_RUNTIME_EVIDENCE",
+    "current_deployment_claim": "NOT_AVAILABLE",
+    "rationale": "L2 certification relies on frozen governed PAPER/F00 runtime evidence plus a current-main revocation sweep. It certifies the durable Governed PAPER Machine capability, not current VPS process health, current epoch state, or deployment identity."
+  },
+  "criterion_results": [
+    {
+      "criterion_id": "L2-G1",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L2-G2",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L2-G3",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L2-G4",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L2-G5",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L2-G6",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L2-G7",
+      "mandatory": true,
+      "status": "SATISFIED"
+    }
+  ],
+  "evidence_record_ids": [
+    "MM-EV-L2-001",
+    "MM-EV-L2-002",
+    "MM-EV-L2-003",
+    "MM-EV-L2-004",
+    "MM-EV-L2-005",
+    "MM-EV-L2-006",
+    "MM-EV-L2-007",
+    "MM-EV-L2-008",
+    "MM-EV-L2-009",
+    "MM-EV-L2-010",
+    "MM-EV-L2-011",
+    "MM-EV-L2-012",
+    "MM-EV-L2-013",
+    "MM-EV-L2-014",
+    "MM-EV-L2-015",
+    "MM-EV-L2-016",
+    "MM-EV-L2-017"
+  ],
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142"
+  },
+  "input_manifest": {
+    "path": "docs/governance/machine_maturity/MACHINE_MATURITY_02_INPUT_MANIFEST_L2_v1.json",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "0182bfe9aab3c51f8e494c57043aea8d3d53f761",
+    "canonical_hash_algorithm": "sha256_canonical_json_excluding_manifest_hash",
+    "canonical_hash": "66d7b189814f51dd2138df691dfd1c4ae5af2ee8e05bef3c67adddf0b210052f",
+    "scope": "FORMAL_RETRO_CERTIFICATION_L2_REVIEW_ONLY"
+  },
+  "formal_review": {
+    "path": "docs/governance/machine_maturity/LEVEL_2_FORMAL_REVIEW_v1.md",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "c042bc9205d3a48fac7558d6ed8f3f8eef9414d9",
+    "merge_main_sha": "e9c47ab78a751051c1c6aa72155b1bc4055b7ba8",
+    "decision_candidate": "LEVEL_2_CERTIFIED"
+  },
+  "criteria_digest_algorithm": "sha256_canonical_json",
+  "criteria_digest": "324bcf7417b98eb6537d9279fd0f7d8aa0572554b14b054f0bee5c71524b7fe4",
+  "unresolved_items": [],
+  "accepted_not_applicable": [],
+  "previous_certification_hash": "49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf",
+  "predecessor_level_certification": {
+    "level_id": "L1",
+    "certification_hash": "49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf",
+    "effective_main_sha": "a057d4e972cd60ee32710d59f327b4185f3af287"
+  },
+  "revocation_invariants": [
+    "PAPER lifecycle authority remains single and governed; no silent Legacy fallback or dual authoritative writer is admitted.",
+    "Durable lifecycle identity, ordering, restart and replay remain deterministic and fail-closed under corrupt, duplicate, partial or unresolved evidence.",
+    "Epoch, configuration, source and scientific capital identities remain explicit, fingerprinted and non-interchangeable across experiments.",
+    "Admission and runtime authority changes require explicit governed gates; completed experiment populations are not silently reopened.",
+    "Financial semantics remain deterministic with no silent capital creation, destruction, double application or UNKNOWN-to-zero coercion.",
+    "Reconciliation exposes divergence and tolerance explicitly; no silent correction or fabricated equality is admitted.",
+    "A completed scientific PAPER experiment remains terminal, attributable and immutable as a bounded Research source."
+  ],
+  "revocation_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/384",
+  "post_review_revocation_sweep": {
+    "through_main_sha": "e9c47ab78a751051c1c6aa72155b1bc4055b7ba8",
+    "delta_refs": [
+      "#385 L2 Formal Review merge"
+    ],
+    "result": "NONE_FOUND",
+    "notes": [
+      "The Formal Review and bounded L2 input manifest are present on main with their reviewed blobs and canonical manifest hash.",
+      "No post-review source delta exists before this certificate candidate branch was created.",
+      "No current VPS/process/deployment claim is added by this certificate."
+    ]
+  },
+  "ci_exception": {
+    "scope": "PR_385_HEAD_84347E41_ONLY",
+    "classification": "CODECOV_EXTERNAL_UPLOAD_EXCEPTION_CERTIFIED_FOR_PR_385_HEAD_84347E41",
+    "workflow_summary": "18 SUCCESS / 1 FAILURE",
+    "failed_workflow": "Upload coverage to Codecov",
+    "deterministic_corpus": "6860 passed / 19 skipped / 13 deselected / 2 xfailed / 5 warnings",
+    "failure_mechanism": "EPROTO SSL/TLS alert handshake failure during codecov/codecov-action@v4 upload after the deterministic corpus completed successfully",
+    "retry_count_after_initial_failure": 2,
+    "policy": "The GitHub failure is preserved and is not rewritten as SUCCESS. The exception is bounded to the exact reviewed PR head and establishes no general CI bypass."
+  },
+  "issue_refs": [
+    384,
+    362,
+    285,
+    286,
+    282,
+    180,
+    184,
+    218,
+    219,
+    220,
+    222,
+    225,
+    226,
+    230,
+    231,
+    232,
+    233,
+    244,
+    245,
+    246,
+    247,
+    255,
+    256,
+    195,
+    196,
+    278,
+    279,
+    281
+  ],
+  "pr_refs": [
+    385,
+    203
+  ],
+  "test_refs": [
+    {
+      "pr": 385,
+      "head_sha": "84347e41c485c9ffc21841e92e9b4c15d9d8e0d6",
+      "workflow_summary": "18 SUCCESS / 1 external Codecov TLS failure under bounded exception",
+      "deterministic_corpus": "6860 passed / 19 skipped / 13 deselected / 2 xfailed / 5 warnings"
+    }
+  ],
+  "formal_certified_frontier_after_effective": "L2",
+  "next_formal_certification_target_after_effective": "L3",
+  "certification_hash_algorithm": "sha256_canonical_json_excluding_certification_hash",
+  "certification_hash_scope": "All fields of this object except certification_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
+  "evidence_corpus_amendments": [],
+  "criteria_digest_scope": "criterion_results only, UTF-8 canonical JSON recursively sorted by object key, arrays in declared order",
+  "certification_hash": "b2aa51d4716d9f64f3cef435290ecdfadc2567b66734d71a9cfc4106c05f9d8a"
+}
