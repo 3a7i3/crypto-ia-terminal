@@ -1,0 +1,198 @@
+{
+  "schema_version": "MACHINE_LEVEL_CERTIFICATION_V1",
+  "level_id": "L3",
+  "level_name": "Scientific Research Machine",
+  "catalog_version": "MACHINE-MATURITY-CATALOG-v0.1",
+  "catalog_hash_algorithm": "git_blob_sha1",
+  "catalog_hash": "2c8392c24bb8be1078f9570111b9364034686af3",
+  "certification_status": "CERTIFIED",
+  "certified_at_utc": "2026-10-06T01:20:00Z",
+  "certification_time_basis": "formal_review_merge_main_bound_candidate_generation",
+  "certification_authority": "MACHINE_MATURITY_03_GOVERNED_REVIEW",
+  "decision_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/389",
+  "effectivity_rule": "CERTIFICATION_EFFECTIVE_WHEN_THIS_IMMUTABLE_ARTIFACT_IS_PRESENT_ON_MAIN",
+  "source_identity": {
+    "repository": "3a7i3/crypto-ia-terminal",
+    "review_merge_main_sha": "8bfa3dcf67780e879f01ceb90969e8cf06630bab",
+    "formal_review_blob": "876cac1bd3d312d2af973eb183525e1e58ee631c",
+    "formal_review_pr": 388,
+    "input_manifest_blob": "7843bd12c677afe2b11c4c80777f69066884cd52",
+    "input_manifest_canonical_sha256": "1945927fcb098cdb274be4a02951da6fd1a162b54bd333145ee9f990937e0c49"
+  },
+  "runtime_identity": {
+    "state": "BOUNDED_HISTORICAL_RUNTIME_EVIDENCE",
+    "current_deployment_claim": "NOT_AVAILABLE",
+    "latest_fresh_runtime_attempt": "#282 O10_FRESH_RUNTIME_CHECKPOINT = NOT_OBSERVED",
+    "burn_in_finalization": "NOT_CERTIFIED",
+    "final_burn_in_dataset": "NOT_AVAILABLE",
+    "rationale": "L3 certifies the durable Scientific Research Machine capability from frozen source, experiment, runtime and governance evidence. It does not claim current VPS process health, current positions, current event counts, current deployment checkout identity, or burn-in completion."
+  },
+  "criterion_results": [
+    {
+      "criterion_id": "L3-G1",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L3-G2",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L3-G3",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L3-G4",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L3-G5",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L3-G6",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L3-G7",
+      "mandatory": true,
+      "status": "SATISFIED"
+    },
+    {
+      "criterion_id": "L3-G8",
+      "mandatory": true,
+      "status": "SATISFIED"
+    }
+  ],
+  "evidence_record_ids": [
+    "MM-EV-L3-001",
+    "MM-EV-L3-002",
+    "MM-EV-L3-003",
+    "MM-EV-L3-004",
+    "MM-EV-L3-005",
+    "MM-EV-L3-006",
+    "MM-EV-L3-007",
+    "MM-EV-L3-008",
+    "MM-EV-L3-009",
+    "MM-EV-L3-010",
+    "MM-EV-L3-011",
+    "MM-EV-L3-012",
+    "MM-EV-L3-013",
+    "MM-EV-L3-014",
+    "MM-EV-L3-015",
+    "MM-EV-L3-016",
+    "MM-EV-L3-017"
+  ],
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142"
+  },
+  "input_manifest": {
+    "path": "docs/governance/machine_maturity/MACHINE_MATURITY_03_INPUT_MANIFEST_L3_v1.json",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "7843bd12c677afe2b11c4c80777f69066884cd52",
+    "canonical_hash_algorithm": "sha256_canonical_json_excluding_manifest_hash",
+    "canonical_hash": "1945927fcb098cdb274be4a02951da6fd1a162b54bd333145ee9f990937e0c49",
+    "scope": "FORMAL_RETRO_CERTIFICATION_L3_REVIEW_ONLY"
+  },
+  "formal_review": {
+    "path": "docs/governance/machine_maturity/LEVEL_3_FORMAL_REVIEW_v1.md",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "876cac1bd3d312d2af973eb183525e1e58ee631c",
+    "merge_main_sha": "8bfa3dcf67780e879f01ceb90969e8cf06630bab",
+    "decision_candidate": "LEVEL_3_CERTIFIED"
+  },
+  "criteria_digest_algorithm": "sha256_canonical_json",
+  "criteria_digest": "341f17fc7e90215fa39530075fc218e96fe20f4ed6fd60e54cd716e1dd84a372",
+  "unresolved_items": [],
+  "accepted_not_applicable": [],
+  "previous_certification_hash": "b2aa51d4716d9f64f3cef435290ecdfadc2567b66734d71a9cfc4106c05f9d8a",
+  "predecessor_level_certification": {
+    "level_id": "L2",
+    "certification_hash": "b2aa51d4716d9f64f3cef435290ecdfadc2567b66734d71a9cfc4106c05f9d8a",
+    "effective_main_sha": "6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6"
+  },
+  "revocation_invariants": [
+    "PAPER to Research datasets remain immutable, provenance-bound and deterministically identified; the same dataset identity must not resolve to different scientific facts.",
+    "Research replay remains deterministic for identical bounded inputs and does not depend on implicit live data.",
+    "Canonical diagnostics remain reproducible, population-bound and fail-closed for NOT_AVAILABLE or unresolved metrics.",
+    "Candidate creation remains distinct from promotion; promotion cannot modify the same active epoch and requires a future governed boundary.",
+    "Market, PAPER and Research domains remain semantically separated and provenance-visible; no canonical metric silently mixes their populations.",
+    "Research output must not feed strategy, config, risk, sizing or admission changes into the same active Research-observed epoch.",
+    "Governed active-experiment capture, replay, diagnosis and publication remain attributable, immutable and non-authoritative with respect to PAPER runtime.",
+    "The integrated Research stack retains identifiable source lineage; runtime/experiment evidence cannot be reassigned to unrelated source identities."
+  ],
+  "revocation_ref": "https://github.com/3a7i3/crypto-ia-terminal/issues/389",
+  "post_review_revocation_sweep": {
+    "through_main_sha": "8bfa3dcf67780e879f01ceb90969e8cf06630bab",
+    "delta_refs": [
+      "#388 L3 Formal Review merge"
+    ],
+    "result": "NONE_FOUND",
+    "notes": [
+      "The L3 bounded input manifest and Formal Review are present on main with the reviewed blobs and canonical manifest hash.",
+      "No post-review source delta exists before this certificate candidate branch was created.",
+      "#322 remains classified REMEDIATION_NO_REVOCATION: the RL-DIAG fee reconciliation correction did not rewrite PAPER facts or mutate the active epoch, and O6-C subsequently passed deterministic reconciliation.",
+      "#282 O10 remains NOT_OBSERVED; this limits current deployment claims but does not revoke the durable L3 capability.",
+      "#286 ACTIVE_BURN_IN_IMMUTABILITY_GUARD remains active and continues to forbid same-epoch Research feedback and active runtime mutation.",
+      "No current VPS/process/deployment claim is added by this certificate."
+    ]
+  },
+  "remediation_context": [
+    {
+      "ref": "#322",
+      "classification": "REMEDIATION_NO_REVOCATION",
+      "disposition": "Accepted only as contradiction/revocation context, not as an added positive EvidenceRecord."
+    }
+  ],
+  "issue_refs": [
+    389,
+    387,
+    362,
+    285,
+    286,
+    282,
+    238,
+    239,
+    248,
+    240,
+    241,
+    242,
+    275,
+    267,
+    268,
+    278,
+    279,
+    280,
+    277,
+    274,
+    281,
+    322,
+    382
+  ],
+  "pr_refs": [
+    388,
+    383
+  ],
+  "test_refs": [
+    {
+      "pr": 388,
+      "head_sha": "7ad48c69f23dc0c4532353cd0c0d7e1739954a26",
+      "workflow_summary": "19/19 workflows SUCCESS after targeted retries of previously cancelled TEST REGRESSION GATE and COVERAGE REGRESSION BASELINE",
+      "ci_interpretation": "Initial CI workflow failure/cancellation did not establish a regression; both cancelled gates were re-run on the same exact head and completed SUCCESS."
+    }
+  ],
+  "formal_certified_frontier_after_effective": "L3",
+  "next_formal_certification_target_after_effective": "L4",
+  "evidence_corpus_amendments": [],
+  "criteria_digest_scope": "criterion_results only, UTF-8 canonical JSON recursively sorted by object key, arrays in declared order",
+  "certification_hash_algorithm": "sha256_canonical_json_excluding_certification_hash",
+  "certification_hash_scope": "All fields of this object except certification_hash, serialized as UTF-8 canonical JSON with sorted keys and separators ',' ':' and ensure_ascii=false.",
+  "certification_hash": "92b9ee468d1d23256241d2068656ab401f614cb33a524327e620c246dd680f03"
+}
