@@ -1,0 +1,438 @@
+{
+  "schema_version": "MACHINE_MATURITY_03_L3_INPUT_MANIFEST_V1",
+  "mission_id": "MACHINE-MATURITY-03",
+  "level_id": "L3",
+  "level_name": "Scientific Research Machine",
+  "scope": "FORMAL_RETRO_CERTIFICATION_L3_REVIEW_ONLY",
+  "review_issue": 387,
+  "review_baseline_main_sha": "6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6",
+  "catalog": {
+    "version": "MACHINE-MATURITY-CATALOG-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "2c8392c24bb8be1078f9570111b9364034686af3"
+  },
+  "evidence_ledger": {
+    "version": "MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1",
+    "hash_algorithm": "git_blob_sha1",
+    "hash": "267680f65f620c329dc0ef989ae7fbce329ef142"
+  },
+  "predecessor_certification": {
+    "level_id": "L2",
+    "path": "docs/governance/machine_maturity/LEVEL_2_MACHINE_LEVEL_CERTIFICATION_v1.json",
+    "git_blob": "50bcdeaa410f489eeb3ac7d0a11b00c9c4acfc76",
+    "certification_hash": "b2aa51d4716d9f64f3cef435290ecdfadc2567b66734d71a9cfc4106c05f9d8a",
+    "effective_main_sha": "6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6",
+    "status": "CERTIFIED"
+  },
+  "entry_conditions": {
+    "l0_certified": true,
+    "l1_certified": true,
+    "l2_certified": true,
+    "sequence_gate": "SATISFIED"
+  },
+  "evidence_record_ids": [
+    "MM-EV-L3-001",
+    "MM-EV-L3-002",
+    "MM-EV-L3-003",
+    "MM-EV-L3-004",
+    "MM-EV-L3-005",
+    "MM-EV-L3-006",
+    "MM-EV-L3-007",
+    "MM-EV-L3-008",
+    "MM-EV-L3-009",
+    "MM-EV-L3-010",
+    "MM-EV-L3-011",
+    "MM-EV-L3-012",
+    "MM-EV-L3-013",
+    "MM-EV-L3-014",
+    "MM-EV-L3-015",
+    "MM-EV-L3-016",
+    "MM-EV-L3-017"
+  ],
+  "evidence_records": [
+    {
+      "evidence_record_id": "MM-EV-L3-001",
+      "source_issue": 238,
+      "verdict_or_state": "RL_DATA_01_SOURCE_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [
+        "EXPERIMENT_PROOF"
+      ],
+      "maps_to": [
+        "L3-G1"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-002",
+      "source_issue": 239,
+      "verdict_or_state": "RL_REPLAY_01_SOURCE_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [],
+      "maps_to": [
+        "L3-G2"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-003",
+      "source_issue": 248,
+      "verdict_or_state": "RL_DIAG_01_PERFORMANCE_DIAGNOSTICS_SOURCE_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [],
+      "maps_to": [
+        "L3-G3"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-004",
+      "source_issue": 240,
+      "verdict_or_state": "RL_CANDIDATE_PROMOTION_BOUNDARY_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G4",
+        "L3-G6"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-005",
+      "source_issue": 241,
+      "verdict_or_state": "WEB_RL_01_THREE_DOMAIN_SOURCE_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [
+        "UX_PROOF"
+      ],
+      "maps_to": [
+        "L3-G5"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-006",
+      "source_issue": 242,
+      "verdict_or_state": "RL_BURNIN_NO_FEEDBACK_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G6"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-007",
+      "source_issue": 275,
+      "verdict_or_state": "RL_RESEARCH_STACK_MAIN_INTEGRATION_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G8"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-008",
+      "source_issue": 267,
+      "verdict_or_state": "HERM_02_TEST_PERSISTENCE_ISOLATION_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [],
+      "maps_to": [
+        "L3-G1",
+        "L3-G6"
+      ],
+      "disposition": "SUPPORTING_ONLY"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-009",
+      "source_issue": 268,
+      "verdict_or_state": "ACC_01_UNRESOLVED_ACCOUNTING_BOUNDARY_CERTIFIED",
+      "primary_proof": "SOURCE_PROOF",
+      "supporting_proofs": [],
+      "maps_to": [
+        "L3-G1",
+        "L3-G3"
+      ],
+      "disposition": "SUPPORTING_ONLY"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-010",
+      "source_issue": 278,
+      "verdict_or_state": "BURN_IN_BOUNDED_QUIESCENCE_CERTIFIED",
+      "primary_proof": "RUNTIME_PROOF",
+      "supporting_proofs": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G7"
+      ],
+      "disposition": "SUPPORTING_ONLY"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-011",
+      "source_issue": 279,
+      "verdict_or_state": "BURN_IN_COLD_SOURCE_DEPLOY_CERTIFIED",
+      "primary_proof": "RUNTIME_PROOF",
+      "supporting_proofs": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G7",
+        "L3-G8"
+      ],
+      "disposition": "SUPPORTING_ONLY"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-012",
+      "source_issue": 280,
+      "verdict_or_state": "BURN_IN_PREFREEZE_IDENTITY_CERTIFIED",
+      "primary_proof": "GOVERNANCE_PROOF",
+      "supporting_proofs": [
+        "SOURCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G7"
+      ],
+      "disposition": "SUPPORTING_ONLY"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-013",
+      "source_issue": 277,
+      "verdict_or_state": "BURN_IN_RUNTIME_PREFLIGHT_CERTIFIED",
+      "primary_proof": "RUNTIME_PROOF",
+      "supporting_proofs": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-014",
+      "source_issue": 274,
+      "verdict_or_state": "BURN_IN_MANIFEST_V3_CERTIFIED",
+      "primary_proof": "EXPERIMENT_PROOF",
+      "supporting_proofs": [
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-015",
+      "source_issue": 274,
+      "verdict_or_state": "BURN_IN_EPOCH_CREATED_CERTIFIED",
+      "primary_proof": "EXPERIMENT_PROOF",
+      "supporting_proofs": [
+        "RUNTIME_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-016",
+      "source_issue": 281,
+      "verdict_or_state": "BURN_IN_ACTIVATION_AND_FIRST_LIFECYCLE_CERTIFIED",
+      "primary_proof": "EXPERIMENT_PROOF",
+      "supporting_proofs": [
+        "RUNTIME_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    },
+    {
+      "evidence_record_id": "MM-EV-L3-017",
+      "source_issue": 282,
+      "verdict_or_state": "ACTIVE_BURN_IN_OBSERVATION",
+      "primary_proof": "EXPERIMENT_PROOF",
+      "supporting_proofs": [
+        "RUNTIME_PROOF",
+        "GOVERNANCE_PROOF"
+      ],
+      "maps_to": [
+        "L3-G1",
+        "L3-G2",
+        "L3-G3",
+        "L3-G6",
+        "L3-G7"
+      ],
+      "disposition": "ADMISSIBLE"
+    }
+  ],
+  "criterion_results": [
+    {
+      "criterion_id": "L3-G1",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-001",
+        "MM-EV-L3-008",
+        "MM-EV-L3-009",
+        "MM-EV-L3-017"
+      ]
+    },
+    {
+      "criterion_id": "L3-G2",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-002",
+        "MM-EV-L3-017"
+      ]
+    },
+    {
+      "criterion_id": "L3-G3",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-003",
+        "MM-EV-L3-009",
+        "MM-EV-L3-017"
+      ]
+    },
+    {
+      "criterion_id": "L3-G4",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-004"
+      ]
+    },
+    {
+      "criterion_id": "L3-G5",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-005"
+      ]
+    },
+    {
+      "criterion_id": "L3-G6",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-004",
+        "MM-EV-L3-006",
+        "MM-EV-L3-008",
+        "MM-EV-L3-017"
+      ]
+    },
+    {
+      "criterion_id": "L3-G7",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-010",
+        "MM-EV-L3-011",
+        "MM-EV-L3-012",
+        "MM-EV-L3-013",
+        "MM-EV-L3-014",
+        "MM-EV-L3-015",
+        "MM-EV-L3-016",
+        "MM-EV-L3-017"
+      ]
+    },
+    {
+      "criterion_id": "L3-G8",
+      "mandatory": true,
+      "status": "SATISFIED",
+      "accepted_evidence": [
+        "MM-EV-L3-007",
+        "MM-EV-L3-011"
+      ]
+    }
+  ],
+  "aggregate": {
+    "mandatory": 8,
+    "satisfied": 8,
+    "unresolved": 0,
+    "not_available": 0,
+    "active_revocations": 0
+  },
+  "evidence_corpus_amendment_required": false,
+  "evidence_corpus_amendments": [],
+  "contradiction_supersession_revocation_sweep": {
+    "through_main_sha": "6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6",
+    "result": "NO_ACTIVE_REVOCATION_FOUND",
+    "reviewed_context": [
+      {
+        "ref": "#322",
+        "classification": "REMEDIATION_NO_REVOCATION",
+        "finding": "RL-DIAG fee reconciliation defect for OPEN-entry-fee accounting was corrected source-only; subsequent O6-C deterministic diagnostic and fee/PnL reconciliation passed. No historical PAPER fact was rewritten."
+      },
+      {
+        "ref": "#282",
+        "classification": "ACTIVE_EXPERIMENT_EVIDENCE_BOUNDED",
+        "finding": "O1-O9 evidence remains historical/governed; O10 fresh runtime checkpoint is NOT_OBSERVED. No current runtime state is inferred."
+      },
+      {
+        "ref": "#286",
+        "classification": "GOVERNANCE_REINFORCEMENT",
+        "finding": "ACTIVE_BURN_IN_IMMUTABILITY_GUARD remains active and explicitly prohibits Research-to-same-epoch feedback and active runtime mutation."
+      },
+      {
+        "ref": "#382/#383",
+        "classification": "SUPPORTING_CONTINUITY_ONLY",
+        "finding": "APP_UNIFY_01_SOURCE_CERTIFIED strengthens current source-domain separation but is not used as substitute positive evidence for L3."
+      },
+      {
+        "ref": "65b90b4043b4f852af47a1243dd573b743d23057",
+        "classification": "ANCESTRY_PASS",
+        "finding": "Research integration commit is an ancestor of review main with behind_by=0."
+      },
+      {
+        "ref": "116634be0d3c015cce1cfa58be7da7255414fbfd",
+        "classification": "ANCESTRY_PASS",
+        "finding": "Certified burn-in runtime source is an ancestor of review main with behind_by=0; this does not claim current deployment identity."
+      },
+      {
+        "ref": "fa3a6167bc3fb2efcba6284f95de26f0872d7fa0",
+        "classification": "ANCESTRY_PASS",
+        "finding": "RL-DIAG remediation commit is an ancestor of review main with behind_by=0."
+      }
+    ]
+  },
+  "runtime_identity": {
+    "state": "BOUNDED_HISTORICAL_RUNTIME_EVIDENCE",
+    "current_deployment_claim": "NOT_AVAILABLE",
+    "latest_fresh_runtime_attempt": "#282 O10_FRESH_RUNTIME_CHECKPOINT = NOT_OBSERVED",
+    "burn_in_finalization": "NOT_CERTIFIED",
+    "final_burn_in_dataset": "NOT_AVAILABLE"
+  },
+  "candidate_decision": "LEVEL_3_CERTIFIED",
+  "effective_frontier_before_machine_level_certificate": "L2",
+  "effectivity_note": "Formal Review may produce only a candidate. L3 becomes effective only after a separate immutable LEVEL_3_MACHINE_LEVEL_CERTIFICATION_v1.json is reviewed, merged to main, and post-merge verified.",
+  "forbidden_scope": [
+    "Advisor restart or deploy",
+    "runtime checkout mutation",
+    "PAPER/PPL/FIN mutation",
+    "epoch/config mutation",
+    "strategy/signal/risk/sizing/PB_MAX_POSITIONS mutation",
+    "Watchdog activation",
+    "TESTNET/LIVE activation",
+    "exchange write",
+    "Research feedback into the same active burn-in epoch",
+    "OperatorDecision operational activation",
+    "agent runtime or autonomous merge/deploy",
+    "burn-in finalization"
+  ],
+  "manifest_hash_algorithm": "sha256_canonical_json_excluding_manifest_hash",
+  "manifest_hash_scope": "All fields except manifest_hash, UTF-8 canonical JSON recursively sorted by object key; arrays preserve declared order.",
+  "manifest_hash": "1945927fcb098cdb274be4a02951da6fd1a162b54bd333145ee9f990937e0c49"
+}
