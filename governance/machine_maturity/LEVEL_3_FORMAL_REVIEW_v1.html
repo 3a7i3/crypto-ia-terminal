@@ -1,0 +1,816 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/><!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>LEVEL 3 FORMAL REVIEW v1 — Scientific Research Machine - Crypto AI Terminal 9.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1b9cecba" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Crypto AI Terminal 9.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/../assets/logo_ai_quant.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/../assets/logo_ai_quant.png" alt="Dark Logo"/>
+  </div>
+  
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/blob/main/docs/governance/machine_maturity/LEVEL_3_FORMAL_REVIEW_v1.md?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/<OWNER>/<REPO>/edit/main/docs/governance/machine_maturity/LEVEL_3_FORMAL_REVIEW_v1.md" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="level-3-formal-review-v1-scientific-research-machine">
+<h1>LEVEL 3 FORMAL REVIEW v1 — Scientific Research Machine<a class="headerlink" href="#level-3-formal-review-v1-scientific-research-machine" title="Link to this heading">¶</a></h1>
+<p>Mission: #387 — MACHINE-MATURITY-03<br />
+Framework: #362<br />
+Roadmap: #285<br />
+Burn-in observation: #282<br />
+Burn-in immutability guard: #286</p>
+<p>Review baseline:</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6</span></code></p>
+<p>Status:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FORMAL_REVIEW_COMPLETE</span> <span class="pre">/</span> <span class="pre">CANDIDATE_ONLY</span></code></p>
+<p>Decision candidate:</p>
+<p><code class="docutils literal notranslate"><span class="pre">LEVEL_3_CERTIFIED</span></code></p>
+<p>Effective frontier before any separate L3 MachineLevelCertification:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FORMAL_CERTIFIED_FRONTIER</span> <span class="pre">=</span> <span class="pre">L2</span></code></p>
+<hr class="docutils" />
+<section id="normative-inputs">
+<h2>1. Normative inputs<a class="headerlink" href="#normative-inputs" title="Link to this heading">¶</a></h2>
+<p>Certification Catalog:</p>
+<ul class="simple">
+<li><p>version: <code class="docutils literal notranslate"><span class="pre">MACHINE-MATURITY-CATALOG-v0.1</span></code></p></li>
+<li><p>Git blob: <code class="docutils literal notranslate"><span class="pre">2c8392c24bb8be1078f9570111b9364034686af3</span></code></p></li>
+</ul>
+<p>Evidence Ledger:</p>
+<ul class="simple">
+<li><p>version: <code class="docutils literal notranslate"><span class="pre">MACHINE-MATURITY-EVIDENCE-LEDGER-v0.1</span></code></p></li>
+<li><p>Git blob: <code class="docutils literal notranslate"><span class="pre">267680f65f620c329dc0ef989ae7fbce329ef142</span></code></p></li>
+</ul>
+<p>Bounded L3 input manifest:</p>
+<ul class="simple">
+<li><p>path: <code class="docutils literal notranslate"><span class="pre">docs/governance/machine_maturity/MACHINE_MATURITY_03_INPUT_MANIFEST_L3_v1.json</span></code></p></li>
+<li><p>Git blob: <code class="docutils literal notranslate"><span class="pre">7843bd12c677afe2b11c4c80777f69066884cd52</span></code></p></li>
+<li><p>canonical SHA-256: <code class="docutils literal notranslate"><span class="pre">1945927fcb098cdb274be4a02951da6fd1a162b54bd333145ee9f990937e0c49</span></code></p></li>
+<li><p>independent recomputation: <code class="docutils literal notranslate"><span class="pre">MATCH</span></code></p></li>
+</ul>
+<p>Predecessor MachineLevelCertification:</p>
+<ul class="simple">
+<li><p>level: <code class="docutils literal notranslate"><span class="pre">L2</span></code></p></li>
+<li><p>artifact: <code class="docutils literal notranslate"><span class="pre">LEVEL_2_MACHINE_LEVEL_CERTIFICATION_v1.json</span></code></p></li>
+<li><p>Git blob: <code class="docutils literal notranslate"><span class="pre">50bcdeaa410f489eeb3ac7d0a11b00c9c4acfc76</span></code></p></li>
+<li><p>certification hash: <code class="docutils literal notranslate"><span class="pre">b2aa51d4716d9f64f3cef435290ecdfadc2567b66734d71a9cfc4106c05f9d8a</span></code></p></li>
+<li><p>effective main: <code class="docutils literal notranslate"><span class="pre">6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6</span></code></p></li>
+</ul>
+<p>Sequential entry condition:</p>
+<p><code class="docutils literal notranslate"><span class="pre">L0→L2</span> <span class="pre">FORMALLY</span> <span class="pre">CERTIFIED</span> <span class="pre">=</span> <span class="pre">PASS</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="review-doctrine">
+<h2>2. Review doctrine<a class="headerlink" href="#review-doctrine" title="Link to this heading">¶</a></h2>
+<p>This review applies the constitutional rules:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SATISFIED</span> <span class="pre">!=</span> <span class="pre">CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span> <span class="pre">!=</span> <span class="pre">RUNTIME_PROOF</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CAPABILITY</span> <span class="pre">!=</span> <span class="pre">AUTHORITY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UNKNOWN</span> <span class="pre">!=</span> <span class="pre">ZERO</span></code></p></li>
+<li><p>historical runtime evidence is not promoted into a current deployment claim;</p></li>
+<li><p>a higher-level capability cannot compensate for a failed mandatory lower-level criterion;</p></li>
+<li><p>current runtime state may remain <code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code> while a durable capability is certified if the catalog criterion does not require a fresh deployment claim.</p></li>
+</ul>
+<p>Positive criterion evidence is limited to:</p>
+<p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-001</span> <span class="pre">…</span> <span class="pre">MM-EV-L3-017</span></code></p>
+<p>No later source, issue, PR or runtime fact is admitted as new positive L3 criterion evidence in this review.</p>
+<p>Later facts are used only for contradiction, supersession, revocation and continuity analysis.</p>
+<p>EvidenceCorpusAmendment required:</p>
+<p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="current-runtime-limitation">
+<h2>3. Current runtime limitation<a class="headerlink" href="#current-runtime-limitation" title="Link to this heading">¶</a></h2>
+<p>The current VPS/process/deployment state is not observed by this mission.</p>
+<p>Latest fresh-runtime attempt recorded in #282:</p>
+<p><code class="docutils literal notranslate"><span class="pre">O10_FRESH_RUNTIME_CHECKPOINT</span> <span class="pre">=</span> <span class="pre">NOT_OBSERVED</span></code></p>
+<p>Therefore this review does <strong>not</strong> claim:</p>
+<ul class="simple">
+<li><p>current Advisor PID or health;</p></li>
+<li><p>current PPL event count;</p></li>
+<li><p>current open-position count;</p></li>
+<li><p>current epoch process state;</p></li>
+<li><p>current deployment checkout identity;</p></li>
+<li><p>current browser/runtime Operator App state.</p></li>
+</ul>
+<p>Runtime classification for the future L3 certificate:</p>
+<p><code class="docutils literal notranslate"><span class="pre">BOUNDED_HISTORICAL_RUNTIME_EVIDENCE</span></code></p>
+<p>Current deployment claim:</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<p>The burn-in is not finalized, and its final dataset remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<p>This is not a failure of L3-G7 because the normative catalog explicitly states that final burn-in completion is not required to certify the active-experiment Research capability.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="criterion-by-criterion-formal-review">
+<h1>4. Criterion-by-criterion formal review<a class="headerlink" href="#criterion-by-criterion-formal-review" title="Link to this heading">¶</a></h1>
+<section id="l3-g1-immutable-paper-research-dataset-provenance">
+<h2>L3-G1 — Immutable PAPER → Research dataset/provenance<a class="headerlink" href="#l3-g1-immutable-paper-research-dataset-provenance" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p>Accepted EvidenceRecords:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-001</span></code> — #238 / <code class="docutils literal notranslate"><span class="pre">RL_DATA_01_SOURCE_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-008</span></code> — #267 / persistence isolation, supporting only</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-009</span></code> — #268 / unresolved-accounting boundary, supporting only</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-017</span></code> — #282 / active burn-in scientific chain</p></li>
+</ul>
+<p>Established facts:</p>
+<ul class="simple">
+<li><p>deterministic <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code> and <code class="docutils literal notranslate"><span class="pre">source_boundary_id</span></code>;</p></li>
+<li><p>source bytes and governed boundary remain immutable;</p></li>
+<li><p>active burn-in prefix capture preserves exact PPL/manifest/config lineage;</p></li>
+<li><p>re-export reproduces the same bounded identity;</p></li>
+<li><p>Research publication remains separate from PAPER authority.</p></li>
+</ul>
+<p>Forbidden substitutions checked:</p>
+<ul class="simple">
+<li><p>file copy without manifest: not accepted;</p></li>
+<li><p>implicit “latest dataset”: not accepted;</p></li>
+<li><p>missing provenance reconstructed from context: not accepted.</p></li>
+</ul>
+<p>Dependencies:</p>
+<ul class="simple">
+<li><p>L2-G7: SATISFIED through effective L2 certification;</p></li>
+<li><p>L0-G5: certified predecessor chain remains valid.</p></li>
+</ul>
+<p>Forbidden-state review:</p>
+<p>No evidence was found of an L3 dataset losing source_boundary/epoch/provenance identity.</p>
+<p>Revocation invariant:</p>
+<p>No evidence was found of the same <code class="docutils literal notranslate"><span class="pre">dataset_id</span></code> representing different scientific bytes/facts.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g2-deterministic-research-replay">
+<h2>L3-G2 — Deterministic Research replay<a class="headerlink" href="#l3-g2-deterministic-research-replay" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SOURCE_PROOF</span></code></p></li>
+<li><p>plus <code class="docutils literal notranslate"><span class="pre">ONE_OF(EXPERIMENT_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code> on a real dataset</p></li>
+</ul>
+<p>Accepted EvidenceRecords:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-002</span></code> — #239 / <code class="docutils literal notranslate"><span class="pre">RL_REPLAY_01_SOURCE_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-017</span></code> — #282 / O5 and O7</p></li>
+</ul>
+<p>Established facts:</p>
+<ul class="simple">
+<li><p>deterministic factual replay identity;</p></li>
+<li><p>same inputs produce the same research_run/config identity;</p></li>
+<li><p>immutable publication on the active burn-in prefix is reproducible;</p></li>
+<li><p>no live-data dependency is required to replay the frozen capture.</p></li>
+</ul>
+<p>Forbidden substitutions checked:</p>
+<ul class="simple">
+<li><p>unbounded backtest: rejected as substitute;</p></li>
+<li><p>replay depending on implicit live data: rejected;</p></li>
+<li><p>counterfactual output represented as PAPER fact: rejected.</p></li>
+</ul>
+<p>Dependency:</p>
+<p>L3-G1 is SATISFIED.</p>
+<p>Revocation invariant:</p>
+<p>No reproducible same-input/different-scientific-result contradiction was found.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g3-reproducible-diagnostics-attribution">
+<h2>L3-G3 — Reproducible diagnostics / attribution<a class="headerlink" href="#l3-g3-reproducible-diagnostics-attribution" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">EXPERIMENT_PROOF)</span></code></p>
+<p>Accepted EvidenceRecords:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-003</span></code> — #248 / <code class="docutils literal notranslate"><span class="pre">RL_DIAG_01_PERFORMANCE_DIAGNOSTICS_SOURCE_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-009</span></code> — #268, supporting only</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-017</span></code> — #282 / O6-C</p></li>
+</ul>
+<p>Important remediation history:</p>
+<p>#282 O6-C exposed that the diagnostic reconciliation compared CLOSED-population fees against total terminal fees while two positions remained OPEN.</p>
+<p>#322 corrected the source contract so that:</p>
+<p><code class="docutils literal notranslate"><span class="pre">closed_population_fees</span> <span class="pre">+</span> <span class="pre">non_closed_entry_fees</span> <span class="pre">==</span> <span class="pre">terminal.fees_paid</span></code></p>
+<p>while performance attribution remains restricted to the CLOSED population.</p>
+<p>The correction:</p>
+<ul class="simple">
+<li><p>was source-only;</p></li>
+<li><p>did not rewrite PAPER/PPL history;</p></li>
+<li><p>did not change the active epoch;</p></li>
+<li><p>is present in ancestry through commit
+<code class="docutils literal notranslate"><span class="pre">fa3a6167bc3fb2efcba6284f95de26f0872d7fa0</span></code>;</p></li>
+<li><p>was followed by deterministic O6-C replay with PnL reconciliation PASS and fee reconciliation PASS.</p></li>
+</ul>
+<p>Classification:</p>
+<p><code class="docutils literal notranslate"><span class="pre">REMEDIATION_NO_REVOCATION</span></code></p>
+<p>#322 is not added as positive EvidenceRecord evidence. It is used only to resolve the contradiction/revocation question surrounding the accepted O6-C evidence.</p>
+<p>Forbidden substitutions checked:</p>
+<ul class="simple">
+<li><p>invented Sharpe: rejected;</p></li>
+<li><p>association presented as causality: rejected;</p></li>
+<li><p>metric without N/window/population: rejected;</p></li>
+<li><p>NOT_AVAILABLE converted into an authoritative estimate: rejected.</p></li>
+</ul>
+<p>Dependencies:</p>
+<p>L3-G1 and L3-G2 are SATISFIED.</p>
+<p>Revocation invariant:</p>
+<p>No current evidence remains of non-reproducible canonical diagnostics or population mixing after the governed remediation.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g4-candidate-registry-governed-promotion-boundary">
+<h2>L3-G4 — Candidate registry &amp; governed promotion boundary<a class="headerlink" href="#l3-g4-candidate-registry-governed-promotion-boundary" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p>Accepted EvidenceRecord:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-004</span></code> — #240 / <code class="docutils literal notranslate"><span class="pre">RL_CANDIDATE_PROMOTION_BOUNDARY_CERTIFIED</span></code></p></li>
+</ul>
+<p>Established facts:</p>
+<ul class="simple">
+<li><p>candidate identity is deterministic and provenance-bound;</p></li>
+<li><p>candidate creation does not equal promotion;</p></li>
+<li><p>same-epoch promotion is forbidden;</p></li>
+<li><p>promotion requires a future governed epoch boundary.</p></li>
+</ul>
+<p>Current continuity:</p>
+<p>#286 continues to forbid Research/candidate feedback into the active burn-in epoch.</p>
+<p>Forbidden substitutions checked:</p>
+<ul class="simple">
+<li><p>free diff without dataset/run identity: rejected;</p></li>
+<li><p>candidate shown as promoted merely because it exists: rejected.</p></li>
+</ul>
+<p>Dependencies:</p>
+<p>L3-G2 and L3-G3 are SATISFIED.</p>
+<p>Revocation invariant:</p>
+<p>No path was identified that permits promotion into the same active epoch or bypasses future-epoch governance.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g5-market-paper-research-domain-separation">
+<h2>L3-G5 — Market / PAPER / Research domain separation<a class="headerlink" href="#l3-g5-market-paper-research-domain-separation" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">UX_PROOF)</span></code></p>
+<p>Accepted EvidenceRecord:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-005</span></code> — #241 / <code class="docutils literal notranslate"><span class="pre">WEB_RL_01_THREE_DOMAIN_SOURCE_CERTIFIED</span></code></p></li>
+</ul>
+<p>Established facts:</p>
+<ul class="simple">
+<li><p>Market, PAPER and Research are distinct semantic domains;</p></li>
+<li><p>Research remains explicitly non-authoritative;</p></li>
+<li><p>UNKNOWN / UNRESOLVED / NOT_AVAILABLE are not silently converted to zero;</p></li>
+<li><p>frontend/presentation does not become the producer of scientific truth.</p></li>
+</ul>
+<p>Later continuity check:</p>
+<p>#382/#383 produced:</p>
+<p><code class="docutils literal notranslate"><span class="pre">APP_UNIFY_01_SOURCE_CERTIFIED</span></code></p>
+<p>This later certification is <strong>not</strong> used as substitute positive L3 evidence. It is used only as a continuity check that the current unified source product did not collapse those domain boundaries.</p>
+<p>Forbidden substitutions checked:</p>
+<ul class="simple">
+<li><p>mixed PAPER+Research PnL: rejected;</p></li>
+<li><p>candidate displayed as ACTIVE: rejected.</p></li>
+</ul>
+<p>Dependencies:</p>
+<p>L0-G1 and L3-G1 remain satisfied.</p>
+<p>Revocation invariant:</p>
+<p>No current source evidence was found of the canonical UI merging these domains without provenance.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g6-same-epoch-no-feedback-invariant">
+<h2>L3-G6 — Same-epoch no-feedback invariant<a class="headerlink" href="#l3-g6-same-epoch-no-feedback-invariant" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p></li>
+<li><p>plus <code class="docutils literal notranslate"><span class="pre">RUNTIME_PROOF</span></code> when a Research-observed epoch is active</p></li>
+</ul>
+<p>Accepted EvidenceRecords:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-004</span></code> — candidate/promotion boundary</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-006</span></code> — #242 / <code class="docutils literal notranslate"><span class="pre">RL_BURNIN_NO_FEEDBACK_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-008</span></code> — persistence isolation, supporting only</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-017</span></code> — #282 active burn-in runtime/scientific observation</p></li>
+</ul>
+<p>Established facts:</p>
+<ul class="simple">
+<li><p>Research outputs are non-authoritative;</p></li>
+<li><p>active burn-in evidence was captured/replayed/diagnosed without applying Research output back into the same epoch;</p></li>
+<li><p>candidate promotion remains a future-epoch action;</p></li>
+<li><p>#286 continues to prohibit strategy/config/risk/sizing/PB_MAX_POSITIONS mutation and same-epoch Research feedback.</p></li>
+</ul>
+<p>Current-runtime limitation:</p>
+<p>O10 is NOT_OBSERVED. This prevents a current deployment claim, but it does not erase the bounded runtime evidence already obtained while the active Research-observed epoch was operating.</p>
+<p>Forbidden substitution checked:</p>
+<p>A documentation promise alone is not accepted as runtime proof. Historical runtime observations in #282 supply the bounded runtime evidence.</p>
+<p>Dependencies:</p>
+<p>L3-G4 and effective L2-G4 are satisfied.</p>
+<p>Revocation invariant:</p>
+<p>No evidence was found of Research/candidate output modifying strategy, config, risk or sizing in the same active epoch.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g7-governed-active-experiment-capture-replay-diagnostic-publication">
+<h2>L3-G7 — Governed active-experiment capture / replay / diagnostic / publication<a class="headerlink" href="#l3-g7-governed-active-experiment-capture-replay-diagnostic-publication" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(EXPERIMENT_PROOF,</span> <span class="pre">RUNTIME_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p>Accepted EvidenceRecords:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-010</span></code> — #278, supporting stopped-boundary runtime evidence</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-011</span></code> — #279, supporting exact-source cold deployment lineage</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-012</span></code> — #280, supporting pre-freeze identity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-013</span></code> — #277 runtime preflight</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-014</span></code> — #274 burn-in manifest</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-015</span></code> — #274 burn-in epoch birth</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-016</span></code> — #281 activation + first lifecycle</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-017</span></code> — #282 O1→O9 active experiment chain</p></li>
+</ul>
+<p>Established sequence:</p>
+<p>governed preflight → bounded quiescence → exact-source cold deployment → config/identity freeze → epoch creation → controlled activation → lifecycle observation → immutable capture → deterministic replay → causal evidence coverage → deterministic diagnostics → immutable Research publication → append-only checkpoint.</p>
+<p>Burn-in finalization:</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_CERTIFIED</span></code></p>
+<p>Final dataset:</p>
+<p><code class="docutils literal notranslate"><span class="pre">NOT_AVAILABLE</span></code></p>
+<p>These are intentionally not treated as failures because the catalog explicitly states:</p>
+<blockquote>
+<div><p>L3-G7 certifies Research capability on an active experiment, not the scientific conclusion of the experiment.</p>
+</div></blockquote>
+<p>Forbidden substitutions checked:</p>
+<ul class="simple">
+<li><p>historical F00 alone: rejected;</p></li>
+<li><p>source-only future burn-in contract alone: rejected;</p></li>
+<li><p>active experiment without immutable capture/publication lineage: rejected.</p></li>
+</ul>
+<p>Dependencies:</p>
+<p>L3-G1, L3-G2, L3-G3 and L3-G6 are SATISFIED.</p>
+<p>Revocation invariant:</p>
+<p>No evidence was found that Research capture/publication mutated the active epoch or became non-reproducible.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+<hr class="docutils" />
+<section id="l3-g8-governed-research-stack-integration-provenance">
+<h2>L3-G8 — Governed Research stack integration / provenance<a class="headerlink" href="#l3-g8-governed-research-stack-integration-provenance" title="Link to this heading">¶</a></h2>
+<p>Mandatory: <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+<p>Proof requirement:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ALL_OF(SOURCE_PROOF,</span> <span class="pre">GOVERNANCE_PROOF)</span></code></p>
+<p>Accepted EvidenceRecords:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-007</span></code> — #275 / <code class="docutils literal notranslate"><span class="pre">RL_RESEARCH_STACK_MAIN_INTEGRATION_CERTIFIED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MM-EV-L3-011</span></code> — #279 supporting runtime lineage</p></li>
+</ul>
+<p>Ancestry checks through review baseline:</p>
+<p>Research integration commit:</p>
+<p><code class="docutils literal notranslate"><span class="pre">65b90b4043b4f852af47a1243dd573b743d23057</span></code></p>
+<p>→ review main:</p>
+<p><code class="docutils literal notranslate"><span class="pre">6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6</span></code></p>
+<p>Result:</p>
+<ul class="simple">
+<li><p>ancestor: PASS</p></li>
+<li><p>behind_by: 0</p></li>
+<li><p>review main is 235 commits ahead</p></li>
+</ul>
+<p>Burn-in runtime source:</p>
+<p><code class="docutils literal notranslate"><span class="pre">116634be0d3c015cce1cfa58be7da7255414fbfd</span></code></p>
+<p>→ review main:</p>
+<ul class="simple">
+<li><p>ancestor: PASS</p></li>
+<li><p>behind_by: 0</p></li>
+</ul>
+<p>RL-DIAG remediation:</p>
+<p><code class="docutils literal notranslate"><span class="pre">fa3a6167bc3fb2efcba6284f95de26f0872d7fa0</span></code></p>
+<p>→ review main:</p>
+<ul class="simple">
+<li><p>ancestor: PASS</p></li>
+<li><p>behind_by: 0</p></li>
+</ul>
+<p>Forbidden substitutions checked:</p>
+<ul class="simple">
+<li><p>unmerged stack branch: rejected;</p></li>
+<li><p>source HEAD without ancestry: rejected.</p></li>
+</ul>
+<p>Dependencies:</p>
+<p>L3-G1→L3-G6 are SATISFIED.</p>
+<p>Revocation invariant:</p>
+<p>No loss of lineage between the certified integrated Research stack and the source used for governed experiments was found.</p>
+<p><strong>Verdict: SATISFIED</strong></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="aggregate-result">
+<h1>5. Aggregate result<a class="headerlink" href="#aggregate-result" title="Link to this heading">¶</a></h1>
+<p>Mandatory criteria:</p>
+<p><code class="docutils literal notranslate"><span class="pre">8</span></code></p>
+<p>SATISFIED:</p>
+<p><code class="docutils literal notranslate"><span class="pre">8</span></code></p>
+<p>UNRESOLVED:</p>
+<p><code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+<p>NOT_AVAILABLE mandatory criteria:</p>
+<p><code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+<p>Active revocation findings:</p>
+<p><code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+<p>EvidenceCorpusAmendment required:</p>
+<p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+<p>Aggregate formal-review result:</p>
+<p><code class="docutils literal notranslate"><span class="pre">8/8</span> <span class="pre">mandatory</span> <span class="pre">criteria</span> <span class="pre">=</span> <span class="pre">SATISFIED</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="contradiction-supersession-revocation-disposition">
+<h1>6. Contradiction / supersession / revocation disposition<a class="headerlink" href="#contradiction-supersession-revocation-disposition" title="Link to this heading">¶</a></h1>
+<section id="rl-diag-remediation">
+<h2>#322 RL-DIAG remediation<a class="headerlink" href="#rl-diag-remediation" title="Link to this heading">¶</a></h2>
+<p>Disposition:</p>
+<p><code class="docutils literal notranslate"><span class="pre">REMEDIATION_NO_REVOCATION</span></code></p>
+<p>Reason:</p>
+<p>The defect was discovered by the governed active-experiment diagnostic chain, corrected without rewriting PAPER facts or mutating the active epoch, and followed by a deterministic PASS. The correction strengthens L3-G3 rather than invalidating the accepted bounded evidence.</p>
+</section>
+<section id="o10-fresh-runtime-limitation">
+<h2>#282 O10 fresh runtime limitation<a class="headerlink" href="#o10-fresh-runtime-limitation" title="Link to this heading">¶</a></h2>
+<p>Disposition:</p>
+<p><code class="docutils literal notranslate"><span class="pre">CURRENT_DEPLOYMENT_NOT_AVAILABLE</span> <span class="pre">/</span> <span class="pre">NO_CAPABILITY_REVOCATION</span></code></p>
+<p>Reason:</p>
+<p>O10 establishes only that current runtime state was not observed in that session. It does not demonstrate removal or regression of the durable Research capability already proven.</p>
+</section>
+<section id="immutability-guard">
+<h2>#286 immutability guard<a class="headerlink" href="#immutability-guard" title="Link to this heading">¶</a></h2>
+<p>Disposition:</p>
+<p><code class="docutils literal notranslate"><span class="pre">GOVERNANCE_CONTINUITY_PASS</span></code></p>
+<p>Reason:</p>
+<p>The guard remains active and continues to prohibit same-epoch feedback and runtime mutation.</p>
+</section>
+<section id="app-unify-u7">
+<h2>APP-UNIFY U7<a class="headerlink" href="#app-unify-u7" title="Link to this heading">¶</a></h2>
+<p>Disposition:</p>
+<p><code class="docutils literal notranslate"><span class="pre">SUPPORTING_CONTINUITY_ONLY</span></code></p>
+<p>Reason:</p>
+<p>U7 confirms that current source presentation retains governed domain separation, but it is not used as replacement evidence for the frozen L3 corpus.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="formal-review-decision">
+<h1>7. Formal Review decision<a class="headerlink" href="#formal-review-decision" title="Link to this heading">¶</a></h1>
+<p>All mandatory L3 criteria are SATISFIED under the frozen manifest and no active revocation was found through:</p>
+<p><code class="docutils literal notranslate"><span class="pre">main&#64;6ea5fce2b1710cbd52c04f5c42f6dc085a3f45a6</span></code></p>
+<p>Formal Review candidate:</p>
+<p><code class="docutils literal notranslate"><span class="pre">LEVEL_3_CERTIFIED</span></code></p>
+<p>This is <strong>candidate-only</strong>.</p>
+<p>It does not make L3 effective.</p>
+<p>Current effective frontier remains:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FORMAL_CERTIFIED_FRONTIER</span> <span class="pre">=</span> <span class="pre">L2</span></code></p>
+<p>Required next step after this review PR is merged and re-read from <code class="docutils literal notranslate"><span class="pre">main</span></code>:</p>
+<p>create a <strong>separate</strong> immutable artifact:</p>
+<p><code class="docutils literal notranslate"><span class="pre">docs/governance/machine_maturity/LEVEL_3_MACHINE_LEVEL_CERTIFICATION_v1.json</span></code></p>
+<p>That future certificate must bind:</p>
+<ul class="simple">
+<li><p>the effective L2 predecessor certification hash;</p></li>
+<li><p>this Formal Review blob;</p></li>
+<li><p>the L3 input manifest blob and canonical hash;</p></li>
+<li><p>the 17 frozen EvidenceRecord IDs;</p></li>
+<li><p>a criteria digest;</p></li>
+<li><p>revocation invariants and a sweep through then-current main;</p></li>
+<li><p>bounded historical runtime evidence;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">current_deployment_claim</span> <span class="pre">=</span> <span class="pre">NOT_AVAILABLE</span></code>;</p></li>
+<li><p>effectivity rule requiring the certificate itself to be present on main.</p></li>
+</ul>
+<p>Only after that separate artifact is reviewed, merged and post-merge hash verified may the projection become:</p>
+<p><code class="docutils literal notranslate"><span class="pre">FORMAL_CERTIFIED_FRONTIER</span> <span class="pre">=</span> <span class="pre">L3</span></code></p>
+</section>
+<hr class="docutils" />
+<section id="explicit-non-authorizations">
+<h1>8. Explicit non-authorizations<a class="headerlink" href="#explicit-non-authorizations" title="Link to this heading">¶</a></h1>
+<p>This review does not authorize:</p>
+<ul class="simple">
+<li><p>burn-in finalization;</p></li>
+<li><p>Advisor restart/deploy;</p></li>
+<li><p>runtime checkout movement;</p></li>
+<li><p>PAPER/PPL/FIN mutation;</p></li>
+<li><p>epoch/config changes;</p></li>
+<li><p>strategy/signal/risk/sizing/PB_MAX_POSITIONS changes;</p></li>
+<li><p>Watchdog;</p></li>
+<li><p>TESTNET/LIVE;</p></li>
+<li><p>exchange writes;</p></li>
+<li><p>same-epoch Research feedback;</p></li>
+<li><p>OperatorDecision operational activation;</p></li>
+<li><p>agent runtime;</p></li>
+<li><p>autonomous merge/deploy;</p></li>
+<li><p>U8 runtime work.</p></li>
+</ul>
+<p>#286 remains active.</p>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Crypto AI Terminal
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">LEVEL 3 FORMAL REVIEW v1 — Scientific Research Machine</a><ul>
+<li><a class="reference internal" href="#normative-inputs">1. Normative inputs</a></li>
+<li><a class="reference internal" href="#review-doctrine">2. Review doctrine</a></li>
+<li><a class="reference internal" href="#current-runtime-limitation">3. Current runtime limitation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#criterion-by-criterion-formal-review">4. Criterion-by-criterion formal review</a><ul>
+<li><a class="reference internal" href="#l3-g1-immutable-paper-research-dataset-provenance">L3-G1 — Immutable PAPER → Research dataset/provenance</a></li>
+<li><a class="reference internal" href="#l3-g2-deterministic-research-replay">L3-G2 — Deterministic Research replay</a></li>
+<li><a class="reference internal" href="#l3-g3-reproducible-diagnostics-attribution">L3-G3 — Reproducible diagnostics / attribution</a></li>
+<li><a class="reference internal" href="#l3-g4-candidate-registry-governed-promotion-boundary">L3-G4 — Candidate registry &amp; governed promotion boundary</a></li>
+<li><a class="reference internal" href="#l3-g5-market-paper-research-domain-separation">L3-G5 — Market / PAPER / Research domain separation</a></li>
+<li><a class="reference internal" href="#l3-g6-same-epoch-no-feedback-invariant">L3-G6 — Same-epoch no-feedback invariant</a></li>
+<li><a class="reference internal" href="#l3-g7-governed-active-experiment-capture-replay-diagnostic-publication">L3-G7 — Governed active-experiment capture / replay / diagnostic / publication</a></li>
+<li><a class="reference internal" href="#l3-g8-governed-research-stack-integration-provenance">L3-G8 — Governed Research stack integration / provenance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#aggregate-result">5. Aggregate result</a></li>
+<li><a class="reference internal" href="#contradiction-supersession-revocation-disposition">6. Contradiction / supersession / revocation disposition</a><ul>
+<li><a class="reference internal" href="#rl-diag-remediation">#322 RL-DIAG remediation</a></li>
+<li><a class="reference internal" href="#o10-fresh-runtime-limitation">#282 O10 fresh runtime limitation</a></li>
+<li><a class="reference internal" href="#immutability-guard">#286 immutability guard</a></li>
+<li><a class="reference internal" href="#app-unify-u7">APP-UNIFY U7</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#formal-review-decision">7. Formal Review decision</a></li>
+<li><a class="reference internal" href="#explicit-non-authorizations">8. Explicit non-authorizations</a></li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=ef6a59ae"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>
