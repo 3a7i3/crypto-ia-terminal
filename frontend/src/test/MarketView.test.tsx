@@ -45,20 +45,20 @@ describe("MarketView", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot())));
     render(<MarketView />);
 
-    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
     const view = screen.getByTestId("market-view");
     expect(view).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
-    expect(view).toHaveTextContent("rolling 24h observation window");
-    expect(view).toHaveTextContent("display classification only");
+    expect(view).toHaveTextContent("Fenêtre d’observation de 24h");
+    expect(view).toHaveTextContent("seuil d’affichage");
 
     const row = screen.getByTestId("market-opportunity-row");
-    const card = screen.getByTestId("market-opportunity-card");
-    for (const expected of ["BTC/USDT", "75.0", "80.0", "LONG", "100%", "2", "bull_trend"]) {
+    expect(screen.queryByTestId("market-opportunity-card")).not.toBeInTheDocument();
+    for (const expected of ["BTC/USDT", "75.0", "80.0", "Acheteur", "100%", "2", "Tendance haussière"]) {
       expect(row).toHaveTextContent(expected);
-      expect(card).toHaveTextContent(expected);
+
     }
 
-    expect(screen.getByTestId("market-opportunity-cards")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Scanner CryptoRadar · défilement horizontal" })).toBeInTheDocument();
     expect(view).not.toHaveTextContent("Entry");
     expect(view).not.toHaveTextContent("Stop Loss");
     expect(view).not.toHaveTextContent("Take Profit");
@@ -69,7 +69,7 @@ describe("MarketView", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot("STALE"))));
     render(<MarketView />);
 
-    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("STALE"));
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Ancien · périmé"));
     expect(screen.getByTestId("market-view")).toHaveTextContent("120s");
   });
 
@@ -77,7 +77,7 @@ describe("MarketView", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot())));
     render(<MarketView />);
 
-    await waitFor(() => expect(screen.getByText("Provenance & source timing")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Provenance et dates des sources")).toBeInTheDocument());
     const view = screen.getByTestId("market-view");
     expect(view).toHaveTextContent("2026-09-14 20:00:00Z");
     expect(view).toHaveTextContent("2026-09-14 19:59:00Z");
@@ -121,10 +121,10 @@ describe("U3a scanner", () => {
     expect(screen.getByTestId("market-scanner-coverage")).toHaveTextContent("Couverture partielle");
     fireEvent.change(screen.getByLabelText("Biais dominant"), { target: { value: "SHORT" } });
     expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(1);
-    expect(screen.getByTestId("market-opportunity-card")).toHaveTextContent("ETH/USDT");
+    expect(screen.getByTestId("market-opportunity-row")).toHaveTextContent("ETH/USDT");
     fireEvent.change(screen.getByLabelText("Recherche symbole"), { target: { value: "  eth  " } });
     fireEvent.click(screen.getAllByRole("button", { name: "Détail ETH/USDT" })[0]);
-    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("packets au seuil ≥ 65");
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("paquets au seuil ≥ 65");
     expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("exacts non disponibles");
     fireEvent.change(screen.getByLabelText("Recherche symbole"), { target: { value: "BTC" } });
     expect(screen.queryByTestId("market-symbol-detail")).not.toBeInTheDocument();
@@ -143,9 +143,9 @@ describe("U3a scanner", () => {
   it("shows stale detail as historical and preserves explicit empty evidence", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot("STALE"))));
     render(<MarketView />);
-    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("STALE"));
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Ancien · périmé"));
     fireEvent.click(screen.getAllByRole("button", { name: "Détail BTC/USDT" })[0]);
-    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("STALE · historique");
+    expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("Ancien · périmé · historique");
     expect(screen.getByTestId("market-view")).toHaveTextContent("état actuel du marché INCONNU");
     fireEvent.click(screen.getByRole("button", { name: "Fermer le détail" }));
     expect(screen.queryByTestId("market-symbol-detail")).not.toBeInTheDocument();
@@ -181,7 +181,7 @@ it("resolves selected detail from replacement snapshots and hides it on polling 
     expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("70.0");
     expect(screen.getByTestId("market-symbol-detail")).not.toHaveTextContent("75.0");
     await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
-    expect(screen.getByTestId("market-error")).toHaveTextContent("MARKET unavailable");
+    expect(screen.getByTestId("market-error")).toHaveTextContent("Marché indisponible");
     expect(screen.queryByTestId("market-symbol-detail")).not.toBeInTheDocument();
   } finally { vi.useRealTimers(); }
 });

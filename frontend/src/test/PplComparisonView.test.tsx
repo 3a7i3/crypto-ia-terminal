@@ -99,7 +99,7 @@ describe("PplComparisonView", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(snapshot())));
     render(<PplComparisonView />);
 
-    await waitFor(() => expect(screen.getByText("Legacy PAPER ⇄ PPL")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Comparaison ancien simulateur / journal PPL")).toBeInTheDocument());
     const view = screen.getByTestId("ppl-comparison-view");
     expect(view).toHaveTextContent("678.46");
     expect(view).toHaveTextContent("678.4625");

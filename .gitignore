@@ -78,3 +78,8 @@ build/
 .claude/settings.local.json
 databases/shadow_execution/shadow_log.jsonl
 databases/strategy_ranking.json
+
+# Local frontend review captures and isolated synthetic preview builds
+/frontend/artifacts/
+/frontend/dist-demo/
+/artifacts/ux-fr/

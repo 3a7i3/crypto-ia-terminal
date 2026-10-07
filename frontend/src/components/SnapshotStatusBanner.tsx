@@ -11,7 +11,7 @@ export const SnapshotStatusBanner: React.FC<{ state: SnapshotState }> = ({ state
   if (state.status === "loading") {
     return (
       <div data-testid="snapshot-status-loading" className="snapshot-banner snapshot-banner-neutral">
-        Loading canonical snapshot…
+        Chargement du snapshot canonique…
       </div>
     );
   }
@@ -28,12 +28,12 @@ export const SnapshotStatusBanner: React.FC<{ state: SnapshotState }> = ({ state
         data-testid="snapshot-status-api-error"
         className={`snapshot-banner ${unresolved ? "snapshot-banner-neutral" : "snapshot-banner-critical"}`}
       >
-        {unresolved ? "Canonical snapshot unresolved" : `API structured failure (HTTP ${state.httpStatus})`}: {errorCode} —{" "}
-        {state.error.error_message ?? "no error message supplied"}.
+        {unresolved ? "Snapshot canonique non résolu" : `Erreur API structurée (HTTP ${state.httpStatus})`}: {errorCode} —{" "}
+        {state.error.error_message ?? "Aucun message source fourni"}.
         {state.lastSuccess && (
           <span data-testid="snapshot-status-last-known">
             {" "}
-            Last successful snapshot: {new Date(state.lastSuccess.fetchedAt).toLocaleTimeString()} (not shown as current).
+            Dernier snapshot lu avec succès : {new Date(state.lastSuccess.fetchedAt).toLocaleTimeString()} (non affiché comme actuel).
           </span>
         )}
       </div>
@@ -45,11 +45,11 @@ export const SnapshotStatusBanner: React.FC<{ state: SnapshotState }> = ({ state
       data-testid="snapshot-status-transport-error"
       className="snapshot-banner snapshot-banner-critical"
     >
-      Transport failure: {state.message}.
+      Erreur de transport : {state.message}.
       {state.lastSuccess && (
         <span data-testid="snapshot-status-last-known">
           {" "}
-          Last successful snapshot: {new Date(state.lastSuccess.fetchedAt).toLocaleTimeString()} (not shown as current).
+          Dernier snapshot lu avec succès : {new Date(state.lastSuccess.fetchedAt).toLocaleTimeString()} (non affiché comme actuel).
         </span>
       )}
     </div>

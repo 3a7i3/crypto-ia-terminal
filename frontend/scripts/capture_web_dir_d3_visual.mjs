@@ -410,6 +410,8 @@ try {
   assert(response?.ok(), `Direction navigation failed: ${response?.status() ?? "no-response"}`);
 
   await page.getByTestId("direction-shell").waitFor({ state: "visible" });
+  await page.getByText("Périmètre de lecture", { exact: true }).click();
+  for (const label of ["Expérience, état du service et preuves complètes", "Montants exacts, rapprochement et provenance", "Contexte du marché et provenance", "Recherche et capacités non déployées"]) await page.getByText(label, { exact: true }).click();
   await page.getByTestId("direction-authority-strip").waitFor({ state: "visible" });
   await page.getByTestId("direction-global-card").waitFor({ state: "visible" });
   await page.getByTestId("direction-experiment-card").waitFor({ state: "visible" });
@@ -445,12 +447,12 @@ try {
   await marketCard.getByText(/aucune permission de trade/).waitFor();
   await researchCard.getByText("RESEARCH_NON_AUTHORITATIVE", { exact: true }).waitFor();
   await researchCard.getByText("Population dataset N", { exact: true }).waitFor();
-  await researchCard.getByText("RESEARCH NON-AUTORITAIRE", { exact: true }).waitFor();
+  await researchCard.getByText("RECHERCHE NON AUTORITAIRE", { exact: true }).waitFor();
 
   const federationNotice = page.getByTestId("direction-federation-notice");
-  await federationNotice.getByText("FÉDÉRÉ · NON ATOMIQUE", { exact: true }).waitFor();
+  await federationNotice.getByText("Sources indépendantes", { exact: true }).waitFor();
   const federationText = await federationNotice.innerText();
-  for (const required of ["aucun timestamp global", "aucune fraîcheur globale", "aucun état de santé global dérivé"]) {
+  for (const required of ["dates et fraîcheurs sont propres à chaque source", "Aucun état global ni observation simultanée ne sont déduits"]) {
     assert(federationText.includes(required), `D4D federation boundary missing: ${required}`);
   }
 
@@ -489,13 +491,12 @@ try {
 
   const shellText = await page.getByTestId("direction-shell").innerText();
   for (const required of [
-    "DIRECTION",
-    "SURFACE PROPRIÉTAIRE",
-    "Synthèse, gouvernance et décisions humaines",
+    "Machine",
+    "Comprendre la situation",
     "PRÉSENTATION",
     "LECTURE SEULE",
     "AUCUNE AUTORITÉ PAPER",
-    "ÉTAT GLOBAL · INCONNU",
+    "État global inconnu",
     "BURN-IN-EPOCH-01-20260926T064144Z",
     "981.8435705815693 USDT",
     "PF · NOT_AVAILABLE",
@@ -504,11 +505,10 @@ try {
     assert(shellText.includes(required), `D4D Direction evidence missing: ${required}`);
   }
 
-  const futureCapabilities = page.locator('section[aria-label="Capacités Direction futures"]');
-  assert(
-    (await futureCapabilities.getByText("NON DÉPLOYÉ", { exact: true }).count()) === 6,
-    "Direction must expose exactly six honest future capability placeholders",
-  );
+  const futureCapabilities = page.getByText(/File de décisions · Agents · Bounties/);
+  const futureText = await futureCapabilities.innerText();
+  for (const label of ["File de décisions", "Agents", "Bounties", "Économie AIC", "Coûts réels", "Sécurité / dette / incidents", "NON DÉPLOYÉ"]) assert(futureText.includes(label), `Missing future capability: ${label}`);
+
   assert(
     (await page.getByTestId("direction-global-card").getByText("NON DÉPLOYÉ", { exact: true }).count()) === 2,
     "Global State must keep Watchdog and critical alerts explicitly NON DÉPLOYÉ",

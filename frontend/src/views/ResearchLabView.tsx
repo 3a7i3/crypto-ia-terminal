@@ -1,4 +1,5 @@
 import React from "react";
+import { fr } from "../lib/presentationFr";
 import { useResearchLabSnapshot } from "../lib/researchLabClient";
 import type {
   ResearchAttributionSection,
@@ -27,9 +28,9 @@ const MetricCard: React.FC<{ metric: ResearchMetric }> = ({ metric }) => (
     </div>
     {metric.reason && <div className="research-metric-reason">{metric.reason}</div>}
     <details className="research-metric-details">
-      <summary>Evidence</summary>
-      <div>source: {metric.source_ref}</div>
-      <div>derivation: {metric.derivation}</div>
+      <summary>Preuves</summary>
+      <div>Source : {metric.source_ref}</div>
+      <div>Dérivation : {metric.derivation}</div>
     </details>
   </article>
 );
@@ -41,7 +42,7 @@ const MetricSection: React.FC<{
   <section className="research-panel">
     <div className="research-section-title">{title}</div>
     {metrics.length === 0 ? (
-      <div className="research-empty-section">No producer-authored metrics in this section.</div>
+      <div className="research-empty-section">Aucune métrique publiée dans cette catégorie.</div>
     ) : (
       <div className="research-metric-grid">
         {metrics.map((metric) => (
@@ -91,11 +92,11 @@ const CandidateCard: React.FC<{ candidate: ResearchCandidateRow }> = ({ candidat
       <span>{candidate.target_domains.join(" · ")}</span>
     </div>
     <details className="research-metric-details">
-      <summary>Candidate provenance</summary>
-      <div>source: {candidate.source_code_sha}</div>
-      <div>config: {candidate.config_hash}</div>
-      <div>parents: {candidate.parent_evidence_refs.join(", ")}</div>
-      <div>limitations: {candidate.known_limitations.join(" · ")}</div>
+      <summary>Provenance du candidat</summary>
+      <div>Source : {candidate.source_code_sha}</div>
+      <div>Configuration : {candidate.config_hash}</div>
+      <div>Preuves parentes : {candidate.parent_evidence_refs.join(", ")}</div>
+      <div>Limites : {candidate.known_limitations.join(" · ")}</div>
     </details>
   </article>
 );
@@ -106,7 +107,7 @@ export const ResearchLabView: React.FC = () => {
   if (state.status === "loading") {
     return (
       <div className="research-panel research-state" data-testid="research-lab-view">
-        Loading governed Research presentation…
+        Chargement de la publication de recherche…
       </div>
     );
   }
@@ -114,9 +115,9 @@ export const ResearchLabView: React.FC = () => {
   if (state.status === "api_error") {
     return (
       <div className="research-panel research-state research-state-error" data-testid="research-lab-view">
-        <strong>RESEARCH LAB unavailable — HTTP {state.httpStatus}</strong>
+        <strong>Laboratoire indisponible — HTTP {state.httpStatus}</strong>
         <span>
-          {state.error.error_code ?? "RESEARCH_LAB_API_ERROR"} · {state.error.error_message ?? "No governed Research presentation artifact."}
+          {state.error.error_code ?? "RESEARCH_LAB_API_ERROR"} · {state.error.error_message ?? "Aucune publication de recherche gouvernée disponible."}
         </span>
       </div>
     );
@@ -125,7 +126,7 @@ export const ResearchLabView: React.FC = () => {
   if (state.status === "transport_error") {
     return (
       <div className="research-panel research-state research-state-error" data-testid="research-lab-view">
-        <strong>RESEARCH LAB contract/transport error</strong>
+        <strong>Erreur de contrat ou de transport du Laboratoire</strong>
         <span>{state.message}</span>
       </div>
     );
@@ -138,38 +139,38 @@ export const ResearchLabView: React.FC = () => {
     <div className="research-stack" data-testid="research-lab-view">
       <section className="research-panel research-hero">
         <div className="research-domain-banner" data-testid="research-domain-banner">
-          RESEARCH LAB · OFFLINE ANALYSIS · NOT PAPER CAPITAL · NON-AUTHORITATIVE
+          RECHERCHE HORS LIGNE · NON AUTORITAIRE
         </div>
         <div className="research-hero-grid">
           <div>
-            <div className="research-title">Research evidence workspace</div>
+            <div className="research-title">Évaluations et preuves</div>
             <div className="research-subtitle">
-              {snapshot.authority} · {snapshot.research_state} · producer-authored scientific facts only
+              {fr(snapshot.research_state)} · résultats publiés, sans autorité sur la machine
             </div>
           </div>
           <div className="research-strength">
-            {context.statistical_strength}
+            {fr(context.statistical_strength)}
           </div>
         </div>
 
         <div className="research-context-grid">
           <div><span>Population</span><strong>{context.population_definition}</strong></div>
           <div><span>N</span><strong>{context.n}</strong></div>
-          <div><span>Evidence</span><strong>{context.evidence_status}</strong></div>
+          <div><span>Preuves</span><strong>{fr(context.evidence_status)}</strong></div>
           <div><span>Epoch</span><strong>{context.paper_epoch_id ?? "NOT_APPLICABLE"}</strong></div>
         </div>
 
         <details className="research-provenance">
-          <summary>Full Research provenance</summary>
-          <div className="research-provenance-grid">
+          <summary>Provenance complète de la recherche</summary>
+          <div className="research-provenance-grid"><div><span>Autorité</span><code>{snapshot.authority}</code></div>
             <div><span>dataset_id</span><code>{context.dataset_id}</code></div>
             <div><span>source_boundary_id</span><code>{context.source_boundary_id}</code></div>
             <div><span>research_run_id</span><code>{context.research_run_id}</code></div>
             <div><span>diagnostic_run_id</span><code>{context.diagnostic_run_id ?? "NOT_AVAILABLE"}</code></div>
-            <div><span>research source SHA</span><code>{context.research_source_code_sha}</code></div>
-            <div><span>research config hash</span><code>{context.research_config_hash ?? "NOT_AVAILABLE"}</code></div>
-            <div><span>presentation builder SHA</span><code>{context.presentation_builder_source_sha}</code></div>
-            <div><span>published</span><code>{snapshot.generated_at_utc}</code></div>
+            <div><span>SHA source de recherche</span><code>{context.research_source_code_sha}</code></div>
+            <div><span>Hash de configuration</span><code>{context.research_config_hash ?? "NOT_AVAILABLE"}</code></div>
+            <div><span>SHA de présentation</span><code>{context.presentation_builder_source_sha}</code></div>
+            <div><span>Publication</span><code>{snapshot.generated_at_utc}</code></div>
           </div>
           <div className="research-provenance-grid" data-testid="research-source-artifacts">
             {snapshot.provenance.source_artifacts.map((artifact) => (
@@ -183,27 +184,32 @@ export const ResearchLabView: React.FC = () => {
       </section>
 
       <div className="research-domain-note">
-        Research metrics are descriptive/non-authoritative. They are never combined with active PAPER capital.
+        Les résultats décrivent cette population historique ; ils ne valident pas à eux seuls une stratégie.
       </div>
 
-      <MetricSection title="Performance" metrics={snapshot.performance} />
-      <MetricSection title="Risk / Stability" metrics={snapshot.risk_stability} />
-      <MetricSection title="Costs" metrics={snapshot.costs} />
+      <section className="research-panel research-results">
+        <h2>Résultats de l’évaluation publiée</h2>
+        <MetricSection title="Performance" metrics={snapshot.performance} />
+        <MetricSection title="Risque et stabilité" metrics={snapshot.risk_stability} />
+        <MetricSection title="Coûts" metrics={snapshot.costs} />
+      </section>
+      <details className="research-panel research-methodology"><summary>Attributions et méthodologie détaillée</summary>
 
       {snapshot.attribution.map((section) => (
         <AttributionSection key={section.dimension} section={section} />
       ))}
 
-      <section className="research-panel">
+      </details>
+      <details className="research-panel research-methodology"><summary>Registre des candidats et provenance</summary>
         <div className="research-section-title">
-          Candidate Registry
+          Registre des candidats
           <span className="research-section-status">
-            {snapshot.candidate_registry.candidate_count} candidate(s)
+            {snapshot.candidate_registry.candidate_count} candidat(s)
           </span>
         </div>
         {snapshot.candidate_registry.candidate_count === 0 ? (
           <div className="research-candidate-empty" data-testid="research-candidate-empty">
-            No substantive candidate is published in this Research snapshot.
+            Aucun candidat substantiel publié dans ce snapshot de recherche.
           </div>
         ) : (
           <div className="research-candidate-grid">
@@ -212,16 +218,16 @@ export const ResearchLabView: React.FC = () => {
             ))}
           </div>
         )}
-      </section>
+      </details>
 
-      <section className="research-panel">
-        <div className="research-section-title">Known limitations</div>
+      <details className="research-panel research-methodology">
+        <summary>Limites connues · {snapshot.limitations.length} mentions publiées</summary>
         <ul className="research-limitations">
           {snapshot.limitations.map((limitation) => (
             <li key={limitation}>{limitation}</li>
           ))}
         </ul>
-      </section>
+      </details>
     </div>
   );
 };

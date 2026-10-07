@@ -61,9 +61,10 @@ try {
       await page.screenshot({ path: path.join(out, `system-${scenario.name}-${viewport.width}.png`), fullPage: true });
       if (scenario.name === "active") {
         await page.goto(`${baseUrl}/direction`, { waitUntil: "networkidle" });
+        await page.getByText("Expérience, état du service et preuves complètes").click();
         const directionCard = page.getByTestId("direction-runtime-service-card");
         assert((await directionCard.innerText()).includes("4321"), "Direction host evidence missing");
-        assert((await page.getByTestId("direction-federation-notice").innerText()).includes("6 sources"), "Missing independent source declaration");
+        assert((await page.getByTestId("direction-federation-notice").innerText()).includes("Sources indépendantes"), "Missing independent source declaration");
         assert((await page.getByTestId("direction-global-card").innerText()).includes("ERREUR SOURCE"), "Host evidence hid the missing Advisor source");
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "Direction overflow");
         await page.evaluate(() => window.scrollTo(0, 0));

@@ -28,7 +28,7 @@ async function assertNoPageOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
   if (!response || !response.ok()) {
     throw new Error(`frontend navigation failed: ${response?.status() ?? "no-response"}`);
   }
@@ -38,6 +38,7 @@ try {
   await page.getByTestId("market-view").waitFor({ state: "visible" });
   await page.getByTestId("market-opportunity-row").first().waitFor({ state: "visible" });
 
+  await page.getByText("Provenance et dates des sources").click();
   const marketText = await page.getByTestId("market-view").innerText();
   assert(marketText.includes("CryptoRadar"), "CryptoRadar label missing from MarketView");
   assert(marketText.includes("BTC/USDT"), "expected MARKET symbol missing from MarketView");
@@ -104,14 +105,15 @@ try {
   // values. Navigation may scroll internally, but the page itself must not.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(100);
-  assert(!(await page.locator(".market-table-desktop").isVisible()), "desktop MARKET table should be hidden at phone width");
-  const mobileCards = page.getByTestId("market-opportunity-card");
+  assert(await page.locator(".market-table-desktop").isVisible(), "compact MARKET table must remain visible at phone width");
+  const mobileCards = page.getByTestId("market-opportunity-row");
   assert((await mobileCards.count()) > 0, "phone MARKET opportunity cards are missing");
   assert(await mobileCards.first().isVisible(), "first phone MARKET opportunity card is not visible");
   const mobileCardText = (await mobileCards.first().innerText()).toLowerCase();
-  for (const expected of ["btc/usdt", "long", "avg conf", "max", "dominance", "signals", "regime"]) {
+  for (const expected of ["btc/usdt", "acheteur", "100%"]) {
     assert(mobileCardText.includes(expected), `phone MARKET card missing ${expected}`);
   }
+  for (const label of ["Symbole", "Score moyen", "Score maximal", "Dominance", "Signaux", "Régime"]) assert((await tableHeaders.allTextContents()).includes(label), `mobile table missing column ${label}`);
   const freshnessBox = await page.getByTestId("market-freshness").boundingBox();
   assert(freshnessBox !== null && freshnessBox.y < 844, "phone freshness state is not visible above the initial fold");
   const navBox = await page.locator(".operator-nav").boundingBox();

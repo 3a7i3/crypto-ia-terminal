@@ -63,7 +63,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(validateFinancialReconciliationSnapshot(f.body)).toBe(true);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(f.body, 200)));
     render(<FinancialReconciliationView />);
-    await screen.findByText("Financial Truth");
+    await screen.findByText("Portefeuille et finances");
     const view = screen.getByTestId("financial-reconciliation-view");
     expect(view).toHaveTextContent("< 0,01");
     expect(view).toHaveTextContent((f.body as any).reconciliation.unreconciled_capital);
@@ -77,6 +77,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(validateOperatorSnapshot(fixture.body)).toBe(true);
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
@@ -98,6 +99,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(validateOperatorSnapshot(fixture.body)).toBe(true);
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("mode-badge")).toHaveAttribute("data-mode", "UNKNOWN"));
   });
@@ -112,11 +114,12 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(snapshot.portfolio.paper_equity_usd.value).not.toBe(snapshot.portfolio.real_account_equity_usd.value);
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-paper"));
     const text = screen.getByTestId("portfolio-view").textContent ?? "";
-    expect(text).toMatch(/UNAVAILABLE/);
+    expect(text).toMatch(/Indisponible/);
   });
 
   it("D: authority mapping is accepted as-is, and a mutated authority mapping is rejected by the frontend validator", async () => {
@@ -147,6 +150,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(snapshot.stale_reason).toBe("PRODUCER_RESTARTED");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
     expect(screen.getByTestId("instance-relation")).toHaveTextContent("PREVIOUS_INSTANCE");
@@ -160,6 +164,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(errorBody.error_code).toBe("SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 503)));
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toBeInTheDocument());
     expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
@@ -184,12 +189,13 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-market"));
 
     await waitFor(() => expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT"));
-    expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH");
+    expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente");
     expect(screen.getByTestId("market-view")).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
     expect(screen.getByTestId("market-view")).not.toHaveTextContent("Entry");
     expect(screen.getByTestId("market-view")).not.toHaveTextContent("Stop Loss");
@@ -224,13 +230,14 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-paper"));
     fireEvent.click(screen.getByTestId("tab-ppl"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Legacy PAPER"),
+      expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Ancien simulateur PAPER"),
     );
     const view = screen.getByTestId("ppl-comparison-view");
     expect(view).toHaveTextContent("99.99");
@@ -267,13 +274,14 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-research"));
 
     await waitFor(() =>
       expect(screen.getByTestId("research-domain-banner")).toHaveTextContent(
-        "NON-AUTHORITATIVE",
+        "NON AUTORITAIRE",
       ),
     );
     const view = screen.getByTestId("research-lab-view");
@@ -283,7 +291,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(view).toHaveTextContent("NOT_AVAILABLE");
     expect(view).toHaveTextContent("No certified time-series/annualized return basis.");
     expect(screen.getByTestId("research-candidate-empty")).toHaveTextContent(
-      "No substantive candidate",
+      "Aucun candidat substantiel",
     );
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/operator/v1/research-lab",
@@ -316,6 +324,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-paper"));
@@ -347,13 +356,14 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     window.history.replaceState({}, "", "/paper-live/system");
     const fetchMock = vi.fn().mockImplementation((url) => Promise.resolve(String(url).endsWith("/runtime-service") ? jsonResponse(fixture.body, 200) : jsonResponse({ error_code: "SNAPSHOT_MISSING" }, 503)));
     vi.stubGlobal("fetch", fetchMock);
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("host-cross-stack"));
     const view = screen.getByTestId("runtime-service-view");
     expect(view).toHaveTextContent("MainPID à la capture4321");
     expect(view).toHaveTextContent("NRestarts0");
     expect(view).toHaveTextContent("b".repeat(40));
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/runtime-service", { method: "GET", signal: expect.any(AbortSignal) });
   });
 
@@ -418,7 +428,7 @@ describe.skipIf(!HAS_FIXTURES)("U4 certified Research publication → builder �
     expect(view).toHaveTextContent("mark_to_market_max_drawdown");
     expect(view).toHaveTextContent("NOT_AVAILABLE");
     expect(view).toHaveTextContent("closed_population_fees_usd");
-    fireEvent.click(screen.getByText("Full Research provenance"));
+    fireEvent.click(screen.getByText("Provenance complète de la recherche"));
     expect(screen.getByTestId("research-source-artifacts")).toHaveTextContent(String(fixture._proof?.manifest_sha256));
     expect(screen.getByTestId("research-source-artifacts")).toHaveTextContent(String(fixture._proof?.diagnostic_sha256));
     expect(screen.queryByTestId("research-candidate-card")).not.toBeInTheDocument();

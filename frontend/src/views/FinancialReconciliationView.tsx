@@ -1,4 +1,6 @@
 import React from "react";
+import { fr } from "../lib/presentationFr";
+import { FinancialHistory } from "../components/FinancialHistory";
 import { formatDecimalText } from "../lib/decimalPresentation";
 import { useFinancialReconciliation } from "../lib/financialReconciliationClient";
 import type {
@@ -8,7 +10,7 @@ import type {
 import "../financial-reconciliation.css";
 
 function display(value: string | null): string {
-  return value === null ? "UNAVAILABLE" : value;
+  return value === null ? "Indisponible" : value;
 }
 
 const AMOUNT_FIELDS = new Set(["cash_available", "capital_reserved", "capital_unresolved", "fees_paid", "realized_pnl", "book_capital_at_cost"]);
@@ -31,7 +33,7 @@ const Metric: React.FC<{
 }> = ({ label, value, hint }) => (
   <div className="fin-metric">
     <span>{label}</span>
-    <strong className={value === "UNAVAILABLE" ? "fin-value-unavailable" : undefined}>{typeof value === "string" ? formatDecimalText(value) : value}</strong>
+    <strong className={value === "Indisponible" ? "fin-value-unavailable" : undefined}>{typeof value === "string" ? formatDecimalText(value) : value}</strong>
     {typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value) && (
       <details className="fin-metric-exact"><summary>Valeur exacte</summary><code>{value}</code></details>
     )}
@@ -51,7 +53,7 @@ const RecordRow: React.FC<{ row: FinancialReconciliationRecord }> = ({ row }) =>
     <td>{recordDisplay(row.field, row.unreconciled_amount)}</td>
     <td>
       <span className={"fin-status fin-status-" + tone(row.status)}>
-        {row.status.replaceAll("_", " ")}
+        {fr(row.status)}
       </span>
       <small>{row.comparability} · {row.freshness}</small>
     </td>
@@ -78,7 +80,7 @@ export const FinancialReconciliationView: React.FC = () => {
   if (state.status === "loading") {
     return (
       <div className="fin-panel fin-state" data-testid="financial-reconciliation-view">
-        Loading financial reconciliation…
+        Chargement de la réconciliation financière…
       </div>
     );
   }
@@ -86,10 +88,10 @@ export const FinancialReconciliationView: React.FC = () => {
   if (state.status === "api_error") {
     return (
       <div className="fin-panel fin-state fin-state-error" data-testid="financial-reconciliation-view">
-        <strong>FIN-02 artifact unavailable</strong>
+        <strong>Publication FIN-02 indisponible</strong>
         <span>
           {state.error.error_code ?? "UNKNOWN_ERROR"} ·{" "}
-          {state.error.error_message ?? "no detail"}
+          {state.error.error_message ?? "Aucun détail"}
         </span>
       </div>
     );
@@ -98,7 +100,7 @@ export const FinancialReconciliationView: React.FC = () => {
   if (state.status === "transport_error") {
     return (
       <div className="fin-panel fin-state fin-state-error" data-testid="financial-reconciliation-view">
-        <strong>Financial cockpit transport/contract failure</strong>
+        <strong>Erreur de transport ou de contrat financier</strong>
         <span>{state.message}</span>
       </div>
     );
@@ -119,19 +121,19 @@ export const FinancialReconciliationView: React.FC = () => {
       <section className="fin-panel fin-hero">
         <div className="fin-hero-row">
           <div>
-            <div className="fin-eyebrow">FINANCIAL INSTITUTE · READ-ONLY RECONCILIATION</div>
-            <h2>Financial Truth</h2>
+            <div className="fin-eyebrow">FINANCES · LECTURE SEULE</div>
+            <h2>Portefeuille et finances</h2>
             <p>
-              FIN-01 accounting, PPL lifecycle truth and explicit observations.
-              Deltas are evidence only; no auto-correction.
+              Montants publiés par FIN-01 et rapprochement avec les observations PPL.
+              Les écarts servent de preuves ; aucune correction automatique.
             </p>
           </div>
           <div className="fin-status-block">
             <span className={"fin-status fin-status-" + tone(recon.overall_status)}>
-              {recon.overall_status.replaceAll("_", " ")}
+              {fr(recon.overall_status)}
             </span>
             <span className={"fin-freshness " + (stale ? "stale" : "fresh")}>
-              {snapshot.freshness_classification} · {Math.round(snapshot.snapshot_age_s)}s
+              {fr(snapshot.freshness_classification)} · {Math.round(snapshot.snapshot_age_s)}s
             </span>
           </div>
         </div>
@@ -147,51 +149,57 @@ export const FinancialReconciliationView: React.FC = () => {
         </div></details>
       </section>
 
-      <section className="fin-metrics" aria-label="Financial truth summary">
-        <Metric label="Cash available" value={display(fin.cash_available)} hint={snapshot.asset} />
-        <Metric label="Reserved" value={display(fin.capital_reserved)} hint="historical principal" />
-        <Metric label="Deployed" value={display(fin.capital_deployed)} hint="operational measure" />
+      <section className="fin-panel finance-summary"><h3>Capital PAPER · {snapshot.asset}</h3><div className="fin-metrics" aria-label="Synthèse du capital">
+        <Metric label="Capital disponible" value={display(fin.cash_available)} hint={snapshot.asset} />
+        <Metric label="Principal réservé" value={display(fin.capital_reserved)} hint="principal au coût historique" />
+
         <Metric
-          label="Certified equity"
+          label="Capital certifié"
           value={display(fin.certified_equity)}
-          hint={fin.certified_equity === null ? "mark evidence incomplete" : snapshot.asset}
+          hint={fin.certified_equity === null ? "preuves de valorisation incomplètes" : snapshot.asset}
         />
-        <Metric label="Realized PnL" value={display(fin.realized_pnl)} hint="FIN semantics" />
-        <Metric label="Unrealized PnL" value={display(fin.unrealized_pnl)} hint="mark-to-market" />
-        <Metric label="Fees" value={display(fin.fees_paid)} />
-        <Metric label="Funding" value={display(fin.funding_net)} hint={fin.funding_status} />
-        <Metric label="Unresolved capital" value={recon.unresolved_capital} />
+        <Metric label="Capital non résolu" value={recon.unresolved_capital} />
+      </div><p>Montants distincts. Le principal déployé représente le capital réservé ; il ne constitue pas une part supplémentaire.</p></section>
+      <section className="fin-panel finance-summary"><h3>Résultat et frais · {snapshot.asset}</h3><div className="fin-metrics" aria-label="Résultat et frais">
+        <Metric label="Résultat réalisé" value={display(fin.realized_pnl)} hint="résultat FIN publié" />
+        <Metric label="Résultat latent" value={display(fin.unrealized_pnl)} hint="valorisation publiée" />
+        <Metric label="Frais payés" value={display(fin.fees_paid)} />
+      </div></section>
+      <FinancialHistory />
+      <details className="fin-panel finance-summary"><summary>Autres montants et contrôles publiés</summary><div className="fin-metrics">
+        <Metric label="Capital déployé" value={display(fin.capital_deployed)} hint="mesure d’exposition, non additionnelle" />
+        <Metric label="Financement" value={display(fin.funding_net)} hint={fin.funding_status} />
         <Metric
-          label="Unreconciled capital"
+          label="Capital non réconcilié"
           value={display(recon.unreconciled_capital)}
-          hint="single designated book-capital delta"
+          hint="écart comptable désigné"
         />
         <Metric label="Divergences" value={divergences} />
-        <Metric label="Unresolved checks" value={unresolved} />
-      </section>
+        <Metric label="Contrôles non résolus" value={unresolved} />
+      </div></details>
 
-      <section className="fin-panel">
+      <details className="fin-panel financial-evidence"><summary>Preuves de réconciliation · {snapshot.records.length} faits publiés</summary>
         <div className="fin-section-head">
           <div>
-            <h3>Reconciliation evidence</h3>
+            <h3>Preuves de réconciliation</h3>
             <p>
-              observed − projected. NON_COMPARABLE facts stay visible but do not degrade
-              the aggregate reconciliation verdict.
+              Observé − projeté. Les faits non comparables restent visibles, sans modifier
+              le verdict de réconciliation publié.
             </p>
           </div>
-          <span>{snapshot.records.length} records</span>
+          <span>{snapshot.records.length} faits</span>
         </div>
 
         <div className="fin-table-wrap">
           <table className="fin-table">
             <thead>
               <tr>
-                <th>Fact</th>
-                <th>FIN projected</th>
-                <th>Observed</th>
-                <th>Delta</th>
-                <th>Unreconciled</th>
-                <th>Status</th>
+                <th>Fait</th>
+                <th>FIN projeté</th>
+                <th>Observé</th>
+                <th>Écart</th>
+                <th>Non réconcilié</th>
+                <th>État</th>
                 <th>Provenance</th>
               </tr>
             </thead>
@@ -205,7 +213,7 @@ export const FinancialReconciliationView: React.FC = () => {
         <div className="fin-mobile-records" data-testid="fin-mobile-records">
           {snapshot.records.map((row) => (
             <article className="fin-record-card" key={row.record_id}>
-              <div className="fin-record-head"><strong>{row.field}</strong><span className={"fin-status fin-status-" + tone(row.status)}>{row.status.replaceAll("_", " ")}</span></div>
+              <div className="fin-record-head"><strong>{row.field}</strong><span className={"fin-status fin-status-" + tone(row.status)}>{fr(row.status)}</span></div>
               <dl className="fin-record-values">
                 <div><dt>FIN projeté</dt><dd>{recordDisplay(row.field, row.projected_value)}</dd></div>
                 <div><dt>Observé</dt><dd>{recordDisplay(row.field, row.observed_value)}</dd></div>
@@ -223,13 +231,13 @@ export const FinancialReconciliationView: React.FC = () => {
             </article>
           ))}
         </div>
-      </section>
+      </details>
 
       <section className="fin-panel fin-footer">
-        <strong>Boundary</strong>
+        <strong>Périmètre</strong>
         <span>
-          PAPER capital is never arithmetically merged with a real exchange account.
-          Unknown marks remain UNAVAILABLE; UNKNOWN is never rendered as zero.
+          Le capital PAPER reste séparé des comptes exchange.
+          Une valorisation inconnue reste indisponible ; elle n’est jamais remplacée par zéro.
         </span>
       </section>
     </div>

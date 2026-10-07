@@ -40,7 +40,7 @@ try {
         const initialMarketRequests = scenarioRequests.filter((r) => r.endsWith("/market")).length;
         await page.getByLabel("Recherche symbole").fill("  s25  ");
         await page.getByLabel("Biais dominant").selectOption("SHORT");
-        const item = width === 390 ? page.getByTestId("market-opportunity-card") : page.getByTestId("market-opportunity-row");
+        const item = page.getByTestId("market-opportunity-row");
         assert(await item.count() === 1 && (await item.innerText()).includes("S25/USDT"), "Combined filter failed");
         await item.getByRole("button", { name: "Détail S25/USDT" }).click();
         const detail = page.getByTestId("market-symbol-detail");

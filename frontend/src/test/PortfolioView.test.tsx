@@ -27,7 +27,7 @@ describe("PortfolioView", () => {
   it("labels real/testnet observation as read-only, never sizing/decision authority", () => {
     render(<PortfolioView snapshot={baseSnapshot()} />);
     expect(screen.getByTestId("real-account-warning")).toHaveTextContent(
-      "READ-ONLY ACCOUNT OBSERVATION — NEVER USED FOR SIZING OR DECISION AUTHORITY",
+      "Observation en lecture seule · sans autorité de décision ou de dimensionnement",
     );
   });
 
@@ -91,7 +91,7 @@ describe("PortfolioView", () => {
     render(<PortfolioView snapshot={snap} />);
 
     expect(screen.getByTestId("open-positions-stale-wrapper")).toBeInTheDocument();
-    expect(screen.getByTestId("open-positions-stale-badge")).toHaveTextContent("STALE");
+    expect(screen.getByTestId("open-positions-stale-badge")).toHaveTextContent("Données anciennes");
     const row = screen.getByTestId("open-position-row");
     expect(row).toHaveTextContent("ETHUSDT");
     // Never the array's default string coercion.
@@ -112,7 +112,7 @@ describe("PortfolioView", () => {
     snap.portfolio.open_positions = { semantics: "UNKNOWN", value: null } as never;
     render(<PortfolioView snapshot={snap} />);
     const section = within(screen.getByTestId("open-positions-section"));
-    expect(section.getByTestId("ov-unknown")).toHaveTextContent("UNKNOWN");
+    expect(section.getByTestId("ov-unknown")).toHaveTextContent("Inconnu");
     expect(section.queryByTestId("open-position-row")).toBeNull();
   });
 
@@ -121,7 +121,7 @@ describe("PortfolioView", () => {
     snap.portfolio.open_positions = { semantics: "UNAVAILABLE", value: null } as never;
     render(<PortfolioView snapshot={snap} />);
     const section = within(screen.getByTestId("open-positions-section"));
-    expect(section.getByTestId("ov-unavailable")).toHaveTextContent("UNAVAILABLE");
+    expect(section.getByTestId("ov-unavailable")).toHaveTextContent("Indisponible");
     expect(section.queryByTestId("open-position-row")).toBeNull();
   });
 
@@ -130,7 +130,7 @@ describe("PortfolioView", () => {
     snap.portfolio.open_positions = { semantics: "NOT_APPLICABLE", value: null } as never;
     render(<PortfolioView snapshot={snap} />);
     const section = within(screen.getByTestId("open-positions-section"));
-    expect(section.getByTestId("ov-not-applicable")).toHaveTextContent("NOT_APPLICABLE");
+    expect(section.getByTestId("ov-not-applicable")).toHaveTextContent("Sans objet");
     expect(section.queryByTestId("open-position-row")).toBeNull();
   });
 

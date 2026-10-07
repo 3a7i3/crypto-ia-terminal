@@ -18,28 +18,28 @@ function usePaperLive(): PaperLiveOutletContext { return useOutletContext<PaperL
 
 const NoSnapshot: React.FC<{ domain: string }> = ({ domain }) => (
   <div className="canonical-unresolved" data-testid="no-snapshot">
-    Canonical snapshot unavailable — {domain} is UNRESOLVED until a validated snapshot is available.
+    Snapshot canonique indisponible — {domain} reste non résolu jusqu’à réception d’une source validée.
   </div>
 );
 
 const MarketCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
   if (state.status === "success") return null;
-  if (state.status === "loading") return <div className="market-domain-context" data-testid="market-canonical-context">Canonical advisor context loading · MARKET telemetry is sourced independently.</div>;
+  if (state.status === "loading") return <div className="market-domain-context" data-testid="market-canonical-context">Chargement du contexte Advisor canonique · les observations du marché ont leur propre source.</div>;
   const summary = state.status === "api_error"
-    ? state.error.error_code === "SNAPSHOT_MISSING" ? "Canonical advisor: UNRESOLVED · SNAPSHOT_MISSING" : `Canonical advisor API error · ${state.error.error_code ?? "UNKNOWN_ERROR"}`
-    : "Canonical advisor: DISCONNECTED";
-  const detail = state.status === "api_error" ? state.error.error_message ?? "no error message supplied" : state.message;
-  return <details className="market-domain-context" data-testid="market-canonical-context"><summary>{summary} · MARKET remains a separate observational domain</summary><div className="market-domain-context-detail">{detail}</div></details>;
+    ? state.error.error_code === "SNAPSHOT_MISSING" ? "Advisor canonique : UNRESOLVED · SNAPSHOT_MISSING" : `Erreur API Advisor canonique · ${state.error.error_code ?? "UNKNOWN_ERROR"}`
+    : "Advisor canonique : DISCONNECTED";
+  const detail = state.status === "api_error" ? state.error.error_message ?? "Aucun message source fourni" : state.message;
+  return <details className="market-domain-context" data-testid="market-canonical-context"><summary>{summary} · le marché reste un domaine observationnel indépendant</summary><div className="market-domain-context-detail">{detail}</div></details>;
 };
 
 const PplCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
   if (state.status === "success") return null;
-  const summary = state.status === "loading" ? "Canonical advisor context loading" : state.status === "api_error" ? `Canonical advisor: ${state.error.error_code ?? "UNRESOLVED"}` : "Canonical advisor: DISCONNECTED";
-  return <div className="market-domain-context" data-testid="ppl-canonical-context">{summary} · PPL comparison remains an independent observational domain.</div>;
+  const summary = state.status === "loading" ? "Chargement du contexte Advisor canonique" : state.status === "api_error" ? `Advisor canonique : ${state.error.error_code ?? "UNRESOLVED"}` : "Advisor canonique : DISCONNECTED";
+  return <div className="market-domain-context" data-testid="ppl-canonical-context">{summary} · la comparaison PPL conserve sa source indépendante.</div>;
 };
 
 export const OverviewRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <OverviewView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
-export const MarketRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><MarketCanonicalContext state={snapshotState} /><MarketView /><MarketMicrostructureView /></>; };
+export const MarketRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><MarketCanonicalContext state={snapshotState} /><MarketView /><details className="machine-section"><summary>Microstructure · flux et liquidité publiés</summary><MarketMicrostructureView /></details></>; };
 export const PortfolioRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <PortfolioView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
 export const DecisionsRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <DecisionsView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
 export const LifecycleRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><PplCanonicalContext state={snapshotState} /><PplComparisonView /></>; };

@@ -22,7 +22,7 @@ const paperLinks = [
   { to: "/paper-live/portfolio", label: "Portefeuille", testId: "tab-portfolio" },
   { to: "/paper-live/burn-in", label: "Burn-in", testId: "tab-burn-in" },
   { to: "/paper-live/decisions", label: "Décisions", testId: "tab-decisions" },
-  { to: "/paper-live/lifecycle", label: "Lifecycle PPL", testId: "tab-ppl" },
+  { to: "/paper-live/lifecycle", label: "Comparaison simulateur / PPL", testId: "tab-ppl" },
   { to: "/paper-live/finance", label: "Finance", testId: "tab-finance" },
   { to: "/paper-live/events", label: "Événements", testId: "tab-events" },
 ];
@@ -59,15 +59,15 @@ export const PaperLiveShell: React.FC = () => {
             <span className="operator-brand">CRYPTO<span className="operator-brand-accent">AI</span></span>
             {activeDomain === "market" ? (
               <span className="domain-badge domain-badge-market" data-testid="market-domain-badge">
-                <span className="domain-dot" aria-hidden="true" /> MARKET OBSERVATORY
+                <span className="domain-dot" aria-hidden="true" /> MARCHÉ OBSERVÉ
               </span>
             ) : activeDomain === "paper" ? (
               <span className="domain-badge domain-badge-paper" data-testid="paper-domain-badge">
-                <span className="domain-dot" aria-hidden="true" /> PAPER LIVE · PAPER SCIENCE
+                <span className="domain-dot" aria-hidden="true" /> SIMULATION PAPER
               </span>
             ) : activeDomain === "system" ? (
               <span className="domain-badge domain-badge-system" data-testid="system-domain-badge">
-                <span className="domain-dot" aria-hidden="true" /> SYSTEM
+                <span className="domain-dot" aria-hidden="true" /> SYSTÈME
               </span>
             ) : <ModeBadge mode={activeSnapshot?.portfolio.mode} />}
           </div>
@@ -80,7 +80,7 @@ export const PaperLiveShell: React.FC = () => {
               </NavLink>
             ))}
             <NavLink className="direction-open-link" to="/direction" data-testid="open-direction">
-              Ouvrir Direction →
+              Synthèse Machine →
             </NavLink>
           </nav>
           <span className="operator-last-fetch" data-testid="last-fetch">
@@ -92,7 +92,7 @@ export const PaperLiveShell: React.FC = () => {
       <main className="operator-main">
         {activeDomain === "paper" && <>
           <div className="paper-domain-banner" data-testid="paper-domain-banner">
-            PAPER LIVE · DONNÉES MARCHÉ RÉELLES · DÉCISIONS MACHINE RÉELLES · EXÉCUTION PAPER · NOT REAL MONEY
+            PAPER · exécution simulée · fonds fictifs
           </div>
           <nav className="operator-subnav" aria-label="Vues PAPER LIVE" data-testid="paper-subnav">
             {paperLinks.map((link) => (
@@ -103,7 +103,7 @@ export const PaperLiveShell: React.FC = () => {
           </nav>
         </>}
         {activeDomain === "system" && <nav className="operator-subnav" aria-label="Vues Système / Gouvernance">
-          <NavLink to="/paper-live/system" className={({ isActive }) => `operator-subtab${isActive ? " operator-subtab-active" : ""}`} data-testid="tab-system-health">System Health</NavLink>
+          <NavLink to="/paper-live/system" className={({ isActive }) => `operator-subtab${isActive ? " operator-subtab-active" : ""}`} data-testid="tab-system-health">État du système</NavLink>
           <NavLink to="/paper-live/scores" className={({ isActive }) => `operator-subtab${isActive ? " operator-subtab-active" : ""}`} data-testid="tab-scores">Scores</NavLink>
         </nav>}
         <Outlet context={{ snapshotState, activeSnapshot } satisfies PaperLiveOutletContext} />

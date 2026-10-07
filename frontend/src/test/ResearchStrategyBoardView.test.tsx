@@ -86,14 +86,14 @@ describe.skipIf(!existsSync(file))(
       fireEvent.click(
         within(row).getByRole("button", { name: "PnL seul · sans verdict" }),
       );
-      fireEvent.change(screen.getByLabelText("Type"), {
+      fireEvent.change(screen.getByLabelText("Type de candidat"), {
         target: { value: "CONFIG" },
       });
       expect(screen.queryByTestId("strategy-detail")).not.toBeInTheDocument();
       expect(screen.getByTestId("strategy-empty")).toHaveTextContent(
         "Aucun résultat pour ces filtres",
       );
-      fireEvent.change(screen.getByLabelText("Type"), {
+      fireEvent.change(screen.getByLabelText("Type de candidat"), {
         target: { value: "ALL" },
       });
       const group = fixture().body.rows.find((r: any) => r.ranking).ranking

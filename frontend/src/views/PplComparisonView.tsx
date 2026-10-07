@@ -64,22 +64,22 @@ const ComparisonTable: React.FC<{
         <h3>{title}</h3>
         <p>{subtitle}</p>
       </div>
-      <span>{rows.length} evidence rows</span>
+      <span>{rows.length} lignes de preuve</span>
     </div>
 
     {rows.length === 0 ? (
-      <div className="ppl-empty">No comparison row is materialized for this scope.</div>
+      <div className="ppl-empty">Aucune ligne de comparaison publiée pour ce périmètre.</div>
     ) : (
       <>
         <div className="ppl-table-wrap">
           <table className="ppl-table">
             <thead>
               <tr>
-                <th>Fact</th>
-                <th>Legacy PAPER</th>
-                <th>PPL SHADOW</th>
+                <th>Fait</th>
+                <th>Ancien simulateur PAPER</th>
+                <th>Journal PPL · audit</th>
                 <th>Relation</th>
-                <th>PPL − Legacy</th>
+                <th>PPL − ancien simulateur</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@ const ComparisonTable: React.FC<{
                   </td>
                   <td className="ppl-delta">
                     {row.delta_ppl_minus_legacy === null
-                      ? "NOT COMPARABLE"
+                      ? "Non comparable"
                       : raw(row.delta_ppl_minus_legacy)}
                   </td>
                 </tr>
@@ -125,7 +125,7 @@ const ComparisonTable: React.FC<{
               </div>
               <div className="ppl-card-values">
                 <div>
-                  <span>Legacy</span>
+                  <span>Ancien simulateur</span>
                   <strong>{raw(row.legacy.value)}</strong>
                   <small>{row.legacy.status}</small>
                 </div>
@@ -165,8 +165,8 @@ const TradeGroups: React.FC<{
     <section className="ppl-panel">
       <div className="ppl-section-head">
         <div>
-          <h3>Trade drill-down</h3>
-          <p>Identity-linked evidence only; no symbol fallback or reconstructed finance.</p>
+          <h3>Détail par position</h3>
+          <p>Preuves liées à l’identité exacte de la position ; aucune finance reconstruite.</p>
         </div>
       </div>
       <div className="ppl-trades">
@@ -202,14 +202,14 @@ export const PplComparisonView: React.FC = () => {
   const state = usePplComparison();
 
   if (state.status === "loading") {
-    return <div className="ppl-panel ppl-state" data-testid="ppl-comparison-view">Loading PPL comparison…</div>;
+    return <div className="ppl-panel ppl-state" data-testid="ppl-comparison-view">Chargement de la comparaison PPL…</div>;
   }
 
   if (state.status === "api_error") {
     return (
       <div className="ppl-panel ppl-state ppl-state-error" data-testid="ppl-comparison-view">
-        <strong>WEB-02 comparison unavailable</strong>
-        <span>{state.error.error_code ?? "UNKNOWN_ERROR"} · {state.error.error_message ?? "no detail"}</span>
+        <strong>Comparaison indisponible</strong>
+        <span>{state.error.error_code ?? "UNKNOWN_ERROR"} · {state.error.error_message ?? "Aucun détail"}</span>
       </div>
     );
   }
@@ -217,7 +217,7 @@ export const PplComparisonView: React.FC = () => {
   if (state.status === "transport_error") {
     return (
       <div className="ppl-panel ppl-state ppl-state-error" data-testid="ppl-comparison-view">
-        <strong>Comparator transport/contract failure</strong>
+        <strong>Erreur de transport ou de contrat de comparaison</strong>
         <span>{state.message}</span>
       </div>
     );
@@ -233,10 +233,10 @@ export const PplComparisonView: React.FC = () => {
       <section className="ppl-panel ppl-hero">
         <div className="ppl-hero-row">
           <div>
-            <div className="ppl-eyebrow">NON-AUTHORITATIVE SHADOW OBSERVATION</div>
-            <h2>Legacy PAPER ⇄ PPL</h2>
+            <div className="ppl-eyebrow">OBSERVATION D’AUDIT · NON AUTORITAIRE</div>
+            <h2>Comparaison ancien simulateur / journal PPL</h2>
             <p>
-              Raw source values, explicit comparability, no auto-repair. Legacy PAPER remains authoritative.
+              Cette comparaison repère les accords et écarts entre l’ancien simulateur PAPER et le journal des positions. Elle sert à l’audit technique.
             </p>
           </div>
           <div className="ppl-status-block">
@@ -249,44 +249,44 @@ export const PplComparisonView: React.FC = () => {
           </div>
         </div>
 
-        <div className="ppl-provenance">
+        <details className="ppl-provenance-details"><summary>Autorités du snapshot observé et provenance</summary><div className="ppl-provenance">
           <div><span>Epoch</span><code>{snapshot.paper_epoch_id ?? "UNRESOLVED"}</code></div>
           <div><span>Cycle</span><code>{snapshot.cycle}</code></div>
           <div><span>Source SHA</span><code>{snapshot.source_sha ?? "UNKNOWN"}</code></div>
-          <div><span>Authority</span><code>{snapshot.authority}</code></div>
-          <div><span>Legacy authority</span><code>{raw(snapshot.legacy_source.authority)}</code></div>
-          <div><span>PPL authority</span><code>{raw(snapshot.ppl_source.authority)}</code></div>
-        </div>
+          <div><span>Autorité</span><code>{snapshot.authority}</code></div>
+          <div><span>Autorité ancien simulateur</span><code>{raw(snapshot.legacy_source.authority)}</code></div>
+          <div><span>Autorité PPL</span><code>{raw(snapshot.ppl_source.authority)}</code></div>
+        </div><p>Les valeurs source brutes sont conservées sans correction automatique. L’autorité affichée décrit ce snapshot ; elle ne constitue pas une affirmation sur le VPS actuel.</p></details>
       </section>
 
       {!snapshot.comparison_available && (
         <div className="ppl-unavailable" data-testid="ppl-comparison-unavailable">
-          Comparison withheld: {snapshot.comparison_unavailable_reason ?? "UNRESOLVED"}.
-          No convergence state is inferred.
+          Comparaison suspendue : {snapshot.comparison_unavailable_reason ?? "UNRESOLVED"}.
+          Aucune convergence n’est déduite.
         </div>
       )}
 
       <section className="ppl-metrics" aria-label="Comparison evidence summary">
-        <Metric label="Evidence rows" value={snapshot.summary.total} />
+        <Metric label="Lignes de preuve" value={snapshot.summary.total} />
         <Metric label="Comparable" value={snapshot.summary.comparable} />
-        <Metric label="Equal" value={snapshot.summary.equal} hint="relation, not quality score" />
-        <Metric label="Different" value={snapshot.summary.different} hint="observable divergence" />
-        <Metric label="Partial" value={snapshot.summary.partial} />
-        <Metric label="Unresolved" value={snapshot.summary.unresolved} />
+        <Metric label="Accords" value={snapshot.summary.equal} hint="relation observée" />
+        <Metric label="Écarts" value={snapshot.summary.different} hint="divergence observée" />
+        <Metric label="Partiel" value={snapshot.summary.partial} />
+        <Metric label="Non résolu" value={snapshot.summary.unresolved} />
       </section>
 
       {snapshot.comparison_available && (
         <>
           <ComparisonTable
             rows={aggregate}
-            title="Accounting & lifecycle"
-            subtitle="Only producer-certified comparable facts receive a numeric delta."
+            title="Comptabilité et cycles de vie"
+            subtitle="Seuls les faits comparables certifiés par le producteur portent un écart numérique."
           />
           {tradeRows.length > 0 && (
             <ComparisonTable
               rows={tradeRows}
-              title="Per-trade evidence"
-              subtitle="Trade identity is exact; unsupported finance remains PARTIAL or UNRESOLVED."
+              title="Preuves par position"
+              subtitle="L’identité de position est exacte ; une finance non étayée reste partielle ou non résolue."
             />
           )}
           <TradeGroups snapshot={snapshot} />
@@ -296,14 +296,14 @@ export const PplComparisonView: React.FC = () => {
       <section className="ppl-panel">
         <div className="ppl-section-head">
           <div>
-            <h3>PPL event provenance</h3>
-            <p>Durable SHADOW events are shown in stored sequence order.</p>
+            <h3>Provenance des événements PPL</h3>
+            <p>Les événements d’audit sont présentés dans l’ordre enregistré.</p>
           </div>
-          <span>{snapshot.ppl_events.length} events</span>
+          <span>{snapshot.ppl_events.length} événements</span>
         </div>
         <div className="ppl-events">
           {snapshot.ppl_events.length === 0 ? (
-            <div className="ppl-empty">No PPL event is exposed for the current SHADOW state.</div>
+            <div className="ppl-empty">Aucun événement PPL exposé pour cet état d’audit.</div>
           ) : (
             snapshot.ppl_events.map((event) => (
               <div className="ppl-event" key={event.event_id}>

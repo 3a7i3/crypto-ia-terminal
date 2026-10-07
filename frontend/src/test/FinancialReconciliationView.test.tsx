@@ -115,15 +115,15 @@ describe("FinancialReconciliationView", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(snapshot())));
     render(<FinancialReconciliationView />);
 
-    await waitFor(() => expect(screen.getByText("Financial Truth")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Portefeuille et finances")).toBeInTheDocument());
 
     const view = screen.getByTestId("financial-reconciliation-view");
     expect(view).toHaveTextContent("980.0486506774129714893128911");
-    expect(view).toHaveTextContent("UNAVAILABLE");
-    expect(view).toHaveTextContent("DIVERGENT");
+    expect(view).toHaveTextContent("Indisponible");
+    expect(view).toHaveTextContent("Divergence");
     expect(view).toHaveTextContent("1.0");
     expect(view).toHaveTextContent("NON_COMPARABLE");
-    expect(view).toHaveTextContent("no auto-correction");
+    expect(view).toHaveTextContent("aucune correction automatique");
   });
 
   it("surfaces structured API failure rather than fake zero balances", async () => {

@@ -40,6 +40,7 @@ try {
         return route.fulfill({ status: scenario === "missing" ? 503 : 200, contentType: "application/json", body: JSON.stringify(scenario === "missing" ? { error_code: "MICROSTRUCTURE_MISSING" } : body) });
       });
       assert((await page.goto(`${base}/paper-live/market`, { waitUntil: "networkidle" }))?.ok(), "Navigation failed");
+      await page.getByText("Microstructure · flux et liquidité publiés", { exact: true }).click();
       const view = page.getByTestId("microstructure-view");
       await view.waitFor();
       if (["missing", "invalid", "network"].includes(scenario)) {

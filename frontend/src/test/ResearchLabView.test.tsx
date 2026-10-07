@@ -156,7 +156,7 @@ describe("WEB-RL Research Lab", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("research-domain-banner")).toHaveTextContent(
-        "NON-AUTHORITATIVE",
+        "NON AUTORITAIRE",
       ),
     );
     const view = screen.getByTestId("research-lab-view");
@@ -167,7 +167,7 @@ describe("WEB-RL Research Lab", () => {
     expect(view).toHaveTextContent("NOT_AVAILABLE");
     expect(view).toHaveTextContent("No certified time-series/annualized return basis.");
     expect(screen.getByTestId("research-candidate-empty")).toHaveTextContent(
-      "No substantive candidate",
+      "Aucun candidat substantiel",
     );
   });
 
@@ -188,7 +188,7 @@ describe("WEB-RL Research Lab", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("research-lab-view")).toHaveTextContent(
-        "contract/transport error",
+        "Erreur de contrat ou de transport du Laboratoire",
       ),
     );
   });
@@ -214,6 +214,7 @@ describe("WEB-RL Research Lab", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
 
     await waitFor(() =>
@@ -226,7 +227,7 @@ describe("WEB-RL Research Lab", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("research-domain-banner")).toHaveTextContent(
-        "RESEARCH LAB",
+        "RECHERCHE HORS LIGNE",
       ),
     );
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
@@ -238,7 +239,8 @@ describe("WEB-RL Research Lab", () => {
       { method: "GET" },
     );
 
-    fireEvent.click(screen.getByTestId("tab-overview"));
+    fireEvent.click(screen.getByTestId("space-machine"));
+    fireEvent.click(screen.getByTestId("return-paper-live"));
     await waitFor(() =>
       expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent(
         "SNAPSHOT_MISSING",

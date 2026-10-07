@@ -33,7 +33,7 @@ const PositionRow: React.FC<{ pos: OpenPosition }> = ({ pos }) => (
       <ObservedValueView ov={pos.regime} />
       {pos.restored_without_regime && (
         <span className="ml-1 text-[10px]" style={{ color: "var(--text-muted)" }} data-testid="restored-without-regime">
-          (restored, no ledger regime)
+          (restaurée, sans régime publié)
         </span>
       )}
     </td>
@@ -42,10 +42,12 @@ const PositionRow: React.FC<{ pos: OpenPosition }> = ({ pos }) => (
   </tr>
 );
 
+const portfolioLabels: Record<string, string> = {"paper_equity_usd": "Capital PAPER USD", "paper_realized_pnl_usd": "Résultat réalisé PAPER USD", "paper_unrealized_pnl_usd": "Résultat latent PAPER USD", "paper_open_positions_count": "Positions PAPER ouvertes", "real_account_equity_usd": "Capital du compte réel USD", "real_account_free_usd": "Capital disponible du compte réel USD", "real_account_stale": "Observation du compte ancienne", "real_account_last_poll_utc": "Dernière lecture du compte UTC", "non_paper_wallet_balance_usd": "Solde hors PAPER USD", "capital_x_usd": "Capital de référence USD"};
+
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: "var(--bg-border)" }}>
-    <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
-      {label}
+    <span title={label} className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
+      {portfolioLabels[label] ?? label}
     </span>
     <span className="font-mono text-xs" style={{ color: "var(--text-pri)" }}>
       {children}
@@ -59,7 +61,7 @@ const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) 
     <table className="w-full">
       <thead>
         <tr className="text-left" style={{ color: "var(--text-muted)" }}>
-          {["Symbol", "Side", "Size", "Entry", "Current", "PnL $", "PnL %", "Regime", "TP/SL source", "Personality"].map((h) => (
+          {["Symbole", "Sens", "Taille USD", "Entrée", "Prix actuel", "Résultat latent USD", "Résultat latent %", "Régime", "Source TP/SL", "Profil"].map((h) => (
             <th key={h} className="font-mono text-[10px] font-normal pb-1 pr-3">
               {h}
             </th>
@@ -118,7 +120,7 @@ const OpenPositionsSection: React.FC<{ ov: unknown }> = ({ ov }) => {
     if (positions.length === 0) {
       return (
         <div className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
-          (empty — zero open positions observed)
+          (vide — aucune position ouverte observée)
         </div>
       );
     }
@@ -133,7 +135,7 @@ const OpenPositionsSection: React.FC<{ ov: unknown }> = ({ ov }) => {
             className="font-mono text-[10px] mb-2"
             style={{ color: "#f59e0b" }}
           >
-            ⚠ STALE — last-known open positions, not a current observation
+            ⚠ Données anciennes · dernières positions connues, pas une observation actuelle
           </div>
           {table}
         </div>
@@ -159,7 +161,7 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
       <div className="flex items-center gap-2">
         <ModeBadge mode={p.mode} />
         <span className="font-mono text-[10px]" style={{ color: "var(--text-muted)" }}>
-          portfolio.mode (canonical, never inferred)
+          Mode publié par la source
         </span>
       </div>
 
@@ -185,14 +187,23 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
       </div>
 
       {/* REAL/TESTNET block — never combined with PAPER numbers above */}
+
       <div
+        data-testid="open-positions-section"
+        className="p-3"
+        style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}
+      >
+        <div className="font-mono text-xs font-bold mb-2">Positions ouvertes</div>
+        <OpenPositionsSection ov={p.open_positions} />
+      </div>
+      <details
         data-testid="real-testnet-block"
         className="p-3"
         style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}
       >
-        <div className="font-mono text-xs font-bold mb-1">REAL / TESTNET account observation</div>
+        <summary>Observation de compte réel / testnet · périmètre distinct</summary>
         <div className="font-mono text-[10px] mb-2" style={{ color: "#f97316" }} data-testid="real-account-warning">
-          READ-ONLY ACCOUNT OBSERVATION — NEVER USED FOR SIZING OR DECISION AUTHORITY
+          Observation en lecture seule · sans autorité de décision ou de dimensionnement
         </div>
         <Field label="real_account_equity_usd">
           <ObservedValueView ov={p.real_account_equity_usd} render={fmtUsd} />
@@ -212,16 +223,7 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
         <Field label="capital_x_usd">
           <ObservedValueView ov={p.capital_x_usd} render={fmtUsd} />
         </Field>
-      </div>
-
-      <div
-        data-testid="open-positions-section"
-        className="p-3"
-        style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}
-      >
-        <div className="font-mono text-xs font-bold mb-2">Open positions</div>
-        <OpenPositionsSection ov={p.open_positions} />
-      </div>
+      </details>
     </div>
   );
 };
