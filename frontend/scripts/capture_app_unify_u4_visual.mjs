@@ -27,14 +27,15 @@ try {
     const view = page.getByTestId("research-lab-view");
     await view.waitFor();
     if (["missing", "invalid", "network"].includes(scenario)) {
-      assert((await view.innerText()).includes(scenario === "missing" ? "unavailable" : "contract/transport error"), "Failure hidden");
+      assert((await view.innerText()).includes(scenario === "missing" ? "indisponible" : "Erreur de contrat ou de transport"), "Failure hidden");
       assert(await page.getByTestId("research-metric-card").count() === 0, "Error retained metrics");
     } else {
+      await page.getByText(/^Limites connues ·/).click();
       const text = await view.innerText();
-      for (const required of ["NON-AUTHORITATIVE", "LOW_SAMPLE", "Candidate catalog NOT_AVAILABLE"]) assert(text.includes(required), `Missing ${required}`);
-      if (scenario === "empty") assert(text.includes("EMPTY") && await page.getByTestId("research-metric-card").count() === 0, "Empty population fabricated metrics");
+      for (const required of ["NON AUTORITAIRE", "LOW_SAMPLE", "Candidate catalog NOT_AVAILABLE"]) assert(text.includes(required), `Missing ${required}`);
+      if (scenario === "empty") assert(text.includes("Vide observé") && await page.getByTestId("research-metric-card").count() === 0, "Empty population fabricated metrics");
       else assert(text.toLowerCase().includes("closed_population_fees_usd") && text.toLowerCase().includes("mark_to_market_max_drawdown") && text.includes("NOT_AVAILABLE"), "Costs/limitations lost");
-      await page.getByText("Full Research provenance").click();
+      await page.getByText("Provenance complète de la recherche").click();
       const sources = await page.getByTestId("research-source-artifacts").innerText();
       assert(sources.includes(fixture._proof.manifest_sha256) && sources.includes(fixture._proof.diagnostic_sha256), "Source digest lost");
       if (scenario === "historical") assert((await view.innerText()).includes("2020-01-01T00:00:00Z"), "Historical evidence rejuvenated");
@@ -44,6 +45,7 @@ try {
     await page.screenshot({ path: path.join(out, `research-${scenario}-${width}.png`), fullPage: true });
     if (["published", "missing"].includes(scenario)) {
       await page.goto(`${base}/direction`, { waitUntil: "networkidle" });
+      await page.getByText("Recherche et capacités non déployées").click();
       const card = page.getByTestId("direction-research-card"); await card.waitFor();
       assert((await card.innerText()).includes(scenario === "published" ? "AVAILABLE" : "ERREUR SOURCE"), "Direction hides independent Research");
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "Direction overflow");

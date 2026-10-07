@@ -28,7 +28,7 @@ async function assertNoOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
   assert(response?.ok(), `frontend navigation failed: ${response?.status() ?? "no-response"}`);
 
   await page.getByTestId("overview-view").waitFor({ state: "visible" });
@@ -37,9 +37,10 @@ try {
   await page.getByTestId("ppl-comparison-view").waitFor({ state: "visible" });
   await page.getByTestId("ppl-comparison-row").first().waitFor({ state: "visible" });
 
+  await page.getByText("Autorités du snapshot observé et provenance").click();
   const text = await page.getByTestId("ppl-comparison-view").innerText();
   for (const required of [
-    "Legacy PAPER",
+    "Ancien simulateur PAPER",
     "PPL",
     "PAPER_AUTHORITY",
     "NONE",
@@ -48,11 +49,11 @@ try {
     "100",
     "DIFFERENT",
   ]) {
-    assert(text.includes(required), `WEB-02 evidence missing: ${required}`);
+    assert(text.toLowerCase().includes(required.toLowerCase()), `WEB-02 evidence missing: ${required}`);
   }
   assert(!text.includes("NOT_EXPOSED"), "PPL comparator still reports NOT_EXPOSED");
   assert(
-    text.includes("Raw source values") || text.includes("Raw"),
+    text.includes("Les valeurs source brutes sont conservées"),
     "raw-value doctrine is not visible",
   );
 
@@ -95,7 +96,7 @@ try {
   const cards = page.locator(".ppl-comparison-card");
   assert((await cards.count()) > 0, "phone comparison cards missing");
   const cardText = await cards.first().innerText();
-  assert(cardText.includes("Legacy"), "phone card lacks Legacy raw side");
+  assert(cardText.includes("Ancien simulateur"), "phone card lacks former simulator raw side");
   assert(cardText.includes("PPL"), "phone card lacks PPL raw side");
   assert(cardText.includes("DIFFERENT"), "phone card lacks relation");
   const navBox = await page.locator(".operator-nav").boundingBox();

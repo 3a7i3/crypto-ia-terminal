@@ -1,0 +1,18 @@
+.demo-banner { position:sticky; top:0; z-index:10; background:#49300d; color:#fff2d2; padding:12px 20px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; border-bottom:2px solid var(--warn); }
+.demo-banner strong { font-size:14px; }
+.demo-banner label { display:flex; gap:8px; align-items:center; }
+.demo-banner select { background:#251c0e; color:#fff2d2; padding:8px; border:1px solid #ad874e; border-radius:6px; min-height:44px; }
+.demo-banner span { font-size:13px; }
+.demo-charts { padding-top:20px; border-top:2px solid var(--warn); margin-top:20px; }
+.demo-charts h3 { color:var(--warn); }
+.demo-charts .category-links button { padding:10px 12px; color:var(--text-pri); background:var(--bg-card); border:1px solid var(--bg-border); border-radius:8px; cursor:pointer; font-size:14px; }
+.demo-charts button[aria-pressed="true"] { border-color:var(--accent); }
+.demo-charts figure { margin:18px 0; }
+.demo-charts figcaption { font-size:14px; }
+.demo-charts svg { width:100%; max-height:240px; margin-top:12px; }
+.demo-charts text { fill:var(--text-sec); font-size:14px; }
+.demo-allocation { display:flex; height:22px; border-radius:6px; overflow:hidden; margin:12px 0; }
+.demo-allocation-legend { display:flex; flex-wrap:wrap; gap:12px 20px; list-style:none; font-size:14px; }
+.demo-charts table { width:100%; border-collapse:collapse; font-size:14px; }
+.demo-charts td, .demo-charts th { padding:8px; text-align:left; }
+@media(max-width:760px) { .demo-banner { padding:8px 14px; gap:6px; position:relative; } .demo-banner span { width:100%; } }

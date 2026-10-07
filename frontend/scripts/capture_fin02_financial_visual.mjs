@@ -24,7 +24,7 @@ async function noPageOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
   assert(response?.ok(), "frontend navigation failed");
 
   await page.getByTestId("overview-view").waitFor({ state: "visible" });
@@ -32,17 +32,19 @@ try {
   await page.getByTestId("tab-finance").click();
   await page.getByTestId("financial-reconciliation-view").waitFor({ state: "visible" });
   await page
-    .getByRole("heading", { name: "Financial Truth", exact: true })
+    .getByRole("heading", { name: "Portefeuille et finances", exact: true })
     .waitFor({ state: "visible" });
 
+  await page.getByText("Autres montants et contrôles publiés").click();
+  await page.getByText(/^Preuves de réconciliation ·/).click();
   const text = await page.getByTestId("financial-reconciliation-view").innerText();
   for (const required of [
-    "Financial Truth",
-    "DIVERGENT",
-    "UNAVAILABLE",
-    "Unreconciled capital",
+    "Portefeuille et finances",
+    "Divergence",
+    "Indisponible",
+    "Capital non réconcilié",
     "1",
-    "no auto-correction",
+    "aucune correction automatique",
   ]) {
     assert(text.includes(required), "FIN-02 visual evidence missing: " + required);
   }

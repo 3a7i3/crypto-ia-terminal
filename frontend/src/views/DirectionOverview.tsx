@@ -1,4 +1,7 @@
 import React from "react";
+import { fr } from "../lib/presentationFr";
+import { formatDecimalText } from "../lib/decimalPresentation";
+import { FinancialHistory } from "../components/FinancialHistory";
 import { useRuntimeService } from "../lib/runtimeServiceClient";
 import { RuntimeServiceCard } from "./RuntimeServiceView";
 import { useBurnInStatus } from "../lib/burnInStatusClient";
@@ -488,7 +491,7 @@ const ResearchCard: React.FC<{ state: ResearchLabState }> = ({ state }) => {
     <article className="direction-card direction-card-governed" data-testid="direction-research-card">
       <div className="direction-card-heading">
         <h3>Research</h3>
-        <span className="direction-card-badge">RESEARCH NON-AUTORITAIRE</span>
+        <span className="direction-card-badge">RECHERCHE NON AUTORITAIRE</span>
       </div>
       <ProvenanceStrip
         testId="direction-provenance-research"
@@ -536,41 +539,79 @@ export const DirectionOverview: React.FC = () => {
   const marketState = useMarketSnapshot();
   const researchState = useResearchLabSnapshot();
 
+  const runtime = runtimeServiceState.status === "success" ? runtimeServiceState.snapshot : null;
+  const burn = burnInState.status === "success" ? burnInState.snapshot : null;
+  const finance = financialState.status === "success" ? financialState.snapshot : null;
+  const market = marketState.status === "success" ? marketState.snapshot : null;
+  const advisor = runtime && runtime.freshness_classification === "FRESH" && runtime.service.query_status === "OK"
+    ? fr(runtime.service.active_state) : "Inconnu";
+  const amount = (v: string | null | undefined) => v == null ? "Non disponible" : formatDecimalText(v);
+  const sourceStatus = (state: { status: string }, freshness?: string) =>
+    state.status === "success" ? fr(freshness) : state.status === "loading" ? "Chargement…" : "Source indisponible";
+
   return (
     <div className="direction-stack" data-testid="direction-view">
-      <section className="direction-intro">
-        <div><div className="direction-eyebrow">SURFACE PROPRIÉTAIRE · PRÉSENTATION / GOUVERNANCE</div><h2>Vue Direction · Propriétaire</h2></div>
-        <span className="direction-status-unknown">ÉTAT GLOBAL · INCONNU</span>
+      <section className="machine-lead">
+        <div><span className="workspace-eyebrow">MACHINE · LECTURE SEULE</span><h2>Comprendre la situation</h2></div>
+        <p>État global inconnu : aucune synthèse de santé certifiée.</p>
+        <dl className="machine-pulse">
+          <div><dt>Advisor observé</dt><dd>{advisor}</dd><small>{sourceStatus(runtimeServiceState, runtime?.freshness_classification)}</small></div>
+          <div><dt>Disponible · {finance?.asset ?? "unité non disponible"}</dt><dd>{amount(finance?.financial.cash_available)}</dd><small>{sourceStatus(financialState, finance?.freshness_classification)}</small></div>
+          <div><dt>Positions de l’expérience</dt><dd>{burn ? `${burn.lifecycle_counts.open} ouvertes` : "Non disponible"}</dd><small>{sourceStatus(burnInState, burn?.freshness_classification)}</small></div>
+        </dl>
+        <nav className="category-links" aria-label="Catégories Machine">
+          <a href="#machine-state">État</a><a href="#machine-finance">Portefeuille et finances</a><a href="#machine-market">Marché</a>
+        </nav>
       </section>
-
       <aside className="direction-federation-notice" data-testid="direction-federation-notice">
-        <strong>FÉDÉRÉ · NON ATOMIQUE</strong>
-        <span>6 sources indépendantes · aucun timestamp global · aucune fraîcheur globale · aucun état de santé global dérivé.</span>
+        <strong>Sources indépendantes</strong><span>Les dates et fraîcheurs sont propres à chaque source. Aucun état global ni observation simultanée ne sont déduits.</span>
       </aside>
-
-      <section aria-label="État burn-in Direction">
-        <BurnInCard state={burnInState} />
+      <section className="machine-section" id="machine-state" aria-label="État et expérience">
+        <h2>État</h2>
+        <dl className="summary-facts">
+          <div><dt>Advisor · service observé</dt><dd>{advisor}</dd><small>{sourceStatus(runtimeServiceState, runtime?.freshness_classification)} · {runtime?.observed_at_utc ?? "Date non disponible"}</small></div>
+          <div><dt>Expérience observée</dt><dd>{burn ? `${burn.lifecycle_counts.open} ouvertes · ${burn.lifecycle_counts.closed} clôturées` : sourceStatus(burnInState)}</dd><small>{burn ? `${burn.lifecycle_counts.unresolved} non résolues · ${fr(burn.freshness_classification)} · ${burn.generated_at_utc}` : "Population non disponible"}</small></div>
+          <div><dt>Dernier événement</dt><dd>{burn ? fr(burn.last_event.event_type) : "Non disponible"}</dd><small>{burn?.last_event.timestamp_utc ?? "Date non disponible"}</small></div>
+        </dl>
+        <p className="attention-line">{runtime?.freshness_classification === "STALE" ? "Preuve Advisor périmée : état actuel inconnu. " : ""}{burn?.freshness_classification === "STALE" ? "Expérience : données anciennes. " : ""}Alertes critiques non déployées ; leur absence ne prouve pas une machine saine.</p>
+        <details className="section-evidence"><summary>Expérience, état du service et preuves complètes</summary>
+          <BurnInCard state={burnInState} /><RuntimeServiceCard state={runtimeServiceState} testId="direction-runtime-service-card" /><GlobalStateCard state={operatorState} />
+        </details>
+        <a className="section-link" href="/paper-live/burn-in">Explorer l’expérience →</a>
       </section>
-
-      <section aria-label="Preuve host Advisor Direction">
-        <RuntimeServiceCard state={runtimeServiceState} testId="direction-runtime-service-card" />
+      <section className="machine-section" id="machine-finance" aria-label="Portefeuille et finances">
+        <div className="section-heading"><h2>Portefeuille et finances</h2><span>{sourceStatus(financialState, finance?.freshness_classification)}</span></div>
+        <p className="source-date">Observation FIN : {finance?.generated_at_utc ?? "Date non disponible"}{finance && ` · ${finance.asset}`}</p>
+        <dl className="summary-facts">
+          <div><dt>Capital disponible</dt><dd>{amount(finance?.financial.cash_available)}</dd></div>
+          <div><dt>Principal réservé</dt><dd>{amount(finance?.financial.capital_reserved)}</dd></div>
+          <div><dt>Capital non résolu</dt><dd>{amount(finance?.financial.capital_unresolved)}</dd></div>
+          <div><dt>Résultat réalisé</dt><dd>{amount(finance?.financial.realized_pnl)}</dd></div>
+          <div><dt>Résultat latent</dt><dd>{amount(finance?.financial.unrealized_pnl)}</dd></div>
+          <div><dt>Frais payés</dt><dd>{amount(finance?.financial.fees_paid)}</dd></div>
+        </dl>
+        <p>Réconciliation : {finance ? fr(finance.reconciliation.overall_status) : "Non disponible"} · fonds PAPER.</p>
+        <FinancialHistory />
+        <details className="section-evidence"><summary>Montants exacts, rapprochement et provenance</summary><ActiveExperimentCard state={financialState} /></details>
+        <div className="category-links"><a href="/paper-live/portfolio">Positions →</a><a href="/paper-live/finance">Réconciliation →</a></div>
       </section>
-
-      <section className="direction-primary-grid" aria-label="Synthèse gouvernée Direction">
-        <GlobalStateCard state={operatorState} />
-        <ActiveExperimentCard state={financialState} />
+      <section className="machine-section" id="machine-market" aria-label="Marché observé">
+        <div className="section-heading"><h2>Marché</h2><span>{sourceStatus(marketState, market?.freshness_classification)}</span></div>
+        <dl className="summary-facts">
+          <div><dt>Univers observé</dt><dd>{market?.universe_size ?? "Non disponible"}</dd></div>
+          <div><dt>Régime publié</dt><dd>{fr(market?.market_regime)}</dd></div>
+          <div><dt>Couverture du scanner</dt><dd>{market ? `${market.top_opportunities.length} lignes / ${market.actionable_count} au seuil` : "Non disponible"}</dd></div>
+        </dl>
+        <p className="source-date">{market?.generated_at_utc ?? "Date non disponible"} · observations sans permission de trading.</p>
+        {market && market.top_opportunities.length < market.actionable_count && <p className="attention-line">Couverture partielle : recherche limitée aux lignes publiées.</p>}
+        <details className="section-evidence"><summary>Contexte du marché et provenance</summary><MarketCard state={marketState} /></details>
+        <a className="section-link" href="/paper-live/market">Explorer CryptoRadar →</a>
       </section>
-
-      <section className="direction-primary-grid" aria-label="Observatoires Direction">
-        <MarketCard state={marketState} />
+      <details className="machine-section"><summary>Recherche et capacités non déployées</summary>
         <ResearchCard state={researchState} />
-      </section>
-
-      <section className="direction-grid" aria-label="Capacités Direction futures">
-        {unavailable.map((label) => <article className="direction-card" key={label}><h3>{label}</h3><strong>NON DÉPLOYÉ</strong><p>Aucune projection gouvernée n’est disponible pour ce bloc.</p></article>)}
-      </section>
-
-      <p className="direction-boundary">Les cartes Direction sont fédérées, non atomiques et conservent chacune leur propre temps d’observation et leur propre statut de fraîcheur. Direction ne crée aucune vérité scientifique, aucun timestamp global et aucune fraîcheur globale ; elle ne peut ni merger, ni déployer, ni modifier l’epoch PAPER active.</p>
+        <p>{unavailable.join(" · ")} : NON DÉPLOYÉ. Aucune projection gouvernée disponible.</p>
+        <a className="section-link" href="/research">Ouvrir le Laboratoire quantitatif →</a>
+      </details>
     </div>
   );
 };

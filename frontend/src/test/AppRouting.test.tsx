@@ -23,12 +23,12 @@ describe("WEB-DIR-01-D2 product routing", () => {
     vi.unstubAllGlobals();
   });
 
-  it("redirects the legacy root to the canonical PAPER LIVE route", async () => {
+  it("opens the compact Machine synthesis from the root", async () => {
     render(<App />);
 
-    await waitFor(() => expect(screen.getByTestId("paper-live-shell")).toBeInTheDocument());
-    expect(window.location.pathname).toBe("/paper-live");
-    expect(screen.getByTestId("overview-view")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("direction-view")).toBeInTheDocument());
+    expect(window.location.pathname).toBe("/direction");
+    expect(screen.getByRole("navigation", { name: "Catégories Machine" })).toBeInTheDocument();
   });
 
   it("resolves a PAPER LIVE deep link without losing its product shell", async () => {
@@ -37,7 +37,7 @@ describe("WEB-DIR-01-D2 product routing", () => {
 
     await waitFor(() => expect(screen.getByTestId("decisions-view")).toBeInTheDocument());
     expect(screen.getByTestId("paper-live-shell")).toBeInTheDocument();
-    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("EXÉCUTION PAPER");
+    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("exécution simulée");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -47,12 +47,12 @@ describe("WEB-DIR-01-D2 product routing", () => {
 
     expect(screen.getByTestId("direction-shell")).toBeInTheDocument();
     expect(screen.queryByTestId("paper-live-shell")).toBeNull();
-    expect(screen.getByRole("heading", { name: "DIRECTION" })).toBeInTheDocument();
-    expect(screen.getByText("Synthèse, gouvernance et décisions humaines")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Machine" })).toBeInTheDocument();
+    expect(screen.getAllByText("État, portefeuille et marché")[0]).toBeInTheDocument();
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("PRÉSENTATION");
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("LECTURE SEULE");
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("AUCUNE AUTORITÉ PAPER");
-    expect(screen.getByText(/ÉTAT GLOBAL · INCONNU/)).toBeInTheDocument();
+    expect(screen.getByText(/État global inconnu/)).toBeInTheDocument();
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
@@ -87,12 +87,12 @@ describe("WEB-DIR-01-D2 product routing", () => {
 
     expect(screen.getByTestId("research-shell")).toBeInTheDocument();
     expect(screen.getByTestId("research-header-domain-badge")).toHaveTextContent(
-      "RESEARCH NON-AUTORITAIRE",
+      "RECHERCHE NON AUTORITAIRE",
     );
     expect(screen.queryByTestId("paper-live-shell")).toBeNull();
     await waitFor(() =>
       expect(screen.getByTestId("research-lab-view")).toHaveTextContent(
-        "contract/transport error",
+        "Erreur de contrat ou de transport du Laboratoire",
       ),
     );
   });

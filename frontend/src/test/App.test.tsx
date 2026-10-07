@@ -94,6 +94,7 @@ describe("App", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    window.history.replaceState({}, "", "/paper-live");
     fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "/api/operator/v1/runtime-service") return Promise.resolve(jsonResponse(runtimeServiceFixture()));
@@ -114,7 +115,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByTestId("tab-paper"));
     expect(screen.getByTestId("portfolio-view")).toBeInTheDocument();
-    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("NOT REAL MONEY");
+    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("fonds fictifs");
 
     fireEvent.click(screen.getByTestId("tab-decisions"));
     expect(screen.getByTestId("decisions-view")).toBeInTheDocument();
@@ -134,8 +135,8 @@ describe("App", () => {
 
     fireEvent.click(screen.getByTestId("tab-paper"));
     fireEvent.click(screen.getByTestId("tab-ppl"));
-    await waitFor(() => expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Legacy PAPER"));
-    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("PAPER SCIENCE");
+    await waitFor(() => expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Ancien simulateur PAPER"));
+    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("SIMULATION PAPER");
     expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("678.46");
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/ppl-comparison", { method: "GET" });
@@ -146,8 +147,8 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
     fireEvent.click(screen.getByTestId("tab-market"));
-    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
-    expect(screen.getByTestId("market-domain-badge")).toHaveTextContent("MARKET");
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
+    expect(screen.getByTestId("market-domain-badge")).toHaveTextContent("MARCHÉ OBSERVÉ");
     expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(screen.getByTestId("market-view")).toHaveTextContent("CryptoRadar");
     expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT");
@@ -174,20 +175,20 @@ describe("App", () => {
 
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
 
     fireEvent.click(screen.getByTestId("tab-market"));
-    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("FRESH"));
+    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
     expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("SNAPSHOT_MISSING");
-    expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("separate observational domain");
+    expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("domaine observationnel indépendant");
     expect(screen.getByTestId("market-view")).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
     expect(screen.queryByTestId("overview-view")).toBeNull();
 
     // The canonical truth is not hidden; it returns with the canonical domain.
     fireEvent.click(screen.getByTestId("tab-overview"));
     expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING");
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
   });
 
   it("renders the canonical portfolio mode without a PAPER fallback for UNKNOWN", async () => {

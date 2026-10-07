@@ -87,6 +87,7 @@ describe("App FIN-02 domain", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
 
@@ -95,11 +96,11 @@ describe("App FIN-02 domain", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("financial-reconciliation-view")).toHaveTextContent(
-        "Financial Truth",
+        "Portefeuille et finances",
       ),
     );
-    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("PAPER SCIENCE");
-    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("NOT REAL MONEY");
+    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("SIMULATION PAPER");
+    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("fonds fictifs");
     expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/operator/v1/financial-reconciliation",

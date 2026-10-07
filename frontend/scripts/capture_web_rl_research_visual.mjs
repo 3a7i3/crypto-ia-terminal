@@ -27,7 +27,7 @@ async function assertNoOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
-  const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
   assert(response?.ok(), `frontend navigation failed: ${response?.status() ?? "no-response"}`);
 
   await page.getByTestId("overview-view").waitFor({ state: "visible" });
@@ -35,15 +35,17 @@ try {
   await page.getByTestId("research-lab-view").waitFor({ state: "visible" });
   await page.getByTestId("research-domain-banner").waitFor({ state: "visible" });
 
+  await page.getByText("Registre des candidats et provenance").click();
+  await page.getByText("Provenance complète de la recherche").click();
   const text = await page.getByTestId("research-lab-view").innerText();
   for (const required of [
-    "RESEARCH LAB",
-    "NON-AUTHORITATIVE",
+    "RECHERCHE HORS LIGNE",
+    "NON AUTORITAIRE",
     "RESEARCH_NON_AUTHORITATIVE",
     "LOW_SAMPLE",
     "NOT_AVAILABLE",
     "No certified time-series/annualized return basis.",
-    "No substantive candidate",
+    "Aucun candidat substantiel",
   ]) {
     assert(text.includes(required), `WEB-RL evidence missing: ${required}`);
   }
@@ -76,7 +78,7 @@ try {
     await page.getByTestId("research-candidate-empty").isVisible(),
     "mobile empty candidate state is not visible",
   );
-  const navBox = await page.locator(".operator-nav").boundingBox();
+  const navBox = await page.locator(".operator-subnav").boundingBox();
   assert(navBox !== null && navBox.width <= 390, "mobile navigation exceeds viewport");
   await assertNoOverflow(page, "mobile");
   await page.screenshot({ path: mobilePath, fullPage: true });

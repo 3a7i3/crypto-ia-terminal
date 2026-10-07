@@ -215,7 +215,7 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     expect(market).toHaveTextContent("4");
     expect(market).toHaveTextContent("aucune permission de trade");
 
-    expect(research).toHaveTextContent("RESEARCH NON-AUTORITAIRE");
+    expect(research).toHaveTextContent("RECHERCHE NON AUTORITAIRE");
     expect(research).toHaveTextContent("Population dataset N");
     expect(research).toHaveTextContent("13");
     expect(research).toHaveTextContent("LOW_SAMPLE");
@@ -248,10 +248,10 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     );
 
     const federation = screen.getByTestId("direction-federation-notice");
-    expect(federation).toHaveTextContent("FÉDÉRÉ · NON ATOMIQUE");
-    expect(federation).toHaveTextContent("aucun timestamp global");
-    expect(federation).toHaveTextContent("aucune fraîcheur globale");
-    expect(federation).toHaveTextContent("aucun état de santé global dérivé");
+    expect(federation).toHaveTextContent("Sources indépendantes");
+    expect(federation).toHaveTextContent("dates et fraîcheurs sont propres à chaque source");
+    expect(federation).toHaveTextContent("observation simultanée");
+    expect(federation).toHaveTextContent("Aucun état global ni observation simultanée ne sont déduits");
 
     const global = screen.getByTestId("direction-provenance-global");
     expect(global).toHaveTextContent("/api/operator/v1/snapshot");
@@ -515,5 +515,36 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     );
     expect(screen.getByTestId("direction-research-card")).toHaveTextContent("RESEARCH_NON_AUTHORITATIVE");
     expect(screen.getByTestId("direction-experiment-card")).toHaveTextContent("981.8435705815693 USDT");
+  });
+});
+
+describe("Machine regroupée — synthèse fidèle aux sources", () => {
+  it("conserve les montants inconnus et les zéros explicites sans inventer de courbe", async () => {
+    const fin = financialSnapshot(null);
+    fin.financial.fees_paid = "0";
+    vi.stubGlobal("fetch", governedFetch(fin));
+    render(<DirectionOverview />);
+    await waitFor(() => expect(screen.getByRole("region", { name: "Portefeuille et finances" })).toHaveTextContent("981,84"));
+    const section = screen.getByRole("region", { name: "Portefeuille et finances" });
+    const fact = (label: string) => Array.from(section.querySelectorAll("dt")).find((dt) => dt.textContent === label)?.nextElementSibling;
+    expect(fact("Résultat réalisé")).toHaveTextContent("Non disponible");
+    expect(fact("Résultat latent")).toHaveTextContent("Non disponible");
+    expect(fact("Frais payés")).toHaveTextContent(/^0/);
+    expect(section).toHaveTextContent("Historique non disponible");
+    expect(section.querySelector("svg")).toBeNull();
+    expect(section).not.toHaveTextContent("Illustration fictive");
+    expect(screen.getByText("Expérience, état du service et preuves complètes").parentElement).not.toHaveAttribute("open");
+  });
+
+  it("n’affirme pas un Advisor actuel en cours depuis une preuve ancienne", async () => {
+    const runtime = runtimeServiceFixture();
+    runtime.freshness_classification = "STALE";
+    runtime.snapshot_age_s = 86400;
+    const other = governedFetch();
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => String(input).endsWith("/runtime-service") ? Promise.resolve(response(runtime)) : other(input)));
+    render(<DirectionOverview />);
+    await waitFor(() => expect(screen.getByText("Advisor observé").nextElementSibling).toHaveTextContent("Inconnu"));
+    expect(screen.getByRole("region", { name: "État et expérience" })).toHaveTextContent("Preuve Advisor périmée : état actuel inconnu");
+    expect(screen.getByText("Advisor observé").nextElementSibling).not.toHaveTextContent("En cours");
   });
 });

@@ -8,6 +8,7 @@
 //   the cockpit, never silently maps to a healthy-looking state).
 
 import React from "react";
+import { fr } from "../lib/presentationFr";
 import { isKnownSemantics, isObservedValue } from "../lib/observedValue";
 
 export interface ObservedValueViewProps {
@@ -53,37 +54,37 @@ export const ObservedValueView: React.FC<ObservedValueViewProps> = ({ ov, render
     case "FALSE":
       return (
         <span className={`ov ov-false ${className ?? ""}`} data-testid="ov-false">
-          {render ? render(false) : "false"}
+          {render ? render(false) : "Non"}
         </span>
       );
     case "EMPTY":
       return (
         <span className={`ov ov-empty ${className ?? ""}`} data-testid="ov-empty">
-          (empty)
+          Vide observé
         </span>
       );
     case "UNKNOWN":
       return (
-        <span className={`ov ov-unknown ${className ?? ""}`} data-testid="ov-unknown">
-          UNKNOWN
+        <span className={`ov ov-unknown ${className ?? ""}`} data-testid="ov-unknown" title="UNKNOWN">
+          {fr("UNKNOWN")}
         </span>
       );
     case "UNAVAILABLE":
       return (
-        <span className={`ov ov-unavailable ${className ?? ""}`} data-testid="ov-unavailable">
-          UNAVAILABLE
+        <span className={`ov ov-unavailable ${className ?? ""}`} data-testid="ov-unavailable" title="UNAVAILABLE">
+          {fr("UNAVAILABLE")}
         </span>
       );
     case "NOT_APPLICABLE":
       return (
-        <span className={`ov ov-na ${className ?? ""}`} data-testid="ov-not-applicable">
-          NOT_APPLICABLE
+        <span className={`ov ov-na ${className ?? ""}`} data-testid="ov-not-applicable" title="NOT_APPLICABLE">
+          {fr("NOT_APPLICABLE")}
         </span>
       );
     case "STALE":
       return (
         <span className={`ov ov-stale ${className ?? ""}`} data-testid="ov-stale">
-          {show(value)} <span data-testid="ov-stale-badge">⚠ STALE</span>
+          {show(value)} <span data-testid="ov-stale-badge">⚠ Données anciennes</span>
         </span>
       );
     default:

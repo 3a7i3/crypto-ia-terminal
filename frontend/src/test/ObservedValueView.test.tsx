@@ -10,7 +10,7 @@ describe("ObservedValueView", () => {
 
   it("renders FALSE as an observed false, not missing", () => {
     render(<ObservedValueView ov={{ value: false, semantics: "FALSE" }} />);
-    expect(screen.getByTestId("ov-false")).toHaveTextContent("false");
+    expect(screen.getByTestId("ov-false")).toHaveTextContent("Non");
   });
 
   it("renders EMPTY distinctly", () => {
@@ -21,20 +21,20 @@ describe("ObservedValueView", () => {
   it("renders UNKNOWN, never as numeric zero", () => {
     render(<ObservedValueView ov={{ value: null, semantics: "UNKNOWN" }} />);
     const el = screen.getByTestId("ov-unknown");
-    expect(el).toHaveTextContent("UNKNOWN");
+    expect(el).toHaveTextContent("Inconnu");
     expect(el).not.toHaveTextContent("0");
   });
 
   it("renders UNAVAILABLE, never as numeric zero", () => {
     render(<ObservedValueView ov={{ value: null, semantics: "UNAVAILABLE" }} />);
     const el = screen.getByTestId("ov-unavailable");
-    expect(el).toHaveTextContent("UNAVAILABLE");
+    expect(el).toHaveTextContent("Indisponible");
     expect(el).not.toHaveTextContent("0");
   });
 
   it("renders NOT_APPLICABLE distinctly", () => {
     render(<ObservedValueView ov={{ value: null, semantics: "NOT_APPLICABLE" }} />);
-    expect(screen.getByTestId("ov-not-applicable")).toHaveTextContent("NOT_APPLICABLE");
+    expect(screen.getByTestId("ov-not-applicable")).toHaveTextContent("Sans objet");
   });
 
   it("preserves the STALE value and displays a stale warning", () => {

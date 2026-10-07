@@ -33,7 +33,7 @@ describe.skipIf(!available)("APP-STORAGE-01 real metadata producer/API/React", (
     vi.stubGlobal("fetch", vi.fn().mockImplementation(url => Promise.resolve(String(url).endsWith("/storage") ? response(fixture()) : response({ error_code: "SNAPSHOT_MISSING" }, false))));
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("storage-view")).toHaveTextContent("Capture disponible"));
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("UNRESOLVED");
+    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
     expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("INCONNU");
   });
 

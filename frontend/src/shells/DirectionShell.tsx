@@ -11,22 +11,22 @@ export const DirectionShell: React.FC = () => (
       <nav className="direction-return-nav" aria-label="Retour à la surface de trading PAPER">
         <Link className="direction-return-link" to="/paper-live" data-testid="return-paper-live">
           <span aria-hidden="true">←</span>
-          <span>Retour à PAPER LIVE</span>
+          <span>Données PAPER</span>
         </Link>
       </nav>
       <div className="direction-identity">
-        <div className="direction-product-mark" aria-hidden="true">D</div>
+        <div className="direction-product-mark" aria-hidden="true">◉</div>
         <div>
           <div className="direction-eyebrow">MACHINE · SYNTHÈSE OPÉRATEUR</div>
-          <h1>DIRECTION</h1>
-          <p>Synthèse, gouvernance et décisions humaines</p>
+          <h1>Machine</h1>
+          <p>État, portefeuille et marché</p>
         </div>
       </div>
-      <aside className="direction-authority-strip" aria-label="Frontière d’autorité Direction" data-testid="direction-authority-strip">
+      <details className="direction-authority-details"><summary>Périmètre de lecture</summary><aside className="direction-authority-strip" aria-label="Frontière d’autorité Direction" data-testid="direction-authority-strip">
         <span>PRÉSENTATION</span>
         <span>LECTURE SEULE</span>
         <span>AUCUNE AUTORITÉ PAPER</span>
-      </aside>
+      </aside></details>
     </header>
     <main className="direction-main" id="direction-content" tabIndex={-1}><Outlet /></main>
   </div>

@@ -26,7 +26,7 @@ import { ResearchLabView } from "./views/ResearchLabView";
 const App: React.FC = () => (
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<Navigate to="/paper-live" replace />} />
+      <Route path="/" element={<Navigate to="/direction" replace />} />
       <Route path="/paper-live" element={<PaperLiveShell />}>
         <Route index element={<OverviewRoute />} />
         <Route path="overview" element={<OverviewRoute />} />

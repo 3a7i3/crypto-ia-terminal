@@ -95,7 +95,7 @@ try {
           "Published rows missing",
         );
         const area = page.locator(
-          width === 390 ? ".strategy-mobile-cards" : ".strategy-table-desktop",
+          ".strategy-table-desktop",
         );
         await area
           .getByRole("button", { name: /Momentum.*Performance.*Satisfait/ })
@@ -118,7 +118,7 @@ try {
       if (name === "finance") {
         const cash = page
           .locator(".fin-metric")
-          .filter({ has: page.getByText("Cash available", { exact: true }) });
+          .filter({ has: page.getByText("Capital disponible", { exact: true }) });
         const exact =
           fixtures["financial-reconciliation"].body.financial.cash_available;
         await cash.getByText("Valeur exacte").click();
@@ -127,6 +127,7 @@ try {
           "Exact financial source value lost",
         );
         await cash.getByText("Valeur exacte").click();
+        await page.getByText(/^Preuves de réconciliation ·/).click();
         assert(
           await page
             .locator(width === 390 ? ".fin-mobile-records" : ".fin-table-wrap")

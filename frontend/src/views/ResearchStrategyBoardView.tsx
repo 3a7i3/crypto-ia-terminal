@@ -1,3 +1,4 @@
+import { fr } from "../lib/presentationFr";
 import React, { useEffect, useRef, useState } from "react";
 import { useResearchStrategyBoard } from "../lib/researchStrategyClient";
 import {
@@ -31,7 +32,7 @@ const icons: Record<CriterionStatus, string> = {
 };
 function value(v: number | string | null): string {
   return v === null
-    ? "NOT_AVAILABLE"
+    ? "Non disponible"
     : typeof v === "number"
       ? formatDecimalText(String(v), 4)
       : v;
@@ -75,7 +76,7 @@ export const ResearchStrategyBoardView: React.FC = () => {
         <span className="workspace-eyebrow">
           STRATÉGIES · RESEARCH NON-AUTORITAIRE
         </span>
-        <h2>Stratégies & critères</h2>
+        <h2>Stratégies évaluées</h2>
         <p>
           {state.status === "loading"
             ? "Lecture du catalogue Research…"
@@ -125,11 +126,11 @@ export const ResearchStrategyBoardView: React.FC = () => {
       <section className="research-panel strategy-hero">
         <div className="strategy-hero-heading">
           <div>
-            <span className="workspace-eyebrow">RESEARCH NON-AUTORITAIRE</span>
-            <h2>Stratégies & critères</h2>
+
+            <h2>Stratégies évaluées</h2>
             <p>
-              Des évaluations traçables. Chaque pastille décrit un critère
-              publié, jamais une permission de trading.
+              Stratégie → évaluation → résultat → solidité → limites.
+              Les critères sont publiés par la recherche.
             </p>
             <p>
               Publication Research :{" "}
@@ -143,6 +144,7 @@ export const ResearchStrategyBoardView: React.FC = () => {
             {snapshot.rows.length} ligne(s) publiée(s)
           </span>
         </div>
+        <details><summary>Lire les critères et les limites de progression</summary>
         <div className="strategy-legend" aria-label="Légende des critères">
           {Object.entries(labels).map(([status, label]) => (
             <span
@@ -156,7 +158,10 @@ export const ResearchStrategyBoardView: React.FC = () => {
             </span>
           ))}
         </div>
-        <div className="strategy-filters">
+        <p className="strategy-order">{group === "ALL" ? "Ordre de publication conservé · aucun rang global." : "Tri d’affichage : rang publié dans la cohorte sélectionnée."}</p>
+        <details className="strategy-evolution"><summary>Évolution des stratégies · non disponible</summary><p>Cette publication contient une évaluation sélectionnée par candidat, sans série successive ni liens explicites entre versions. Aucun candidat indépendant n’est relié pour représenter une progression.</p></details>
+        </details>
+        <details className="strategy-filter-panel"><summary>Rechercher et filtrer les stratégies</summary><div className="strategy-filters">
           <label>
             Rechercher une stratégie
             <input
@@ -168,12 +173,13 @@ export const ResearchStrategyBoardView: React.FC = () => {
           <label>
             Type
             <select
+              aria-label="Type de candidat"
               value={candidateClass}
               onChange={(e) => setCandidateClass(e.target.value)}
             >
               <option value="ALL">Tous les candidats</option>
               {["STRATEGY", "FEATURE", "CONFIG", "HYBRID"].map((x) => (
-                <option key={x}>{x}</option>
+                <option value={x} key={x}>{fr(x)}</option>
               ))}
             </select>
           </label>
@@ -190,7 +196,7 @@ export const ResearchStrategyBoardView: React.FC = () => {
               ))}
             </select>
           </label>
-        </div>
+        </div></details>
         <p className="strategy-scope" role="status">
           {rows.length} résultat(s) dans les lignes publiées. Un PnL positif ne
           prouve pas une stratégie robuste ; les métriques et leurs populations
@@ -215,7 +221,7 @@ export const ResearchStrategyBoardView: React.FC = () => {
         </section>
       ) : (
         <>
-          <section className="research-panel strategy-table-desktop">
+          <section className="research-panel strategy-table-desktop" role="region" aria-label="Tableau des stratégies · défilement horizontal" tabIndex={0}>
             <table className="strategy-table">
               <caption>
                 Critères des stratégies — verdicts de la politique Research
@@ -223,10 +229,8 @@ export const ResearchStrategyBoardView: React.FC = () => {
               </caption>
               <thead>
                 <tr>
-                  <th>Stratégie / version</th>
-                  {STRATEGY_CRITERIA.map((k) => (
-                    <th key={k}>{CRITERION_LABELS[k]}</th>
-                  ))}
+                  <th>Stratégie / identité</th>
+                  <th>Évaluation publiée</th><th>Population évaluée</th><th>Résultats publiés</th><th>Solidité des preuves</th><th>Critères de validation</th>
                   <th>Rang dans sa cohorte</th>
                 </tr>
               </thead>
@@ -241,25 +245,15 @@ export const ResearchStrategyBoardView: React.FC = () => {
                         {row.label}
                       </button>
                       <small>
-                        {row.candidate_class} · {row.candidate_id.slice(0, 10)}
+                        {fr(row.candidate_class)} · {row.candidate_id.slice(0, 10)}
                       </small>
-                      <small>
-                        {row.evaluation
-                          ? `${row.evaluation.run_status} · ${row.evaluation.role}`
-                          : "Évaluation NOT_AVAILABLE"}
-                      </small>
+
                     </th>
-                    {STRATEGY_CRITERIA.map((k) => (
-                      <td key={k}>
-                        <Criterion
-                          row={row}
-                          criterion={
-                            row.criteria.find((c) => c.criterion_id === k)!
-                          }
-                          onClick={(e) => open(row, k, e)}
-                        />
-                      </td>
-                    ))}
+                    <td>{row.evaluation ? <><time>{row.evaluation.generated_at_utc}</time><small>{fr(row.evaluation.run_status)} · {fr(row.evaluation.role)}</small></> : "Non disponible"}</td>
+                    <td>{row.evaluation?.population_definition ?? "Non disponible"}</td>
+                    <td>{row.evaluation?.metrics.length ? row.evaluation.metrics.map((m) => <div className="strategy-result" key={m.metric_name}><span>{m.metric_name}</span><strong>{value(m.value)}</strong><small>N={m.n}</small></div>) : "Non disponible"}</td>
+                    <td>{row.evaluation?.metrics.length ? row.evaluation.metrics.map((m) => <div className="strategy-strength" key={m.metric_name}><span>{m.metric_name}</span><strong>{fr(m.statistical_strength)}</strong><small>{fr(m.evidence_status)}</small></div>) : "Non disponible"}</td>
+                    <td><div className="strategy-criteria-summary">{STRATEGY_CRITERIA.map((k) => <div key={k}><span>{CRITERION_LABELS[k]}</span><Criterion row={row} criterion={row.criteria.find((c) => c.criterion_id === k)!} onClick={(e) => open(row, k, e)} /></div>)}</div></td>
                     <td>
                       {row.ranking ? (
                         <span>
@@ -277,48 +271,7 @@ export const ResearchStrategyBoardView: React.FC = () => {
               </tbody>
             </table>
           </section>
-          <section
-            className="strategy-mobile-cards"
-            data-testid="strategy-mobile-cards"
-          >
-            {rows.map((row) => (
-              <article
-                className="research-panel strategy-mobile-card"
-                key={row.candidate_id}
-              >
-                <button
-                  className="strategy-name"
-                  onClick={(e) => open(row, null, e)}
-                >
-                  {row.label}
-                </button>
-                <p>
-                  {row.candidate_class} ·{" "}
-                  {row.evaluation?.run_status ?? "NOT_AVAILABLE"}
-                </p>
-                <div className="strategy-mobile-criteria">
-                  {STRATEGY_CRITERIA.map((k) => (
-                    <div key={k}>
-                      <span>{CRITERION_LABELS[k]}</span>
-                      <Criterion
-                        row={row}
-                        criterion={
-                          row.criteria.find((c) => c.criterion_id === k)!
-                        }
-                        onClick={(e) => open(row, k, e)}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <p>
-                  Rang :{" "}
-                  {row.ranking
-                    ? `#${row.ranking.position} / ${row.ranking.group_size} · cohorte ${row.ranking.group_id.slice(0, 10)}`
-                    : "NOT_AVAILABLE"}
-                </p>
-              </article>
-            ))}
-          </section>
+
         </>
       )}
       {selected && (
@@ -425,7 +378,7 @@ export const ResearchStrategyBoardView: React.FC = () => {
             <summary>Identité, politique et provenance</summary>
             <dl className="research-provenance-grid">
               <div>
-                <dt>Candidate ID</dt>
+                <dt>Identifiant du candidat</dt>
                 <dd>
                   <code>{selected.candidate_id}</code>
                 </dd>
@@ -443,7 +396,7 @@ export const ResearchStrategyBoardView: React.FC = () => {
                 </dd>
               </div>
               <div>
-                <dt>Policy</dt>
+                <dt>Politique</dt>
                 <dd>
                   <code>
                     {selected.assessment_policy_id ?? "NOT_AVAILABLE"}
