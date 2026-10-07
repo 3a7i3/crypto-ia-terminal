@@ -545,7 +545,7 @@ describe("Machine regroupée — synthèse fidèle aux sources", () => {
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => String(input).endsWith("/runtime-service") ? Promise.resolve(response(runtime)) : other(input)));
     render(<DirectionOverview />);
     await waitFor(() => expect(screen.getByText("Advisor observé").nextElementSibling).toHaveTextContent("Inconnu"));
-    expect(screen.getByRole("region", { name: "État et expérience" })).toHaveTextContent("Preuve Advisor périmée : état actuel inconnu");
+    await waitFor(() => expect(screen.getByRole("region", { name: "État et expérience" })).toHaveTextContent("Preuve Advisor périmée : état actuel inconnu"));
     expect(screen.getByText("Advisor observé").nextElementSibling).not.toHaveTextContent("En cours");
   });
 });

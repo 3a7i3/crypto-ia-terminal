@@ -75,3 +75,9 @@ Aucune certification U8 ou L4 n'est émise.
 Les modifications des tests de navigation attendent explicitement la septième
 source indépendante, GET accounting-history. Les fixtures accounting sont
 synthétiques et confinées au répertoire de tests.
+
+## Correctifs après CI initiale
+
+Le contrôle des routes Direction inclut la nouvelle source accounting et simule explicitement son absence (503). Le test de preuve Advisor périmée attend la résolution de la source. Les conteneurs Finance ont une largeur bornée pour éviter le débordement intrinsèque des piles imbriquées sur tablette. Les nouveaux fichiers Python sont formatés ; le lint baseline passe sans nouvelle violation. Les 420 tests frontend, les 11 tests accounting et le build production passent après ces correctifs. La validation visuelle CI reste à confirmer.
+
+Le résultat staging transmis par l’opérateur pour les 171 événements indique replay_validated=true et checkpoint_verified=false, source datée 2026-10-07T23:29:51Z. Ce résultat n’est pas une certification financière indépendante.
