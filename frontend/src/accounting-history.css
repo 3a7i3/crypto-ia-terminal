@@ -1,0 +1,93 @@
+.accounting-history svg {
+  width: 100%;
+  height: auto;
+  max-height: 350px;
+  color: #a4b4c8;
+  display: block;
+}
+.accounting-history svg text {
+  fill: currentColor;
+  font: 16px system-ui;
+}
+.accounting-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.accounting-tabs button {
+  padding: 9px 12px;
+  border: 1px solid #35445b;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.accounting-tabs button[aria-pressed="true"] {
+  border-color: #34c6ce;
+  background: #34c6ce15;
+}
+.accounting-tabs button:focus-visible {
+  outline: 2px solid #34c6ce;
+  outline-offset: 3px;
+}
+.accounting-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+.accounting-value small {
+  font-size: 12px;
+  font-weight: 400;
+}
+.accounting-epoch {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.accounting-capture {
+  color: #eab56a;
+}
+.accounting-allocation {
+  display: grid;
+  grid-template-columns: minmax(120px, 220px) 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.accounting-allocation ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.accounting-allocation li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #35445b;
+}
+.accounting-allocation p {
+  grid-column: 1/-1;
+}
+.accounting-table {
+  overflow-x: auto;
+}
+.accounting-history details p {
+  overflow-wrap: anywhere;
+}
+.accounting-table td,
+.accounting-table th {
+  padding: 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+@media (max-width: 430px) {
+  .accounting-allocation {
+    grid-template-columns: 1fr;
+  }
+  .accounting-allocation svg {
+    max-height: 210px;
+  }
+  .accounting-history svg text {
+    font-size: 20px;
+  }
+}

@@ -74,7 +74,7 @@ const RecordRow: React.FC<{ row: FinancialReconciliationRecord }> = ({ row }) =>
   </tr>
 );
 
-export const FinancialReconciliationView: React.FC = () => {
+const FinancialReconciliationContent: React.FC = () => {
   const state = useFinancialReconciliation();
 
   if (state.status === "loading") {
@@ -165,7 +165,6 @@ export const FinancialReconciliationView: React.FC = () => {
         <Metric label="Résultat latent" value={display(fin.unrealized_pnl)} hint="valorisation publiée" />
         <Metric label="Frais payés" value={display(fin.fees_paid)} />
       </div></section>
-      <FinancialHistory />
       <details className="fin-panel finance-summary"><summary>Autres montants et contrôles publiés</summary><div className="fin-metrics">
         <Metric label="Capital déployé" value={display(fin.capital_deployed)} hint="mesure d’exposition, non additionnelle" />
         <Metric label="Financement" value={display(fin.funding_net)} hint={fin.funding_status} />
@@ -243,3 +242,5 @@ export const FinancialReconciliationView: React.FC = () => {
     </div>
   );
 };
+
+export const FinancialReconciliationView: React.FC = () => <div className="fin-stack"><FinancialHistory /><FinancialReconciliationContent /></div>;

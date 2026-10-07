@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "product": "PPLAccountingHistory",
+  "authority": "DERIVED_OBSERVATION",
+  "unit": "PAPER_ACCOUNT_UNIT",
+  "paper_epoch_id": "burn-test",
+  "ppl_event_schema_version": 2,
+  "source_generated_at_utc": "1970-01-01T00:02:30Z",
+  "source_snapshot_sha256": "bcf89d331e86d0ee682670f0c67525e48ba120aa9a41df26b48bc1932f9b5a82",
+  "source_manifest_sha256": "8ea888936577772b0c6410f13d67ab5adb650057281b519612c6ba0405d63a06",
+  "producer_source_sha": "cccccccccccccccccccccccccccccccccccccccc",
+  "epoch_code_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "config_snapshot_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "semantics": "PPL_V2_FLOAT_PROJECTOR_REALIZED_NET_ENTRY_EXIT_FEES",
+  "last_sequence": 3,
+  "replay_validated": true,
+  "checkpoint_verified": false,
+  "samples": [
+    {
+      "sequence": 1,
+      "event_id": "epoch-event",
+      "timestamp_utc": "1970-01-01T00:01:40+00:00",
+      "available_cash": "100.0",
+      "realized_pnl": "0.0",
+      "reserved_principal": "0.0",
+      "unresolved_capital": "0.0",
+      "fees_paid": "0.0",
+      "open_positions": 0
+    },
+    {
+      "sequence": 2,
+      "event_id": "open-event",
+      "timestamp_utc": "1970-01-01T00:01:50+00:00",
+      "available_cash": "89.99",
+      "realized_pnl": "0.0",
+      "reserved_principal": "10.0",
+      "unresolved_capital": "0.0",
+      "fees_paid": "0.01",
+      "open_positions": 1
+    },
+    {
+      "sequence": 3,
+      "event_id": "close-event",
+      "timestamp_utc": "1970-01-01T00:02:00+00:00",
+      "available_cash": "100.97",
+      "realized_pnl": "0.97",
+      "reserved_principal": "0.0",
+      "unresolved_capital": "0.0",
+      "fees_paid": "0.03",
+      "open_positions": 0
+    }
+  ],
+  "allocation": {
+    "denominator": "100.97",
+    "definition": "AVAILABLE_PLUS_RESERVED_PLUS_UNRESOLVED_AT_COST",
+    "segments": [
+      {
+        "id": "available_cash",
+        "amount": "100.97",
+        "share": "1"
+      },
+      {
+        "id": "reserved_principal",
+        "amount": "0.0",
+        "share": "0E+1"
+      },
+      {
+        "id": "unresolved_capital",
+        "amount": "0.0",
+        "share": "0E+1"
+      }
+    ]
+  },
+  "limitations": [
+    "Historical captured prefix; not a live collector.",
+    "No independently published final accounting checkpoint in AUTHORITY_STATUS.",
+    "No mark-to-market, funding evidence, or FIN certification.",
+    "Accounting unit only; no FX or exchange balance inference.",
+    "Unresolved principal is not certified recoverable value."
+  ],
+  "snapshot_age_s": 350.0,
+  "freshness_classification": "STALE"
+}
