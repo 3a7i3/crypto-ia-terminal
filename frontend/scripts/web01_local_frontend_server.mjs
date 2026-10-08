@@ -1,7 +1,7 @@
 // WEB-01G local frontend runtime. This server deliberately exposes one local
 // read-only presentation surface only: static frontend assets plus GET/HEAD
 // proxying to the loopback Operator API. It never reads runtime artifacts.
-import { createReadStream } from "node:fs";
+import { createReadStream, realpathSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import http from "node:http";
 import https from "node:https";
@@ -26,6 +26,15 @@ const MIME_TYPES = new Map([
   [".webmanifest", "application/manifest+json; charset=utf-8"],
   [".woff2", "font/woff2"],
 ]);
+
+export function isMainEntrypoint(entryPath = process.argv[1], moduleUrl = import.meta.url) {
+  if (!entryPath) return false;
+  try {
+    return realpathSync(entryPath) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
 
 function apiError(response, status, code, message) {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
@@ -114,6 +123,6 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
   }).listen(port, host);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (isMainEntrypoint()) {
   createServer().on("listening", () => console.log(`WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${FRONTEND_PORT}`));
 }
