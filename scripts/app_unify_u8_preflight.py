@@ -22,6 +22,7 @@ REQUIRED_FILES = (
     "deploy/app_unify_u8/crypto-operator-api.service",
     "deploy/app_unify_u8/crypto-operator-web.service",
     "deploy/app_unify_u8/requirements-operator-api.txt",
+    "deploy/app_unify_u8/requirements-operator-api.lock.txt",
     "frontend/scripts/web01_local_frontend_server.mjs",
     "observability/operator_api/runtime_service_reader.py",
     "observability/operator_api/market_microstructure_reader.py",
@@ -58,6 +59,14 @@ def _read(root: Path, relative: str) -> str:
     return (root / relative).read_text(encoding="utf-8")
 
 
+def _pins(text: str):
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if "==" in line:
+            name, version = line.split("==", 1)
+            yield name.strip().lower().replace("_", "-"), version.strip()
+
+
 def validate_source_contract(root: Path) -> list[str]:
     errors: list[str] = []
 
@@ -88,6 +97,14 @@ def validate_source_contract(root: Path) -> list[str]:
         "ppl_accounting_history.json" not in api
     ):
         errors.append("API_EXPLICIT_ARTIFACT_PATH_MISSING:PPL_ACCOUNTING_HISTORY_PATH")
+
+    direct = dict(_pins(_read(root, "deploy/app_unify_u8/requirements-operator-api.txt")))
+    locked = dict(_pins(_read(root, "deploy/app_unify_u8/requirements-operator-api.lock.txt")))
+    for package, version in direct.items():
+        if locked.get(package) != version:
+            errors.append(f"LOCK_DOES_NOT_PIN_DIRECT_DEPENDENCY:{package}=={version}")
+    if len(locked) <= len(direct):
+        errors.append("LOCK_HAS_NO_TRANSITIVE_PINS")
 
     for name in REQUIRED_API_ENV:
         needle = f"Environment={name}={RUNTIME_ROOT}/databases/"

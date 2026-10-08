@@ -137,23 +137,23 @@ RELEASE="$BASE/releases/$SHA"
 
 Prérequis de build : Node 20.19+ (ou version supportée par Vite 8) ; vérifier la version exacte du runner et de la future machine dans leurs preuves respectives. Aucun logiciel VPS n'est installé dans cette préparation.
 
-La release doit être créée dans un répertoire nouveau. Refuser si `$RELEASE` existe déjà avec une identité non prouvée.
+La release est construite **directement à son chemin final** `$RELEASE`, jamais dans un répertoire temporaire renommé ensuite : un venv Python embarque des chemins absolus (shebangs, `pyvenv.cfg`) et un venv déplacé ou renommé n'est pas réutilisable sans reconstruction et vérification complète. Refuser tout `$RELEASE` préexistant, ainsi que tout `$RELEASE.FAILED-*` non examiné : un dossier partiel n'est jamais réutilisé silencieusement, jamais supprimé automatiquement (un échec le renomme `$RELEASE.FAILED-<horodatage>` pour inspection).
 
 Procédure cible :
 
 1. créer `$BASE/releases` avec ownership contrôlé ;
-2. récupérer le dépôt dans `$RELEASE.tmp` sans utiliser le checkout Advisor ;
-3. checkout détaché du SHA exact ;
-4. vérifier `git rev-parse HEAD == $SHA` ;
+2. refuser si `$RELEASE` ou un `$RELEASE.FAILED-*` existe ;
+3. cloner le dépôt directement dans `$RELEASE` sans utiliser le checkout Advisor ;
+4. checkout détaché du SHA exact ; vérifier `git rev-parse HEAD == $SHA` et que le SHA est un ancêtre de `origin/main` ;
 5. vérifier worktree propre ;
 6. exécuter le préflight U8 avec ce SHA ;
-7. créer `$RELEASE.tmp/.venv` ;
-8. installer uniquement `deploy/app_unify_u8/requirements-operator-api.txt` ;
-9. `npm ci` dans `frontend/` ;
-10. exiger un audit npm courant à zéro et capturer le résultat de sécurité #257 ;
-11. lancer tests/build frontend ;
-12. supprimer les artefacts de build temporaires inutiles, mais conserver `frontend/dist` ;
-13. renommer `$RELEASE.tmp` vers `$RELEASE` ;
+7. créer `$RELEASE/.venv` (chemin final) ;
+8. installer uniquement `deploy/app_unify_u8/requirements-operator-api.lock.txt` avec `--no-deps`, puis `pip check` (le fichier `requirements-operator-api.txt` reste la source des dépendances directes ; le verrou fige les transitives ; interpréteurs vérifiés : voir l'en-tête du verrou) ;
+9. importer l'application avec `python -I` depuis le venv de la release ;
+10. `npm ci` dans `frontend/` ;
+11. exiger un audit npm courant à zéro et capturer le résultat de sécurité #257 ;
+12. lancer tests/build frontend ;
+13. écrire `PROVENANCE.txt` (SHA, versions, hash du lockfile npm, `pip freeze`, hash de chaque fichier de `dist`) ;
 14. rendre la release non modifiable par le service applicatif.
 
 Aucun `git pull` n'est autorisé dans `/home/mathieu/crypto_ai_terminal`.
@@ -246,6 +246,9 @@ Vérifier au minimum :
 - `GET /api/operator/v1/market-microstructure`
 - `GET /api/operator/v1/research-lab`
 - `GET /api/operator/v1/research-strategies`
+- `GET /api/operator/v1/ppl-accounting-history` (artefact publié à part : `PPL_ACCOUNTING_HISTORY_PATH`, épinglé dans l'unité)
+
+Une source présente et valide doit produire HTTP 200 ; une source absente ou invalide produit le 503 gouverné propre à sa route ; une source périmée reste lisible avec `freshness_classification` correcte. « HTTP 200 ou 503 » n'est donc **pas** un critère de succès : la matrice `route → source → précondition → statut → contenu` fait foi (dossier de revue PR #395). Les routes `/events` et `/storage` lisent `EVENT_CENTER_SNAPSHOT_PATH` / `STORAGE_SNAPSHOT_PATH`, non épinglés par l'unité : leur défaut relatif est résolu sous `WorkingDirectory` et répond 503 tant qu'une décision de provisionnement n'a pas été prise.
 
 Les états `UNKNOWN`, `NOT_AVAILABLE`, `STALE` ou HTTP 503 gouvernés restent des résultats honnêtes ; ils ne doivent jamais être transformés en succès.
 
