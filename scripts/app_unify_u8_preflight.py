@@ -83,6 +83,12 @@ def validate_source_contract(root: Path) -> list[str]:
     if f"ReadOnlyPaths={RUNTIME_ROOT}/databases" not in api:
         errors.append("API_RUNTIME_DATA_READONLY_PATH_MISSING")
 
+    if (
+        f"Environment=PPL_ACCOUNTING_HISTORY_PATH={RELEASE_ROOT}/presentation/"
+        "ppl_accounting_history.json" not in api
+    ):
+        errors.append("API_EXPLICIT_ARTIFACT_PATH_MISSING:PPL_ACCOUNTING_HISTORY_PATH")
+
     for name in REQUIRED_API_ENV:
         needle = f"Environment={name}={RUNTIME_ROOT}/databases/"
         if needle not in api:
