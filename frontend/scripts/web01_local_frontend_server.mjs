@@ -105,8 +105,10 @@ async function serveFile(response, filename, method) {
     headers["cache-control"] = "no-cache";
   }
   response.writeHead(200, headers);
-  if (method === "HEAD") response.end();
-  else createReadStream(filename).pipe(response);
+  if (method === "HEAD") return response.end();
+  const stream = createReadStream(filename);
+  stream.once("error", () => response.destroy());
+  stream.pipe(response);
 }
 
 export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET } = {}) {
@@ -119,7 +121,13 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
     const requested = await resolveStaticPath(distRoot, url.pathname);
     // SPA fallback applies only to non-API frontend routes; API paths never
     // reach this branch, including when the Operator API is unavailable.
-    await serveFile(response, requested ?? path.join(distRoot, "index.html"), request.method);
+    try {
+      await serveFile(response, requested ?? path.join(distRoot, "index.html"), request.method);
+    } catch {
+      // A missing or unreadable bundle is a governed 503, never a process exit.
+      if (!response.headersSent) apiError(response, 503, "FRONTEND_ASSET_UNAVAILABLE", "Frontend bundle is unavailable.");
+      else response.destroy();
+    }
   }).listen(port, host);
 }
 

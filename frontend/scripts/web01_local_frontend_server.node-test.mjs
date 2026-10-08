@@ -105,3 +105,18 @@ test("serves WEB-01B PWA assets with explicit safe MIME and update headers", asy
   const icon = await request(appPort, "/icon.png");
   assert.equal(icon.contentType, "image/png");
 });
+
+test("a missing frontend bundle yields a no-store 503 and keeps the process serving", async (t) => {
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-empty-dist-"));
+  const server = createServer({ port: 0, distRoot });
+  const port = await new Promise((resolve) => server.once("listening", () => resolve(server.address().port)));
+  t.after(() => close(server));
+
+  const first = await request(port, "/");
+  assert.equal(first.status, 503);
+  assert.equal(first.cacheControl, "no-store");
+  assert.equal(JSON.parse(first.text).error_code, "FRONTEND_ASSET_UNAVAILABLE");
+
+  const second = await request(port, "/machine");
+  assert.equal(second.status, 503, "server must still answer after the first failure");
+});
