@@ -80,6 +80,15 @@ app = FastAPI(
     openapi_url=None,
 )
 
+
+@app.get("/api/operator/v1/ppl-accounting-history")
+def get_ppl_accounting_history() -> Any:
+    from observability.operator_api.ppl_accounting_history_reader import read_history
+    payload, error = read_history()
+    if error:
+        return JSONResponse(status_code=503, content={"error_code": error}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=payload, headers={"Cache-Control": "no-store"})
+
 # No CORS middleware is added at all — the default is "no cross-origin
 # access," stricter than a permissive wildcard configuration. Controlled
 # external exposure/auth remains a deployment/security responsibility.

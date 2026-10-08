@@ -377,6 +377,9 @@ try {
   const apiRequests = [];
   const mutationRequests = [];
 
+  await page.route("**/api/operator/v1/ppl-accounting-history", (route) =>
+    route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error_code: "PPL_ACCOUNTING_HISTORY_MISSING" }) }),
+  );
   await page.route("**/api/operator/v1/snapshot", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(operatorSnapshot) }),
   );
@@ -515,6 +518,7 @@ try {
   );
 
   const allowedRequests = new Set([
+    "GET /api/operator/v1/ppl-accounting-history",
     "GET /api/operator/v1/snapshot",
     "GET /api/operator/v1/financial-reconciliation",
     "GET /api/operator/v1/market",
@@ -522,12 +526,13 @@ try {
     "GET /api/operator/v1/burn-in",
     "GET /api/operator/v1/runtime-service",
   ]);
-  assert(apiRequests.length >= 6, "Direction did not request all six governed sources");
+  assert(apiRequests.length >= 7, "Direction did not request all seven governed sources");
   assert(
     apiRequests.every((request) => allowedRequests.has(request)),
     `Direction requested an endpoint outside D4B/D4C/D4D: ${apiRequests.join(", ")}`,
   );
   assert(
+    apiRequests.includes("GET /api/operator/v1/ppl-accounting-history") &&
     apiRequests.includes("GET /api/operator/v1/snapshot") &&
       apiRequests.includes("GET /api/operator/v1/financial-reconciliation") &&
       apiRequests.includes("GET /api/operator/v1/market") &&

@@ -163,7 +163,7 @@ function governedFetch(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
-  it("renders all six independent governed Direction cards with GET-only reads", async () => {
+  it("renders all seven independent governed Direction cards with GET-only reads", async () => {
     const fetchMock = governedFetch();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -223,9 +223,10 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     expect(research).toHaveTextContent("0");
     expect(research).toHaveTextContent("ne remplissent jamais les métriques PAPER actives");
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(7));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
       expect.arrayContaining([
+        "/api/operator/v1/ppl-accounting-history",
         "/api/operator/v1/snapshot",
         "/api/operator/v1/financial-reconciliation",
         "/api/operator/v1/market",
@@ -544,7 +545,7 @@ describe("Machine regroupée — synthèse fidèle aux sources", () => {
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => String(input).endsWith("/runtime-service") ? Promise.resolve(response(runtime)) : other(input)));
     render(<DirectionOverview />);
     await waitFor(() => expect(screen.getByText("Advisor observé").nextElementSibling).toHaveTextContent("Inconnu"));
-    expect(screen.getByRole("region", { name: "État et expérience" })).toHaveTextContent("Preuve Advisor périmée : état actuel inconnu");
+    await waitFor(() => expect(screen.getByRole("region", { name: "État et expérience" })).toHaveTextContent("Preuve Advisor périmée : état actuel inconnu"));
     expect(screen.getByText("Advisor observé").nextElementSibling).not.toHaveTextContent("En cours");
   });
 });
