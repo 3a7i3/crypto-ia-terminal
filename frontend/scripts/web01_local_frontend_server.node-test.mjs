@@ -1,11 +1,12 @@
 // Node-native runtime contract; intentionally outside Vitest discovery.
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, symlink, writeFile } from "node:fs/promises";
 import http from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createServer } from "./web01_local_frontend_server.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { createServer, isMainEntrypoint } from "./web01_local_frontend_server.mjs";
 
 function listen(server) { return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port))); }
 function close(server) { return new Promise((resolve) => server.close(resolve)); }
@@ -18,6 +19,20 @@ async function request(port, pathname, method = "GET") {
     cacheControl: response.headers.get("cache-control"),
   };
 }
+
+test("recognizes direct and symlinked main entrypoints while rejecting imported module paths", async () => {
+  const runtimePath = fileURLToPath(new URL("./web01_local_frontend_server.mjs", import.meta.url));
+  const importedFromPath = fileURLToPath(import.meta.url);
+  const runtimeUrl = pathToFileURL(runtimePath).href;
+  const linkRoot = await mkdtemp(path.join(tmpdir(), "web01g-main-link-"));
+  const symlinkPath = path.join(linkRoot, "web01_local_frontend_server.mjs");
+
+  await symlink(runtimePath, symlinkPath);
+
+  assert.equal(isMainEntrypoint(runtimePath, runtimeUrl), true, "direct main path must be recognized");
+  assert.equal(isMainEntrypoint(symlinkPath, runtimeUrl), true, "symlinked main path must resolve to the same entrypoint");
+  assert.equal(isMainEntrypoint(importedFromPath, runtimeUrl), false, "a different importing module must not be treated as main");
+});
 
 test("serves frontend routes but never applies SPA fallback to API paths", async (t) => {
   const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
