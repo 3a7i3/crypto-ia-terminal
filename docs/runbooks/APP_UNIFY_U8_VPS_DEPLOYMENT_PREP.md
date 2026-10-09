@@ -229,6 +229,8 @@ ss -ltnp | grep ':8181 '
 
 Exigence : 8090 et 8181 uniquement sur `127.0.0.1`.
 
+Un service `active` ne prouve pas qu'il détient le listener. Avant mutation, après chaque démarrage et après un rollback, le processus qui écoute doit être identifié (`ss -ltnp`), appartenir à l'unité Operator attendue (`MainPID`, descendant ou cgroup) et n'écouter que sur loopback. Un propriétaire inconnu, ou une preuve inaccessible (processus non visible, pid absent), est refusé ; une unité inactive impose un port libre.
+
 ### API GET-only
 
 Vérifier au minimum :
@@ -277,6 +279,11 @@ Depuis un client tailnet autorisé :
 - aucune donnée synthétique ou recalcul frontend.
 
 ## 10. Rollback
+
+Configuration systemd effective : l'unité installée n'est pas la configuration appliquée. Avant mutation, tous les emplacements de drop-ins (`/etc`, `/run`, `/usr/lib`, `system.control`, `service.d` global) sont examinés ; tout override de commande, chemin, utilisateur, environnement ou sandbox est refusé (liste blanche : `Nice`, limites, délais). Après `daemon-reload`, la configuration chargée (`systemctl show`, sans afficher les secrets) est comparée à l'unité attendue : fragment, drop-ins, `ExecStart`/bind, `WorkingDirectory`, chemins de sources.
+
+Restauration exacte : les unités et drop-ins précédents sont sauvegardés avec leur identité (absent, fichier ou symlink et cible, contenu, mode, UID/GID) ; les types non restaurables (répertoire, FIFO, lien dur, unité masquée, drop-in symlink) sont refusés avant mutation. Un rollback n'est « réussi » que lorsque la preuve (marqueur `ROLLBACK_PROVEN`) est écrite ; une tentative non prouvée se rejoue (`E_rollback.sh <état>`, idempotent). INT/TERM pendant le rollback sont notés et le rollback va au bout ; seul SIGKILL l'interrompt, la reprise étant la même ré-exécution.
+
 
 Préconditions : cible précédente du lien `current` et backups des unités connus avant mutation.
 
