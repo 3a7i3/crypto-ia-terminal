@@ -1,0 +1,29 @@
+{
+  "document_kind": "INACTIVE_RESEARCH_PROPOSAL_NOT_RUNTIME_CONFIG",
+  "experiment_name": "PAPER_STRESS_RESEARCH",
+  "status": "PREPARATION_ONLY",
+  "activation_authorized": false,
+  "epoch_id": null,
+  "runtime_epoch_role": null,
+  "initial_capital": null,
+  "capital_source": null,
+  "code_sha": null,
+  "config_hash": null,
+  "pb_max_positions_decision": null,
+  "scope": "PAPER_ONLY_NO_EXCHANGE_ORDERS",
+  "required_gates": [
+    "BURN_IN_SCIENTIFIC_CLOSURE",
+    "PREREGISTERED_STRESS_PROTOCOL_AND_STOPPING_RULES",
+    "PPL_FIN_REPLAY_AND_RECONCILIATION",
+    "INDEPENDENT_CAPITAL_AND_EPOCH_MANIFEST",
+    "RISK_SIZING_AND_ADMISSION_REVIEW",
+    "EXPLICIT_OPERATOR_CREATION_AND_ACTIVATION"
+  ],
+  "stress_scenarios_to_design": [
+    "DATA_GAPS_AND_STALE_MARKS",
+    "PROCESS_RESTART_AND_DURABILITY_FAILURE",
+    "CONCURRENT_TRANSITIONS_AND_DUPLICATE_DELIVERY",
+    "LIQUIDITY_SLIPPAGE_AND_COST_SENSITIVITY"
+  ],
+  "research_feedback_to_current_burn_in": false
+}
