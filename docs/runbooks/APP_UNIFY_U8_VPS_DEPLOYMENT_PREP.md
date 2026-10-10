@@ -137,23 +137,23 @@ RELEASE="$BASE/releases/$SHA"
 
 Prérequis de build : Node 20.19+ (ou version supportée par Vite 8) ; vérifier la version exacte du runner et de la future machine dans leurs preuves respectives. Aucun logiciel VPS n'est installé dans cette préparation.
 
-La release doit être créée dans un répertoire nouveau. Refuser si `$RELEASE` existe déjà avec une identité non prouvée.
+La release est construite **directement à son chemin final** `$RELEASE`, jamais dans un répertoire temporaire renommé ensuite : un venv Python embarque des chemins absolus (shebangs, `pyvenv.cfg`) et un venv déplacé ou renommé n'est pas réutilisable sans reconstruction et vérification complète. Refuser tout `$RELEASE` préexistant, ainsi que tout `$RELEASE.FAILED-*` non examiné : un dossier partiel n'est jamais réutilisé silencieusement, jamais supprimé automatiquement (un échec le renomme `$RELEASE.FAILED-<horodatage>` pour inspection).
 
 Procédure cible :
 
 1. créer `$BASE/releases` avec ownership contrôlé ;
-2. récupérer le dépôt dans `$RELEASE.tmp` sans utiliser le checkout Advisor ;
-3. checkout détaché du SHA exact ;
-4. vérifier `git rev-parse HEAD == $SHA` ;
+2. refuser si `$RELEASE` ou un `$RELEASE.FAILED-*` existe ;
+3. cloner le dépôt directement dans `$RELEASE` sans utiliser le checkout Advisor ;
+4. checkout détaché du SHA exact ; vérifier `git rev-parse HEAD == $SHA` et que le SHA est un ancêtre de `origin/main` ;
 5. vérifier worktree propre ;
 6. exécuter le préflight U8 avec ce SHA ;
-7. créer `$RELEASE.tmp/.venv` ;
-8. installer uniquement `deploy/app_unify_u8/requirements-operator-api.txt` ;
-9. `npm ci` dans `frontend/` ;
-10. exiger un audit npm courant à zéro et capturer le résultat de sécurité #257 ;
-11. lancer tests/build frontend ;
-12. supprimer les artefacts de build temporaires inutiles, mais conserver `frontend/dist` ;
-13. renommer `$RELEASE.tmp` vers `$RELEASE` ;
+7. créer `$RELEASE/.venv` (chemin final) ;
+8. installer uniquement `deploy/app_unify_u8/requirements-operator-api.lock.txt` avec `--no-deps`, puis `pip check` (le fichier `requirements-operator-api.txt` reste la source des dépendances directes ; le verrou fige les transitives ; interpréteurs vérifiés : voir l'en-tête du verrou) ;
+9. importer l'application avec `python -I` depuis le venv de la release ;
+10. `npm ci` dans `frontend/` ;
+11. exiger un audit npm courant à zéro et capturer le résultat de sécurité #257 ;
+12. lancer tests/build frontend ;
+13. écrire `PROVENANCE.txt` (SHA, versions, hash du lockfile npm, `pip freeze`, hash de chaque fichier de `dist`) ;
 14. rendre la release non modifiable par le service applicatif.
 
 Aucun `git pull` n'est autorisé dans `/home/mathieu/crypto_ai_terminal`.
@@ -229,6 +229,8 @@ ss -ltnp | grep ':8181 '
 
 Exigence : 8090 et 8181 uniquement sur `127.0.0.1`.
 
+Un service `active` ne prouve pas qu'il détient le listener. Avant mutation, après chaque démarrage et après un rollback, le processus qui écoute doit être identifié (`ss -ltnp`), appartenir à l'unité Operator attendue (`MainPID`, descendant ou cgroup) et n'écouter que sur loopback. Un propriétaire inconnu, ou une preuve inaccessible (processus non visible, pid absent), est refusé ; une unité inactive impose un port libre.
+
 ### API GET-only
 
 Vérifier au minimum :
@@ -246,6 +248,9 @@ Vérifier au minimum :
 - `GET /api/operator/v1/market-microstructure`
 - `GET /api/operator/v1/research-lab`
 - `GET /api/operator/v1/research-strategies`
+- `GET /api/operator/v1/ppl-accounting-history` (artefact publié à part : `PPL_ACCOUNTING_HISTORY_PATH`, épinglé dans l'unité)
+
+Une source présente et valide doit produire HTTP 200 ; une source absente ou invalide produit le 503 gouverné propre à sa route ; une source périmée reste lisible avec `freshness_classification` correcte. « HTTP 200 ou 503 » n'est donc **pas** un critère de succès : la matrice `route → source → précondition → statut → contenu` fait foi (dossier de revue PR #395). Les routes `/events` et `/storage` lisent `EVENT_CENTER_SNAPSHOT_PATH` / `STORAGE_SNAPSHOT_PATH`, non épinglés par l'unité : leur défaut relatif est résolu sous `WorkingDirectory` et répond 503 tant qu'une décision de provisionnement n'a pas été prise.
 
 Les états `UNKNOWN`, `NOT_AVAILABLE`, `STALE` ou HTTP 503 gouvernés restent des résultats honnêtes ; ils ne doivent jamais être transformés en succès.
 
@@ -274,6 +279,11 @@ Depuis un client tailnet autorisé :
 - aucune donnée synthétique ou recalcul frontend.
 
 ## 10. Rollback
+
+Configuration systemd effective : l'unité installée n'est pas la configuration appliquée. Avant mutation, tous les emplacements de drop-ins sont examinés selon la sémantique de `systemd.unit(5)` : répertoires `<nom>.service.d`, préfixes à tirets (`crypto-operator-.service.d`, `crypto-.service.d`), `service.d` de type, dans chaque racine (`system.control`, `/etc`, `/run`, `/usr/local/lib`, `/usr/lib`), fichiers de même nom résolus par priorité (la racine la plus prioritaire d'abord, puis le préfixe le plus long ; le niveau « type » en dernier), masquage par `/dev/null` ou fichier vide ; symlink de répertoire, symlink pendant, FIFO, alias de l'unité ou fichier illisible sont refusés avec une raison ; tout override de commande, chemin, utilisateur, environnement ou sandbox est refusé (liste blanche : `Nice`, limites, délais). Après `daemon-reload`, la configuration chargée (`systemctl show`, sans afficher les secrets) est comparée à l'unité attendue : fragment, drop-ins, `ExecStart`/bind, `WorkingDirectory`, chemins de sources.
+
+Restauration exacte : les unités et drop-ins précédents sont sauvegardés avec leur identité (absent, fichier ou symlink et cible, contenu, mode, UID/GID) ; les types non restaurables (répertoire, FIFO, lien dur, unité masquée, drop-in symlink) sont refusés avant mutation. L'empreinte de l'Advisor est une précondition : si elle ne peut pas être obtenue (systemctl, Git, lecture, hachage, délai, écriture du manifeste), D refuse avant toute mutation, échoue puis annule après mutation, et E conclut `ROLLBACK_NOT_PROVEN` ; deux échecs ne sont jamais comparés comme identiques, et les statistiques des données runtime exclues ne font pas partie de l'identité comparée. Un rollback n'est « réussi » que lorsque la preuve (marqueur `ROLLBACK_PROVEN`) est écrite ; une tentative non prouvée se rejoue (`E_rollback.sh <état>`, idempotent). INT/TERM pendant le rollback sont notés et le rollback va au bout ; seul SIGKILL l'interrompt, la reprise étant la même ré-exécution.
+
 
 Préconditions : cible précédente du lien `current` et backups des unités connus avant mutation.
 

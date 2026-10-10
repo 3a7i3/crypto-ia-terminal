@@ -1,7 +1,8 @@
 // Node-native runtime contract; intentionally outside Vitest discovery.
 import assert from "node:assert/strict";
-import { mkdtemp, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import http from "node:http";
+import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -104,4 +105,146 @@ test("serves WEB-01B PWA assets with explicit safe MIME and update headers", asy
 
   const icon = await request(appPort, "/icon.png");
   assert.equal(icon.contentType, "image/png");
+});
+
+// --- request-failure contract (D1) -------------------------------------------------
+// Every case below proves two things: the failing request gets a bounded, well-formed
+// outcome, and the SAME server still answers the next request. All sockets carry a hard
+// timeout and every server/tmp dir is released in t.after, even when an assertion fails.
+const BOUND_MS = 4000;
+
+function raw(port, requestLine, extraHeaders = "") {
+  return new Promise((resolve) => {
+    const socket = net.connect(port, "127.0.0.1");
+    let data = "";
+    const finish = (reason) => { socket.destroy(); resolve({ data, reason }); };
+    socket.setTimeout(BOUND_MS, () => finish("TIMEOUT"));
+    socket.on("data", (chunk) => { data += chunk; });
+    socket.on("close", () => finish("CLOSED"));
+    socket.on("error", () => finish("ERROR"));
+    socket.write(`${requestLine} HTTP/1.1\r\nHost: x\r\n${extraHeaders}Connection: close\r\n\r\n`);
+  });
+}
+const statusOf = (r) => Number(r.data.split(" ")[1] ?? 0);
+function bodyOf(r) {
+  const [head, ...rest] = r.data.split("\r\n\r\n");
+  let body = rest.join("\r\n\r\n");
+  if (!/transfer-encoding: chunked/i.test(head)) return body;
+  let decoded = "";
+  while (body.length) {
+    const eol = body.indexOf("\r\n");
+    const size = parseInt(body.slice(0, eol), 16);
+    if (!size) break;
+    decoded += body.slice(eol + 2, eol + 2 + size);
+    body = body.slice(eol + 2 + size + 2);
+  }
+  return decoded;
+}
+const headerOf = (r, name) => (r.data.split("\r\n\r\n")[0].split("\r\n").find((l) => l.toLowerCase().startsWith(`${name}:`)) ?? "").split(": ")[1];
+
+async function harness(t, { populate = async () => {}, apiTarget = "http://127.0.0.1:1" } = {}) {
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-fail-"));
+  await populate(distRoot);
+  const rejections = [];
+  const onRejection = (error) => rejections.push(error);
+  process.on("unhandledRejection", onRejection);
+  const server = createServer({ port: 0, distRoot, apiTarget });
+  const port = await new Promise((resolve) => server.once("listening", () => resolve(server.address().port)));
+  t.after(async () => {
+    process.off("unhandledRejection", onRejection);
+    server.closeAllConnections?.();
+    await close(server);
+    await rm(distRoot, { recursive: true, force: true });
+  });
+  // A healthy answer that does not depend on dist: the API proxy answers 502 JSON when its target is down.
+  const stillServing = async () => {
+    const r = await raw(port, "GET /healthz");
+    assert.equal(statusOf(r), 502, "server must still answer after the failure");
+    assert.equal(JSON.parse(bodyOf(r)).error_code, "OPERATOR_API_UNAVAILABLE");
+  };
+  return { port, distRoot, rejections, stillServing };
+}
+
+test("before headers: missing bundle -> structured no-store 503, server keeps serving", { timeout: 15000 }, async (t) => {
+  const h = await harness(t);
+  for (const target of ["/", "/machine", "/assets/x.js"]) {
+    const r = await raw(h.port, `GET ${target}`);
+    assert.equal(statusOf(r), 503, target);
+    assert.equal(headerOf(r, "cache-control"), "no-store");
+    assert.equal(JSON.parse(bodyOf(r)).error_code, "FRONTEND_ASSET_UNAVAILABLE");
+    await h.stillServing();
+  }
+  assert.deepEqual(h.rejections, [], "no unhandled rejection");
+});
+
+test("before headers: stat failure on the fallback (symlink loop) -> 503, server keeps serving", { timeout: 15000 }, async (t) => {
+  const h = await harness(t, { populate: async (d) => { await symlink("index.html", path.join(d, "index.html")); } });
+  const r = await raw(h.port, "GET /machine");
+  assert.equal(statusOf(r), 503);
+  assert.equal(headerOf(r, "cache-control"), "no-store");
+  await h.stillServing();
+  assert.deepEqual(h.rejections, []);
+});
+
+test("resolution: undecodable path is not a crash and not a traversal (served as SPA fallback)", { timeout: 15000 }, async (t) => {
+  const h = await harness(t, { populate: async (d) => { await writeFile(path.join(d, "index.html"), "<main>operator</main>"); } });
+  for (const target of ["/%", "/%00", "/%ff", "/..%2f..%2fetc/passwd", "/a/../../etc/passwd"]) {
+    const r = await raw(h.port, `GET ${target}`);
+    assert.equal(statusOf(r), 200, target);
+    assert.equal(bodyOf(r), "<main>operator</main>", `${target} must only ever yield the SPA shell`);
+  }
+  await h.stillServing();
+  assert.deepEqual(h.rejections, []);
+});
+
+test("request target that is not a valid URL -> 400 structured, server keeps serving", { timeout: 15000 }, async (t) => {
+  const h = await harness(t);
+  const r = await raw(h.port, "GET //");
+  assert.equal(statusOf(r), 400);
+  assert.equal(headerOf(r, "cache-control"), "no-store");
+  assert.equal(JSON.parse(bodyOf(r)).error_code, "INVALID_REQUEST_URL");
+  await h.stillServing();
+  assert.deepEqual(h.rejections, [], "GET // used to reject inside the handler and kill the process");
+});
+
+test("bytes the HTTP parser rejects never reach the handler (proxy path cannot throw ERR_UNESCAPED_CHARACTERS)", { timeout: 15000 }, async (t) => {
+  const h = await harness(t);
+  const r = await raw(h.port, "GET /api/\u00ff");
+  assert.equal(statusOf(r), 400, "rejected by the parser before our code");
+  await h.stillServing();
+});
+
+test("after headers: read error mid-response closes only that connection", { timeout: 15000 }, async (t) => {
+  // index.html is a directory: stat succeeds (so headers go out), createReadStream then fails with EISDIR.
+  const h = await harness(t, { populate: async (d) => { await mkdir(path.join(d, "index.html")); } });
+  const r = await raw(h.port, "GET /");
+  assert.notEqual(r.reason, "TIMEOUT", "connection must be terminated, not left hanging");
+  assert.ok(!r.data.includes("operator"), "no partial bundle content");
+  await h.stillServing();
+  assert.deepEqual(h.rejections, []);
+});
+
+test("after headers: upstream API aborts mid-body -> client connection ends, server keeps serving", { timeout: 15000 }, async (t) => {
+  const upstream = http.createServer((req, res) => {
+    res.writeHead(200, { "content-type": "application/json", "content-length": "1000" });
+    res.write("{\"partial\":");
+    setTimeout(() => req.socket.destroy(), 50);
+  });
+  const upstreamPort = await new Promise((resolve) => upstream.listen(0, "127.0.0.1", () => resolve(upstream.address().port)));
+  t.after(async () => { upstream.closeAllConnections?.(); await close(upstream); });
+  const h = await harness(t, { apiTarget: `http://127.0.0.1:${upstreamPort}` });
+  const r = await raw(h.port, "GET /api/operator/v1/snapshot");
+  assert.notEqual(r.reason, "TIMEOUT", "client must not hang on a truncated upstream body");
+  assert.equal(headerOf(r, "cache-control"), "no-store");
+  // The upstream still answers 200-then-abort, so "still serving" is shown on a static-independent 405.
+  const after = await raw(h.port, "POST /");
+  assert.equal(statusOf(after), 405);
+  assert.deepEqual(h.rejections, []);
+});
+
+test("HEAD on a failing bundle yields the same governed 503 without a body", { timeout: 15000 }, async (t) => {
+  const h = await harness(t);
+  const r = await raw(h.port, "HEAD /");
+  assert.equal(statusOf(r), 503);
+  await h.stillServing();
 });

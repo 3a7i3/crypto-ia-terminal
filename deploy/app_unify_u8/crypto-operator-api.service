@@ -28,6 +28,9 @@ Environment=RUNTIME_SERVICE_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/datab
 Environment=MARKET_MICROSTRUCTURE_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/market_microstructure_snapshot.json
 Environment=RESEARCH_LAB_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/research_presentation/research_lab_snapshot.json
 Environment=RESEARCH_STRATEGY_BOARD_SNAPSHOT_PATH=/home/mathieu/crypto_ai_terminal/databases/research_presentation/research_strategy_board.json
+# Separately published derived observation (offline producer, outside the frozen
+# runtime tree and outside any release directory so it survives `current` flips).
+Environment=PPL_ACCOUNTING_HISTORY_PATH=/opt/crypto-ai-terminal/operator/presentation/ppl_accounting_history.json
 Environment=RADAR_MARKET_STALE_AFTER_S=90
 Environment=PPL_COMPARISON_STALE_AFTER_S=90
 Environment=BURN_IN_STATUS_STALE_AFTER_S=90
