@@ -87,38 +87,38 @@ Tests locaux PASS. Verdict global des intégrations externes INCONCLUSIVE faute 
 PR source prête à la revue seulement après vérification des tests/build et checks nécessaires au SHA final ; état daté et liens CI consignés dans le corps de PR.
 Aucun merge/auto-merge/dispatch/publication/VPS/restart/activation PAPER autorisé.
 
-## Empreintes des workflows de la composition proposée
+## Identités Git des workflows de la composition proposée
 
-Aucun environment déclaré dans les 29 workflows lus. Les empreintes ci-dessous désignent les octets préparés ; sphinx.yml est le seul workflow changé.
+Aucun environment déclaré dans les 29 workflows lus. Les identités ci-dessous sont les blob SHA Git, pas des SHA-256 de copies locales. sphinx.yml est le seul workflow changé ; les 28 autres blobs sont ceux de la baseline.
 
-| Fichier | Événements | SHA-256 |
+| Fichier | Événements | Git blob SHA |
 |---|---|---|
-| .github/workflows/app-unify-u2-visual-proof.yml | pull_request, push, workflow_dispatch | `f61d9a5e890dc5b5c51c95a6c8e98c47389711994ef930e103c9839bc060ba1f` |
-| .github/workflows/app-unify-u2b-visual-proof.yml | pull_request, push, workflow_dispatch | `406590549610d84e18108b33b413aad3ffc05a5fb87734ebbf9ce2a02e9f85a8` |
-| .github/workflows/app-unify-u3a-visual-proof.yml | pull_request, push, workflow_dispatch | `a811a49326583741dba48b2662829871e939c9fcc2c630137441760a7360baa2` |
-| .github/workflows/app-unify-u3b-visual-proof.yml | pull_request, push, workflow_dispatch | `2774533f541369c3dc82493d1307ab0089cb97ed7c839b278c5b39c95e650ae5` |
-| .github/workflows/app-unify-u4-visual-proof.yml | pull_request, push, workflow_dispatch | `e4b064ecfba554ce619b1e28f6450ce5d072c3ef8a81a9ece1b0d78befa70edf` |
-| .github/workflows/app-unify-u8-prep.yml | pull_request, workflow_dispatch | `d88dfaada15e5dc215f8aeb5df74d578218a642338529e277e03b5154b146de5` |
-| .github/workflows/ci.yml | push, pull_request, workflow_dispatch | `9f6d10040c0dbeea3925c778a79619457a5b6fee5fba45e965732f9ed6398b50` |
-| .github/workflows/ci_dashboard_panels.yml | push, workflow_dispatch | `b46646dbe99d0188b38384d37419be76b0bad85cc91dc20e4ed3ced853416bde` |
-| .github/workflows/codecov.yml | push, pull_request | `1c8850b0c8e945de9a33678e78f20acb1cf5da664d760c74dfbf6c9aba69efce` |
-| .github/workflows/coverage.yml | push, pull_request | `92cac2f5527cdd425fc9fdbd3ada702543934017c2ba0d065bd846218b1d5033` |
-| .github/workflows/coveralls.yml | push, pull_request | `d9bbc57a56e3e73caf39ee84198c6d2b1bf04b83a22226333be4503ac406dec9` |
-| .github/workflows/cross-stack-compat.yml | pull_request, push | `bda89cbcfd4d295b446c12a3935e30a642ba045dd84585668ce99498ad27cfe7` |
-| .github/workflows/diagnostic_env.yml | workflow_dispatch, push | `2f00f62e8c4edb96ba988de12b894993b1b2eeda77549cb8f63885141ab67bf8` |
-| .github/workflows/fin02-financial-visual-proof.yml | pull_request, push, workflow_dispatch | `e02b4061bb7e026741e9366acbfeef03d797a1e05c704c2c55ec73c9d1c17713` |
-| .github/workflows/frontend-ci.yml | pull_request, push | `42679013e20034bb55527d0ded9f5297efca9633a9ab89e40c065b770d4836be` |
-| .github/workflows/machine-lab-u6-visual-proof.yml | pull_request, push, workflow_dispatch | `cecae01c83d4157ba4e4f8367ba41c5996f20e18e3d48add43fb881860abe3b3` |
-| .github/workflows/onboarding_dashboard_ci.yml | push, pull_request | `5d8b6344537116e8ba3f66682b5bd63b5ef135de89ee5c7da0eecb334f0f7c6b` |
-| .github/workflows/orchestrator-healthcheck.yml | push, pull_request, workflow_dispatch | `cacedf13a39294176a0c0bfe0e9a032c5d8a915bdb79eb456a1b09ea3e98784a` |
-| .github/workflows/phase_c_validation.yml | push, pull_request, workflow_dispatch | `8112208d68ae481aafa423df341131b2146cfb80539fec49f0f97b8e0d49974b` |
-| .github/workflows/rl-burnin-source-proof.yml | push, pull_request, workflow_dispatch | `5c65317e7bfce074612338cd55afb7bb98e7e47b112f4fb6d055dfb0fb1f8ca9` |
-| .github/workflows/screenshots.yml | workflow_dispatch, push, pull_request | `c9cbb3469fb7e33a26f551583265e5ad547d554c8306daaed96668a496c493ee` |
-| .github/workflows/sphinx.yml | pull_request, workflow_dispatch | `779877d5a8b59149ecebf067131e6d3b2051338cd7022fe65202da72f2c77d79` |
-| .github/workflows/test-panels.yml | push, pull_request | `3a595ec8fe0da4690ffc2de1e898330e65aacdc724f0dfb5bb92c487cfdfcf88` |
-| .github/workflows/testnet-integration.yml | workflow_dispatch | `b8d2208f2650db26049bd1da4a50020351e5a2b18462a27b0452160fa62c535a` |
-| .github/workflows/vps-audit.yml | workflow_dispatch, push | `7b3a07da432277851b3202f4711a24b1d6d587a46030cc2f5ae2c976cf6d1f97` |
-| .github/workflows/web-dir-d3-visual-proof.yml | pull_request, push, workflow_dispatch | `3f4c22838252b0c5b0658de52e5624cd6effb8bc0665c095a8fba9ca737a845a` |
-| .github/workflows/web-rl-research-visual-proof.yml | pull_request, push, workflow_dispatch | `85f3457a59565910a23067c7be3ceab9ee9d5b008fad58d3ee5e06f32b2ab683` |
-| .github/workflows/web01-market-visual-proof.yml | pull_request, push, workflow_dispatch | `c2391a093a9bc33bb41b579e5a5d500231dff3d96d18052bdd32d13f8cf18e77` |
-| .github/workflows/web02-ppl-visual-proof.yml | pull_request, push, workflow_dispatch | `c5f41b73a47b5d9bda63589746c3ef28d619fa6d09896f3a8a1689c620a089b0` |
+| .github/workflows/app-unify-u2-visual-proof.yml | pull_request, push, workflow_dispatch | `78db5752b07b18271cb59814801e077073d04b02` |
+| .github/workflows/app-unify-u2b-visual-proof.yml | pull_request, push, workflow_dispatch | `ddc238296e2c8123127e3cb2cd53b0e5b180e2bd` |
+| .github/workflows/app-unify-u3a-visual-proof.yml | pull_request, push, workflow_dispatch | `9eec286b694c1ee313a3641034992f1aede31e10` |
+| .github/workflows/app-unify-u3b-visual-proof.yml | pull_request, push, workflow_dispatch | `99d1dd25291821fd44f5d3509c88a43054c2857c` |
+| .github/workflows/app-unify-u4-visual-proof.yml | pull_request, push, workflow_dispatch | `85baff47a69535b66ecd9950ce22703023f12d29` |
+| .github/workflows/app-unify-u8-prep.yml | pull_request, workflow_dispatch | `5f127177e7c8dd78359f62b5e581fe5734120dc5` |
+| .github/workflows/ci.yml | push, pull_request, workflow_dispatch | `27848653411b372c3fe161745d565618aa5d0994` |
+| .github/workflows/ci_dashboard_panels.yml | push, workflow_dispatch | `7c18582118a6d26ddfa3c90ac58ef22b77c16bb8` |
+| .github/workflows/codecov.yml | push, pull_request | `f8fb2cb1312feb7fc8511156b5868c25155f1226` |
+| .github/workflows/coverage.yml | push, pull_request | `1d4b611f9765040001fb4908ba771d2452d9517f` |
+| .github/workflows/coveralls.yml | push, pull_request | `2796e6fef4bab09273b646dde8136c4f779e86f0` |
+| .github/workflows/cross-stack-compat.yml | pull_request, push | `176ed15c492c8d5061dffaf9ae1a6e528d70e344` |
+| .github/workflows/diagnostic_env.yml | workflow_dispatch, push | `24e3ee83b3cb1d74c35788d0e8d68eba279833dd` |
+| .github/workflows/fin02-financial-visual-proof.yml | pull_request, push, workflow_dispatch | `0e80b0b978a996d6b0e7b6af0923bdfdc9b31b9f` |
+| .github/workflows/frontend-ci.yml | pull_request, push | `3b9d12121986e3ceca5bc2e47abe72ab3b99b012` |
+| .github/workflows/machine-lab-u6-visual-proof.yml | pull_request, push, workflow_dispatch | `374b00b80e8053ff79b8dc1c61cb65063b4b8b1f` |
+| .github/workflows/onboarding_dashboard_ci.yml | push, pull_request | `e61ffb39863a7ad5acbac1052226b9bfcff95b79` |
+| .github/workflows/orchestrator-healthcheck.yml | push, pull_request, workflow_dispatch | `d96dd3d557b477e387560a4fa4501a3f16b47d41` |
+| .github/workflows/phase_c_validation.yml | push, pull_request, workflow_dispatch | `0c4f1f536bab44275cb464e1087596ed0b9a9dd6` |
+| .github/workflows/rl-burnin-source-proof.yml | push, pull_request, workflow_dispatch | `f4b659fc04e9d34aa9063deae0b66dd572312b26` |
+| .github/workflows/screenshots.yml | workflow_dispatch, push, pull_request | `2499c3e4f038d92ee7b8640d7182fa95594576ec` |
+| .github/workflows/sphinx.yml | pull_request, workflow_dispatch | `9b31abdf0f6f7c3d215e1fcfc8394641ee802fcb` |
+| .github/workflows/test-panels.yml | push, pull_request | `ff2e461be64cf7d37eb5d72a6c198c483874d5ae` |
+| .github/workflows/testnet-integration.yml | workflow_dispatch | `711c52a545a15c07d586cf65f1028b7ad982a36d` |
+| .github/workflows/vps-audit.yml | workflow_dispatch, push | `5419cb1ba7478fa2f17e47f73d5b95c04b9ddbe8` |
+| .github/workflows/web-dir-d3-visual-proof.yml | pull_request, push, workflow_dispatch | `64e7132b123cfb8a34c2891426efbc5567eb4847` |
+| .github/workflows/web-rl-research-visual-proof.yml | pull_request, push, workflow_dispatch | `19d8c00188bbe397be5dca0d11e1bba87ec8f313` |
+| .github/workflows/web01-market-visual-proof.yml | pull_request, push, workflow_dispatch | `ca259962a76c522d6f6b80d75a3f68ad7b032526` |
+| .github/workflows/web02-ppl-visual-proof.yml | pull_request, push, workflow_dispatch | `6389fe617a517fcb04b1c4f22d7ce3a419d92a68` |
