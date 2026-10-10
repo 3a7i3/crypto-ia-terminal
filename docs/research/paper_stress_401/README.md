@@ -47,9 +47,13 @@ Validation du corpus Python en refusant les connexions et résolutions externes
 (les API locales et mocks restent permis) :
 
 ```bash
-PYTHONPATH="$PWD/tests/research_stress/offline_guard:$PWD" \
+UNIVERSE_ENABLED=false PYTHONPATH="$PWD/tests/research_stress/offline_guard:$PWD" \
   python -B -m pytest -q -m 'not performance and not slow' tests/
 ```
 
 Le garde est opt-in, sans modification du runtime ni des tests historiques.
+UNIVERSE_ENABLED=false s’applique exclusivement au processus de tests local :
+empêche l’observer legacy de démarrer et d’interférer avec les mocks d’exchange.
+Aucune variable du service de production n’est lue ou modifiée. Les tests qui
+exigent un comportement spécifique conservent leurs monkeypatchs propres.
 Il couvre les événements réseau CPython audités, pas des appels natifs hostiles.

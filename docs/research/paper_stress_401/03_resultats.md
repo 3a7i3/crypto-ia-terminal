@@ -29,6 +29,14 @@ concentration 50 %, au-delà du seuil proposé 20 %. C n’est donc pas déclar�
 par son simple cap de cinq positions. Ces stress n’attestent pas la probabilité
 ou la perte ultime d’une campagne réelle/simulée dynamique.
 
+Sur les 72 points de chaque bras, les plages de perte calculées sont A :
+2,064–20,68 USDT ; B : 20,64–206,80 USDT ; C : 51,60–517 USDT.
+Le budget proposé de 100 USDT est franchi dans respectivement 0, 36 et 54 points ;
+ces fréquences de grille **ne sont pas des probabilités**. Pour C, ne pas franchir
+10 % sous le choc de 30 % aux coûts de base demanderait un capital fictif
+strictement supérieur à 1 516 USDT, sous ces seules hypothèses. Cela ne résout ni
+le risque de concentration, ni la liquidité inconnue, ni les gaps.
+
 Chaque point conserve frais, spread, slippage, choc et hypothèse de dépendance.
 Aucune liquidité empirique, capacité de fill ou distribution probabiliste n’est
 inférée d’une grille. Les coûts en fin de vie sont conservateurs à notionnel fixe.

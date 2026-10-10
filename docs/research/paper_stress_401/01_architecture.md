@@ -15,6 +15,10 @@ créée depuis main. Branches Research historiques disponibles :
 `rl-data-01-paper-research-provenance`, `rl-replay-01-offline-replay-engine`,
 `rl-burnin-01-no-feedback-contract`, `rl-integrate-01-research-stack-main`.
 Pas de cherry-pick de #397 : son installation activerait DENY.
+La source gelée est un ancêtre de main. Le diff gelée→main sur PAPER, FIN,
+research_data/replay/candidate, Advisor et PortfolioBrain est vide ;
+`research_diag/factual.py` a un delta source (20 ajouts/3 suppressions).
+Cette comparaison Git ne prouve aucun déploiement ni l’identité actuelle du VPS.
 
 Le commentaire [#282 du 10 octobre](https://github.com/3a7i3/crypto-ia-terminal/issues/282#issuecomment-6094708362)
 atteste une observation limitée Advisor active/running, mais pas le SHA runtime,
@@ -76,6 +80,12 @@ population. Les coûts constants MEXC_SIM ne certifient aucune liquidité réell
 FIN requiert un contexte sémantique explicite ; aucune réconciliation actuelle
 n’est dérivée d’une projection ancienne. Le no-feedback applicatif n’est pas un
 sandbox OS contre un opérateur ou un appelant malveillant.
+La validation offline a aussi exposé une dette d’isolation legacy :
+`core/perp_universe_service.py::_run/_do_refresh` ne met à jour `_last_refresh`
+qu’après succès ; sur refus réseau avec timestamp initial nul, le thread retente
+sans attente et peut interférer avec les mocks ccxt d’autres tests. Constats
+source/test, pas preuve de ce comportement sur le VPS. Flag de test local
+UNIVERSE_ENABLED=false utilisé ; aucun correctif runtime dans #401.
 
 ## Plan minimal retenu
 

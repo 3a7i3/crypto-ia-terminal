@@ -18,8 +18,26 @@ aucune dépendance du dépôt modifiée. Base main :
 La première exécution complète a donné 6 991 PASS, 19 skipped, 13 deselected,
 2 xfailed, 2 139 avertissements. Un observer legacy y a tenté une lecture publique
 MEXC qui a échoué ; aucune donnée n'a été utilisée. Ce run n’est **pas** revendiqué
-comme preuve de réseau strictement offline. Le run final avec garde opt-in est
-consigné ci-dessous après son achèvement.
+comme preuve de réseau strictement offline. Le second run avec garde réseau seul a donné 6 989 PASS et **2 échecs**
+(`test_market_scanners_share_exchange_instance`,
+`test_market_scanner_preloads_markets_once_per_shared_exchange`) : un observer
+PerpUniverse local non isolé boucle après refus réseau et crée des instances
+pendant les mocks ccxt. Ce résultat n’est pas présenté comme vert ; le processus
+de test local a été interrompu après la synthèse pytest.
+
+Le flag existant UNIVERSE_ENABLED=false, uniquement pour le processus de tests,
+isole cet observer sans modifier de source runtime ou de test historique.
+Le probe scanner/Advisor/universe/nouveaux tests avec garde + flag : 75 PASS.
+Le run complet final avec garde + flag : **6 991 PASS, 19 skipped,
+13 deselected, 2 xfailed, 2 139 avertissements, exit 0, 131,04 s**.
+Les 27 nouveaux tests repassent également sous garde réseau.
+Les modules/protocole/tests ont exactement les empreintes du SHA source
+`76179d8c851f318d855bcb7cd70c45681619265e` ; le commit de preuves n’en change
+aucun. Recalcul des 648 scénarios, hash du rapport et identité : MATCH.
+Arbres source protégés versus base main : identiques (voir manifest).
+Liens locaux des cinq rapports : PASS.
+Cela ne certifie pas la découverte marché legacy : seule l’isolation du corpus
+source-only est recherchée ; pas de suppression/skip additionnel de tests.
 
 Les tests nouveaux vérifient : neuf cellules et 648 scénarios analytiques,
 calcul indépendant d’une perte connue, contexte décimal de l’appelant neutralisé,
