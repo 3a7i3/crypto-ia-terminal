@@ -47,7 +47,6 @@ export const SourceAvailability: React.FC<{
       <p>GET /api/operator/v1/{source === "research" ? "research-lab" : "burn-in"}</p>
       <p>{httpStatus && `HTTP ${httpStatus} · `}{code}</p>
       {message && <p>{message}</p>}
-      {source === "burn-in" && <p>Epoch attendue pour cette mission : BURN-IN-EPOCH-01-20260926T064144Z. Son état actuel est inconnu tant que la source manque.</p>}
     </details>
   </section>
 );

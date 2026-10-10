@@ -66,6 +66,13 @@ describe("Contrats mobile et disponibilité sans autorité", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Dernière preuve runtime : inconnue");
     expect(screen.getByRole("status")).toHaveTextContent("Action nécessaire");
   });
+  it("n'affiche aucune identité d'epoch codée en dur sans preuve lue", () => {
+    render(<SourceAvailability source="burn-in" code="BURN_IN_STATUS_MISSING" httpStatus={503}/>);
+    const unavailable = screen.getByTestId("source-availability");
+    expect(unavailable).not.toHaveTextContent(/BURN-IN-EPOCH/);
+    expect(unavailable).not.toHaveTextContent(/Epoch attendue/);
+    expect(unavailable).toHaveTextContent("Dernière preuve runtime : inconnue");
+  });
   it("conserve seulement les métadonnées validées après un échec de reprise, jamais les positions", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValueOnce(response(burnInFixture())).mockResolvedValue(response({error_code:"BURN_IN_STATUS_MISSING"},503));
@@ -78,6 +85,7 @@ describe("Contrats mobile et disponibilité sans autorité", () => {
     expect(unavailable).toHaveTextContent("aucune valeur passée n’est affichée comme actuelle");
     expect(unavailable).not.toHaveTextContent("BTC/USDT");
     expect(unavailable).toHaveTextContent("ne prouve ni la fin du burn-in");
+    expect(unavailable).not.toHaveTextContent(/Epoch attendue/);
     expect(fetchMock.mock.calls.every(call => call[1].method === "GET")).toBe(true);
   });
 });
