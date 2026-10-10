@@ -41,7 +41,7 @@ describe("WEB-DIR-01-D2 product routing", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps Direction separate and fetches its seven independent governed sources", async () => {
+  it("keeps Direction separate and fetches its six independent governed sources", async () => {
     window.history.replaceState({}, "", "/direction");
     render(<App />);
 
@@ -54,10 +54,9 @@ describe("WEB-DIR-01-D2 product routing", () => {
     expect(screen.getByTestId("direction-authority-strip")).toHaveTextContent("AUCUNE AUTORITÉ PAPER");
     expect(screen.getByText(/État global inconnu/)).toBeInTheDocument();
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(7));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
       expect.arrayContaining([
-        "/api/operator/v1/ppl-accounting-history",
         "/api/operator/v1/snapshot",
         "/api/operator/v1/financial-reconciliation",
         "/api/operator/v1/market",
@@ -93,7 +92,7 @@ describe("WEB-DIR-01-D2 product routing", () => {
     expect(screen.queryByTestId("paper-live-shell")).toBeNull();
     await waitFor(() =>
       expect(screen.getByTestId("research-lab-view")).toHaveTextContent(
-        "Erreur de contrat ou de transport du Laboratoire",
+        "La lecture a échoué : transport ou contrat à vérifier.",
       ),
     );
   });

@@ -139,7 +139,7 @@ const burnIn = {
   freshness_classification: "FRESH",
 };
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || undefined });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const apiRequests = [];
@@ -161,9 +161,12 @@ try {
   assert(response?.ok(), "Burn-in route failed");
   const view = page.getByTestId("burnin-view");
   await view.waitFor({ state: "visible" });
+  const diagnostics = page.getByText("Diagnostics techniques · configuration et provenance", { exact: true });
+  assert(!(await diagnostics.evaluate(e => e.parentElement.open)), "raw Burn-in diagnostics must start closed");
+  await diagnostics.click();
   const text = await view.innerText();
   for (const required of [
-    "Burn-in actif", "BURN-IN-EPOCH-01-20260926T064144Z", "BEFORE_TIMEOUT",
+    "Burn-in · observation scientifique", "BURN-IN-EPOCH-01-20260926T064144Z", "BEFORE_TIMEOUT",
     "Historique des ordres PAPER", "BTC/USDT", "CC/USDT", "SOL/USDT",
     "UNRESOLVED", "RECOVERY_PRICE_UNAVAILABLE", "PB_MAX_POSITIONS",
     "PAPER_PORTFOLIO_BRAIN_LEVEL", "NOT_AVAILABLE",

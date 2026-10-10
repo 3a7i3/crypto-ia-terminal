@@ -1,3 +1,4 @@
+import type { LastSourceEvidence } from "../components/SourceAvailability";
 import { useEffect, useState } from "react";
 import type { ApiStructuredError } from "../types";
 import type { BurnInStatusSnapshot } from "./burnInStatusTypes";
@@ -9,8 +10,8 @@ export const BURN_IN_POLL_INTERVAL_MS = 20_000;
 export type BurnInState =
   | { status: "loading" }
   | { status: "success"; snapshot: BurnInStatusSnapshot; fetchedAt: number }
-  | { status: "api_error"; error: ApiStructuredError; httpStatus: number }
-  | { status: "transport_error"; message: string };
+  | { status: "api_error"; error: ApiStructuredError; httpStatus: number; lastEvidence?: LastSourceEvidence }
+  | { status: "transport_error"; message: string; lastEvidence?: LastSourceEvidence };
 
 function plain(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
@@ -23,11 +24,12 @@ export function useBurnInStatus(intervalMs: number = BURN_IN_POLL_INTERVAL_MS): 
     let alive = true;
     let timerId: ReturnType<typeof setTimeout> | undefined;
     let latestSeq = 0;
+    let lastEvidence: LastSourceEvidence | undefined;
     const schedule = () => {
       if (alive) timerId = setTimeout(load, intervalMs);
     };
     const settle = (next: BurnInState, seq: number) => {
-      if (alive && seq === latestSeq) setState(next);
+      if (alive && seq === latestSeq) setState(next.status === "api_error" || next.status === "transport_error" ? { ...next, lastEvidence } : next);
     };
     const load = async () => {
       if (!alive) return;
@@ -61,6 +63,7 @@ export function useBurnInStatus(intervalMs: number = BURN_IN_POLL_INTERVAL_MS): 
         return;
       }
 
+      lastEvidence = { generatedAt: body.generated_at_utc, identity: body.paper_epoch_id, sourceUpdatedAt: body.source_updated_at_utc };
       settle({ status: "success", snapshot: body, fetchedAt: Date.now() }, seq);
       schedule();
     };
