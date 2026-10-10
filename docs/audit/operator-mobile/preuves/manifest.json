@@ -1,0 +1,24 @@
+{
+  "scope": "SOURCE_PROOF_SYNTHETIC_NOT_RUNTIME",
+  "base_main": "8c0dc27fbe456834423e8543c8ff30d657ec2d86",
+  "evidence_sha256": {
+    "checks.json": "4467a4cecb938384da7114dc842214fd29d407bd504fa8e49a967a6ab2ddc9ec",
+    "decisions-360.png": "491cde5795bfcc6a24e091ca91e5325a16f005223c47f81919e6fc3d25a0a18a",
+    "decisions-390.png": "7e7bab3147b1ac4b1b16536cacf7a5a8186d29729b6bc33c0f53fec1f439632d",
+    "decisions-412.png": "bc8fed4f41d31b45248c4dd88d2d41ab40b99bf4995a00188047a1d11ae59bf0",
+    "finance-390.png": "a66eac198571ff82a1dd7636ff56898535a81a4da3dfd172e3d83f197f909956",
+    "machine-390.png": "7b1a61b80e94537d587acb5f56370c58e02e7cdbbcbba1b9924a33fa976b9f53",
+    "missing-burnin-360.png": "65774694ee860dfb8f9ec5d2260aac1d0df2a813d5b579230c46296d50f0fe42",
+    "missing-research-360.png": "c2237296ded2401104b0d70686ed6817a9f8504a116fd0a04ca64ac4bdb7f9e9",
+    "portfolio-390.png": "c0ca7a7fc74ecea4d248c2d4ec9421b46d863399e637d18b5c7e80f1a88ec764"
+  },
+  "local_results": {
+    "frontend_all": 429,
+    "api_fin_ppl_read_only": 254,
+    "web_bootstrap_pwa": 8,
+    "visual": 98,
+    "post_accessibility_targeted": 24,
+    "post_research_targeted": 5,
+    "build": "PASS"
+  }
+}

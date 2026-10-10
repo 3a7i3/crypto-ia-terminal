@@ -1,5 +1,7 @@
+import { SourceAvailability } from "../components/SourceAvailability";
 import React from "react";
-import { useBurnInStatus, type BurnInState } from "../lib/burnInStatusClient";
+import { fr } from "../lib/presentationFr";
+import { useBurnInStatus } from "../lib/burnInStatusClient";
 import type { BurnInHistoryRow, BurnInOpenLifecycle } from "../lib/burnInStatusTypes";
 
 function duration(value: number | null): string {
@@ -16,10 +18,6 @@ function duration(value: number | null): string {
 function num(value: number | null): string {
   return value === null ? "NOT_AVAILABLE" : String(value);
 }
-function apiError(state: Extract<BurnInState, { status: "api_error" }>): string {
-  return state.error.error_code ?? state.error.error_message ?? `HTTP ${state.httpStatus}`;
-}
-
 const OpenLifecycleCard: React.FC<{ row: BurnInOpenLifecycle }> = ({ row }) => (
   <article className="burnin-open-card" data-testid="burnin-open-row">
     <div className="burnin-open-head">
@@ -27,14 +25,14 @@ const OpenLifecycleCard: React.FC<{ row: BurnInOpenLifecycle }> = ({ row }) => (
       <span className={`burnin-status burnin-deadline-${row.deadline_state.toLowerCase()}`}>{row.deadline_state}</span>
     </div>
     <div className="burnin-open-grid">
-      <span><b>Trade</b>{row.trade_id}</span>
-      <span><b>Side</b>{row.side}</span>
-      <span><b>Principal</b>{row.principal_usd}</span>
-      <span><b>Entry</b>{row.entry_price}</span>
+      <span><b>Identité</b>{row.trade_id}</span>
+      <span><b>Sens</b>{row.side}</span>
+      <span><b>Principal USD</b>{row.principal_usd}</span>
+      <span><b>Entrée</b>{row.entry_price}</span>
       <span><b>Âge</b>{duration(row.age_seconds)}</span>
       <span><b>Timeout</b>{row.timeout_at_utc ?? "NOT_AVAILABLE"}</span>
-      <span><b>Recovery until</b>{row.recovery_eligible_until_utc ?? "NOT_AVAILABLE"}</span>
-      <span><b>Decision</b>{row.decision_id ?? "NOT_AVAILABLE"}</span>
+      <span><b>Limite de récupération</b>{row.recovery_eligible_until_utc ?? "NOT_AVAILABLE"}</span>
+      <span><b>Décision</b>{row.decision_id ?? "NOT_AVAILABLE"}</span>
     </div>
   </article>
 );
@@ -48,13 +46,13 @@ const HistoryMobileCard: React.FC<{ row: BurnInHistoryRow }> = ({ row }) => (
     <dl>
       <div><dt>Ouverture</dt><dd>{row.opened_at_utc}</dd></div>
       <div><dt>Fin</dt><dd>{row.terminal_at_utc ?? "EN COURS"}</dd></div>
-      <div><dt>Principal</dt><dd>{row.principal_usd}</dd></div>
-      <div><dt>Entry / Exit</dt><dd>{row.entry_price} / {num(row.exit_price)}</dd></div>
+      <div><dt>Principal USD</dt><dd>{row.principal_usd}</dd></div>
+      <div><dt>Entrée / sortie</dt><dd>{row.entry_price} / {num(row.exit_price)}</dd></div>
       <div><dt>Frais entrée / sortie</dt><dd>{row.entry_fee_usd} / {num(row.exit_fee_usd)}</dd></div>
       <div><dt>PnL net réalisé</dt><dd>{row.status === "UNRESOLVED" ? "UNRESOLVED" : num(row.net_realized_pnl_usd)}</dd></div>
       <div><dt>Durée</dt><dd>{duration(row.duration_seconds)}</dd></div>
       <div><dt>Trade ID</dt><dd>{row.trade_id}</dd></div>
-      {row.unresolved_reason && <div><dt>Raison unresolved</dt><dd>{row.unresolved_reason}</dd></div>}
+      {row.unresolved_reason && <div><dt>Raison non résolue</dt><dd>{row.unresolved_reason}</dd></div>}
     </dl>
   </article>
 );
@@ -65,11 +63,12 @@ export const BurnInStatusView: React.FC = () => {
   if (state.status === "loading") {
     return <section className="burnin-state" data-testid="burnin-view"><strong>BURN-IN · CHARGEMENT</strong><span>Lecture de la projection PPL gouvernée.</span></section>;
   }
-  if (state.status === "api_error") {
-    return <section className="burnin-state burnin-state-error" data-testid="burnin-view"><strong>BURN-IN · ERREUR SOURCE</strong><span>{apiError(state)}</span></section>;
-  }
-  if (state.status === "transport_error") {
-    return <section className="burnin-state burnin-state-error" data-testid="burnin-view"><strong>BURN-IN · ERREUR TRANSPORT / CONTRAT</strong><span>{state.message}</span></section>;
+  if (state.status === "api_error" || state.status === "transport_error") {
+    return <div data-testid="burnin-view"><SourceAvailability source="burn-in"
+      code={state.status === "api_error" ? state.error.error_code ?? "BURN_IN_API_ERROR" : "BURN_IN_TRANSPORT_OR_CONTRACT"}
+      httpStatus={state.status === "api_error" ? state.httpStatus : undefined}
+      message={state.status === "api_error" ? state.error.error_message : state.message}
+      lastEvidence={state.lastEvidence} /></div>;
   }
 
   const s = state.snapshot;
@@ -79,19 +78,19 @@ export const BurnInStatusView: React.FC = () => {
         <div className="burnin-hero-head">
           <div>
             <div className="burnin-eyebrow">PPL AUTORITAIRE · PRÉSENTATION READ-ONLY</div>
-            <h2>Burn-in actif</h2>
+            <h2>Burn-in · observation scientifique</h2>
             <code>{s.paper_epoch_id}</code>
           </div>
           <div className="burnin-badges">
-            <span>{s.freshness_classification}</span>
+            <span>{fr(s.freshness_classification)}</span>
             <span>{s.authority}</span>
           </div>
         </div>
         <div className="burnin-summary-grid">
-          <div><span>Événements</span><strong>{s.event_count}</strong><small>last seq {s.last_sequence}</small></div>
-          <div><span>OPEN</span><strong>{s.lifecycle_counts.open}</strong><small>lifecycles courants</small></div>
-          <div><span>CLOSED</span><strong>{s.lifecycle_counts.closed}</strong><small>résolus connus</small></div>
-          <div><span>UNRESOLVED</span><strong>{s.lifecycle_counts.unresolved}</strong><small>aucun PnL fabriqué</small></div>
+          <div><span>Événements</span><strong>{s.event_count}</strong><small>séquence {s.last_sequence}</small></div>
+          <div><span>Positions ouvertes</span><strong>{s.lifecycle_counts.open}</strong><small>lifecycles courants</small></div>
+          <div><span>Clôtures résolues</span><strong>{s.lifecycle_counts.closed}</strong><small>résolus connus</small></div>
+          <div><span>Non résolues</span><strong>{s.lifecycle_counts.unresolved}</strong><small>aucun PnL fabriqué</small></div>
           <div><span>Dernier événement</span><strong>{s.last_event.event_type}</strong><small>#{s.last_event.sequence}</small></div>
           <div><span>T0 scientifique</span><strong>{s.scientific_t0.status}</strong><small>{s.scientific_t0.value_utc ?? "source non matérialisée"}</small></div>
         </div>
@@ -102,9 +101,10 @@ export const BurnInStatusView: React.FC = () => {
         </div>
       </section>
 
+      <p className="source-date">Certification de fin : non disponible. La progression ci-dessus décrit seulement la frontière PPL capturée; aucun objectif ni pourcentage d’achèvement n’est inféré.</p>
       <section className="burnin-panel">
         <div className="burnin-section-head">
-          <div><h3>Positions ouvertes</h3><span>Deadlines calculées côté producteur U2, jamais dans React.</span></div>
+          <div><h3>Positions ouvertes</h3><span>Échéances calculées côté producteur U2, jamais dans React.</span></div>
           <strong>{s.open_lifecycles.length}</strong>
         </div>
         {s.open_lifecycles.length === 0 ? (
@@ -124,8 +124,8 @@ export const BurnInStatusView: React.FC = () => {
         <div className="burnin-history-table-wrap">
           <table className="burnin-history-table">
             <thead><tr>
-              <th>Statut</th><th>Symbole</th><th>Side</th><th>Ouverture</th><th>Fin</th>
-              <th>Principal</th><th>Entry</th><th>Exit</th><th>Frais E/X</th><th>PnL net</th><th>Durée</th><th>Raison</th>
+              <th>Statut</th><th>Symbole</th><th>Sens</th><th>Ouverture</th><th>Fin</th>
+              <th>Principal USD</th><th>Entrée</th><th>Sortie</th><th>Frais E/X</th><th>PnL net</th><th>Durée</th><th>Raison</th>
             </tr></thead>
             <tbody>
               {s.lifecycle_history.map((row) => (
@@ -147,7 +147,7 @@ export const BurnInStatusView: React.FC = () => {
         </div>
       </section>
 
-      <section className="burnin-panel">
+      <details className="burnin-panel"><summary>Diagnostics techniques · configuration et provenance</summary>
         <div className="burnin-section-head"><div><h3>Configuration gelée & provenance</h3><span>Whitelist issue du snapshot BURN_IN_EXPERIMENT_CONFIG_V1.</span></div></div>
         <dl className="burnin-provenance-grid">
           <div><dt>Runtime source SHA</dt><dd>{s.source_code_sha}</dd></div>
@@ -161,7 +161,7 @@ export const BurnInStatusView: React.FC = () => {
           <div><dt>Finalisation</dt><dd>{s.finalization.state}</dd></div>
           <div><dt>Finalisation reason</dt><dd>{s.finalization.reason}</dd></div>
         </dl>
-      </section>
+      </details>
 
       <p className="burnin-boundary">Projection de présentation uniquement : aucune mutation PPL/epoch/stratégie/risk/sizing. CLOSED suit la comptabilité PPL canonique ; UNRESOLVED reste inconnu.</p>
     </div>

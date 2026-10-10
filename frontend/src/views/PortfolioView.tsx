@@ -9,6 +9,7 @@ import React from "react";
 import type { OperatorSnapshot, OpenPosition } from "../types";
 import { ObservedValueView } from "../components/ObservedValueView";
 import { ModeBadge } from "../components/ModeBadge";
+import { fr } from "../lib/presentationFr";
 import { isObservedValue } from "../lib/observedValue";
 
 const fmtUsd = (v: unknown) => (typeof v === "number" ? `$${v.toFixed(2)}` : String(v));
@@ -45,7 +46,7 @@ const PositionRow: React.FC<{ pos: OpenPosition }> = ({ pos }) => (
 const portfolioLabels: Record<string, string> = {"paper_equity_usd": "Capital PAPER USD", "paper_realized_pnl_usd": "Résultat réalisé PAPER USD", "paper_unrealized_pnl_usd": "Résultat latent PAPER USD", "paper_open_positions_count": "Positions PAPER ouvertes", "real_account_equity_usd": "Capital du compte réel USD", "real_account_free_usd": "Capital disponible du compte réel USD", "real_account_stale": "Observation du compte ancienne", "real_account_last_poll_utc": "Dernière lecture du compte UTC", "non_paper_wallet_balance_usd": "Solde hors PAPER USD", "capital_x_usd": "Capital de référence USD"};
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex items-center justify-between py-1.5 border-b" style={{ borderColor: "var(--bg-border)" }}>
+  <div className="portfolio-field" style={{ borderColor: "var(--bg-border)" }}>
     <span title={label} className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
       {portfolioLabels[label] ?? label}
     </span>
@@ -77,14 +78,17 @@ const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) 
   </div>
   <div className="portfolio-mobile-list" data-testid="portfolio-mobile-positions">
     {positions.map((pos) => <article className="portfolio-position-card" key={pos.position_id || pos.symbol}>
-      <h3>{pos.symbol} · {pos.side ?? "—"}</h3><dl>
+      <h3>{pos.symbol} · {fr(pos.side?.toUpperCase())}</h3><dl>
         <div><dt>Taille USD</dt><dd>{pos.size_usd ?? "—"}</dd></div>
-        <div><dt>Entrée</dt><dd>{pos.entry_price ?? "—"}</dd></div>
-        <div><dt>Prix actuel</dt><dd><ObservedValueView ov={pos.current_price} render={fmtUsd} /></dd></div>
+        <div><dt>Prix d’entrée USD</dt><dd>{pos.entry_price ?? "—"}</dd></div>
+        <div><dt>Prix observé USD</dt><dd><ObservedValueView ov={pos.current_price} render={fmtUsd} /></dd></div>
         <div><dt>PnL USD</dt><dd><ObservedValueView ov={pos.unrealized_pnl_usd} render={fmtUsd} /></dd></div>
         <div><dt>PnL %</dt><dd><ObservedValueView ov={pos.unrealized_pnl_pct} render={fmtPct} /></dd></div>
         <div><dt>Régime</dt><dd><ObservedValueView ov={pos.regime} />{pos.restored_without_regime && <span> · restaurée sans régime</span>}</dd></div>
-      </dl><details><summary>Identité & sources</summary><p>{pos.position_id} · {pos.tp_sl_source} · {pos.personality ?? "—"}</p></details>
+      </dl><p className="source-date">Prix observé à : {pos.current_price_observed_at_utc ?? "Inconnu"} · source : capture opérateur /api/operator/v1/snapshot</p>
+      <details><summary>Identité et preuves</summary><p>{pos.position_id} · TP/SL : {pos.tp_sl_source} · profil : {pos.personality ?? "Inconnu"}</p>
+        <p>Prix : référence individuelle inconnue · PnL : capture opérateur · date de valorisation individuelle inconnue</p>
+        <p>Preuve PnL : référence individuelle inconnue. Valeurs publiées, aucun calcul ici.</p></details>
     </article>)}
   </div>
   </>
@@ -164,6 +168,8 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
           Mode publié par la source
         </span>
       </div>
+
+      <p className="source-date">Source : {p.source} · observation : {p.observed_at_utc} · {fr(p.freshness)}. Capture : {snapshot.generated_at_utc}.</p>
 
       {/* PAPER block — always separate from real/testnet observation below */}
       <div

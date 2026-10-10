@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./tokens.css";
 import "./operator.css";
 import "./clarity.css";
+import "./mobile-operator.css";
 import { DirectionShell } from "./shells/DirectionShell";
 import { PaperLiveShell } from "./shells/PaperLiveShell";
 import { ResearchShell } from "./shells/ResearchShell";

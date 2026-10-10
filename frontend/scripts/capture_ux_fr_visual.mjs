@@ -28,9 +28,7 @@ try {
     assert(await page.locator('.section-evidence[open]').count()===0,`machine/${width}: evidence initially closed`);
     await page.getByRole('link',{name:'Portefeuille et finances',exact:true}).click();
     assert((await page.evaluate(()=>location.hash)) === '#machine-finance',`machine/${width}: category navigation`);
-    await page.getByRole('button',{name:'Résultat réalisé fictif',exact:true}).click();
-    assert(await page.getByRole('img',{name:'Résultat réalisé fictif de 0 à 12 USDT'}).isVisible(),`machine/${width}: fictitious realized series`);
-    await page.getByRole('button',{name:'Portefeuille fictif',exact:true}).click();
+    assert(await page.locator('.financial-history').count()===0,`machine/${width}: no detailed accounting chart`);
    }
    if(name === 'radar') {
     const region = page.getByRole('region',{name:'Scanner CryptoRadar · défilement horizontal'});

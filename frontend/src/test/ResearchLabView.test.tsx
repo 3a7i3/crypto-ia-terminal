@@ -188,7 +188,7 @@ describe("WEB-RL Research Lab", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("research-lab-view")).toHaveTextContent(
-        "Erreur de contrat ou de transport du Laboratoire",
+        "La lecture a échoué : transport ou contrat à vérifier.",
       ),
     );
   });

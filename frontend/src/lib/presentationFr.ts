@@ -5,6 +5,8 @@ const labels: Record<string, string> = {
   FRESH: "Publication récente", PRESENT: "Observé", EMPTY: "Vide observé",
   UNRESOLVED: "Non résolu", EXACT: "Concordance exacte", WITHIN_TOLERANCE: "Dans la tolérance",
   DIVERGENT: "Divergence", COMPLETE: "Terminée", PARTIAL: "Partiel", LOW_SAMPLE: "Échantillon limité",
+  DEGRADED: "Dégradé",
+  BUY: "Achat", SELL: "Vente",
   LONG: "Acheteur", SHORT: "Vendeur", MIXED: "Mixte", active: "En cours", inactive: "Arrêté",
   failed: "En échec", activating: "Démarrage", deactivating: "Arrêt en cours",
   ACTIVE: "En cours", QUIESCING: "Mise au repos", FINALIZING: "Finalisation", FINAL: "Finalisée",
