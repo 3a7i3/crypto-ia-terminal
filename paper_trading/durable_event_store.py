@@ -26,6 +26,11 @@ from pathlib import Path
 from typing import Any
 
 from paper_trading.ledger_events import LedgerEvent, LedgerEventType, Side
+from paper_trading.burn_in_admission import (
+    BURN_IN_EPOCH_ID,
+    require_open_admission,
+    validate_drain_decision,
+)
 
 _SUPPORTED_SCHEMA_VERSIONS = frozenset({1, 2})
 _TOP_LEVEL_FIELDS = frozenset(
@@ -535,6 +540,9 @@ class DurableEventStore:
                     "different canonical event"
                 )
 
+            if event.event_type is LedgerEventType.POSITION_OPENED:
+                require_open_admission(expected_epoch_id)
+
             epoch_events = epochs.get(expected_epoch_id, ())
             expected_sequence = (
                 epoch_events[-1].event.sequence + 1 if epoch_events else 1
@@ -562,6 +570,77 @@ class DurableEventStore:
                 paper_epoch_id=event.paper_epoch_id,
                 sequence=event.sequence,
             )
+
+    def seal_burn_in_admission(
+        self,
+        *,
+        expected_sequence: int,
+        expected_stream_sha256: str,
+        decision_url: str,
+        operator: str,
+        decided_at: str,
+    ) -> Mapping[str, Any]:
+        """Persist a write-once drain receipt at a compare-and-set PPL boundary.
+
+        This explicit-root API is for a separately authorized operator, not
+        Advisor, Research or the GET-only Operator API. Never edits PPL facts.
+        Failure leaves admission closed; partial receipts are not repaired.
+        """
+        validate_drain_decision(
+            decision_url=decision_url, operator=operator, decided_at=decided_at
+        )
+        if type(expected_sequence) is not int or expected_sequence < 1:
+            raise ValueError("expected_sequence must be a positive integer")
+        if not isinstance(expected_stream_sha256, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", expected_stream_sha256
+        ):
+            raise ValueError("expected_stream_sha256 must be a SHA-256 digest")
+        # Do not create a store or epoch as an activation side effect.
+        if not self._epoch_path(BURN_IN_EPOCH_ID).is_file():
+            raise EpochNotFoundError("burn-in epoch must already exist")
+        with self._lock(exclusive=True):
+            epochs, _ = self._scan_store()
+            events = epochs.get(BURN_IN_EPOCH_ID, ())
+            raw = b"".join(item.canonical_line for item in events)
+            if not events or events[-1].event.sequence != expected_sequence or (
+                hashlib.sha256(raw).hexdigest() != expected_stream_sha256
+            ):
+                raise StoreEpochMismatchError("drain boundary changed; capture it again")
+            birth = events[0].event
+            if birth.event_type is not LedgerEventType.EPOCH_CREATED:
+                raise StoreCorruptionError("drain requires an explicit epoch birth")
+            from paper_trading.paper_portfolio_ledger import project
+
+            project(tuple(item.event for item in events))
+            receipt = {
+                "schema_version": 1,
+                "fence_contract": "PPL-BURNIN-EARLY-TERMINATION/v1",
+                "state": "DRAIN_ONLY",
+                "paper_epoch_id": BURN_IN_EPOCH_ID,
+                "last_sequence": expected_sequence,
+                "ppl_stream_sha256": expected_stream_sha256,
+                "epoch_birth": _event_to_record(birth),
+                "decision_url": decision_url,
+                "operator": operator,
+                "decided_at": decided_at,
+            }
+            encoded = json.dumps(receipt, sort_keys=True, allow_nan=False).encode() + b"\n"
+            path = self._root / "burn-in-drain-receipt.json"
+            try:
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                if path.is_symlink() or not path.is_file() or path.read_bytes() != encoded:
+                    raise StoreCorruptionError("drain receipt differs or is incomplete") from None
+                with path.open("rb") as handle:
+                    os.fsync(handle.fileno())
+            else:
+                with os.fdopen(fd, "wb") as handle:
+                    if handle.write(encoded) != len(encoded):
+                        raise OSError("short drain receipt write")
+                    handle.flush()
+                    os.fsync(handle.fileno())
+            self._fsync_directory(self._root)
+            return receipt
 
     def load_epoch(self, paper_epoch_id: str) -> tuple[LedgerEvent, ...]:
         """Return one complete validated epoch in physical/sequence order.

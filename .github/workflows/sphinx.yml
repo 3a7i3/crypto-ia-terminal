@@ -1,4 +1,4 @@
-# Automatisation du build Sphinx
+# Publication Sphinx uniquement sur décision manuelle explicite.
 
 
 # Badges à ajouter dans le README.md :
@@ -8,20 +8,15 @@
 name: Build & Deploy Sphinx Docs
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docs/**'
-      - '*.md'
-      - 'quant_hedge_ai/**'
-      - '.github/workflows/sphinx.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-docs:
     # Les webhooks et le jeton d'écriture ne sont accessibles que depuis main.
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # Requis par l'etape « Deploy to GitHub Pages » : sans cela le push vers
     # gh-pages echoue avec « Permission denied to github-actions[bot] » (403).
@@ -79,7 +74,7 @@ jobs:
           path: docs/_build/html
       # Défense supplémentaire : seul main peut publier le site public.
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

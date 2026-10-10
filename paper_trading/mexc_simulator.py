@@ -26,6 +26,7 @@ from enum import Enum
 from typing import Callable, Optional
 
 from paper_trading.admission_ledger import get_admission_ledger
+from paper_trading.burn_in_admission import PPLAdmissionClosedError
 from paper_trading.admission_types import (
     AdmissionAttempt,
     AdmissionBlocker,
@@ -129,6 +130,8 @@ class MexcOrder:
     # PPL-02D — explicit decision provenance (DecisionPacket.packet_id when
     # an actual packet exists). Never a trace_id/cycle_id/order_id alias.
     decision_id: Optional[str] = None
+    # Cause typée du refus PPL ; ne modifie aucun événement lifecycle.
+    rejection_code: Optional[str] = None
 
 
 @dataclass
@@ -796,7 +799,10 @@ class MexcSimulator:
         elif order.status == OrderStatus.REJECTED:
             # Distingue duplicate (position déjà présente) vs autres rejets
             # (capital insuffisant, prix indisponible, écart OHLCV/ticker).
-            if order.symbol in self._positions and ctx.n_before == n_after:
+            if order.rejection_code == "PPL_ADMISSION_DENIED":
+                write_result = WriteResult.REJECTED_ADMISSION
+                anomaly = order.rejection_code
+            elif order.symbol in self._positions and ctx.n_before == n_after:
                 write_result = WriteResult.REJECTED_DUPLICATE
                 anomaly = ""
             else:
@@ -1063,20 +1069,26 @@ class MexcSimulator:
             opened_at = time.time()
             timeout_at = opened_at + (_MAX_POSITION_AGE_H * 3600.0)
             recovery_until = timeout_at + _RESTORE_MAX_AGE_S
-            self._authority_runtime.commit_open(
-                trade_id=order.order_id,
-                symbol=order.symbol,
-                side=order.side.value,
-                principal=size,
-                entry_price=fill,
-                entry_fee=fee,
-                opened_at=opened_at,
-                tp_price=tp,
-                sl_price=sl,
-                timeout_at=timeout_at,
-                recovery_eligible_until=recovery_until,
-                decision_id=order.decision_id,
-            )
+            try:
+                self._authority_runtime.commit_open(
+                    trade_id=order.order_id,
+                    symbol=order.symbol,
+                    side=order.side.value,
+                    principal=size,
+                    entry_price=fill,
+                    entry_fee=fee,
+                    opened_at=opened_at,
+                    tp_price=tp,
+                    sl_price=sl,
+                    timeout_at=timeout_at,
+                    recovery_eligible_until=recovery_until,
+                    decision_id=order.decision_id,
+                )
+            except PPLAdmissionClosedError as exc:
+                order.status = OrderStatus.REJECTED
+                order.rejection_code = "PPL_ADMISSION_DENIED"
+                _log.info("[SIM][PPL] OPEN rejected: %s", exc)
+                return order
             authority_state = self._authority_runtime.consistent_view().projection
             pos = MexcPosition(
                 pos_id=order.order_id,
