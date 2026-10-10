@@ -241,3 +241,62 @@ def test_drained_boundary_ppl_fin_replay_is_exact(tmp_path):
     )
     assert proof.exact_replay_equivalent
     assert proof.source_event_count == 3
+
+@pytest.mark.parametrize("receipt", ["missing", "valid", "corrupt", "deleted"])
+def test_approved_policy_denied_by_ppl_is_not_insufficient_capital(
+    tmp_path, monkeypatch, receipt,
+):
+    import json
+
+    from paper_trading.admission_ledger import reset_admission_ledger_singleton
+    from paper_trading.admission_types import (
+        AdmissionBlocker, AdmissionDecision, AdmissionLevel, AdmissionVerdict,
+    )
+
+    ledger_path = tmp_path / "admission.jsonl"
+    monkeypatch.setenv("PAPER_ADMISSION_LEDGER", str(ledger_path))
+    reset_admission_ledger_singleton()
+    try:
+        store, _ = history(tmp_path / "ppl")
+        path = store._root / "burn-in-drain-receipt.json"
+        if receipt in {"valid", "deleted"}:
+            store.seal_burn_in_admission(**request(store))
+            if receipt == "deleted":
+                path.unlink()
+        elif receipt == "corrupt":
+            path.write_bytes(b"partial")
+        rt = runtime(DurableEventStore(store._root))
+        sim = MexcSimulator(
+            lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY,
+            authority_runtime=rt,
+        )
+        monkeypatch.setattr("paper_trading.mexc_simulator.time.time", lambda: 25.0)
+        monkeypatch.setattr("paper_trading.mexc_simulator.threading.Thread.start", lambda thread: None)
+        monkeypatch.setattr(sim, "_fetch_price", lambda symbol: 100.0)
+        sim.start()
+        before = store._epoch_path(BURN_IN_EPOCH_ID).read_bytes()
+        capital = sim._capital
+        verdict = AdmissionVerdict(
+            decision=AdmissionDecision.APPROVED, level=AdmissionLevel.A,
+            n_at_check=1, hard_max_at_check=5, blocker=AdmissionBlocker.NONE,
+            reason="synthetic approved policy", checked_by="test",
+        )
+        result = sim.place_market_order(
+            "ETHUSDT", "BUY", qty_usd=10.0, current_price=100.0,
+            admission=verdict, cycle_id="synthetic-deny",
+        )
+        assert result.status is OrderStatus.REJECTED
+        assert result.rejection_code == "PPL_ADMISSION_DENIED"
+        assert sim._capital == capital
+        assert "ETHUSDT" not in sim._positions
+        assert store._epoch_path(BURN_IN_EPOCH_ID).read_bytes() == before
+        attempt, outcome = [json.loads(line) for line in ledger_path.read_text().splitlines()]
+        assert outcome["attempt_id"] == attempt["attempt_id"]
+        assert outcome["write_result"] == "REJECTED_ADMISSION"
+        assert outcome["anomaly"] == "PPL_ADMISSION_DENIED"
+        assert attempt["n_before"] == outcome["n_after"] == 1
+        sim._close_position("BTCUSDT", 110.0, "TP")
+        assert not rt.consistent_view().projection.open_positions
+        assert store._epoch_path(BURN_IN_EPOCH_ID).read_bytes().startswith(before)
+    finally:
+        reset_admission_ledger_singleton()

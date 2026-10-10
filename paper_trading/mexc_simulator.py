@@ -130,6 +130,8 @@ class MexcOrder:
     # PPL-02D — explicit decision provenance (DecisionPacket.packet_id when
     # an actual packet exists). Never a trace_id/cycle_id/order_id alias.
     decision_id: Optional[str] = None
+    # Cause typée du refus PPL ; ne modifie aucun événement lifecycle.
+    rejection_code: Optional[str] = None
 
 
 @dataclass
@@ -797,7 +799,10 @@ class MexcSimulator:
         elif order.status == OrderStatus.REJECTED:
             # Distingue duplicate (position déjà présente) vs autres rejets
             # (capital insuffisant, prix indisponible, écart OHLCV/ticker).
-            if order.symbol in self._positions and ctx.n_before == n_after:
+            if order.rejection_code == "PPL_ADMISSION_DENIED":
+                write_result = WriteResult.REJECTED_ADMISSION
+                anomaly = order.rejection_code
+            elif order.symbol in self._positions and ctx.n_before == n_after:
                 write_result = WriteResult.REJECTED_DUPLICATE
                 anomaly = ""
             else:
@@ -1081,6 +1086,7 @@ class MexcSimulator:
                 )
             except PPLAdmissionClosedError as exc:
                 order.status = OrderStatus.REJECTED
+                order.rejection_code = "PPL_ADMISSION_DENIED"
                 _log.info("[SIM][PPL] OPEN rejected: %s", exc)
                 return order
             authority_state = self._authority_runtime.consistent_view().projection
