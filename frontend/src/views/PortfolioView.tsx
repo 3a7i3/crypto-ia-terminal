@@ -13,6 +13,7 @@ import { fr } from "../lib/presentationFr";
 import { isObservedValue } from "../lib/observedValue";
 
 const fmtUsd = (v: unknown) => (typeof v === "number" ? `$${v.toFixed(2)}` : String(v));
+const fmtPrice = (v: unknown) => (typeof v === "number" ? v.toFixed(2) : String(v));
 const fmtPct = (v: unknown) => (typeof v === "number" ? `${v.toFixed(2)}%` : String(v));
 
 const PositionRow: React.FC<{ pos: OpenPosition }> = ({ pos }) => (
@@ -22,7 +23,7 @@ const PositionRow: React.FC<{ pos: OpenPosition }> = ({ pos }) => (
     <td className="py-1.5 pr-3 font-mono text-xs">{pos.size_usd ?? "—"}</td>
     <td className="py-1.5 pr-3 font-mono text-xs">{pos.entry_price ?? "—"}</td>
     <td className="py-1.5 pr-3 font-mono text-xs">
-      <ObservedValueView ov={pos.current_price} render={fmtUsd} />
+      <ObservedValueView ov={pos.current_price} render={fmtPrice} />
     </td>
     <td className="py-1.5 pr-3 font-mono text-xs">
       <ObservedValueView ov={pos.unrealized_pnl_usd} render={fmtUsd} />
@@ -62,7 +63,7 @@ const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) 
     <table className="w-full">
       <thead>
         <tr className="text-left" style={{ color: "var(--text-muted)" }}>
-          {["Symbole", "Sens", "Taille USD", "Entrée", "Prix actuel", "Résultat latent USD", "Résultat latent %", "Régime", "Source TP/SL", "Profil"].map((h) => (
+          {["Symbole", "Sens", "Taille USD", "Entrée · unité inconnue", "Prix observé · unité inconnue", "Résultat latent USD", "Résultat latent %", "Régime", "Source TP/SL", "Profil"].map((h) => (
             <th key={h} className="font-mono text-[10px] font-normal pb-1 pr-3">
               {h}
             </th>
@@ -80,12 +81,12 @@ const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) 
     {positions.map((pos) => <article className="portfolio-position-card" key={pos.position_id || pos.symbol}>
       <h3>{pos.symbol} · {fr(pos.side?.toUpperCase())}</h3><dl>
         <div><dt>Taille USD</dt><dd>{pos.size_usd ?? "—"}</dd></div>
-        <div><dt>Prix d’entrée USD</dt><dd>{pos.entry_price ?? "—"}</dd></div>
-        <div><dt>Prix observé USD</dt><dd><ObservedValueView ov={pos.current_price} render={fmtUsd} /></dd></div>
+        <div><dt>Prix d’entrée · unité inconnue</dt><dd>{pos.entry_price ?? "—"}</dd></div>
+        <div><dt>Prix observé · unité inconnue</dt><dd><ObservedValueView ov={pos.current_price} render={fmtPrice} /></dd></div>
         <div><dt>PnL USD</dt><dd><ObservedValueView ov={pos.unrealized_pnl_usd} render={fmtUsd} /></dd></div>
         <div><dt>PnL %</dt><dd><ObservedValueView ov={pos.unrealized_pnl_pct} render={fmtPct} /></dd></div>
         <div><dt>Régime</dt><dd><ObservedValueView ov={pos.regime} />{pos.restored_without_regime && <span> · restaurée sans régime</span>}</dd></div>
-      </dl><p className="source-date">Prix observé à : {pos.current_price_observed_at_utc ?? "Inconnu"} · source : capture opérateur /api/operator/v1/snapshot</p>
+      </dl><p className="source-date">Le contrat ne publie pas d’unité de cotation ; aucune conversion USD/USDT. Prix observé à : {pos.current_price_observed_at_utc ?? "Inconnu"} · source : capture opérateur /api/operator/v1/snapshot</p>
       <details><summary>Identité et preuves</summary><p>{pos.position_id} · TP/SL : {pos.tp_sl_source} · profil : {pos.personality ?? "Inconnu"}</p>
         <p>Prix : référence individuelle inconnue · PnL : capture opérateur · date de valorisation individuelle inconnue</p>
         <p>Preuve PnL : référence individuelle inconnue. Valeurs publiées, aucun calcul ici.</p></details>

@@ -23,6 +23,7 @@ GitHub apporte des preuves source ; il ne prouve pas l’état actuel du VPS.
 | Historique comptable dupliqué | `DirectionOverview` et `FinancialReconciliationView` montaient `FinancialHistory` | Correction de présentation seulement |
 | Décisions illisibles | Tableau unique large, sans recherche ni filtres | Lecture Android déclarée ; tests navigateur synthétiques ajoutés |
 | Vue générale technique | Identités et statuts bruts au premier niveau | Pas de preuve suffisante pour affirmer une santé globale |
+| Unité des prix | `OpenPosition` et `operator_snapshot_builder.py` ne publient pas de devise de cotation | Prix sans symbole dollar, unité explicitement inconnue ; taille et PnL USD conservés |
 | Portefeuille | Cartes mobiles existantes ; longues identités et preuves insuffisamment contraintes | Risque de débordement vérifié sur fixtures locales, pas sur Android réel |
 | Research 503 | Route frontend et API concordantes ; lecteur strict renvoie `RESEARCH_LAB_SNAPSHOT_MISSING` lorsque son chemin n’existe pas | Publication absente au chemin lu selon l’erreur déclarée ; mauvaise configuration, montage, lien cassé ou absence du producteur restent inconnus |
 | Burn-in 503 | Route frontend et API concordantes ; lecteur strict renvoie `BURN_IN_STATUS_MISSING` | Même limite : aucun mauvais chemin frontend démontré, configuration réelle non inspectée |
@@ -145,6 +146,8 @@ Les snapshots peuvent être valides mais historiquement anciens. Les comptes
 Décisions couvrent uniquement les lignes publiées, pas une population exhaustive.
 Les états inconnus des bloqueurs sont conservés dans leur répartition.
 Les cartes affichent uniquement les unités définies par les contrats existants ;
+le contrat portefeuille n’expose pas d’unité de cotation des prix : elle est
+explicitement inconnue et le prix ne reçoit plus de symbole dollar.
 aucune conversion USD/USDT ni nouveau calcul PnL n’est introduit.
 Les essais Chromium ne remplacent pas une validation Android/TalkBack réelle.
 Les accès aux fichiers runtime et producteurs n’étant pas observés, les causes
@@ -190,7 +193,7 @@ npm run test:runtime --prefix frontend
 python -m pytest -q tests/test_operator_api.py tests/test_operator_burn_in_api.py tests/test_web_rl_research_lab.py tests/test_operator_api_financial_reconciliation.py tests/test_ppl_accounting_history.py tests/test_pre_t1_c_portfolio_provider_read_only.py
 ```
 
-Résultats locaux : 429 tests frontend (y compris compatibilité cross-stack,
+Résultats locaux : 430 tests frontend (y compris compatibilité cross-stack,
 Decimal, unités et trois modes comptables), 254 tests Python pertinents,
 8 tests bootstrap/PWA ; build réussi. États loading, missing, stale,
 degraded et available couverts par les suites et la preuve navigateur.
