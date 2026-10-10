@@ -7,7 +7,7 @@ const fixture = JSON.parse(await readFile(".cross-stack-fixtures/N_research_publ
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 assert(fixture.http_status === 200 && fixture._proof.builder_invoked, "Missing real builder/API fixture");
 await mkdir(out, { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || undefined });
 const errors = [], requests = [];
 try {
   for (const width of [1440, 390]) for (const scenario of ["published", "historical", "empty", "missing", "invalid", "network"]) {
@@ -27,7 +27,7 @@ try {
     const view = page.getByTestId("research-lab-view");
     await view.waitFor();
     if (["missing", "invalid", "network"].includes(scenario)) {
-      assert((await view.innerText()).includes(scenario === "missing" ? "indisponible" : "Erreur de contrat ou de transport"), "Failure hidden");
+      assert((await view.innerText()).includes(scenario === "missing" ? "indisponible" : "La lecture a échoué : transport ou contrat à vérifier."), "Failure hidden");
       assert(await page.getByTestId("research-metric-card").count() === 0, "Error retained metrics");
     } else {
       await page.getByText(/^Limites connues ·/).click();

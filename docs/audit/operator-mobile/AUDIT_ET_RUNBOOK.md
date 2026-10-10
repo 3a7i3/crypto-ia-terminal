@@ -215,3 +215,10 @@ Le script contrôle 360/390/412/1440 px, états absents/périmés, défilement l
 GET seuls, absence d’exceptions, clavier, cibles tactiles et contraste AA des
 quatre couleurs sémantiques sur le fond des cartes (98 contrôles). Les images montrent les
 fixtures, jamais une preuve de santé du VPS.
+
+Les anciens scripts visuels U2, Direction D3 et Research U4 ont été adaptés
+aux nouveaux libellés, diagnostics repliés et six sources Machine. Ils ont
+également passé leurs scénarios desktop/mobile localement : provenance,
+populations, erreurs réseau/contrat, historique, absence de requêtes mutantes.
+Leurs assertions de preuve et de lecture seule sont conservées ; Machine doit
+désormais explicitement ne pas lire `/ppl-accounting-history`.
