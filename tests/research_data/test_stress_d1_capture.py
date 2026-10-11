@@ -115,6 +115,12 @@ class TestD1Capture(unittest.TestCase):
         with self.assertRaisesRegex(CaptureBlocked,'UNSAFE_SOURCE_FILE'):
             self.run_capture()
 
+    def test_source_must_be_an_explicit_research_staging_root(self):
+        unapproved=self.input.parent/'unapproved'
+        unapproved.mkdir()
+        with self.assertRaisesRegex(CaptureBlocked,'APPROVED_RESEARCH_STAGING_ROOT_REQUIRED'):
+            capture(unapproved,unapproved/'capture_request.json',self.output)
+
     def test_missing_kind_and_live_runtime_path_refused(self):
         req=self.input/'capture_request.json'
         doc=json.loads(req.read_text())
