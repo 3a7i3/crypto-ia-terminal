@@ -16,7 +16,6 @@ import os
 import shutil
 import stat
 import tempfile
-from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
