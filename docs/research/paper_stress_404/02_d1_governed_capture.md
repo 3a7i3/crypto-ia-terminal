@@ -83,3 +83,35 @@ D2 still requires synchronized executable market price/quote/depth paths; D3 nee
 - No merge or deployment until explicit operator approval and independent review; #286 remains active.
 
 **Security boundary:** the standalone tool rejects input roots not explicitly below a `research_audit` directory (or the named synthetic-only test fixture root). This string-bound source guard is a defense-in-depth convention, **not an operating-system sandbox**: real operator custody, Unix permissions and review are still mandatory. The output is content-addressed and chmod read-only, not a WORM/immutable-filesystem guarantee.
+
+## 6. Operator-observed producer inventory — 2026-10-11 UTC
+
+The operator reported **file metadata only**, not file contents, signed fingerprints, row counts or immutable copies. Treat this as observed filenames/sizes/times, not certified D1 producer continuity.
+
+- `RejectionStore`: dated shards were reported from 2026-08-18 through 2026-10-11 (latest file is mutable/current and must not be treated as closed).
+- `DecisionPackets`: dated shards were reported from 2026-10-03 through 2026-10-11; no 2026-09-26 through 2026-10-02 shard appears in this operator inventory. This does **not** establish irreversible loss: separate Research snapshots/backups/archive custody must be checked before making such a claim.
+- `CycleData`: the dated 2026-10-10 shard was reported; no independent producer-cycle completeness denominator was provided.
+- `AdmissionLedger` and `DecisionIdentityJournal`: the **latest operator message does not include their stat lines**. They were observed in earlier terminal output, but their size/stability and bounded-capture status must be reconfirmed independently.
+
+At `main@2015a88f`, `scripts/rotate_jsonl.sh` sets `KEEP_DAYS=7` by default and purges date-stamped DecisionPacket and CycleData shards before the cutoff. This creates a serious survivorship risk for full-epoch candidate reconstruction. The longer RejectionStore history is **not** proof of corresponding DecisionPackets or of a full denominator.
+
+### First bounded candidate window (design only, not yet captured)
+
+Use a *closed and previously completed* UTC day, initially `[2026-10-10T00:00:00Z, 2026-10-11T00:00:00Z)`, subject to independent producer checks. The operator's inventory reports:
+- `decision_packets_2026-10-10.jsonl`: 49,070,630 bytes.
+- `rejections_2026-10-10.jsonl`: 8,093,279 bytes.
+- The corresponding admission/identity material is **not a pair of dated files**. Their stable source prefix and exactly bounded temporal subset would need separately governed, read-only capture with the original prefix length/hash, per-row source offsets, timestamps and complete join status.
+
+Important exporter limitation: `stress_d1_capture.py` takes complete pre-staged JSONL shards; it **does not extract records by UTC range**. Simply feeding a full cumulative IdentityJournal or AdmissionLedger that contains other dates will report `EVENT_OUTSIDE_DECLARED_WINDOW` and must not be promoted into a consistent window. The staging process must establish integrity and range membership **before** offline capture, never silently truncate, skip malformed lines or infer missing outcomes as zero.
+
+The O4/O6-B prefix `source_boundary_id=d60d1b...78e` refers to the **2026-10-01 historical PPL boundary**; it must not be represented as newly certified 2026-10-10 PPL authority. A new time-scoped custody/boundary attestation requires its own evidence chain. An unsigned request field is merely a claim.
+
+### Gate before any operator snapshot
+
+1. Read-only, bounded inventory for the missing pre-October DecisionPacket archives and independent cycle-denominator sources; explicitly label archived versus absent.
+2. Confirm metadata (size, last modification, expected format and ownership) of cumulative AdmissionLedger and DecisionIdentityJournal. Do not print raw records, secrets or broad log contents.
+3. Agree on the **one-day window** and output custody. Snapshot only the exact allowlisted producer files, in a separate Research-only location using a designated operator; the restricted MCP never gets production-directory access.
+4. For append-only mutable inputs, record a byte-stable prefix and original file SHA / prefix SHA, validate newline boundaries, preserve offsets and prove a bounded subset against the parent prefix. If proof cannot be established, mark the component `UNKNOWN`.
+5. Only after those conditions, run the offline D1 tool, and expect `PROVISIONAL_ONLY` until the independent denominator, origin epoch and causal joins have been certified.
+
+**No full-burn-in D1 certification, no counterfactual 4/5-position simulation, no runtime operation and no change to freeze #286 follows from this inventory.**
