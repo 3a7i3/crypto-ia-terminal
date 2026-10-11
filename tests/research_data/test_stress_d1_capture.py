@@ -77,6 +77,31 @@ class TestD1Capture(unittest.TestCase):
         self.assertIn('CAUSAL_TIMESTAMP_COVERAGE_GAP',m['coverage']['structural_failures'])
         self.assertFalse(m['counterfactual_go'])
 
+    def test_real_packet_naive_utc_source_clock_is_explicit(self):
+        self.raw['decision_packets'][0]['created_at'] = '2026-10-01T12:00:01'
+        self.write_request()
+        info = self.run_capture()
+        manifest = json.loads(
+            (self.output / info['dataset_id'] / 'manifest.json').read_text()
+        )
+        clock = manifest['coverage']['time_coverage']['decision_packets']
+        self.assertEqual(clock['naive_utc_assumed_not_clock_certified'], 1)
+        self.assertEqual(clock['outside_window'], 0)
+        self.assertFalse(manifest['counterfactual_go'])
+
+    def test_end_boundary_is_exclusive(self):
+        self.raw['decision_packets'][0]['created_at'] = '2026-10-02T00:00:00'
+        self.write_request()
+        info = self.run_capture()
+        manifest = json.loads(
+            (self.output / info['dataset_id'] / 'manifest.json').read_text()
+        )
+        self.assertIn(
+            'EVENT_OUTSIDE_DECLARED_WINDOW',
+            manifest['coverage']['structural_failures'],
+        )
+        self.assertFalse(manifest['counterfactual_go'])
+
     def test_mutated_bytes_refused_before_publish(self):
         with (self.input/'admission_ledger.jsonl').open('ab') as f:
             f.write(b'{}\n')
