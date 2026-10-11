@@ -243,7 +243,7 @@ def classify_records(records: dict[str, list[dict[str, Any]]]) -> dict[str, Any]
                     t.get("to_state") == "REJECTED"]
         actor = rejected[0].get("actor") if rejected else None
         # Closed vocabulary prevents raw custom actor names/IDs leaking to stdout.
-        actor = actor if actor in ("risk_gate", "portfolio_brain", "capital_engine",
+        actor = actor if actor in ("risk_gate", "global_risk_gate", "portfolio_brain", "capital_engine",
                                   "pipeline_g8d", "governance_g0", "conviction_engine") else "UNKNOWN"
         actors[actor][classification] += 1
         blocker = observations.get(pid, {}).get("first_blocker")

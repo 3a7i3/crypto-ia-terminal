@@ -340,3 +340,11 @@ def test_public_boundary_rejects_symlink_root(tmp_path):
     assert result["status"] == "D1_C_INTEGRITY_FAILURE"
     assert result["classification"] == "NOT_EMITTED"
     assert result["integrity_counts"] == "NOT_ESTABLISHED_ON_FAILED_VALIDATION"
+
+
+def test_native_global_risk_gate_actor_is_preserved_separately_from_blocker():
+    rows = records()
+    rows["decision_packets"][3]["state_history"][0]["actor"] = "global_risk_gate"
+    result = classify_records(rows)
+    assert result["coverage_by_first_packet_reject_actor"]["global_risk_gate"] == {"UNKNOWN_ELIGIBILITY": 1}
+    assert result["coverage_by_observed_first_blocker"]["UNKNOWN"]["UNKNOWN_ELIGIBILITY"] == 2
