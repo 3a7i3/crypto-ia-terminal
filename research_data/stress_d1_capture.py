@@ -220,7 +220,7 @@ def _coverage(records: dict[str, list[dict[str, Any]]], start: datetime, end: da
     time_fields = {"decision_packets": "created_at", "decision_identity_records": "ts", "admission_ledger": "ts", "rejection_store": "ts"}
     time_coverage: dict[str, Any] = {}
     for kind in KINDS:
-        missing = out_of_window = present = 0
+        missing = out_of_window = present = naive_utc_assumed = 0
         for row in records[kind]:
             val = row.get(time_fields[kind])
             if val is None:
@@ -230,15 +230,30 @@ def _coverage(records: dict[str, list[dict[str, Any]]], start: datetime, end: da
                 if isinstance(val, (int, float)) and not isinstance(val, bool):
                     moment = datetime.fromtimestamp(val, timezone.utc)
                 elif isinstance(val, str):
-                    moment = _time(val)
+                    if kind == "decision_packets":
+                        # core/decision_packet.py serializes UTC datetimes using
+                        # datetime.utcnow().isoformat(), i.e. without the Z
+                        # marker. This clock basis is an unverified source
+                        # convention, not an independent time certification.
+                        candidate = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                        if candidate.tzinfo is None:
+                            naive_utc_assumed += 1
+                            candidate = candidate.replace(tzinfo=timezone.utc)
+                        if candidate.utcoffset() != timezone.utc.utcoffset(candidate):
+                            raise ValueError("non-UTC DecisionPacket clock")
+                        moment = candidate
+                    else:
+                        moment = _time(val)
                 else:
                     raise ValueError("unsupported time type")
                 present += 1
-                if not (start <= moment <= end):
+                if not (start <= moment < end):
                     out_of_window += 1
             except (ValueError, OverflowError, OSError, CaptureBlocked):
                 failures.append("UNPARSABLE_CAUSAL_TIME")
-        time_coverage[kind] = {"timestamp_present":present,"timestamp_missing":missing,"outside_window":out_of_window}
+        time_coverage[kind] = {"timestamp_present": present, "timestamp_missing": missing,
+                               "outside_window": out_of_window,
+                               "naive_utc_assumed_not_clock_certified": naive_utc_assumed}
         if out_of_window:
             failures.append("EVENT_OUTSIDE_DECLARED_WINDOW")
     metrics["time_coverage"] = time_coverage
