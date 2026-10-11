@@ -42,3 +42,21 @@ ces nombres n'est une nouvelle mesure D1-C ni une perte démontrée.
 `COUNTERFACTUAL_PERFORMANCE_ELIGIBILITY=NOT_PROVEN`
 `PAPER_STRESS_RUNTIME_GO=DENIED`
 `ACTIVE_BURN_IN_IMMUTABILITY_GUARD=ACTIVE`
+
+## Reprise de revue #407 — 2026-10-11 UTC
+
+Revue indépendante lue **avant modification** :
+[COMMENTED, no approval](https://github.com/3a7i3/crypto-ia-terminal/pull/407#pullrequestreview-5482071487),
+commit revu `f18b4ba27f012193a2d0c25485429c384298c239`.
+HEAD local et distant initial identiques, arbre propre ; branche exclusive
+`research/paper-stress-404-d1-c`. main reste
+`2015a88f10c31e3379b569f864696d62c282b0f0`, #406 reste Draft au
+`b99c2ed4f38ebeff481b5f470ed2d08e8e852257`, #407 reste Draft vers main.
+Références revérifiées après implémentation : aucun changement concurrent
+observé. Correctif source `f4c816e4e9679757726aa972f642aa86666785b0`.
+
+Deux actions source traitées : chargement explicite sans package sous `-I -B`
+et attestation SHA/provenance avant lecture de données. L'action d'exécution
+réelle reste une gate distincte non exécutée : appareil Offline. Les cinq
+fichiers hérités de #406, main et toutes les sources runtime restent inchangés.
+Pas de merge, déploiement, restart, instrumentation active ni feedback.

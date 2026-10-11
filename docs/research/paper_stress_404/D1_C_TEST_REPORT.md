@@ -82,3 +82,97 @@ NOT_OBSERVED. Dataset/source boundary NOT_PROVEN ; aucun identifiant O4 emprunt�
 `COUNTERFACTUAL_PERFORMANCE_ELIGIBILITY=NOT_PROVEN`
 `PAPER_STRESS_RUNTIME_GO=DENIED`
 `ACTIVE_BURN_IN_IMMUTABILITY_GUARD=ACTIVE`
+
+## Seconde revue — correctifs de chargement isolé (2026-10-11 UTC)
+
+Les résultats V1 ci-dessus restent historiques. Source V2 testée :
+`f4c816e4e9679757726aa972f642aa86666785b0`, basée sur le HEAD #407 revu
+`f18b4ba27f012193a2d0c25485429c384298c239`. Le commit de rapport suivant
+ne modifie que la documentation ; les hashes ci-dessous identifient exactement
+les sources exécutées. Environnement local inchangé : Python 3.12.14,
+pytest 9.1.1, Ruff 0.15.8, Linux Research ; CI Python 3.11.
+
+| Fichier | SHA-256 V2 |
+|---|---|
+| Lanceur autonome | `579bff90b9e2aa89885e4e64056f91c31233adf31942f344e2907cd8a36d4e25` |
+| Classificateur | `96f1f13e814190860adc69ccae2c868df6a0c3acd8b072b995ef1cd902224e47` |
+| Tests nouveaux de chargement | `aef84154c63b0cb5e63bc38679c0b91716248db43a6be891e687acbf7e64a224` |
+| Auditeur historique inchangé | `11d3e13e90e04446f6d1fc5bff4840103fa4f23e2865a211e8b5f77771b94494` |
+
+Commandes exactes et résultats locaux :
+
+```bash
+python -m pytest -q tests/research_data/test_stress_d1_isolated_runner.py tests/research_data/test_stress_d1_rejection_eligibility.py
+# 86 PASS, 0 échec, 0 skip (24 nouveaux + 62 existants)
+
+python -m pytest -q tests/research_data/test_stress_d1_isolated_runner.py tests/research_data/test_stress_d1_rejection_eligibility.py tests/research_data/test_stress_d1_capture.py tests/test_rejection_store.py tests/test_decision_observation.py tests/test_s03b_provenance.py tests/test_decision_event_bus.py tests/test_decision_packet_confidence.py
+# 164 PASS, 0 échec, 0 skip, 3 avertissements
+
+python -m pytest -q tests/research_data tests/research_replay tests/research_diag tests/research_candidate tests/paper_trading/test_rb3_burn_in_epoch_identity.py tests/test_rb3_burn_in_config_freeze.py tests/test_herm_02_test_persistence_isolation.py
+# 264 PASS, 0 échec, 0 skip, 399 avertissements
+
+python -m pytest -q tests/cross_stack/
+# 96 PASS, 0 échec, 0 skip, 1 avertissement
+
+ruff check research_data/stress_d1_isolated_runner.py research_data/stress_d1_rejection_eligibility.py tests/research_data/test_stress_d1_isolated_runner.py
+# PASS
+python scripts/ci/ruff_baseline_gate.py check
+# PASS : baseline 957, actuels 945, 0 nouvelle violation ; baseline inchangée
+python -m py_compile research_data/stress_d1_isolated_runner.py research_data/stress_d1_rejection_eligibility.py tests/research_data/test_stress_d1_isolated_runner.py
+# PASS (compilation locale seulement ; le lanceur gouverné conserve -B)
+git diff --check
+# PASS
+```
+
+Les nouveaux contrôles prouvent : chargement des bytes vérifiés, liaison du module
+réel, substitution même sans attributs, mauvais __file__/origine, fichier modifié,
+mauvais digest classificateur/historique avant exécution, symlink, racine non
+Research, fichier/répertoire non root-owned ou writable, audit package sans
+provenance refusé avant lecture, package absent sous `-I -B`, lanceur autonome
+utilisable depuis cwd sans package, aucune extension sys.path, PYTHONPATH ignoré,
+absence de bytecode, invocation sans options isolées refusée.
+
+Le harness positif isolé remplace la custody OS du tempfile synthétique pour
+CI non-root ; il conserve les contrôles SHA et ne lance aucun audit réel.
+Les tests de custody sont séparés. Cette substitution de test n'est pas une
+option publique ni une validation de custody distante. Premier passage :
+85 PASS / 1 échec du contrôle sans -I, dû au shadowing stdlib par le répertoire
+de script ; le lanceur a été corrigé pour refuser avant ces imports. Nouveau
+passage complet : 86 PASS. Aucun test retiré, aucun baseline modifié.
+Aucun mypy/pyright configuré dans le périmètre CI inspecté ; aucun PASS de
+vérification de types revendiqué.
+
+Device status recontrôlé le 2026-10-11 UTC, avant 05:59:34 UTC : crypto-advisor-2 Offline.
+Compte `chatgpt-ro`, permissions, bytes réels et exit code réel non observés.
+`D1_C_REAL_BYTES_NOT_AVAILABLE` ; classification réelle `NOT_OBSERVED`.
+Manifest attendu et fenêtre UTC restent ceux de la preuve historique, sans
+nouvelle attestation de dataset/source boundary ni complétude producteur.
+Les partitions synthétiques ne sont pas des métriques réelles des 4 186 packets.
+
+Verdict source : `D1_C_SOURCE_READY_FOR_REVIEW`, seconde revue indépendante
+requise sur le nouveau HEAD. La CI doit être observée au HEAD final dans la PR,
+sans transposer les résultats d'un ancien commit ni compter des jobs pending
+ou skipped comme PASS. Aucun merge ni déploiement.
+
+`COUNTERFACTUAL_PERFORMANCE_ELIGIBILITY=NOT_PROVEN`
+`PAPER_STRESS_RUNTIME_GO=DENIED`
+`ACTIVE_BURN_IN_IMMUTABILITY_GUARD=ACTIVE`
+
+Suite générale supplémentaire sur les mêmes sources V2 :
+
+```bash
+python -m pytest -q -m 'not performance and not slow' tests/
+# 7092 PASS, 19 SKIPPED, 13 DESELECTED, 2 XFAIL, 0 échec,
+# 2139 avertissements, 143.91 secondes ; processus terminé exit 0.
+```
+
+Limite observée : après le résumé pytest, un avertissement du service Universe
+existant mentionne `mexc GET .../exchangeInfo` échoué, univers inchangé.
+Cette suite générale n'est donc **pas une preuve d'absence de tentative réseau**.
+Aucun accès réussi, byte exchange, ordre ou mutation distante n'est attesté par
+ce message. Le périmètre précis de cette tentative n'a pas été certifié ; ne
+pas présenter toute la suite générale comme strictement offline. Les sources
+runtime ne sont pas modifiées pour corriger un effet hors scope. Aucun rerun
+réseau supplémentaire effectué ; les nouveaux tests D1-C exécutent uniquement
+les fixtures locales et ne lancent pas ce service. Les skips, xfails et
+avertissements restent distincts des PASS.
