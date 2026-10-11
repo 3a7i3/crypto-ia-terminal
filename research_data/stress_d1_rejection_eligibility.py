@@ -32,6 +32,8 @@ CLASSES = ("LINKED", "PROVEN_NOT_ELIGIBLE", "ELIGIBLE_WITHOUT_OBSERVED_RECORD",
            "UNKNOWN_ELIGIBILITY")
 SIDES = ("BUY", "SELL", "LONG", "SHORT")
 MAX_COMPONENT = 256 * 1024 * 1024
+# Exact approved Research-copy boundary; basename-only matching is insufficient.
+AUTHORIZED_RESEARCH_ROOT = Path("/var/lib/crypto-ai-research-audit/readonly_research_staging")
 SIGNAL = re.compile(r"score=[^ ]+ signal=([^ ]+) régime=[^ ]+ confirmé=(?:True|False)")
 G8D = re.compile(r"trade_allowed=False \[([^\[\]\n]+)\]")
 
@@ -299,6 +301,7 @@ def audit(root: Path) -> dict[str, Any]:
         # Must precede even custody/manifest/component reads. The closure binds
         # the actual module identity, approved origins and verified source bytes.
         provenance = _source_verifier()
+        d1.require(root == AUTHORIZED_RESEARCH_ROOT, "AUTHORIZED_RESEARCH_ROOT_REQUIRED")
         d1.require(root.is_absolute() and root.name == "readonly_research_staging" and
                    not any(x in root.parts for x in ("home", "databases", "ppl_authority")),
                    "EXPLICIT_RESEARCH_ROOT_REQUIRED")
