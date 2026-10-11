@@ -291,6 +291,27 @@ def test_public_root_guard_never_reads_production(monkeypatch):
         assert audit(path)["status"] == "D1_C_INTEGRITY_FAILURE"
 
 
+@pytest.mark.parametrize("candidate", [
+    "relative/readonly_research_staging",
+    "/tmp/readonly_research_staging",
+    "/var/lib/crypto-ai-research-audit-alt/readonly_research_staging",
+    "/home/runtime/readonly_research_staging",
+    "/var/lib/crypto-ai-research-audit/another_dataset",
+])
+def test_exact_authorized_research_root_rejects_alias_before_data_read(monkeypatch, candidate):
+    from research_data import stress_d1_rejection_eligibility as eligibility
+
+    # Synthetic source-verifier seam: tests the root policy after verified source
+    # loading but before touching any Research component or producer path.
+    monkeypatch.setattr(eligibility, "_source_verifier", lambda: {"source_loading": "TEST"})
+    monkeypatch.setattr(d1, "audit", lambda *_: pytest.fail("dataset audit must not run"))
+    monkeypatch.setattr(eligibility, "_read", lambda *_: pytest.fail("dataset read must not run"))
+    result = eligibility.audit(Path(candidate))
+    assert result["status"] == "D1_C_INTEGRITY_FAILURE"
+    assert result["classification"] == "NOT_EMITTED"
+    assert result["reason_code"] == "AUTHORIZED_RESEARCH_ROOT_REQUIRED"
+
+
 def test_overwritten_signal_raw_does_not_fabricate_exclusion():
     rows = records()
     rows["decision_packets"][3]["metadata"]["signal_raw"] = "HOLD"
