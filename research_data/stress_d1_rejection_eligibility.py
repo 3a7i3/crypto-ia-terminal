@@ -16,9 +16,14 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from research_data import stress_d1_snapshot_audit as d1
+# The standalone launcher injects its verified historical module. Package import
+# is retained solely for unattested synthetic helpers; public audit rejects it.
+if "d1" not in globals():
+    from research_data import stress_d1_snapshot_audit as d1
 
-VERSION = "D1_C_V1"
+_source_verifier = None
+
+VERSION = "D1_C_V2"
 PARENT_SHA = "b99c2ed4f38ebeff481b5f470ed2d08e8e852257"
 SOURCE_SHA = "116634be0d3c015cce1cfa58be7da7255414fbfd"
 EPOCH = "BURN-IN-EPOCH-01-20260926T064144Z"
@@ -289,6 +294,11 @@ def classify_records(records: dict[str, list[dict[str, Any]]]) -> dict[str, Any]
 def audit(root: Path) -> dict[str, Any]:
     """Pinned public boundary. No manifest/count/custody override is exposed."""
     try:
+        if _source_verifier is None:
+            raise ValueError("VERIFIED_SOURCE_LAUNCHER_REQUIRED")
+        # Must precede even custody/manifest/component reads. The closure binds
+        # the actual module identity, approved origins and verified source bytes.
+        provenance = _source_verifier()
         d1.require(root.is_absolute() and root.name == "readonly_research_staging" and
                    not any(x in root.parts for x in ("home", "databases", "ppl_authority")),
                    "EXPLICIT_RESEARCH_ROOT_REQUIRED")
@@ -320,15 +330,14 @@ def audit(root: Path) -> dict[str, Any]:
                        "dataset_id": None, "source_boundary_id": None,
                        "source_boundary_status": "NOT_PROVEN_BY_CUSTODY_MANIFEST",
                        "contract_parent_sha": PARENT_SHA,
-                       "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                       "historical_d1_auditor_sha256": hashlib.sha256(Path(d1.__file__).read_bytes()).hexdigest()})
+                       **provenance})
         return result
-    except (d1.AuditBlocked, OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
         # No exception text/raw values: report does not leak individual records.
         return {"status": "D1_C_INTEGRITY_FAILURE", "version": VERSION,
                 "classification": "NOT_EMITTED", "counterfactual_go": False,
                 "integrity_counts": "NOT_ESTABLISHED_ON_FAILED_VALIDATION",
-                "reason_code": str(exc) if isinstance(exc, d1.AuditBlocked) and
+                "reason_code": str(exc) if isinstance(exc, ValueError) and
                 re.fullmatch(r"[A-Z_]+", str(exc)) else "VALIDATION_FAILED",
                 "COUNTERFACTUAL_PERFORMANCE_ELIGIBILITY": "NOT_PROVEN",
                 "PAPER_STRESS_RUNTIME_GO": "DENIED", "ACTIVE_BURN_IN_IMMUTABILITY_GUARD": "ACTIVE"}

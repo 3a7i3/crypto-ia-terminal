@@ -54,3 +54,14 @@ copie locale historique absente. REAL_BYTES_NOT_AVAILABLE. La prochaine
 gate immédiate est une revue du SHA D1-C exact, puis une exécution gouvernée
 sur la copie lorsque l'accès est effectivement disponible. Aucun accès
 restreint ne justifie une élévation ni une lecture des ledgers de production.
+
+## Correctifs après revue indépendante de #407
+
+La procédure historique ci-dessus reste une preuve datée. Pour `D1_C_V2`,
+utiliser exclusivement [l'exécution isolée gouvernée](D1_C_GOVERNED_ISOLATED_EXECUTION.md).
+Le classificateur ne lit plus de données réelles sans vérificateur de provenance
+installé par le lanceur autonome : SHA et chemin du module effectivement chargé
+sont contrôlés avant toute lecture des composants. Pas de package applicatif
+requis sous `python3 -I -B` ; aucun changement des sources #406.
+Seconde revue indépendante requise ; `D1_C_REAL_BYTES_NOT_AVAILABLE` demeure
+le statut réel, distinct des nouveaux PASS synthétiques.
