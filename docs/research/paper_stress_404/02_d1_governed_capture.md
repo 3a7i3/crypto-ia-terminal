@@ -54,8 +54,8 @@ Example command, **only after governed staging and review**:
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -I -B -m research_data.stress_d1_capture \
-  --input-root /path/to/approved/research_d1_staging \
-  --request /path/to/approved/research_d1_staging/capture_request.json \
+  --input-root /path/to/research_audit/d1_staging \
+  --request /path/to/research_audit/d1_staging/capture_request.json \
   --output-root /path/to/separate/research_d1_outputs
 ```
 
@@ -81,3 +81,5 @@ D2 still requires synchronized executable market price/quote/depth paths; D3 nee
 - Tests run against synthetic temporary directories, verify fail-closed SHA/path/JSON rules and mismatch reporting.
 - Reviewable Research-owned module and tests are not a production export nor a certified real dataset.
 - No merge or deployment until explicit operator approval and independent review; #286 remains active.
+
+**Security boundary:** the standalone tool rejects input roots not explicitly below a `research_audit` directory (or the named synthetic-only test fixture root). This string-bound source guard is a defense-in-depth convention, **not an operating-system sandbox**: real operator custody, Unix permissions and review are still mandatory. The output is content-addressed and chmod read-only, not a WORM/immutable-filesystem guarantee.
