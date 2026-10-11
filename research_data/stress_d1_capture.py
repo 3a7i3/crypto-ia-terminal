@@ -275,6 +275,8 @@ def capture(input_root: str | Path, request_file: str | Path, output_root: str |
             "INPUT_OUTPUT_ROOT_OVERLAP")
     require("crypto_ai_terminal" not in root.parts and "databases" not in root.parts,
             "RUNTIME_SOURCE_ACCESS_FORBIDDEN")
+    require(any(x in root.parts for x in ("research_audit", "readonly_research_staging")),
+            "APPROVED_RESEARCH_STAGING_ROOT_REQUIRED")
     require(request_path.parent == root and not request_path.is_symlink(), "REQUEST_MUST_BE_PRESTAGED")
     request_raw = regular_bytes(request_path, max_bytes=1024 * 1024)
     request = strict_json(request_raw)
