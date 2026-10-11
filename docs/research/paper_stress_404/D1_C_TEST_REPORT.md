@@ -176,3 +176,38 @@ runtime ne sont pas modifiées pour corriger un effet hors scope. Aucun rerun
 réseau supplémentaire effectué ; les nouveaux tests D1-C exécutent uniquement
 les fixtures locales et ne lancent pas ce service. Les skips, xfails et
 avertissements restent distincts des PASS.
+
+## Addendum — exact Research data-root allowlist (2026-10-11 UTC)
+
+La seconde revue indépendante du HEAD `337bd1ed326c961fb5f713ebf07fb7504fc586aa`
+a demandé une égalité stricte du chemin de la copie Research. Ce correctif
+source-only est porté par les commits `7911b69948ee5e048d4ef444af0e16b78a279f8c`
+et `0e1b31c3f5caef90e04ee08be491d2299995dd93`.
+
+| Élément | SHA-256 courant après correctif |
+|---|---|
+| Classificateur D1-C V2 | `78d17ed116a72e14ab2835bed8dd1a91af1a1ac91baae323a4387d96c5faaf0c` |
+| Tests de classification incluant cinq nouveaux cas négatifs | `e35e5db50b37c1d118c3fee1fa2ead3b0d0da3b9afe41d384fa8efb7b6a888bf` |
+| Lanceur autonome inchangé | `579bff90b9e2aa89885e4e64056f91c31233adf31942f344e2907cd8a36d4e25` |
+| Auditeur D1 historique inchangé | `11d3e13e90e04446f6d1fc5bff4840103fa4f23e2865a211e8b5f77771b94494` |
+
+Les SHA-256 du classificateur et des tests ont été recalculés à partir des
+contenus effectivement retournés par GitHub pour ces commits. Ce correctif
+ajoute `AUTHORIZED_RESEARCH_ROOT` et rejette toute racine différente avant
+l'accès aux composants. Cinq scénarios synthétiques vérifient que la tentative
+de lecture est refusée pour des racines alternatives.
+
+**Attention :** les résultats antérieurs (86 D1-C, 164 ciblés, 264 Research,
+96 cross-stack, 7 092 suite générale) correspondent à la version V2 **avant**
+ce correctif. Ils ne constituent PAS un nouveau PASS au HEAD modifié.
+Exécuter à nouveau au minimum les tests D1-C, les gates requises et vérifier
+la CI au HEAD exact final avant d'enregistrer un nouveau verdict.
+
+Au checkpoint de cette modification, le VPS n'a pas fourni de résultat
+de classification D1-C. Le répertoire source Research approuvé était absent
+lors du dernier preflight réactif sous `chatgpt-ro` et les commandes distantes
+suivantes ont expiré. `D1_C_REAL_BYTES_CLASSIFICATION=NOT_OBSERVED`.
+
+`COUNTERFACTUAL_PERFORMANCE_ELIGIBILITY=NOT_PROVEN`
+`PAPER_STRESS_RUNTIME_GO=DENIED`
+`ACTIVE_BURN_IN_IMMUTABILITY_GUARD=ACTIVE`
