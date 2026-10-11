@@ -25,15 +25,19 @@ Les répertoires source et données doivent être réguliers, root-owned, sans
 symlink ; ancêtres root-owned sans écriture groupe/autres ; racines et fichiers
 sans aucun bit d'écriture. Le lanceur refuse toute autre racine source, même si
 son nom ressemble à Research. Le code ne découvre aucun producteur ni runtime.
-La racine de données reste explicitement `readonly_research_staging`, soumise
-aux contrôles existants et au manifest historique épinglé.
+La racine des données est verrouillée dans le classificateur, par égalité
+exacte, à `/var/lib/crypto-ai-research-audit/readonly_research_staging`.
+Une autre racine, même root-owned, en lecture seule et portant le même nom final,
+est refusée AVANT la lecture des composants. Cinq nouveaux tests négatifs
+couvrent chemins relatifs, autres racines Research et alias de chemin. Le
+manifest historique, les hash/index et le contrôle de garde sont conservés.
 
 ## Empreintes revues et commande explicite
 
 | Source | SHA-256 |
 |---|---|
 | Lanceur | `579bff90b9e2aa89885e4e64056f91c31233adf31942f344e2907cd8a36d4e25` |
-| Classificateur V2 | `96f1f13e814190860adc69ccae2c868df6a0c3acd8b072b995ef1cd902224e47` |
+| Classificateur V2 | `78d17ed116a72e14ab2835bed8dd1a91af1a1ac91baae323a4387d96c5faaf0c` |
 | Auditeur historique | `11d3e13e90e04446f6d1fc5bff4840103fa4f23e2865a211e8b5f77771b94494` |
 
 Avant exécution, la gate opérateur doit vérifier l'identité `chatgpt-ro`,
@@ -48,7 +52,7 @@ Commande depuis un répertoire quelconque, uniquement après cette gate :
 ```bash
 python3 -I -B /var/lib/crypto-ai-research-audit/readonly_d1_c_source/stress_d1_isolated_runner.py \
   --source-root /var/lib/crypto-ai-research-audit/readonly_d1_c_source \
-  --classifier-sha256 96f1f13e814190860adc69ccae2c868df6a0c3acd8b072b995ef1cd902224e47 \
+  --classifier-sha256 78d17ed116a72e14ab2835bed8dd1a91af1a1ac91baae323a4387d96c5faaf0c \
   --research-root /var/lib/crypto-ai-research-audit/readonly_research_staging
 ```
 
