@@ -133,4 +133,5 @@ class TestD1Capture(unittest.TestCase):
         with self.assertRaisesRegex(CaptureBlocked,'PRODUCTION_SOURCE_PATH_FORBIDDEN'):
             self.run_capture()
 
-if __name__=='__main__': unittest.main()
+if __name__ == '__main__':
+    unittest.main()
