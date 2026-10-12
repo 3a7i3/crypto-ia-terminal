@@ -71,21 +71,25 @@ sauvegardes restent des preuves ; elles ne sont pas des interfaces concurrentes
 
 ## État source de référence
 
-Synchronisation DOC-CANON-02 du 2026-10-04 depuis
-`main@a057d4e972cd60ee32710d59f327b4185f3af287`.
+Synchronisation DOC-CANON-03 / [#412](https://github.com/3a7i3/crypto-ia-terminal/issues/412)
+du 2026-10-12 depuis `main@598ab14b7fff06fdae5d3f2a24bc8d4484f48e71`.
+DOC-CANON-02 / #380 reste historique.
 
-La chaîne Machine Maturity est désormais formellement certifiée jusqu'à
-**L1 — Observable Machine**. Le certificat canonique L1 v2 porte le hash
-`49d112260450cd3d34802e50aebbd3abd1922718f8cc9b789e81b8dc074e91cf`;
-il lie explicitement L0 comme prédécesseur et conserve le premier certificat L1
-comme historique superseded. L2 et L3 sont `READY_FOR_REVIEW`, pas certifiés.
-L4 reste `IN_PROGRESS`.
+La chaîne Machine Maturity est formellement certifiée jusqu'à
+**L3 — Scientific Research Machine** : L0 → L1 canonique v2 → L2 → L3.
+Le [certificat L3](docs/governance/machine_maturity/LEVEL_3_MACHINE_LEVEL_CERTIFICATION_v1.json)
+porte le hash canonique
+`92b9ee468d1d23256241d2068656ab401f614cb33a524327e620c246dd680f03`,
+revérifié avec la chaîne des prédécesseurs. L4 demeure **non certifié**.
+La certification L3 ne finalise pas le burn-in et ne prouve pas l'état VPS actuel.
 
-Côté produit, les tranches APP-UNIFY déjà fusionnées couvrent notamment
-Machine/Laboratoire, burn-in/services, Scanner, LMI détaillé, Research, Events
-et Stockage. Elles restent des preuves source. La certification globale U7
-`APP_UNIFY_01_SOURCE_CERTIFIED` n'est pas encore émise et U8 runtime reste
-une gate séparée.
+Côté produit, U7 conserve sa
+[certification source historique](docs/certification/APP_UNIFY_01_SOURCE_CERTIFICATION.md)
+`APP_UNIFY_01_SOURCE_CERTIFIED` (#383). Les deltas ultérieurs ne sont pas
+recertifiés implicitement ; **U8 runtime demeure non certifié**.
+D1-D/D1-E sont intégrées en source (#409/#411), sans preuve de roster réel
+exhaustif ni de reçus natifs par packet jusqu'au fsync. Voir
+l'[inventaire Research](docs/research/paper_stress_404/D1_D_E_AUTHORIZED_COPY_INVENTORY_20261012.md).
 
 Le burn-in #282 n'est pas finalisé et #286 demeure
 `ACTIVE_BURN_IN_IMMUTABILITY_GUARD`. La référence runtime consignée reste
