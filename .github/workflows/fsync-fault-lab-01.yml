@@ -1,0 +1,30 @@
+name: FSYNC Fault Lab
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fsync-fault-lab-01.yml'
+      - 'scripts/research/qualify_fsync_fault_lab.py'
+      - 'scripts/research/qualify_fsync_binding_lab.py'
+      - 'tests/research_data/test_fsync_fault_lab.py'
+      - 'docs/research/paper_stress_404/FSYNC_FAULT_LAB_01.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  faults:
+    name: FSYNC FAULT LAB SYNTHETIC
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Observe owned workers and strict contract refusals
+        run: python3 -I -B scripts/research/qualify_fsync_fault_lab.py --output "$RUNNER_TEMP/fsync-fault-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fsync-fault-synthetic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fsync-fault-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
