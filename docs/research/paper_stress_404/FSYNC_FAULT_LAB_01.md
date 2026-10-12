@@ -61,3 +61,26 @@ FUTURE_CAPTURE_ACTIVATION=DENIED; PAPER_STRESS_RUNTIME_GO=DENIED; #286 ACTIVE.
 
 Rollback: revert these four source laboratory files only. No production
 configuration, restart, deploy, collection or feedback toward the active epoch.
+
+## Native acquisition — 2026-10-12 UTC
+
+Run [38318506941](https://github.com/3a7i3/crypto-ia-terminal/actions/runs/38318506941),
+job 115040765829 SUCCESS at head cfbacada8d178e76e90cf6b275e4c01a19ccb179,
+with then-base f552176f38a803210dd8c1095628be35af349577. Normal ACCEPT;
+partial_record, seek, truncate, rotation and second_fsync REFUSE. All six
+expectations met in the native runner. This remains refusal qualification only.
+
+[Report](fsync_fault_lab_01_evidence_20261012/report.json) and
+[provenance](fsync_fault_lab_01_evidence_20261012/provenance.json) preserve 34
+artifact files plus custody metadata. ZIP artifact 11777888350 downloaded and
+rehash matched 69a8ef35834492b312a3772ec0a98acad8700d40b8967c67d34722ba4481ab03.
+Script and individual files rehashed; raw-to-derived transcript transform and
+all six parser verdicts recomputed MATCH. Rotated bytes are preserved separately.
+No kernel short return, EIO, native tracer loss, adversarial inode reuse or
+power-loss was injected. Native files are kept beyond the artifact expiration
+on 2026-10-19; independent custody remains NOT_VERIFIED.
+
+#425 merged to main 46c558416b9664a18477de29b56c4146b43cff29 after final CI;
+its tree exactly matches the reviewed head. #427 retargeted main without changing
+source harness. This documentary evidence commit requires separate final-head
+CI. C2 remains INCOMPLETE, D1-D/E NOT_PROVEN and activation/stress DENIED.
