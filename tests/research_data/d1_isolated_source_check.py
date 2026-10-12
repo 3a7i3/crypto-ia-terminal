@@ -12,9 +12,9 @@ example = json.loads(
     (root / "docs/research/paper_stress_404/D1_E_SYNTHETIC_EXAMPLE.json").read_text()
 )
 pins = {
-    "stress_d1_evidence_contract": "817f1c70a9de600552ba8ee684adbff1dccb484ef8c9db3fc8f427c7f62279cf",
+    "stress_d1_evidence_contract": "22a46c388d6dee90582e6bc407f8dbfb39103c9125888d92e828306150393636",
     "stress_d1_producer_attempts": "6fdaac443bb19245801b2f54f0fae5daf2bb5a59430a6722bb2f31a4c33792b7",
-    "stress_d1_durability": "387c3f5828eeb5b2525550cbd44b4117b6e7e7a58d93ee8e94d64e45bbcd9cd7",
+    "stress_d1_durability": "1bc36290ccd29b8ed6192057e87d36040ecc92f3150c0a77206fa1b5bbb0e5e6",
 }
 pkg = types.ModuleType("research_data")
 pkg.__path__ = []
