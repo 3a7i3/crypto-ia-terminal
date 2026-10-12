@@ -78,3 +78,33 @@ Rollback: revert only laboratory workflow/harness/tests/documentation. No
 restart, deploy, production export, secrets, permissions, Watchdog/TESTNET/LIVE,
 exchange action or feedback to active burn-in. VPS reconnect was checked via
 Desktop Commander list/ping and remained unavailable at this work's start.
+
+## Observation effective, 2026-10-12 — périmètre laboratoire seulement
+
+Run [38313808068](https://github.com/3a7i3/crypto-ia-terminal/actions/runs/38313808068),
+job 115025546193 SUCCESS au HEAD `14eb08add8187c78f08360cbd6ab253dd7d653e1`.
+PID traceur-enfant observé 2422, fd 3, device 2049, inode 8947383, identiques
+aux deux inspections externes avant/après writes. Un seul fsync natif, deux
+records couverts et un record sans fsync-return. Plages [0,120), [120,240),
+[240,360) ; identités LAB-A/P/T/D 1–3 préservées. Aucune perte déduite du troisième.
+
+[Rapport](fsync_binding_lab_01_evidence_20261012/report.json),
+[trace syscall raw](fsync_binding_lab_01_evidence_20261012/writer.trace.2422),
+[bytes exacts](fsync_binding_lab_01_evidence_20261012/records.jsonl),
+[provenance](fsync_binding_lab_01_evidence_20261012/provenance.json).
+Artifact 11775991140 téléchargé ; ZIP SHA256 recalculé MATCH
+`260577b83d093a6be83c450650ac7feb9bd81428604b1db9cdfb39f3b3f27bfc`.
+Script SHA c7c61d17e29160a56e266297ee660884e5debf6991a0e6d1c169b763dfbb2ac2,
+trace SHA f72333147c529632b49ba9c3f4df32a25a8bb7cd15a6295e789b8f5619582222,
+file SHA 197f0e58e3f914f7a440e8df5e602402adf6da6e5947767eaed0baae678af44d,
+et chaque sous-range record : hashes revérifiés MATCH.
+Les six fichiers d'artefact et provenance sont conservés pour l'expiration
+GitHub du 2026-10-19. Le script expérimenté reste inchangé ; commit de
+conservation documentaire distinct du HEAD mesuré, CI au nouveau HEAD à vérifier.
+
+LAB_FD_FILE_RANGE_FSYNC_BINDING_OBSERVED, scénario contrôlé mono-writer/no-reopen
+seulement. REAL_DECISION_FILE_RANGE_BINDING/D1_E_PER_PACKET_DURABILITY restent
+NOT_PROVEN ; custody indépendante, adversarial/restart/rotation/group-fsync
+adapter, coût et vraie population restent à qualifier. Activation/stress DENIED.
+Aucune observation VPS fraîche : list/ping Desktop Commander ont encore signalé
+Offline ; ne pas en déduire santé Advisor, position ou état PPL actuel.

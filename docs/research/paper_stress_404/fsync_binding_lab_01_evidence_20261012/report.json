@@ -1,0 +1,89 @@
+{
+  "crash_durability": "NOT_PROVEN",
+  "directory_durability": "NOT_PROVEN",
+  "fd_after": {
+    "device": 2049,
+    "fd": 3,
+    "inode": 8947383,
+    "observer_monotonic_ns": 37063099284,
+    "pid": 2422
+  },
+  "fd_before": {
+    "device": 2049,
+    "fd": 3,
+    "inode": 8947383,
+    "observer_monotonic_ns": 37059404606,
+    "pid": 2422
+  },
+  "future_capture_activation": "DENIED",
+  "independent_custody": "NOT_VERIFIED",
+  "native_fsync_calls": 1,
+  "observer_binary_sha256": "28f957c227012de0b18d1bd7fff2d396cb693ea60ed8013be68de071e84b5001",
+  "paper_stress_runtime_go": "DENIED",
+  "qualification": "LAB_FD_FILE_RANGE_FSYNC_BINDING_OBSERVED",
+  "real_per_packet_durability": "NOT_PROVEN",
+  "real_producer_completeness": "NOT_PROVEN",
+  "record_file_sha256": "197f0e58e3f914f7a440e8df5e602402adf6da6e5947767eaed0baae678af44d",
+  "records": [
+    {
+      "attempt_id": "LAB-A1",
+      "byte_end": 120,
+      "byte_start": 0,
+      "decision_id": "LAB-D1",
+      "lab_file_identity": {
+        "device": 2049,
+        "fd": 3,
+        "inode": 8947383,
+        "lifetime": "INSPECTED_OPEN_TO_TRACED_CLOSE",
+        "pid": 2422
+      },
+      "lab_fsync_return_covers_range": true,
+      "packet_id": "LAB-P1",
+      "record_sha256": "109d5b9459d285778b9acbf66965c43818d8ab285f17ef3625cbd51ef6660a36",
+      "scope": "SYNTHETIC_BINDING_LAB",
+      "trace_id": "LAB-T1"
+    },
+    {
+      "attempt_id": "LAB-A2",
+      "byte_end": 240,
+      "byte_start": 120,
+      "decision_id": "LAB-D2",
+      "lab_file_identity": {
+        "device": 2049,
+        "fd": 3,
+        "inode": 8947383,
+        "lifetime": "INSPECTED_OPEN_TO_TRACED_CLOSE",
+        "pid": 2422
+      },
+      "lab_fsync_return_covers_range": true,
+      "packet_id": "LAB-P2",
+      "record_sha256": "509d0582374f809064a20504551682a4f0886c5ba8b0f7e6d842b077480988ad",
+      "scope": "SYNTHETIC_BINDING_LAB",
+      "trace_id": "LAB-T2"
+    },
+    {
+      "attempt_id": "LAB-A3",
+      "byte_end": 360,
+      "byte_start": 240,
+      "decision_id": "LAB-D3",
+      "lab_file_identity": {
+        "device": 2049,
+        "fd": 3,
+        "inode": 8947383,
+        "lifetime": "INSPECTED_OPEN_TO_TRACED_CLOSE",
+        "pid": 2422
+      },
+      "lab_fsync_return_covers_range": false,
+      "packet_id": "LAB-P3",
+      "record_sha256": "f5f5e9e8a7e13fb051e9ca6dff2910891e3f9280e857d22a07524ce5f752cdf8",
+      "scope": "SYNTHETIC_BINDING_LAB",
+      "trace_id": "LAB-T3"
+    }
+  ],
+  "records_without_fsync_return": 1,
+  "scope": "SYNTHETIC_MONO_WRITER_NO_REOPEN",
+  "script_sha256": "c7c61d17e29160a56e266297ee660884e5debf6991a0e6d1c169b763dfbb2ac2",
+  "synced_records": 2,
+  "trace_sha256": "f72333147c529632b49ba9c3f4df32a25a8bb7cd15a6295e789b8f5619582222",
+  "worker_sha256": "1231d9634f28a3c901525e5534b3b546056a3ee98523678e779aa645cb9fd3af"
+}
