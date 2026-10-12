@@ -34,3 +34,25 @@ def test_writer_claim_without_syscall_is_no_evidence():
 def test_unsupported_or_contradictory_trace_aborts(trace):
     with pytest.raises(ValueError):
         parse_trace(trace)
+
+
+def test_error_worker_uses_closed_positive_fd_without_python_valueerror(tmp_path):
+    import json
+    import subprocess
+    import sys
+
+    from scripts.research.qualify_fsync_lab import DATA, WORKER
+
+    path = tmp_path / "synthetic.jsonl"
+    r = subprocess.run(
+        [sys.executable, "-I", "-B", "-c", WORKER, str(path), "error"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=True,
+    )
+    output = json.loads(r.stdout)
+    assert output["invalid_fd"] >= 0
+    assert output["writer_claimed_success"] is False
+    assert path.read_bytes() == DATA
+    assert r.stderr == ""

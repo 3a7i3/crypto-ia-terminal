@@ -16,15 +16,17 @@ DATA = b'{"scope":"SYNTHETIC_FSYNC_LAB_ONLY","record":1}\n'
 WORKER = r"""
 import json,os,sys
 path,mode=sys.argv[1:]
+invalid_fd=None
 data=b'{"scope":"SYNTHETIC_FSYNC_LAB_ONLY","record":1}\n'
 with open(path,'xb') as f:
     f.write(data); f.flush()
     if mode=='real':
         os.fsync(f.fileno())
     elif mode=='error':
-        try: os.fsync(-1)
+        invalid_fd=os.dup(f.fileno()); os.close(invalid_fd)
+        try: os.fsync(invalid_fd)
         except OSError: pass
-print(json.dumps({'writer_claimed_success':mode!='error'}))
+print(json.dumps({'writer_claimed_success':mode!='error','invalid_fd':invalid_fd}))
 """
 LINE = re.compile(
     r"^(\d+\.\d+)\s+fsync\((-?\d+)(?:<([^>]+)>)?\)\s*=\s*(-?\d+)(?:\s+([A-Z][A-Z0-9_]*)(?:\s+.*)?)?$"
@@ -149,7 +151,8 @@ def qualify(output: pathlib.Path) -> tuple[dict, int]:
             raise RuntimeError("LAB_WORKER_OR_TRACER_FAILED")
         raw_trace = trace.read_bytes()
         calls = parse_trace(raw_trace.decode())
-        claimed = json.loads(result.stdout)["writer_claimed_success"]
+        worker_output = json.loads(result.stdout)
+        claimed = worker_output["writer_claimed_success"]
         raw = path.read_bytes()
         if raw != DATA:
             raise RuntimeError("LAB_RECORD_BYTES_MISMATCH")
@@ -169,7 +172,8 @@ def qualify(output: pathlib.Path) -> tuple[dict, int]:
             len(calls) != 1
             or calls[0]["returned"] != -1
             or calls[0]["errno"] != "EBADF"
-            or calls[0]["fd"] != -1
+            or calls[0]["fd"] != worker_output["invalid_fd"]
+            or calls[0]["fd"] < 0
         ):
             raise RuntimeError("NEGATIVE_ERRNO_CASE_FAILED")
         cases.append(

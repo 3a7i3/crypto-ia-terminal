@@ -36,7 +36,7 @@ confiance authentifiée simplement parce que le binaire est hashé.
 |---|---|
 | real | Exact record bytes lus après writer ; une trace fsync(fd<chemin dédié>) return=0 |
 | claim_without_call | Le writer prétend succès ; trace sans fsync, syscall_success_observed=false |
-| error | fsync(-1) retourne -1 EBADF réellement tracé ; aucune durabilité |
+| error | fsync(descripteur positif fermé) retourne -1 EBADF réellement tracé ; aucune durabilité |
 
 Préflight strace sur un enfant `pass` avant les cas. Échec => pas de qualification.
 Parser fail-closed : toute ligne inconnue, unfinished/resumed, retour contradictoire
@@ -72,3 +72,13 @@ Aucun collecteur natif installé, aucune modification du burn-in/VPS/runtime/
 config/epoch/PPL/FIN/risk/sizing/secret/privilège production/Watchdog/TESTNET/LIVE/
 exchange/restart/deploy/feedback. Rollback des seuls fichiers labo et suppression
 du workflow, sans effet sur un service ou ledger déployé.
+
+## Premier run conservé — diagnostic de fixture
+
+Run 38312088127 / job 115019974692 au HEAD 62fbe6f... : préflight réussi,
+fsync réel observé par strace et trace vide pour le faux claim. Run global FAIL
+car Python refuse un fd négatif par ValueError avant syscall. Aucun succès
+global anticipé. Artifact 11774509686, ZIP SHA256 recalculé
+`91dd2cb65f3c93642cb388df837b548424a52075fd774b503a866504b32ee704`.
+La fixture est corrigée avec os.dup puis os.close et fsync(fd positif fermé),
+pour tester effectivement errno EBADF au kernel ; nouveau HEAD/run à observer.
