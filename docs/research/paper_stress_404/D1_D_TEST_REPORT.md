@@ -67,3 +67,21 @@ the final PR SHA and CI must nevertheless be checked independently on GitHub.
 `COUNTERFACTUAL_PERFORMANCE_ELIGIBILITY=NOT_PROVEN`
 `PAPER_STRESS_RUNTIME_GO=DENIED`
 `ACTIVE_BURN_IN_IMMUTABILITY_GUARD=ACTIVE`
+
+
+## Follow-up: independent finite-JSON review (2026-10-12 UTC)
+
+An independent GitHub reviewer noted that Python JSON `parse_constant` alone does
+not reject numeric exponent overflow (`1e400`, `-1e400` decode to infinities).
+The exact bundle parser now uses a finite `parse_float` callback, including
+otherwise-unused nested fields. Six new pure synthetic checks were added to
+`test_stress_d1_producer_attempts.py`: five invalid/nonfinite token cases
+and one valid finite number. These supplement the historical results above;
+**they are not included in any earlier test or CI claim**.
+
+Shared parser SHA-256 following correction:
+`22a46c388d6dee90582e6bc407f8dbfb39103c9125888d92e828306150393636`.
+The source SHA belongs to the corrected file, not a runtime identity. Recheck
+current PR HEAD, run tests, lint and exact-head CI before source acceptance.
+No real roster acquired; `D1_D_PRODUCER_COMPLETENESS=NOT_PROVEN` and
+`PAPER_STRESS_RUNTIME_GO=DENIED`.
