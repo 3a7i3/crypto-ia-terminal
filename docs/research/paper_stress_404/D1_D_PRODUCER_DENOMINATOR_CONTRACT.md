@@ -44,6 +44,14 @@ Missing receipts and packets never become zero; duplicate identities, extra reco
 
 ## Tests and review boundaries
 
+### Source-only V2 extension (2026-10-12)
+
+The V1 restriction above is preserved as history and as a legacy API limit.
+The separate [native-attempt V2 contract](D1_D_NATIVE_ATTEMPT_CONTRACT.md) now
+accounts for multiple native attempts per roster entry, explicit boundary
+declarations and late terminal receipts. It does not reconstruct a real roster,
+certify custody, or promote any D1-C result to producer completeness.
+
 19 local synthetic tests pass on isolated source; Python compilation passes. Ruff was **not available locally**. Full repository CI and tests are **not yet claimed** at this commit; review the exact final PR SHA. The only input to tests is synthetic objects; no real historical packet or producer ledger was opened.
 
 Acceptance of a *real* denominator requires an independently proven cycle/roster completeness fence, native epoch and boundary provenance, per-invocation receipts with documented exception semantics, packet joins, interval-crossing/late event accounting and verified Research custody. Otherwise:
