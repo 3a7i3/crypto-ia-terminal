@@ -1,0 +1,70 @@
+{
+  "cases": [
+    {
+      "calls": [
+        {
+          "at_utc_epoch": "1791841396.045183",
+          "errno": null,
+          "fd": 3,
+          "path": "/home/runner/work/_temp/fsync-lab-38312335279-1/real.jsonl",
+          "returned": 0
+        }
+      ],
+      "mode": "real",
+      "post_close_file_device": 2049,
+      "post_close_file_inode": 9178381,
+      "record_bytes": 48,
+      "record_sha256": "e74dede43baad52af6d42632ea966d077f1e6053484eb08bdedeafdfff413625",
+      "syscall_success_observed": true,
+      "trace_sha256": "2b8f157c65a4fabc231cc3a2b0b41478e7a4a765d8bde754aff5a90ea3b2a6e6",
+      "writer_claimed_success": true
+    },
+    {
+      "calls": [],
+      "mode": "claim_without_call",
+      "post_close_file_device": 2049,
+      "post_close_file_inode": 9178384,
+      "record_bytes": 48,
+      "record_sha256": "e74dede43baad52af6d42632ea966d077f1e6053484eb08bdedeafdfff413625",
+      "syscall_success_observed": false,
+      "trace_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "writer_claimed_success": true
+    },
+    {
+      "calls": [
+        {
+          "at_utc_epoch": "1791841396.157109",
+          "errno": "EBADF",
+          "fd": 4,
+          "path": null,
+          "returned": -1
+        }
+      ],
+      "mode": "error",
+      "post_close_file_device": 2049,
+      "post_close_file_inode": 9178387,
+      "record_bytes": 48,
+      "record_sha256": "e74dede43baad52af6d42632ea966d077f1e6053484eb08bdedeafdfff413625",
+      "syscall_success_observed": false,
+      "trace_sha256": "a455e3e75c82d58bcea88416a399b01d62612deb75e74d5939428c78fc5644dc",
+      "writer_claimed_success": false
+    }
+  ],
+  "crash_durability": "NOT_PROVEN",
+  "directory_durability": "NOT_PROVEN",
+  "future_capture_activation": "DENIED",
+  "independent_custody": "NOT_VERIFIED",
+  "observer_binary_sha256": "28f957c227012de0b18d1bd7fff2d396cb693ea60ed8013be68de071e84b5001",
+  "observer_version": "strace -- version 6.8",
+  "paper_stress_runtime_go": "DENIED",
+  "physical_generation_binding": "NOT_QUALIFIED",
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "python_version": "3.12.3",
+  "qualification": "LAB_SYSCALL_MECHANISM_OBSERVED",
+  "real_per_packet_durability": "NOT_PROVEN",
+  "real_producer_completeness": "NOT_PROVEN",
+  "scope": "SYNTHETIC_CHILDREN_ONLY",
+  "script_sha256": "8eb6af7a0c6aa4a2e7a2481f5aebadba26a77cf3b02969e36cead6176baaf6de",
+  "worker_sha256": "4238aa43f642d4effae3a1b1d52001977d543d850cd43727ea7e2b60b4cdbe71",
+  "write_range_binding": "NOT_QUALIFIED"
+}
