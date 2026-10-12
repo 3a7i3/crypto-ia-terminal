@@ -76,13 +76,13 @@ preuve. Le zéro capturé ne devient pas zéro parmi tous les appels/opportunit�
 | [D1_E_SYNTHETIC_EXAMPLE](D1_E_SYNTHETIC_EXAMPLE.json) | Bytes d'entrée, pins et sortie reproductible **entièrement synthétiques** |
 | [D1_E_TEST_REPORT](D1_E_TEST_REPORT.md) | Vérifications finales et premier échec général conservé |
 
-Empreintes SHA256 des modules effectivement testés :
+Empreintes SHA256 des modules après le correctif demandé en revue indépendante (contrôles CI du nouveau HEAD à vérifier) :
 
 | Module sous `research_data/` | SHA256 |
 |---|---|
-| `stress_d1_evidence_contract.py` | `817f1c70a9de600552ba8ee684adbff1dccb484ef8c9db3fc8f427c7f62279cf` |
+| `stress_d1_evidence_contract.py` | `22a46c388d6dee90582e6bc407f8dbfb39103c9125888d92e828306150393636` |
 | `stress_d1_producer_attempts.py` | `6fdaac443bb19245801b2f54f0fae5daf2bb5a59430a6722bb2f31a4c33792b7` |
-| `stress_d1_durability.py` | `387c3f5828eeb5b2525550cbd44b4117b6e7e7a58d93ee8e94d64e45bbcd9cd7` |
+| `stress_d1_durability.py` | `1bc36290ccd29b8ed6192057e87d36040ecc92f3150c0a77206fa1b5bbb0e5e6` |
 
 La V1 D1-D et ses 19 tests restent inchangés. V2 conserve séparément les unités
 roster et tentative ; un plan vide pour une sélection reste inconnu. Les counts
@@ -179,3 +179,23 @@ limites. Toute future collecte/staging Research ou instrumentation d'une future
 epoch exige une mission/gate opérateur séparée avec custody, provenance native,
 fences, indépendance et protocole de preuve. Rien dans ces Draft PR n'autorise
 une activation PAPER-STRESS ni une modification du burn-in actif.
+
+
+## Addendum de revue indépendante — overflow JSON et SHA corrigés
+
+Les revues de #409 et #411 ont détecté un cas non couvert : un flottant JSON
+`1e400` ou `-1e400` décodé en infini par Python malgré
+`parse_constant`. Le parseur de bundles commun et le parseur de lignes JSONL
+utilisent désormais un `parse_float` fail-closed, y compris pour un champ
+numérique inutilisé. Les fixtures réépinglent explicitement les bytes et les
+SHA/offsets/reçus physiques avant de tester le refus du nombre non fini.
+
+Les trois SHA de la table ci-dessus représentent désormais les sources corrigées.
+Le rapport antérieur (7160 PASS, 19 skips, 13 deselections, 2 xfails) reste une
+**preuve historique** du HEAD Codex : ne pas l'attribuer aux nouveaux HEAD
+sans consulter leurs propres workflows et/ou réexécuter localement. Le contrôle
+isolé `d1_isolated_source_check.py` a été réépinglé sur les octets corrigés.
+
+Toute hypothèse de nouvelle preuve réelle reste interdite : aucune custody,
+roster producteur, reçu fsync ou rattachement native epoch n'est introduit.
+`PAPER_STRESS_RUNTIME_GO=DENIED` ; Draft sans fusion ni déploiement.
