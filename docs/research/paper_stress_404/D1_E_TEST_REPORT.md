@@ -116,3 +116,26 @@ No new scientific certification or real per-packet persistence verdict is issued
 `COUNTERFACTUAL_PERFORMANCE_ELIGIBILITY=NOT_PROVEN`
 `PAPER_STRESS_RUNTIME_GO=DENIED`
 `ACTIVE_BURN_IN_IMMUTABILITY_GUARD=ACTIVE`
+
+
+## Revue indépendante — follow-up finite JSON (2026-10-12 UTC)
+
+L'ancienne suite et ses 7160 PASS sont conservés comme preuve historique,
+**non réattribuable** automatiquement aux HEAD post-correctif. La revue a
+identifié `json.loads` sans `parse_float` fini pour les bundles et les
+`record_line` de D1-E : `1e400` et `-1e400` échappaient à
+`parse_constant`. Ajout des callbacks fail-closed et de six nouveaux tests
+synthetiques D1-E : cinq exposants/constantes non finis et un contrôle fini.
+Les scénarios recalculent digest, longueur, offset, reçus d'écriture et witness
+fsync pour isoler le test du décodeur plutôt que provoquer un mismatch de SHA.
+Les six nouveaux tests D1-D dans #409 sont également hérités byte-identiques.
+
+Hashes SHA-256 corrigés :
+- `stress_d1_evidence_contract.py`: `22a46c388d6dee90582e6bc407f8dbfb39103c9125888d92e828306150393636`
+- `stress_d1_producer_attempts.py`: `6fdaac443bb19245801b2f54f0fae5daf2bb5a59430a6722bb2f31a4c33792b7` (inchangé)
+- `stress_d1_durability.py`: `1bc36290ccd29b8ed6192057e87d36040ecc92f3150c0a77206fa1b5bbb0e5e6`
+
+`d1_isolated_source_check.py` suit ces nouvelles valeurs exactes. Les
+résultats de CI au nouveau HEAD doivent être obtenus avant une éventuelle
+nouvelle revue. Aucun import runtime, changement de burn-in, merge ou déploiement.
+`ACTUAL_PERSISTENCE_PROOF=NOT_OBSERVED` ; `PAPER_STRESS_RUNTIME_GO=DENIED`.
