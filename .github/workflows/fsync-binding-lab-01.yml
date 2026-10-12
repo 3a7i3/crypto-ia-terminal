@@ -1,0 +1,29 @@
+name: FSYNC Binding Lab
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fsync-binding-lab-01.yml'
+      - 'scripts/research/qualify_fsync_binding_lab.py'
+      - 'tests/research_data/test_fsync_binding_lab.py'
+      - 'docs/research/paper_stress_404/FSYNC_BINDING_LAB_01.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  binding:
+    name: FSYNC BINDING LAB SYNTHETIC
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Inspect only owned child fd and record ranges
+        run: python3 -I -B scripts/research/qualify_fsync_binding_lab.py --output "$RUNNER_TEMP/fsync-binding-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fsync-binding-synthetic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fsync-binding-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
