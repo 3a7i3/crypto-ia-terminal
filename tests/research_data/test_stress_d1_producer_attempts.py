@@ -1,9 +1,11 @@
 """Synthetic D1-D V2: independent plans, retries, boundaries and unknowns."""
+import hashlib
+import json
 from copy import deepcopy
 
 import pytest
 
-from research_data.stress_d1_evidence_contract import EvidenceIntegrityError
+from research_data.stress_d1_evidence_contract import EvidenceIntegrityError, decode_bundle
 from research_data.stress_d1_producer_attempts import reconcile_producer_attempts
 
 
@@ -140,3 +142,22 @@ def test_input_order_and_input_objects_are_preserved():
     before = deepcopy(data)
     assert run(data) == run(tuple(list(reversed(rows)) for rows in data))
     assert data == before
+
+
+@pytest.mark.parametrize("number", ["1e400", "-1e400", "NaN", "Infinity", "-Infinity"])
+def test_evidence_bundle_rejects_nonfinite_number_even_in_unused_row(number):
+    # Pre-pinned synthetic bytes; extra field would otherwise be ignored.
+    original = json.dumps({"boundary": BOUNDARY, "rows": [inputs()[0][0]]}).encode()
+    marker = b'"rows": [{'
+    assert marker in original
+    raw = original.replace(marker, b'"rows": [{"unused_numeric": ' + number.encode() + b', ', 1)
+    with pytest.raises(EvidenceIntegrityError, match="NONFINITE_JSON"):
+        decode_bundle(raw, hashlib.sha256(raw).hexdigest(), BOUNDARY)
+
+
+def test_evidence_bundle_accepts_finite_number_in_unused_row():
+    raw = json.dumps({"boundary": BOUNDARY, "rows": [inputs()[0][0]]}).encode()
+    assert b'"rows": [{' in raw
+    raw = raw.replace(b'"rows": [{', b'"rows": [{"unused_numeric": 1.25, ', 1)
+    decoded = decode_bundle(raw, hashlib.sha256(raw).hexdigest(), BOUNDARY)
+    assert decoded[0]["unused_numeric"] == 1.25
