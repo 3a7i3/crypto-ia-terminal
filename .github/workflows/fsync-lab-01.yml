@@ -1,0 +1,39 @@
+name: FSYNC Lab Observation
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fsync-lab-01.yml'
+      - 'scripts/research/qualify_fsync_lab.py'
+      - 'tests/research_data/test_fsync_lab_parser.py'
+      - 'docs/research/paper_stress_404/FSYNC_LAB_01.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fsync-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observe:
+    name: FSYNC LAB SYNTHETIC OBSERVATION
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Observe only synthetic owned child processes
+        shell: bash
+        run: |
+          python3 -I -B scripts/research/qualify_fsync_lab.py --output "$RUNNER_TEMP/fsync-lab-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - name: Preserve bounded synthetic traces and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fsync-lab-synthetic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fsync-lab-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
