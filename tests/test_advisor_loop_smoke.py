@@ -22,6 +22,10 @@ def _isolate_smoke_writes(monkeypatch, tmp_path):
     sans modifier advisor_loop.py (gelé — phase de validation scientifique).
     """
     monkeypatch.chdir(tmp_path)
+    # These smoke tests inject scanners and do not test universe discovery.
+    # A real refresh thread survives main() and can call a later test's fake
+    # ccxt factory after its monkeypatch, contaminating shared-exchange counts.
+    monkeypatch.setenv("UNIVERSE_ENABLED", "false")
 
 
 @pytest.fixture(autouse=True)
