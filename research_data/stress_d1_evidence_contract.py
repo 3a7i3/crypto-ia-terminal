@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -68,6 +69,13 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def finite_json_float(value: str, code: str = "NONFINITE_JSON") -> float:
+    """Disallow exponent overflow (e.g. 1e400) even in otherwise unused fields."""
+    parsed = float(value)
+    require(math.isfinite(parsed), code)
+    return parsed
+
+
 def decode_bundle(raw: bytes, expected_sha256: str, boundary: Mapping[str, str]) -> list:
     """Check explicit bytes against an external hash pin; no file or network access.
 
@@ -81,7 +89,8 @@ def decode_bundle(raw: bytes, expected_sha256: str, boundary: Mapping[str, str])
     require(hashlib.sha256(raw).hexdigest() == expected_sha256, "BUNDLE_HASH_MISMATCH")
     try:
         doc = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object,
-                         parse_constant=lambda _: require(False, "NONFINITE_JSON"))
+                         parse_constant=lambda _: require(False, "NONFINITE_JSON"),
+                         parse_float=finite_json_float)
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise EvidenceIntegrityError("INVALID_BUNDLE_JSON") from exc
     require(isinstance(doc, dict) and set(doc) == {"boundary", "rows"},
