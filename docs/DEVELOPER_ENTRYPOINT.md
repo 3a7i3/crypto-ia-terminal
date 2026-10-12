@@ -1,9 +1,10 @@
 # Entrée développeur canonique
 
 Lire cette page avant de reprendre Crypto AI Terminal, puis
-[CLAUDE.md](../CLAUDE.md) et la mission applicable. État courant synchronisé par
-DOC-CANON-02 / [#380](https://github.com/3a7i3/crypto-ia-terminal/issues/380)
-depuis `main@a057d4e972cd60ee32710d59f327b4185f3af287`, le 2026-10-04.
+[CLAUDE.md](../CLAUDE.md) et la mission applicable. État documentaire synchronisé par
+DOC-CANON-03 / [#412](https://github.com/3a7i3/crypto-ia-terminal/issues/412)
+depuis `main@598ab14b7fff06fdae5d3f2a24bc8d4484f48e71`, le 2026-10-12.
+DOC-CANON-02 / #380 reste historique.
 La reconstruction DOC-CANON-01 / #340 du 2026-10-02 reste une référence
 historique. Aucune observation VPS n'est réalisée par cette page.
 
@@ -26,8 +27,8 @@ et ses preuves depuis une app, sans confondre présentation et autorité.
 | [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323) | cockpit unifié et séquence source/UI |
 | [#282](https://github.com/3a7i3/crypto-ia-terminal/issues/282), [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) | observations burn-in datées / garde-fou |
 | [#315](https://github.com/3a7i3/crypto-ia-terminal/issues/315) | OperatorDecision : Gate S source accepté, Gate O ouvert à cette base |
-| [#362](https://github.com/3a7i3/crypto-ia-terminal/issues/362), [#365](https://github.com/3a7i3/crypto-ia-terminal/issues/365) | Machine Maturity : L0/L1 certifiés ; L2 prochain niveau formel |
-| [#380](https://github.com/3a7i3/crypto-ia-terminal/issues/380) | synchronisation documentaire courante |
+| [#362](https://github.com/3a7i3/crypto-ia-terminal/issues/362), [#365](https://github.com/3a7i3/crypto-ia-terminal/issues/365) | Machine Maturity : L0 → L1 v2 → L2 → L3 certifiés ; L4 non certifié |
+| [#412](https://github.com/3a7i3/crypto-ia-terminal/issues/412) | synchronisation L3/U7 et disponibilité Research ; #380 historique |
 
 Lire les mises à jour, commentaires et verdicts réels ; une issue OPEN ne
 signifie pas que toutes ses phases sont autorisées. Une vieille page racine ne
@@ -50,7 +51,7 @@ active, performance réelle ou publication scientifique admise.
 
 | Référence à cette reconstruction | Valeur | Nature |
 |---|---|---|
-| Base source de cette synchronisation | `a057d4e972cd60ee32710d59f327b4185f3af287` | Machine Maturity L1 v2 effectif ; base documentaire, pas preuve runtime |
+| Base source de cette synchronisation | `598ab14b7fff06fdae5d3f2a24bc8d4484f48e71` | L3 et D1-D/E intégrées ; base documentaire, pas preuve runtime |
 | Runtime source | `116634be0d3c015cce1cfa58be7da7255414fbfd` | référence consignée sous #286 |
 | Epoch | `BURN-IN-EPOCH-01-20260926T064144Z` | identité consignée sous #282/#286 |
 | Config hash | `9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4` | identité consignée sous #286 |
@@ -106,17 +107,24 @@ Ne pas refactoriser les trois arbres runtime ou le monolithe Advisor comme
 
 ## 7. Choisir la mission et préserver le travail existant
 
-Lire #285, le scope du parent et les sous-gates. La frontière Machine
-Maturity formelle est L1 ; L2 puis L3 doivent rester des certifications
-séquentielles séparées. U4 #337 et #338/#339 sont fusionnés en source ; ne pas
-les traiter comme PR ouvertes. U7 global, l'admission réelle Lab et U8 demeurent
-des tranches distinctes. #374 Agent Registry est parquée source-only et ne doit
-pas devenir un chantier parallèle implicite.
+Lire #285, le scope du parent et les sous-gates. La frontière formelle est
+**L3**, effective via son certificat sur main et la chaîne L0 → L1 v2 → L2 → L3.
+Le snapshot est synchronisé (#392) ; ne pas refaire les certifications L2/L3.
+U7 est historiquement certifié en source (#383) ; L4 et U8 runtime ne sont pas
+certifiés. L'admission réelle Lab reste une preuve distincte ; #374 Agent
+Registry demeure parquée source-only.
 
-#266 n'est pas à merger/rebaser/cherry-pick : ses enseignements documentaires
-sont reconstruits depuis la base actuelle. BUGS, #297 et #260 sont hors scope
-DOC-CANON-01. Le nettoyage administratif des cinq PR Research déjà absorbées
-vient ensuite, avec traçabilité ; il n'autorise aucun cleanup des preuves.
+La reprise Research #404/#408/#410 distingue capacité source intégrée
+(#409/#411) et données réelles admissibles. Consulter
+l'[inventaire des copies autorisées](research/paper_stress_404/D1_D_E_AUTHORIZED_COPY_INVENTORY_20261012.md) :
+la passerelle VPS est Offline lors de cette synchronisation, donc aucune
+existence/absence actuelle de roster ou témoin fsync n'est attestée.
+`PAPER_STRESS_RUNTIME_GO=DENIED`, #286 ACTIVE. Aucune nouvelle capture/export,
+instrumentation active ou reconstitution de roster depuis les packets.
+
+Les références DOC-CANON-01/#340 et DOC-CANON-02/#380 sont historiques.
+Les anciens nettoyages administratifs ne valent pas autorisation de retirer
+preuves ou modules ; revérifier chaque PR avant une action distincte.
 
 Créer une branche ou worktree isolé depuis une base vérifiée. Préserver les
 changements préexistants et les artifacts locaux ; aucun reset/clean destructif.
