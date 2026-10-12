@@ -16,6 +16,7 @@ from typing import Any
 from research_data.stress_d1_evidence_contract import (
     EvidenceIntegrityError,
     decode_bundle,
+    finite_json_float,
     native_id,
     require,
     utc_time,
@@ -212,7 +213,9 @@ def verify_durability_chains(
                 "RECORD_BYTES_HASH_OR_RANGE_MISMATCH")
         try:
             record = json.loads(line, object_pairs_hook=_strict_object,
-                                parse_constant=lambda _: require(False, "NONFINITE_RECORD_JSON"))
+                                parse_constant=lambda _: require(False, "NONFINITE_RECORD_JSON"),
+                                parse_float=lambda value: finite_json_float(
+                                    value, "NONFINITE_RECORD_JSON"))
         except json.JSONDecodeError as exc:
             raise EvidenceIntegrityError("INVALID_RECORD_JSON") from exc
         require(isinstance(record, Mapping), "INVALID_RECORD_JSON")
