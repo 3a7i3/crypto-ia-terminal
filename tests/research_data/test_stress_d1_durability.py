@@ -444,3 +444,41 @@ def test_multiple_independent_decisions_are_conserved():
     first["fsync"][1]["fsync_call_id"] = "fsync-1"
     with pytest.raises(EvidenceIntegrityError, match="DUPLICATE_NATIVE_FSYNC_CALL_ID"):
         run(first)
+
+
+@pytest.mark.parametrize("number", ["1e400", "-1e400", "NaN", "Infinity", "-Infinity"])
+def test_record_rejects_nonfinite_unused_value_with_consistent_bytes_and_fsync(number):
+    # Do not produce a misleading SHA mismatch: repin exact record bytes,
+    # all write receipts, the independent fsync witness and the prefix fence.
+    d = data()
+    previous_line = d["records"][0]["record_line"]
+    assert '"price": 100.0,' in previous_line
+    new_line = previous_line.replace(
+        '"price": 100.0,', f'"price": 100.0, "unused_numeric": {number},', 1
+    )
+    encoded = new_line.encode("utf-8")
+    digest = hashlib.sha256(encoded).hexdigest()
+    d["records"][0]["record_line"] = new_line
+    for row in [d["records"][0], d["fsync"][0], *d["receipts"]]:
+        row["write"]["byte_end"] = len(encoded)
+        row["write"]["record_sha256"] = digest
+    d["fence"]["prefixes"][0]["byte_end"] = len(encoded)
+    d["fence"]["prefixes"][0]["sha256"] = digest
+    with pytest.raises(EvidenceIntegrityError, match="NONFINITE_RECORD_JSON"):
+        run(d)
+
+
+def test_record_allows_finite_extra_number_with_consistent_bytes_and_fsync():
+    d = data()
+    line = d["records"][0]["record_line"].replace(
+        '"price": 100.0,', '"price": 100.0, "unused_numeric": 1.25,', 1
+    )
+    encoded = line.encode("utf-8")
+    digest = hashlib.sha256(encoded).hexdigest()
+    d["records"][0]["record_line"] = line
+    for row in [d["records"][0], d["fsync"][0], *d["receipts"]]:
+        row["write"]["byte_end"] = len(encoded)
+        row["write"]["record_sha256"] = digest
+    d["fence"]["prefixes"][0]["byte_end"] = len(encoded)
+    d["fence"]["prefixes"][0]["sha256"] = digest
+    assert_category(d, "FSYNC_CHAIN_CONSISTENT")
