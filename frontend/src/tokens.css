@@ -2,38 +2,62 @@
 /* System fonts keep the operator shell available without external font requests. */
 
 :root {
+  /* Theme "Bleu pédagogique" (light). Token names keep their historical
+     spelling (--bg-dark is the page background) so consumers need no rename. */
+  color-scheme: light;
+
   /* Backgrounds */
-  --bg-dark:      #0b1220;
-  --bg-card:      #18263b;
-  --bg-card-soft: #182235;
-  --bg-hover:     #263348;
-  --bg-border:    #3d526e;
+  --bg-dark:      #f3f7fc;
+  --bg-card:      #ffffff;
+  --bg-card-soft: #f8fbff;
+  --bg-hover:     #e8f0fb;
+  --bg-border:    #d9e4f0;
+  --bg-border-strong: #9db3cc;
 
-  /* Text */
-  --text-pri:     #f8fafc;
-  --text-sec:     #c8d5e5;
-  --text-muted:   #b0bed1;
+  /* Text — #18324f on #fff = 13.1:1, #52657a on #f3f7fc = 5.6:1 */
+  --text-pri:     #18324f;
+  --text-sec:     #3d5169;
+  --text-muted:   #52657a;
+  --heading:      #0f2a4a;
+  --text-primary: var(--text-pri);
 
-  /* Functional palette */
-  --accent:       #00e0ff;
-  --accent-dim:   rgba(0, 224, 255, 0.10);
-  --ok:           #22c55e;
-  --ok-dim:       rgba(34, 197, 94, 0.10);
-  --warn:         #f59e0b;
-  --warn-dim:     rgba(245, 158, 11, 0.10);
-  --danger:       #ff7077;
-  --danger-dim:   rgba(239, 68, 68, 0.10);
-  --neutral:      #6b7280;
-  --neutral-dim:  rgba(107, 114, 128, 0.12);
-  --violet:       #a78bfa;
-  --violet-dim:   rgba(167, 139, 250, 0.11);
+  /* Functional palette (text-safe on white and on the page background) */
+  --accent:       #2563eb;
+  --accent-dim:   rgba(37, 99, 235, 0.09);
+  --cyan:         #0e7490;
+  --cyan-dim:     rgba(14, 116, 144, 0.10);
+  --ok:           #15803d;
+  --ok-dim:       rgba(21, 128, 61, 0.10);
+  --warn:         #8a5a00;
+  --warn-dim:     rgba(234, 179, 8, 0.18);
+  --danger:       #b91c1c;
+  --danger-dim:   rgba(185, 28, 28, 0.09);
+  --neutral:      #64748b;
+  --neutral-dim:  rgba(100, 116, 139, 0.12);
+  --violet:       #6d28d9;
+  --violet-dim:   rgba(109, 40, 217, 0.09);
+  --danger-text:  #991b1b;
+  --violet-text:  #5b21b6;
+  --focus-ring:   #1d4ed8;
+  --tint-faint:   rgba(24, 50, 79, 0.03);
+  --tint-soft:    rgba(24, 50, 79, 0.05);
+  --tint-line:    rgba(24, 50, 79, 0.10);
+  --glass:        rgba(255, 255, 255, 0.94);
+  --shadow-card:  0 1px 2px rgba(24, 50, 79, 0.06), 0 4px 14px rgba(24, 50, 79, 0.05);
+
+  /* Work status (always paired with a text label) */
+  --st-done:      #166534;  --st-done-bg:    #e6f4ea;
+  --st-active:    #8a5a00;  --st-active-bg:  #fdf3c8;
+  --st-todo:      #b91c1c;  --st-todo-bg:    #fdecec;
+  --st-blocked:   #7f1d1d;  --st-blocked-bg: #f9d9d9;
+  --st-paused:    #52657a;  --st-paused-bg:  #e7ecf2;
 
   /* Presentation semantics — never execution authority */
-  --market-observation: #22d3ee;
-  --market-observation-dim: rgba(34, 211, 238, 0.10);
-  --market-long:  #22d3ee;
-  --market-short: #a78bfa;
-  --shadow-state: #8b5cf6;
+  --market-observation: #0e7490;
+  --market-observation-dim: rgba(14, 116, 144, 0.10);
+  --market-long:  #0e7490;
+  --market-short: #6d28d9;
+  --shadow-state: #6d28d9;
 
   /* Conviction */
   --cv-vh:        #22c55e;
