@@ -11,8 +11,8 @@ export type WorkItem = {
   issue: number;
   pr?: number;
 };
-export const WORKBOARD_REVIEWED_AT = "2026-10-13T01:34:16Z";
-export const WORKBOARD_SOURCE_SHA = "b58f14b447f36efeb6c4c3c356a6510419d1ab98";
+export const WORKBOARD_REVIEWED_AT = "2026-10-13T22:36:02Z";
+export const WORKBOARD_SOURCE_SHA = "26f63d29bfcf9bca41b8b422dbf086b9244c0393";
 export const STATUS_LABELS: Record<WorkStatus, string> = {
   done: "Terminé", active: "En cours", todo: "À faire", blocked: "Bloqué", paused: "En pause",
 };
@@ -27,7 +27,9 @@ export const WORK_ITEMS: readonly WorkItem[] = [
   { id:"FSYNC-LAB", title:"Témoin fsync · appel système", area:"Research", status:"done", scope:"Observation native en laboratoire", evidence:"Succès, faux claim sans appel et EBADF distingués.", next:"Conserver les traces ; pas preuve par packet réel.", issue:422, pr:423 },
   { id:"BINDING", title:"Décision → fichier → plage → fsync", area:"Research", status:"done", scope:"Scénario mono-writer de laboratoire", evidence:"#425 fusionnée ; deux records couverts, troisième sans reçu fsync.", next:"Étendre la qualification hors scénario contrôlé.", issue:424, pr:425 },
   { id:"FAULTS", title:"Refus des opérations hors contrat", area:"Research", status:"done", scope:"Laboratoire source intégré", evidence:"#427 fusionnée après CI finale ; six scénarios natifs et preuves conservés.", next:"Versionner les adapters ; rotation et retries restent non supportés.", issue:426, pr:427 },
-  { id:"WORKBOARD", title:"Livre blanc et tableau des travaux", area:"Cockpit", status:"active", scope:"Interface source · cette mission", evidence:"Demande opérateur #428 ; aucune preuve de déploiement.", next:"Valider présentation, mobile et CI ; release séparée.", issue:428 },
+  { id:"WORKBOARD", title:"Livre blanc et tableau des travaux", area:"Cockpit", status:"done", scope:"Interface source · fusionnée (#429)", evidence:"Fusionnés en source. Non déployé : sonde lecture seule du 2026-10-13 20:31 UTC, le web sert encore la release 1728b3ad.", next:"Activation opérateur de la release frontend ; preuve navigateur distincte.", issue:428, pr:429 },
+  { id:"THEME", title:"Thème « Bleu pédagogique »", area:"Cockpit", status:"done", scope:"Interface source · fusionnée (#439)", evidence:"Thème clair par tokens, statuts avec libellé et marqueur ; captures synthétiques, aucune preuve runtime.", next:"Revue visuelle sur la page servie après activation.", issue:428, pr:439 },
+  { id:"FRONTEND-RELEASE", title:"Release frontend opérateur", area:"Cockpit", status:"active", scope:"Préparée · non déployée (#431)", evidence:"Paquet reconstruit depuis la source frontend fusionnée ; empreinte rapportée dans #431, non recalculée sur l’hôte.", next:"Fusion de #431, vérification du hash sur l’hôte, activation par l’opérateur.", issue:430, pr:431 },
   { id:"BURNIN", title:"Observation et clôture du burn-in", area:"Expérience", status:"active", scope:"#282 · non finalisé", evidence:"Checkpoints historiques acquis ; aucun compteur actuel déduit.", next:"Preuve fraîche, population finale, frontière quiescente, finance et replay.", issue:282 },
   { id:"FREEZE", title:"Protection de l’epoch active", area:"Gouvernance", status:"active", scope:"Garde constitutionnelle", evidence:"#286 ACTIVE : code/config/epoch protégés.", next:"Maintenir l’interdiction de feedback Research vers cette epoch.", issue:286 },
   { id:"D1-D", title:"Complétude du vrai roster producteur", area:"Research", status:"blocked", scope:"D1-D · NOT_PROVEN", evidence:"Un roster synthétique ne prouve pas toutes les invocations réelles.", next:"Acquérir un roster amont indépendant et des fences vérifiables.", issue:404 },
@@ -36,6 +38,8 @@ export const WORK_ITEMS: readonly WorkItem[] = [
   { id:"TRUST", title:"Horloges et custody indépendante", area:"Research", status:"todo", scope:"C2 / C3 incomplets", evidence:"Hashes et processus distincts ne suffisent pas à établir l’indépendance.", next:"Qualifier clocks, gaps, custody et budgets cumulés.", issue:420 },
   { id:"U8", title:"Cockpit · certification runtime", area:"Cockpit", status:"todo", scope:"U8 · non certifié", evidence:"U7 source ne prouve ni release actuelle ni interface servie.", next:"Mission runtime distincte, release exacte et preuves navigateur.", issue:323 },
   { id:"L4", title:"Maturité L4", area:"Gouvernance", status:"todo", scope:"Frontière suivante · non certifiée", evidence:"L3 est acquis ; isolation et preuves opérationnelles L4 restent distinctes.", next:"Préparer la matrice des préconditions et la revue formelle.", issue:362 },
+  { id:"GATEWAY-LAB", title:"Passerelle de déploiement · usage unique et signature", area:"Gouvernance", status:"done", scope:"Laboratoire synthétique intégré (#435, #437, #438)", evidence:"Ledger atomique, signature épinglée et composition signée avec usage unique testés ; clés éphémères et sorties de processus seulement.", next:"Custody de clé, identité système et horloge de confiance restent à prouver.", issue:432, pr:438 },
+  { id:"GATEWAY-RUNTIME", title:"Passerelle de déploiement · installation privilégiée", area:"Gouvernance", status:"todo", scope:"Runtime · non installée", evidence:"Admission du connecteur, installation opérateur et activation : NOT_ADMITTED / NOT_OBSERVED.", next:"Décision opérateur sur custody et admission ; la voie manuelle #431 reste disponible.", issue:432 },
   { id:"GATE-O", title:"Décisions opérateur · autorité", area:"Gouvernance", status:"blocked", scope:"Gate O ouverte / non déployé", evidence:"Six décisions de confiance opérationnelle non résolues.", next:"Définir owners, signataires, clés, registries et anti-rollback.", issue:315 },
   { id:"FUTURE", title:"Admission d’une future collecte", area:"Expérience", status:"blocked", scope:"C4 / C5 · DENIED", evidence:"Aucune activation obtenue par les merges source.", next:"Passer les gates scientifiques puis la décision d’activation distincte.", issue:404 },
   { id:"STRESS", title:"Stress PAPER", area:"Expérience", status:"blocked", scope:"Runtime · DENIED", evidence:"Complétude et durabilité restent NOT_PROVEN.", next:"Rester interdit tant que l’admissibilité n’est pas démontrée.", issue:404 },
