@@ -72,3 +72,61 @@ Verify source manifest and all static asset hashes via loopback. HTTP200 at a
 SPA route alone proves neither route content nor runtime certification. Open
 the private page in a tailnet client, verify filters and mobile navigation,
 and preserve browser evidence before closing the runtime mission.
+
+## Source of the bundle versus source of the tools
+
+Two commits are deliberately separate and must not be conflated:
+
+- **Bundle source** is the frontend commit the archive was built from, pinned as
+  `SOURCE_SHA` in the helper and recorded in the manifest: `46fef27ead49aa99d54acf3310caa31b084134fe`
+  (main after PR #439: workboard and "Bleu pédagogique" theme). It also names
+  the release directory. Gateway, ledger or signature changes merged to main
+  later do not touch `frontend/` and do not change this pin; advancing it is a
+  reviewed change plus a rebuilt, re-hashed package, never automatic.
+- **Tools source** is the commit that carries the helper and builder
+  (this PR's merge). The operator copies the helper from that commit, checks its
+  SHA-256, and never runs `git pull` in the runtime checkout.
+
+Build provenance for the pinned archive: clean worktrees of 46fef27, `npm ci`
+from the locked graph, `npm run build` (tsc 5.9.3, vite 8.3.2), Node v22.22.0,
+npm 10.9.4, Python 3.13 for the builder. Three builds (one earlier checkout, one
+fresh worktree, one repeat of the builder on the same tree) gave the same
+archive SHA-256 `57dbdf9d2bd8d8471714675331e867facccd8e802aea1103d898b33798f71496`.
+Reproducibility across other Node/npm versions is not claimed. The SHA-256 is a
+reported fingerprint until recomputed on the target host from the fetched file.
+
+## Operator procedure (no step here is executed by the agent)
+
+Rights: steps 1-3 need only read access; 4-6 need root on the web host.
+
+1. Fetch the archive and the helper from the reviewed sources, then recompute
+   `sha256sum` of both on the host and compare with the values in the PR/report.
+   Any difference stops the procedure.
+2. Read-only baseline (record the output): `hostname`, `date -u`,
+   `systemctl show crypto-operator-web.service crypto-advisor.service crypto-operator-api.service --property=Id,ActiveState,SubState,MainPID,NRestarts,ExecMainStartTimestamp`,
+   `systemctl show crypto-operator-web.service --property=FragmentPath,WorkingDirectory`,
+   `readlink /opt/crypto-ai-terminal/operator/current`. Expected web
+   WorkingDirectory is the previous release `1728b3ad...` (not `current`).
+3. Inspect only (default mode, no mutation, no root):
+   `python3 activate_workboard_frontend.py --archive <archive> --sha256 <archive-sha>`.
+   Expect `INSPECT_ONLY_NO_MUTATION`; any `PREVIOUS_RELEASE_OR_OVERRIDE_CHANGED`
+   or `WRONG_RELEASE_SCOPE` means stop and report.
+4. Operator decision: confirm the manifest `source_merge_sha`, scope
+   `FRONTEND_ONLY`, no pending source gate, and the explicit written go.
+5. Activate as root, same command plus `--activate`. It creates
+   `releases/46fef27.../`, writes only `99-workboard.conf`, reloads systemd and
+   restarts only `crypto-operator-web.service`, then checks every served asset
+   and `/direction/travaux` byte for byte on `127.0.0.1:8181` and compares API and
+   Advisor state and the `current` link before/after. Failure removes the new
+   override and restarts web on the previous release automatically.
+6. Verify: `curl -sI http://127.0.0.1:8181/direction/travaux` (200), open the
+   private tailnet page, check the theme, the 25-row table, filters and mobile
+   navigation, and keep screenshots. Browser proof stays a separate result.
+
+Manual rollback (root, web only): remove
+`/etc/systemd/system/crypto-operator-web.service.d/99-workboard.conf`,
+`systemctl daemon-reload`, `systemctl restart crypto-operator-web.service`, then
+confirm WorkingDirectory is `1728b3ad...` again and API/Advisor PID and start
+time are unchanged. Keep the new release directory for forensics. Rollback is
+bounded to that single known previous release; the helper refuses to run if the
+previous release or overrides drifted.
