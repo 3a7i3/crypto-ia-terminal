@@ -92,3 +92,29 @@ def test_activate_refuses_unmerged_source_before_any_install(tmp_path, monkeypat
     with pytest.raises(ValueError, match="MERGED_SOURCE_GATE_MISSING"):
         release.main()
     assert not target.exists()
+
+
+def test_builder_output_is_deterministic_and_accepted_by_verifier(tmp_path):
+    import subprocess
+
+    from scripts.build_workboard_frontend_package import build
+
+    def git(*args):
+        subprocess.run(["git", "-C", str(tmp_path), *args], check=True, capture_output=True)
+
+    git("init", "-q")
+    (tmp_path / "frontend/dist").mkdir(parents=True)
+    (tmp_path / "frontend/scripts").mkdir()
+    (tmp_path / "frontend/dist/index.html").write_bytes(b"<html></html>")
+    (tmp_path / "frontend/scripts/web01_local_frontend_server.mjs").write_bytes(b"x")
+    git("add", ".")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "fixture")
+    first, manifest = build(tmp_path, None)
+    assert build(tmp_path, None)[0] == first
+    assert manifest["files"].keys() == {
+        "frontend/dist/index.html",
+        "frontend/scripts/web01_local_frontend_server.mjs",
+    }
+    (tmp_path / "frontend/dist/index.html").write_bytes(b"changed")
+    with pytest.raises(ValueError, match="DIRTY_FRONTEND_CHECKOUT"):
+        build(tmp_path, None)

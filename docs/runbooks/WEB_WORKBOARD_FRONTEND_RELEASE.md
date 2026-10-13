@@ -20,7 +20,7 @@ release, not U8/L4 certification or authorization of PAPER stress/capture.
 
 ## Concrete scope
 
-Build source head 391266e542507134d877803a8d67bbb603f0717c in an isolated clean
+Build source head 46fef27ead49aa99d54acf3310caa31b084134fe in an isolated clean
 checkout. Package only frontend/dist and its builtin Node static server.
 No backend source, dependencies, environment or runtime facts are installed.
 The current frontend is older: 32 source/test/tool files differ from that served
@@ -28,6 +28,11 @@ release, including previous main presentation improvements plus #429.
 This release is the reviewed full frontend, not a seven-file runtime hotpatch.
 Package/lock hashes match the deployed release. Native server change only adds
 correct detection of direct/symlink entrypoint; GET/HEAD and proxy remain fixed.
+
+Package rebuilt 2026-10-13 from the final merged source (main@46fef27, theme #439
+included) with `scripts/build_workboard_frontend_package.py`; the previous archive
+built from 391266e is superseded and is not evidence for this content. The
+builder is deterministic for a given built checkout; it does not install or deploy.
 
 Fresh local npm audit: zero vulnerabilities; production build PASS; eight local
 server/PWA boundary tests PASS. This is source proof, not a served bundle claim.
