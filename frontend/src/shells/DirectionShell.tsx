@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { SpaceNavigation } from "../components/SpaceNavigation";
 
@@ -22,6 +22,10 @@ export const DirectionShell: React.FC = () => (
           <p>État, portefeuille et marché</p>
         </div>
       </div>
+      <nav className="direction-work-nav" aria-label="Vues Direction">
+        <NavLink to="/direction" end>Synthèse</NavLink>
+        <NavLink to="/direction/travaux">Travaux et roadmap</NavLink>
+      </nav>
       <details className="direction-authority-details"><summary>Périmètre de lecture</summary><aside className="direction-authority-strip" aria-label="Frontière d’autorité Direction" data-testid="direction-authority-strip">
         <span>PRÉSENTATION</span>
         <span>LECTURE SEULE</span>
