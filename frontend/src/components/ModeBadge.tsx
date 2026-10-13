@@ -8,11 +8,11 @@ import React from "react";
 import type { PortfolioMode } from "../types";
 
 const MODE_STYLE: Record<string, { color: string; label: string }> = {
-  PAPER: { color: "#9ca3af", label: "PAPER" },
-  REAL_API: { color: "#f97316", label: "REAL_API" },
-  TESTNET_API: { color: "#3b82f6", label: "TESTNET_API" },
+  PAPER: { color: "#52657a", label: "PAPER" },
+  REAL_API: { color: "#c2410c", label: "REAL_API" },
+  TESTNET_API: { color: "#1d4ed8", label: "TESTNET_API" },
   // UNKNOWN is an unavailable/unresolved state, not an actual runtime failure.
-  UNKNOWN: { color: "#6b7280", label: "UNKNOWN" },
+  UNKNOWN: { color: "#64748b", label: "UNKNOWN" },
 };
 
 export const ModeBadge: React.FC<{ mode: PortfolioMode | string | null | undefined }> = ({ mode }) => {

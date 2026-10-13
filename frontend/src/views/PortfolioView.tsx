@@ -138,7 +138,7 @@ const OpenPositionsSection: React.FC<{ ov: unknown }> = ({ ov }) => {
           <div
             data-testid="open-positions-stale-badge"
             className="font-mono text-[10px] mb-2"
-            style={{ color: "#f59e0b" }}
+            style={{ color: "var(--warn)" }}
           >
             ⚠ Données anciennes · dernières positions connues, pas une observation actuelle
           </div>
@@ -209,7 +209,7 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
         style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}
       >
         <summary>Observation de compte réel / testnet · périmètre distinct</summary>
-        <div className="font-mono text-[10px] mb-2" style={{ color: "#f97316" }} data-testid="real-account-warning">
+        <div className="font-mono text-[10px] mb-2" style={{ color: "#c2410c" }} data-testid="real-account-warning">
           Observation en lecture seule · sans autorité de décision ou de dimensionnement
         </div>
         <Field label="real_account_equity_usd">

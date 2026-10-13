@@ -1,7 +1,7 @@
-.demo-banner { position:sticky; top:0; z-index:10; background:#49300d; color:#fff2d2; padding:12px 20px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; border-bottom:2px solid var(--warn); }
+.demo-banner { position:sticky; top:0; z-index:10; background:#fdf3c8; color:#4a3000; padding:12px 20px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; border-bottom:2px solid var(--warn); }
 .demo-banner strong { font-size:14px; }
 .demo-banner label { display:flex; gap:8px; align-items:center; }
-.demo-banner select { background:#251c0e; color:#fff2d2; padding:8px; border:1px solid #ad874e; border-radius:6px; min-height:44px; }
+.demo-banner select { background:#fff; color:#4a3000; padding:8px; border:1px solid #a16207; border-radius:6px; min-height:44px; }
 .demo-banner span { font-size:13px; }
 .demo-charts { padding-top:20px; border-top:2px solid var(--warn); margin-top:20px; }
 .demo-charts h3 { color:var(--warn); }
