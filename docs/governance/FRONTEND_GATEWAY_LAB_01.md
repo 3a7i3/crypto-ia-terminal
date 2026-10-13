@@ -24,7 +24,13 @@ No exact-once external execution is inferred from unique ticket consumption.
 processes against an owned temporary DB, with bounded waits and cleanup of those
 children only. One claim succeeds and the other is refused. Receipt is read after
 reopening. Negative cases cover unknown/revoked/expired/substituted bundle and
-directory adoption. No crash/power-loss/tracer-drop or peer identity is injected.
+directory adoption. Abrupt child-process exits are injected after SQL writes before
+commit (exit 71) and after commit before response delivery (exit 72). Reopening
+shows rollback/no receipt and successful retry in the first case; persistent
+receipt/replay refusal in the second. This is process-exit recovery, not host
+power-loss, disk failure, fsync witness or external action certification.
+A requester-fabricated fixture is accepted synthetically and explicitly returns
+NOT_VERIFIED authenticity/peer identity. Independent authorization is NOT_PROVEN.
 The lab clock is caller-supplied; real trusted time remains unqualified.
 
 Hostile directory replacement/ancestor custody, authentic approvals, atomic
