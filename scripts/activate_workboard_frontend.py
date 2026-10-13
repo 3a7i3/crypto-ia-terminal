@@ -14,7 +14,7 @@ import tarfile
 import time
 import urllib.request
 
-SOURCE_SHA = "46fef27ead49aa99d54acf3310caa31b084134fe"
+SOURCE_SHA = "bdca77f9bcf306c17846985faef870844fdd1334"
 PREVIOUS = "/opt/crypto-ai-terminal/operator/releases/1728b3ad952b87d903ccb7442579000da292b848/frontend"
 RELEASE = Path("/opt/crypto-ai-terminal/operator/releases") / SOURCE_SHA
 DROPIN = Path("/etc/systemd/system/crypto-operator-web.service.d/99-workboard.conf")

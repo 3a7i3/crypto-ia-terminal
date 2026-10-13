@@ -20,7 +20,7 @@ release, not U8/L4 certification or authorization of PAPER stress/capture.
 
 ## Concrete scope
 
-Build source head 46fef27ead49aa99d54acf3310caa31b084134fe in an isolated clean
+Build source head bdca77f9bcf306c17846985faef870844fdd1334 in an isolated clean
 checkout. Package only frontend/dist and its builtin Node static server.
 No backend source, dependencies, environment or runtime facts are installed.
 The current frontend is older: 32 source/test/tool files differ from that served
@@ -29,7 +29,7 @@ This release is the reviewed full frontend, not a seven-file runtime hotpatch.
 Package/lock hashes match the deployed release. Native server change only adds
 correct detection of direct/symlink entrypoint; GET/HEAD and proxy remain fixed.
 
-Package rebuilt 2026-10-13 from the final merged source (main@46fef27, theme #439
+Package rebuilt 2026-10-13 from the final merged source (main@bdca77f, theme #439 and register #440
 included) with `scripts/build_workboard_frontend_package.py`; the previous archive
 built from 391266e is superseded and is not evidence for this content. The
 builder is deterministic for a given built checkout; it does not install or deploy.
@@ -78,8 +78,8 @@ and preserve browser evidence before closing the runtime mission.
 Two commits are deliberately separate and must not be conflated:
 
 - **Bundle source** is the frontend commit the archive was built from, pinned as
-  `SOURCE_SHA` in the helper and recorded in the manifest: `46fef27ead49aa99d54acf3310caa31b084134fe`
-  (main after PR #439: workboard and "Bleu pédagogique" theme). It also names
+  `SOURCE_SHA` in the helper and recorded in the manifest: `bdca77f9bcf306c17846985faef870844fdd1334`
+  (main after PR #440: workboard register, "Bleu pédagogique" theme #439). It also names
   the release directory. Gateway, ledger or signature changes merged to main
   later do not touch `frontend/` and do not change this pin; advancing it is a
   reviewed change plus a rebuilt, re-hashed package, never automatic.
@@ -87,12 +87,13 @@ Two commits are deliberately separate and must not be conflated:
   (this PR's merge). The operator copies the helper from that commit, checks its
   SHA-256, and never runs `git pull` in the runtime checkout.
 
-Build provenance for the pinned archive: clean worktrees of 46fef27, `npm ci`
-from the locked graph, `npm run build` (tsc 5.9.3, vite 8.3.2), Node v22.22.0,
-npm 10.9.4, Python 3.13 for the builder. Three builds (one earlier checkout, one
-fresh worktree, one repeat of the builder on the same tree) gave the same
-archive SHA-256 `57dbdf9d2bd8d8471714675331e867facccd8e802aea1103d898b33798f71496`.
-Reproducibility across other Node/npm versions is not claimed. The SHA-256 is a
+Build provenance for the pinned archive: two independent clean worktrees of
+bdca77f, each with `npm ci` from the locked graph and `npm run build` (tsc 5.9.3,
+vite 8.3.2), Node v22.22.0, npm 10.9.4, Python 3.13 for the builder. Both gave the
+same archive SHA-256 `d7c61163651e964f04d06941cc0451b82939177dbdb0d303a953fc9b6caf4f5e`
+(9 files, manifest `source_merge_sha` = bdca77f). The earlier pin 46fef27 (archive
+57dbdf9d…) is superseded by the register update #440 and is not evidence for this
+content. Reproducibility across other Node/npm versions is not claimed. The SHA-256 is a
 reported fingerprint until recomputed on the target host from the fetched file.
 
 ## Operator procedure (no step here is executed by the agent)
@@ -114,13 +115,13 @@ Rights: steps 1-3 need only read access; 4-6 need root on the web host.
 4. Operator decision: confirm the manifest `source_merge_sha`, scope
    `FRONTEND_ONLY`, no pending source gate, and the explicit written go.
 5. Activate as root, same command plus `--activate`. It creates
-   `releases/46fef27.../`, writes only `99-workboard.conf`, reloads systemd and
+   `releases/bdca77f9.../`, writes only `99-workboard.conf`, reloads systemd and
    restarts only `crypto-operator-web.service`, then checks every served asset
    and `/direction/travaux` byte for byte on `127.0.0.1:8181` and compares API and
    Advisor state and the `current` link before/after. Failure removes the new
    override and restarts web on the previous release automatically.
 6. Verify: `curl -sI http://127.0.0.1:8181/direction/travaux` (200), open the
-   private tailnet page, check the theme, the 25-row table, filters and mobile
+   private tailnet page, check the theme, the 29-row table, filters and mobile
    navigation, and keep screenshots. Browser proof stays a separate result.
 
 Manual rollback (root, web only): remove
