@@ -126,6 +126,32 @@ describe("FinancialReconciliationView", () => {
     expect(view).toHaveTextContent("aucune correction automatique");
   });
 
+  it("labels a stale artifact as a historical capture with date, epoch and age, never as fresh", async () => {
+    const stale = {
+      ...snapshot(),
+      generated_at_utc: "2026-09-26T06:07:16.984Z",
+      snapshot_age_s: 1602376.19,
+      freshness_classification: "STALE",
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(stale)));
+    render(<FinancialReconciliationView />);
+    const label = await screen.findByTestId("fin-capture-label");
+    expect(label).toHaveTextContent("Capture historique du 26/09/2026 06:07 UTC");
+    expect(label).toHaveTextContent("périmée depuis 18 j 13 h");
+    expect(label).toHaveTextContent(`epoch ${stale.paper_epoch_id}`);
+    expect(label).toHaveAttribute("title", "Âge exact : 1602376.19 s");
+    expect(screen.getAllByText(/Ancien · périmé/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Publication récente/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a fresh artifact labelled as a plain capture", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(snapshot())));
+    render(<FinancialReconciliationView />);
+    const label = await screen.findByTestId("fin-capture-label");
+    expect(label).toHaveTextContent("Capture du 21/09/2026 07:30 UTC");
+    expect(label).not.toHaveTextContent("historique");
+  });
+
   it("surfaces structured API failure rather than fake zero balances", async () => {
     vi.stubGlobal(
       "fetch",
