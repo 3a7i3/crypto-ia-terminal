@@ -14,6 +14,7 @@ from typing import Any, Optional
 
 from observability.research_evidence_io import EvidenceReadError, read_evidence
 from observability.research_lab_schema import validate_research_lab_snapshot
+from observability.operator_api.path_probe import probe_artifact_path
 
 DEFAULT_RESEARCH_LAB_SNAPSHOT_PATH = Path(
     os.getenv(
@@ -43,17 +44,24 @@ class ResearchLabSnapshotReader:
         return self._path
 
     def read(self) -> ResearchLabReadResult:
-        if not self._path.exists():
+        failure = probe_artifact_path(self._path, reject_symlink=True)
+        if failure == "MISSING":
             return ResearchLabReadResult(
                 ok=False,
                 error_code="RESEARCH_LAB_SNAPSHOT_MISSING",
                 error_message="Research Lab presentation snapshot not found.",
             )
-        if self._path.is_symlink() or not self._path.is_file():
+        if failure == "INVALID_PATH":
             return ResearchLabReadResult(
                 ok=False,
                 error_code="RESEARCH_LAB_INVALID_PATH",
                 error_message="Research Lab presentation path is not a regular file.",
+            )
+        if failure == "UNREADABLE":
+            return ResearchLabReadResult(
+                ok=False,
+                error_code="RESEARCH_LAB_UNREADABLE",
+                error_message="Research Lab presentation could not be read safely.",
             )
         try:
             doc, _ = read_evidence(self._path, limit=1024 * 1024)

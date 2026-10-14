@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
+from observability.operator_api.path_probe import probe_artifact_path
 
 DEFAULT_PPL_COMPARISON_PATH = Path(
     os.getenv(
@@ -538,19 +539,24 @@ class PplComparisonSnapshotReader:
         return self._path
 
     def read(self) -> PplComparisonReadResult:
-        if not self._path.exists():
+        failure = probe_artifact_path(self._path)
+        if failure == "MISSING":
             return PplComparisonReadResult(
                 ok=False,
                 error_code="PPL_COMPARISON_SNAPSHOT_MISSING",
-                error_message=(
-                    f"PPL comparison snapshot not found: {self._path}"
-                ),
+                error_message="PPL comparison snapshot not found.",
             )
-        if not self._path.is_file():
+        if failure == "INVALID_PATH":
             return PplComparisonReadResult(
                 ok=False,
                 error_code="PPL_COMPARISON_INVALID_PATH",
                 error_message="PPL comparison path is not a regular file.",
+            )
+        if failure == "UNREADABLE":
+            return PplComparisonReadResult(
+                ok=False,
+                error_code="PPL_COMPARISON_UNREADABLE",
+                error_message="PPL comparison snapshot could not be read.",
             )
 
         try:
@@ -558,11 +564,11 @@ class PplComparisonSnapshotReader:
                 self._path.read_text(encoding="utf-8"),
                 parse_constant=_reject_json_constant,
             )
-        except (OSError, UnicodeError) as exc:
+        except (OSError, UnicodeError):
             return PplComparisonReadResult(
                 ok=False,
                 error_code="PPL_COMPARISON_UNREADABLE",
-                error_message=str(exc),
+                error_message="PPL comparison snapshot could not be read.",
             )
         except (json.JSONDecodeError, ValueError) as exc:
             return PplComparisonReadResult(
