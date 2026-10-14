@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDemoCharts } from "./DemoContext";
 import { validAccountingHistory } from "../lib/pplAccountingHistory";
+import { ageFr, utcStampFr } from "../lib/presentationFr";
 import type {
   AccountingHistory,
   AccountingSample,
@@ -192,13 +193,16 @@ export const FinancialHistory: React.FC = () => {
         Une seule expérience · unité comptable PAPER · aucune conversion de
         devise
       </p>
-      <p className="accounting-capture">
-        Capture{" "}
-        {history.freshness_classification === "STALE" ? "périmée" : "récente"} :{" "}
-        {date(history.source_generated_at_utc)} UTC · séquence{" "}
-        {history.last_sequence}
+      <p
+        className="accounting-capture"
+        title={`Âge exact : ${history.snapshot_age_s} s`}
+      >
+        {history.freshness_classification === "STALE"
+          ? `Capture historique du ${utcStampFr(history.source_generated_at_utc)} · périmée depuis ${ageFr(history.snapshot_age_s)}`
+          : `Capture récente du ${utcStampFr(history.source_generated_at_utc)}`}{" "}
+        · séquence {history.last_sequence}
       </p>
-      <p className="accounting-epoch">{history.paper_epoch_id}</p>
+      <p className="accounting-epoch">Epoch : {history.paper_epoch_id}</p>
       <div className="accounting-tabs" aria-label="Choix du graphique">
         {(["realized_pnl", "available_cash", "allocation"] as const).map(
           (key) => (

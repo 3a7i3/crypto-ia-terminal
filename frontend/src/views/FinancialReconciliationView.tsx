@@ -1,5 +1,5 @@
 import React from "react";
-import { fr } from "../lib/presentationFr";
+import { ageFr, fr, utcStampFr } from "../lib/presentationFr";
 import { FinancialHistory } from "../components/FinancialHistory";
 import { formatDecimalText } from "../lib/decimalPresentation";
 import { useFinancialReconciliation } from "../lib/financialReconciliationClient";
@@ -137,6 +137,13 @@ const FinancialReconciliationContent: React.FC = () => {
             </span>
           </div>
         </div>
+
+        <p className="fin-capture" data-testid="fin-capture-label" title={`Âge exact : ${snapshot.snapshot_age_s} s`}>
+          {stale
+            ? `Capture historique du ${utcStampFr(snapshot.generated_at_utc)} · périmée depuis ${ageFr(snapshot.snapshot_age_s)}`
+            : `Capture du ${utcStampFr(snapshot.generated_at_utc)}`}
+          {" "}· epoch {snapshot.paper_epoch_id}
+        </p>
 
         <details className="fin-provenance-details"><summary>Provenance financière</summary><div className="fin-provenance">
           <div><span>Epoch</span><code>{snapshot.paper_epoch_id}</code></div>
