@@ -471,17 +471,55 @@ def test_write_after_the_stamp_is_rejected_not_silently_accepted(machine):
     assert run(stamp_value + 0.2) == "INVALID_METADATA"  # written after it: detected
 
 
+def _g0(rt, out, extra_env=None, path=None):
+    env = {"PATH": path or os.environ.get("PATH", "/usr/bin:/bin"), "RT": str(rt), "OUT": str(out)}
+    env.update(extra_env or {})
+    return subprocess.run(["sh", str(DIR / "g0_readonly_checks.sh")], env=env,
+                          capture_output=True, text=True, timeout=60)
+
+
 def test_g0_script_is_read_only_bounded_and_succeeds_on_a_machine_tree(machine):
     rt, out = machine
     live = rt / "databases" / "live_snapshot.json"
     live.write_text('{"cycle": 7, "cycle_duration_ms": 1234, "ts": "x"}', encoding="utf-8")
     before = _tree(rt)
-    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "RT": str(rt),
-           "OUT": str(out), "G0B": "1"}
-    result = subprocess.run(["sh", str(DIR / "g0_readonly_checks.sh")], env=env,
-                            capture_output=True, text=True, timeout=60)
+    result = _g0(rt, out, {"G0B": "1"})
     assert result.returncode == 0, result.stderr
     assert _tree(rt) == before and list(out.iterdir()) == []
     assert len(result.stdout.splitlines()) < 200
     assert "cycle_duration_ms" in result.stdout
-    assert "decision_packets_2026-10-14.jsonl" in result.stdout and "5 files" in result.stdout
+    assert "STATUS=COMPLETE" in result.stdout and "PACKETS=5" in result.stdout
+    assert "NOT the cost of the publisher" in result.stdout
+    newest = result.stdout.split("from that same pass:")[1].splitlines()[1:6]
+    assert [line.split()[-1] for line in newest] == [
+        f"decision_packets_2026-10-1{i}.jsonl" for i in (4, 3, 2, 1, 0)
+    ]  # true newest-five, found without any head truncation
+
+
+def test_g0_enforces_the_entry_cap_and_flags_incomplete(machine):
+    rt, out = machine
+    for index in range(30):
+        (rt / "databases" / f"f{index}").write_text("", encoding="utf-8")
+    exact = _g0(rt, out, {"CAP": "36"})  # 5 packets + other.sqlite + 30 = 36 entries
+    assert "STATUS=COMPLETE" in exact.stdout and "ENTRIES=36" in exact.stdout
+    over = _g0(rt, out, {"CAP": "35"})
+    assert "STATUS=INCOMPLETE(more than 35 entries" in over.stdout
+    assert "PARTIAL, NOT the true newest" in over.stdout
+    assert "STATUS=COMPLETE" not in over.stdout
+
+
+def test_g0_keeps_timeouts_and_errors_instead_of_a_partial_result(machine, tmp_path):
+    rt, out = machine
+    shim = tmp_path / "shim"
+    shim.mkdir()
+    find = shim / "find"
+    find.write_text("#!/bin/sh\nsleep 5\n", encoding="utf-8")
+    find.chmod(0o755)
+    path = f"{shim}:{os.environ.get('PATH', '/usr/bin:/bin')}"
+    slow = _g0(rt, out, {"FIND_TIMEOUT": "1"}, path)
+    assert "STATUS=INCOMPLETE(find status 124" in slow.stdout
+    find.write_text(
+        "#!/bin/sh\necho 'find: x: Permission denied' >&2\n"
+        "printf 'E\\t5\\t1.0\\tdecision_packets_a.jsonl\\n'\nexit 1\n", encoding="utf-8")
+    denied = _g0(rt, out, None, path)
+    assert "STATUS=INCOMPLETE" in denied.stdout and "STATUS=COMPLETE" not in denied.stdout
