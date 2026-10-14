@@ -1,0 +1,14 @@
+# PASSIVE PUBLISHER TIMER — SOURCE FOR REVIEW ONLY. NOT AUTHORIZED FOR
+# INSTALLATION while #286 is active. Cadence 60 s vs API stale threshold 90 s: one missed run turns STALE (honest).
+[Unit]
+Description=Crypto AI Terminal — timer: storage publisher (60 s)
+
+[Timer]
+OnActiveSec=2s
+OnUnitActiveSec=60s
+AccuracySec=1s
+Persistent=false
+Unit=crypto-publish-storage.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,50 @@
+# PASSIVE PUBLISHER — SOURCE FOR REVIEW ONLY. NOT AUTHORIZED FOR INSTALLATION
+# while #286 is active (see docs/runbooks/PASSIVE_PUBLISHERS_GATE_PLAN.md).
+# Runs the already-staged release code (1728b3ad952b87d903ccb7442579000da292b848); no checkout, no git, no network.
+[Unit]
+Description=Crypto AI Terminal — passive publisher: storage (metadata of decision_packets_*.jsonl, never opened)
+ConditionPathIsDirectory=/home/mathieu/operator_presentation
+
+[Service]
+Type=oneshot
+SyslogIdentifier=crypto_publish_storage
+# Sub-second UTC stamp: a whole-second stamp is rejected as INVALID_METADATA whenever a
+# packet file was modified in the same second (latest_file_modified <= observed is required).
+ExecStart=/bin/sh -c 'exec /opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -m observability.storage_snapshot --out /home/mathieu/operator_presentation/storage_snapshot.json --source-directory /home/mathieu/crypto_ai_terminal/databases --generated-at-utc "$(date -u +%%Y-%%m-%%dT%%H:%%M:%%S.%%6NZ)"'
+User=mathieu
+UMask=0077
+WorkingDirectory=/opt/crypto-ai-terminal/operator/staging-src/1728b3ad952b87d903ccb7442579000da292b848
+Environment=PYTHONPATH=/opt/crypto-ai-terminal/operator/staging-src/1728b3ad952b87d903ccb7442579000da292b848
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONIOENCODING=utf-8
+Environment=TZ=UTC
+Environment=LC_ALL=C
+TimeoutStartSec=30s
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=10
+MemoryMax=128M
+TasksMax=16
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateNetwork=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/mathieu/operator_presentation
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+StandardOutput=journal
+StandardError=journal
