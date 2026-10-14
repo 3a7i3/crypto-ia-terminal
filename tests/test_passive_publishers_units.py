@@ -151,13 +151,17 @@ def test_timer_cadence_is_below_the_api_freshness_threshold(name):
     assert _directives(text, "Unit") == [f"crypto-publish-{name}.service"]
     cadence = _seconds(_directives(text, "OnUnitActiveSec")[0])
     assert 30 <= cadence < STALE_AFTER_S
+    # Failure margin: one failed or hung run (up to TimeoutStartSec) must not turn FRESH into STALE.
+    (timeout,) = _directives(_service(name), "TimeoutStartSec")
+    assert 2 * cadence + _seconds(timeout) < STALE_AFTER_S
     assert _directives(text, "Persistent") == ["false"]  # no catch-up burst after downtime
     assert _directives(text, "OnCalendar") == []
     assert _directives(text, "WantedBy") == ["timers.target"]
 
 
-def test_runtime_service_cadence_survives_one_missed_run():
-    cadence = _seconds(_directives(_timer("runtime-service"), "OnUnitActiveSec")[0])
+@pytest.mark.parametrize("name", NAMES)
+def test_every_publisher_survives_one_missed_run(name):
+    cadence = _seconds(_directives(_timer(name), "OnUnitActiveSec")[0])
     assert 2 * cadence <= STALE_AFTER_S
 
 
@@ -358,3 +362,126 @@ def test_concurrent_runs_never_expose_a_partial_or_temporary_file(machine, name)
     assert [p.wait() for p in procs] == [0] * 6
     assert [p.name for p in out.iterdir()] == [ARTIFACT[name]]
     json.loads(published.read_bytes())
+
+
+# ------------- reserves raised before finalising: budget, limit, race ----------
+
+
+def _alert_line(ts: float) -> str:
+    return json.dumps({"rule": "DRAWDOWN", "severity": "WARNING", "ts": ts,
+                       "message": "m", "value": 1.0, "threshold": 2.0}) + "\n"
+
+
+def test_events_total_read_budget_is_bounded_by_the_fixed_source_count(tmp_path, monkeypatch):
+    """Bytes read per run <= len(SOURCE_IDS) * (MAX_BYTES + 1), independent of file sizes.
+
+    The producer only accepts the fixed SOURCE_IDS; adding a source changes this bound
+    explicitly (the pinned numbers below must then be reviewed, not silently exceeded).
+    """
+    from observability import event_center_artifact as artifact
+    from observability import event_center_snapshot as snapshot
+    from observability.event_center_contract import MAX_BYTES, SOURCE_IDS
+
+    assert SOURCE_IDS == ("p12_alerts", "supervision_alerts", "ppl_lifecycles")
+    assert len(SOURCE_IDS) * MAX_BYTES == 3 * 2_097_152  # documented budget: 6 MiB
+    big = tmp_path / "big.jsonl"
+    big.write_bytes(b"x" * (MAX_BYTES * 3))
+    consumed = []
+    real = artifact.read_bytes
+
+    def counting(path):
+        try:
+            return real(path)
+        finally:
+            consumed.append(path)
+
+    monkeypatch.setattr(snapshot, "read_bytes", counting)
+    doc = snapshot.build_event_center(
+        generated_at_utc="2026-10-14T20:00:00.000000Z",
+        p12_alerts=big, supervision_alerts=big, ppl_lifecycles=big)
+    assert len(consumed) == len(SOURCE_IDS)
+    assert {s["status"] for s in doc["sources"]} == {"OUTPUT_LIMIT"}
+    # Each open reads at most MAX_BYTES + 1 bytes (see event_center_artifact.read_bytes).
+    assert len(consumed) * (MAX_BYTES + 1) < 6_300_000
+
+
+def test_alerts_over_the_limit_is_explicit_output_limit_never_a_partial_read(machine):
+    rt, out = machine
+    alerts = rt / "cache" / "startup" / "alerts.jsonl"
+    line = _alert_line(time.time() - 5)
+    alerts.write_text(line * (2_097_152 // len(line) + 5), encoding="utf-8")
+    assert alerts.stat().st_size > 2_097_152
+    before = _tree(rt)
+    result = _run(_command("events", out, rt))
+    assert result.returncode == 0, result.stderr
+    assert _tree(rt) == before
+    doc = json.loads((out / "event_center_snapshot.json").read_text())
+    assert validate_event_center(doc)
+    p12 = doc["sources"][0]
+    assert p12["status"] == "OUTPUT_LIMIT"
+    assert p12["records_observed"] is None and p12["published_count"] is None
+    assert p12["source_sha256"] is None
+    assert doc["events"] == []  # nothing from the oversized source is presented
+    served = EventCenterReader(out / "event_center_snapshot.json").read()
+    assert served.ok  # the document is still served; the limit is visible, not hidden
+
+
+def test_a_missing_or_oversized_source_does_not_block_another_valid_source(tmp_path):
+    from observability.event_center_snapshot import build_event_center
+
+    good = tmp_path / "alerts.jsonl"
+    good.write_text(_alert_line(time.time() - 5), encoding="utf-8")
+    huge = tmp_path / "audit.jsonl"
+    huge.write_bytes(b"x" * 2_097_153)
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%S.000000Z", time.gmtime())
+    doc = build_event_center(
+        generated_at_utc=stamp, p12_alerts=good,
+        supervision_alerts=huge, ppl_lifecycles=tmp_path / "absent.json")
+    status = {s["source_id"]: s["status"] for s in doc["sources"]}
+    assert status == {"p12_alerts": "PRESENT", "supervision_alerts": "OUTPUT_LIMIT",
+                      "ppl_lifecycles": "MISSING"}
+    assert len(doc["events"]) == 1 and doc["events"][0]["source_id"] == "p12_alerts"
+
+
+def test_write_after_the_stamp_is_rejected_not_silently_accepted(machine):
+    """The stamp is taken before the scan: a file written after it cannot be hidden.
+
+    observed_at is therefore a lower bound; the sub-second stamp narrows the window,
+    it does not remove the race, and the outcome of a lost race is INVALID_METADATA
+    (never a FRESH snapshot claiming an observation it did not make).
+    """
+    rt, out = machine
+    packet = rt / "databases" / "decision_packets_2026-10-14.jsonl"
+    stamp_epoch = time.time() - 5
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(stamp_epoch)) + ".500000Z"
+    stamp_value = int(stamp_epoch) + 0.5
+
+    def run(mtime: float) -> str:
+        for other in (rt / "databases").glob("decision_packets_*.jsonl"):
+            os.utime(other, (stamp_value - 1, stamp_value - 1))
+        os.utime(packet, (mtime, mtime))
+        result = _run([sys.executable, "-m", "observability.storage_snapshot",
+                       "--out", str(out / "race.json"),
+                       "--source-directory", str(rt / "databases"),
+                       "--generated-at-utc", stamp])
+        assert result.returncode == 0, result.stderr
+        return json.loads((out / "race.json").read_text())["source_status"]
+
+    assert run(stamp_value - 0.2) == "PRESENT"           # written before the stamp
+    assert run(stamp_value + 0.2) == "INVALID_METADATA"  # written after it: detected
+
+
+def test_g0_script_is_read_only_bounded_and_succeeds_on_a_machine_tree(machine):
+    rt, out = machine
+    live = rt / "databases" / "live_snapshot.json"
+    live.write_text('{"cycle": 7, "cycle_duration_ms": 1234, "ts": "x"}', encoding="utf-8")
+    before = _tree(rt)
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "RT": str(rt),
+           "OUT": str(out), "G0B": "1"}
+    result = subprocess.run(["sh", str(DIR / "g0_readonly_checks.sh")], env=env,
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    assert _tree(rt) == before and list(out.iterdir()) == []
+    assert len(result.stdout.splitlines()) < 200
+    assert "cycle_duration_ms" in result.stdout
+    assert "decision_packets_2026-10-14.jsonl" in result.stdout and "5 files" in result.stdout

@@ -1,11 +1,11 @@
 # PASSIVE PUBLISHER TIMER — SOURCE FOR REVIEW ONLY. NOT AUTHORIZED FOR
-# INSTALLATION while #286 is active. Cadence 60 s vs API stale threshold 90 s.
+# INSTALLATION while #286 is active. Cadence 30 s, TimeoutStartSec 20 s: 2 x 30 + 20 = 80 s < 90 s API stale threshold (one failed or hung run stays FRESH).
 [Unit]
-Description=Crypto AI Terminal — timer: event-center publisher (60 s)
+Description=Crypto AI Terminal — timer: event-center publisher (30 s)
 
 [Timer]
 OnActiveSec=2s
-OnUnitActiveSec=60s
+OnUnitActiveSec=30s
 AccuracySec=1s
 Persistent=false
 Unit=crypto-publish-events.service

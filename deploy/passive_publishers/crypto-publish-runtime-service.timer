@@ -1,5 +1,5 @@
 # PASSIVE PUBLISHER TIMER — SOURCE FOR REVIEW ONLY. NOT AUTHORIZED FOR
-# INSTALLATION while #286 is active. Cadence 30 s vs API stale threshold 90 s: one missed run stays FRESH.
+# INSTALLATION while #286 is active. Cadence 30 s, TimeoutStartSec 20 s: 2 x 30 + 20 = 80 s < 90 s API stale threshold.
 [Unit]
 Description=Crypto AI Terminal — timer: runtime-service publisher (30 s)
 
