@@ -37,8 +37,11 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          npm install --no-save --package-lock=false playwright@1.56.1
-          npx playwright install --with-deps chromium
+          mkdir -p "$RUNNER_TEMP/playwright-tooling"
+          npm install --prefix "$RUNNER_TEMP/playwright-tooling" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          ln -s "$RUNNER_TEMP/playwright-tooling/node_modules/playwright" node_modules/playwright
+          node -e "const r=require.resolve('playwright');if(!r.startsWith(process.env.RUNNER_TEMP)){console.error('unexpected playwright',r);process.exit(1)}console.log('playwright resolved from',r)"
+          node "$RUNNER_TEMP/playwright-tooling/node_modules/playwright/cli.js" install --with-deps chromium
       - name: Start ephemeral Vite app
         working-directory: frontend
         run: |
