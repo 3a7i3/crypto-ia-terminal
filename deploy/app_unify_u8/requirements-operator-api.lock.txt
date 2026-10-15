@@ -1,0 +1,16 @@
+# APP-UNIFY U8 — transitive lock for the isolated Operator API venv.
+# Resolved from requirements-operator-api.txt in a clean venv; verified with 'pip check' and an import of observability.operator_api.app.
+# Installed and verified (pip check + app import) on CPython 3.11.17 and 3.13.16, Linux x86_64. Other interpreters/platforms: not verified.
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+click==8.5.0
+fastapi==0.136.1
+h11==0.16.0
+idna==3.20
+pydantic==2.14.0
+pydantic_core==2.50.0
+starlette==1.7.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+uvicorn==0.46.0

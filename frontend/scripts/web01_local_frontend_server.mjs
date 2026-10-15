@@ -74,9 +74,13 @@ function proxyToOperatorApi(request, response, target) {
     headers["cache-control"] = "no-store";
     response.writeHead(upstreamResponse.statusCode ?? 502, headers);
     if (request.method === "HEAD") response.end();
-    else upstreamResponse.pipe(response);
+    else {
+      upstreamResponse.once("error", () => response.destroy());
+      upstreamResponse.once("aborted", () => response.destroy());
+      upstreamResponse.pipe(response);
+    }
   });
-  upstream.once("error", () => apiError(response, 502, "OPERATOR_API_UNAVAILABLE", "Local Operator API is unavailable."));
+  upstream.once("error", () => failRequest(response, 502, "OPERATOR_API_UNAVAILABLE", "Local Operator API is unavailable."));
   request.pipe(upstream);
 }
 
@@ -105,21 +109,38 @@ async function serveFile(response, filename, method) {
     headers["cache-control"] = "no-cache";
   }
   response.writeHead(200, headers);
-  if (method === "HEAD") response.end();
-  else createReadStream(filename).pipe(response);
+  if (method === "HEAD") return response.end();
+  const stream = createReadStream(filename);
+  stream.once("error", () => response.destroy());
+  stream.pipe(response);
+}
+
+// Every request failure becomes a structured answer or a closed connection;
+// a handler rejection must never terminate the process (systemd restart loop).
+function failRequest(response, status, code, message) {
+  if (response.destroyed) return;
+  if (response.headersSent) response.destroy();
+  else apiError(response, status, code, message);
 }
 
 export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET } = {}) {
   const target = new URL(apiTarget);
   return http.createServer(async (request, response) => {
-    const url = new URL(request.url ?? "/", `http://${host}`);
-    if (!methodAllowed(request)) return apiError(response, 405, "METHOD_NOT_ALLOWED", "WEB-01G accepts GET and HEAD only.");
-    if (isApiPath(url.pathname)) return proxyToOperatorApi(request, response, target);
+    try {
+      let url;
+      try { url = new URL(request.url ?? "/", `http://${host}`); } catch {
+        return failRequest(response, 400, "INVALID_REQUEST_URL", "Request target is not a valid URL.");
+      }
+      if (!methodAllowed(request)) return apiError(response, 405, "METHOD_NOT_ALLOWED", "WEB-01G accepts GET and HEAD only.");
+      if (isApiPath(url.pathname)) return proxyToOperatorApi(request, response, target);
 
-    const requested = await resolveStaticPath(distRoot, url.pathname);
-    // SPA fallback applies only to non-API frontend routes; API paths never
-    // reach this branch, including when the Operator API is unavailable.
-    await serveFile(response, requested ?? path.join(distRoot, "index.html"), request.method);
+      const requested = await resolveStaticPath(distRoot, url.pathname);
+      // SPA fallback applies only to non-API frontend routes; API paths never
+      // reach this branch, including when the Operator API is unavailable.
+      await serveFile(response, requested ?? path.join(distRoot, "index.html"), request.method);
+    } catch {
+      failRequest(response, 503, "FRONTEND_ASSET_UNAVAILABLE", "Frontend bundle is unavailable.");
+    }
   }).listen(port, host);
 }
 
