@@ -168,3 +168,5 @@ Le fichier `g2_paste_block.sh` (sha256 `3117f492046bc0d9c840923c1eecac7058d3f826
 echo "3117f492046bc0d9c840923c1eecac7058d3f8264ace3f6235866c2c181e2803  $HOME/g2_paste_block.sh" | sha256sum -c - && G2_MODE=plan sh "$HOME/g2_paste_block.sh"
 ```
 Le mode `plan` ne passe pas par sudo et n'écrit rien dans `/etc`, `/var/lib`, systemd ni le dossier de sortie. **Il n'est pas strictement sans écriture** : il crée, sous `${TMPDIR:-/tmp}`, deux dossiers temporaires `0700` (`g2priv.*` : copie du script ; `g2.*` : unités mises en place pour `systemd-analyze verify`), supprimés en sortie ; si le processus est tué, ils peuvent subsister dans `/tmp` (inoffensifs, supprimables à la main). Le bloc affiche le code retour final.
+
+**Résultat consigné** : [PASSIVE_PUBLISHERS_G2_PLAN_RESULTS.md](PASSIVE_PUBLISHERS_G2_PLAN_RESULTS.md) (plan du 2026-10-15T05:21:23Z, OK). Exception #286 préparée, non publiée : [EXCEPTION_286_G2_PUBLISHERS_INACTIVE_INSTALL.md](../governance/EXCEPTION_286_G2_PUBLISHERS_INACTIVE_INSTALL.md).
