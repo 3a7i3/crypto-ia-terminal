@@ -5,6 +5,8 @@ const labels: Record<string, string> = {
   FRESH: "Publication récente", PRESENT: "Observé", EMPTY: "Vide observé",
   UNRESOLVED: "Non résolu", EXACT: "Concordance exacte", WITHIN_TOLERANCE: "Dans la tolérance",
   DIVERGENT: "Divergence", COMPLETE: "Terminée", PARTIAL: "Partiel", LOW_SAMPLE: "Échantillon limité",
+  DEGRADED: "Dégradé",
+  BUY: "Achat", SELL: "Vente",
   LONG: "Acheteur", SHORT: "Vendeur", MIXED: "Mixte", active: "En cours", inactive: "Arrêté",
   failed: "En échec", activating: "Démarrage", deactivating: "Arrêt en cours",
   ACTIVE: "En cours", QUIESCING: "Mise au repos", FINALIZING: "Finalisation", FINAL: "Finalisée",
@@ -19,4 +21,30 @@ const labels: Record<string, string> = {
 };
 export function fr(value: string | null | undefined): string {
   return value == null ? "Non disponible" : labels[value] ?? value;
+}
+
+/** Display only: formats the API's own snapshot_age_s; no age is computed in the browser. */
+export function ageFr(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  if (days > 0) return `${days} j ${hours} h`;
+  if (hours > 0) return `${hours} h ${minutes} min`;
+  if (minutes > 0) return `${minutes} min`;
+  return `${total} s`;
+}
+
+/** Display only: an ISO UTC instant with its year, e.g. "07/10/2026 23:29 UTC". */
+export function utcStampFr(iso: string): string {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return `${parsed.toLocaleString("fr-FR", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })} UTC`;
 }

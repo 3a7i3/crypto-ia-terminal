@@ -1,0 +1,16 @@
+{
+  "artifact_id": 11775991140,
+  "artifact_zip_sha256": "260577b83d093a6be83c450650ac7feb9bd81428604b1db9cdfb39f3b3f27bfc",
+  "files": {
+    "preflight.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight.trace": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "records.jsonl": "197f0e58e3f914f7a440e8df5e602402adf6da6e5947767eaed0baae678af44d",
+    "report.json": "db4b8c4a83871e3aa4a82682265bd91e220ab4ba1e6366b5bef10013f678a3bc",
+    "worker.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "writer.trace.2422": "f72333147c529632b49ba9c3f4df32a25a8bb7cd15a6295e789b8f5619582222"
+  },
+  "job_id": 115025546193,
+  "run_id": 38313808068,
+  "scope": "SYNTHETIC_MONO_WRITER_NO_REOPEN",
+  "tested_pr_head": "14eb08add8187c78f08360cbd6ab253dd7d653e1"
+}

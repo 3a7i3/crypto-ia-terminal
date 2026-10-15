@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./tokens.css";
 import "./operator.css";
 import "./clarity.css";
+import "./mobile-operator.css";
 import { DirectionShell } from "./shells/DirectionShell";
 import { PaperLiveShell } from "./shells/PaperLiveShell";
 import { ResearchShell } from "./shells/ResearchShell";
@@ -17,6 +18,7 @@ import {
   SystemRoute,
 } from "./router/PaperLiveRoutes";
 import { DirectionOverview } from "./views/DirectionOverview";
+import { MachineWorkboardView } from "./views/MachineWorkboardView";
 import { BurnInStatusView } from "./views/BurnInStatusView";
 import { EventsView } from "./views/EventsView";
 import { NotFoundView } from "./views/NotFoundView";
@@ -42,6 +44,7 @@ const App: React.FC = () => (
       </Route>
       <Route path="/direction" element={<DirectionShell />}>
         <Route index element={<DirectionOverview />} />
+        <Route path="travaux" element={<MachineWorkboardView />} />
       </Route>
       <Route path="/research" element={<ResearchShell />}>
         <Route index element={<ResearchLabView />} />

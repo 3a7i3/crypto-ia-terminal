@@ -32,7 +32,12 @@ describe("PPL accounting charts", () => {
         name: "Résultat réalisé cumulé aux événements PPL",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Capture périmée/)).toBeInTheDocument();
+    const capture = screen.getByText(/Capture historique du/);
+    expect(capture).toHaveTextContent("01/01/1970 00:02 UTC");
+    expect(capture).toHaveTextContent("périmée depuis 5 min");
+    expect(capture).toHaveAttribute("title", "Âge exact : 350 s");
+    expect(screen.getByText(/^Epoch : /)).toBeInTheDocument();
+    expect(screen.queryByText(/Capture récente/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Capital disponible" }));
     expect(
       screen.getByRole("img", {

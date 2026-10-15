@@ -1,0 +1,83 @@
+{
+  "activation_allowed": false,
+  "analytic_report_file_sha256": "94353176732e12b90ff84f905b6c16d60fee9f8ff0244495f99b444c1caddfda",
+  "authority": "NONE",
+  "base_main_sha": "b751333e53c8c341d8a4a64af82499bc03140210",
+  "deterministic_repeated_runs": "BYTE_IDENTICAL",
+  "input_class": "NO_DATASET",
+  "production_runtime_proof": "NOT_OBSERVED",
+  "protected_source_trees": {
+    ".github": {
+      "base_git_tree_oid": "e176b345f7091266e4deb1105883528ad6cf8790",
+      "research_git_tree_oid": "e176b345f7091266e4deb1105883528ad6cf8790"
+    },
+    "core": {
+      "base_git_tree_oid": "e55c8c1776ad74dcb3250850e5ccfc42d95551cb",
+      "research_git_tree_oid": "e55c8c1776ad74dcb3250850e5ccfc42d95551cb"
+    },
+    "financial_institute": {
+      "base_git_tree_oid": "f555f20ea397a3bd3a8f43190b7b25993b2248e2",
+      "research_git_tree_oid": "f555f20ea397a3bd3a8f43190b7b25993b2248e2"
+    },
+    "paper_trading": {
+      "base_git_tree_oid": "c151341c6c300dce907ecc64c8f5a52e687c710c",
+      "research_git_tree_oid": "c151341c6c300dce907ecc64c8f5a52e687c710c"
+    },
+    "quant_hedge_ai": {
+      "base_git_tree_oid": "750d64939e0e1d9d4d751aaa9cea48a158f0d346",
+      "research_git_tree_oid": "750d64939e0e1d9d4d751aaa9cea48a158f0d346"
+    },
+    "research_candidate": {
+      "base_git_tree_oid": "6a1f7b57ea826b3e09894b36173dc73bbb66d3ca",
+      "research_git_tree_oid": "6a1f7b57ea826b3e09894b36173dc73bbb66d3ca"
+    },
+    "research_data": {
+      "base_git_tree_oid": "13408279220416efffbd9229a99c124c02879c65",
+      "research_git_tree_oid": "13408279220416efffbd9229a99c124c02879c65"
+    },
+    "research_diag": {
+      "base_git_tree_oid": "847635a2f9ba427d56aaf8eea41e4e0b4caaad3a",
+      "research_git_tree_oid": "847635a2f9ba427d56aaf8eea41e4e0b4caaad3a"
+    },
+    "research_replay": {
+      "base_git_tree_oid": "58a0bf0a177314040f9273aa55927c64b9f4ce65",
+      "research_git_tree_oid": "58a0bf0a177314040f9273aa55927c64b9f4ce65"
+    }
+  },
+  "research_code_sha": "76179d8c851f318d855bcb7cd70c45681619265e",
+  "schema": "paper-stress-401.source-proof.v1",
+  "source_files_sha256": {
+    "docs/research/paper_stress_401/protocol.json": "f8a7d79a64121d8186b2fccfce1e72db536006bb186ef365fd4a8853ec89978a",
+    "paper_trading/ledger_events.py": "f201f4484a25c9ad035c50915a5e60c8de68ed285b155b9cc21eabdcb87cbbc8",
+    "paper_trading/paper_portfolio_ledger.py": "5efe553895ce5eeb6329527baaaf4747089aacf6c2f11258a3b51f26b273203d",
+    "research_replay/__init__.py": "bda40244295df72f5fb306407f554971d8d0662c12f6fcc68997291e03d045e8",
+    "research_replay/factual.py": "c5aa89d1b9e7e357218fa8982b41d937bb78f17dabe768fe84246188b0c4ea87",
+    "research_replay/publication.py": "bcf130846c33da15a49e5747854a1334cb863ded7ca939cc38380ad7c8c84e0a",
+    "research_stress/__init__.py": "c3badb5babd62383e8c121cb757586f36fb85313ddbf60d68cc96d753501b865",
+    "research_stress/__main__.py": "ab0112871bbbb2bd981f6895b0e60ad6a0464788b9a310ed758d5e009cab9b42",
+    "research_stress/campaign.py": "75aef13a883e6e47000ed48fd8829a0d8c8b257a66d309121038df7d1420b146",
+    "research_stress/protocol.py": "cef91487c43585ac86ec52428eb257322e0281942bf7f280058c32c4f39642a0",
+    "tests/research_stress/offline_guard/sitecustomize.py": "a5cd350eb998215772799a3bc89b7316317f5a7e3b105fd54f0c77142434d546",
+    "tests/research_stress/test_campaign.py": "3f51bca7e0ca703da0a4828981c78d44e6c739b4933ec003bec574ce55452270"
+  },
+  "validation": {
+    "cross_stack_passed": 96,
+    "final_full_corpus": {
+      "command": "UNIVERSE_ENABLED=false PYTHONPATH=tests/research_stress/offline_guard:. python -B -m pytest -q -m 'not performance and not slow' tests/",
+      "deselected": 13,
+      "exit_code": 0,
+      "log_sha256": "5a3c216e5718225060bbaeebcf30a788893717f82cd7b36318b703d0d76a5c34",
+      "passed": 6991,
+      "skipped": 19,
+      "warnings": 2139,
+      "xfailed": 2
+    },
+    "new_ruff_findings": 0,
+    "new_tests_passed": 27,
+    "production_runtime_certification": false,
+    "pytest": "9.1.1",
+    "python": "3.12.14",
+    "research_fin_targeted_passed": 282,
+    "ruff": "0.15.8"
+  }
+}

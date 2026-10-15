@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "../App";
 import { ResearchLabView } from "../views/ResearchLabView";
 import { validateResearchLabSnapshot } from "../lib/researchLabValidation";
@@ -188,7 +188,7 @@ describe("WEB-RL Research Lab", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("research-lab-view")).toHaveTextContent(
-        "Erreur de contrat ou de transport du Laboratoire",
+        "La lecture a échoué : transport ou contrat à vérifier.",
       ),
     );
   });
@@ -246,5 +246,36 @@ describe("WEB-RL Research Lab", () => {
         "SNAPSHOT_MISSING",
       ),
     );
+  });
+  it("ne conserve que les métadonnées après perte de source ou erreur de transport, jamais les métriques", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(response(researchSnapshot()))
+        .mockResolvedValueOnce(response({ error_code: "RESEARCH_LAB_SNAPSHOT_MISSING" }, 503))
+        .mockRejectedValue(new Error("network down"));
+      vi.stubGlobal("fetch", fetchMock);
+      render(<ResearchLabView />);
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.getByTestId("research-lab-view")).toHaveTextContent("annualized_sharpe");
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+      let unavailable = screen.getByTestId("source-availability");
+      expect(unavailable).toHaveTextContent("RESEARCH_LAB_SNAPSHOT_MISSING");
+      expect(unavailable).toHaveTextContent(researchSnapshot().generated_at_utc);
+      expect(unavailable).toHaveTextContent("aucune valeur passée n’est affichée comme actuelle");
+      expect(unavailable).not.toHaveTextContent("annualized_sharpe");
+      expect(screen.queryByTestId("research-candidate-empty")).toBeNull();
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+      unavailable = screen.getByTestId("source-availability");
+      expect(unavailable).toHaveTextContent("network down");
+      expect(unavailable).toHaveTextContent(researchSnapshot().generated_at_utc);
+      expect(unavailable).not.toHaveTextContent("annualized_sharpe");
+      expect(fetchMock.mock.calls.every((call) => call[1].method === "GET")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

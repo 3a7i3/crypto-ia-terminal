@@ -1,0 +1,22 @@
+{
+  "artifact_id": 11774788285,
+  "artifact_zip_sha256": "38d374160af2d4acdf6018640ce2731ad080e4725934a4aa3f19ddd624435981",
+  "files": {
+    "claim_without_call.jsonl": "e74dede43baad52af6d42632ea966d077f1e6053484eb08bdedeafdfff413625",
+    "claim_without_call.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "claim_without_call.trace": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error.jsonl": "e74dede43baad52af6d42632ea966d077f1e6053484eb08bdedeafdfff413625",
+    "error.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error.trace": "a455e3e75c82d58bcea88416a399b01d62612deb75e74d5939428c78fc5644dc",
+    "preflight.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "preflight.trace": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "real.jsonl": "e74dede43baad52af6d42632ea966d077f1e6053484eb08bdedeafdfff413625",
+    "real.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "real.trace": "2b8f157c65a4fabc231cc3a2b0b41478e7a4a765d8bde754aff5a90ea3b2a6e6",
+    "report.json": "532b0bb6ee4e46edaec40bb778c8fa633f0810aa08de4e738824d20e438deb63"
+  },
+  "job_id": 115020783899,
+  "run_id": 38312335279,
+  "scope": "SYNTHETIC_CHILDREN_ONLY",
+  "tested_pr_head": "12547efa9e3ea6c42369dae3818d36593c8f0e11"
+}

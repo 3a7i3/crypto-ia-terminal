@@ -1,7 +1,6 @@
 import React from "react";
 import { fr } from "../lib/presentationFr";
 import { formatDecimalText } from "../lib/decimalPresentation";
-import { FinancialHistory } from "../components/FinancialHistory";
 import { useRuntimeService } from "../lib/runtimeServiceClient";
 import { RuntimeServiceCard } from "./RuntimeServiceView";
 import { useBurnInStatus } from "../lib/burnInStatusClient";
@@ -591,7 +590,7 @@ export const DirectionOverview: React.FC = () => {
           <div><dt>Frais payés</dt><dd>{amount(finance?.financial.fees_paid)}</dd></div>
         </dl>
         <p>Réconciliation : {finance ? fr(finance.reconciliation.overall_status) : "Non disponible"} · fonds PAPER.</p>
-        <FinancialHistory />
+        <p className="source-date">Source FIN : /api/operator/v1/financial-reconciliation · observation indépendante de la capture PPL. Les courbes et leurs preuves sont dans Finance.</p>
         <details className="section-evidence"><summary>Montants exacts, rapprochement et provenance</summary><ActiveExperimentCard state={financialState} /></details>
         <div className="category-links"><a href="/paper-live/portfolio">Positions →</a><a href="/paper-live/finance">Réconciliation →</a></div>
       </section>

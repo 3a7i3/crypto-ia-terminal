@@ -1,0 +1,33 @@
+{
+  "schema": "paper-stress-401.v1",
+  "mission": "#401",
+  "status": "PROPOSED_OFFLINE_ONLY",
+  "activation_allowed": false,
+  "capital_usdt": "1000",
+  "arms": [
+    {"id": "A", "notional_usdt": "10", "max_positions": 2},
+    {"id": "B", "notional_usdt": "50", "max_positions": 4},
+    {"id": "C", "notional_usdt": "100", "max_positions": 5}
+  ],
+  "controls": {"position_caps": [2, 4, 5], "notionals_usdt": ["10", "50", "100"], "design": "FULL_3_BY_3_FIXED_OTHER_FACTORS"},
+  "temporal": {
+    "timeout_multipliers": ["0.5", "1", "2"],
+    "utc_windows": [[0, 24], [0, 8], [8, 16], [16, 24]],
+    "baseline_timeout_seconds": null,
+    "strategy_policy": "EXISTING_FROZEN_STRATEGIES_ONLY"
+  },
+  "cost_grid": {"fee_bps": ["10", "20"], "slippage_bps": ["5", "25", "100"], "spread_bps": ["2", "20", "100"]},
+  "shock_fractions": ["0.10", "0.30", "0.50", "1"],
+  "stopping_proposals": {
+    "loss_fraction": "0.10", "mtm_drawdown_fraction": "0.15",
+    "exposure_fraction": "0.50", "single_symbol_fraction": "0.20",
+    "max_missing_decisions": 0, "max_stale_marks": 0
+  },
+  "statistical_plan": {
+    "unit": "UTC_DAY_CLUSTER_ALL_SYMBOLS", "bootstrap_seed": 401,
+    "bootstrap_replicates": 2000, "confidence_level": "0.95",
+    "minimum_day_clusters_proposed": 30, "oos_fraction": "0.30",
+    "purge": "MAX_HOLDING_HORIZON", "claims": "DESCRIPTIVE_UNTIL_POWER_REVIEW"
+  },
+  "protected_epoch": "BURN-IN-EPOCH-01-20260926T064144Z"
+}

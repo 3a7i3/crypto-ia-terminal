@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from observability.burn_in_status_contract import validate_burn_in_status_snapshot
+from observability.operator_api.path_probe import probe_artifact_path
 
 
 DEFAULT_BURN_IN_STATUS_PATH = Path(
@@ -68,25 +69,32 @@ class BurnInStatusSnapshotReader:
         return self._path
 
     def read(self) -> BurnInStatusReadResult:
-        if not self._path.exists():
+        failure = probe_artifact_path(self._path, reject_symlink=True)
+        if failure == "MISSING":
             return BurnInStatusReadResult(
                 ok=False,
                 error_code="BURN_IN_STATUS_MISSING",
-                error_message=f"BurnInStatusSnapshot not found: {self._path}",
+                error_message="BurnInStatusSnapshot not found.",
             )
-        if not self._path.is_file() or self._path.is_symlink():
+        if failure == "INVALID_PATH":
             return BurnInStatusReadResult(
                 ok=False,
                 error_code="BURN_IN_STATUS_INVALID_PATH",
                 error_message="BurnInStatusSnapshot path must be a regular non-symlink file.",
             )
-        try:
-            doc = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError) as exc:
+        if failure == "UNREADABLE":
             return BurnInStatusReadResult(
                 ok=False,
                 error_code="BURN_IN_STATUS_UNREADABLE",
-                error_message=str(exc),
+                error_message="BurnInStatusSnapshot could not be read.",
+            )
+        try:
+            doc = json.loads(self._path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError):
+            return BurnInStatusReadResult(
+                ok=False,
+                error_code="BURN_IN_STATUS_UNREADABLE",
+                error_message="BurnInStatusSnapshot could not be read.",
             )
         except json.JSONDecodeError as exc:
             return BurnInStatusReadResult(

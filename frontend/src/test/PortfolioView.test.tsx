@@ -151,3 +151,13 @@ describe("PortfolioView", () => {
     expect(section.getByTestId("ov-invalid")).toHaveTextContent("INVALID_OBSERVED_VALUE");
   });
 });
+
+// Une valeur de prix ne certifie pas sa devise de cotation.
+it("ne transforme pas un prix sans unité contractuelle en USD", () => {
+  const snapshot = baseSnapshot();
+  snapshot.portfolio.open_positions = {semantics:"PRESENT",value:[{position_id:"unit-proof",symbol:"BTC/USDT",side:"BUY",size_usd:10,entry_price:50000,current_price:{semantics:"PRESENT",value:51000},current_price_observed_at_utc:null,tp_price:null,sl_price:null,tp_sl_source:"original",unrealized_pnl_usd:{semantics:"PRESENT",value:2},unrealized_pnl_pct:{semantics:"PRESENT",value:2},opened_at:null,regime:{semantics:"UNKNOWN",value:null},restored_without_regime:false,personality:null,restored:false}]};
+  render(<PortfolioView snapshot={snapshot}/>);
+  expect(screen.getByTestId("portfolio-mobile-positions")).toHaveTextContent("unité inconnue");
+  expect(screen.getByTestId("portfolio-mobile-positions")).not.toHaveTextContent("$51000");
+  expect(screen.getByTestId("portfolio-mobile-positions")).toHaveTextContent("$2.00");
+});

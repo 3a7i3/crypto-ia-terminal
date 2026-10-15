@@ -13,6 +13,7 @@ from typing import Any, Optional
 from observability.financial_paths import (
     DEFAULT_FINANCIAL_RECONCILIATION_PATH,
 )
+from observability.operator_api.path_probe import probe_artifact_path
 
 
 DEFAULT_FINANCIAL_RECONCILIATION_STALE_AFTER_S = 90.0
@@ -440,30 +441,35 @@ class FinancialReconciliationSnapshotReader:
         return self._path
 
     def read(self) -> FinancialReconciliationReadResult:
-        if not self._path.exists():
+        failure = probe_artifact_path(self._path)
+        if failure == "MISSING":
             return FinancialReconciliationReadResult(
                 ok=False,
                 error_code="FINANCIAL_RECONCILIATION_SNAPSHOT_MISSING",
-                error_message=(
-                    f"Financial reconciliation snapshot not found: {self._path}"
-                ),
+                error_message="Financial reconciliation snapshot not found.",
             )
-        if not self._path.is_file():
+        if failure == "INVALID_PATH":
             return FinancialReconciliationReadResult(
                 ok=False,
                 error_code="FINANCIAL_RECONCILIATION_INVALID_PATH",
                 error_message="Financial reconciliation path is not a regular file.",
+            )
+        if failure == "UNREADABLE":
+            return FinancialReconciliationReadResult(
+                ok=False,
+                error_code="FINANCIAL_RECONCILIATION_UNREADABLE",
+                error_message="Financial reconciliation snapshot could not be read.",
             )
         try:
             doc = json.loads(
                 self._path.read_text(encoding="utf-8"),
                 parse_constant=_reject_json_constant,
             )
-        except (OSError, UnicodeError) as exc:
+        except (OSError, UnicodeError):
             return FinancialReconciliationReadResult(
                 ok=False,
                 error_code="FINANCIAL_RECONCILIATION_UNREADABLE",
-                error_message=str(exc),
+                error_message="Financial reconciliation snapshot could not be read.",
             )
         except (json.JSONDecodeError, ValueError) as exc:
             return FinancialReconciliationReadResult(

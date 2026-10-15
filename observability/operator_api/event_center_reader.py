@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from observability.event_center_artifact import read_bytes, strict_json
-from observability.event_center_contract import finite, utc_seconds, validate_event_center
+from observability.event_center_contract import OBSERVED, finite, utc_seconds, validate_event_center
 
 DEFAULT_PATH = Path(os.getenv("EVENT_CENTER_SNAPSHOT_PATH", "databases/event_center_snapshot.json"))
 STALE_AFTER_S = 90.0
@@ -43,7 +43,7 @@ class EventCenterReader:
         for source in doc["sources"]:
             source_time = utc_seconds(source["source_generated_at_utc"])
             source_age = None if source_time is None else now - source_time
-            freshness = "NOT_AVAILABLE" if source["status"] != "PRESENT" else (
+            freshness = "NOT_AVAILABLE" if source["status"] not in OBSERVED else (
                 "UNKNOWN" if source_age is None else
                 "STALE" if age > STALE_AFTER_S or source_age > STALE_AFTER_S else "FRESH"
             )

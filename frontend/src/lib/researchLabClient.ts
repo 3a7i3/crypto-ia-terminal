@@ -1,3 +1,4 @@
+import type { LastSourceEvidence } from "../components/SourceAvailability";
 import { useEffect, useState } from "react";
 import type { ApiStructuredError } from "../types";
 import type { ResearchLabSnapshot } from "./researchLabTypes";
@@ -9,8 +10,8 @@ export const RESEARCH_LAB_POLL_INTERVAL_MS = 60_000;
 export type ResearchLabState =
   | { status: "loading" }
   | { status: "success"; snapshot: ResearchLabSnapshot; fetchedAt: number }
-  | { status: "api_error"; error: ApiStructuredError; httpStatus: number }
-  | { status: "transport_error"; message: string };
+  | { status: "api_error"; error: ApiStructuredError; httpStatus: number; lastEvidence?: LastSourceEvidence }
+  | { status: "transport_error"; message: string; lastEvidence?: LastSourceEvidence };
 
 function isPlainObject(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null && !Array.isArray(x);
@@ -25,6 +26,7 @@ export function useResearchLabSnapshot(
     let alive = true;
     let timerId: ReturnType<typeof setTimeout> | undefined;
     let latestSeq = 0;
+    let lastEvidence: LastSourceEvidence | undefined;
 
     const scheduleNext = () => {
       if (alive) timerId = setTimeout(load, intervalMs);
@@ -32,7 +34,7 @@ export function useResearchLabSnapshot(
 
     const settle = (next: ResearchLabState, seq: number) => {
       if (!alive || seq !== latestSeq) return;
-      setState(next);
+      setState(next.status === "api_error" || next.status === "transport_error" ? { ...next, lastEvidence } : next);
     };
 
     const load = async () => {
@@ -87,6 +89,7 @@ export function useResearchLabSnapshot(
         return;
       }
 
+      lastEvidence = { generatedAt: body.generated_at_utc, identity: body.provenance.primary_context.research_run_id };
       settle({ status: "success", snapshot: body, fetchedAt: Date.now() }, seq);
       scheduleNext();
     };

@@ -371,7 +371,7 @@ const burnInSnapshot = {
   freshness_classification: "FRESH",
 };
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || undefined });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const apiRequests = [];
@@ -518,7 +518,6 @@ try {
   );
 
   const allowedRequests = new Set([
-    "GET /api/operator/v1/ppl-accounting-history",
     "GET /api/operator/v1/snapshot",
     "GET /api/operator/v1/financial-reconciliation",
     "GET /api/operator/v1/market",
@@ -526,13 +525,12 @@ try {
     "GET /api/operator/v1/burn-in",
     "GET /api/operator/v1/runtime-service",
   ]);
-  assert(apiRequests.length >= 7, "Direction did not request all seven governed sources");
+  assert(apiRequests.length >= 6, "Direction did not request all six governed sources");
   assert(
     apiRequests.every((request) => allowedRequests.has(request)),
     `Direction requested an endpoint outside D4B/D4C/D4D: ${apiRequests.join(", ")}`,
   );
   assert(
-    apiRequests.includes("GET /api/operator/v1/ppl-accounting-history") &&
     apiRequests.includes("GET /api/operator/v1/snapshot") &&
       apiRequests.includes("GET /api/operator/v1/financial-reconciliation") &&
       apiRequests.includes("GET /api/operator/v1/market") &&
@@ -541,6 +539,8 @@ try {
       apiRequests.includes("GET /api/operator/v1/runtime-service"),
     `Direction governed sources incomplete: ${apiRequests.join(", ")}`,
   );
+  assert(!apiRequests.includes("GET /api/operator/v1/ppl-accounting-history"), "Machine must not fetch the Finance chart");
+  assert(await page.locator(".financial-history").count() === 0, "Machine duplicated Finance chart");
   assert(mutationRequests.length === 0, `Direction issued mutation requests: ${mutationRequests.join(", ")}`);
 
   const returnControl = page.getByTestId("return-paper-live");

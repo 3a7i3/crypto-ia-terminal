@@ -1,5 +1,5 @@
 import React from "react";
-import { fr } from "../lib/presentationFr";
+import { ageFr, fr, utcStampFr } from "../lib/presentationFr";
 import { FinancialHistory } from "../components/FinancialHistory";
 import { formatDecimalText } from "../lib/decimalPresentation";
 import { useFinancialReconciliation } from "../lib/financialReconciliationClient";
@@ -138,6 +138,13 @@ const FinancialReconciliationContent: React.FC = () => {
           </div>
         </div>
 
+        <p className="fin-capture" data-testid="fin-capture-label" title={`Âge exact : ${snapshot.snapshot_age_s} s`}>
+          {stale
+            ? `Capture historique du ${utcStampFr(snapshot.generated_at_utc)} · périmée depuis ${ageFr(snapshot.snapshot_age_s)}`
+            : `Capture du ${utcStampFr(snapshot.generated_at_utc)}`}
+          {" "}· epoch {snapshot.paper_epoch_id}
+        </p>
+
         <details className="fin-provenance-details"><summary>Provenance financière</summary><div className="fin-provenance">
           <div><span>Epoch</span><code>{snapshot.paper_epoch_id}</code></div>
           <div><span>FIN snapshot</span><code>{snapshot.financial_snapshot_id.slice(0, 16)}…</code></div>
@@ -243,4 +250,4 @@ const FinancialReconciliationContent: React.FC = () => {
   );
 };
 
-export const FinancialReconciliationView: React.FC = () => <div className="fin-stack"><FinancialHistory /><FinancialReconciliationContent /></div>;
+export const FinancialReconciliationView: React.FC = () => <div className="fin-stack"><p className="source-date">Deux sources indépendantes : l’historique comptable est une capture PPL; les montants FIN ont leur propre date, unité et fraîcheur. Une nouvelle capture PPL ne rafraîchit pas FIN et ne certifie pas leur concordance.</p><FinancialHistory /><FinancialReconciliationContent /></div>;

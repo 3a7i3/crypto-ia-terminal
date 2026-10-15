@@ -2,7 +2,7 @@
   width: 100%;
   height: auto;
   max-height: 350px;
-  color: #a4b4c8;
+  color: var(--text-muted);
   display: block;
 }
 .accounting-history svg text {
@@ -17,18 +17,18 @@
 }
 .accounting-tabs button {
   padding: 9px 12px;
-  border: 1px solid #35445b;
+  border: 1px solid var(--bg-border-strong);
   border-radius: 7px;
   background: transparent;
   color: inherit;
   cursor: pointer;
 }
 .accounting-tabs button[aria-pressed="true"] {
-  border-color: #34c6ce;
-  background: #34c6ce15;
+  border-color: var(--accent);
+  background: var(--accent-dim);
 }
 .accounting-tabs button:focus-visible {
-  outline: 2px solid #34c6ce;
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 .accounting-value {
@@ -45,7 +45,7 @@
   font-size: 12px;
 }
 .accounting-capture {
-  color: #eab56a;
+  color: var(--warn);
 }
 .accounting-allocation {
   display: grid;
@@ -63,7 +63,7 @@
   flex-wrap: wrap;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid #35445b;
+  border-bottom: 1px solid var(--bg-border-strong);
 }
 .accounting-allocation p {
   grid-column: 1/-1;

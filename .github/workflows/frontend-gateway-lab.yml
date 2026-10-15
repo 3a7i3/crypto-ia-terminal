@@ -1,0 +1,22 @@
+name: Frontend Gateway Offline Qualification
+on:
+  pull_request:
+    branches: [main, 'ops/**']
+    paths:
+      - 'observability/frontend_*'
+      - 'tests/test_frontend_*'
+      - '.github/workflows/frontend-gateway-lab.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pytest==9.1.1 cryptography==48.0.0
+      - run: python -m pytest -o asyncio_mode=auto -q tests/test_frontend_deploy_request.py tests/test_frontend_gateway_lab.py tests/test_frontend_ticket_signature_lab.py

@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
+from observability.operator_api.path_probe import probe_artifact_path
 
 DEFAULT_MARKET_SNAPSHOT_PATH = Path(
     os.getenv("RADAR_MARKET_SNAPSHOT_PATH", "databases/cryptoradar_market_snapshot.json")
@@ -199,27 +200,34 @@ class MarketSnapshotReader:
         return self._path
 
     def read(self) -> MarketReadResult:
-        if not self._path.exists():
+        failure = probe_artifact_path(self._path)
+        if failure == "MISSING":
             return MarketReadResult(
                 ok=False,
                 error_code="MARKET_SNAPSHOT_MISSING",
-                error_message=f"CryptoRadar MARKET snapshot not found: {self._path}",
+                error_message="CryptoRadar MARKET snapshot not found.",
             )
-        if not self._path.is_file():
+        if failure == "INVALID_PATH":
             return MarketReadResult(
                 ok=False,
                 error_code="MARKET_SNAPSHOT_INVALID_PATH",
                 error_message="CryptoRadar MARKET snapshot path is not a regular file.",
             )
+        if failure == "UNREADABLE":
+            return MarketReadResult(
+                ok=False,
+                error_code="MARKET_SNAPSHOT_UNREADABLE",
+                error_message="CryptoRadar MARKET snapshot could not be read.",
+            )
 
         try:
             raw = self._path.read_text(encoding="utf-8")
             doc = json.loads(raw)
-        except (OSError, UnicodeError) as exc:
+        except (OSError, UnicodeError):
             return MarketReadResult(
                 ok=False,
                 error_code="MARKET_SNAPSHOT_UNREADABLE",
-                error_message=str(exc),
+                error_message="CryptoRadar MARKET snapshot could not be read.",
             )
         except json.JSONDecodeError as exc:
             return MarketReadResult(

@@ -35,6 +35,35 @@ describe.skipIf(!hasFixture)("APP-EVENTS-01 Python -> API -> React", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("shows an oversized journal as an explicit partial tail, never as the full history", async () => {
+    const body = JSON.parse(fs.readFileSync(path.join(dir, "L_events_partial.json"), "utf8")).body;
+    expect(body.schema_version).toBe("1.1.0");
+    expect(body.sources[0].status).toBe("PARTIAL_TAIL");
+    expect(validateEventCenter(body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(body)));
+    render(<EventsView />);
+    await waitFor(() => expect(screen.getByTestId("events-partial-tail")).toBeInTheDocument());
+    const note = screen.getByTestId("events-partial-tail");
+    expect(note).toHaveTextContent("Couverture partielle : seule la fin du journal a été lue");
+    expect(note).toHaveTextContent(`${body.sources[0].window_bytes} octets sur ${body.sources[0].source_bytes}`);
+    expect(note).toHaveTextContent("n’est pas l’historique complet");
+    expect(screen.getByTestId("events-sources")).toHaveTextContent("Couverture partielle · fin du journal");
+    expect(screen.getByTestId("events-sources")).toHaveTextContent("fenêtre lue");
+  });
+
+  it.each([
+    (x: any) => { x.schema_version = "1.0.0"; },
+    (x: any) => { x.sources[0].status = "PRESENT"; },
+    (x: any) => { x.sources[0].coverage = "FULL"; },
+    (x: any) => { x.sources[0].window_bytes = x.sources[0].source_bytes; },
+    (x: any) => { delete x.sources[0].coverage; },
+    (x: any) => { x.sources[2].status = "PARTIAL_TAIL"; },
+  ])("rejects a forged or misused coverage", (mutate) => {
+    const body = JSON.parse(fs.readFileSync(path.join(dir, "L_events_partial.json"), "utf8")).body;
+    mutate(body);
+    expect(validateEventCenter(body)).toBe(false);
+  });
+
   it("works on the actual route even when the Advisor snapshot is missing", async () => {
     window.history.replaceState({}, "", "/paper-live/events");
     vi.stubGlobal("fetch", vi.fn().mockImplementation(url => Promise.resolve(String(url).endsWith("/events") ? response(fixture()) : response({ error_code: "SNAPSHOT_MISSING" }, false))));

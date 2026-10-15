@@ -30,7 +30,7 @@ describe("APP-UNIFY U2 BurnInStatusView", () => {
   it("fails closed on an invalid HTTP 200 body", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ product: "BurnInStatusSnapshot" })));
     render(<BurnInStatusView />);
-    await waitFor(() => expect(screen.getByTestId("burnin-view")).toHaveTextContent("ERREUR TRANSPORT / CONTRAT"));
+    await waitFor(() => expect(screen.getByTestId("burnin-view")).toHaveTextContent("La lecture a échoué : transport ou contrat à vérifier."));
   });
 
   it("surfaces a governed missing-artifact error", async () => {

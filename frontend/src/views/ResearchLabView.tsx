@@ -1,3 +1,4 @@
+import { SourceAvailability } from "../components/SourceAvailability";
 import React from "react";
 import { fr } from "../lib/presentationFr";
 import { useResearchLabSnapshot } from "../lib/researchLabClient";
@@ -112,24 +113,12 @@ export const ResearchLabView: React.FC = () => {
     );
   }
 
-  if (state.status === "api_error") {
-    return (
-      <div className="research-panel research-state research-state-error" data-testid="research-lab-view">
-        <strong>Laboratoire indisponible — HTTP {state.httpStatus}</strong>
-        <span>
-          {state.error.error_code ?? "RESEARCH_LAB_API_ERROR"} · {state.error.error_message ?? "Aucune publication de recherche gouvernée disponible."}
-        </span>
-      </div>
-    );
-  }
-
-  if (state.status === "transport_error") {
-    return (
-      <div className="research-panel research-state research-state-error" data-testid="research-lab-view">
-        <strong>Erreur de contrat ou de transport du Laboratoire</strong>
-        <span>{state.message}</span>
-      </div>
-    );
+  if (state.status === "api_error" || state.status === "transport_error") {
+    return <div data-testid="research-lab-view"><SourceAvailability source="research"
+      code={state.status === "api_error" ? state.error.error_code ?? "RESEARCH_LAB_API_ERROR" : "RESEARCH_LAB_TRANSPORT_OR_CONTRACT"}
+      httpStatus={state.status === "api_error" ? state.httpStatus : undefined}
+      message={state.status === "api_error" ? state.error.error_message : state.message}
+      lastEvidence={state.lastEvidence} /></div>;
   }
 
   const snapshot = state.snapshot;
@@ -152,6 +141,8 @@ export const ResearchLabView: React.FC = () => {
             {fr(context.statistical_strength)}
           </div>
         </div>
+
+        <p className="source-date">Source : /api/operator/v1/research-lab · publication UTC : {snapshot.generated_at_utc}. Fraîcheur scientifique : inconnue, aucun seuil temporel certifié dans ce contrat.</p>
 
         <div className="research-context-grid">
           <div><span>Population</span><strong>{context.population_definition}</strong></div>

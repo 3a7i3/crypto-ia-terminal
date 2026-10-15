@@ -163,7 +163,7 @@ function governedFetch(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
-  it("renders all seven independent governed Direction cards with GET-only reads", async () => {
+  it("renders all six independent governed Direction cards with GET-only reads", async () => {
     const fetchMock = governedFetch();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -223,10 +223,9 @@ describe("WEB-DIR-01 D4B/D4C/D4D/D4E DirectionOverview", () => {
     expect(research).toHaveTextContent("0");
     expect(research).toHaveTextContent("ne remplissent jamais les métriques PAPER actives");
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(7));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual(
       expect.arrayContaining([
-        "/api/operator/v1/ppl-accounting-history",
         "/api/operator/v1/snapshot",
         "/api/operator/v1/financial-reconciliation",
         "/api/operator/v1/market",
@@ -531,7 +530,8 @@ describe("Machine regroupée — synthèse fidèle aux sources", () => {
     expect(fact("Résultat réalisé")).toHaveTextContent("Non disponible");
     expect(fact("Résultat latent")).toHaveTextContent("Non disponible");
     expect(fact("Frais payés")).toHaveTextContent(/^0/);
-    expect(section).toHaveTextContent("Historique non disponible");
+    expect(section).toHaveTextContent("Les courbes et leurs preuves sont dans Finance");
+    expect(screen.queryByTestId("ppl-accounting-history")).toBeNull();
     expect(section.querySelector("svg")).toBeNull();
     expect(section).not.toHaveTextContent("Illustration fictive");
     expect(screen.getByText("Expérience, état du service et preuves complètes").parentElement).not.toHaveAttribute("open");
