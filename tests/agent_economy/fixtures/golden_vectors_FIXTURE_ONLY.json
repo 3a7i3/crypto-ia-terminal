@@ -1,0 +1,338 @@
+{
+  "description": "Synthetic golden vectors for AGENT-ECON A1 SOURCE tests. Recomputed from the certified A1 formulas by an independent stdlib reference (tests/agent_economy/_reference.py). Not an agent, not registry data, never deployed.",
+  "events": [
+    {
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_spec_id": "4d2f47ee602513bc246cc7f03302a71423d181a1784cd3080d08c9ac92195087",
+      "agent_transition_ordinal": 1,
+      "event_hash": "f1acd48d3942c0dc4bf7a993027346f6a52a5e552e445a634c22155702e65bad",
+      "event_id": "15baa672a47ae880d3b519b2fcd2b019e94d20deccb971b1ab602dba2c8b1441",
+      "event_schema": "AGENT_REGISTRY_EVENT_V1",
+      "event_type": "AGENT_REGISTERED",
+      "evidence_refs": [
+        "git:commit:0123456789abcdef0123456789abcdef01234567",
+        "github:issue:fixture-owner/fixture-repo#1"
+      ],
+      "new_state": "REGISTERED",
+      "occurred_at_utc": "2026-10-04T00:00:01Z",
+      "previous_event_hash": "GENESIS",
+      "previous_state": null,
+      "reason_code": "REGISTRATION_INITIAL",
+      "reason_detail": null,
+      "registry_sequence": 1,
+      "spec_artifact_hash": "23558e1a3561081aaea731bc045093689eaf0d078fab88c1ee9c28651dbdc363"
+    },
+    {
+      "agent_id": "9c39643f8aa26c66e517d25d13d619f93706b337f587af4c0e688fdba7c6fdc1",
+      "agent_spec_id": "a1ca88c7706ca3039967fb4519b7520fcc83fd0f01090a6cd2ee45e1d4fb4a51",
+      "agent_transition_ordinal": 1,
+      "event_hash": "d670d31816b7bc2412d41eed7ae918b137da8277360f4448956ad55b9a134a11",
+      "event_id": "d89fa9a85dbb61f7de6d8e0362c7bfc65a6b379026560763c6956d71b885a199",
+      "event_schema": "AGENT_REGISTRY_EVENT_V1",
+      "event_type": "AGENT_REGISTERED",
+      "evidence_refs": [
+        "git:commit:0123456789abcdef0123456789abcdef01234567",
+        "github:issue:fixture-owner/fixture-repo#1"
+      ],
+      "new_state": "REGISTERED",
+      "occurred_at_utc": "2026-10-04T00:00:02Z",
+      "previous_event_hash": "f1acd48d3942c0dc4bf7a993027346f6a52a5e552e445a634c22155702e65bad",
+      "previous_state": null,
+      "reason_code": "REGISTRATION_INITIAL",
+      "reason_detail": null,
+      "registry_sequence": 2,
+      "spec_artifact_hash": "0c75e8cfc257fe40b0d943a3689659b57262b71533fc142ab55f99a127645828"
+    },
+    {
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+      "agent_transition_ordinal": 2,
+      "event_hash": "afc8f8597ce4eff5191de667e4d5ce50c336f7f30db8d6d3b434c982b397a250",
+      "event_id": "9901e8dffb14eba42764b6dee32c3ac201e1f0c22c617ca9556f4eab353dc151",
+      "event_schema": "AGENT_REGISTRY_EVENT_V1",
+      "event_type": "AGENT_SPEC_REVISED",
+      "evidence_refs": [
+        "git:commit:0123456789abcdef0123456789abcdef01234567",
+        "github:issue:fixture-owner/fixture-repo#1"
+      ],
+      "new_state": "REGISTERED",
+      "occurred_at_utc": "2026-10-04T00:00:03Z",
+      "previous_event_hash": "d670d31816b7bc2412d41eed7ae918b137da8277360f4448956ad55b9a134a11",
+      "previous_state": "REGISTERED",
+      "reason_code": "SPEC_REVISION_ESCALATING",
+      "reason_detail": null,
+      "registry_sequence": 3,
+      "spec_artifact_hash": "03f4688bd836152d4ec1a0ea76f15ae7093082c7de3d66a805c627476fb2e7dd"
+    },
+    {
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+      "agent_transition_ordinal": 3,
+      "event_hash": "cfdfed79200f9701dd643d2e7774706a074e783b45a60eefc330be6cceb49a41",
+      "event_id": "87353e460315800e59a9665e2dea126b8367c219f56f423c506a0ced4798f036",
+      "event_schema": "AGENT_REGISTRY_EVENT_V1",
+      "event_type": "AGENT_SUSPENDED",
+      "evidence_refs": [
+        "github:issue:fixture-owner/fixture-repo#1"
+      ],
+      "new_state": "SUSPENDED",
+      "occurred_at_utc": "2026-10-04T00:00:04Z",
+      "previous_event_hash": "afc8f8597ce4eff5191de667e4d5ce50c336f7f30db8d6d3b434c982b397a250",
+      "previous_state": "REGISTERED",
+      "reason_code": "SUSPENSION_GOVERNANCE",
+      "reason_detail": null,
+      "registry_sequence": 4,
+      "spec_artifact_hash": "03f4688bd836152d4ec1a0ea76f15ae7093082c7de3d66a805c627476fb2e7dd"
+    },
+    {
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+      "agent_transition_ordinal": 4,
+      "event_hash": "4fc1c8d569f154cf17c33223cc8063f3d219a028da0dc6457bd019b65c490218",
+      "event_id": "bde431a6eac5c660d6db37ae88261f226aecd4d0e985c7963693a96c76377427",
+      "event_schema": "AGENT_REGISTRY_EVENT_V1",
+      "event_type": "AGENT_REINSTATED",
+      "evidence_refs": [
+        "git:commit:0123456789abcdef0123456789abcdef01234567",
+        "github:issue:fixture-owner/fixture-repo#1"
+      ],
+      "new_state": "REGISTERED",
+      "occurred_at_utc": "2026-10-04T00:00:05Z",
+      "previous_event_hash": "cfdfed79200f9701dd643d2e7774706a074e783b45a60eefc330be6cceb49a41",
+      "previous_state": "SUSPENDED",
+      "reason_code": "REINSTATEMENT_GOVERNANCE",
+      "reason_detail": null,
+      "registry_sequence": 5,
+      "spec_artifact_hash": "03f4688bd836152d4ec1a0ea76f15ae7093082c7de3d66a805c627476fb2e7dd"
+    },
+    {
+      "agent_id": "9c39643f8aa26c66e517d25d13d619f93706b337f587af4c0e688fdba7c6fdc1",
+      "agent_spec_id": "a1ca88c7706ca3039967fb4519b7520fcc83fd0f01090a6cd2ee45e1d4fb4a51",
+      "agent_transition_ordinal": 2,
+      "event_hash": "95a78ff085e2b854b71a410ce0466d17d7e6f6c42d9f4ad689662dd815ef8761",
+      "event_id": "6d78cd3acb1d60f05749b21e06001022348d30014c53192148da6f9a3af75d75",
+      "event_schema": "AGENT_REGISTRY_EVENT_V1",
+      "event_type": "AGENT_RETIRED",
+      "evidence_refs": [
+        "github:issue:fixture-owner/fixture-repo#1"
+      ],
+      "new_state": "RETIRED",
+      "occurred_at_utc": "2026-10-04T00:00:06Z",
+      "previous_event_hash": "4fc1c8d569f154cf17c33223cc8063f3d219a028da0dc6457bd019b65c490218",
+      "previous_state": "REGISTERED",
+      "reason_code": "RETIREMENT_GOVERNANCE",
+      "reason_detail": null,
+      "registry_sequence": 6,
+      "spec_artifact_hash": "0c75e8cfc257fe40b0d943a3689659b57262b71533fc142ab55f99a127645828"
+    }
+  ],
+  "expected_chain": {
+    "event_hashes": [
+      "f1acd48d3942c0dc4bf7a993027346f6a52a5e552e445a634c22155702e65bad",
+      "d670d31816b7bc2412d41eed7ae918b137da8277360f4448956ad55b9a134a11",
+      "afc8f8597ce4eff5191de667e4d5ce50c336f7f30db8d6d3b434c982b397a250",
+      "cfdfed79200f9701dd643d2e7774706a074e783b45a60eefc330be6cceb49a41",
+      "4fc1c8d569f154cf17c33223cc8063f3d219a028da0dc6457bd019b65c490218",
+      "95a78ff085e2b854b71a410ce0466d17d7e6f6c42d9f4ad689662dd815ef8761"
+    ],
+    "event_ids": [
+      "15baa672a47ae880d3b519b2fcd2b019e94d20deccb971b1ab602dba2c8b1441",
+      "d89fa9a85dbb61f7de6d8e0362c7bfc65a6b379026560763c6956d71b885a199",
+      "9901e8dffb14eba42764b6dee32c3ac201e1f0c22c617ca9556f4eab353dc151",
+      "87353e460315800e59a9665e2dea126b8367c219f56f423c506a0ced4798f036",
+      "bde431a6eac5c660d6db37ae88261f226aecd4d0e985c7963693a96c76377427",
+      "6d78cd3acb1d60f05749b21e06001022348d30014c53192148da6f9a3af75d75"
+    ],
+    "final_event_hash": "95a78ff085e2b854b71a410ce0466d17d7e6f6c42d9f4ad689662dd815ef8761"
+  },
+  "expected_identities": {
+    "a1": {
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_spec_id": "4d2f47ee602513bc246cc7f03302a71423d181a1784cd3080d08c9ac92195087",
+      "spec_artifact_hash": "23558e1a3561081aaea731bc045093689eaf0d078fab88c1ee9c28651dbdc363"
+    },
+    "a2": {
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+      "spec_artifact_hash": "03f4688bd836152d4ec1a0ea76f15ae7093082c7de3d66a805c627476fb2e7dd"
+    },
+    "b1": {
+      "agent_id": "9c39643f8aa26c66e517d25d13d619f93706b337f587af4c0e688fdba7c6fdc1",
+      "agent_spec_id": "a1ca88c7706ca3039967fb4519b7520fcc83fd0f01090a6cd2ee45e1d4fb4a51",
+      "spec_artifact_hash": "0c75e8cfc257fe40b0d943a3689659b57262b71533fc142ab55f99a127645828"
+    }
+  },
+  "expected_projection": {
+    "agents": [
+      {
+        "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+        "agent_transition_ordinal": 4,
+        "current_agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+        "last_registry_sequence": 5,
+        "state": "REGISTERED"
+      },
+      {
+        "agent_id": "9c39643f8aa26c66e517d25d13d619f93706b337f587af4c0e688fdba7c6fdc1",
+        "agent_transition_ordinal": 2,
+        "current_agent_spec_id": "a1ca88c7706ca3039967fb4519b7520fcc83fd0f01090a6cd2ee45e1d4fb4a51",
+        "last_registry_sequence": 6,
+        "state": "RETIRED"
+      }
+    ],
+    "availability": "UNKNOWN",
+    "chain_status": "STRUCTURALLY_VALID_CHAIN",
+    "label": "PREFIX_ONLY_UNCERTIFIED",
+    "verified_event_count": 6
+  },
+  "fixture_semantics": [
+    "FIXTURE_ONLY",
+    "NOT_REGISTRY_DATA",
+    "NOT_OPERATOR_DATA",
+    "NOT_DEPLOYED"
+  ],
+  "specs": {
+    "a1": {
+      "agent_class": "SENSOR",
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_schema": "AGENT_SPEC_V1",
+      "agent_spec_id": "4d2f47ee602513bc246cc7f03302a71423d181a1784cd3080d08c9ac92195087",
+      "authority_policy": {
+        "authority_ceiling": "NO_RUNTIME_AUTHORITY",
+        "consensus_grants_authority": false,
+        "economic_status_grants_authority": false,
+        "human_decision": false,
+        "reputation_grants_authority": false
+      },
+      "canonical_name": "fixture_sensor_alpha",
+      "capabilities": [
+        "CI_READ",
+        "REPOSITORY_READ"
+      ],
+      "constitution_version": "AGENT_ECON_A0_FOREST_V1",
+      "created_at_utc": "2026-10-04T00:00:00Z",
+      "created_from_ref": "0123456789abcdef0123456789abcdef01234567",
+      "display_name": "Fixture Sensor Alpha",
+      "execution_binding": {
+        "credential_mode": "NONE",
+        "model": null,
+        "provider": null,
+        "status": "UNBOUND"
+      },
+      "independence_policy": {
+        "independent_review_required": true,
+        "own_work_review_forbidden": true
+      },
+      "maintenance_level": "F0",
+      "namespace": "forest",
+      "purpose": "Synthetic fixture agent used only by tests, never registered.",
+      "scope_policy": {
+        "artifact_domains": [],
+        "github_surfaces": [
+          "CHECK_RUNS",
+          "WORKFLOW_RUNS"
+        ],
+        "repository_read_paths": [
+          "docs/"
+        ],
+        "repository_write_paths_future": []
+      },
+      "spec_revision": 1,
+      "supersedes_spec_id": null
+    },
+    "a2": {
+      "agent_class": "SENSOR",
+      "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+      "agent_schema": "AGENT_SPEC_V1",
+      "agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+      "authority_policy": {
+        "authority_ceiling": "NO_RUNTIME_AUTHORITY",
+        "consensus_grants_authority": false,
+        "economic_status_grants_authority": false,
+        "human_decision": false,
+        "reputation_grants_authority": false
+      },
+      "canonical_name": "fixture_sensor_alpha",
+      "capabilities": [
+        "CI_READ",
+        "GITHUB_METADATA_READ",
+        "REPOSITORY_READ"
+      ],
+      "constitution_version": "AGENT_ECON_A0_FOREST_V1",
+      "created_at_utc": "2026-10-04T00:00:30Z",
+      "created_from_ref": "0123456789abcdef0123456789abcdef01234567",
+      "display_name": "Fixture Sensor Alpha",
+      "execution_binding": {
+        "credential_mode": "NONE",
+        "model": null,
+        "provider": null,
+        "status": "UNBOUND"
+      },
+      "independence_policy": {
+        "independent_review_required": true,
+        "own_work_review_forbidden": true
+      },
+      "maintenance_level": "F0",
+      "namespace": "forest",
+      "purpose": "Synthetic fixture agent used only by tests, never registered.",
+      "scope_policy": {
+        "artifact_domains": [],
+        "github_surfaces": [
+          "CHECK_RUNS",
+          "ISSUES",
+          "WORKFLOW_RUNS"
+        ],
+        "repository_read_paths": [
+          "docs/"
+        ],
+        "repository_write_paths_future": []
+      },
+      "spec_revision": 2,
+      "supersedes_spec_id": "4d2f47ee602513bc246cc7f03302a71423d181a1784cd3080d08c9ac92195087"
+    },
+    "b1": {
+      "agent_class": "SCOUT",
+      "agent_id": "9c39643f8aa26c66e517d25d13d619f93706b337f587af4c0e688fdba7c6fdc1",
+      "agent_schema": "AGENT_SPEC_V1",
+      "agent_spec_id": "a1ca88c7706ca3039967fb4519b7520fcc83fd0f01090a6cd2ee45e1d4fb4a51",
+      "authority_policy": {
+        "authority_ceiling": "NO_RUNTIME_AUTHORITY",
+        "consensus_grants_authority": false,
+        "economic_status_grants_authority": false,
+        "human_decision": false,
+        "reputation_grants_authority": false
+      },
+      "canonical_name": "fixture_scout_beta",
+      "capabilities": [
+        "CANDIDATE_PROBLEM_PROPOSE",
+        "REPOSITORY_SEARCH"
+      ],
+      "constitution_version": "AGENT_ECON_A0_FOREST_V1",
+      "created_at_utc": "2026-10-04T00:00:00Z",
+      "created_from_ref": "0123456789abcdef0123456789abcdef01234567",
+      "display_name": "Fixture Scout Beta",
+      "execution_binding": {
+        "credential_mode": "NONE",
+        "model": null,
+        "provider": null,
+        "status": "UNBOUND"
+      },
+      "independence_policy": {
+        "independent_review_required": true,
+        "own_work_review_forbidden": true
+      },
+      "maintenance_level": "F1",
+      "namespace": "forest",
+      "purpose": "Synthetic fixture agent used only by tests, never registered.",
+      "scope_policy": {
+        "artifact_domains": [],
+        "github_surfaces": [],
+        "repository_read_paths": [
+          "tests/"
+        ],
+        "repository_write_paths_future": []
+      },
+      "spec_revision": 1,
+      "supersedes_spec_id": null
+    }
+  }
+}
