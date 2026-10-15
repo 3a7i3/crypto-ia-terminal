@@ -35,3 +35,5 @@ mkdir -m 0700 /home/mathieu/operator_presentation && stat -c '%n %U:%G %a' /home
 
 ## 5. Ce que G1 ne fait pas
 Pas de `/etc/systemd/system`, pas de `daemon-reload`, pas d'`enable`/`start`, pas de drop-in API, pas de redémarrage, pas de lecture d'EnvironmentFile ou de secret, pas de modification de `staging-src`/`staging-envs`, pas de `git`.
+
+> Résultat réel de G1 (2026-10-15) : voir [PASSIVE_PUBLISHERS_G1_RESULTS.md](PASSIVE_PUBLISHERS_G1_RESULTS.md). Écart avec les attentes de la section 3 : `p12_alerts` est sorti `OUTPUT_LIMIT` (et non `PRESENT`) ; `security --offline` a été ignoré (option absente).
