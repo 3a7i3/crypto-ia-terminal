@@ -160,3 +160,11 @@ La préparation de B (inventaire #441/#443/#442, validations, chemin de release,
 - Les sorties du plan et de G2 sont **des preuves opérateur** ; un agent ne les vérifie pas sur la machine. Une confirmation en lecture seule par `chatgpt-ro` n'est possible que pour ce qui n'est pas sous `/home/mathieu` (unités dans `/etc/systemd/system`, états systemd).
 - Les tests de G2 utilisent un faux `systemctl` : ils prouvent la logique du script (écritures, refus, rollback, absence d'`enable`/`start`), **pas** le comportement de systemd sur l'hôte. Les propriétés `UpheldBy`, `ExecMainStartTimestampMonotonic` et `MemoryPeak` dépendent de la version de systemd de l'hôte ; une propriété absente ressort vide et est traitée sans faux succès (`ActiveState`, `LoadState`, `UnitFileState` restent exigés).
 - Les durées sous systemd et sous charge sont encore inconnues (G3, G5).
+
+## Lancer `G2_MODE=plan` (sans sudo) — commande courte
+Le fichier `g2_paste_block.sh` (sha256 `3117f492046bc0d9c840923c1eecac7058d3f8264ace3f6235866c2c181e2803`) doit être présent sur le VPS (même méthode de transfert que G1). Sous `mathieu` :
+
+```sh
+echo "3117f492046bc0d9c840923c1eecac7058d3f8264ace3f6235866c2c181e2803  $HOME/g2_paste_block.sh" | sha256sum -c - && G2_MODE=plan sh "$HOME/g2_paste_block.sh"
+```
+Le mode `plan` ne passe pas par sudo et n'écrit rien dans `/etc`, `/var/lib`, systemd ni le dossier de sortie. **Il n'est pas strictement sans écriture** : il crée, sous `${TMPDIR:-/tmp}`, deux dossiers temporaires `0700` (`g2priv.*` : copie du script ; `g2.*` : unités mises en place pour `systemd-analyze verify`), supprimés en sortie ; si le processus est tué, ils peuvent subsister dans `/tmp` (inoffensifs, supprimables à la main). Le bloc affiche le code retour final.
