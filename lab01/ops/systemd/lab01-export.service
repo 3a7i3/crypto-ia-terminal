@@ -1,0 +1,46 @@
+[Unit]
+Description=LAB-01 : export de rapports nettoyés vers un dossier lisible par l'observateur
+RequiresMountsFor=/srv/lab01/data
+Documentation=https://github.com/3a7i3/crypto-ia-terminal/issues/447
+# Aucune dépendance vers une unité de production.
+
+[Service]
+Type=oneshot
+User=lab01
+Group=lab01
+Slice=lab01.slice
+WorkingDirectory=/
+Environment=PYTHONPATH=/srv/lab01/release/current PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+ExecStart=/usr/bin/python3.11 -m lab01 export --src /srv/lab01/data/runs/latest --dst /srv/lab01/data/reports
+TimeoutStartSec=120
+PrivateNetwork=yes
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadOnlyPaths=/srv/lab01/data/runs
+ReadWritePaths=/srv/lab01/data/reports
+InaccessiblePaths=/home /root /opt/crypto-ai-terminal /srv/claude-audit /etc/ssl/private /srv/lab01/token
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+# Les rapports exportés doivent être lisibles par l'observateur : 0644/0755 posés
+# explicitement par le code d'export (jamais d'élargissement de `runs` ni du jeton).
+UMask=0022
+LimitNOFILE=256
+LimitNPROC=64
+LimitCORE=0
+LimitFSIZE=4M

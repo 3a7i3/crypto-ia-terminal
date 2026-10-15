@@ -21,7 +21,20 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("serve", help="API GET-only + interface (127.0.0.1)")
     s.add_argument("--out", required=True)
     s.add_argument("--port", type=int, default=18090)
-    s.add_argument("--token-file")
+    s.add_argument("--token-file", required=True)
+    e = sub.add_parser(
+        "export", help="exporte des rapports nettoyés vers un dossier lisible"
+    )
+    e.add_argument("--src", required=True)
+    e.add_argument("--dst", required=True)
+    q = sub.add_parser(
+        "prune", help="liste (défaut) ou supprime les plus anciennes expériences"
+    )
+    q.add_argument("--out", required=True)
+    q.add_argument("--keep", type=int, default=20)
+    q.add_argument(
+        "--apply", action="store_true", help="supprime réellement (jamais par défaut)"
+    )
     a = ap.parse_args(argv)
 
     from lab01 import runner
@@ -46,6 +59,18 @@ def main(argv: list[str] | None = None) -> int:
         rep = runner.verify_written(a.out)
         print(json.dumps(rep, indent=2))
         return 0 if rep and all(x["chain_valid"] for x in rep) else 1
+    if a.cmd == "export":
+        from lab01 import export
+
+        rep = export.export_reports(a.src, a.dst)
+        print(json.dumps(rep, indent=2, sort_keys=True))
+        return 0 if not rep["rejected"] else 1
+    if a.cmd == "prune":
+        from lab01 import retention
+
+        rep = retention.prune(a.out, keep=a.keep, apply=a.apply)
+        print(json.dumps(rep, indent=2, sort_keys=True))
+        return 0
     from lab01.api import serve
 
     serve(a.out, a.port, a.token_file)

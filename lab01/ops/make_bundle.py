@@ -63,6 +63,72 @@ def build(dest: Path) -> tuple[Path, str]:
     return out, digest
 
 
+OPS = ROOT / "lab01" / "ops"
+INSTALLER_FILES = (
+    "lab01_ops.sh",
+    "lab01_host_tests.sh",
+    "lab01_audit.sh",
+    "systemd/lab01.slice",
+    "systemd/srv-lab01-data.mount",
+    "systemd/lab01-run.service",
+    "systemd/lab01-export.service",
+    "systemd/lab01-api.service",
+)
+
+
+def installer_manifest(dest: Path) -> tuple[Path, str]:
+    """INSTALLER.sha256 (format `sha256sum -c`) : empreintes du code d'installation."""
+    lines = [
+        f"{hashlib.sha256((OPS / rel).read_bytes()).hexdigest()}  {rel}\n"
+        for rel in sorted(INSTALLER_FILES)
+    ]
+    path = dest / "INSTALLER.sha256"
+    path.write_text("".join(lines))
+    return path, hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def git_head() -> str:
+    import subprocess
+
+    out = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        check=False,
+    ).stdout.strip()
+    return out if len(out) == 40 else "UNKNOWN"
+
+
+def write_request(dest: Path, bundle_sha: str, manifest_sha: str) -> Path:
+    """Demande candidate `lab01.apply` : DONNÉES seulement, jamais un script ni une autorisation."""
+    import json
+
+    req = {
+        "schema": "lab01.request/1",
+        "operation": "lab01.apply",
+        "not_an_authorization": True,
+        "commit": git_head(),
+        "bundle_sha256": bundle_sha,
+        "installer_manifest_sha256": manifest_sha,
+        "params": {
+            "user": "lab01",
+            "root": "/srv/lab01",
+            "image_mb": 64,
+            "port": 18090,
+            "units": [u.rsplit("/", 1)[-1] for u in INSTALLER_FILES if "systemd/" in u],
+        },
+    }
+    path = dest / "request.json"
+    path.write_text(json.dumps(req, indent=2, sort_keys=True) + "\n")
+    return path
+
+
 if __name__ == "__main__":
-    path, dig = build(Path(sys.argv[1]))
-    print(dig, path)
+    dest = Path(sys.argv[1])
+    path, dig = build(dest)
+    _m, msha = installer_manifest(dest)
+    write_request(dest, dig, msha)
+    print(
+        f"bundle_sha256={dig}\ninstaller_manifest_sha256={msha}\ncommit={git_head()}\n{path}"
+    )

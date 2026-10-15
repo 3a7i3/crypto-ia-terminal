@@ -16,7 +16,37 @@ MAX_BYTES = 8 * 1024 * 1024
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 
 
-def make_handler(root: Path, token: str | None):
+MIN_TOKEN_LEN = 32
+TOKEN_RE = re.compile(r"^[A-Za-z0-9+/=_.~-]{32,256}$")
+
+
+class TokenError(ValueError):
+    """Jeton absent, trop court ou au format invalide : l'API refuse de démarrer."""
+
+
+def validate_token(token: str | None) -> str:
+    if not token or not TOKEN_RE.match(token):
+        raise TokenError("LAB_TOKEN_REQUIRED_OR_INVALID")
+    return token
+
+
+def read_token_file(path: str | None) -> str:
+    """Lit le jeton ; refuse un fichier absent, lisible par tous ou non régulier."""
+    if not path:
+        raise TokenError("LAB_TOKEN_REQUIRED_OR_INVALID")
+    p = Path(path)
+    try:
+        st = p.stat()
+    except OSError as exc:
+        raise TokenError("LAB_TOKEN_FILE_UNREADABLE") from exc
+    if not p.is_file() or st.st_mode & 0o007:
+        raise TokenError(
+            "LAB_TOKEN_FILE_MODE_REFUSED"
+        )  # ni lisible ni inscriptible par « autres »
+    return validate_token(p.read_text().strip())
+
+
+def make_handler(root: Path, token: str):
     class Handler(BaseHTTPRequestHandler):
         server_version = "lab01"
         sys_version = ""
@@ -49,10 +79,10 @@ def make_handler(root: Path, token: str | None):
             self._json(code, {"error": error})
 
         def _authorized(self) -> bool:
-            if token is None:
-                return True
             got = self.headers.get("Authorization", "")
-            return hmac.compare_digest(got, "Bearer " + token)
+            return hmac.compare_digest(
+                got.encode("utf-8", "replace"), ("Bearer " + token).encode()
+            )
 
         def _read(self, path: Path):
             try:
@@ -108,21 +138,21 @@ def make_handler(root: Path, token: str | None):
     return Handler
 
 
-def build_server(root, port: int, token: str | None = None, host: str = "127.0.0.1"):
+def build_server(root, port: int, token: str, host: str = "127.0.0.1"):
+    """Jeton valide obligatoire, même en loopback : aucun mode sans authentification."""
+    token = validate_token(token)
     if host not in LOOPBACK:
         raise ValueError("LAB_API_LOOPBACK_ONLY")
     return ThreadingHTTPServer((host, port), make_handler(Path(root), token))
 
 
 def serve(root, port: int, token_file: str | None) -> None:
-    token = None
-    if token_file:
-        token = Path(token_file).read_text().strip()
-        if len(token) < 24:
-            raise SystemExit("LAB_TOKEN_TOO_SHORT")
+    try:
+        token = read_token_file(token_file)
+    except TokenError as exc:
+        raise SystemExit(f"REFUS : {exc}") from exc
     srv = build_server(root, port, token)
     print(
-        f"LAB-01 API (SYNTHETIC, GET-only) sur http://127.0.0.1:{port}/ — "
-        f"auth={'bearer' if token else 'AUCUNE'}"
+        f"LAB-01 API (SYNTHETIC, GET-only) sur http://127.0.0.1:{port}/ — auth=bearer"
     )
     srv.serve_forever()

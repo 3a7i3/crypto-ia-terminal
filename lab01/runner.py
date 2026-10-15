@@ -14,7 +14,12 @@ from pathlib import Path
 
 from lab01 import LAB_VERSION, PROVENANCE
 from lab01.events import canonical, verify_chain
-from lab01.guards import assert_clean_environment, assert_safe_output_dir, deny_network
+from lab01.guards import (
+    LabGuardError,
+    assert_clean_environment,
+    assert_safe_output_dir,
+    deny_network,
+)
 
 ID_RE = r"^LAB01-[a-z_]+-[0-9a-f]{12}$"
 
@@ -53,15 +58,29 @@ def _git_head() -> str:
         return "UNKNOWN"
 
 
+DEFAULT_MAX_BYTES = (
+    32 * 1024 * 1024
+)  # borne applicative ; la borne OS est le volume dédié
+
+
 def run_all(
     out_dir: str | os.PathLike,
     names: list[str] | None = None,
     *,
     network_guard: bool = True,
+    max_bytes: int = DEFAULT_MAX_BYTES,
 ) -> list[dict]:
     out = assert_safe_output_dir(out_dir)
     assert_clean_environment()
     out.mkdir(parents=True, exist_ok=True)
+    from lab01.retention import dir_bytes
+
+    if (
+        dir_bytes(out) > max_bytes
+    ):  # échec visible : aucune éviction automatique des preuves
+        raise LabGuardError(
+            f"LAB_QUOTA_EXCEEDED: {dir_bytes(out)} > {max_bytes} (voir `lab01 prune`)"
+        )
     with lab_context(out):
         return _run_all(out, names, network_guard)
 
@@ -148,8 +167,19 @@ def _write(out: Path, run: dict, network_guard: bool) -> dict:
         "platform": platform.platform(),
         "network_guard_in_process": network_guard,
         "wall_clock_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "digest_scope": "events.jsonl (horloge synthétique) ; manifest.wall_clock_utc et "
-        "packet.json exclus",
+        "reproducibility": {
+            "deterministic_octet_identical": [
+                "events.jsonl",
+                "result.json",
+                "bars.json",
+            ],
+            "non_deterministic": [
+                "manifest.json (wall_clock_utc, git_head, python, platform)",
+                "packet.json (horodatage mural du DecisionPacket)",
+            ],
+            "note": "L'expérience n'est pas identique octet par octet : seuls les fichiers listés "
+            "« deterministic_octet_identical » le sont.",
+        },
     }
     (d / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n"

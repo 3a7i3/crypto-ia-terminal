@@ -6,11 +6,11 @@ groupées, lecture seule. Aucun `.env`, aucune valeur de secret, aucun scan réc
 aucune écriture. #286 inchangé. Les observations de G0–G2 (14–15/10) sont réutilisées,
 non relevées à nouveau.
 
-## 1. Ressources (observé)
+## 1. Ressources (relevé ponctuel du 2026-10-15 à 06:12Z ; ni moyenne ni garantie)
 | Élément | Valeur | Lecture |
 |---|---|---|
 | CPU | 2 vCPU ; load 1,17 / 0,95 / 0,97 ; PSI cpu `some` avg300 2,12 % | peu de marge : 2 cœurs seulement |
-| RAM | 15 991 Mo total, 7 988 Mo utilisés, 7 663 Mo disponibles ; **pas de swap** | sans swap, un dépassement déclenche l'OOM-killer |
+| RAM | 15 991 Mo total, 7 988 Mo utilisés, 7 663 Mo « disponibles » **à cet instant** (relevé ponctuel, variable) ; **pas de swap** | sans swap, un dépassement déclenche l'OOM-killer |
 | Disque | 97 Go, 57 Go utilisés, 41 Go libres (59 %), un seul volume `/` | LAB et production partagent le même volume |
 | Disponibilité | up 27 j | — |
 | Consommation | `crypto-advisor.service` : PID 882633, **6,9 Go** (cgroup, 135 tâches), ≈ 65 % d'un cœur ; lmi-observatory 418 Mo ; market-snapshot 330 Mo ; operator-api 38 Mo | Advisor = ~87 % de la RAM utilisée |
@@ -30,5 +30,5 @@ Dépendances nécessaires au cycle : Python 3.11.15 (`/usr/bin/python3.11`, `ens
 ## 4. Séparation code / données / secrets (état actuel)
 Code et données de production sont sous `/home/mathieu/crypto_ai_terminal` (une seule identité), les secrets dans des `.env`/`EnvironmentFile` de cet arbre (jamais lus). `/opt/crypto-ai-terminal` (root) contient des publications de présentation. Aucune séparation d'identité entre l'exploitation et d'éventuelles expériences : un LAB sur l'hôte exige **sa propre identité** et ses propres chemins.
 
-## 5. INACCESSIBLE avec `chatgpt-ro` (commandes opérateur : voir `LAB_01_OPERATOR_COMMANDS.md`, bloc 0)
+## 5. INACCESSIBLE avec `chatgpt-ro` (commandes opérateur : voir `LAB_01_OPERATOR_COMMANDS.md`, bloc 0a sans privilège et 0b privilégié séparé)
 Règles réseau `nft`/`iptables` (« Operation not permitted »), propriétaires de ports, `unprivileged_userns`, historique OOM du noyau, contenu et droits de `/home/mathieu/*`, `EnvironmentFile` des unités (volontairement non lus), cadence des écritures d'Advisor.

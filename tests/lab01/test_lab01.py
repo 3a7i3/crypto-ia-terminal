@@ -193,14 +193,20 @@ def test_unknown_scenario_refused(tmp_path):
 
 
 # ---- API --------------------------------------------------------------------
-def _serve(root, token=None):
+TOKEN = "t" * 32
+AUTH = {"Authorization": "Bearer " + TOKEN}
+
+
+def _serve(root, token=TOKEN):
     srv = api.build_server(root, 0, token)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, f"http://127.0.0.1:{srv.server_address[1]}"
 
 
 def _get(url, headers=None, method="GET"):
-    req = urllib.request.Request(url, headers=headers or {}, method=method)
+    """`headers=None` : jeton valide ; `headers={}` : aucune authentification."""
+    hdrs = AUTH if headers is None else headers
+    req = urllib.request.Request(url, headers=hdrs, method=method)
     try:
         with urllib.request.urlopen(req, timeout=5) as r:
             return r.status, r.read()
@@ -223,7 +229,7 @@ def test_api_get_only_and_projection(out):
         assert json.loads(_get(f"{base}/lab/experiments/{eid}/events")[1])["events"]
         for m in ("POST", "PUT", "DELETE", "PATCH"):
             assert _get(base + "/lab/health", method=m)[0] == 405
-        assert b"SYNTH" in _get(base + "/")[1]
+        assert b"SYNTH" in _get(base + "/", {})[1]  # la page ne contient aucune donnée
     finally:
         srv.shutdown()
 
@@ -246,10 +252,10 @@ def test_api_rejects_bad_paths(out, path):
         srv.shutdown()
 
 
-def test_api_requires_token_when_configured(out):
-    srv, base = _serve(out, token="t" * 32)
+def test_api_requires_a_valid_bearer_token(out):
+    srv, base = _serve(out)
     try:
-        assert _get(base + "/lab/experiments")[0] == 401
+        assert _get(base + "/lab/experiments", {})[0] == 401
         assert (
             _get(base + "/lab/experiments", {"Authorization": "Bearer wrong"})[0] == 401
         )
@@ -272,7 +278,7 @@ def test_missing_artifacts_are_503_not_empty(tmp_path):
 
 def test_api_refuses_non_loopback_bind(tmp_path):
     with pytest.raises(ValueError):
-        api.build_server(tmp_path, 0, None, host="0.0.0.0")
+        api.build_server(tmp_path, 0, TOKEN, host="0.0.0.0")
 
 
 def test_eventlog_ids_required():
@@ -327,7 +333,13 @@ def _unit(name):
 def test_units_have_no_production_dependency_or_secret_source():
     import re
 
-    for name in ("lab01.slice", "lab01-run.service", "lab01-api.service"):
+    for name in (
+        "lab01.slice",
+        "lab01-run.service",
+        "lab01-api.service",
+        "lab01-export.service",
+        "srv-lab01-data.mount",
+    ):
         txt = _unit(name)
         assert not re.search(
             r"^(Requires|Wants|After|Before|BindsTo|PartOf|Conflicts|Upholds|OnFailure)=",
@@ -345,7 +357,7 @@ def test_run_unit_denies_network_and_limits_writes():
         "IPAddressDeny=any",
         "RestrictAddressFamilies=AF_UNIX",
         "ProtectSystem=strict",
-        "ReadWritePaths=/srv/lab01/runs",
+        "ReadWritePaths=/srv/lab01/data/runs",
         "NoNewPrivileges=yes",
         "CapabilityBoundingSet=",
         "Slice=lab01.slice",
@@ -358,13 +370,23 @@ def test_run_unit_denies_network_and_limits_writes():
 def test_api_unit_is_loopback_only_and_read_only():
     txt = _unit("lab01-api.service")
     assert "IPAddressAllow=127.0.0.0/8 ::1" in txt and "IPAddressDeny=any" in txt
-    assert "ReadOnlyPaths=/srv/lab01/runs" in txt and "--token-file" in txt
+    assert "ReadOnlyPaths=/srv/lab01/data/runs" in txt and "--token-file" in txt
 
 
 def test_slice_bounds_whole_lab():
     txt = _unit("lab01.slice")
-    for needle in ("MemoryMax=", "CPUQuota=", "TasksMax=", "MemorySwapMax=0"):
+    for needle in (
+        "MemoryMax=256M",
+        "MemoryHigh=192M",
+        "CPUQuota=25%",
+        "TasksMax=64",
+        "MemorySwapMax=0",
+    ):
         assert needle in txt
+    assert (
+        "2G" not in txt.split("[Slice]")[1]
+    )  # plafond proportionné, pas 2 Go par défaut
+    assert "ne garantissent PAS" in txt
 
 
 def test_ops_script_refuses_without_authorization_and_plan_is_inert():

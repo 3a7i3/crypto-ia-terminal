@@ -1,94 +1,102 @@
 # LAB-01 — environnement autonome de développement et simulation
 
-Statut : **plan et code préparés, testés localement, rien d'installé, rien observé sur l'hôte.**
-Parents : #445 (passerelle d'opérations privilégiées), #432 (passerelle frontend) ; roadmap #285 ;
-garde #286 **active** (aucune de ces actions ne la lève). Audit : [LAB_01_AUDIT_VPS_20261015.md](LAB_01_AUDIT_VPS_20261015.md).
-Commandes : [LAB_01_OPERATOR_COMMANDS.md](LAB_01_OPERATOR_COMMANDS.md). G3 publishers reste une tâche distincte.
+Statut : **plan et code préparés, testés localement ; rien d'installé, rien observé sur l'hôte.**
+Décision de Mathieu (2026-10-15) : A validée comme étape locale ; B à **préparer**, installation **non autorisée** pour le moment ; C écartée.
+Parents : #445 (passerelle d'opérations privilégiées), #432 ; issue #447 ; roadmap #285 ; garde #286 **active** (rien ici ne la lève).
+Audit : [LAB_01_AUDIT_VPS_20261015.md](LAB_01_AUDIT_VPS_20261015.md). Commandes : [LAB_01_OPERATOR_COMMANDS.md](LAB_01_OPERATOR_COMMANDS.md). G3 publishers reste une tâche distincte.
 
 ## 1. Ce qui est démontré aujourd'hui (testé localement)
-Cycle complet `données synthétiques → signal → risque → DecisionPacket → simulation PAPER → événements → API → interface`,
-code dans `lab01/`, tests `tests/lab01/` (38). Réutilise `core.decision_packet.DecisionPacket` (machine d'états et chaîne de hachage réelles)
-et `execution_simulator` (frais, latence, slippage, spread) ; ne touche ni Advisor, ni PPL, ni FIN, ni stratégies/seuils actifs.
+Cycle `données synthétiques → signal → risque → DecisionPacket → simulation PAPER → événements → API → interface` : code `lab01/`, tests `tests/lab01/` (69).
+Il réutilise `core.decision_packet.DecisionPacket` et `execution_simulator` sans les modifier ; il ne touche ni Advisor, ni PPL, ni FIN, ni stratégies/seuils actifs.
 
-| Scénario | Données | Issue attendue | Critères explicites (tous évalués, verdict PASS/FAIL) |
+| Scénario | Données | Issue attendue | Critères explicites (verdict PASS/FAIL) |
 |---|---|---|---|
-| `accepted_closed` | seed 11, vol 15 bps | `POSTMORTEM_ANALYZED`, PnL synthétique | verdict risque APPROVED, ORDER_FILLED, POSITION_OPENED/CLOSED, aucune erreur, chaînes intègres |
-| `risk_rejected` | seed 11, vol 150 bps | `REJECTED`, `VOLATILITY_ABOVE_LIMIT` | RISK_REJECTED avec observé > limite et justification ; aucun ordre, aucune position |
-| `execution_error` | scénario 1 + panne injectée au 1er ordre | `FAILED`, `SIMULATED_EXCHANGE_TIMEOUT` | EXECUTION_ERROR visible et tracé ; aucun fill, aucune position, aucun PnL |
+| `accepted_closed` | seed 11, vol 15 bps | `POSTMORTEM_ANALYZED`, PnL synthétique | risque APPROVED, ORDER_FILLED, POSITION_OPENED/CLOSED, aucune erreur, chaînes intègres |
+| `risk_rejected` | seed 11, vol 150 bps | `REJECTED`, `VOLATILITY_ABOVE_LIMIT` | RISK_REJECTED avec observé > limite et justification ; aucun ordre ni position |
+| `execution_error` | scénario 1 + panne injectée au 1er ordre | `FAILED`, `SIMULATED_EXCHANGE_TIMEOUT` | EXECUTION_ERROR visible et tracé ; aucun fill, position ni PnL |
 
-Le risque n'est **jamais assoupli** : les limites sont identiques dans les trois scénarios ; seul le jeu de données change le verdict. Chaque règle a un test de refus.
-Chaque expérience porte `experiment_id` (`LAB01-<scénario>-<12 hex>` = empreinte du code, de la configuration et des seeds), `trace_id`, provenance `SYNTHETIC`
-sur chaque événement, horloge **synthétique** (2026-01-01…), chaîne de hachage des événements, `manifest.json` (empreintes de code/config, seeds, HEAD git).
-Reproductibilité : mêmes empreintes d'événements en deux rejeux, entre deux processus, et depuis le paquet autonome (même `experiment_id` que le dépôt).
-Limite connue : le `DecisionPacket` réel horodate ses transitions à l'heure murale ; `packet.json` est fourni mais exclu des empreintes.
-Le PnL du LAB est un PnL synthétique : ce n'est ni de la vérité FIN, ni du lifecycle PPL, ni une entrée Research. Aucun retour LAB → Research/production.
+Le risque n'est jamais assoupli : mêmes limites dans les trois scénarios, seul le jeu de données change le verdict. Chaque événement porte `experiment_id`, `trace_id`, la provenance SYNTHETIC et une horloge synthétique ; les événements sont chaînés par hachage.
+Le PnL du LAB est synthétique : ni vérité FIN, ni lifecycle PPL, ni entrée Research. Aucun retour LAB → Research/production.
 
-Mesures locales (sandbox, Python 3.13) : cycle complet ≈ 0,2 s, ≈ 22 Mo RSS, ≈ 170 Ko d'artefacts. **Non mesuré sur l'hôte.**
+**Reproductibilité — ce qui l'est et ce qui ne l'est pas.** Sont identiques **octet par octet** (testé : rejeu, inter-processus, paquet autonome) : `events.jsonl`, `result.json`, `bars.json`.
+**Ne le sont pas** : `packet.json` (le vrai `DecisionPacket` horodate ses transitions à l'heure murale) et `manifest.json` (`wall_clock_utc`, `git_head`, `python`, `platform`). L'expérience dans son ensemble n'est donc **pas** identique octet par octet ; ces deux fichiers sont exclus des empreintes, déclarés comme tels dans le manifeste (`reproducibility`) et `packet.json` n'est pas exporté.
 
-## 2. Comparaison des architectures
-| | A. Local puis hébergement léger | B. LAB limité sur le VPS actuel | C. Environnement distinct |
+Mesures locales (sandbox, Python 3.13) : cycle ≈ 0,2 s, ≈ 22 Mo RSS, ≈ 170 Ko d'artefacts. **Non mesuré sur l'hôte** (Python 3.11, systemd 249).
+
+## 2. Autonomie réelle : trois niveaux distincts
+| Niveau | Qui, où | Ce que cela permet | État |
 |---|---|---|---|
-| Coût | 0 supplémentaire (bac à sable + CI GitHub existants) ; l'hébergement léger n'est **pas chiffré**, il n'est requis que si l'on veut consulter l'interface à distance | 0 marginal ; consomme ≤ 2 Go / 0,5 vCPU de l'hôte existant | Coût récurrent **non estimé** (devis à obtenir) ; aucun budget supposé |
-| Contraintes | Aucun accès à l'hôte ; preuves « testé localement » seulement | 2 vCPU et 7,7 Go disponibles, **sans swap**, Advisor sans plafond ; levée d'exception #286 pour toute unité ; disque partagé | Nouvelle surface (accès, mises à jour, secrets d'accès, sauvegardes) ; transfert des artefacts à organiser |
-| Risque pour la production | Nul | Faible si plafonds cgroup + identité dédiée + réseau refusé ; non nul par construction (même noyau, mêmes 2 cœurs) | Nul |
-| Ce que ça prouve | Logique, reproductibilité, refus (déjà fait) | De plus : isolation et plafonds **observés sur l'hôte** | Isolation réelle sans cohabitation |
+| 1. Développement autonome | l'IA, dans un workspace non privilégié (sandbox cloud/CI ; sur l'hôte, un espace de préparation sans droits tel que `scratch/` de #445) | écrire le code, lancer `python -m lab01 run|verify`, produire paquet et empreintes ; **aucun sudo, aucun accès à la production** | **réel aujourd'hui** (hors hôte) |
+| 2. Exécution confinée | unités LAB (`lab01-run`, `lab01-export`, `lab01-api`) sous l'utilisateur `lab01` | rejouer les scénarios sous plafonds, sans réseau, sans secret | préparée, **non installée** ; le démarrage d'une unité reste réservé à l'opérateur |
+| 3. Installation | l'opérateur, par commit épinglé et staging root | créer l'utilisateur, le volume, les unités | préparée, **non autorisée** |
 
-**Retenu : A maintenant (fait), B ensuite et seulement sur autorisation, C écartée.**
-Justification : les faits mesurés ne l'exigent pas. Le cycle tient en ≈ 22 Mo et 0,2 s ; la bibliothèque standard suffit (aucune préparation de dépendances,
-donc aucun réseau requis, même pour l'installation) ; les 7,7 Go disponibles couvrent largement un plafond de 2 Go. Le premier cycle ne dépend donc pas de la passerelle #445.
-Passage à C si l'une de ces conditions apparaît : OOM du noyau relevé par le bloc 0, PSI cpu `some` avg60 > 10 % pendant un essai du LAB, besoin d'importer des copies
-de production, besoin d'un accès réseau sortant pendant l'expérience, ou refus de l'exception #286.
+Ce que cela n'est pas : le compte `lab01` (nologin) et les commandes `sudo` de l'opérateur **ne constituent pas un accès autonome pour les IA** ; il n'existe aujourd'hui aucun moyen pour une IA de lancer le niveau 2.
+**Chemin admis par le connecteur, sans sudo pour l'IA** (préparé, non activé) : l'IA dépose une *demande* (`request.json`, données seulement, commit complet et empreintes, `not_an_authorization: true`) dans l'espace de #445 ; l'opérateur l'approuve et l'exécute en un geste (étage A de #445, catalogue désactivé) ; l'IA lit ensuite les **rapports exportés** (§5) avec son compte d'observation `chatgpt-ro`, en lecture seule. Opérations candidates : `lab01.apply` (installation) puis `lab01.run` (démarrer run + export). Aucune ne dépend de la passerelle pour le premier cycle ; leur qualification relève de #445.
 
-## 3. LAB sur le VPS (option B) — conception préparée, non installée
-- **Identité** : utilisateur système `lab01` (nologin, sans sudo, sans groupe additionnel, sans clé SSH). Aucune session interactive associée ; l'opérateur agit par `sudo systemd-run`/`systemctl`.
-- **Espaces** : `/srv/lab01/release` (root, lecture seule pour `lab01`, paquet vérifié par SHA-256), `/srv/lab01/runs` (`lab01` 0700), `/srv/lab01/token` (root:lab01 0640). Rien sous `/home/mathieu`, `/opt/crypto-ai-terminal` ni `/srv/claude-audit` (inaccessibles par l'unité). Branche de travail distincte : `claude/project-thread-c2x3i9` → PR brouillon ; aucun checkout de production modifié.
-- **Plafonds cumulés** (`lab01.slice`) : `MemoryMax=2G`, `MemoryHigh=1536M`, `MemorySwapMax=0`, `CPUQuota=50 %`, `TasksMax=128`, `IOWeight=10`. Plafonds par unité : 64 processus, 256 fichiers, pas de core dump.
-- **Services indépendants** : `lab01-run.service` (oneshot, sans réseau) et `lab01-api.service` (loopback 127.0.0.1:18090, jeton Bearer, lecture seule). Aucune dépendance `Requires/Wants/After/BindsTo/PartOf/OnFailure` vers une unité de production, aucun `EnvironmentFile`, aucune section d'installation (jamais démarré au boot). Le test `test_units_have_no_production_dependency_or_secret_source` l'impose.
-- **Réseau** : exécution = `PrivateNetwork=yes`, `IPAddressDeny=any`, `AF_UNIX` seul ; API = `IPAddressDeny=any` + `IPAddressAllow=127.0.0.0/8 ::1`. Défense en profondeur dans le code : `deny_network()` refuse `connect`/DNS pendant le cycle.
-- **Aucune clé exchange, aucun ordre réel** : `lab01` n'a accès à aucun secret ; le LAB refuse de démarrer si une variable d'environnement ressemble à un secret exchange (noms seulement, jamais les valeurs) ; aucun module d'ordres réels n'est importé (le paquet ne contient que `core`, `execution_simulator`, `observability.json_logger`).
-- **Préparation vs exécution** : préparation = construction du paquet (`make_bundle`, déterministe, stdlib seule) hors hôte ou dans un clone temporaire ; l'hôte n'a besoin d'aucun `pip install`. Exécution = unités sans réseau. Le seul accès réseau est le clone git du bloc 1, côté opérateur.
-- **Interface authentifiée** : jeton ≥ 24 caractères comparé en temps constant ; sans jeton configuré, le serveur l'annonce (`auth=AUCUNE`) et reste en loopback. Toute exposition distante est un changement réseau séparé.
-- **Données** : synthétiques seulement ; aucun montage de production. Tout import futur = copie explicitement autorisée, bornée, identifiée et vérifiée, sous une gate distincte.
+## 3. Comparaison des architectures
+| | A. Local puis hébergement léger | B. LAB limité sur le VPS | C. Environnement distinct |
+|---|---|---|---|
+| Coût | 0 supplémentaire (bac à sable + CI existants) ; hébergement léger **non chiffré**, requis seulement pour consulter à distance | 0 marginal ; plafond initial 256 Mo / 25 % d'un cœur / 64 Mo de disque | récurrent, **non estimé** ; aucun budget supposé |
+| Contraintes | pas d'accès hôte : preuves « testées localement » seulement | 2 vCPU, sans swap, Advisor sans plafond ; exception #286 pour toute unité ; noyau et E/S partagés | nouvelle surface (accès, mises à jour, sauvegardes) |
+| Risque production | nul | réduit par cgroup, identité dédiée, volume borné, réseau refusé ; **non nul par construction** | nul |
+| Ce que ça prouve | logique, reproductibilité, refus | + isolation et plafonds **observés sur l'hôte** | isolation sans cohabitation |
+**Décision : A faite ; B préparée, non autorisée ; C écartée** (mesures : ≈ 22 Mo, 0,2 s, bibliothèque standard seule donc aucune préparation de dépendances ni réseau).
+Passage à C si : OOM noyau relevé par le bloc 0, PSI cpu `some` avg60 > 10 % pendant un essai, besoin d'importer des copies de production, besoin de réseau sortant, ou refus de l'exception #286.
 
-## 4. Matrice des permissions
-| Acteur / objet | Code LAB (release) | Artefacts (runs) | Jeton | Arbre production (`/home/mathieu`, `/opt/crypto-ai-terminal`) | Secrets / `.env` | Réseau sortant | Unités de production | Exchange / ordres |
-|---|---|---|---|---|---|---|---|---|
-| `lab01-run` (unité) | R | **RW** | — | refusé (`InaccessiblePaths`) | aucun accès | refusé | aucun lien | aucun |
-| `lab01-api` (unité) | R | R | R | refusé | aucun accès | refusé (loopback seul) | aucun lien | aucun |
-| `lab01` (utilisateur) | R | RW | R | refusé (modes 0750) | aucun | non contraint hors unité | aucun droit (pas de sudo, pas de polkit) | aucun |
-| Opérateur `mathieu` (sudo) | RW via `apply` | R | RW | R/W habituels | habituels | habituel | habituel, **non utilisés par le LAB** | habituel |
-| `chatgpt-ro` (agent) | R (lecture) | R | refusé | refusé | refusé | — | lecture seule | aucun |
-| Agent (autorité d'exécution) | **aucune** : l'agent ne reçoit aucun droit d'exécution privilégiée | | | | | | | |
+## 4. LAB sur le VPS (option B) — conception préparée, non installée
+- **Identité** : `lab01`, utilisateur système nologin, sans sudo, sans groupe additionnel, sans clé SSH.
+- **Espaces** : `/srv/lab01/release` (root, paquet vérifié) ; **volume dédié de taille fixe** : image ext4 de 64 Mo (`/var/lib/lab01/lab01.img`) montée sur `/srv/lab01/data` (`nodev,nosuid,noexec`), contenant `runs/` (lab01 0700, privé) et `reports/` (lab01 0755, fichiers 0644). `/srv/lab01/token` : root:lab01 0640. Rien sous `/home/mathieu`, `/opt/crypto-ai-terminal`, `/srv/claude-audit`. Branche distincte `claude/project-thread-c2x3i9` → PR brouillon.
+- **Plafonds cumulés** (`lab01.slice`) : `MemoryHigh=192M`, `MemoryMax=256M`, `MemorySwapMax=0`, `CPUQuota=25%`, `TasksMax=64`, `IOWeight=10` ; par unité : 64 processus, 256 fichiers, pas de core, `LimitFSIZE=4M` (export).
+- **Services indépendants** : `lab01-run` (oneshot, sans réseau), `lab01-export` (oneshot, sans réseau), `lab01-api` (loopback 127.0.0.1:18090). Aucune dépendance `Requires/Wants/After/BindsTo/PartOf/OnFailure` vers la production, aucun `EnvironmentFile`, aucune section d'installation (jamais lancé au boot).
+- **Réseau** : exécution et export = `PrivateNetwork=yes`, `IPAddressDeny=any`, `AF_UNIX` seul ; API = `IPAddressDeny=any` + `IPAddressAllow=127.0.0.0/8 ::1`. Dans le code : `deny_network()` refuse connexion et DNS pendant le cycle.
+- **Authentification** : l'API **refuse de démarrer sans jeton valide**, même en loopback (≥ 32 caractères, jeu restreint, fichier non accessible à « autres ») ; il n'existe aucun mode sans authentification. Le jeton n'est jamais dans un argument de processus (§7 : en-tête lu par `curl -H @fichier`).
+- **Aucune clé exchange, aucun ordre réel** : `lab01` n'a accès à aucun secret ; le LAB refuse de démarrer si une variable d'environnement ressemble à un secret (noms seulement) ; le paquet ne contient que `lab01`, `core.decision_packet`/`lifecycle`, `execution_simulator`, `observability.json_logger`.
+- **Données** : synthétiques seulement ; aucun montage de production. Tout import = copie autorisée, bornée, identifiée et vérifiée, sous gate distincte.
+- **Préparation vs exécution** : préparation = paquet déterministe construit hors hôte, **commit épinglé** (40 caractères) ; exécution = unités sans réseau. Aucune dépendance à installer : le seul accès réseau est le `git clone` de l'opérateur.
 
-## 5. Budget de ressources
-Pour tout le LAB, en plus du plafond ci-dessus. Cible d'usage : RAM ≤ 100 Mo (mesuré local ≈ 22 Mo), CPU < 5 % d'un cœur en moyenne, disque ≤ 50 Mo (`/srv/lab01`, mesuré ≈ 0,2 Mo par exécution), processus ≤ 10.
-Part de l'hôte : plafond 2 Go = 12,5 % de la RAM ; 0,5 vCPU = 25 % de la capacité CPU ; la marge disponible (7,7 Go) reste > 3× le plafond.
-Arrêt d'urgence : `systemctl stop lab01-run lab01-api` ; le dépassement de `MemoryMax` tue le LAB seul (cgroup), pas Advisor.
-Seuils d'abandon de B : toute variation du PID ou de `ActiveEnterTimestamp` d'Advisor/API pendant un essai, ou PSI cpu `some` avg60 > 10 %.
+## 5. Matrice des permissions
+`runs` est **privé** (lab01 0700) : `chatgpt-ro` ne le lit pas. L'observateur lit uniquement `reports/`, produit par `lab01-export` après contrôle.
+| Acteur | Release | `runs` (privé) | `reports` | Jeton | Arbre production | Secrets / `.env` | Réseau sortant | Unités de production | Exchange |
+|---|---|---|---|---|---|---|---|---|---|
+| `lab01-run` | R | **RW** | refusé | refusé | refusé | aucun | refusé | aucun lien | aucun |
+| `lab01-export` | R | R | **RW** | refusé | refusé | aucun | refusé | aucun lien | aucun |
+| `lab01-api` | R | R | — | R | refusé | aucun | refusé (loopback) | aucun lien | aucun |
+| `lab01` (compte) | R | RW | RW | R | refusé (0750) | aucun | non contraint hors unité | aucun droit | aucun |
+| `chatgpt-ro` (observateur) | R | **refusé** (0700) | **R** | **refusé** | refusé | refusé | — | lecture seule | aucun |
+| Opérateur `mathieu` (sudo) | installe | R | R | RW | habituel | habituel | habituel | habituel, non utilisé par le LAB | habituel |
+| IA (autorité d'exécution) | **aucune** : pas de sudo ; ses actions passent par une demande approuvée par l'opérateur | | | | | | | | |
+**Export nettoyé** (`lab01 export`) : liste blanche `result.json`, `events.jsonl`, `manifest.json` (sans `platform` ni `git_head`) ; `packet.json` et `bars.json` exclus ; refus et rapport visible (`rejected`) si la chaîne est invalide, la provenance n'est pas SYNTHETIC, un lien symbolique ou un fichier trop gros est rencontré, ou une chaîne de production/jeton/secret apparaît ; écriture atomique, droits posés explicitement. L'export n'élargit ni `runs`, ni l'accès au jeton, ni aux données de production.
 
-## 6. Procédure d'installation et de retrait (source préparée, rien exécuté)
-Étapes et commandes exactes : [LAB_01_OPERATOR_COMMANDS.md](LAB_01_OPERATOR_COMMANDS.md). Ordre : bloc 0 (relevé) → bloc 1 (paquet vérifié) → autorisation écrite → bloc 2 (`apply`, rien ne démarre) → bloc 3 (tests de refus, exécution, API) → bloc 4 (retrait).
-`lab01_ops.sh` : `plan` par défaut (n'écrit rien), `apply`/`remove` exigent root **et** un identifiant d'autorisation cité, vérifient l'empreinte du paquet, refusent toute unité référençant la production. Retrait : unités retirées, données conservées ; `--purge` supprime `/srv/lab01` et l'utilisateur. Rollback honnête : il ne restaure pas l'état antérieur de l'hôte, il retire ce que le LAB a ajouté ; `verify` le constate.
+## 6. Ressources, bornes et garanties
+- **Relevé ponctuel, pas une garantie** : 7,7 Go « disponibles » mesurés une fois le 2026-10-15 à 06:12Z ; la valeur varie (Advisor ≈ 6,9 Go, sans plafond, sans swap).
+- **Plafond mémoire initial proportionné** : 22 Mo mesurés (hors hôte) × ≈ 10 de marge (interpréteur de l'hôte, fils de l'API) = **256 Mo** (`MemoryHigh` 192 Mo), non 2 Go. Ne le relever que sur mesure faite sur l'hôte. CPU 25 % d'un cœur (le cycle dure ≈ 0,2 s), 64 tâches.
+- **Disque, borne réellement appliquée** : volume de **64 Mo** monté `noexec` ; le LAB ne peut pas le dépasser (échec visible `ENOSPC`, jamais d'éviction automatique de preuves). Si le montage échoue, `apply` s'interrompt. En complément, garde applicative : `lab01 run` refuse de démarrer au-delà de 32 Mo d'artefacts (`LAB_QUOTA_EXCEEDED`).
+- **Rétention** : par défaut, aucune suppression. `lab01 prune --keep N` **liste** les candidats (dry-run) ; `--apply` est un acte explicite de l'opérateur ; seuls des dossiers nommés comme une expérience sont concernés (jamais `reports`, `_logs`, ni liens symboliques). Les preuves sont conservées après retrait (§7).
+- **Garanties** : les limites cgroup et le volume **réduisent** le risque ; ils **ne garantissent pas** l'absence d'impact sur la production (même noyau, 2 cœurs, cache disque, E/S et périphérique loop partagés). Seuils d'abandon : variation du PID ou de `ActiveEnterTimestamp` d'Advisor/API pendant un essai, PSI cpu `some` avg60 > 10 %.
 
-## 7. Tests
-- **Positifs** (locaux, 38 tests) : trois scénarios et leurs critères, chaînes d'événements, reproductibilité (rejeu, inter-processus, paquet autonome), API (liste, détail, événements), interface (bannière SYNTHETIC ; liste des expériences rendue depuis l'API dans un Chromium headless ; le détail n'a pas été parcouru).
-- **Refus** (locaux) : chaque règle de risque refuse ; altération d'un événement ou de la provenance casse la chaîne ; réseau refusé puis restauré ; variables ressemblant à des secrets refusées sans en révéler la valeur ; sorties sous l'arbre de production refusées ; scénario inconnu refusé ; API : POST/PUT/DELETE/PATCH → 405, chemins hors liste ou traversants → 404, absence de jeton → 401, artefact manquant → 503 et non liste vide, bind non loopback refusé ; unités sans dépendance de production ni secret ; script d'installation sans autorisation → refus.
-- **Refus sur l'hôte** (`lab01_host_tests.sh`, **non exécutés**) : réseau, DNS, `/home/mathieu`, arbre production, écriture `/etc` et hors `runs`, montée de privilèges. Le script n'accepte comme refus que celui de l'OS (code 42 sur `OSError`) et abandonne si le contrôle d'exécution échoue ; sa logique est testée avec un `systemd-run` factice (4 tests).
+## 7. Installation et retrait (source préparée, rien exécuté)
+Détail et commandes : [LAB_01_OPERATOR_COMMANDS.md](LAB_01_OPERATOR_COMMANDS.md). Ordre : bloc 0 (0a sans privilège, 0b privilégié, séparés) → bloc 1 (empreintes) → autorisation écrite → bloc 2 (**staging root**) → bloc 3 (`apply`) → bloc 4 (refus, exécution, export, API) → bloc 5 (retrait).
+- **Commit complet épinglé**, jamais une branche mutable ; vérifié par `git rev-parse HEAD`.
+- **Staging root protégé** : le code d'installation est copié dans `/root/lab01-staging/<commit>` (0700) puis **revérifié depuis ce répertoire** (`verify-staging` : empreinte du manifeste publiée, `sha256sum -c`, aucun fichier en trop, propriétaire root, non inscriptible) avant toute exécution.
+- **Environnement de l'appelant non transmis** (aucune variable) : paramètres explicites (`--auth`, `--bundle`, `--bundle-sha256`, `--manifest-sha256`).
+- **Retrait** : unités retirées, volume démonté ; **l'image, les expériences, l'utilisateur et les preuves sont conservés**. `--purge` est refusé par le script ; toute suppression des données est une décision séparée. Rollback honnête : il retire ce que le LAB a ajouté, il ne restaure pas l'état antérieur ; `verify` le constate.
 
-## 8. États des preuves
+## 8. Tests
+- **Positifs** (locaux, 69 au total) : scénarios et critères, chaînes, reproductibilité (fichiers déclarés identiques octet par octet), API, export lisible aux bons droits, interface (bannière SYNTHETIC ; liste rendue depuis l'API dans un Chromium headless, détail non parcouru).
+- **Refus** (locaux) : chaque règle de risque ; altération d'événement ; réseau refusé puis restauré ; secrets refusés sans révéler la valeur ; sorties sous l'arbre de production ; **API sans jeton / jeton court / invalide / fichier de jeton lisible par tous : refus de démarrer** ; POST/PUT/DELETE/PATCH → 405, chemins hors liste → 404, sans jeton → 401, artefact manquant → 503 ; export : chaîne altérée, chaîne interdite, lien symbolique rejetés ; **staging : fichier modifié, fichier en trop, empreinte erronée refusés** ; `--purge` refusé ; quota ; `prune` sans effet par défaut ; unités sans dépendance de production ni secret ; audit : erreur de journal = INDÉTERMINÉ (jamais 0), refus et troncature visibles, aucune lecture d'unité.
+- **Refus sur l'hôte** (`lab01_host_tests.sh`, **non exécutés**) : réseau, DNS, `/home/mathieu`, arbre production, écriture `/etc` et hors `runs`, montée de privilèges ; seul un refus de l'OS (code 42 sur `OSError`) compte, et le script abandonne si le contrôle d'exécution échoue.
+
+## 9. États des preuves
 | Composant | Préparé | Testé localement | Installé | Observé sur l'hôte |
 |---|---|---|---|---|
-| Cycle synthétique, scénarios, critères | oui | oui (38 tests) | non | non |
-| API GET-only et interface | oui | oui (tests + rendu navigateur) | non | non |
-| Paquet autonome | oui | oui (déterminisme, équivalence d'identités) | non | non |
-| Unités systemd, slice | oui | analyse statique (`systemd-analyze verify` 255, hors hôte 249) | non | non |
-| `lab01_ops.sh`, `lab01_host_tests.sh` | oui | syntaxe, refus sans autorisation, logique de classification | non | non |
-| Ressources, identités, ports | — | — | — | **oui, partiel** (audit du 15/10, lecture seule) |
+| Cycle, scénarios, critères, API/interface, export, rétention | oui | oui | non | non |
+| Paquet autonome, manifeste d'installation, `request.json` | oui | oui | non | non |
+| Unités, slice, montage borné | oui | analyse statique (`systemd-analyze verify` 255 ; l'hôte est en 249) | non | non |
+| `lab01_ops.sh` (staging, apply, remove), `lab01_audit.sh`, `lab01_host_tests.sh` | oui | refus, vérification du staging, classification des erreurs ; **`apply`/montage/`mkfs` non exécutés** | non | non |
+| Ressources, identités, ports | — | — | — | oui, partiel (relevé ponctuel du 15/10, lecture seule) |
+Non établi : comportement des unités sous systemd 249 (`MemoryDenyWriteExecute` avec Python 3.11 ; montage loop), pare-feu, espaces de noms, historique OOM. Objet des blocs 0 et 4.
 
-Non établi : comportement des unités sous systemd 249 (notamment `MemoryDenyWriteExecute` avec Python 3.11), état du pare-feu et des espaces de noms, historique OOM. Ces points sont l'objet du bloc 0 et du bloc 3.
-
-## 9. Gouvernance et décisions attendues
-1. Valider l'architecture retenue (A fait ; B sur autorisation ; C écartée) ou demander C.
-2. Autoriser, séparément, le bloc 0 (lecture) puis une exception #286 pour les blocs 2 et 3 (installation, essais). Rien n'est modifié avant.
-3. Choisir le mode d'accès à l'interface (aucun/ tunnel SSH / tailnet) : changement réseau distinct.
-Si #445 est qualifiée plus tard, `lab01.apply` pourra devenir une opération nommée ; le premier cycle n'en dépend pas.
+## 10. Décisions attendues
+1. Autoriser (ou non) le bloc 0 : 0a sans privilège, 0b séparé nécessitant sudo.
+2. Plus tard seulement : exception #286 pour les blocs 2 à 4 (installation et essais). **Non demandée maintenant.**
+3. Mode d'accès à l'interface (aucun / tunnel / tailnet) : changement réseau distinct.
