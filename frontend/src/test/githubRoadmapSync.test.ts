@@ -46,6 +46,26 @@ describe("reader — read-only, unauthenticated, paginated", () => {
     expect(Object.values(none.obs.checks)[0].status).toBe("NONE");
   });
 
+  it("never turns a failed check-runs read into 'no checks'", async () => {
+    const { obs } = await read({ failAt: url => (url.includes("/check-runs") ? new Response("{}", { status: 500 }) : null) });
+    expect(obs.complete).toBe(false);
+    expect(obs.errors.some(e => e.code === "HTTP_ERROR")).toBe(true);
+    expect(Object.keys(obs.checks)).toHaveLength(0);
+  });
+
+  it("stops before the detail phase when the request budget cannot cover it", async () => {
+    const { obs, calls } = await read({}, { maxRequests: 12 });
+    expect(obs.complete).toBe(false);
+    expect(obs.errors.some(e => e.code === "BUDGET_EXCEEDED")).toBe(true);
+    expect(calls.some(c => c.url.includes("/check-runs"))).toBe(false);
+  });
+
+  it("treats a merged_at timestamp with any ISO shape as merged", async () => {
+    const fake = fakeGithub();
+    const obs = await collectGithubObservation({ fetchImpl: ((u: RequestInfo | URL, i?: RequestInit) => fake.fetch(u, i).then(async r => (String(u).includes("/pulls/429") ? new Response(JSON.stringify({ ...(await r.json()), merged_at: "2026-10-14T12:00:00.123+00:00" }), { status: 200, headers: r.headers }) : r))) as typeof fetch, now: NOW, referencedPulls: referencedPulls(WORK_ITEMS) });
+    expect(obs.pulls.find(p => p.number === 429)?.merged).toBe(true);
+  });
+
   it("rejects check runs that do not carry the requested head", async () => {
     const { obs } = await read({ checks: () => ({ total_count: 1, check_runs: [{ name: "ci", status: "completed", conclusion: "success", head_sha: sha(1) }] }) });
     expect(obs.complete).toBe(false);

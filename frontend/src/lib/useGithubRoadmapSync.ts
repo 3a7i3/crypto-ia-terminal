@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { collectGithubObservation, type GithubObservation } from "./githubRoadmapReader";
+import { collectGithubObservation, OBSERVATION_SCHEMA, GITHUB_REPO, type GithubObservation } from "./githubRoadmapReader";
 import { diffObservations, loadSnapshot, referencedPulls, saveSnapshot, type SyncDiff } from "./githubRoadmapReconcile";
 import { WORK_ITEMS } from "./machineWorkboardRegister";
 
@@ -38,16 +38,29 @@ export function useGithubRoadmapSync(): GithubSyncState {
         if (ctl.signal.aborted) return;
         setCandidate({ observation, diff: diffObservations(WORK_ITEMS, activeRef.current, observation) });
       })
+      .catch(e => {
+        if (ctl.signal.aborted) return;
+        // An unexpected failure is shown as an incomplete, non-applicable observation; the active snapshot is untouched.
+        const failed: GithubObservation = {
+          schema: OBSERVATION_SCHEMA, repo: GITHUB_REPO, observedAt: new Date().toISOString().slice(0, 19) + "Z",
+          source: "api.github.com/unauthenticated-read-only", requestCount: 0, rateLimit: null, complete: false,
+          errors: [{ code: "INVALID_RESPONSE", scope: "sync", message: e instanceof Error ? e.message.slice(0, 160) : "Erreur inattendue." }],
+          issues: [], pulls: [], labels: [], milestones: [], missingPulls: [], checks: {},
+        };
+        setCandidate({ observation: failed, diff: { first: true, entries: [], unmappedBefore: null, unmappedAfter: 0, flaggedMissions: 0 } });
+      })
       .finally(() => { busy.current = false; if (!ctl.signal.aborted) setLoading(false); });
   }, []);
 
+  const candidateRef = useRef<Candidate | null>(null);
+  candidateRef.current = candidate;
   const apply = useCallback(() => {
-    setCandidate(c => {
-      if (!c || !c.observation.complete) return c;
-      setStorageWarning(!saveSnapshot(c.observation));
-      setActive(c.observation);
-      return null;
-    });
+    const c = candidateRef.current;
+    if (!c || !c.observation.complete) return;
+    candidateRef.current = null; // a second click before re-render cannot apply it twice
+    setStorageWarning(!saveSnapshot(c.observation));
+    setActive(c.observation);
+    setCandidate(null);
   }, []);
   const discard = useCallback(() => setCandidate(null), []);
   return { active, candidate, loading, storageWarning, refresh, apply, discard };

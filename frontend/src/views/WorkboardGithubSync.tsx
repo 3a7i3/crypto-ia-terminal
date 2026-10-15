@@ -36,7 +36,7 @@ export const MissionTracks: React.FC<{ item: WorkItem; facts: MissionFacts | und
       <div><dt>Déploiement VPS</dt><dd data-track="deployment">{item.deployment ? DEPLOYMENT[item.deployment] : <span className="wb-muted">Non renseigné</span>}<small>registre</small></dd></div>
       <div><dt>Certification</dt><dd data-track="certification">{item.certification ? CERTIFICATION[item.certification] : <span className="wb-muted">Non renseigné</span>}<small>registre</small></dd></div>
     </dl>
-    {facts && facts.flags.length > 0 && <ul className="wb-flags" aria-label="À vérifier">{facts.flags.map(f => <li key={f}>À vérifier · {f}</li>)}</ul>}
+    {facts && facts.flags.length > 0 && <ul className="wb-flags" aria-label="À vérifier">{facts.flags.map((f, i) => <li key={i}>À vérifier · {f}</li>)}</ul>}
   </>
 );
 
@@ -69,7 +69,7 @@ export const GithubSyncPanel: React.FC<{ sync: GithubSyncState }> = ({ sync }) =
         {cand && cand.complete && diff && (
           <div className="wb-sync-preview" data-testid="github-diff">
             <strong>Aperçu avant remplacement</strong>
-            <p>Relevé du {stamp(cand.observedAt)} · {cand.requestCount} requêtes · complet · {cand.issues.length} issues et PR lues, {cand.pulls.length} PR avec HEAD et contrôles{cand.missingPulls.length ? ` · PR citées introuvables : ${cand.missingPulls.map(n => `#${n}`).join(", ")}` : ""}.</p>
+            <p>Relevé du {stamp(cand.observedAt)} · {cand.requestCount} requêtes · complet · {cand.issues.length} issues et PR listées, {cand.pulls.length} PR lues, contrôles lus pour {Object.keys(cand.checks).length} HEAD{cand.missingPulls.length ? ` · PR citées introuvables : ${cand.missingPulls.map(n => `#${n}`).join(", ")}` : ""}.</p>
             {diff.first
               ? <p>Premier relevé : aucune comparaison possible. {diff.flaggedMissions} mission(s) avec un écart à vérifier ; {diff.unmappedAfter} objet(s) GitHub non rattaché(s) à une mission.</p>
               : diff.entries.length === 0
@@ -77,7 +77,7 @@ export const GithubSyncPanel: React.FC<{ sync: GithubSyncState }> = ({ sync }) =
                 : <>
                   <p>{diff.entries.length} différence(s). Objets non rattachés : {diff.unmappedBefore} → {diff.unmappedAfter}.</p>
                   <div className="wb-table-scroll"><table className="wb-diff"><caption className="wb-sr-only">Différences entre le relevé affiché et le nouveau relevé</caption><thead><tr><th scope="col">Mission</th><th scope="col">Champ</th><th scope="col">Avant</th><th scope="col">Après</th></tr></thead>
-                    <tbody>{diff.entries.slice(0, 200).map((e, i) => <tr key={i}><td>{e.missionId}</td><td>{e.field}</td><td>{e.before}</td><td>{e.after}</td></tr>)}</tbody></table></div>
+                    <tbody>{diff.entries.slice(0, 200).map(e => <tr key={`${e.missionId}:${e.field}`}><td>{e.missionId}</td><td>{e.field}</td><td>{e.before}</td><td>{e.after}</td></tr>)}</tbody></table></div>
                   {diff.entries.length > 200 && <p>… {diff.entries.length - 200} autres différences non listées.</p>}
                 </>}
             <div className="wb-sync-actions">

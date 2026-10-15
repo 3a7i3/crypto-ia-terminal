@@ -118,6 +118,7 @@ export async function collectGithubObservation(opts: ReaderOptions): Promise<Git
     try {
       return { json: await res.json(), link: res.headers.get("link") };
     } catch {
+      if (opts.signal?.aborted) { halted = true; fail({ code: "ABORTED", scope, message: "Relevé annulé." }); return null; }
       fail({ code: "INVALID_RESPONSE", scope, message: "Réponse non JSON." });
       return null;
     }
@@ -153,20 +154,22 @@ export async function collectGithubObservation(opts: ReaderOptions): Promise<Git
   const parsePull = (x: unknown): PullObs | null => {
     if (!isObj(x) || !isInt(x.number) || (x.state !== "open" && x.state !== "closed") || !isObj(x.head) || !isSha(x.head.sha) || !isObj(x.base)) return null;
     return {
-      number: x.number, title: text(x.title) ?? "", state: x.state, draft: x.draft === true, merged: iso(x.merged_at) !== null,
-      base: text(x.base.ref, 100) ?? "", headSha: x.head.sha, mergeCommitSha: isSha(x.merge_commit_sha) && iso(x.merged_at) ? (x.merge_commit_sha as string) : null,
-      mergedAt: iso(x.merged_at), updatedAt: iso(x.updated_at) ?? "",
+      number: x.number, title: text(x.title) ?? "", state: x.state, draft: x.draft === true, merged: typeof x.merged_at === "string" && x.merged_at.length > 0,
+      base: text(x.base.ref, 100) ?? "", headSha: x.head.sha, mergeCommitSha: isSha(x.merge_commit_sha) && typeof x.merged_at === "string" ? (x.merge_commit_sha as string) : null,
+      mergedAt: typeof x.merged_at === "string" ? x.merged_at : null, updatedAt: iso(x.updated_at) ?? "",
     };
   };
 
   async function checksFor(sha: string): Promise<ChecksObs | null> {
     const scope = `checks:${sha.slice(0, 7)}`;
     let total = 0;
+    const errorsBefore = errors.length;
     const runs = await paged(`${repo}/commits/${sha}/check-runs?per_page=100`, scope, j => {
       if (!isObj(j) || !Array.isArray(j.check_runs) || !Number.isSafeInteger(j.total_count)) return null;
       total = j.total_count as number;
       return j.check_runs;
     });
+    if (errors.length > errorsBefore) return null; // a failed read is UNKNOWN, never "no checks"
     const failing: string[] = [], pending: string[] = [];
     let ok = 0;
     for (const run of runs) {
@@ -210,8 +213,9 @@ export async function collectGithubObservation(opts: ReaderOptions): Promise<Git
     const missing = [...new Set(opts.referencedPulls)].filter(n => !have.has(n));
     // Know the remaining cost before spending it: one GET per missing PR, one or more check-run reads per PR.
     const needed = missing.length * 2 + have.size;
-    if (obs.rateLimit && obs.rateLimit.remaining < needed) {
-      fail({ code: "RATE_LIMIT_INSUFFICIENT", scope: "details", message: `Il reste ${obs.rateLimit.remaining} requêtes pour ${needed} détails nécessaires.` });
+    const affordable = Math.min(obs.rateLimit?.remaining ?? Infinity, maxRequests - obs.requestCount);
+    if (affordable < needed) {
+      fail({ code: obs.rateLimit && obs.rateLimit.remaining < maxRequests - obs.requestCount ? "RATE_LIMIT_INSUFFICIENT" : "BUDGET_EXCEEDED", scope: "details", message: `Il reste ${affordable} requêtes pour ${needed} détails nécessaires.` });
       throw new Stop();
     }
     for (const n of missing) {

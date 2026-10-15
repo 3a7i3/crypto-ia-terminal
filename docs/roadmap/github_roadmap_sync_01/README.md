@@ -64,7 +64,7 @@ Titres et labels GitHub sont du texte affiché échappé (React), jamais interpr
 
 ## Vérification locale
 
-`npx tsc --noEmit`, `npx vitest run` (398 passent), `npm run build`, `pytest tests/test_workboard_frontend_release.py` (9 passent).
+`npx tsc --noEmit`, `npx vitest run` (401 passent), `npm run build`, `pytest tests/test_workboard_frontend_release.py` (9 passent).
 Tests : `src/test/githubRoadmapSync.test.ts` (lecteur, rapprochement, différences, stockage) et
 `src/test/MachineWorkboardGithubSync.test.tsx` (parcours UI). `src/test/githubFake.ts` simule l'API.
 
