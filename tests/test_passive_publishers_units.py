@@ -556,15 +556,37 @@ def test_g1_script_is_generated_from_the_unit_files_without_drift():
     finally:
         sys.path.remove(str(DIR))
     assert (DIR / "g1_stage_verify_measure.sh").read_text(encoding="utf-8") == build_g1.build()
+    assert (DIR / "g1_paste_block.sh").read_text(encoding="utf-8") == build_g1.build_paste()
 
 
-def _g1(machine, tmp_path, **env_extra):
+REAL_PY = sys.executable
+
+
+def _shim(tmp_path: Path, name: str, body: str) -> Path:
+    directory = tmp_path / "shims"
+    directory.mkdir(exist_ok=True)
+    path = directory / name
+    path.write_text("#!/bin/sh\n" + body, encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+def _g1_env(machine, tmp_path, verify_status=0, **extra):
     rt, _out = machine
     work = tmp_path / "tmpdir"
-    work.mkdir()
-    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "RT": str(rt), "RUNS": "2",
-           "PYBIN": sys.executable, "SRC": str(ROOT), "TMPDIR": str(work)}
-    env.update(env_extra)
+    work.mkdir(exist_ok=True)
+    _shim(tmp_path, "systemd-analyze",
+          f'case "$*" in *--help*) echo "  --offline=BOOL"; exit 0;; esac\n'
+          f'case "$1" in verify) echo "verify-shim-output" >&2; exit {verify_status};; esac\n'
+          'echo "-> Overall exposure level for x: 3.1 OK :-)"; exit 0\n')
+    env = {"PATH": f"{tmp_path / 'shims'}:{os.environ.get('PATH', '/usr/bin:/bin')}", "RT": str(rt),
+           "RUNS": "2", "PYBIN": REAL_PY, "SRC": str(ROOT), "TMPDIR": str(work)}
+    env.update(extra)
+    return env, work
+
+
+def _g1(machine, tmp_path, verify_status=0, **extra):
+    env, work = _g1_env(machine, tmp_path, verify_status, **extra)
     result = subprocess.run(["sh", str(DIR / "g1_stage_verify_measure.sh")], env=env,
                             capture_output=True, text=True, timeout=120)
     return result, work
@@ -574,19 +596,104 @@ def test_g1_writes_only_to_a_temporary_directory_and_cleans_up(machine, tmp_path
     rt, out = machine
     before = _tree(rt)
     result, work = _g1(machine, tmp_path)
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 0, result.stdout + result.stderr
     assert _tree(rt) == before and list(out.iterdir()) == []  # sources and output dir untouched
     assert list(work.iterdir()) == []  # the 0700 work dir is gone
-    assert "cleanup OK" in result.stdout and "CLEANUP FAILED" not in result.stdout
+    assert "cleanup OK" in result.stdout and "CLEANUP" not in result.stdout.replace("cleanup OK", "")
     assert result.stdout.count("contract-valid=True") == 3
     assert "failed runs: 0/2" in result.stdout and "UNCHANGED" in result.stdout
-    assert "NOT created" in result.stdout
-    assert not any(line.startswith("/home/mathieu/operator_presentation") for line in result.stdout.splitlines())
+    assert "RESULT: OK" in result.stdout and "NOT created" in result.stdout
+    assert "G1 does NOT validate" in result.stdout or "this is NOT the deployed release" in result.stdout
 
 
-def test_g1_reports_a_missing_interpreter_instead_of_a_partial_result(machine, tmp_path):
+def test_g1_exits_nonzero_when_verify_fails_but_still_reports_and_cleans(machine, tmp_path):
+    result, work = _g1(machine, tmp_path, verify_status=1)
+    assert result.returncode == 1
+    assert "verify-shim-output" in result.stdout  # the useful error is kept in the report
+    summary = result.stdout.split("== summary (before cleanup)")[1].split("== 5. cleanup")[0]
+    assert "RESULT: FAILED" in summary and "systemd-analyze verify exit status 1" in summary
+    assert "cleanup OK" in result.stdout and list(work.iterdir()) == []
+
+
+def test_g1_exits_nonzero_when_a_publisher_fails(machine, tmp_path):
     result, work = _g1(machine, tmp_path, PYBIN="/nonexistent/python")
-    assert result.returncode == 0
-    assert result.stdout.count("NOT PRODUCED") == 3 and "failed runs: 2/2" in result.stdout
+    assert result.returncode == 1
+    assert result.stdout.split("== summary")[0].count("publisher exit status") == 6  # 3 publishers x 2 runs
     assert "contract-valid=True" not in result.stdout
+    assert "RESULT: FAILED (6 problem(s))" in result.stdout and list(work.iterdir()) == []
+
+
+def test_g1_exits_nonzero_when_the_artifact_is_missing(machine, tmp_path):
+    shim = _shim(tmp_path, "fakepython",
+                 f'case "$1" in *check.py) exec {REAL_PY} "$@";; esac\nexit 0\n')
+    result, work = _g1(machine, tmp_path, PYBIN=str(shim))
+    assert result.returncode == 1
+    assert result.stdout.split("== summary")[0].count("exit 0 but artifact") == 6
+    assert "contract-valid=True" not in result.stdout
+    assert list(work.iterdir()) == []
+
+
+def test_g1_exits_nonzero_when_the_contract_is_invalid(machine, tmp_path):
+    shim = _shim(tmp_path, "fakepython",
+                 f'case "$1" in *check.py) exec {REAL_PY} "$@";; esac\n'
+                 'while [ $# -gt 0 ]; do case "$1" in --out|--path) echo "{}" > "$2";; esac; shift; done\nexit 0\n')
+    result, work = _g1(machine, tmp_path, PYBIN=str(shim))
+    assert result.returncode == 1
+    assert result.stdout.split("== summary")[0].count("contract check exit status 1") == 6
+    assert "contract-valid=False" in result.stdout and list(work.iterdir()) == []
+
+
+def test_g1_never_validates_a_failed_run_with_the_artifact_of_a_previous_run(machine, tmp_path):
+    marker = tmp_path / "first-call-done"
+    shim = _shim(tmp_path, "fakepython",
+                 f'case "$1" in *check.py) exec {REAL_PY} "$@";; esac\n'
+                 f'if [ ! -e {marker} ]; then : > {marker}; exec {REAL_PY} "$@"; fi\nexit 0\n')
+    result, work = _g1(machine, tmp_path, PYBIN=str(shim))
+    assert result.returncode == 1
+    # run 1 of runtime-service is real and valid; run 2 "succeeds" without writing: not validated
+    assert "runtime-service run 2: exit 0 but artifact" in result.stdout
+    assert "runtime-service run 1" not in result.stdout
+    assert list(work.iterdir()) == []
+
+
+@pytest.mark.parametrize("signame,code", [("SIGINT", 130), ("SIGTERM", 143), ("SIGHUP", 129)])
+def test_g1_signal_stops_the_running_child_cleans_up_and_exits_with_the_signal_status(
+    machine, tmp_path, signame, code
+):
+    import signal as signal_module
+
+    pidfile = tmp_path / "child.pid"
+    shim = _shim(tmp_path, "fakepython", f'echo $$ > {pidfile}\nexec sleep 30\n')
+    env, work = _g1_env(machine, tmp_path, PYBIN=str(shim))
+    process = subprocess.Popen(["sh", str(DIR / "g1_stage_verify_measure.sh")], env=env,
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    deadline = time.time() + 20
+    while not pidfile.exists() and time.time() < deadline:
+        time.sleep(0.05)
+    assert pidfile.exists(), "child never started"
+    time.sleep(0.2)
+    child = int(pidfile.read_text())
+    os.kill(process.pid, getattr(signal_module, signame))  # the script only, not its group
+    output, _ = process.communicate(timeout=30)
+    assert process.returncode == code, output
+    assert f"interrupted by {signame}" in output and "cleanup OK" in output
+    try:  # terminated before the directory was removed (a zombie awaiting its reaper is dead)
+        state = Path(f"/proc/{child}/stat").read_text().rsplit(")", 1)[1].split()[0]
+    except FileNotFoundError:
+        state = "gone"
+    assert state in ("Z", "gone"), f"child {child} still running (state {state})"
+    assert list(work.iterdir()) == []
+    assert "RESULT: FAILED" in output
+
+
+def test_g1_paste_block_verifies_its_hash_runs_and_removes_its_directory(machine, tmp_path):
+    env, work = _g1_env(machine, tmp_path)
+    block = (DIR / "g1_paste_block.sh").read_text(encoding="utf-8")
+    ok = subprocess.run(["sh", "-c", block], env=env, capture_output=True, text=True, timeout=120)
+    assert ok.returncode == 0, ok.stdout
+    assert "g1.sh: OK" in ok.stdout and "RESULT: OK" in ok.stdout and "exit status: 0" in ok.stdout
+    assert list(work.iterdir()) == []  # script dir and G1 work dir both gone
+    tampered = block.replace("# G1 — stage", "# G1 — STAGE", 1)
+    bad = subprocess.run(["sh", "-c", tampered], env=env, capture_output=True, text=True, timeout=120)
+    assert bad.returncode == 1 and "HASH MISMATCH: not run" in bad.stdout and "RESULT" not in bad.stdout
     assert list(work.iterdir()) == []
