@@ -12,9 +12,12 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import shutil
+import signal
 import stat
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -255,17 +258,27 @@ def test_package_services_have_no_install_section_and_timers_only_target_timers(
             assert re.search(r"^WantedBy=timers\.target$", text, re.MULTILINE)
 
 
-def test_paste_block_default_mode_is_plan_and_apply_escalates_only_through_sudo(
+def test_paste_block_hashes_the_privileged_copy_itself_and_escalates_only_for_apply_and_rollback(
     build_g2,
 ):
     block = build_g2.build_paste()
     assert "MODE=${G2_MODE:-plan}; unset G2_MODE" in block
     assert (
-        block.count("sudo ") == 1
-        and 'apply|rollback) sudo sh "$D/g2.sh" "$MODE"' in block
+        block.count("sudo") == 1
+        and 'case "$MODE" in apply|rollback) PRIV=sudo;; esac' in block
     )
     digest = hashlib.sha256(build_g2.build().encode()).hexdigest()
-    assert f'echo "{digest}  $D/g2.sh" | sha256sum -c -' in block
+    assert f'g2priv {digest} "$MODE"' in block
+    runner = build_g2.PROTECTED_RUNNER
+    # order inside the privileged shell: private dir -> copy from stdin -> re-hash THAT copy -> run THAT copy
+    positions = [
+        runner.index(x)
+        for x in ("mktemp -d", 'cat > "$R/g2.sh"', "sha256sum -c -", 'sh "$R/g2.sh"')
+    ]
+    assert positions == sorted(positions)
+    assert (
+        "P=/run" in runner and "$D" not in block
+    )  # no user-writable temp path is executed under sudo
 
 
 # --------------------------------------------------------------------- behaviour
@@ -311,7 +324,13 @@ def test_apply_installs_inactive_units_and_nothing_else(world):
     assert manifest[0].startswith("V1|") and any(
         line.startswith("OUTDIR|") and line.endswith("|created") for line in manifest
     )
-    assert sum(line.startswith("FILE|") for line in manifest) == 4
+    assert (
+        sum(line.startswith("FILE|") and line.endswith("|created") for line in manifest)
+        == 4
+    )
+    assert (
+        sum("|intent-created" in line for line in manifest) == 5
+    )  # 4 units + the directory, written ahead
     assert world.calls().count("daemon-reload") == 1
     assert world.forbidden() == "" and all(
         c == "daemon-reload" or c.startswith("show ") for c in world.calls()
@@ -489,23 +508,182 @@ def test_rollback_keeps_a_preexisting_output_directory(world):
     assert world.run("rollback").returncode == 0 and world.out.is_dir()
 
 
-def test_interruption_midway_leaves_a_manifest_that_rolls_back(world):
-    # a failing install of the 2nd unit must not leave unrecorded files
-    (world.shims / "install").write_text(
-        '#!/bin/sh\ncase "$*" in *crypto-publish-runtime-service.timer*) exit 1;; esac\nexec /usr/bin/install "$@"\n'
+def _shim(world, name, body):
+    path = world.shims / name
+    path.write_text("#!/bin/sh\n" + body + "\n")
+    path.chmod(0o755)
+    return path
+
+
+def manifest_paths(world):
+    return {
+        line.split("|")[1]
+        for line in (world.state / "manifest").read_text().splitlines()
+        if line.startswith("FILE|")
+    }
+
+
+def test_failed_write_is_counted_recorded_and_rolls_back_cleanly(world):
+    _shim(
+        world,
+        "install",
+        'case "$*" in *crypto-publish-runtime-service.timer*) exit 1;; esac\nexec /usr/bin/install "$@"',
     )
-    (world.shims / "install").chmod(0o755)
     result = world.run("apply")
-    assert result.returncode == 1
-    (world.shims / "install").unlink()
-    manifest = (world.state / "manifest").read_text()
-    recorded = [
-        line.split("|")[1] for line in manifest.splitlines() if line.startswith("FILE|")
-    ]
-    assert sorted(str(p) for p in world.units.iterdir()) == sorted(
-        recorded
+    assert result.returncode == 1 and "RESULT: FAILED" in summary(result)
+    assert "install of" in result.stdout and "partial state is KEPT" in result.stdout
+    assert {str(p) for p in world.units.iterdir()} <= manifest_paths(
+        world
     )  # nothing unrecorded
+    (world.shims / "install").unlink()
+    back = world.run("rollback")
+    assert (
+        back.returncode == 0
+        and "RESULT: OK (rollback complete and verified)" in back.stdout
+    )
+    assert unit_files(world) == [] and not world.state.exists()
+
+
+def test_kill_after_rename_before_the_record_is_recoverable(world):
+    # SIGKILL the script right after the atomic rename: the intent was written ahead
+    _shim(
+        world,
+        "mv",
+        'case "$*" in *crypto-publish-storage.service*) /usr/bin/mv "$@"; kill -9 $PPID;; esac\nexec /usr/bin/mv "$@"',
+    )
+    result = world.run("apply")
+    assert result.returncode == -9
+    manifest = (world.state / "manifest").read_text()
+    assert "FILE|" in manifest and "intent-created" in manifest.splitlines()[-1]
+    assert (
+        world.units / "crypto-publish-storage.service"
+    ).exists()  # installed, record says "intent"
+    (world.shims / "mv").unlink()
+    back = world.run("rollback")
+    assert back.returncode == 0 and "RESULT: OK" in back.stdout
+    assert (
+        unit_files(world) == [] and not world.state.exists() and not world.out.exists()
+    )
+
+
+def test_kill_before_rename_leaves_a_temp_that_rollback_removes(world):
+    _shim(
+        world,
+        "mv",
+        'case "$*" in *crypto-publish-storage.service*) kill -9 $PPID; exit 0;; esac\nexec /usr/bin/mv "$@"',
+    )
+    assert world.run("apply").returncode == -9
+    assert list(
+        world.units.glob(".*.g2tmp")
+    )  # the hidden temp copy of the interrupted unit
+    (world.shims / "mv").unlink()
+    back = world.run("rollback")
+    assert back.returncode == 0 and "leftover temp" in back.stdout
+    assert not list(world.units.glob(".*")) and unit_files(world) == []
+
+
+def test_sigterm_during_apply_keeps_a_recoverable_state(world):
+    world.set("reload_hook", "sleep 2")
+    proc = subprocess.Popen(
+        ["sh", str(world.script), "apply"],
+        env=world.env(),
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    deadline = time.time() + 20
+    while time.time() < deadline and "daemon-reload" not in world.calls():
+        time.sleep(0.05)
+    proc.send_signal(signal.SIGTERM)
+    out, _ = proc.communicate(timeout=30)
+    assert (
+        proc.returncode == 143
+        and "INTERRUPTED (TERM)" in out
+        and "G2_MODE=rollback" in out
+    )
+    assert (world.state / "manifest").exists() and len(unit_files(world)) == 4
+    (world.fake / "reload_hook").unlink()
     assert world.run("rollback").returncode == 0 and unit_files(world) == []
+
+
+def test_rollback_never_reports_success_when_a_removal_fails(world):
+    assert world.run("apply").returncode == 0
+    _shim(
+        world,
+        "rm",
+        'case "$*" in *crypto-publish-storage.service) exit 1;; esac\nexec /usr/bin/rm "$@"',
+    )
+    back = world.run("rollback")
+    assert back.returncode == 1 and "RESULT: OK" not in back.stdout
+    assert "ROLLBACK INCOMPLETE" in back.stdout and "cannot remove" in back.stdout
+    assert (world.state / "manifest").exists() and (
+        world.units / "crypto-publish-storage.service"
+    ).exists()
+
+
+def test_rollback_never_reports_success_when_the_backup_is_altered_or_the_restore_fails(
+    world,
+):
+    old = world.units / "crypto-publish-storage.timer"
+    old.write_text("# original\n")
+    assert world.run("apply").returncode == 0
+    backup = world.state / "backup" / old.name
+    backup.write_text("# tampered backup\n")
+    back = world.run("rollback")
+    assert back.returncode == 1 and "RESULT: OK" not in back.stdout
+    assert "missing or altered" in back.stdout and "CANNOT be restored" in back.stdout
+    assert (
+        old.read_bytes() == (DIR / old.name).read_bytes()
+    )  # still the installed content, not claimed restored
+    # a failing restore (install error) is counted too
+    backup.write_text("# original\n")
+    flag = world.fake / "fail_install"
+    flag.write_text("1")
+    _shim(
+        world,
+        "install",
+        '[ -e "$FAKE/fail_install" ] && exit 1\nexec /usr/bin/install "$@"',
+    )
+    again = world.run("rollback")
+    assert (
+        again.returncode == 1
+        and "RESULT: OK" not in again.stdout
+        and "restoration of" in again.stdout
+    )
+    flag.unlink()
+    final = world.run("rollback")
+    assert (
+        final.returncode == 0
+        and old.read_text() == "# original\n"
+        and not world.state.exists()
+    )
+
+
+def test_rollback_with_artifacts_in_the_output_directory_is_ok_and_leaves_them(world):
+    assert world.run("apply").returncode == 0
+    (world.out / "storage_snapshot.json").write_text("{}")
+    back = world.run("rollback")
+    assert back.returncode == 0 and "RESULT: OK" in back.stdout
+    assert (
+        "LEFT IN PLACE by design" in back.stdout
+        and (world.out / "storage_snapshot.json").exists()
+    )
+
+
+def test_apply_and_rollback_refuse_an_unprotected_script_copy(world):
+    world.script.chmod(0o666)
+    before = world.tree()
+    result = world.run("apply")
+    assert (
+        result.returncode == 3
+        and "must be root-owned and not group/other-writable" in result.stdout
+    )
+    assert world.tree() == before and not world.state.exists()
+    world.script.chmod(0o644)
+    shutil.chown(world.script, user="nobody")
+    again = world.run("rollback")
+    assert again.returncode == 3 and world.tree() == before
+    shutil.chown(world.script, user="root")
+    assert world.run("plan").returncode == 0  # read-only modes do not need protection
 
 
 # --------------------------------------------------------------------- paste block
@@ -534,6 +712,10 @@ def run_block(world, block, mode=None, **extra):
     )
 
 
+def privileged_leftovers():
+    return list(Path("/run").glob("g2priv.*"))
+
+
 def test_paste_block_defaults_to_plan_and_uses_sudo_only_for_apply_and_rollback(
     world, build_g2
 ):
@@ -548,12 +730,19 @@ def test_paste_block_defaults_to_plan_and_uses_sudo_only_for_apply_and_rollback(
     assert not (world.fake / "sudo.log").exists()
     applied = run_block(world, block, mode="apply")
     assert applied.returncode == 0 and "G2 apply exit status: 0" in applied.stdout
-    assert (world.fake / "sudo.log").read_text().count("sudo sh ") == 1
-    assert not list(world.work.glob("g2blk.*")) and not list(
-        world.work.glob("g2.*")
-    )  # temp dirs removed
+    assert "running from a protected copy: /run/g2priv." in applied.stdout
+    assert len((world.fake / "sudo.log").read_text().splitlines()) == 1
+    assert (
+        not privileged_leftovers()
+        and not list(world.work.glob("g2priv.*"))
+        and not list(world.work.glob("g2.*"))
+    )
     rolled = run_block(world, block, mode="rollback")
-    assert rolled.returncode == 0 and unit_files(world) == []
+    assert (
+        rolled.returncode == 0
+        and unit_files(world) == []
+        and not privileged_leftovers()
+    )
 
 
 def test_paste_block_refuses_a_tampered_script_and_a_bad_mode(world, build_g2):
@@ -566,10 +755,10 @@ def test_paste_block_refuses_a_tampered_script_and_a_bad_mode(world, build_g2):
     result = run_block(world, tampered, mode="apply")
     assert (
         result.returncode == 1
-        and "HASH MISMATCH: not run" in result.stdout
-        and world.tree() == before
+        and "HASH MISMATCH OF THE PROTECTED COPY: not run" in result.stdout
     )
-    assert not (world.fake / "sudo.log").exists()
+    assert "G2 apply exit status: 1" in result.stdout and world.tree() == before
+    assert not privileged_leftovers() and "pwned" not in result.stdout
     bad = run_block(world, block, mode="enable")
     assert bad.returncode == 2 and "G2_MODE must be" in bad.stdout
 

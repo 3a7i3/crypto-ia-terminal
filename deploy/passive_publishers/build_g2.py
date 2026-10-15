@@ -50,26 +50,36 @@ def build(publishers: list[str] | None = None) -> str:
     return "#!/bin/sh\n" + out
 
 
+# Runs INSIDE the (privileged, for apply/rollback) shell: the script arrives on stdin, is written
+# to a directory that only that shell's user can enter (/run, 0700, for root), is re-hashed THERE,
+# and only that protected copy is executed. No user-writable path sits between check and use.
+PROTECTED_RUNNER = (
+    "umask 077; "
+    'if [ "$(id -u)" -eq 0 ]; then P=/run; else P="${TMPDIR:-/tmp}"; fi; '
+    'R=$(mktemp -d "$P/g2priv.XXXXXX") || exit 1; '
+    'cat > "$R/g2.sh" || { rm -rf "$R"; echo "COPY FAILED: not run"; exit 1; }; '
+    'echo "$1  $R/g2.sh" | sha256sum -c - '
+    '|| { rm -rf "$R"; echo "HASH MISMATCH OF THE PROTECTED COPY: not run"; exit 1; }; '
+    'sh "$R/g2.sh" "$2"; RC=$?; rm -rf "$R"; exit $RC'
+)
+
+
 def build_paste(publishers: list[str] | None = None) -> str:
-    """Self-checking block: write the script to a private temp dir, verify its sha256, run
-    it in the mode named by G2_MODE (default `plan`, which writes nothing), remove the dir,
-    print and return the exit status. apply/rollback run the script through sudo, typed
-    by the operator; the block itself never escalates anything else."""
+    """Self-checking block. The mode comes from G2_MODE (default `plan`, which writes nothing).
+    apply/rollback run through sudo (typed by the operator); the script is hashed again by the
+    privileged shell on its own root-only copy before it runs. The block prints the exit status."""
     script = build(publishers)
     digest = hashlib.sha256(script.encode("utf-8")).hexdigest()
+    assert "'" not in PROTECTED_RUNNER
     return (
         "MODE=${G2_MODE:-plan}; unset G2_MODE\n"
-        'case "$MODE" in plan|verify|apply|rollback) ;; *) echo "G2_MODE must be plan|verify|apply|rollback"; exit 2;; esac\n'
-        'D=$(mktemp -d "${TMPDIR:-/tmp}/g2blk.XXXXXX") || exit 1\n'
-        "umask 077\n"
-        "cat > \"$D/g2.sh\" <<'G2_SCRIPT_EOF'\n"
+        'case "$MODE" in plan|verify|apply|rollback) ;; '
+        '*) echo "G2_MODE must be plan|verify|apply|rollback"; exit 2;; esac\n'
+        f"RUN='{PROTECTED_RUNNER}'\n"
+        'PRIV=""; case "$MODE" in apply|rollback) PRIV=sudo;; esac\n'
+        f'$PRIV sh -c "$RUN" g2priv {digest} "$MODE" <<\'G2_SCRIPT_EOF\'\n'
         f"{script}G2_SCRIPT_EOF\n"
-        f'echo "{digest}  $D/g2.sh" | sha256sum -c - || {{ rm -rf "$D"; echo \'HASH MISMATCH: not run\'; exit 1; }}\n'
-        'case "$MODE" in\n'
-        '  apply|rollback) sudo sh "$D/g2.sh" "$MODE"; RC=$?;;\n'
-        '  *) sh "$D/g2.sh" "$MODE"; RC=$?;;\n'
-        "esac\n"
-        'rm -rf "$D"\n'
+        "RC=$?\n"
         'echo "G2 $MODE exit status: $RC"\n'
         "exit $RC\n"
     )

@@ -19,20 +19,22 @@ Voir [PASSIVE_PUBLISHERS_G1_RESULTS.md](PASSIVE_PUBLISHERS_G1_RESULTS.md) : prov
 ### Paquet
 | Fichier | Rôle | sha256 |
 |---|---|---|
-| `deploy/passive_publishers/g2_install_inactive.sh` | script G2 (modes `plan`, `verify`, `apply`, `rollback`), généré par `build_g2.py` depuis les unités revues | `d7e8075f0f9893b2cf7b21aef657f17a5d8bff739c48df0c2f94835d161ca252` |
-| `deploy/passive_publishers/g2_paste_block.sh` | bloc à coller : écrit le script dans un tmp privé, **vérifie son sha256**, l'exécute dans le mode demandé, supprime le tmp, affiche le code retour | `0a5e7f2a648fa27b9973a84aad9b8bc4c4ecb782f506072447e53aa727464af6` (375 lignes, 17 349 o) |
+| `deploy/passive_publishers/g2_install_inactive.sh` | script G2 (modes `plan`, `verify`, `apply`, `rollback`), généré par `build_g2.py` depuis les unités revues | `9ad589ecd67ce9b414c8ef1128fe38a30650b55533a9f4dfb17d446baf3422d5` |
+| `deploy/passive_publishers/g2_paste_block.sh` | bloc à coller : le shell (privilégié pour `apply`/`rollback`) écrit le script dans un répertoire qu'il est seul à pouvoir ouvrir, **re-hache cette copie**, n'exécute que cette copie, la supprime, affiche le code retour | `3117f492046bc0d9c840923c1eecac7058d3f8264ace3f6235866c2c181e2803` (470 lignes, 23 110 o) |
 | unités embarquées (identiques à G1) | `crypto-publish-{runtime-service,storage}.{service,timer}` | voir G1 §5 ; les empreintes sont gravées dans le script et revérifiées après installation |
 Les unités d'events ne sont **pas** dans ce paquet.
 
-### Ce que `apply` fait (liste complète, tout est consigné dans `/var/lib/crypto-publishers-g2/manifest`)
-1. refuse sans écrire si : `NeedDaemonReload` ≠ `no` sur Advisor, API ou web (le `daemon-reload` appliquerait un changement en attente qui n'est pas le nôtre) ; une unité cible est déjà `enabled`/`linked` ou `active` ; le dossier de sortie existe avec un autre propriétaire/mode que `mathieu 700` (il n'est jamais `chmod`é) ; l'utilisateur `mathieu` manque ; moins de 10 Mio libres ; empreinte d'une unité embarquée ≠ empreinte revue ; `systemd-analyze verify` ≠ 0 ; un manifeste existe (déjà appliqué) ;
+### Ce que `apply` fait (liste complète, journal d'intentions dans `/var/lib/crypto-publishers-g2/manifest`)
+1. refuse sans écrire si : le script n'est pas une **copie protégée** (fichier ordinaire, non lien symbolique, propriétaire root, sans écriture groupe/autres, dans un dossier qui l'est aussi) ; `NeedDaemonReload` ≠ `no` sur Advisor, API ou web (le `daemon-reload` appliquerait un changement en attente qui n'est pas le nôtre) ; une unité cible est déjà `enabled`/`linked` ou `active` ; le dossier de sortie existe avec un autre propriétaire/mode que `mathieu 700` (il n'est jamais `chmod`é) ; l'utilisateur `mathieu` manque ; moins de 10 Mio libres ; empreinte d'une unité embarquée ≠ empreinte revue ; `systemd-analyze verify` ≠ 0 ; un manifeste existe (déjà appliqué) ;
 2. crée `/var/lib/crypto-publishers-g2` (0700) et `backup/` ;
-3. crée `/home/mathieu/operator_presentation` (`install -d -m 0700 -o mathieu -g mathieu`) s'il est absent ;
-4. pour chaque unité : identique → intacte ; différente → **copiée dans `backup/`** puis remplacée ; absente → créée (`0644 root:root`) ;
-5. `systemctl daemon-reload` (la seule interaction avec le gestionnaire) ;
-6. vérifie : empreintes installées = empreintes revues, propriétaire/mode, `systemd-analyze verify` sur les fichiers installés, `LoadState=loaded`, `ActiveState=inactive`, `UnitFileState` = `disabled` (timers) / `static` (services), jamais exécutées (`ExecMainStartTimestampMonotonic=0`), **aucun** `WantedBy`/`RequiredBy`/`BoundBy`/`UpheldBy`, aucun lien symbolique `crypto-publish-*` ;
-7. compare Advisor, API et web **avant/après** (état, PID, `NRestarts`, `InvocationID`, date de démarrage, drop-ins) : `UNCHANGED` exigé.
-Code retour : 0 seulement si tout passe ; en cas d'échec après écriture, le script affiche la commande de rollback et ne défait rien tout seul.
+3. **journal d'intentions** : chaque étape est inscrite dans le manifeste et synchronisée sur disque **avant** d'être faite (`intent-created`, `intent-replaced`), puis marquée faite après vérification (`created`, `replaced`). Si l'écriture du manifeste échoue, l'étape n'est pas exécutée ;
+4. crée `/home/mathieu/operator_presentation` (`install -d -m 0700 -o mathieu -g mathieu`) s'il est absent ;
+5. pour chaque unité : identique → intacte ; différente → **copiée dans `backup/`** et la copie est re-hachée ; absente ou différente → copie vers un nom caché du même dossier (`.<unité>.g2tmp`), empreinte vérifiée, puis `mv` (renommage **atomique**), empreinte re-vérifiée. Un fichier d'unité n'est donc jamais partiellement écrit sous son vrai nom ;
+6. `systemctl daemon-reload` (la seule interaction avec le gestionnaire) ;
+7. vérifie : empreintes installées = empreintes revues, propriétaire/mode, `systemd-analyze verify` sur les fichiers installés, `LoadState=loaded`, `ActiveState=inactive`, `UnitFileState` = `disabled` (timers) / `static` (services), jamais exécutées (`ExecMainStartTimestampMonotonic=0`), **aucun** `WantedBy`/`RequiredBy`/`BoundBy`/`UpheldBy`, aucun lien symbolique `crypto-publish-*` ;
+8. compare Advisor, API et web **avant/après** (état, PID, `NRestarts`, `InvocationID`, date de démarrage, drop-ins) : `UNCHANGED` exigé.
+**Comptabilité des échecs** : chaque `install`, `cp`, `mv`, `rm`, `mkdir`, écriture du manifeste et `daemon-reload` est testé ; tout échec est compté, affiché (`!!`) et rappelé dans le résumé ; au premier échec d'écriture le script s'arrête sans rien défaire, conserve l'état et affiche la commande de rollback. Code retour : 0 seulement si tout passe.
+**Interruption** (SIGINT/SIGTERM/SIGHUP, ou arrêt brutal) : l'état partiel est conservé et récupérable ; sur signal le script le dit et affiche `G2_MODE=rollback`. Les cas « arrêt avant le renommage » (un fichier temporaire caché reste), « arrêt entre le renommage et l'enregistrement » (le fichier est installé, seule l'intention est notée) et « échec d'écriture » sont testés, suivis d'un rollback complet.
 
 ### Pourquoi rien ne démarre indirectement
 - Les services n'ont aucun `[Install]`, `Wants`, `Requires`, `BindsTo`, `PartOf` ni `Upholds` (test).
@@ -40,18 +42,23 @@ Code retour : 0 seulement si tout passe ; en cas d'échec après écriture, le s
 - Les dépendances d'installation d'un paquet (`apt`/`pip`) : **aucune** n'est utilisée.
 - Réserve honnête : `daemon-reload` est un rechargement global du gestionnaire ; il ne redémarre rien mais relit toutes les unités. D'où la garde `NeedDaemonReload`.
 
-### Rollback (ne supprime que ce que G2 a créé)
-Mode `rollback` : refusé tant qu'une unité est `enabled`/`active` (défaire d'abord G5) ; sinon, dans l'ordre inverse du manifeste : fichier **créé** → supprimé seulement si son sha256 correspond au manifeste ; fichier **remplacé** → restauré depuis `backup/` (octet pour octet) ; dossier de sortie **créé par G2** → `rmdir` seulement s'il est vide (jamais d'artefact supprimé) ; un fichier modifié depuis est laissé en place et signalé `DIVERGED` (l'état est alors conservé). Puis `daemon-reload` et comparaison avant/après d'Advisor/API/web. `/var/lib/crypto-publishers-g2` est retiré à la fin si tout s'est bien passé.
+### Rollback (ne supprime que ce que G2 a créé, et ne prétend jamais plus que ce qui est vérifié)
+Mode `rollback` : refusé tant qu'une unité est `enabled`/`active` (défaire d'abord G5). Sinon, pour la dernière trace de chaque chemin, dans l'ordre inverse de la création :
+- fichier **créé** (ou intention de créer) : supprimé seulement si son sha256 est celui installé ; absent → rien à faire ; modifié depuis → **DIVERGED**, laissé en place, compté comme échec ; un fichier temporaire caché laissé par une interruption est supprimé ;
+- fichier **remplacé** : si le contenu courant est déjà l'original → rien ; si c'est le contenu installé → restauré depuis `backup/` par le même chemin atomique (copie cachée, empreinte, renommage, empreinte) ; sauvegarde absente ou altérée, ou contenu courant tiers → échec compté, rien n'est écrasé ;
+- dossier de sortie **créé par G2** : `rmdir` seulement s'il est vide ; non vide → **laissé en place par construction** (les artefacts ne sont jamais supprimés), sans compter comme échec.
+Puis `daemon-reload`, contrôle que chaque unité retirée a `LoadState=not-found`, et comparaison avant/après d'Advisor/API/web.
+**Verdict** : `RESULT: OK (rollback complete and verified)` seulement si **aucun** échec n'a été compté (suppression, restauration, rename, reload, contrôle d'absence). Sinon : `RESULT: FAILED — ROLLBACK INCOMPLETE … the previous state is NOT confirmed restored`, avec la liste des échecs, et `/var/lib/crypto-publishers-g2` (manifeste et sauvegardes) est **conservé** pour une reprise manuelle. `/var/lib/crypto-publishers-g2` n'est retiré qu'après un rollback entièrement vérifié.
 
 ### Étapes opérateur
 Exécution depuis le **compte administrateur avec sudo** (celui d'où vous ouvrez `sudo -u mathieu -i`), **pas** depuis la session `mathieu`. Le bloc est collé tel quel ; la ligne `G2_MODE=…` qui le précède choisit le mode (par défaut `plan`, qui n'écrit rien ; `G2_MODE` est effacée par le bloc après lecture, donc chaque lancement doit la redéclarer).
-1. **Contrôle d'empreinte du bloc (recommandé)** : enregistrer le bloc dans un fichier de staging privé, vérifier `0a5e7f2a…` avec `sha256sum -c`, puis lancer `G2_MODE=plan sh ./g2_paste_block.sh` (lancer le fichier avec `sh`, jamais avec `.`) ; sinon coller directement et consigner que l'empreinte externe n'est pas contrôlée (le script interne l'est toujours). Le bloc se termine par `exit` : collé dans une session interactive, il la ferme (comme G1).
+1. **Contrôle d'empreinte du bloc (recommandé)** : enregistrer le bloc dans un fichier de staging privé, vérifier `3117f492…` avec `sha256sum -c`, puis lancer `G2_MODE=plan sh ./g2_paste_block.sh` (lancer le fichier avec `sh`, jamais avec `.`) ; sinon coller directement et consigner que l'empreinte externe n'est pas contrôlée (le script interne l'est toujours). Le bloc se termine par `exit` : collé dans une session interactive, il la ferme (comme G1).
 2. `G2_MODE=plan` : lecture seule. Preuve attendue : `RESULT: OK`, les 4 cibles `absent (will be created)`, `NeedDaemonReload=no` ×3, `verify exit status: 0`, `nothing was written`.
 3. Revue de la sortie du plan par Mathieu, puis autorisation G2.
 4. `G2_MODE=apply` : preuve attendue : `RESULT: OK`, 4 fichiers `created`, `daemon-reload exit status: 0`, `LoadState=loaded ActiveState=inactive UnitFileState=static|disabled` pour les 4, `UNCHANGED`, `G2 apply exit status: 0`.
 5. `G2_MODE=verify` (lecture seule) : mêmes preuves, rejouable à tout moment.
 6. En cas d'écart : `G2_MODE=rollback`, preuve attendue : fichiers supprimés, dossier de sortie retiré s'il est vide, `UNCHANGED`, `/var/lib/crypto-publishers-g2` retiré.
-Pas de sudo dans le script ; le bloc n'appelle `sudo` que pour `apply` et `rollback`.
+Pas de sudo dans le script ; le bloc n'appelle `sudo` que pour `apply` et `rollback`, et le shell privilégié re-hache sa propre copie (répertoire 0700 de root sous `/run`) avant de l'exécuter : aucun chemin modifiable par un utilisateur ne sépare la vérification de l'exécution. Un `HASH MISMATCH OF THE PROTECTED COPY` arrête tout, sans écriture.
 
 ## 3. G3 — essais ponctuels sous systemd (plan, non exécuté)
 Un publisher à la fois, **timers désactivés**. Ordre : runtime-service, puis storage. Pour chacun, trois lancements espacés d'au moins 5 s.

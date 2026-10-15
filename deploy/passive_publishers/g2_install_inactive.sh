@@ -1,21 +1,30 @@
 #!/bin/sh
 # G2 — INACTIVE installation of the reviewed passive-publisher units.
 # Modes:  plan | verify  : read-only, any user, nothing written outside a private temp dir.
-#         apply | rollback : must run as root (the OPERATOR runs it with sudo; no agent does).
-# What `apply` writes, and ALL it writes (each one recorded in $STATE/manifest):
-#   1. $STATE (0700 root)                  state, manifest and backups of pre-existing files
+#         apply | rollback : must run as root, from a PROTECTED copy of this script (root-owned,
+#                            not group/other-writable, in a directory that is not either). The
+#                            paste block (g2_paste_block.sh) creates that copy itself and re-hashes
+#                            it as root before running it. The OPERATOR launches it; no agent does.
+# What `apply` writes, and ALL it writes (each step is recorded BEFORE it is done, in the
+# write-ahead manifest $STATE/manifest, so an interruption always leaves a recoverable state):
+#   1. $STATE (0700 root)                  manifest and backups of pre-existing files
 #   2. $OUTDIR (0700 $OWNER), if absent    the presentation directory (never chmod'ed if present)
-#   3. $UNITDIR/crypto-publish-*.{service,timer}   mode 0644 root, the reviewed files only
+#   3. $UNITDIR/crypto-publish-*.{service,timer}   0644 root, written to a hidden temp name in the
+#                                          same directory, hash-checked, then renamed (atomic)
 #   4. `systemctl daemon-reload`           the ONLY interaction with the service manager
 # What it never does: enable, start, stop, restart, link, mask, edit a drop-in, touch the
 # Advisor / API / web units, read an EnvironmentFile or .env, or open any data source.
 # A unit file alone starts nothing: the services have no [Install]; the timers' [Install]
 # (WantedBy=timers.target) only acts on `systemctl enable`, which this script never calls.
 # `apply` refuses when any guarded unit has NeedDaemonReload=yes, so the reload cannot apply
-# somebody else's pending change. Rollback removes only files created by `apply` whose
-# sha256 still matches the manifest, restores the backups of replaced files, and leaves
-# anything that diverged in place (reported).
-# Exit status: 0 all checks passed; 1 a check failed; 2 usage; 3 not root; 129/130/143 signals.
+# somebody else's pending change.
+# Failure accounting: EVERY write, copy, rename, removal, restore and reload is checked and
+# counted. `rollback` prints RESULT: OK only if every restoration was done AND verified (hash
+# of each restored file, absence of each removed one); otherwise RESULT: FAILED with the list
+# of what could not be undone, and the manifest and backups are kept. Files that diverged since
+# G2 (modified by someone else) are never overwritten and count as a failure of the rollback.
+# Exit status: 0 all checks passed; 1 a check failed; 2 usage; 3 not root / not protected;
+# 129/130/143 signals (partial state is kept and the recovery command is printed).
 MODE="${1:-plan}"
 case "$MODE" in plan|verify|apply|rollback) ;; *) echo "usage: sh g2.sh plan|verify|apply|rollback"; exit 2 ;; esac
 UNITDIR=/etc/systemd/system
@@ -40,25 +49,49 @@ crypto-publish-storage.timer) echo afeacf3ea6687980a7c19b012e1c6cc0b7be791d023a4
 UNITLIST=""
 for p in $PUBS; do UNITLIST="$UNITLIST crypto-publish-$p.service crypto-publish-$p.timer"; done
 
-FAILS=0; FAILMSG=""; W=""
+FAILS=0; FAILMSG=""; W=""; WRITING=0; M="$STATE/manifest"
 fail() { FAILS=$((FAILS + 1)); FAILMSG="${FAILMSG}  - $1
 "; echo "!! $1"; }
 cleanup() { [ -n "$W" ] && rm -rf "$W"; return 0; }
+interrupted() {
+  cleanup
+  if [ "$WRITING" -eq 1 ]; then
+    echo "!! INTERRUPTED ($1) while writing: the state is KEPT and is recoverable."
+    echo "!! Recovery: run this block again with G2_MODE=rollback (manifest: $M)."
+  fi
+  exit "$2"
+}
 trap 'cleanup' EXIT
-trap 'cleanup; exit 130' INT
-trap 'cleanup; exit 143' TERM
-trap 'cleanup; exit 129' HUP
+trap 'interrupted INT 130' INT
+trap 'interrupted TERM 143' TERM
+trap 'interrupted HUP 129' HUP
 sha() { sha256sum "$1" 2>/dev/null | cut -d' ' -f1; }
 val() { systemctl show -p "$2" --value -- "$1" 2>/dev/null; }
 snap() { for u in $GUARDED; do
   echo "$u $(systemctl show -p ActiveState -p SubState -p MainPID -p NRestarts -p InvocationID -p ActiveEnterTimestamp -p DropInPaths -- "$u" 2>&1 | tr '\n' ' ')"
 done; }
+# write-ahead record: appended and fsync'ed BEFORE the action it announces
+wal() { printf '%s\n' "$1" >> "$M" || return 1; sync "$M" 2>/dev/null || sync; return 0; }
+# a file is "protected" if it is a regular, non-symlink file owned by root without group/other write
+protected() {
+  [ -e "$1" ] && [ ! -L "$1" ] || return 1
+  set -- "$1" "$(stat -c '%u %a' "$1")"
+  [ "${2%% *}" = 0 ] || return 1
+  perm="${2#* }"; other="${perm#"${perm%?}"}"; rest="${perm%?}"; group="${rest#"${rest%?}"}"
+  case "$group$other" in *[2367]*) return 1 ;; esac
+  return 0
+}
 
 echo "== G2 mode=$MODE $(date -u +%Y-%m-%dT%H:%M:%SZ) user=$(id -un) uid=$(id -u)"
 echo "== paths: units=$UNITDIR state=$STATE output=$OUTDIR owner=$OWNER"
 echo "== units in this package:$UNITLIST"
 if [ "$MODE" = apply ] || [ "$MODE" = rollback ]; then
   [ "$(id -u)" -eq 0 ] || { echo "!! $MODE must run as root; nothing was done"; exit 3; }
+  if ! protected "$0" || ! protected "$(dirname "$0")"; then
+    echo "!! $MODE refuses to run: $0 and its directory must be root-owned and not group/other-writable (use the paste block, which makes a protected copy); nothing was done"
+    exit 3
+  fi
+  echo "== running from a protected copy: $0 sha256=$(sha "$0")"
 fi
 W=$(mktemp -d "${TMPDIR:-/tmp}/g2.XXXXXX") || exit 1
 mkdir "$W/units"
@@ -283,6 +316,18 @@ report() {
   else echo "RESULT: FAILED ($FAILS finding(s))"; printf '%s' "$FAILMSG"; fi
 }
 
+# ---- apply helpers: every step checked, counted, and verified ---------------
+# place SRC (staged, hash-checked) at TARGET atomically: hidden temp name, verify, rename, verify
+place() {
+  src="$1"; target="$2"; want="$3"; tmp="$(dirname "$target")/.$(basename "$target").g2tmp"
+  rm -f "$tmp" || { fail "cannot clear stale temp $tmp"; return 1; }
+  install -m 0644 -o root -g root "$src" "$tmp" || { fail "install of $tmp failed"; rm -f "$tmp"; return 1; }
+  [ "$(sha "$tmp")" = "$want" ] || { fail "copy $tmp has hash $(sha "$tmp"), expected $want"; rm -f "$tmp" || fail "cannot remove $tmp"; return 1; }
+  mv -f "$tmp" "$target" || { fail "rename $tmp -> $target failed"; rm -f "$tmp" || fail "cannot remove $tmp"; return 1; }
+  [ "$(sha "$target")" = "$want" ] || { fail "$target has hash $(sha "$target") after rename, expected $want"; return 1; }
+  return 0
+}
+
 case "$MODE" in
 plan)
   preflight; echo "== nothing was written (plan)"; report ;;
@@ -290,24 +335,45 @@ verify)
   installed_ok; echo "== nothing was written (verify)"; report ;;
 apply)
   preflight
-  [ -e "$STATE/manifest" ] && fail "$STATE/manifest exists: already applied (run verify, or rollback first)"
+  [ -e "$M" ] && fail "$M exists: already applied (run verify, or rollback first)"
   if [ "$FAILS" -ne 0 ]; then echo "== preflight FAILED: nothing was written"; report; exit 1; fi
-  echo "== apply: writing"
-  mkdir -m 0700 "$STATE" && mkdir -m 0700 "$STATE/backup" || { echo "!! cannot create $STATE: nothing else was written"; exit 1; }
-  M="$STATE/manifest"
-  echo "V1|$(date -u +%Y-%m-%dT%H:%M:%SZ)|$PUBS" > "$M"
-  if [ -d "$OUTDIR" ]; then echo "OUTDIR|$OUTDIR|-|existing" >> "$M"
-  else
-    install -d -m 0700 -o "$OWNER" -g "$OWNER" "$OUTDIR" && echo "OUTDIR|$OUTDIR|-|created" >> "$M" && echo "   created $OUTDIR"
+  echo "== apply: writing (write-ahead: each step is recorded and synced before it is done)"
+  WRITING=1
+  mkdir -m 0700 "$STATE" || { echo "!! cannot create $STATE: nothing else was written"; exit 1; }
+  if ! mkdir -m 0700 "$STATE/backup"; then
+    rmdir "$STATE" || echo "!! could not remove the empty $STATE: remove it by hand"
+    echo "!! cannot create $STATE/backup: nothing else was written"; exit 1
+  fi
+  wal "V1|$(date -u +%Y-%m-%dT%H:%M:%SZ)|$PUBS" || { fail "cannot write the manifest $M: stopping"; }
+  if [ "$FAILS" -eq 0 ]; then
+    if [ -d "$OUTDIR" ]; then wal "OUTDIR|$OUTDIR|-|existing" || fail "manifest write failed"
+    else
+      wal "OUTDIR|$OUTDIR|-|intent-created" || fail "manifest write failed (before creating $OUTDIR)"
+      if [ "$FAILS" -eq 0 ]; then
+        if install -d -m 0700 -o "$OWNER" -g "$OWNER" "$OUTDIR"; then
+          wal "OUTDIR|$OUTDIR|-|created" || fail "manifest write failed (after creating $OUTDIR)"
+          echo "   created $OUTDIR"
+        else fail "creation of $OUTDIR failed"; fi
+      fi
+    fi
   fi
   for u in $UNITLIST; do
+    [ "$FAILS" -eq 0 ] || break
     t="$UNITDIR/$u"; e=$(expected "$u")
     if [ -e "$t" ] && [ "$(sha "$t")" = "$e" ]; then echo "   $t identical: untouched"; continue; fi
     if [ -e "$t" ]; then
-      b="$STATE/backup/$u"; cp -p "$t" "$b" || { fail "backup of $t failed: stopping"; break; }
-      install -m 0644 -o root -g root "$W/units/$u" "$t" && echo "FILE|$t|$e|replaced|$b|$(sha "$b")" >> "$M" && echo "   replaced $t (backup $b)"
+      b="$STATE/backup/$u"; orig=$(sha "$t")
+      cp -p "$t" "$b" || { fail "backup of $t failed: stopping"; break; }
+      [ "$(sha "$b")" = "$orig" ] || { fail "backup $b does not match $t: stopping"; break; }
+      wal "FILE|$t|$e|intent-replaced|$b|$orig" || { fail "manifest write failed (before replacing $t)"; break; }
+      place "$W/units/$u" "$t" "$e" || break
+      wal "FILE|$t|$e|replaced|$b|$orig" || { fail "manifest write failed (after replacing $t)"; break; }
+      echo "   replaced $t (backup $b)"
     else
-      install -m 0644 -o root -g root "$W/units/$u" "$t" && echo "FILE|$t|$e|created" >> "$M" && echo "   created $t"
+      wal "FILE|$t|$e|intent-created" || { fail "manifest write failed (before creating $t)"; break; }
+      place "$W/units/$u" "$t" "$e" || break
+      wal "FILE|$t|$e|created" || { fail "manifest write failed (after creating $t)"; break; }
+      echo "   created $t"
     fi
   done
   if [ "$FAILS" -eq 0 ]; then
@@ -316,10 +382,13 @@ apply)
     installed_ok
     guards_unchanged
   fi
+  WRITING=0
   report
-  if [ "$FAILS" -ne 0 ]; then echo "== to undo: re-run this block with G2_MODE=rollback (manifest: $STATE/manifest)"; exit 1; fi ;;
+  if [ "$FAILS" -ne 0 ]; then
+    echo "== apply FAILED: the partial state is KEPT and recorded in $M"
+    echo "== to undo: re-run this block with G2_MODE=rollback"; exit 1
+  fi ;;
 rollback)
-  M="$STATE/manifest"
   [ -f "$M" ] || { echo "!! no manifest at $M: nothing to roll back"; exit 1; }
   for u in $UNITLIST; do
     s=$(val "$u" ActiveState); f=$(val "$u" UnitFileState)
@@ -327,35 +396,66 @@ rollback)
     case "$s" in ""|inactive|failed) ;; *) fail "$u is $s: undo the later gate first" ;; esac
   done
   if [ "$FAILS" -ne 0 ]; then echo "== rollback REFUSED: nothing was changed"; report; exit 1; fi
+  WRITING=1
   echo "== manifest being rolled back"; cat "$M"
-  DIVERGED=0
-  awk '{a[NR]=$0} END{for(i=NR;i>0;i--)print a[i]}' "$M" > "$W/rev"
+  # last record per (kind,path), in reverse order of first appearance (units before the directory)
+  awk -F'|' '$1=="FILE"||$1=="OUTDIR"{k=$1"|"$2; if(!(k in s)){o[++n]=k; s[k]=1} l[k]=$0} END{for(i=n;i>0;i--)print l[o[i]]}' "$M" > "$W/plan"
+  LEFT=""; REMOVED=""
   while IFS='|' read -r kind path hash how backup bhash; do
     case "$kind" in
     FILE)
+      tmp="$(dirname "$path")/.$(basename "$path").g2tmp"
+      if [ -e "$tmp" ]; then rm -f "$tmp" && echo "   removed leftover temp $tmp" || fail "cannot remove leftover temp $tmp"; fi
       cur=$(sha "$path")
-      if [ ! -e "$path" ]; then echo "   $path already absent"
-      elif [ "$cur" != "$hash" ]; then echo "   DIVERGED: $path (sha256 $cur != recorded $hash): left in place"; DIVERGED=1
-      elif [ "$how" = created ]; then rm -f "$path" && echo "   removed $path"
-      else
-        if [ "$(sha "$backup")" = "$bhash" ]; then install -m 0644 -o root -g root "$backup" "$path" && echo "   restored $path from $backup"
-        else echo "   DIVERGED: backup $backup altered: $path left in place"; DIVERGED=1; fi
-      fi ;;
+      case "$how" in
+      created|intent-created)
+        if [ ! -e "$path" ]; then echo "   $path already absent"; REMOVED="$REMOVED $(basename "$path")"
+        elif [ "$cur" != "$hash" ]; then fail "DIVERGED: $path has sha256 $cur, not the installed $hash: left in place, NOT undone"
+        else
+          rm -f "$path" || fail "cannot remove $path"
+          if [ -e "$path" ]; then fail "$path still exists after removal"; else echo "   removed $path"; REMOVED="$REMOVED $(basename "$path")"; fi
+        fi ;;
+      replaced|intent-replaced)
+        if [ "$cur" = "$bhash" ]; then echo "   $path already holds the original content"
+        elif [ "$cur" != "$hash" ]; then fail "DIVERGED: $path has sha256 $cur, neither the original nor the installed content: left in place, NOT restored"
+        elif [ ! -f "$backup" ] || [ "$(sha "$backup")" != "$bhash" ]; then fail "backup $backup is missing or altered: $path CANNOT be restored"
+        elif place "$backup" "$path" "$bhash"; then echo "   restored $path from $backup (hash verified)"
+        else fail "restoration of $path failed"; fi ;;
+      esac ;;
     OUTDIR)
-      if [ "$how" = created ]; then
-        rmdir "$path" 2>/dev/null && echo "   removed empty $path" || { [ -d "$path" ] && echo "   $path not empty or busy: left in place (artifacts are regenerable; remove by hand if wanted)"; }
-      else echo "   $path pre-existing: untouched"; fi ;;
+      case "$how" in
+      created|intent-created)
+        if [ ! -d "$path" ]; then echo "   $path already absent"
+        elif [ -n "$(ls -A "$path" 2>/dev/null)" ]; then echo "   LEFT IN PLACE by design: $path is not empty (artifacts are never deleted)"; LEFT="$LEFT $path"
+        else
+          rmdir "$path" || fail "cannot remove the empty directory $path"
+          [ ! -d "$path" ] && echo "   removed empty $path"
+        fi ;;
+      *) echo "   $path pre-existing: untouched" ;;
+      esac ;;
     esac
-  done < "$W/rev"
+  done < "$W/plan"
   systemctl daemon-reload; RC=$?; echo "   daemon-reload exit status: $RC"
   [ "$RC" -eq 0 ] || fail "daemon-reload exit status $RC"
-  for u in $UNITLIST; do
-    l=$(val "$u" LoadState); echo "   $u LoadState=${l:-?}"
+  for n in $REMOVED; do
+    l=$(val "$n" LoadState); echo "   $n LoadState=${l:-?}"
+    case "$l" in not-found|"") ;; *) fail "$n is still loaded (LoadState=$l) after its file was removed" ;; esac
   done
   guards_unchanged
-  if [ "$DIVERGED" -eq 0 ] && [ "$FAILS" -eq 0 ]; then rm -rf "$STATE" && echo "   removed $STATE"
-  else echo "   $STATE KEPT (diverged files or findings): manifest and backups preserved"; [ "$DIVERGED" -eq 0 ] || fail "diverged files left in place"; fi
-  report ;;
+  WRITING=0
+  if [ "$FAILS" -eq 0 ]; then
+    rm -rf "$STATE"
+    if [ -e "$STATE" ]; then fail "cannot remove $STATE"; else echo "   removed $STATE"; fi
+  fi
+  if [ "$FAILS" -eq 0 ]; then
+    echo "== summary"; echo "RESULT: OK (rollback complete and verified)"
+    [ -z "$LEFT" ] || echo "   left in place by design:$LEFT"
+  else
+    echo "== summary"
+    echo "RESULT: FAILED — ROLLBACK INCOMPLETE ($FAILS finding(s)); the previous state is NOT confirmed restored"
+    printf '%s' "$FAILMSG"
+    echo "   $STATE KEPT: manifest and backups are preserved for manual recovery"
+  fi ;;
 esac
 [ "$FAILS" -eq 0 ] && exit 0
 exit 1
