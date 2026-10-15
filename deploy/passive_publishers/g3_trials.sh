@@ -156,7 +156,7 @@ echo "   output directory now: $(ls -A "$OUTDIR" 2>/dev/null | tr '\n' ' ')(arti
 echo "   other publisher's artifact ($OTHER): $(other_state) (allowed; must stay unchanged during the series)"
 [ -d "$SRC" ] && [ -x "$PYBIN" ] || fail "deployed release code or interpreter missing ($SRC, $PYBIN)"
 ex=$(val "$SERVICE" ExecMainStartTimestampMonotonic)
-echo "   $SERVICE ExecMainStartTimestampMonotonic=${ex:-?} (0 = never run since boot/reload)"
+echo "   $SERVICE ExecMainStartTimestampMonotonic=${ex:-?} (0 = no start recorded in the property observed at this moment; this property alone does not prove the full history)"
 ( cd "$SRC" && env -i PATH=/usr/bin:/bin PYTHONPATH="$SRC" PYTHONDONTWRITEBYTECODE=1 "$PYBIN" -c "import observability.runtime_service_contract, observability.storage_contract" ) >/dev/null 2>&1 \
   || fail "the contract validators of the deployed release cannot be imported"
 df -Pk "$OUTDIR" 2>/dev/null | awk 'NR==2 && $4 < 10240 {exit 1}' || fail "less than 10 MiB free for $OUTDIR"
@@ -190,7 +190,7 @@ while [ "$I" -lt "$RUNS" ] && [ "$FAILS" -eq 0 ]; do
   MS0=$(val "$SERVICE" ExecMainStartTimestampMonotonic); MS1=$(val "$SERVICE" ExecMainExitTimestampMonotonic)
   MP=$(val "$SERVICE" MemoryPeak); CPU=$(val "$SERVICE" CPUUsageNSec)
   D=NOT_AVAILABLE
-  case "$MS0$MS1" in *[!0-9]*|"") ;; *) [ "$MS1" -ge "$MS0" ] && D=$(( (MS1 - MS0) / 1000 ))ms ;; esac
+  case "$MS0$MS1" in *[!0-9]*|"") ;; *) [ "$MS0" -gt 0 ] && [ "$MS1" -ge "$MS0" ] && D=$(( (MS1 - MS0) / 1000 ))ms ;; esac
   case "$MP" in ""|"[not set]"|infinity|18446744073709551615) MP=NOT_AVAILABLE ;; esac
   case "$CPU" in ""|"[not set]"|18446744073709551615) CPU=NOT_AVAILABLE ;; esac
   echo "   Result=$R ExecMainStatus=$S ExecMainCode=$C ActiveState=$A duration=$D MemoryPeak=$MP CPUUsageNSec=$CPU"
