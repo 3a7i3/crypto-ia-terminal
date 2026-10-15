@@ -54,9 +54,20 @@ if args[:1] == ["start"] and len(args) == 2 and args[1] in OURS:
         open(os.path.join(fake, "g_crypto-advisor.service_NRestarts"), "w").write("1")
     if rd("timer_on_start"):
         open(os.path.join(fake, "active_crypto-publish-storage.timer"), "w").write("active")
+    if rd("touch_other"):
+        other = os.path.join(outdir, "runtime_service_snapshot.json")
+        open(other, "w").write("modified")
     if not rd("no_write"):
+        import json
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc) - (timedelta(hours=1) if rd("stale_ts") else timedelta(0))
+        stamp = now.isoformat().replace("+00:00", "Z")
+        doc = {"generated_at_utc": stamp, "observed_at_utc": stamp, "n": n, "valid": not rd("invalid")}
         tmp = os.path.join(outdir, ".tmp"); target = os.path.join(outdir, ARTS[args[1]])
-        open(tmp, "w").write('{"n": %d}' % n); os.chmod(tmp, 0o600); os.replace(tmp, target)
+        open(tmp, "w").write("not json" if rd("corrupt") else json.dumps(doc))
+        os.chmod(tmp, 0o600); os.replace(tmp, target)
+        if rd("old_mtime"):
+            os.utime(target, (1000, 1000))
     if rd("extra_file"):
         open(os.path.join(outdir, "leftover.tmp"), "w").write("x")
     sys.exit(int(rd("start_rc", "0")))
@@ -149,12 +160,17 @@ class World:
         (self.shims / "journalctl").write_text(
             "#!/bin/sh\necho journal-line\n", encoding="utf-8"
         )
-        (self.shims / "python-deployed").write_text(
-            f'#!/bin/sh\ncase "$2" in import*) exit 0;; esac\nRC=$(cat "{self.fake}/contract_rc" 2>/dev/null || echo 0)\n'
-            'if [ "$RC" != 0 ]; then echo "contract-valid=False {}"; exit "$RC"; fi\n'
-            'echo "contract-valid=True {}"\n',
-            encoding="utf-8",
-        )
+        pkg = self.src / "observability"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("", encoding="utf-8")
+        for module, func in (
+            ("runtime_service_contract", "validate_runtime_service_snapshot"),
+            ("storage_contract", "validate_storage_snapshot"),
+        ):
+            (pkg / f"{module}.py").write_text(
+                f"import os\n\ndef {func}(doc):\n    return bool(doc['valid'])\n",
+                encoding="utf-8",
+            )
         for shim in self.shims.iterdir():
             shim.chmod(0o755)
         self.script = tmp_path / "g3.sh"
@@ -170,7 +186,7 @@ class World:
             "G3_OUTDIR": str(self.out),
             "G3_OWNER": "root",
             "G3_SRC": str(self.src),
-            "G3_PYBIN": str(self.shims / "python-deployed"),
+            "G3_PYBIN": "/usr/bin/python3",
             "G3_GAP": "0",
             "TMPDIR": str(self.work),
         }
@@ -309,9 +325,7 @@ def test_health_not_200_refuses(world):
 
 
 def test_validators_not_importable_refuses(world):
-    (world.shims / "python-deployed").write_text(
-        "#!/bin/sh\nexit 1\n", encoding="utf-8"
-    )
+    (world.src / "observability" / "storage_contract.py").unlink()
     r = world.run("plan")
     assert r.returncode == 1 and "cannot be imported" in r.stdout
 
@@ -353,11 +367,72 @@ def test_failure_stops_the_series_and_repairs_nothing(world):
     assert world.forbidden() == "" and world.out_files() == [ART["runtime-service"]]
 
 
-def test_invalid_contract_stops_at_first_trial(world):
-    world.set("contract_rc", "1")
+def test_invalid_contract_exits_nonzero_and_stops_at_first_trial(world):
+    world.set("invalid", "1")
     r = world.run("run")
-    assert r.returncode == 1 and "contract check exit status 1" in r.stdout
+    assert r.returncode == 1 and "contract-valid=False" in r.stdout
+    assert "exit status 1" in r.stdout
     assert len(world.starts()) == 1
+
+
+def test_unreadable_artifact_is_an_error_exit_not_a_pass(world):
+    world.set("corrupt", "1")
+    r = world.run("run")
+    assert r.returncode == 1 and "contract-check-error" in r.stdout
+    assert "exit status 2" in r.stdout and len(world.starts()) == 1
+
+
+def test_stale_embedded_timestamps_are_not_from_this_launch(world):
+    world.set("stale_ts", "1")
+    r = world.run("run")
+    assert r.returncode == 1 and "fresh-from-this-launch=False" in r.stdout
+    assert len(world.starts()) == 1
+
+
+def test_old_file_mtime_is_not_from_this_launch(world):
+    world.set("old_mtime", "1")
+    r = world.run("run")
+    assert r.returncode == 1 and "fresh-from-this-launch=False" in r.stdout
+
+
+def test_fresh_artifact_reports_launch_proof(world):
+    r = world.run("run")
+    assert r.returncode == 0 and r.stdout.count("fresh-from-this-launch=True") == 3
+    assert r.stdout.count("contract-valid=True") == 3
+
+
+def test_storage_series_allows_and_preserves_the_runtime_artifact(world):
+    assert world.run("run").returncode == 0
+    first = (world.out / ART["runtime-service"]).read_bytes()
+    r = world.run("run", pub="storage")
+    assert r.returncode == 0, r.stdout
+    assert world.out_files() == sorted(ART.values())
+    assert (world.out / ART["runtime-service"]).read_bytes() == first
+    assert "allowed; must stay unchanged" in r.stdout
+
+
+def test_storage_series_fails_if_the_runtime_artifact_changes(world):
+    assert world.run("run").returncode == 0
+    world.set("touch_other", "1")
+    r = world.run("run", pub="storage")
+    assert r.returncode == 1 and "runtime_service_snapshot.json changed" in r.stdout
+    assert len(world.starts()) == 4
+
+
+def test_unexpected_file_is_still_refused_next_to_the_other_artifact(world):
+    assert world.run("run").returncode == 0
+    world.set("extra_file", "1")
+    r = world.run("run", pub="storage")
+    assert (
+        r.returncode == 1
+        and "unexpected files" in r.stdout
+        and "leftover.tmp" in r.stdout
+    )
+
+
+def test_plan_reports_the_other_artifact_state(world):
+    r = world.run("plan")
+    assert r.returncode == 0 and "storage_snapshot.json): absent" in r.stdout
 
 
 def test_artifact_not_refreshed_is_a_failure(world):

@@ -3,7 +3,7 @@ case "$MODE" in plan|run) ;; *) echo "G3_MODE must be plan|run"; exit 2;; esac
 case "$PUB" in runtime-service|storage) ;; *) echo "G3_PUB must be runtime-service|storage (one per run)"; exit 2;; esac
 RUN='umask 077; if [ "$(id -u)" -eq 0 ]; then P=/run; else P="${TMPDIR:-/tmp}"; fi; R=$(mktemp -d "$P/g3priv.XXXXXX") || exit 1; cat > "$R/g3.sh" || { rm -rf "$R"; echo "COPY FAILED: not run"; exit 1; }; echo "$1  $R/g3.sh" | sha256sum -c - || { rm -rf "$R"; echo "HASH MISMATCH OF THE PROTECTED COPY: not run"; exit 1; }; sh "$R/g3.sh" "$2" "$3"; RC=$?; rm -rf "$R"; exit $RC'
 PRIV=""; case "$MODE" in run) PRIV=sudo;; esac
-$PRIV sh -c "$RUN" g3priv bdc9c3b007b22428cf1654945d1ea2ed376ca86d7acc33193a44efa9688e69cb "$MODE" "$PUB" <<'G3_SCRIPT_EOF'
+$PRIV sh -c "$RUN" g3priv 4a125f6e17d973999ec37df6bec830013116c079ecfd3e4dc1ba88ebcb513e39 "$MODE" "$PUB" <<'G3_SCRIPT_EOF'
 #!/bin/sh
 # G3 — one-shot systemd trials of ONE passive publisher (timers stay disabled).
 # Usage:  sh g3.sh plan <runtime-service|storage>      read-only, any user, nothing written
@@ -82,21 +82,41 @@ protected() {
 }
 # run the artifact contract of the DEPLOYED release as the output owner, empty environment
 CHECK_PY='
-import json, sys
-kind, path = sys.argv[1], sys.argv[2]
-doc = json.load(open(path))
-if kind == "runtime":
-    from observability.runtime_service_contract import validate_runtime_service_snapshot as ok
-    extra = {k: doc["service"].get(k) for k in ("query_status", "load_state", "active_state")}
-else:
-    from observability.storage_contract import validate_storage_snapshot as ok
-    extra = {k: doc.get(k) for k in ("source_status", "entries_observed", "matched_file_count", "total_bytes")}
-valid = bool(ok(doc))
-print("contract-valid=%s %s" % (valid, extra))
-sys.exit(0 if valid else 1)
+import json, os, sys
+from datetime import datetime, timezone
+try:
+    kind, path, t0, t1 = sys.argv[1], sys.argv[2], float(sys.argv[3]), float(sys.argv[4])
+    doc = json.load(open(path))
+    if kind == "runtime":
+        from observability.runtime_service_contract import validate_runtime_service_snapshot as ok
+    else:
+        from observability.storage_contract import validate_storage_snapshot as ok
+    valid = ok(doc) is True
+    def epoch(key):
+        return datetime.fromisoformat(doc[key].replace("Z", "+00:00")).astimezone(timezone.utc).timestamp()
+    stamps = {k: epoch(k) for k in ("generated_at_utc", "observed_at_utc")}
+    mtime = os.stat(path).st_mtime
+    lo, hi = t0 - 0.5, t1 + 0.5
+    fresh = all(lo <= v <= hi for v in stamps.values()) and lo <= mtime <= hi
+    print("contract-valid=%s fresh-from-this-launch=%s generated_at_utc=%s observed_at_utc=%s" % (
+        valid, fresh, doc["generated_at_utc"], doc["observed_at_utc"]))
+    sys.exit(0 if (valid and fresh) else 1)
+except SystemExit:
+    raise
+except BaseException as exc:
+    print("contract-check-error: %s: %s" % (type(exc).__name__, exc))
+    sys.exit(2)
 '
 contract() {
-  ( cd "$SRC" && timeout 20 runuser -u "$OWNER" -- env -i PATH=/usr/bin:/bin PYTHONPATH="$SRC" PYTHONDONTWRITEBYTECODE=1 PYTHONIOENCODING=utf-8 "$PYBIN" -c "$CHECK_PY" "$KIND" "$1" ) 2>&1
+  ( cd "$SRC" && timeout 20 runuser -u "$OWNER" -- env -i PATH=/usr/bin:/bin PYTHONPATH="$SRC" PYTHONDONTWRITEBYTECODE=1 PYTHONIOENCODING=utf-8 "$PYBIN" -c "$CHECK_PY" "$KIND" "$1" "$2" "$3" ) 2>&1
+}
+# the other publisher's artifact (e.g. the runtime-service file during the storage series) is
+# ALLOWED in the output directory but must stay byte-for-byte what it was before this series
+case "$PUB" in runtime-service) OTHER=storage_snapshot.json ;; *) OTHER=runtime_service_snapshot.json ;; esac
+other_state() {
+  if [ -e "$OUTDIR/$OTHER" ] || [ -L "$OUTDIR/$OTHER" ]; then
+    echo "present $(stat -c '%i:%s:%y' "$OUTDIR/$OTHER" 2>&1) sha256=$(sha "$OUTDIR/$OTHER")"
+  else echo "absent"; fi
 }
 
 echo "== G3 mode=$MODE publisher=$PUB $(date -u +%Y-%m-%dT%H:%M:%SZ) user=$(id -un) uid=$(id -u)"
@@ -139,13 +159,14 @@ if [ -d "$OUTDIR" ]; then
   [ "$own" = "$OWNER 700" ] || fail "$OUTDIR is '$own' (need '$OWNER 700')"
 else fail "$OUTDIR does not exist (G2 creates it)"; fi
 echo "   output directory now: $(ls -A "$OUTDIR" 2>/dev/null | tr '\n' ' ')(artifact present: $([ -e "$OUTDIR/$ART" ] && echo yes || echo no))"
+echo "   other publisher's artifact ($OTHER): $(other_state) (allowed; must stay unchanged during the series)"
 [ -d "$SRC" ] && [ -x "$PYBIN" ] || fail "deployed release code or interpreter missing ($SRC, $PYBIN)"
 ex=$(val "$SERVICE" ExecMainStartTimestampMonotonic)
 echo "   $SERVICE ExecMainStartTimestampMonotonic=${ex:-?} (0 = never run since boot/reload)"
 ( cd "$SRC" && env -i PATH=/usr/bin:/bin PYTHONPATH="$SRC" PYTHONDONTWRITEBYTECODE=1 "$PYBIN" -c "import observability.runtime_service_contract, observability.storage_contract" ) >/dev/null 2>&1 \
   || fail "the contract validators of the deployed release cannot be imported"
 df -Pk "$OUTDIR" 2>/dev/null | awk 'NR==2 && $4 < 10240 {exit 1}' || fail "less than 10 MiB free for $OUTDIR"
-BEFORE=$(snap); H0=$(health); echo "   healthz before: $H0"
+BEFORE=$(snap); OTHER0=$(other_state); H0=$(health); echo "   healthz before: $H0"
 [ "$H0" = 200 ] || fail "healthz before is $H0 (expected 200)"
 
 if [ "$MODE" = plan ]; then
@@ -165,15 +186,17 @@ while [ "$I" -lt "$RUNS" ] && [ "$FAILS" -eq 0 ]; do
   [ "$I" -gt 1 ] && sleep "$GAP"
   M0=$(stat -c '%i:%Y.%y' "$OUTDIR/$ART" 2>/dev/null || echo none)
   echo "-- trial $I/$RUNS: systemctl start $SERVICE"
+  T0=$(date +%s.%N)
   timeout 60 systemctl start "$SERVICE"; RC=$?
+  T1=$(date +%s.%N)
   echo "   start exit status: $RC"
   [ "$RC" -eq 0 ] || fail "trial $I: systemctl start exit status $RC"
   R=$(val "$SERVICE" Result); S=$(val "$SERVICE" ExecMainStatus); C=$(val "$SERVICE" ExecMainCode)
   A=$(val "$SERVICE" ActiveState)
-  T0=$(val "$SERVICE" ExecMainStartTimestampMonotonic); T1=$(val "$SERVICE" ExecMainExitTimestampMonotonic)
+  MS0=$(val "$SERVICE" ExecMainStartTimestampMonotonic); MS1=$(val "$SERVICE" ExecMainExitTimestampMonotonic)
   MP=$(val "$SERVICE" MemoryPeak); CPU=$(val "$SERVICE" CPUUsageNSec)
   D=NOT_AVAILABLE
-  case "$T0$T1" in *[!0-9]*|"") ;; *) [ "$T1" -ge "$T0" ] && D=$(( (T1 - T0) / 1000 ))ms ;; esac
+  case "$MS0$MS1" in *[!0-9]*|"") ;; *) [ "$MS1" -ge "$MS0" ] && D=$(( (MS1 - MS0) / 1000 ))ms ;; esac
   case "$MP" in ""|"[not set]"|infinity|18446744073709551615) MP=NOT_AVAILABLE ;; esac
   case "$CPU" in ""|"[not set]"|18446744073709551615) CPU=NOT_AVAILABLE ;; esac
   echo "   Result=$R ExecMainStatus=$S ExecMainCode=$C ActiveState=$A duration=$D MemoryPeak=$MP CPUUsageNSec=$CPU"
@@ -188,8 +211,8 @@ while [ "$I" -lt "$RUNS" ] && [ "$FAILS" -eq 0 ]; do
     [ "$own" = "$OWNER 600" ] || fail "trial $I: artifact owner/mode '$own' (expected '$OWNER 600')"
     [ "$sz" -gt 0 ] && [ "$sz" -le 1048576 ] || fail "trial $I: artifact size $sz out of bounds (1..1048576)"
     [ "$(stat -c '%i:%Y.%y' "$f")" != "$M0" ] || fail "trial $I: artifact was not refreshed by this trial"
-    out=$(contract "$f"); CRC=$?; echo "   $out"
-    [ "$CRC" -eq 0 ] || fail "trial $I: contract check exit status $CRC (1 = invalid, other = error)"
+    out=$(contract "$f" "$T0" "$T1"); CRC=$?; echo "   $out"
+    [ "$CRC" -eq 0 ] || fail "trial $I: contract/freshness check exit status $CRC (1 = invalid or not from this launch, 2 = error)"
   fi
   extras=$(ls -A "$OUTDIR" | grep -v -x -e runtime_service_snapshot.json -e storage_snapshot.json)
   [ -z "$extras" ] || fail "trial $I: unexpected files in $OUTDIR: $(echo $extras)"
@@ -199,6 +222,7 @@ while [ "$I" -lt "$RUNS" ] && [ "$FAILS" -eq 0 ]; do
       [ "$a" = inactive ] && [ "$u" = disabled ] || fail "trial $I: $t is $a/$u (must stay inactive/disabled)" ;;
     esac
   done
+  [ "$(other_state)" = "$OTHER0" ] || fail "trial $I: $OTHER changed during this series (before: $OTHER0 / now: $(other_state))"
   AFTER=$(snap)
   [ "$BEFORE" = "$AFTER" ] || { fail "trial $I: Advisor/API/web CHANGED"; echo "--- before"; echo "$BEFORE"; echo "--- after"; echo "$AFTER"; }
   H1=$(health); echo "   healthz after: $H1"
