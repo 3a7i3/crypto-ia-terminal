@@ -36,7 +36,7 @@ async function load(){$('#msg').textContent='Chargement…';
  <button data-id="${esc(e.experiment_id)}">Détails</button></div>`).join('')}
  catch(e){$('#list').innerHTML='';$('#msg').textContent='Lecture impossible : '+e.message+' (ce n\'est pas une liste vide)'}}
 async function detail(id){try{const[r,ev]=await Promise.all([api('/lab/experiments/'+id),api('/lab/experiments/'+id+'/events')]);
- $('#detail').innerHTML=`<div class="card"><h2>${esc(r.title)}</h2><p class="mut">code <code>${esc(r.code_digest.slice(0,16))}…</code> ·
+ $('#detail').innerHTML=`<div class="card"><h2>${esc(r.title)}</h2><p><code>${esc(r.experiment_id)}</code> · trace <code>${esc(r.trace_id)}</code> · provenance <b>${esc(r.provenance)}</b> · scénario ${esc(r.scenario)} · état final ${esc(r.final_state)} · <span class="${r.verdict==='PASS'?'pass':'fail'}">${esc(r.verdict)}</span></p><p class="mut">code <code>${esc(r.code_digest.slice(0,16))}…</code> ·
  config <code>${esc(r.config_digest.slice(0,16))}…</code> · seed ${esc(r.seed)} · empreinte événements <code>${esc(r.events_digest.slice(0,16))}…</code></p>
  <h3>Critères</h3><div class="wrap"><table>${r.criteria.map(c=>`<tr><td class="${c.passed?'pass':'fail'}">${c.passed?'OK':'KO'}</td><td>${esc(c.description)}</td>
  <td class="mut">observé ${esc(JSON.stringify(c.observed))}</td></tr>`).join('')}</table></div>
