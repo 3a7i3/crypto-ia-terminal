@@ -1,0 +1,49 @@
+[Unit]
+Description=LAB-01 : exécution des scénarios synthétiques (sans réseau)
+Documentation=https://github.com/3a7i3/crypto-ia-terminal/issues/445
+# Aucune dépendance (Requires/Wants/After/BindsTo/PartOf/Conflicts) vers une unité
+# de production : le LAB ne peut ni les démarrer, ni les arrêter, ni les suivre.
+
+[Service]
+Type=oneshot
+User=lab01
+Group=lab01
+Slice=lab01.slice
+WorkingDirectory=/srv/lab01/runs
+Environment=PYTHONPATH=/srv/lab01/release/current PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+ExecStart=/usr/bin/python3.11 -m lab01 run --out /srv/lab01/runs/latest
+TimeoutStartSec=300
+TimeoutStopSec=15
+# Réseau : aucun pendant l'exécution expérimentale.
+PrivateNetwork=yes
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX
+# Système de fichiers : seul /srv/lab01/runs est inscriptible.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadWritePaths=/srv/lab01/runs
+InaccessiblePaths=/home /root /opt/crypto-ai-terminal /srv/claude-audit /etc/ssl/private
+# Privilèges.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
+# Limites propres à l'unité (en plus de la slice).
+LimitNOFILE=256
+LimitNPROC=64
+LimitCORE=0
+# Aucun fichier d'environnement : aucun secret n'entre dans le LAB.
+# Pas de section d'installation : jamais activée au démarrage, lancée à la main.

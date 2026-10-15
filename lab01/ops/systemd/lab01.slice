@@ -1,0 +1,12 @@
+[Unit]
+Description=LAB-01 slice : plafond cumulé de ressources pour tout le LAB (SYNTHETIC)
+Documentation=https://github.com/3a7i3/crypto-ia-terminal/issues/445
+
+[Slice]
+# Plafonds cumulés (somme de tous les services du LAB), indépendants de la production.
+MemoryHigh=1536M
+MemoryMax=2G
+MemorySwapMax=0
+CPUQuota=50%
+TasksMax=128
+IOWeight=10

@@ -1,0 +1,42 @@
+[Unit]
+Description=LAB-01 : API GET-only et interface (SYNTHETIC, loopback, jeton)
+Documentation=https://github.com/3a7i3/crypto-ia-terminal/issues/445
+# Même règle : aucune dépendance vers une unité de production.
+
+[Service]
+Type=simple
+User=lab01
+Group=lab01
+Slice=lab01.slice
+WorkingDirectory=/srv/lab01/runs
+Environment=PYTHONPATH=/srv/lab01/release/current PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+ExecStart=/usr/bin/python3.11 -m lab01 serve --out /srv/lab01/runs/latest --port 18090 --token-file /srv/lab01/token
+Restart=no
+# Réseau : loopback seulement, aucun sortant.
+IPAddressDeny=any
+IPAddressAllow=127.0.0.0/8 ::1
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadOnlyPaths=/srv/lab01/runs
+InaccessiblePaths=/home /root /opt/crypto-ai-terminal /srv/claude-audit /etc/ssl/private
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
+LimitNOFILE=256
+LimitNPROC=64
+LimitCORE=0
+# Le jeton est un fichier root:lab01 0640 ; sa valeur n'est jamais dans l'unité.
