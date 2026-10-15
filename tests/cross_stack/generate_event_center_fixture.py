@@ -38,7 +38,29 @@ def generate(out_dir: Path):
         api._event_center_reader = prior
     result = {"http_status": response.status_code, "body": response.json()}
     (out_dir / "L_events.json").write_text(json.dumps(result, indent=2))
+    (out_dir / "L_events_partial.json").write_text(json.dumps(_partial(root, out_dir), indent=2))
     return result
+
+
+def _partial(root: Path, out_dir: Path):
+    """Real chain with an oversized P12 log: explicit partial tail (schema 1.1.0)."""
+    big = root / "alerts_oversized.jsonl"
+    line = json.dumps({"rule": "MEMORY", "severity": "WARNING", "ts": NOW - 10,
+                       "message": "m" * 100, "value": 1, "threshold": 90}) + "\n"
+    big.write_text(line * (2_097_152 // len(line) + 3000))
+    artifact = root / "event_center_snapshot_partial.json"
+    publish_event_center(artifact, generated_at_utc=datetime.fromtimestamp(NOW, timezone.utc).isoformat().replace("+00:00", "Z"),
+                         p12_alerts=big,
+                         ppl_lifecycles=out_dir / "_producer" / "J_burn_in" / "burn_in_status_snapshot.json")
+    prior = api.get_event_center_reader()
+    try:
+        api.configure_event_center_reader(artifact, now_fn=lambda: NOW + 5)
+        with TestClient(api.app) as client:
+            response = client.get("/api/operator/v1/events")
+    finally:
+        api._event_center_reader = prior
+    big.unlink()  # keep the fixture directory small
+    return {"http_status": response.status_code, "body": response.json()}
 
 
 if __name__ == "__main__":

@@ -372,58 +372,81 @@ def _alert_line(ts: float) -> str:
                        "message": "m", "value": 1.0, "threshold": 2.0}) + "\n"
 
 
+def _big_alert_log(path: Path, extra: int = 4000) -> int:
+    line = _alert_line(time.time() - 5)
+    count = 2_097_152 // len(line) + extra
+    path.write_text(line * count, encoding="utf-8")
+    return count
+
+
 def test_events_total_read_budget_is_bounded_by_the_fixed_source_count(tmp_path, monkeypatch):
     """Bytes read per run <= len(SOURCE_IDS) * (MAX_BYTES + 1), independent of file sizes.
 
     The producer only accepts the fixed SOURCE_IDS; adding a source changes this bound
     explicitly (the pinned numbers below must then be reviewed, not silently exceeded).
+    A windowed JSONL read is smaller still (TAIL_WINDOW_BYTES + 1).
     """
     from observability import event_center_artifact as artifact
     from observability import event_center_snapshot as snapshot
-    from observability.event_center_contract import MAX_BYTES, SOURCE_IDS
+    from observability.event_center_contract import MAX_BYTES, SOURCE_IDS, TAIL_WINDOW_BYTES
 
     assert SOURCE_IDS == ("p12_alerts", "supervision_alerts", "ppl_lifecycles")
     assert len(SOURCE_IDS) * MAX_BYTES == 3 * 2_097_152  # documented budget: 6 MiB
+    assert TAIL_WINDOW_BYTES + 1 <= MAX_BYTES + 1
     big = tmp_path / "big.jsonl"
-    big.write_bytes(b"x" * (MAX_BYTES * 3))
+    _big_alert_log(big)
+    spaces = tmp_path / "burn_in.json"
+    spaces.write_bytes(b" " * (MAX_BYTES * 3))
     consumed = []
-    real = artifact.read_bytes
 
-    def counting(path):
-        try:
-            return real(path)
-        finally:
+    def counting(real):
+        def wrapper(path):
             consumed.append(path)
+            return real(path)
+        return wrapper
 
-    monkeypatch.setattr(snapshot, "read_bytes", counting)
+    monkeypatch.setattr(snapshot, "read_bytes", counting(artifact.read_bytes))
+    monkeypatch.setattr(snapshot, "read_jsonl_window", counting(artifact.read_jsonl_window))
     doc = snapshot.build_event_center(
         generated_at_utc="2026-10-14T20:00:00.000000Z",
-        p12_alerts=big, supervision_alerts=big, ppl_lifecycles=big)
+        p12_alerts=big, supervision_alerts=big, ppl_lifecycles=spaces)
     assert len(consumed) == len(SOURCE_IDS)
-    assert {s["status"] for s in doc["sources"]} == {"OUTPUT_LIMIT"}
-    # Each open reads at most MAX_BYTES + 1 bytes (see event_center_artifact.read_bytes).
+    assert [s["status"] for s in doc["sources"]][2] == "OUTPUT_LIMIT"
     assert len(consumed) * (MAX_BYTES + 1) < 6_300_000
 
 
-def test_alerts_over_the_limit_is_explicit_output_limit_never_a_partial_read(machine):
+def test_alerts_over_the_limit_is_an_explicit_partial_tail_never_presented_as_exhaustive(machine):
     rt, out = machine
     alerts = rt / "cache" / "startup" / "alerts.jsonl"
-    line = _alert_line(time.time() - 5)
-    alerts.write_text(line * (2_097_152 // len(line) + 5), encoding="utf-8")
-    assert alerts.stat().st_size > 2_097_152
+    count = _big_alert_log(alerts)
+    size = alerts.stat().st_size
+    assert size > 2_097_152
     before = _tree(rt)
     result = _run(_command("events", out, rt))
     assert result.returncode == 0, result.stderr
     assert _tree(rt) == before
     doc = json.loads((out / "event_center_snapshot.json").read_text())
-    assert validate_event_center(doc)
+    assert validate_event_center(doc) and doc["schema_version"] == "1.1.0"
     p12 = doc["sources"][0]
-    assert p12["status"] == "OUTPUT_LIMIT"
-    assert p12["records_observed"] is None and p12["published_count"] is None
-    assert p12["source_sha256"] is None
-    assert doc["events"] == []  # nothing from the oversized source is presented
+    assert p12["status"] == "PARTIAL_TAIL" and p12["coverage"] == "TAIL_WINDOW"
+    assert p12["source_bytes"] == size and p12["window_bytes"] < size
+    assert p12["records_observed"] < count  # records before the window are never counted
+    assert {e["source_id"] for e in doc["events"]} == {"p12_alerts"}
     served = EventCenterReader(out / "event_center_snapshot.json").read()
-    assert served.ok  # the document is still served; the limit is visible, not hidden
+    assert served.ok and served.snapshot["sources"][0]["status"] == "PARTIAL_TAIL"
+
+
+def test_a_log_just_under_the_limit_is_still_published_whole_with_schema_1_0_0(machine):
+    rt, out = machine
+    alerts = rt / "cache" / "startup" / "alerts.jsonl"
+    base = _alert_line(time.time() - 5)
+    line = base.replace('"message": "m"', '"message": "' + "m" * (256 - len(base) + 1) + '"')
+    assert len(line) == 256  # 7 864 lines (< 10 000 records) for the size measured at G0
+    alerts.write_text(line * (2_013_413 // 256), encoding="utf-8")
+    result = _run(_command("events", out, rt))
+    assert result.returncode == 0, result.stderr
+    doc = json.loads((out / "event_center_snapshot.json").read_text())
+    assert doc["schema_version"] == "1.0.0" and doc["sources"][0]["status"] == "PRESENT"
 
 
 def test_a_missing_or_oversized_source_does_not_block_another_valid_source(tmp_path):
@@ -431,15 +454,13 @@ def test_a_missing_or_oversized_source_does_not_block_another_valid_source(tmp_p
 
     good = tmp_path / "alerts.jsonl"
     good.write_text(_alert_line(time.time() - 5), encoding="utf-8")
-    huge = tmp_path / "audit.jsonl"
-    huge.write_bytes(b"x" * 2_097_153)
+    huge = tmp_path / "burn_in.json"
+    huge.write_bytes(b" " * 2_097_153)
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S.000000Z", time.gmtime())
-    doc = build_event_center(
-        generated_at_utc=stamp, p12_alerts=good,
-        supervision_alerts=huge, ppl_lifecycles=tmp_path / "absent.json")
+    doc = build_event_center(generated_at_utc=stamp, p12_alerts=good, ppl_lifecycles=huge)
     status = {s["source_id"]: s["status"] for s in doc["sources"]}
-    assert status == {"p12_alerts": "PRESENT", "supervision_alerts": "OUTPUT_LIMIT",
-                      "ppl_lifecycles": "MISSING"}
+    assert status == {"p12_alerts": "PRESENT", "supervision_alerts": "NOT_CONFIGURED",
+                      "ppl_lifecycles": "OUTPUT_LIMIT"}
     assert len(doc["events"]) == 1 and doc["events"][0]["source_id"] == "p12_alerts"
 
 
@@ -523,3 +544,49 @@ def test_g0_keeps_timeouts_and_errors_instead_of_a_partial_result(machine, tmp_p
         "printf 'E\\t5\\t1.0\\tdecision_packets_a.jsonl\\n'\nexit 1\n", encoding="utf-8")
     denied = _g0(rt, out, None, path)
     assert "STATUS=INCOMPLETE" in denied.stdout and "STATUS=COMPLETE" not in denied.stdout
+
+
+# ------------------------------- G1 block (prepared, never run here) -----------
+
+
+def test_g1_script_is_generated_from_the_unit_files_without_drift():
+    sys.path.insert(0, str(DIR))
+    try:
+        import build_g1
+    finally:
+        sys.path.remove(str(DIR))
+    assert (DIR / "g1_stage_verify_measure.sh").read_text(encoding="utf-8") == build_g1.build()
+
+
+def _g1(machine, tmp_path, **env_extra):
+    rt, _out = machine
+    work = tmp_path / "tmpdir"
+    work.mkdir()
+    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "RT": str(rt), "RUNS": "2",
+           "PYBIN": sys.executable, "SRC": str(ROOT), "TMPDIR": str(work)}
+    env.update(env_extra)
+    result = subprocess.run(["sh", str(DIR / "g1_stage_verify_measure.sh")], env=env,
+                            capture_output=True, text=True, timeout=120)
+    return result, work
+
+
+def test_g1_writes_only_to_a_temporary_directory_and_cleans_up(machine, tmp_path):
+    rt, out = machine
+    before = _tree(rt)
+    result, work = _g1(machine, tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert _tree(rt) == before and list(out.iterdir()) == []  # sources and output dir untouched
+    assert list(work.iterdir()) == []  # the 0700 work dir is gone
+    assert "cleanup OK" in result.stdout and "CLEANUP FAILED" not in result.stdout
+    assert result.stdout.count("contract-valid=True") == 3
+    assert "failed runs: 0/2" in result.stdout and "UNCHANGED" in result.stdout
+    assert "NOT created" in result.stdout
+    assert not any(line.startswith("/home/mathieu/operator_presentation") for line in result.stdout.splitlines())
+
+
+def test_g1_reports_a_missing_interpreter_instead_of_a_partial_result(machine, tmp_path):
+    result, work = _g1(machine, tmp_path, PYBIN="/nonexistent/python")
+    assert result.returncode == 0
+    assert result.stdout.count("NOT PRODUCED") == 3 and "failed runs: 2/2" in result.stdout
+    assert "contract-valid=True" not in result.stdout
+    assert list(work.iterdir()) == []

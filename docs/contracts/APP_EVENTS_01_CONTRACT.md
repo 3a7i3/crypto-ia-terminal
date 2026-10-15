@@ -75,6 +75,17 @@ fabriquée ni de timezone implicite. Une source sans date peut rester consultabl
 avec UNKNOWN. Les filtres React conservent l'ordre et portent sur les seules
 lignes publiées, sans nouvelle requête/calcul de verdict.
 
+## Extension 1.1.0 — fenêtre de fin de journal (couverture partielle explicite)
+Constat : `alerts.jsonl` (P12) est un journal append-only qui approche le plafond de 2 MiB (2 013 413 o relevés en G0). En 1.0.0 il passerait en `OUTPUT_LIMIT` durablement. 1.1.0 ajoute une lecture bornée, jamais présentée comme exhaustive.
+
+- **Sources concernées** : `p12_alerts` et `supervision_alerts` (JSONL). Jamais `ppl_lifecycles` (document JSON unique : toujours `OUTPUT_LIMIT` au-delà de 2 MiB).
+- **Quand** : fichier > 2 MiB (lecture des 1 MiB de fin) **ou** > 10 000 lignes (les 10 000 dernières lignes). Coupe au premier début de ligne de la fenêtre : une ligne partielle n'est jamais analysée. Une fenêtre sans ligne complète, un dernier enregistrement non terminé ou un fichier modifié pendant la lecture donnent `INVALID` (pas de ligne partielle).
+- **Statut** : `PARTIAL_TAIL` (au lieu de `PRESENT`), avec trois clés supplémentaires par source : `coverage` (`FULL` | `TAIL_WINDOW`), `source_bytes` (taille observée), `window_bytes` (octets analysés, `< source_bytes`). `records_observed` ne compte que la fenêtre ; les enregistrements antérieurs restent **inconnus, jamais comptés ni déduits**. `source_sha256` est l'empreinte de la fenêtre analysée. Les `source_record` sont numérotés dans la fenêtre.
+- **Version** : le document est publié en `1.1.0` **seulement** si une source est `PARTIAL_TAIL` ; sinon il reste exactement en `1.0.0` (sans les trois clés). Le validateur accepte les deux : en 1.0.0 `PARTIAL_TAIL` et les clés de couverture sont refusés ; en 1.1.0 les trois clés sont exigées, `PRESENT` impose `FULL` et `window_bytes == source_bytes`.
+- **Fraîcheur** : inchangée (source JSONL = `UNKNOWN`). **UX** : bandeau « Couverture partielle : seule la fin du journal a été lue (N octets sur M) … n'est pas l'historique complet » et détail de provenance.
+- **Budget de lecture** : au plus 3 × (2 MiB + 1 o) par exécution ; la fenêtre ne lit que 1 MiB + 1 o. Coût mesuré (3 MB de journal, 7 182 enregistrements en fenêtre) : ≈ 0,18 s processus compris.
+- **Déploiement** : changement de contrat = nouvelle release de l'API, du publisher et du frontend ensemble. Les artefacts 1.1.0 ne sont pas lisibles par une API/un frontend 1.0.0 (503 `EVENT_CENTER_INVALID_SCHEMA`, honnête). La source seule ne change rien au runtime déployé.
+
 ## Transport, fraîcheur et UX
 
 GET valide : 200 avec projection et annotations temporelles ; artifact absent,
