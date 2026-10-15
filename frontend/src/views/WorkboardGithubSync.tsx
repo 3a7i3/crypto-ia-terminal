@@ -11,7 +11,10 @@ const stamp = (iso: string) => `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
 const PR_LABEL = { draft: "Brouillon", open: "Ouverte", merged: "Fusionnée", closed_unmerged: "Fermée sans fusion" } as const;
 const CI_LABEL = { SUCCESS: "CI verte", FAILURE: "CI en échec", PENDING: "CI en cours", NONE: "aucun contrôle", UNKNOWN: "CI non lue" } as const;
 const INTEGRATION: Record<IntegrationState, string> = { MERGED_SOURCE: "Fusionnée en source", NOT_INTEGRATED: "Non intégrée", PARTIAL: "Partielle" };
-const DEPLOYMENT: Record<DeploymentState, string> = { NOT_DEPLOYED: "Non déployé", DEPLOYED_OBSERVED: "Déploiement observé" };
+const DEPLOYMENT: Record<DeploymentState, string> = {
+  NOT_DEPLOYED: "Non déployé", PARTIAL_REPORTED: "Partiel · rapporté par l'opérateur",
+  DEPLOYED_REPORTED: "Activation rapportée par l'opérateur", DEPLOYED_OBSERVED: "Déploiement observé",
+};
 const CERTIFICATION: Record<CertificationState, string> = { CERTIFIED: "Certifié", SOURCE_CERTIFIED: "Certifié en source", NOT_CERTIFIED: "Non certifié" };
 
 export const factsByMission = (obs: GithubObservation | null): Map<string, MissionFacts> | null =>

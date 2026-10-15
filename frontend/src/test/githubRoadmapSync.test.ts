@@ -129,9 +129,13 @@ describe("reconciliation — separate tracks, no inference", () => {
     expect(merged.pr?.state).toBe("merged");
     for (const m of rec.missions) expect(Object.keys(m).sort()).toEqual(["flags", "issue", "missionId", "pr"]);
     expect(JSON.stringify(WORK_ITEMS)).toBe(before); // register untouched
-    const wb = WORK_ITEMS.find(i => i.id === "WORKBOARD")!;
-    expect(wb.deployment).toBeUndefined();
-    expect(wb.certification).toBeUndefined();
+    // CORE: merged PR, no deployment or certification recorded -> stays unrecorded.
+    expect(rec.missions.find(m => m.missionId === "CORE")!.pr?.state).toBe("merged");
+    const core = WORK_ITEMS.find(i => i.id === "CORE")!;
+    expect(core.deployment).toBeUndefined();
+    expect(core.certification).toBeUndefined();
+    // The only deployment claims are editorial and marked as reported, never observed.
+    for (const i of WORK_ITEMS) expect(i.deployment).not.toBe("DEPLOYED_OBSERVED");
     const u8 = WORK_ITEMS.find(i => i.id === "U8")!;
     expect(u8.certification).toBe("NOT_CERTIFIED");
   });

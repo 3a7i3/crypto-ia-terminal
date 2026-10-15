@@ -44,10 +44,11 @@ describe("Workboard GitHub sync UI", () => {
     expect(github).toHaveTextContent("CI verte");
     expect(github).toHaveTextContent(`@${sha(431).slice(0, 7)}`);
     // Merged PR: GitHub column changes, deployment/certification tracks stay the register's.
-    const wb = row("WORKBOARD");
     expect(track("WORKBOARD", "github")).toHaveTextContent("PR #429 · Fusionnée");
-    expect(wb.querySelector('[data-track="deployment"]')).toHaveTextContent("Non renseigné");
-    expect(wb.querySelector('[data-track="certification"]')).toHaveTextContent("Non renseigné");
+    expect(track("CORE", "github")).toHaveTextContent("Fusionnée");
+    expect(track("CORE", "deployment")).toHaveTextContent("Non renseigné"); // a merge is not a deployment
+    expect(track("CORE", "certification")).toHaveTextContent("Non renseigné");
+    expect(track("WORKBOARD", "deployment")).toHaveTextContent("Activation rapportée par l'opérateur"); // register value, untouched by sync
     expect(screen.getByText(/objet\(s\) GitHub ouvert\(s\) sans mission/)).toBeInTheDocument();
   });
 

@@ -28,7 +28,7 @@ Le fichier du registre éditorial (`machineWorkboardRegister.ts`) n'est jamais r
 | Certification | registre (`certification`) | une issue fermée, un label |
 
 Absent du registre = « Non renseigné » (jamais un zéro ni un vert implicite). Les valeurs ajoutées ne reprennent que ce que
-le texte du registre affirmait déjà (11 intégrations source plus U7, 4 certifications, 1 non-installation).
+le texte du registre affirmait déjà (intégrations source des missions fusionnées, certifications L3/U7/U8/L4, non-installation de la passerelle).
 « Aucun contrôle » ≠ « succès » ; une CI non lue reste `UNKNOWN`.
 
 ## Rapprochement explicite
@@ -39,8 +39,8 @@ de description ou de commentaire. Les objets ouverts qu'aucune mission ne cite s
 ## Évaluation de l'accès sans authentification
 
 - Dépôt public, CORS ouvert (`Access-Control-Allow-Origin: *`), pas de CSP sur l'unité web : les appels navigateur passent.
-- Coût estimé : ~450 objets → 5 pages d'issues, 1 page de PR ouvertes, 1 GET par PR citée non ouverte (~13), 1 lecture de
-  check runs par HEAD (~15-20), labels et jalons : **≈ 40-45 requêtes** par relevé complet.
+- Coût estimé : ~450 objets → 5 pages d'issues, 1 page de PR ouvertes, 1 GET par PR citée non ouverte (~16), 1 lecture de
+  check runs par HEAD (~25), labels et jalons : **≈ 45-50 requêtes** par relevé complet (budget dur 55).
 - Limite anonyme : **60 requêtes/h par IP**. Un relevé en consomme les trois quarts ; un second relevé dans l'heure est refusé.
 - Garde-fous : `/rate_limit` (non décompté) est lu avant tout ; sous 12 requêtes restantes ou si le coût des détails dépasse
   le quota, rien n'est dépensé. Budget dur 55 requêtes, 10 pages max par liste, arrêt net à un 403/429 épuisé.
@@ -60,8 +60,6 @@ Titres et labels GitHub sont du texte affiché échappé (React), jamais interpr
 
 - Une PR qui change de HEAD pendant le relevé n'est vue qu'au relevé suivant.
 - Le stockage est par navigateur : pas de snapshot partagé entre appareils.
-- Le registre actuel dit encore « non déployé » pour le frontend alors qu'il a été activé le 2026-10-14 : la synchro montre
-  l'écart GitHub/registre, elle ne le corrige pas. Mettre à jour le registre est une PR éditoriale séparée.
 - Les captures de `captures/` utilisent un **GitHub simulé** (interception réseau) : aucune preuve runtime ni VPS.
 
 ## Vérification locale
@@ -69,3 +67,19 @@ Titres et labels GitHub sont du texte affiché échappé (React), jamais interpr
 `npx tsc --noEmit`, `npx vitest run` (398 passent), `npm run build`, `pytest tests/test_workboard_frontend_release.py` (9 passent).
 Tests : `src/test/githubRoadmapSync.test.ts` (lecteur, rapprochement, différences, stockage) et
 `src/test/MachineWorkboardGithubSync.test.tsx` (parcours UI). `src/test/githubFake.ts` simule l'API.
+
+## Correction du registre éditorial (même PR, revue séparément du code de synchro)
+
+Le registre est corrigé à partir des preuves GitHub, au HEAD `main@d8724b59`, sans que la synchro ne l'écrive :
+
+| Mission | Avant | Après | Preuve |
+|---|---|---|---|
+| WORKBOARD, THEME, FRONTEND-RELEASE | « non déployé » (sonde du 2026-10-13) | `DEPLOYED_REPORTED` : paquet bdca77f activé par l'opérateur le 2026-10-14 | exception #286 GOV-286-WEB-FRONTEND-bdca77f (commentaire 6175763475, consommée) ; #431 fusionnée |
+| PUBLISHERS (nouvelle) | absente | `PARTIAL_REPORTED` : G2 inactif, G3 runtime-service 3/3 ; storage, G4, G5 non faits | #442, #444, #446 ; résultats opérateur |
+| LAB-01 (nouvelle) | absente | source fusionnée (#448), `NOT_DEPLOYED` | #447, #448 |
+| GITHUB-SYNC (nouvelle) | absente | source (#451), `NOT_DEPLOYED` | cette PR |
+
+**Limite de preuve** : `DEPLOYED_REPORTED` / `PARTIAL_REPORTED` signifient « rapporté par l'opérateur », pas « observé ». GitHub ne contient que
+l'*autorisation* de l'activation frontend ; la sortie du bloc, le hash servi et la preuve navigateur ne sont pas consignés (#430 reste ouverte).
+Le paquet activé (bdca77f) ne contient pas ce qui a été fusionné ensuite (#443, #451…). FRONTEND-RELEASE reste `active` pour cette raison.
+`DEPLOYED_OBSERVED` n'est utilisé nulle part (test). L3 reste acquis ; U8 et L4 restent non certifiés ; #286 reste actif.
