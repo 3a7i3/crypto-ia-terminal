@@ -587,6 +587,6 @@ def test_g4_dropin_wires_only_runtime_service_and_storage_inside_the_output_dire
         "STORAGE_SNAPSHOT_PATH": "/home/mathieu/operator_presentation/storage_snapshot.json",
     }
     assert "EVENT_CENTER_SNAPSHOT_PATH" not in "\n".join(
-        l for l in text.splitlines() if not l.startswith("#")
+        line for line in text.splitlines() if not line.startswith("#")
     )
     assert re.findall(r"^\[(\w+)\]$", text, re.MULTILINE) == ["Service"]
