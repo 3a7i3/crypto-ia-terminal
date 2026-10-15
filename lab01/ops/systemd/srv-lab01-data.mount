@@ -1,0 +1,11 @@
+[Unit]
+Description=LAB-01 : volume de données de taille fixe (borne disque appliquée par l'OS)
+Documentation=https://github.com/3a7i3/crypto-ia-terminal/issues/447
+
+[Mount]
+# Image ext4 de taille fixe (64 Mo) créée par `apply` : le LAB ne peut pas dépasser ce volume,
+# quel que soit le contenu. nodev/nosuid/noexec : rien d'exécutable n'y est lancé.
+What=/var/lib/lab01/lab01.img
+Where=/srv/lab01/data
+Type=ext4
+Options=loop,nodev,nosuid,noexec,noatime

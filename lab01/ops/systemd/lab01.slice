@@ -1,0 +1,16 @@
+[Unit]
+Description=LAB-01 slice : plafond cumulé de ressources pour tout le LAB (SYNTHETIC)
+Documentation=https://github.com/3a7i3/crypto-ia-terminal/issues/447
+
+[Slice]
+# Plafond initial proportionné à la mesure (≈ 22 Mo RSS pour un cycle complet, hors hôte,
+# Python 3.13) : ×10 de marge pour l'interpréteur de l'hôte et les fils de l'API = 256 Mo,
+# au lieu d'un plafond de 2 Go. À relever seulement sur mesure faite sur l'hôte.
+# Ces limites réduisent le risque ; elles ne garantissent PAS l'absence d'impact sur la
+# production (noyau, 2 cœurs, cache disque et E/S partagés).
+MemoryHigh=192M
+MemoryMax=256M
+MemorySwapMax=0
+CPUQuota=25%
+TasksMax=64
+IOWeight=10
