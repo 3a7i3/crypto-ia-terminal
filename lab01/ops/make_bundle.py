@@ -67,6 +67,10 @@ OPS = ROOT / "lab01" / "ops"
 INSTALLER_FILES = (
     "lab01_ops.sh",
     "lab01_host_tests.sh",
+    "host_isolation_tests.py",
+    "hostprobe.py",
+    "unit_props.py",
+    "lab01_oom_probe.sh",
     "lab01_audit.sh",
     "systemd/lab01.slice",
     "systemd/srv-lab01-data.mount",
@@ -77,11 +81,18 @@ INSTALLER_FILES = (
 
 
 def installer_manifest(dest: Path) -> tuple[Path, str]:
-    """INSTALLER.sha256 (format `sha256sum -c`) : empreintes du code d'installation."""
+    """INSTALLER.sha256 (format `sha256sum -c`) : empreintes du code d'installation et du commit épinglé."""
+    (dest / "COMMIT").write_text(
+        git_head() + "\n"
+    )  # épingle : verify-staging le compare à --commit
     lines = [
         f"{hashlib.sha256((OPS / rel).read_bytes()).hexdigest()}  {rel}\n"
         for rel in sorted(INSTALLER_FILES)
     ]
+    lines.append(
+        f"{hashlib.sha256((dest / 'COMMIT').read_bytes()).hexdigest()}  COMMIT\n"
+    )
+    lines.sort(key=lambda ln: ln.split("  ", 1)[1])
     path = dest / "INSTALLER.sha256"
     path.write_text("".join(lines))
     return path, hashlib.sha256(path.read_bytes()).hexdigest()

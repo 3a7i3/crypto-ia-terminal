@@ -22,7 +22,8 @@ PrivateTmp=yes
 PrivateDevices=yes
 ReadOnlyPaths=/srv/lab01/data/runs
 ReadWritePaths=/srv/lab01/data/reports
-InaccessiblePaths=/home /root /opt/crypto-ai-terminal /srv/claude-audit /etc/ssl/private /srv/lab01/token
+# Préfixe « - » : un chemin étranger au LAB absent de l'hôte est ignoré (sans lui, l'unité échoue au démarrage).
+InaccessiblePaths=/home /root -/opt/crypto-ai-terminal -/srv/claude-audit -/etc/ssl/private -/srv/lab01/token
 NoNewPrivileges=yes
 CapabilityBoundingSet=
 AmbientCapabilities=

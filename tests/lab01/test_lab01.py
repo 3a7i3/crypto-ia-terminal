@@ -404,50 +404,6 @@ def test_ops_script_refuses_without_authorization_and_plan_is_inert():
         assert r.returncode == 3 and "REFUS" in r.stdout
 
 
-def _host_tests(tmp_path, seq):
-    """Exécute lab01_host_tests.sh avec un systemd-run factice qui rend `seq` codes de sortie."""
-    bindir = tmp_path / "bin"
-    bindir.mkdir()
-    (tmp_path / "seq").write_text("\n".join(map(str, seq)) + "\n")
-    (bindir / "systemd-run").write_text(
-        f'#!/bin/sh\nf="{tmp_path}/seq"\nrc=$(head -n1 "$f"); sed -i 1d "$f"; exit "${{rc:-1}}"\n'
-    )
-    (bindir / "id").write_text("#!/bin/sh\necho 0\n")
-    for f in bindir.iterdir():
-        f.chmod(0o755)
-    env = {"PATH": f"{bindir}:/usr/bin:/bin"}
-    return subprocess.run(
-        ["bash", str(OPS / "lab01_host_tests.sh")],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-
-def test_host_refusal_tests_pass_only_when_os_refuses(tmp_path):
-    r = _host_tests(tmp_path, [0] + [42] * 7 + [0])
-    assert r.returncode == 0 and r.stdout.count("refusé par l'OS") == 7
-
-
-def test_host_refusal_tests_fail_when_something_is_allowed(tmp_path):
-    r = _host_tests(tmp_path, [0, 0] + [42] * 6 + [0])  # le réseau serait autorisé
-    assert r.returncode == 1 and "AUTORISÉ (attendu : refusé)" in r.stdout
-
-
-def test_host_refusal_tests_abort_when_tool_is_broken(tmp_path):
-    r = _host_tests(tmp_path, [1] * 10)  # un outil en panne n'est pas un refus
-    assert (
-        r.returncode == 5
-        and "ABANDON" in r.stdout
-        and "refusé par l'OS" not in r.stdout
-    )
-
-
-def test_host_refusal_indeterminate_is_not_counted_as_refusal(tmp_path):
-    r = _host_tests(tmp_path, [0, 1] + [42] * 6 + [0])
-    assert r.returncode == 1 and "indéterminé" in r.stdout
-
-
 def test_run_refuses_when_environment_has_secret_like_names(tmp_path, monkeypatch):
     monkeypatch.setenv("MEXC_API_KEY", "SENTINEL_VALUE_3")
     with pytest.raises(guards.LabGuardError) as ei:

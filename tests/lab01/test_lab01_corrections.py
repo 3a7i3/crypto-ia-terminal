@@ -10,6 +10,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -190,13 +191,18 @@ def test_export_unit_has_no_token_no_network_no_production():
 
 
 # ---- 4. installation privilégiée : staging, empreinte, pas de purge ---------------
+COMMIT = "c" * 40
+
+
 def _stage(tmp_path):
-    st = tmp_path / "stage"
+    st = tmp_path / COMMIT  # le staging porte le nom du commit épinglé
     (st / "systemd").mkdir(parents=True)
     for rel in make_bundle.INSTALLER_FILES:
         shutil.copy(OPS / rel, st / rel)
-    _m, sha = make_bundle.installer_manifest(tmp_path)
+    with mock.patch.object(make_bundle, "git_head", lambda: COMMIT):
+        _m, sha = make_bundle.installer_manifest(tmp_path)
     shutil.move(tmp_path / "INSTALLER.sha256", st / "INSTALLER.sha256")
+    shutil.move(tmp_path / "COMMIT", st / "COMMIT")
     return st, sha
 
 
@@ -211,22 +217,32 @@ def _ops(st, *args):
 
 def test_staging_verification_accepts_exact_files(tmp_path):
     st, sha = _stage(tmp_path)
-    r = _ops(st, "verify-staging", "--manifest-sha256", sha)
+    r = _ops(st, "verify-staging", "--commit", COMMIT, "--manifest-sha256", sha)
     assert r.returncode == 0 and "staging vérifié" in r.stdout
 
 
 def test_staging_verification_refuses_tampering_extra_and_wrong_digest(tmp_path):
     st, sha = _stage(tmp_path)
-    assert _ops(st, "verify-staging", "--manifest-sha256", "0" * 64).returncode == 5
-    assert _ops(st, "verify-staging").returncode == 5  # empreinte publiée obligatoire
+    assert (
+        _ops(
+            st, "verify-staging", "--commit", COMMIT, "--manifest-sha256", "0" * 64
+        ).returncode
+        == 5
+    )
+    assert (
+        _ops(st, "verify-staging", "--commit", COMMIT).returncode == 5
+    )  # empreinte publiée obligatoire
+    assert (
+        _ops(st, "verify-staging", "--manifest-sha256", sha).returncode == 5
+    )  # commit épinglé obligatoire
     unit = st / "systemd" / "lab01-run.service"
     original = unit.read_text()
     unit.write_text(original + "ExecStartPre=/bin/true\n")
-    r = _ops(st, "verify-staging", "--manifest-sha256", sha)
+    r = _ops(st, "verify-staging", "--commit", COMMIT, "--manifest-sha256", sha)
     assert r.returncode == 5 and "diffère du manifeste" in r.stdout
     unit.write_text(original)
     (st / "systemd" / "extra.service").write_text("[Service]\n")
-    r = _ops(st, "verify-staging", "--manifest-sha256", sha)
+    r = _ops(st, "verify-staging", "--commit", COMMIT, "--manifest-sha256", sha)
     assert r.returncode == 5 and "en trop ou manquants" in r.stdout
 
 
@@ -251,7 +267,13 @@ def test_purge_is_not_offered_and_no_env_passthrough():
         env={"PATH": "/usr/bin:/bin"},
     )
     assert r.returncode == 2 and "non prévu" in r.stdout
-    assert "rm -rf" not in script and "userdel" not in script
+    assert "userdel" not in script
+    # seule suppression récursive : le reste d'extraction `.partial`, toujours gardée par ${var:?}
+    assert [
+        ln.strip()
+        for ln in script.splitlines()
+        if "rm -rf" in ln and not ln.lstrip().startswith("#")
+    ] == ['rm -rf "${rel:?}.partial"']
     assert (
         "LAB01_AUTH" not in script and "LAB01_BUNDLE" not in script
     )  # pas d'environnement
