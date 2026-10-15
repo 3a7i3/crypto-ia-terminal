@@ -21,10 +21,24 @@ from lab01.scenarios import SCENARIOS
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.fixture(autouse=True)
+def _no_ambient_secret_like_env(monkeypatch):
+    """La CI définit des variables au nom d'exchange ; le garde les refuse à raison.
+    Les tests partent d'un environnement propre (le test de refus fixe son propre env)."""
+    for name in guards.forbidden_env_names():
+        monkeypatch.delenv(name, raising=False)
+
+
 @pytest.fixture(scope="module")
 def out(tmp_path_factory):
-    d = tmp_path_factory.mktemp("lab01") / "out"
-    runner.run_all(d)
+    mp = pytest.MonkeyPatch()
+    for name in guards.forbidden_env_names():
+        mp.delenv(name, raising=False)
+    try:
+        d = tmp_path_factory.mktemp("lab01") / "out"
+        runner.run_all(d)
+    finally:
+        mp.undo()
     return d
 
 
@@ -410,3 +424,11 @@ def test_host_refusal_tests_abort_when_tool_is_broken(tmp_path):
 def test_host_refusal_indeterminate_is_not_counted_as_refusal(tmp_path):
     r = _host_tests(tmp_path, [0, 1] + [42] * 6 + [0])
     assert r.returncode == 1 and "indéterminé" in r.stdout
+
+
+def test_run_refuses_when_environment_has_secret_like_names(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEXC_API_KEY", "SENTINEL_VALUE_3")
+    with pytest.raises(guards.LabGuardError) as ei:
+        runner.run_all(tmp_path / "o")
+    assert "MEXC_API_KEY" in str(ei.value) and "SENTINEL_VALUE" not in str(ei.value)
+    assert not (tmp_path / "o" / "index.json").exists()

@@ -7,7 +7,7 @@ Commandes : [LAB_01_OPERATOR_COMMANDS.md](LAB_01_OPERATOR_COMMANDS.md). G3 publi
 
 ## 1. Ce qui est démontré aujourd'hui (testé localement)
 Cycle complet `données synthétiques → signal → risque → DecisionPacket → simulation PAPER → événements → API → interface`,
-code dans `lab01/`, tests `tests/lab01/` (37). Réutilise `core.decision_packet.DecisionPacket` (machine d'états et chaîne de hachage réelles)
+code dans `lab01/`, tests `tests/lab01/` (38). Réutilise `core.decision_packet.DecisionPacket` (machine d'états et chaîne de hachage réelles)
 et `execution_simulator` (frais, latence, slippage, spread) ; ne touche ni Advisor, ni PPL, ni FIN, ni stratégies/seuils actifs.
 
 | Scénario | Données | Issue attendue | Critères explicites (tous évalués, verdict PASS/FAIL) |
@@ -71,14 +71,14 @@ Seuils d'abandon de B : toute variation du PID ou de `ActiveEnterTimestamp` d'Ad
 `lab01_ops.sh` : `plan` par défaut (n'écrit rien), `apply`/`remove` exigent root **et** un identifiant d'autorisation cité, vérifient l'empreinte du paquet, refusent toute unité référençant la production. Retrait : unités retirées, données conservées ; `--purge` supprime `/srv/lab01` et l'utilisateur. Rollback honnête : il ne restaure pas l'état antérieur de l'hôte, il retire ce que le LAB a ajouté ; `verify` le constate.
 
 ## 7. Tests
-- **Positifs** (locaux, 37 tests) : trois scénarios et leurs critères, chaînes d'événements, reproductibilité (rejeu, inter-processus, paquet autonome), API (liste, détail, événements), interface (bannière SYNTHETIC ; liste des expériences rendue depuis l'API dans un Chromium headless ; le détail n'a pas été parcouru).
+- **Positifs** (locaux, 38 tests) : trois scénarios et leurs critères, chaînes d'événements, reproductibilité (rejeu, inter-processus, paquet autonome), API (liste, détail, événements), interface (bannière SYNTHETIC ; liste des expériences rendue depuis l'API dans un Chromium headless ; le détail n'a pas été parcouru).
 - **Refus** (locaux) : chaque règle de risque refuse ; altération d'un événement ou de la provenance casse la chaîne ; réseau refusé puis restauré ; variables ressemblant à des secrets refusées sans en révéler la valeur ; sorties sous l'arbre de production refusées ; scénario inconnu refusé ; API : POST/PUT/DELETE/PATCH → 405, chemins hors liste ou traversants → 404, absence de jeton → 401, artefact manquant → 503 et non liste vide, bind non loopback refusé ; unités sans dépendance de production ni secret ; script d'installation sans autorisation → refus.
 - **Refus sur l'hôte** (`lab01_host_tests.sh`, **non exécutés**) : réseau, DNS, `/home/mathieu`, arbre production, écriture `/etc` et hors `runs`, montée de privilèges. Le script n'accepte comme refus que celui de l'OS (code 42 sur `OSError`) et abandonne si le contrôle d'exécution échoue ; sa logique est testée avec un `systemd-run` factice (4 tests).
 
 ## 8. États des preuves
 | Composant | Préparé | Testé localement | Installé | Observé sur l'hôte |
 |---|---|---|---|---|
-| Cycle synthétique, scénarios, critères | oui | oui (37 tests) | non | non |
+| Cycle synthétique, scénarios, critères | oui | oui (38 tests) | non | non |
 | API GET-only et interface | oui | oui (tests + rendu navigateur) | non | non |
 | Paquet autonome | oui | oui (déterminisme, équivalence d'identités) | non | non |
 | Unités systemd, slice | oui | analyse statique (`systemd-analyze verify` 255, hors hôte 249) | non | non |
