@@ -14,7 +14,7 @@ Statut : **enregistrement d'une preuve opérateur, source seule**. Rien n'est la
 | États | services `inactive`/`static` ; timers `inactive`/`disabled` |
 | Dossier de présentation | `/home/mathieu/operator_presentation` : `mathieu 700` ; vide (artefact présent : non) |
 | Artefact de l'autre publisher (`storage_snapshot.json`) | absent |
-| `crypto-publish-runtime-service.service` | `ExecMainStartTimestampMonotonic=0` (jamais lancé depuis le démarrage ou le rechargement) |
+| `crypto-publish-runtime-service.service` | `ExecMainStartTimestampMonotonic=0` : aucun démarrage enregistré dans la propriété observée à cet instant (cette propriété seule ne prouve pas tout l'historique) |
 | `healthz` avant | 200 |
 | Verdict | `RESULT: OK (preconditions hold)` ; « nothing was started or written (plan) » |
 
