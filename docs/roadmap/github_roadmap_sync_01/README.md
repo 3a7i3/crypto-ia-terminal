@@ -70,7 +70,7 @@ Tests : `src/test/githubRoadmapSync.test.ts` (lecteur, rapprochement, différenc
 
 ## Correction du registre éditorial (même PR, revue séparément du code de synchro)
 
-Le registre est corrigé à partir des preuves GitHub, au HEAD `main@d8724b59`, sans que la synchro ne l'écrive :
+Le registre est corrigé à partir des preuves GitHub, au HEAD `main@e1e4df9d`, sans que la synchro ne l'écrive :
 
 | Mission | Avant | Après | Preuve |
 |---|---|---|---|
