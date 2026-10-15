@@ -11,11 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from observability.burn_in_status_contract import validate_burn_in_status_snapshot
-from observability.event_center_artifact import read_bytes, strict_json
+from observability.event_center_artifact import read_bytes, read_jsonl_window, strict_json
 from observability.event_center_contract import (
-    FORMATS, KINDS, MAX_BYTES, MAX_EVENTS_PER_SOURCE, MAX_RECORDS,
-    SOURCE_IDS, SOURCE_KEYS, canonical_time, event_order, finite, utc_seconds,
-    validate_event_center,
+    COVERAGE_KEYS, FORMATS, KINDS, MAX_BYTES, MAX_EVENTS_PER_SOURCE, MAX_RECORDS,
+    SOURCE_IDS, SOURCE_KEYS, VERSION_BASE, VERSION_COVERAGE, canonical_time, event_order,
+    finite, utc_seconds, validate_event_center,
 )
 
 
@@ -102,26 +102,30 @@ def build_event_center(*, generated_at_utc, p12_alerts=None, supervision_alerts=
     sources, published = [], []
     for index, path in enumerate((p12_alerts, supervision_alerts, ppl_lifecycles)):
         source_id = SOURCE_IDS[index]
-        source = dict.fromkeys(SOURCE_KEYS)
-        source.update(source_id=source_id, format=FORMATS[index], status="NOT_CONFIGURED")
+        source = _blank(index)
         if path is not None:
             try:
-                raw = read_bytes(path)
-                result = _ppl_events(raw) if index == 2 else _alert_events(raw, source_id)
+                if index == 2:
+                    raw = read_bytes(path)
+                    source_bytes, coverage = len(raw), "FULL"
+                    result = _ppl_events(raw)
+                else:  # append-only JSONL: whole file, or an explicitly partial tail window
+                    raw, source_bytes, coverage = read_jsonl_window(path)
+                    result = _alert_events(raw, source_id)
                 events, records, excluded, source_generated, epoch = result
                 if source_generated is not None and utc_seconds(source_generated) > generated:
                     raise ValueError("FUTURE_SOURCE")
                 if any(event["occurred_at_utc"] is not None and utc_seconds(event["occurred_at_utc"]) > generated for event in events):
                     raise ValueError("FUTURE_EVENT")
                 selected = sorted(events, key=event_order)[:MAX_EVENTS_PER_SOURCE]
-                source.update(status="PRESENT", source_sha256=hashlib.sha256(raw).hexdigest(),
+                source.update(status="PRESENT" if coverage == "FULL" else "PARTIAL_TAIL",
+                              coverage=coverage, source_bytes=source_bytes, window_bytes=len(raw),
+                              source_sha256=hashlib.sha256(raw).hexdigest(),
                               records_observed=records, events_observed=len(events), excluded_records=excluded,
                               published_count=len(selected), undated_count=sum(e["time_status"] == "UNKNOWN" for e in events),
                               truncated=len(selected) < len(events), source_generated_at_utc=source_generated, paper_epoch_id=epoch)
                 # Validate each source before retaining its rows (all-or-nothing source).
-                trial_sources = [dict.fromkeys(SOURCE_KEYS) for _ in SOURCE_IDS]
-                for i, item in enumerate(trial_sources):
-                    item.update(source_id=SOURCE_IDS[i], format=FORMATS[i], status="NOT_CONFIGURED")
+                trial_sources = [_blank(i) for i in range(len(SOURCE_IDS))]
                 trial_sources[index] = source
                 if not validate_event_center(_document(generated_at_utc, trial_sources, selected)):
                     raise ValueError("INVALID_SOURCE_PROJECTION")
@@ -134,8 +138,8 @@ def build_event_center(*, generated_at_utc, p12_alerts=None, supervision_alerts=
                 source["status"] = "READ_ERROR"
             except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
                 source["status"] = "INVALID"
-            if source["status"] != "PRESENT":
-                source = {key: source[key] if key in {"source_id", "format", "status"} else None for key in SOURCE_KEYS}
+            if source["status"] not in ("PRESENT", "PARTIAL_TAIL"):
+                source = {key: source[key] if key in {"source_id", "format", "status"} else None for key in SOURCE_KEYS | COVERAGE_KEYS}
         sources.append(source)
     doc = _document(generated_at_utc, sources, sorted(published, key=event_order))
     if not validate_event_center(doc):
@@ -143,8 +147,18 @@ def build_event_center(*, generated_at_utc, p12_alerts=None, supervision_alerts=
     return doc
 
 
+def _blank(index):
+    source = dict.fromkeys(SOURCE_KEYS | COVERAGE_KEYS)
+    source.update(source_id=SOURCE_IDS[index], format=FORMATS[index], status="NOT_CONFIGURED")
+    return source
+
+
 def _document(generated_at_utc, sources, events):
-    return {"schema_version": "1.0.0", "product": "EventCenterSnapshot", "domain": "event_center",
+    """1.1.0 (coverage keys) only when a source is a partial tail; otherwise 1.0.0 unchanged."""
+    partial = any(item["status"] == "PARTIAL_TAIL" for item in sources)
+    if not partial:
+        sources = [{k: v for k, v in item.items() if k not in COVERAGE_KEYS} for item in sources]
+    return {"schema_version": VERSION_COVERAGE if partial else VERSION_BASE, "product": "EventCenterSnapshot", "domain": "event_center",
             "authority": "OBSERVATIONAL_PRESENTATION", "mode": "READ_ONLY",
             "generated_at_utc": generated_at_utc, "sources": sources, "events": events,
             "order": "SOURCE_THEN_TIME_DESC_UNDATED_LAST"}

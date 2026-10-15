@@ -5,7 +5,9 @@ export const SOURCE_IDS = ["p12_alerts", "supervision_alerts", "ppl_lifecycles"]
 export type SourceId = typeof SOURCE_IDS[number];
 export interface EventSource {
   source_id: SourceId; format: string;
-  status: "PRESENT" | "NOT_CONFIGURED" | "MISSING" | "READ_ERROR" | "INVALID" | "OUTPUT_LIMIT";
+  status: "PRESENT" | "PARTIAL_TAIL" | "NOT_CONFIGURED" | "MISSING" | "READ_ERROR" | "INVALID" | "OUTPUT_LIMIT";
+  // Schema 1.1.0 only (absent in 1.0.0): explicit coverage of a JSONL source.
+  coverage?: "FULL" | "TAIL_WINDOW" | null; source_bytes?: number | null; window_bytes?: number | null;
   source_sha256: string | null; records_observed: number | null; events_observed: number | null;
   excluded_records: number | null; published_count: number | null; undated_count: number | null;
   truncated: boolean | null; source_generated_at_utc: string | null; paper_epoch_id: string | null;
@@ -18,12 +20,15 @@ export interface OperatorEvent {
   symbol: string | null; sequence: number | null;
 }
 export interface EventCenterSnapshot {
-  schema_version: "1.0.0"; product: "EventCenterSnapshot"; domain: "event_center";
+  schema_version: "1.0.0" | "1.1.0"; product: "EventCenterSnapshot"; domain: "event_center";
   authority: "OBSERVATIONAL_PRESENTATION"; mode: "READ_ONLY";
   generated_at_utc: string; sources: EventSource[]; events: OperatorEvent[];
   order: "SOURCE_THEN_TIME_DESC_UNDATED_LAST";
   snapshot_age_s: number; freshness_classification: "FRESH" | "STALE";
 }
+const coverageKeys = ["coverage", "source_bytes", "window_bytes"];
+const MAX_BYTES = 2_097_152, TAIL_WINDOW_BYTES = 1_048_576;
+const observed = (status: unknown) => status === "PRESENT" || status === "PARTIAL_TAIL";
 const sourceKeys = ["source_id", "format", "status", "source_sha256", "records_observed", "events_observed", "excluded_records", "published_count", "undated_count", "truncated", "source_generated_at_utc", "paper_epoch_id", "source_age_s", "freshness_classification"];
 const eventKeys = ["event_id", "source_id", "source_record", "kind", "severity", "occurred_at_utc", "time_status", "symbol", "sequence"];
 const alertKinds = ["DRAWDOWN", "MEMORY", "ERROR_RATE", "RECONCILE", "BOOT_BLOCKED", "HIGH_LATENCY", "EXCEPTION", "OTHER_ALERT"];
@@ -43,14 +48,25 @@ function utc(x: unknown): number | null {
 }
 export function validateEventCenter(x: unknown): x is EventCenterSnapshot {
   if (!exact(x, ["schema_version", "product", "domain", "authority", "mode", "generated_at_utc", "sources", "events", "order", "snapshot_age_s", "freshness_classification"])) return false;
-  if (x.schema_version !== "1.0.0" || x.product !== "EventCenterSnapshot" || x.domain !== "event_center" || x.authority !== "OBSERVATIONAL_PRESENTATION" || x.mode !== "READ_ONLY" || x.order !== "SOURCE_THEN_TIME_DESC_UNDATED_LAST") return false;
+  if ((x.schema_version !== "1.0.0" && x.schema_version !== "1.1.0") || x.product !== "EventCenterSnapshot" || x.domain !== "event_center" || x.authority !== "OBSERVATIONAL_PRESENTATION" || x.mode !== "READ_ONLY" || x.order !== "SOURCE_THEN_TIME_DESC_UNDATED_LAST") return false;
   const generated = utc(x.generated_at_utc);
   if (generated === null || !finite(x.snapshot_age_s) || !member(x.freshness_classification, ["FRESH", "STALE"]) || !Array.isArray(x.sources) || x.sources.length !== 3 || !Array.isArray(x.events) || x.events.length > 300) return false;
+  const coverage = x.schema_version === "1.1.0";
+  const keysFor = coverage ? [...sourceKeys, ...coverageKeys] : sourceKeys;
   for (const [i, s] of x.sources.entries()) {
-    if (!exact(s, sourceKeys) || s.source_id !== SOURCE_IDS[i] || s.format !== ["P12_ALERT_JSONL", "SUPERVISION_AUDIT_JSONL", "BURN_IN_LIFECYCLE_PROJECTION"][i] || !member(s.status, ["PRESENT", "NOT_CONFIGURED", "MISSING", "READ_ERROR", "INVALID", "OUTPUT_LIMIT"])) return false;
-    if (s.status !== "PRESENT") {
-      if (s.source_age_s !== null || s.freshness_classification !== "NOT_AVAILABLE" || sourceKeys.filter(k => !["source_id", "format", "status", "source_age_s", "freshness_classification"].includes(k)).some(k => s[k] !== null)) return false;
+    if (!exact(s, keysFor) || s.source_id !== SOURCE_IDS[i] || s.format !== ["P12_ALERT_JSONL", "SUPERVISION_AUDIT_JSONL", "BURN_IN_LIFECYCLE_PROJECTION"][i] || !member(s.status, ["PRESENT", "PARTIAL_TAIL", "NOT_CONFIGURED", "MISSING", "READ_ERROR", "INVALID", "OUTPUT_LIMIT"])) return false;
+    if (s.status === "PARTIAL_TAIL" && (!coverage || i === 2)) return false;
+    if (!observed(s.status)) {
+      if (s.source_age_s !== null || s.freshness_classification !== "NOT_AVAILABLE" || keysFor.filter(k => !["source_id", "format", "status", "source_age_s", "freshness_classification"].includes(k)).some(k => s[k] !== null)) return false;
       continue;
+    }
+    if (coverage) {
+      const size = s.source_bytes, window = s.window_bytes;
+      if (!uint(size) || !uint(window) || window > size) return false;
+      const ok = s.status === "PRESENT"
+        ? s.coverage === "FULL" && window === size && size <= MAX_BYTES
+        : s.coverage === "TAIL_WINDOW" && window > 0 && window < size && window <= Math.max(TAIL_WINDOW_BYTES, MAX_BYTES);
+      if (!ok) return false;
     }
     if (!match(s.source_sha256, /^[0-9a-f]{64}$/)) return false;
     if (![s.records_observed, s.events_observed, s.excluded_records, s.published_count, s.undated_count].every(uint)) return false;
@@ -72,7 +88,7 @@ export function validateEventCenter(x: unknown): x is EventCenterSnapshot {
     if (records.has(recordKey)) return false;
     records.add(recordKey);
     const index = SOURCE_IDS.indexOf(e.source_id as SourceId), source = x.sources[index];
-    if (source.status !== "PRESENT" || e.source_record > source.records_observed) return false;
+    if (!observed(source.status) || e.source_record > (source.records_observed as number)) return false;
     const stamp = utc(e.occurred_at_utc);
     if (e.time_status === "PRESENT" ? stamp === null || stamp > generated : e.time_status !== "UNKNOWN" || e.occurred_at_utc !== null) return false;
     if (index === 2) {
@@ -92,7 +108,7 @@ export function validateEventCenter(x: unknown): x is EventCenterSnapshot {
   for (const source of x.sources) {
     const rows = x.events.filter(e => e.source_id === source.source_id);
     const undated = rows.filter(e => e.time_status === "UNKNOWN").length;
-    if (rows.length !== (source.published_count ?? 0) || (source.status === "PRESENT" && (undated > source.undated_count || (!source.truncated && undated !== source.undated_count)))) return false;
+    if (rows.length !== (source.published_count ?? 0) || (observed(source.status) && (undated > source.undated_count || (!source.truncated && undated !== source.undated_count)))) return false;
   }
   return true;
 }

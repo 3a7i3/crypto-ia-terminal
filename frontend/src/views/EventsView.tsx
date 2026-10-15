@@ -5,7 +5,7 @@ import "../events.css";
 const sources: Record<string, string> = { p12_alerts: "Alertes système P12", supervision_alerts: "Audit de supervision", ppl_lifecycles: "Lifecycles PAPER" };
 const kinds: Record<string, string> = { DRAWDOWN: "Alerte drawdown", MEMORY: "Alerte mémoire", ERROR_RATE: "Alerte fréquence d’erreurs", RECONCILE: "Alerte réconciliation", BOOT_BLOCKED: "Démarrage bloqué", HIGH_LATENCY: "Alerte latence", EXCEPTION: "Exception signalée", OTHER_ALERT: "Alerte historique", POSITION_OPENED: "Position PAPER ouverte", POSITION_CLOSED: "Position PAPER clôturée", POSITION_UNRESOLVED: "Position PAPER non résolue" };
 const severities: Record<string, string> = { INFO: "Information", WARNING: "Avertissement", CRITICAL: "Critique", UNKNOWN: "Sévérité inconnue" };
-const statuses: Record<string, string> = { PRESENT: "Capture disponible", NOT_CONFIGURED: "Source non configurée", MISSING: "Source absente", READ_ERROR: "Lecture impossible", INVALID: "Source invalide", OUTPUT_LIMIT: "Limite de lecture dépassée" };
+const statuses: Record<string, string> = { PRESENT: "Capture disponible", PARTIAL_TAIL: "Couverture partielle · fin du journal", NOT_CONFIGURED: "Source non configurée", MISSING: "Source absente", READ_ERROR: "Lecture impossible", INVALID: "Source invalide", OUTPUT_LIMIT: "Limite de lecture dépassée" };
 
 export const EventsView: React.FC = () => {
   const state = useEventCenter();
@@ -24,7 +24,8 @@ export const EventsView: React.FC = () => {
     {snapshot.freshness_classification === "STALE" && <p className="direction-warning" role="status">Capture périmée : événements historiques, état actuel inconnu.</p>}
     <div className="events-sources" data-testid="events-sources">{snapshot.sources.map(s => <article className="events-source" key={s.source_id}>
       <h3>{sources[s.source_id]}</h3><strong>{statuses[s.status]}</strong>
-      {s.status === "PRESENT" ? <><p>{s.published_count} publiés / {s.events_observed} observés dans cette capture</p>
+      {s.status === "PRESENT" || s.status === "PARTIAL_TAIL" ? <><p>{s.published_count} publiés / {s.events_observed} observés dans {s.status === "PARTIAL_TAIL" ? "la fenêtre lue" : "cette capture"}</p>
+        {s.status === "PARTIAL_TAIL" && <p className="direction-warning" role="status" data-testid="events-partial-tail">Couverture partielle : seule la fin du journal a été lue ({s.window_bytes} octets sur {s.source_bytes}). Les enregistrements plus anciens sont inconnus ; cette liste n’est pas l’historique complet et leur nombre n’est pas déduit. Les numéros de record sont ceux de la fenêtre.</p>}
         {s.truncated && <p className="direction-warning">Couverture partielle · 100 événements maximum.</p>}
         {s.events_observed === 0 && <p>Aucun événement dans cette capture. Cela ne certifie pas l’absence d’incident.</p>}
         <p>{s.source_id === "ppl_lifecycles" ? "Ouvertures et états terminaux projetés ; journal PPL complet hors périmètre." : "Journal capturé ; activité actuelle du producteur inconnue."}</p>
@@ -33,7 +34,8 @@ export const EventsView: React.FC = () => {
         {s.excluded_records !== 0 && <p>{s.excluded_records} corrections exclues</p>}
       </> : <p>Population et fraîcheur indisponibles.</p>}
       <details><summary>Provenance de la source</summary><dl>
-        <dt>Format</dt><dd>{s.format}</dd><dt>Empreinte de capture</dt><dd>{s.source_sha256 ?? "Indisponible"}</dd>
+        <dt>Format</dt><dd>{s.format}</dd>
+        {s.coverage ? <><dt>Couverture</dt><dd>{s.coverage === "FULL" ? "Journal entier" : "Fenêtre de fin de journal"}</dd><dt>Taille de la source (octets)</dt><dd>{s.source_bytes}</dd><dt>Octets lus</dt><dd>{s.window_bytes}</dd></> : null}<dt>Empreinte de capture</dt><dd>{s.source_sha256 ?? "Indisponible"}</dd>
         <dt>Projection source générée à</dt><dd>{s.source_generated_at_utc ?? "Indisponible"}</dd>
         <dt>Epoch PAPER</dt><dd>{s.paper_epoch_id ?? "Indisponible"}</dd>
       </dl></details>
