@@ -217,10 +217,7 @@ def probe_modules():
     return {p: p in mountpoints()} if os.path.exists(p) else "N/A"
 
 
-def probe_noexec():
-    d = ARGS.get("exec_dir")
-    if not d or not os.path.isdir(d):
-        return "N/A"
+def exec_try(d):
     path = os.path.join(d, ".lab01exec")
     try:
         with open(path, "w") as fh:
@@ -237,6 +234,11 @@ def probe_noexec():
             os.unlink(path)
         except OSError:
             pass
+
+
+def probe_noexec():
+    """Le même script s'exécute-t-il depuis chaque dossier ? (volume LAB : EACCES ; /tmp : témoin)."""
+    return {d: exec_try(d) for d in ARGS.get("exec_dirs", []) if os.path.isdir(d)}
 
 
 def probe_ids():

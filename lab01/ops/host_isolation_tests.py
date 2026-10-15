@@ -246,8 +246,13 @@ def build_checks(cfg):
             "ipdeny",
             lambda r: isinstance(r, dict) and denied(r.get("loopback")),
             lambda r: isinstance(r, dict) and r.get("loopback") == "ok",
-            base_remove={"PrivateNetwork"},
-            control_remove={"PrivateNetwork", "IPAddressDeny"},
+            # sans PrivateNetwork ni RestrictAddressFamilies, seul IPAddressDeny=any peut bloquer le loopback
+            base_remove={"PrivateNetwork", "RestrictAddressFamilies"},
+            control_remove={
+                "PrivateNetwork",
+                "RestrictAddressFamilies",
+                "IPAddressDeny",
+            },
         )
     else:
         add(

@@ -194,3 +194,49 @@ def test_installed_units_must_match_the_verified_files(tmp_path):
 def test_driver_refuses_without_root(monkeypatch):
     monkeypatch.setattr(h.os, "geteuid", lambda: 1000)
     assert h.main([]) == 3
+
+
+def _checks(unit):
+    return {c["id"]: c for c in h.build_checks(h.unit_cfg(unit, up.UNIT_DIR))}
+
+
+def test_noexec_probe_returns_one_result_per_directory_and_matches_the_check(tmp_path):
+    import json
+
+    code = (ROOT / "lab01/ops/hostprobe.py").read_text()
+    args = json.dumps(
+        {"exec_dirs": [str(tmp_path), "/nonexistent-dir"], "only": ["noexec"]}
+    )
+    p = subprocess.run(
+        [sys.executable, "-I", "-c", code, args], capture_output=True, text=True
+    )
+    res = json.loads(p.stdout.split("PROBE-RESULT ", 1)[1])["noexec"]
+    assert set(res) == {
+        str(tmp_path)
+    }  # dossier absent ignoré, un résultat par dossier présent
+    chk = _checks("lab01-run")["volume noexec (option de montage)"]
+    assert chk["expect"]({"/srv/lab01/data/runs": "EACCES", "/tmp": "ok"})
+    assert not chk["expect"](
+        {"/srv/lab01/data/runs": "ok", "/tmp": "ok"}
+    )  # volume exécutable : KO
+    assert not chk["expect"]({"/tmp": "ok"})  # dossier LAB absent : KO
+
+
+def test_ipdeny_check_removes_every_other_cause_of_denial_on_private_units():
+    for unit in ("lab01-run", "lab01-export"):
+        c = _checks(unit)["IPAddressDeny"]
+        assert {"PrivateNetwork", "RestrictAddressFamilies"} <= c["base_remove"]
+        assert c["control_remove"] == c["base_remove"] | {"IPAddressDeny"}
+    api = _checks("lab01-api")["IPAddressDeny/IPAddressAllow"]
+    assert api["expect"]({"loopback": "ok", "hors_loopback": "TIMEOUT"})
+    assert not api["expect"](
+        {"loopback": "ok", "hors_loopback": "ok"}
+    )  # sortant non bloqué : KO
+
+
+def test_every_expectation_is_satisfiable_by_an_ideal_observation():
+    """Garde-fou de forme : chaque sonde attendue par un contrôle existe dans hostprobe."""
+    code = (ROOT / "lab01/ops/hostprobe.py").read_text()
+    for unit in up.UNITS:
+        for c in h.build_checks(h.unit_cfg(unit, up.UNIT_DIR)):
+            assert f"def probe_{c['probe']}(" in code, (unit, c["id"])
