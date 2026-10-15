@@ -3,7 +3,7 @@ case "$MODE" in plan|run) ;; *) echo "G3_MODE must be plan|run"; exit 2;; esac
 case "$PUB" in runtime-service|storage) ;; *) echo "G3_PUB must be runtime-service|storage (one per run)"; exit 2;; esac
 RUN='umask 077; if [ "$(id -u)" -eq 0 ]; then P=/run; else P="${TMPDIR:-/tmp}"; fi; R=$(mktemp -d "$P/g3priv.XXXXXX") || exit 1; cat > "$R/g3.sh" || { rm -rf "$R"; echo "COPY FAILED: not run"; exit 1; }; echo "$1  $R/g3.sh" | sha256sum -c - || { rm -rf "$R"; echo "HASH MISMATCH OF THE PROTECTED COPY: not run"; exit 1; }; sh "$R/g3.sh" "$2" "$3"; RC=$?; rm -rf "$R"; exit $RC'
 PRIV=""; case "$MODE" in run) PRIV=sudo;; esac
-$PRIV sh -c "$RUN" g3priv 4a125f6e17d973999ec37df6bec830013116c079ecfd3e4dc1ba88ebcb513e39 "$MODE" "$PUB" <<'G3_SCRIPT_EOF'
+$PRIV sh -c "$RUN" g3priv 19abde8d0bdde248a6ab9d4c5c023869482194488b745a73a376b542c28b55b9 "$MODE" "$PUB" <<'G3_SCRIPT_EOF'
 #!/bin/sh
 # G3 — one-shot systemd trials of ONE passive publisher (timers stay disabled).
 # Usage:  sh g3.sh plan <runtime-service|storage>      read-only, any user, nothing written
@@ -162,7 +162,7 @@ echo "   output directory now: $(ls -A "$OUTDIR" 2>/dev/null | tr '\n' ' ')(arti
 echo "   other publisher's artifact ($OTHER): $(other_state) (allowed; must stay unchanged during the series)"
 [ -d "$SRC" ] && [ -x "$PYBIN" ] || fail "deployed release code or interpreter missing ($SRC, $PYBIN)"
 ex=$(val "$SERVICE" ExecMainStartTimestampMonotonic)
-echo "   $SERVICE ExecMainStartTimestampMonotonic=${ex:-?} (0 = never run since boot/reload)"
+echo "   $SERVICE ExecMainStartTimestampMonotonic=${ex:-?} (0 = no start recorded in the property observed at this moment; this property alone does not prove the full history)"
 ( cd "$SRC" && env -i PATH=/usr/bin:/bin PYTHONPATH="$SRC" PYTHONDONTWRITEBYTECODE=1 "$PYBIN" -c "import observability.runtime_service_contract, observability.storage_contract" ) >/dev/null 2>&1 \
   || fail "the contract validators of the deployed release cannot be imported"
 df -Pk "$OUTDIR" 2>/dev/null | awk 'NR==2 && $4 < 10240 {exit 1}' || fail "less than 10 MiB free for $OUTDIR"
@@ -196,7 +196,7 @@ while [ "$I" -lt "$RUNS" ] && [ "$FAILS" -eq 0 ]; do
   MS0=$(val "$SERVICE" ExecMainStartTimestampMonotonic); MS1=$(val "$SERVICE" ExecMainExitTimestampMonotonic)
   MP=$(val "$SERVICE" MemoryPeak); CPU=$(val "$SERVICE" CPUUsageNSec)
   D=NOT_AVAILABLE
-  case "$MS0$MS1" in *[!0-9]*|"") ;; *) [ "$MS1" -ge "$MS0" ] && D=$(( (MS1 - MS0) / 1000 ))ms ;; esac
+  case "$MS0$MS1" in *[!0-9]*|"") ;; *) [ "$MS0" -gt 0 ] && [ "$MS1" -ge "$MS0" ] && D=$(( (MS1 - MS0) / 1000 ))ms ;; esac
   case "$MP" in ""|"[not set]"|infinity|18446744073709551615) MP=NOT_AVAILABLE ;; esac
   case "$CPU" in ""|"[not set]"|18446744073709551615) CPU=NOT_AVAILABLE ;; esac
   echo "   Result=$R ExecMainStatus=$S ExecMainCode=$C ActiveState=$A duration=$D MemoryPeak=$MP CPUUsageNSec=$CPU"
