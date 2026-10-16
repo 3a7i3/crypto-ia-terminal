@@ -1,0 +1,58 @@
+{
+  "schema_version": "gt-host-fixture/1",
+  "scenario": "stale",
+  "provenance": "SYNTHETIC",
+  "description": "SYNTHETIC : snapshots publiés 30 minutes avant la collecte",
+  "host_label": "VPS (fixture)",
+  "collected_at_utc": "2026-10-16T12:00:00Z",
+  "unavailable_reason": null,
+  "runtime_service": {
+    "schema_version": "1.0.0",
+    "product": "RuntimeServiceSnapshot",
+    "domain": "runtime_service",
+    "authority": "HOST_SYSTEMD_OBSERVATION",
+    "mode": "READ_ONLY",
+    "generated_at_utc": "2026-10-16T11:30:00Z",
+    "observed_at_utc": "2026-10-16T11:29:59Z",
+    "host_id": "vps-synthetic",
+    "service": {
+      "unit": "crypto-advisor.service",
+      "query_status": "OK",
+      "load_state": "loaded",
+      "active_state": "active",
+      "sub_state": "running",
+      "main_pid": 4242,
+      "restart_count": 0,
+      "exec_main_started_at_utc": "2026-10-12T08:00:00Z",
+      "invocation_id": "5ea7c0de000000000000000000000001"
+    },
+    "deployment": {
+      "status": "PRESENT",
+      "reason": null,
+      "source_code_sha": "116634be0d3c015cce1cfa58be7da7255414fbfd",
+      "evidence_ref": "synthetic-deployment-01",
+      "observed_at_utc": "2026-10-12T08:00:05Z",
+      "artifact_sha256": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "host_id": "vps-synthetic",
+      "invocation_id": "5ea7c0de000000000000000000000001"
+    }
+  },
+  "storage": {
+    "schema_version": "1.0.0",
+    "product": "StorageSnapshot",
+    "domain": "storage",
+    "authority": "FILESYSTEM_METADATA_OBSERVATION",
+    "mode": "READ_ONLY",
+    "generated_at_utc": "2026-10-16T11:30:00Z",
+    "observed_at_utc": "2026-10-16T11:29:59Z",
+    "category": "DECISION_PACKET_LOGS",
+    "scope": "DIRECT_CHILDREN_PATTERN",
+    "pattern": "decision_packets_*.jsonl",
+    "source_status": "PRESENT",
+    "entries_observed": 14,
+    "matched_file_count": 12,
+    "total_bytes": 48213504,
+    "latest_file_modified_at_utc": "2026-10-16T11:28:12Z",
+    "inventory_sha256": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": "gt-host-fixture/1",
+  "scenario": "host_unavailable",
+  "provenance": "SYNTHETIC",
+  "description": "SYNTHETIC : hôte injoignable, aucun snapshot",
+  "host_label": "VPS (fixture)",
+  "collected_at_utc": "2026-10-16T12:00:00Z",
+  "unavailable_reason": "UNREACHABLE",
+  "runtime_service": null,
+  "storage": null
+}
