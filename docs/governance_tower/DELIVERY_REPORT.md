@@ -75,7 +75,14 @@ python scripts/ci/ruff_baseline_gate.py check                      → 0 NEW fin
 node --check governance_tower/ui/app.js                            → OK
 ```
 
-Suite complète du dépôt : voir §7 bis.
+**§7 bis — Non-régression du dépôt** (même environnement, hors `tests/governance_tower`, aucun fichier existant modifié) :
+
+```
+python -m pytest -q -p no:cacheprovider -m "not performance and not slow" tests/ --ignore=tests/governance_tower
+→ 7657 passed, 20 skipped, 13 deselected, 2 xfailed, 38 subtests passed (382 s), code 0
+```
+
+La CI GitHub au HEAD exact de la PR fait foi ; ces résultats locaux ne la remplacent pas.
 
 ## 8. Sécurité
 
