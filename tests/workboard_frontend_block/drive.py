@@ -10,17 +10,39 @@ import sys
 import termios
 import time
 
-script, log, marker, action = sys.argv[1:5]
+cleanup = sys.argv[1:] == ["cleanup"]
+script, log, marker, action = (None,) * 4 if cleanup else sys.argv[1:5]
 env = dict(os.environ, PATH=os.environ["SBX"] + "/bin:" + os.environ["PATH"])
 
 
 def helper_pids():
-    found = subprocess.run(
-        ["pgrep", "-f", "activate_workboard_frontend.py --archive"],
-        capture_output=True,
-        text=True,
-    )
-    return [int(x) for x in found.stdout.split()]
+    # The injected helper records its own namespace-local PID. Global pgrep can
+    # return unrelated workers or host /proc PIDs that os.kill cannot address.
+    try:
+        with open(os.path.join(os.environ["SBX"], "helper-pids")) as stream:
+            registered = [int(line) for line in stream if line.strip()]
+    except FileNotFoundError:
+        return []
+    live = []
+    for pid in registered:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            continue
+        live.append(pid)
+    return live
+
+
+def kill_helpers():
+    for pid in helper_pids():
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    try:
+        os.unlink(os.path.join(os.environ["SBX"], "helper-pids"))
+    except FileNotFoundError:
+        pass
 
 
 def wait_marker():
@@ -99,7 +121,10 @@ def main():
             os.killpg(proc.pid, signal.SIGKILL)
         elif action == "term_helper":
             for pid in helpers:
-                os.kill(pid, signal.SIGTERM)
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
         elif action == "hup_group":
             os.killpg(proc.pid, signal.SIGHUP)
         else:
@@ -114,4 +139,7 @@ def main():
         print("helper vivant apres l'action =", "OUI" if helper_pids() else "NON")
 
 
-main()
+if cleanup:
+    kill_helpers()
+else:
+    main()

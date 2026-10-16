@@ -150,3 +150,33 @@ bloc et du helper sont à recopier de la PR de release dans l'exception avant to
 Preuve navigateur sur la page tailnet : 32 lignes, filtres, navigation mobile, panneau de synchronisation (un seul
 relevé réel, en notant l'erreur de quota éventuelle). Consignée sur #430 comme résultat à part. Cette release ne
 certifie ni U8/L4 ni le runtime.
+
+## Reprise du 16 octobre 2026 — revue et préflight indépendant, sans activation
+
+- Les résultats opérateur G3–G5 et quatre captures originales sont consignés dans
+  [le rapport du 16 octobre](PASSIVE_PUBLISHERS_G3_G5_OPERATOR_RESULTS_20261016.md).
+  La série storage supplémentaire reste un écart consigné, jamais une autorisation rétroactive.
+- Inspection indépendante en lecture seule sur le VPS à **18:11:11 UTC**, sous `chatgpt-ro` uid 996,
+  sans sudo : archive/helper/bloc SHA-256 conformes, `INSPECT_ONLY_NO_MUTATION`, code 0 ; web configuré sur bdca77f,
+  nouvelle release/drop-in absents selon les contrôles du helper ; Advisor PID 882633, API PID 2695812,
+  `NRestarts=0` et `active/running` pour les deux ; démarrage API **16/10 04:37:39 UTC** ;
+  `NeedDaemonReload=no` sur web/Advisor/API. Le lien `current` vise toujours 7638475… et n'est pas la cible web.
+  Cette observation ne constitue pas une activation ni une nouvelle certification runtime.
+- Répétition locale de **l'archive réelle**, SHA-256 inchangé : les huit assets dist et l'entrée SPA servis
+  par Node correspondent octet pour octet au manifeste. Aucun accès VPS pour cette répétition.
+- **26 tests Python ciblés passent**, dont un test établissant que le nettoyage du banc laisse vivre un processus
+  non enregistré. Ruff 0.15.8 passe sur les fichiers de tests modifiés ; diff whitespace conforme.
+- **Banc complet : 170 PASS, 0 FAIL** après correction du ciblage des processus du banc. Le premier passage ici
+  donnait 161 PASS/9 FAIL : le contrôleur utilisait `pgrep`/`pkill` global, avec des PID d'hôte non utilisables
+  dans cet environnement à espaces de noms, puis des helpers orphelins non retirés. Les variantes du helper
+  s'enregistrent désormais elles-mêmes dans le dossier privé du banc ; seuls ces PID sont utilisés. Aucun
+  fichier de production n'est modifié par cette correction. Les SHA du helper, du bloc et de l'archive restent
+  respectivement **f9bda7dd…744d**, **28b07fd2…4f50** et **a9a17e8b…3136**.
+
+L'archive est construite sur 8ff089b : son registre de 32 missions reste un relevé éditorial daté de cette source,
+pas un registre actualisé par les nouveaux résultats G3–G5. La synchronisation GitHub ne remplit toujours ni
+déploiement ni certification à partir des seuls états GitHub. Aucun rebuild implicite de l'archive.
+
+Paquet déposé en staging privé `/home/chatgpt-ro/workboard-8ff089b/` : archive, helper et `final_block.sh`.
+**Aucune phase root `prepare`, `activate` ou `rollback` exécutée par l'agent ; aucune nouvelle exception frontend
+publiée.** La CI doit être relue à la tête finale de #458 avant fusion source ; l'activation conserve sa gate distincte.

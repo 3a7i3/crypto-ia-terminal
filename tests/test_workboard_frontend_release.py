@@ -3,12 +3,38 @@
 import hashlib
 import io
 import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 import tarfile
 
 import pytest
 
 from scripts.activate_workboard_frontend import SOURCE_SHA, verified_files
 from scripts import activate_workboard_frontend as release
+
+
+def test_harness_cleanup_targets_only_its_registered_helper(tmp_path):
+    """An unrelated worker must survive test cleanup, even with the same code."""
+    target = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        (tmp_path / "helper-pids").write_text(str(target.pid) + "\n")
+        driver = Path(__file__).parent / "workboard_frontend_block" / "drive.py"
+        subprocess.run(
+            [sys.executable, str(driver), "cleanup"],
+            env={**os.environ, "SBX": str(tmp_path)},
+            check=True,
+            timeout=5,
+        )
+        assert target.wait(timeout=5) == -9
+        assert unrelated.poll() is None
+    finally:
+        for proc in (target, unrelated):
+            if proc.poll() is None:
+                proc.kill()
+            proc.wait(timeout=5)
 
 
 def archive(extra=None, merge=None):

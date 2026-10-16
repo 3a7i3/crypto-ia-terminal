@@ -5,6 +5,15 @@ import pathlib
 import sys
 
 src = pathlib.Path(sys.argv[1]).read_text()
+# Test-only registration; no global process-name search or production helper edit.
+src = src.replace(
+    'if __name__ == "__main__":\n',
+    'if __name__ == "__main__":\n'
+    '    if os.environ.get("SBX"):\n'
+    '        with open(os.path.join(os.environ["SBX"], "helper-pids"), "a") as pids:\n'
+    '            pids.write(str(os.getpid()) + "\\n")\n',
+    1,
+)
 out = pathlib.Path(sys.argv[2])
 out.mkdir(parents=True, exist_ok=True)
 

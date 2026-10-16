@@ -22,7 +22,7 @@ sub() {  # substitution de chemins, appliquee au bloc ET au helper : tout ce qui
 }
 hash90() { sha256sum $D/90-ux-fr.conf* $D/99-workboard.conf | sha256sum | cut -c1-16; }
 reset() {
-  pkill -KILL -f "activate_workboard_frontend.py --archive" 2>/dev/null; sleep 0.3
+  python3 "$T/drive.py" cleanup; sleep 0.3
   rm -rf $O/releases/$NEW $D $STG $SBX/knobs/* $SBX/systemctl.log $R/src
   mkdir -p $O/releases/$OLD/frontend/dist/assets $O/releases/$CUR $D $R/src $SBX/knobs
   echo "<html>ancienne release bdca77f</html>" > $O/releases/$OLD/frontend/dist/index.html
@@ -154,12 +154,12 @@ check "R1: parent tue (rc -9), helper vivant, drop-in COMPLET" '[ "$PRC" = -9 ] 
 check "R1: journal STARTED, aucune recuperation automatique" '[ "$(jstate)" = STARTED ] && [ ! -e $EVD/recover.log ]'
 PH=$(sha256sum $D/99-workboard2.conf | cut -c1-16); : > $SBX/systemctl.log; run R1_rb_vivant rollback
 check "R1: rollback avec helper orphelin : refuse par le verrou (rc 11), rien execute" '[ $RC = 11 ] && [ "$(sha256sum $D/99-workboard2.conf | cut -c1-16)" = "$PH" ] && nosysmut'
-pkill -KILL -f "activate_workboard_frontend.py --archive"; sleep 1; run R1_rb rollback
+python3 "$T/drive.py" cleanup; sleep 1; run R1_rb rollback
 check "R1: rollback apres SIGKILL du helper : rc 0, provenance citee" '[ $RC = 0 ] && grep -q "provenance etablie" $LOGS/R1_rb.log'; state_ok R1
 echo "### R2 SIGKILL groupe apres creation du drop-in, avant reload"; reset; mkscript h_stall_linked; run R2 prepare; dr R2 MARK_DROPIN_CREATED kill_group; run R2_rb rollback; check "R2: rollback rc 0" '[ $RC = 0 ]'; state_ok R2
 echo "### R3 SIGKILL du parent APRES reload+restart (web sert la nouvelle release), puis rollback"; reset; mkscript h_stall_restart; run R3 prepare; dr R3 MARK_AFTER_RESTART kill_parent
 check "R3: le web sert la NOUVELLE release" '[ "$(cat $SBX/state/running_wd)" = "$O/releases/$NEW/frontend" ]'
-pkill -KILL -f "activate_workboard_frontend.py --archive"; sleep 1; : > $SBX/systemctl.log; run R3_rb rollback
+python3 "$T/drive.py" cleanup; sleep 1; : > $SBX/systemctl.log; run R3_rb rollback
 check "R3: rollback rc 0, reload + restart du web seul" '[ $RC = 0 ] && grep -q "^systemctl daemon-reload" $SBX/systemctl.log && grep -q "^systemctl restart crypto-operator-web.service" $SBX/systemctl.log'; state_ok R3
 echo "### R4 SIGTERM / SIGHUP groupe / terminal perdu, apres creation du drop-in"
 for spec in "R4a term_helper" "R4b hup_group" "R4c pty_loss"; do set -- $spec; reset; mkscript h_stall_linked; run $1 prepare; dr $1 MARK_DROPIN_CREATED $2
