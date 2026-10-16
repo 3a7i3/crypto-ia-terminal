@@ -1,5 +1,8 @@
 # WEB-WORKBOARD-RUNTIME-01 — frontend-only release
 
+> Historique (release bdca77f, exception consommée). La release suivante, préparée et non activée, est décrite dans
+> [WEB_WORKBOARD_FRONTEND_RELEASE_8ff089b.md](WEB_WORKBOARD_FRONTEND_RELEASE_8ff089b.md) ; le helper y est repointé.
+
 Mission #430 ; source #428/#429 ; #286 remains ACTIVE. Operator requested
 implementation after seeing the source preview. This is a separate presentation
 release, not U8/L4 certification or authorization of PAPER stress/capture.

@@ -14,10 +14,16 @@ import tarfile
 import time
 import urllib.request
 
-SOURCE_SHA = "bdca77f9bcf306c17846985faef870844fdd1334"
-PREVIOUS = "/opt/crypto-ai-terminal/operator/releases/1728b3ad952b87d903ccb7442579000da292b848/frontend"
+# Bundle source: main after #451 (GitHub sync + 32-mission register). Frontend-only.
+SOURCE_SHA = "8ff089b26cd15190e8be34c11b75b0b17c471ef6"
+# Operator-reported previous release (bdca77f activation, GOV-286-WEB-FRONTEND-bdca77f).
+# The preflight does not trust that report: it refuses unless the web unit really serves it.
+PREVIOUS = "/opt/crypto-ai-terminal/operator/releases/bdca77f9bcf306c17846985faef870844fdd1334/frontend"
 RELEASE = Path("/opt/crypto-ai-terminal/operator/releases") / SOURCE_SHA
-DROPIN = Path("/etc/systemd/system/crypto-operator-web.service.d/99-workboard.conf")
+# Previous activation reported a drop-in named 99-workboard.conf. systemd applies drop-ins in
+# lexical order and "2" sorts after "." so this one wins; removing it restores the previous release.
+PREVIOUS_DROPIN = "99-workboard.conf"
+DROPIN = Path("/etc/systemd/system/crypto-operator-web.service.d/99-workboard2.conf")
 UNCHANGED = ("crypto-advisor.service", "crypto-operator-api.service")
 PROPERTIES = (
     "MainPID",
