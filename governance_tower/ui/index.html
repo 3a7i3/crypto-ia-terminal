@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<title>Governance Tower — Sentinel</title>
+<link rel="stylesheet" href="/styles.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<a class="evitement" href="#question">Aller au champ de question</a>
+
+<header class="entete">
+  <div class="entete-ligne">
+    <div class="identite">
+      <h1 class="app">GOVERNANCE TOWER</h1>
+      <p class="agent">
+        <span class="agent-nom">SENTINEL-01</span>
+        <span class="badge badge-ro" title="Capacité OBSERVE_ONLY — autorité opérationnelle refusée">READ ONLY</span>
+      </p>
+    </div>
+    <ul class="sources" aria-label="État des sources observées">
+      <li class="source" id="source-github" data-ton="unknown">
+        <span class="source-nom">GitHub</span>
+        <span class="source-etat">Inconnu</span>
+        <span class="source-meta">Statut en cours de lecture</span>
+      </li>
+      <li class="source" id="source-host" data-ton="unknown">
+        <span class="source-nom">VPS</span>
+        <span class="source-etat">Inconnu</span>
+        <span class="source-meta">Statut en cours de lecture</span>
+      </li>
+    </ul>
+  </div>
+  <p class="mode" id="mode">Mode : lecture du statut…</p>
+</header>
+
+<div class="banniere-demo" id="banniere-demo" role="note" hidden>
+  <strong>DÉMO — DONNÉES SYNTHÉTIQUES</strong>
+  <span class="banniere-detail">Ces données sont des fixtures de démonstration : elles ne prouvent rien sur GitHub ni sur le VPS.</span>
+</div>
+
+<main id="principal">
+  <section class="panel" aria-labelledby="titre-panel">
+    <h2 id="titre-panel">Conversation avec Sentinel</h2>
+    <p class="intro">Sentinel lit GitHub et le VPS en lecture seule, cite ses preuves et signale ce qu'il ne sait pas.</p>
+
+    <div class="raccourcis" role="group" aria-label="Raccourcis de question">
+      <button type="button" class="raccourci" data-shortcut="examine_repository">Examiner le dépôt</button>
+      <button type="button" class="raccourci" data-shortcut="examine_host">Examiner le VPS</button>
+      <button type="button" class="raccourci" data-shortcut="compare">Comparer GitHub et VPS</button>
+      <button type="button" class="raccourci" data-shortcut="diagnose">Rechercher une anomalie</button>
+      <button type="button" class="raccourci" data-shortcut="propose_mission">Proposer une mission</button>
+    </div>
+
+    <div class="fil" id="fil" aria-live="polite" aria-relevant="additions text" aria-label="Fil de la conversation">
+      <p class="fil-vide" id="fil-vide">Aucun échange pour l'instant. Posez une question ou choisissez un raccourci.</p>
+    </div>
+
+    <form class="formulaire" id="formulaire" novalidate>
+      <label class="formulaire-label" for="question">Votre question</label>
+      <textarea id="question" name="question" rows="3" maxlength="2000" autocomplete="off" spellcheck="true" aria-describedby="aide-question compteur"></textarea>
+      <div class="formulaire-bas">
+        <p class="aide" id="aide-question">Entrée pour envoyer · Maj+Entrée pour une nouvelle ligne</p>
+        <span class="compteur" id="compteur">0 / 2000</span>
+      </div>
+      <div class="actions">
+        <button type="button" class="secondaire" id="annuler" hidden>Annuler</button>
+        <button type="submit" class="principal" id="envoyer">Envoyer</button>
+      </div>
+      <p class="message-formulaire" id="message-formulaire" role="status"></p>
+    </form>
+  </section>
+</main>
+
+<footer class="pied">
+  <p>Sentinel observe et propose. Aucune action n'est exécutée. Toute opération exige une décision opérateur hors de cette interface (#286, #315).</p>
+  <p class="pied-discret">Historique conservé en mémoire pour cette session uniquement ; rien n'est enregistré dans le navigateur.</p>
+</footer>
+</body>
+</html>
