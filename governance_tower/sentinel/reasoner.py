@@ -28,6 +28,8 @@ from governance_tower.contracts import (
 )
 from governance_tower.sentinel.analysis import AnalysisResult, short
 
+ROADMAP_ISSUE = 285
+
 CLASS_LABELS = {
     DiscrepancyClass.ALIGNED: "aligné",
     DiscrepancyClass.EXPECTED_PINNED_RUNTIME: "runtime volontairement épinglé, écart attendu",
@@ -85,8 +87,9 @@ class ClaudeApiReasoner:
 def _compact(value: Any, limit: int = 600) -> str:
     def render(v: Any, depth: int) -> str:
         if isinstance(v, dict):
-            parts = [f"{k}={render(x, depth + 1)}" for k, x in list(v.items())[:12]]
-            return "{" + ", ".join(parts) + ("…" if len(v) > 12 else "") + "}"
+            items = [(k, x) for k, x in v.items() if not (x is False and k.endswith(("_redacted", "_truncated")))]
+            parts = [f"{k}={render(x, depth + 1)}" for k, x in items[:12]]
+            return "{" + ", ".join(parts) + ("…" if len(items) > 12 else "") + "}"
         if isinstance(v, (list, tuple)):
             if depth > 1:
                 return f"[{len(v)} éléments]"
@@ -181,6 +184,23 @@ class DeterministicDemoReasoner:
         if intent in (Intent.EXAMINE_REPOSITORY, Intent.FULL_REVIEW):
             add_obs(repo_obs(Domain.REPOSITORY, Domain.CI, Domain.PULL_REQUESTS, Domain.ISSUES), "GitHub")
         if intent is Intent.ROADMAP:
+            for obs in repo_obs(Domain.ISSUES):
+                if not obs.has_value or not isinstance(obs.value, dict):
+                    continue
+                items = obs.value.get("items") or []
+                roadmap = next((i for i in items if isinstance(i, dict) and i.get("number") == ROADMAP_ISSUE), None)
+                ev = tuple(e.evidence_id for e in obs.evidence)
+                if roadmap is not None:
+                    statements.append(
+                        Statement(
+                            f"Roadmap active : #{ROADMAP_ISSUE} « {roadmap.get('title')} », ouverte dans la page lue "
+                            f"(mise à jour {roadmap.get('updated_at_utc', 'inconnue')}). Titre = contenu non fiable.",
+                            ClaimStatus.OBSERVED,
+                            ev,
+                        )
+                    )
+                else:
+                    uncertainties.append(f"#{ROADMAP_ISSUE} non observée dans la page lue : ni ouverte ni fermée établie.")
             add_obs(repo_obs(Domain.ISSUES), "GitHub")
             uncertainties.append(
                 "La priorisation canonique vit dans #285 : Sentinel en lit le titre et l'état, pas le corps."

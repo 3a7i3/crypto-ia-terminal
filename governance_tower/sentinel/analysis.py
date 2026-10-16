@@ -147,7 +147,7 @@ def compare_runtime(
     else:
         cls = DiscrepancyClass.POSSIBLE_DRIFT
         text = (
-            f"Le runtime observé ({short(deployed)}) n'est ni main ({short(head)}) ni la référence gelée déclarée. "
+            f"Le runtime observé ({deployed}) n'est ni main ({head}) ni la référence gelée déclarée. "
             "Dérive possible ; Sentinel ne dispose pas de preuve d'origine suffisante pour conclure à une violation."
         )
     return Discrepancy(

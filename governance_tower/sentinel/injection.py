@@ -16,7 +16,10 @@ _MARKERS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(?i)\b(system|assistant|developer)\s*:"),
     re.compile(r"(?i)you are now|tu es (maintenant|d[ée]sormais)"),
     re.compile(r"(?i)\b(sudo|systemctl|journalctl|rm\s+-rf|chmod|curl\s+\S+\s*\|)"),
-    re.compile(r"(?i)\b(restart|red[ée]marre|d[ée]ploie|deploy|merge|fusionne)\b"),
+    re.compile(
+        r"(?i)\b(restart|red[ée]marre[rz]?|d[ée]ploie[rz]?|deploy|merge|fusionne[rz]?|stop|arr[eê]te[rz]?)\b"
+        r"(?! pull request)(?! #?\d).{0,40}\b(advisor|services?|vps|prod\w*|runtime|now|maintenant|imm[ée]diatement)\b"
+    ),
     re.compile(r"(?i)(print|affiche|r[ée]v[eè]le|lis|read|send|envoie)\b.{0,30}(token|jeton|secret|\.env|cl[ée]|password)"),
     re.compile(r"(?i)javascript:|data:text/html|<script"),
     re.compile(r"(?i)\[REDACTED\]"),
