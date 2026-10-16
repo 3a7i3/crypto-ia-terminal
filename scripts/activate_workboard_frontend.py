@@ -9,7 +9,9 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import signal
 import subprocess
+import sys
 import tarfile
 import time
 import urllib.request
@@ -24,7 +26,10 @@ RELEASE = Path("/opt/crypto-ai-terminal/operator/releases") / SOURCE_SHA
 # lexical order and "2" sorts after "." so this one wins; removing it restores the previous release.
 PREVIOUS_DROPIN = "99-workboard.conf"
 DROPIN = Path("/etc/systemd/system/crypto-operator-web.service.d/99-workboard2.conf")
+WEB = "crypto-operator-web.service"
 UNCHANGED = ("crypto-advisor.service", "crypto-operator-api.service")
+# daemon-reload is manager-wide: it must not apply someone else's pending unit change to any of these.
+RELOAD_GUARDED = (WEB, *UNCHANGED)
 PROPERTIES = (
     "MainPID",
     "NRestarts",
@@ -89,7 +94,7 @@ def web_directory() -> str:
     return command(
         "systemctl",
         "show",
-        "crypto-operator-web.service",
+        WEB,
         "--property=WorkingDirectory",
         "--value",
     ).strip()
@@ -115,6 +120,114 @@ def verify_served(files: dict[str, bytes]) -> None:
             raise ValueError("SPA_ENTRYPOINT_MISMATCH")
 
 
+def need_daemon_reload() -> dict[str, str]:
+    return {
+        service: command(
+            "systemctl", "show", service, "--property=NeedDaemonReload", "--value"
+        ).strip()
+        for service in RELOAD_GUARDED
+    }
+
+
+def assert_no_pending_reload(code: str) -> dict[str, str]:
+    """Anything but an explicit "no" (including an empty or unreadable value) refuses."""
+    state = need_daemon_reload()
+    if any(value != "no" for value in state.values()):
+        raise ValueError(f"{code}: {json.dumps(state, sort_keys=True)}")
+    return state
+
+
+def dropin_tmp() -> Path:
+    # Not "*.conf": systemd ignores it while it exists, so a half-written file is never loaded.
+    return DROPIN.with_name(f".{DROPIN.name}.tmp")
+
+
+def link_dropin_atomic(content: str, owned: list | None = None) -> None:
+    """Complete content or nothing: write+fsync a private file, then link() it into place.
+
+    link() is atomic and fails with FileExistsError if DROPIN exists, so an existing
+    file is never replaced and a crash can never leave a truncated DROPIN.
+    """
+    tmp = dropin_tmp()
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    if owned is not None:
+        owned.append(tmp)  # only a temp file this run created may be removed by the restore
+    try:
+        with os.fdopen(fd, "w") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fchmod(stream.fileno(), 0o644)
+            os.fsync(stream.fileno())
+        os.link(tmp, DROPIN)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def fsync_dir(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def restore_previous(created: bool, tmp_owned: bool = False) -> list[str]:
+    """Undo only what this run created. Every failed step is counted, none stops the others."""
+    failures: list[str] = []
+
+    def step(name: str, action) -> object:
+        try:
+            return action()
+        except Exception as exc:  # noqa: BLE001 - each failure is reported, not hidden
+            failures.append(f"{name}: {exc!r}")
+            return None
+
+    # Decided on the config systemd has loaded NOW, before the reload changes the answer.
+    try:
+        loaded_new = web_directory() != PREVIOUS
+    except Exception as exc:  # noqa: BLE001
+        failures.append(f"web_directory_before: {exc!r}")
+        loaded_new = True
+    if created:
+        step("unlink_dropin", lambda: DROPIN.unlink())
+    if tmp_owned:
+        step("unlink_tmp", lambda: dropin_tmp().unlink(missing_ok=True))
+    # Nothing was mutated and nothing loaded: no reload at all (it is manager-wide).
+    if created or loaded_new:
+        def read_foreign() -> dict:
+            return {
+                service: command(
+                    "systemctl", "show", service, "--property=NeedDaemonReload", "--value"
+                ).strip()
+                for service in UNCHANGED
+            }
+
+        foreign = step("read_foreign_pending", read_foreign) or {"unreadable": "yes"}
+        if any(value != "no" for value in foreign.values()):
+            # A pending change on Advisor/API is someone else's: reloading would apply it.
+            failures.append(
+                "daemon_reload_skipped_foreign_pending: "
+                + json.dumps(foreign, sort_keys=True)
+            )
+        else:
+            step("daemon_reload", lambda: command("systemctl", "daemon-reload"))
+            if loaded_new:
+                step("restart_web", lambda: command("systemctl", "restart", WEB))
+
+    def check_directory() -> None:
+        if web_directory() != PREVIOUS:
+            raise ValueError("WORKING_DIRECTORY_NOT_RESTORED")
+
+    step("web_directory_after", check_directory)
+    step(
+        "need_daemon_reload_after",
+        lambda: assert_no_pending_reload("NEED_DAEMON_RELOAD_AFTER_RESTORE"),
+    )
+    if created and DROPIN.exists():
+        failures.append("dropin_still_present")
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, required=True)
@@ -125,18 +238,25 @@ def main() -> int:
     before = {s: service_state(s) for s in UNCHANGED}
     current_link = Path("/opt/crypto-ai-terminal/operator/current")
     current_target = os.readlink(current_link)
-    if web_directory() != PREVIOUS or DROPIN.exists() or RELEASE.exists():
+    if (
+        web_directory() != PREVIOUS
+        or DROPIN.exists()
+        or dropin_tmp().exists()
+        or RELEASE.exists()
+    ):
         raise ValueError("PREVIOUS_RELEASE_OR_OVERRIDE_CHANGED")
     if any(
         v["ActiveState"] != "active" or v["SubState"] != "running"
         for v in before.values()
     ):
         raise ValueError("PROTECTED_SERVICE_NOT_RUNNING")
+    reload_before = assert_no_pending_reload("NEED_DAEMON_RELOAD_PENDING")
     result = {
         "source_sha": SOURCE_SHA,
         "archive_sha256": args.sha256,
         "previous_web": PREVIOUS,
         "protected_services_before": before,
+        "need_daemon_reload_before": reload_before,
         "current_link_untouched": current_target,
         "source_merge_sha": manifest.get("source_merge_sha"),
         "runtime_certification": "NOT_CERTIFIED",
@@ -151,7 +271,8 @@ def main() -> int:
         raise ValueError("MERGED_SOURCE_GATE_MISSING")
     if os.geteuid() != 0:
         raise PermissionError("PRIVILEGED_OPERATOR_REQUIRED")
-    activated = False
+    created = False
+    tmp_owned: list = []
     try:
         RELEASE.mkdir(mode=0o755)
         for name, data in files.items():
@@ -164,14 +285,14 @@ def main() -> int:
         )
         (RELEASE / "manifest.json").chmod(0o644)
         DROPIN.parent.mkdir(exist_ok=True, mode=0o755)
-        with DROPIN.open("x") as stream:
-            stream.write(
-                f"[Service]\nWorkingDirectory={RELEASE}/frontend\nExecStart=\nExecStart=/usr/bin/env node {RELEASE}/{SERVER}\n"
-            )
-        DROPIN.chmod(0o644)
-        activated = True
+        link_dropin_atomic(
+            owned=tmp_owned,
+            content=f"[Service]\nWorkingDirectory={RELEASE}/frontend\nExecStart=\nExecStart=/usr/bin/env node {RELEASE}/{SERVER}\n"
+        )
+        created = True
+        fsync_dir(DROPIN.parent)
         command("systemctl", "daemon-reload")
-        command("systemctl", "restart", "crypto-operator-web.service")
+        command("systemctl", "restart", WEB)
         last_error = None
         for _ in range(10):
             try:
@@ -186,11 +307,13 @@ def main() -> int:
         after = {s: service_state(s) for s in UNCHANGED}
         if after != before or os.readlink(current_link) != current_target:
             raise ValueError("PROTECTED_BOUNDARY_CHANGED")
+        reload_after = assert_no_pending_reload("NEED_DAEMON_RELOAD_AFTER_ACTIVATE")
         result.update(
             {
                 "disposition": "FRONTEND_ASSETS_SERVED_HASH_VERIFIED",
                 "protected_services_after": after,
-                "new_web": service_state("crypto-operator-web.service"),
+                "need_daemon_reload_after": reload_after,
+                "new_web": service_state(WEB),
                 "browser_runtime_proof": "PENDING",
             }
         )
@@ -201,10 +324,23 @@ def main() -> int:
         print(json.dumps(result, indent=2))
         return 0
     except BaseException:
-        if activated:
-            DROPIN.unlink()
-            command("systemctl", "daemon-reload")
-            command("systemctl", "restart", "crypto-operator-web.service")
+        for signum in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+            signal.signal(signum, signal.SIG_IGN)
+        failures = restore_previous(created, bool(tmp_owned))
+        # The release directory is kept for forensics; the block owns the evidence copy.
+        print(
+            json.dumps(
+                {
+                    "restore": "INCOMPLETE" if failures else "OK",
+                    "failure_count": len(failures),
+                    "failures": failures,
+                    "release_kept": str(RELEASE),
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
         raise
 
 

@@ -1,0 +1,31 @@
+#!/bin/bash
+# Faux systemctl : la configuration "chargee" ne change qu'apres daemon-reload ; le processus qui tourne ne change qu'apres restart.
+# Les drop-ins sont lus par ordre lexical des *.conf (le dernier WorkingDirectory gagne), les fichiers caches (.tmp) sont ignores.
+ST=$SBX/state; K=$SBX/knobs; D=$SBX/root/etc/systemd/system/crypto-operator-web.service.d
+OLD=$SBX/root/opt/crypto-ai-terminal/operator/releases/bdca77f9bcf306c17846985faef870844fdd1334/frontend
+echo "systemctl $*" >> $SBX/systemctl.log
+dropin_hash() { ( cd $D 2>/dev/null && for f in *.conf; do [ -e "$f" ] && { echo "$f"; cat "$f"; }; done ) | sha256sum | cut -d' ' -f1; }
+case "$1" in
+ show)
+   args=("${@:2}")
+   if [[ "$*" == *"--property=NeedDaemonReload"*"--value"* ]]; then
+     u=${args[0]}; case $u in *web*) n=web;; *advisor*) n=advisor;; *) n=api;; esac
+     [ -e $K/unreadable_$n ] && exit 1
+     if [ -e $K/stuck_pending_$n ] || [ -e $K/pending_$n ]; then echo yes; exit 0; fi
+     [ $n = web ] && [ "$(dropin_hash)" != "$(cat $ST/loaded_hash)" ] && { echo yes; exit 0; }
+     echo no; exit 0
+   fi
+   if [[ "$*" == *"--property=WorkingDirectory"*"--value"* ]]; then cat $ST/loaded_wd; exit 0; fi
+   if [[ "$*" == *"FragmentPath"* ]]; then echo "FragmentPath=/etc/systemd/system/crypto-operator-web.service"; echo "WorkingDirectory=$(cat $ST/loaded_wd)"; echo "DropInPaths="; exit 0; fi
+   for u in "${args[@]}"; do case $u in crypto-*) echo "Id=$u"; echo ActiveState=active; echo SubState=running; echo MainPID=100; echo NRestarts=0; echo "ExecMainStartTimestamp=Mon 2026-10-05 00:00:00 UTC"; [[ "$*" == *NeedDaemonReload* ]] && echo NeedDaemonReload=no; echo;; esac; done;;
+ daemon-reload)
+   [ -e $K/fail_reload_always ] && { echo "reload refuse" >&2; exit 1; }
+   [ -e $K/fail_reload_once ] && { rm -f $K/fail_reload_once; echo "reload refuse (une fois)" >&2; exit 1; }
+   w=$( cd $D && for f in *.conf; do [ -e "$f" ] && grep '^WorkingDirectory=' "$f"; done | tail -1 | cut -d= -f2- )
+   echo "${w:-$OLD}" > $ST/loaded_wd; dropin_hash > $ST/loaded_hash;;
+ restart)
+   [ -e $K/fail_restart_always ] && { echo "restart refuse" >&2; exit 1; }
+   cat $ST/loaded_wd > $ST/running_wd;;
+ is-active) echo active;;
+ status) echo "stub status";;
+esac

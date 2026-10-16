@@ -97,9 +97,41 @@ le dessus), recharge systemd, redémarre **uniquement** `crypto-operator-web.ser
 `/direction/travaux` octet pour octet sur `127.0.0.1:8181`, compare Advisor/API/`current` avant/après. En cas d'échec,
 il retire `99-workboard2.conf`, recharge et redémarre le web seul : retour à bdca77f.
 
-Le bloc `final_block.sh` v4 est **épinglé à bdca77f** et ne doit pas être réutilisé tel quel. Un bloc v5 (mêmes phases,
-nouvelles empreintes, nouveaux noms) n'est pas préparé ici : il le sera après accord de l'opérateur sur ce paquet et
-ce helper, puis relu avant toute exception.
+Le bloc `final_block.sh` v4 est **épinglé à bdca77f** et ne doit pas être réutilisé. Le bloc **v5**
+(`scripts/workboard_frontend_final_block.sh`, phases `prepare` / `activate` / `rollback`) le remplace ; voir la section suivante.
+
+## Bloc v5 (source, non exécuté sur le VPS)
+
+Corrections par rapport à v4, chacune couverte par le banc `tests/workboard_frontend_block/harness.sh` (chemins isolés, faux
+`systemctl`, aucun service réel) et par `tests/test_workboard_frontend_release.py` :
+
+1. **Gardes `NeedDaemonReload`** : `daemon-reload` est global. Le bloc (prepare, activate) et le helper exigent `no`
+   sur web, Advisor et API ; toute autre valeur, y compris vide ou illisible, refuse avant toute mutation. La valeur est
+   relue après l'activation et après la restauration. En restauration, aucun `daemon-reload` n'est lancé si rien n'a été retiré
+   ni chargé, ni si Advisor ou API ont un rechargement en attente (changement étranger : échec compté, non appliqué).
+2. **Drop-in atomique** : le helper écrit un fichier caché `.99-workboard2.conf.tmp` (ignoré par systemd), `fsync`, puis
+   `link()` vers `99-workboard2.conf` (échoue si le fichier existe). Le drop-in est complet ou absent. Un contenu partiel
+   à ce chemin est donc étranger et le rollback le refuse (plus aucune tolérance de préfixe). Un temporaire n'est retiré que
+   s'il a été créé par la tentative.
+3. **Rollback vérifié** : WorkingDirectory = bdca77f, HTTP 200, **index servi = index de la release bdca77f**, web actif,
+   `99-workboard2.conf` et temporaire absents, `99-workboard.conf` inchangé (empreinte journalisée), `NeedDaemonReload=no` ×3,
+   état protégé inchangé. Le web (seul) est relancé si l'index servi n'est pas celui de bdca77f (cas d'un restart qui avait échoué).
+4. **Échecs comptés** : chaque écart incrémente `FAILS` et écrit une ligne dans `evidence/failures.log` ; le journal porte
+   `FAIL_COUNT` (cumulé) et `RESTORE_FAIL_COUNT`. L'échec de l'activation elle-même et les échecs de restauration déclarés par
+   le helper sont comptés ; une sortie inattendue après l'activation est journalisée `VERIFY_FAILED` sans rien annuler.
+5. **Preuves si la restauration est incomplète** : dossier `evidence/incomplete-restore-<UTC>-<pid>/` (état systemd, `ls`
+   des dossiers, copies de tout `evidence/`, des fichiers trouvés, `status` et `journalctl` du web, `SHA256SUMS`), journal
+   `RESTORE_INCOMPLETE`, code de sortie 7, et marqueur `evidence/INCOMPLETE_RESTORE` qui fait refuser toute nouvelle activation.
+   Le marqueur n'est retiré que par un `rollback` entièrement vérifié ; aucune preuve n'est jamais supprimée. Les sorties du
+   helper d'une tentative précédente sont conservées (`*.prev-<T0>`). Les signaux sont ignorés pendant la restauration.
+
+Codes de sortie du bloc : 0 OK ; 2 pas root ; 3 droits ; 4 prepare/inspection ; 5 abandon ; 6 rollback refusé (provenance) ;
+7 restauration/rollback incomplet ; 8 précondition d'activation ; 9 vérification obligatoire échouée après activation ;
+11 verrou pris (helper orphelin).
+
+Limites : le banc modélise systemd (rechargement, ordre lexical des drop-ins) mais n'est pas systemd ; il ne prouve rien sur
+le VPS. Le journal vit dans le staging root : il protège d'un oubli ou d'un remplacement, pas contre root. Les empreintes du
+bloc et du helper sont à recopier de la PR de release dans l'exception avant toute exécution.
 
 ## Rollback
 
@@ -118,3 +150,33 @@ ce helper, puis relu avant toute exception.
 Preuve navigateur sur la page tailnet : 32 lignes, filtres, navigation mobile, panneau de synchronisation (un seul
 relevé réel, en notant l'erreur de quota éventuelle). Consignée sur #430 comme résultat à part. Cette release ne
 certifie ni U8/L4 ni le runtime.
+
+## Reprise du 16 octobre 2026 — revue et préflight indépendant, sans activation
+
+- Les résultats opérateur G3–G5 et quatre captures originales sont consignés dans
+  [le rapport du 16 octobre](PASSIVE_PUBLISHERS_G3_G5_OPERATOR_RESULTS_20261016.md).
+  La série storage supplémentaire reste un écart consigné, jamais une autorisation rétroactive.
+- Inspection indépendante en lecture seule sur le VPS à **18:11:11 UTC**, sous `chatgpt-ro` uid 996,
+  sans sudo : archive/helper/bloc SHA-256 conformes, `INSPECT_ONLY_NO_MUTATION`, code 0 ; web configuré sur bdca77f,
+  nouvelle release/drop-in absents selon les contrôles du helper ; Advisor PID 882633, API PID 2695812,
+  `NRestarts=0` et `active/running` pour les deux ; démarrage API **16/10 04:37:39 UTC** ;
+  `NeedDaemonReload=no` sur web/Advisor/API. Le lien `current` vise toujours 7638475… et n'est pas la cible web.
+  Cette observation ne constitue pas une activation ni une nouvelle certification runtime.
+- Répétition locale de **l'archive réelle**, SHA-256 inchangé : les huit assets dist et l'entrée SPA servis
+  par Node correspondent octet pour octet au manifeste. Aucun accès VPS pour cette répétition.
+- **26 tests Python ciblés passent**, dont un test établissant que le nettoyage du banc laisse vivre un processus
+  non enregistré. Ruff 0.15.8 passe sur les fichiers de tests modifiés ; diff whitespace conforme.
+- **Banc complet : 170 PASS, 0 FAIL** après correction du ciblage des processus du banc. Le premier passage ici
+  donnait 161 PASS/9 FAIL : le contrôleur utilisait `pgrep`/`pkill` global, avec des PID d'hôte non utilisables
+  dans cet environnement à espaces de noms, puis des helpers orphelins non retirés. Les variantes du helper
+  s'enregistrent désormais elles-mêmes dans le dossier privé du banc ; seuls ces PID sont utilisés. Aucun
+  fichier de production n'est modifié par cette correction. Les SHA du helper, du bloc et de l'archive restent
+  respectivement **f9bda7dd…744d**, **28b07fd2…4f50** et **a9a17e8b…3136**.
+
+L'archive est construite sur 8ff089b : son registre de 32 missions reste un relevé éditorial daté de cette source,
+pas un registre actualisé par les nouveaux résultats G3–G5. La synchronisation GitHub ne remplit toujours ni
+déploiement ni certification à partir des seuls états GitHub. Aucun rebuild implicite de l'archive.
+
+Paquet déposé en staging privé `/home/chatgpt-ro/workboard-8ff089b/` : archive, helper et `final_block.sh`.
+**Aucune phase root `prepare`, `activate` ou `rollback` exécutée par l'agent ; aucune nouvelle exception frontend
+publiée.** La CI doit être relue à la tête finale de #458 avant fusion source ; l'activation conserve sa gate distincte.
