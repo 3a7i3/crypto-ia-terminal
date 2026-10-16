@@ -32,7 +32,8 @@ Conséquence visible assumée : en démo, la fixture hôte est datée de 12:00Z 
 - Navigateur (Chromium 1194, serveur local, scénario nominal, `#apercu`) : aperçu rendu, aucune réponse
   HTTP ≥ 400 observée par la page, bannière = état réel avec âge ; une erreur console 404 restante
   (favicon implicite, déjà notée).
-- Suite du dépôt hors Governance Tower : SUITE_COMPLETE_PLACEHOLDER
+- Suite du dépôt hors Governance Tower (`-m "not performance and not slow"`, `--ignore=tests/governance_tower`) :
+  7657 passed, 20 skipped, 13 deselected, 2 xfailed, code 0 (365 s).
 
 La CI GitHub au HEAD exact de #460 fait foi ; son verdict est consigné dans la PR.
 
