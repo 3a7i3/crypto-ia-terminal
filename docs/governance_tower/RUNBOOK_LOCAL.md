@@ -39,7 +39,7 @@ Le connecteur distant OperatorApiHostProvider reste non démontré.
 
 | Option | Effet | Statut |
 |---|---|---|
-| `--github-live` | GET anonymes vers `api.github.com` (jeton optionnel via `GT_GITHUB_TOKEN`, côté serveur) ; budget 40 requêtes par instance | Démontré réellement le 2026-10-16 (voir rapport, budget 5 puis 6 GET) |
+| `--github-live` | GET anonymes vers `api.github.com` (jeton optionnel via `GT_GITHUB_TOKEN`, côté serveur) ; budget 12 requêtes par question, plafond de service 40 requêtes par heure glissante, quota distant GitHub (`429`/`Retry-After`/`X-RateLimit-Reset`) respecté entre questions | Démontré réellement le 2026-10-16 (voir rapport, budget 5 puis 6 GET) |
 | `--host-snapshots DIR` | lit une **copie locale** de `runtime_service_snapshot.json` et `storage_snapshot.json` | `NOT_PROVEN` |
 | `--host-operator-api URL` | GET `/api/operator/v1/runtime-service` et `/storage` sur une URL loopback/https | `NOT_PROVEN` |
 
@@ -87,3 +87,15 @@ node --check governance_tower/ui/app.js
 codes de refus, nombre de preuves), sans question ni contenu externe, fichier `0600`,
 `O_NOFOLLOW`, plafond 1 Mio puis arrêt d'écriture. Rétention proposée : supprimer à la fin de la session
 de démonstration ; aucune rotation automatique.
+
+Un échec d'audit n'est jamais silencieux : plafond atteint (`AUDIT_CAP_REACHED`) ou écriture refusée
+(`AUDIT_WRITE_ERROR`, ex. cible devenue lien symbolique) ajoutent une incertitude à la réponse
+(« ce run n'a pas été journalisé ») et apparaissent dans `/api/status` (`audit`) et la ligne de mode.
+
+## 7. Bannière des sources et aperçu
+
+Chaque source affiche son heure de collecte et son âge (« consulté il y a … »). Au-delà de 300 s,
+un dernier état `AVAILABLE` devient `STALE` (« dernier état connu, périmé ») ; un état en échec
+(`DENIED`, `ERROR`…) garde son état. La page relit `/api/status` (GET) toutes les 60 s : cette relecture
+ne consulte aucune source. `http://127.0.0.1:8765/#apercu` affiche `sample_run.json`, exemple
+SYNTHETIC versionné, sans remplacer l'état réel des sources de la bannière.

@@ -1,8 +1,9 @@
-"""Journal d'audit local de SENTINEL-01 : opt-in, expurgé, borné, fail-closed.
+"""Journal d'audit local de SENTINEL-01 : opt-in, expurgé, borné, échec visible.
 
 Rétention proposée : un fichier par session de prototype, plafonné à 1 Mio ;
-aucune rotation automatique (au-delà du plafond, l'écriture s'arrête et le run
-le signale). Le journal ne contient ni réponse complète, ni contenu externe, ni
+aucune rotation automatique. Au-delà du plafond (``append`` → False) ou en cas
+d'erreur d'écriture (``OSError``/``AuditUnavailable``), ``Sentinel`` ajoute une
+incertitude au run et expose l'état dans ``/api/status`` : jamais un succès tu. Le journal ne contient ni réponse complète, ni contenu externe, ni
 secret : seulement l'identité du run, l'intention, les outils, leurs états et
 les codes de refus.
 """

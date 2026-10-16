@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import http.client
 import json
+import re
 import threading
 
 import pytest
 
 from governance_tower.sentinel.agent import Sentinel
-from governance_tower.server import CSP, MAX_BODY, NotLoopback, make_server, require_loopback
+from governance_tower.server import CSP, MAX_BODY, STATIC, UI_DIR, NotLoopback, make_server, require_loopback
 
 from tests.governance_tower.stubs import StubGithub, StubHost, clock
 
@@ -130,3 +131,33 @@ def test_unknown_paths_404_and_no_traversal(server):
     srv, _, _ = server
     for path in ("/../governance_tower/contracts.py", "/ui/../server.py", "/api/sentinel/run", "/.env"):
         assert request(srv, "GET", path)[0] == 404
+
+
+def test_sample_run_preview_is_served_as_synthetic_json(server):
+    srv, gh, host = server
+    code, headers, data = request(srv, "GET", "/sample_run.json")
+    assert code == 200
+    assert headers["Content-Type"] == "application/json; charset=utf-8"
+    assert headers["Content-Security-Policy"] == CSP and headers["X-Content-Type-Options"] == "nosniff"
+    assert data == (UI_DIR / "sample_run.json").read_bytes()
+    doc = json.loads(data)
+    assert doc["mode"] == "DEMO" and {s["provenance"] for s in doc["sources"]} == {"SYNTHETIC"}
+    assert gh.calls == [] and host.calls == []  # l'aperçu ne consulte aucune source
+    for method in ("POST", "PUT", "DELETE"):
+        assert request(srv, method, "/sample_run.json")[0] in (403, 404, 405)
+
+
+def test_ui_preview_url_matches_a_served_route():
+    src = (UI_DIR / "app.js").read_text(encoding="utf-8")
+    (url,) = re.findall(r'const URL_APERCU = "([^"]+)"', src)
+    assert url in STATIC and STATIC[url][0] == "sample_run.json"
+
+
+def test_status_exposes_source_age_and_audit_state(server):
+    srv, _, _ = server
+    status = json.loads(request(srv, "GET", "/api/status")[2])
+    assert status["audit"] == "DISABLED"
+    assert all(s["age_s"] is None for s in status["sources"])  # jamais consultées : âge inconnu, pas 0
+    ask(srv, {"question": "", "shortcut": "compare"})
+    status = json.loads(request(srv, "GET", "/api/status")[2])
+    assert all(isinstance(s["age_s"], float) and s["age_s"] >= 0 for s in status["sources"])

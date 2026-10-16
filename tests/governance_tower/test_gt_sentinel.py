@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 
 import pytest
 
 from governance_tower.contracts import (
     Availability,
     ClaimStatus,
+    ContractError,
     DiscrepancyClass,
     Intent,
     Provenance,
+    SourceKind,
+    SourceStatus,
 )
 from governance_tower.providers.base import ProviderInfo
-from governance_tower.sentinel.agent import ProviderMixError, Sentinel
+from governance_tower.sentinel.agent import AUDIT_FAILURES, SOURCE_STALE_AFTER_S, ProviderMixError, Sentinel
 from governance_tower.sentinel.audit import AuditLog
 from governance_tower.sentinel.policy import decide
 from governance_tower.sentinel.reasoner import ClaudeApiReasoner, ReasonerDisabled
@@ -279,3 +283,96 @@ def test_audit_does_not_collect_question_content():
     record = AuditLog.record_for(run)
     assert "request_excerpt" not in record
     assert run.request not in json.dumps(record)
+
+
+# ── Fraîcheur des sources (bannière) ─────────────────────────────────────────
+
+
+class MovingClock:
+    def __init__(self):
+        self.now = clock()
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, seconds):
+        self.now = self.now + timedelta(seconds=seconds)
+
+
+def test_source_status_carries_age_and_turns_stale():
+    c = MovingClock()
+    s = Sentinel(StubGithub(), StubHost(), c)
+    before = s.source_status()
+    assert [st.availability for st in before] == [Availability.UNKNOWN] * 2
+    assert all(st.age_s is None and st.collected_at_utc is None for st in before)
+    s.ask("", shortcut="compare")
+    gh, host = s.source_status()
+    assert gh.availability is Availability.AVAILABLE and gh.age_s == 1.0  # collecte T0, horloge T0 + 1 s
+    c.advance(SOURCE_STALE_AFTER_S)
+    gh, host = s.source_status()
+    assert gh.availability is Availability.STALE and host.availability is Availability.STALE
+    assert gh.age_s == SOURCE_STALE_AFTER_S + 1 and gh.provenance is Provenance.SYNTHETIC
+    assert gh.detail.endswith("dernier état connu, périmé")
+    # une question refusée ne rafraîchit rien : elle porte le même état vieilli
+    refused = s.ask("Redémarre Advisor")
+    assert [st.availability for st in refused.sources] == [Availability.STALE] * 2
+    c.advance(10)
+    s.ask("", shortcut="compare")  # nouvelle consultation : l'âge reflète la collecte (T0 des stubs)
+    assert s.source_status()[0].age_s == SOURCE_STALE_AFTER_S + 11
+
+
+def test_failed_source_keeps_its_state_and_never_becomes_available():
+    c = MovingClock()
+    s = Sentinel(StubGithub(head=None), StubHost(availability=Availability.NOT_AVAILABLE), c)
+    s.ask("", shortcut="compare")
+    c.advance(10 * SOURCE_STALE_AFTER_S)
+    gh, host = s.source_status()
+    assert gh.availability is Availability.DENIED and host.availability is Availability.NOT_AVAILABLE
+    assert gh.age_s is not None and gh.age_s > SOURCE_STALE_AFTER_S
+
+
+def test_source_status_contract_rejects_unmeasured_or_invalid_age():
+    with pytest.raises(ContractError):
+        SourceStatus(SourceKind.GITHUB, Availability.AVAILABLE, None, None, "x", age_s=1.0)
+    for bad in (-1.0, float("nan"), float("inf"), True):
+        with pytest.raises(ContractError):
+            SourceStatus(SourceKind.GITHUB, Availability.AVAILABLE, None, "2026-10-16T12:00:00Z", "x", age_s=bad)
+
+
+# ── Propagation des échecs d'audit ───────────────────────────────────────────
+
+
+def test_audit_success_is_silent_and_reported_ok(tmp_path):
+    s = sentinel(audit=AuditLog(tmp_path / "audit.jsonl"))
+    assert s.audit_state == "NOT_WRITTEN"
+    run = s.ask("", shortcut="compare")
+    assert s.audit_state == "OK"
+    assert not any("audit" in u for u in run.answer.uncertainties)
+
+
+def test_audit_cap_is_visible_in_every_run_never_a_silent_success(tmp_path):
+    path = tmp_path / "audit.jsonl"
+    s = sentinel(audit=AuditLog(path, max_bytes=10))
+    for run in (s.ask("", shortcut="compare"), s.ask("Redémarre Advisor")):
+        assert AUDIT_FAILURES["AUDIT_CAP_REACHED"] in run.answer.uncertainties
+    assert s.audit_state == "AUDIT_CAP_REACHED"
+    assert not path.exists() or path.stat().st_size == 0
+
+
+def test_audit_write_error_is_reported_without_crashing_the_answer(tmp_path):
+    path = tmp_path / "audit.jsonl"
+    audit = AuditLog(path)
+    path.symlink_to(tmp_path / "elsewhere.jsonl")  # cible devenue lien : O_NOFOLLOW refuse
+    s = sentinel(audit=audit)
+    run = s.ask("", shortcut="compare")
+    assert run.answer.discrepancies  # la réponse observée est conservée
+    assert AUDIT_FAILURES["AUDIT_WRITE_ERROR"] in run.answer.uncertainties
+    assert s.audit_state == "AUDIT_WRITE_ERROR"
+    assert not (tmp_path / "elsewhere.jsonl").exists()
+
+
+def test_audit_disabled_is_not_reported_as_failure():
+    s = sentinel()
+    run = s.ask("", shortcut="compare")
+    assert s.audit_state == "DISABLED"
+    assert not any(u in run.answer.uncertainties for u in AUDIT_FAILURES.values())

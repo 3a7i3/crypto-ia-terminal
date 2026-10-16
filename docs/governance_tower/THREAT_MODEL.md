@@ -49,6 +49,9 @@ Rien ne traverse dans l'autre sens : aucun outil n'écrit, aucune réponse ne pi
 | Runtime gelé pris pour une dérive | référence déclarée #286 → `EXPECTED_PINNED_RUNTIME` | `test_pinned_runtime_is_expected_not_drift` |
 | Dérive affirmée sans preuve | au mieux `POSSIBLE_DRIFT` ; `VIOLATION_PROVEN` jamais produit par l'analyse | `test_unexpected_sha_is_possible_drift_never_violation` |
 | Panne de source convertie en succès | exception fournisseur → `ToolCall ERROR` et source `ERROR` | `test_provider_failure_never_becomes_success` |
+| Épuisement ou contournement de quota GitHub | budget par question (12), plafond de service glissant (40/h), blocage distant mémorisé (`Retry-After`, `X-RateLimit-Reset`) même pour une nouvelle question | `test_gt_github_provider.py::test_remote_rate_limit_survives_a_new_question_and_is_never_a_success`, `test_service_ceiling_holds_across_questions_until_the_window_slides` |
+| État de source ancien présenté comme courant | âge mesuré, `STALE` au-delà de 300 s, rafraîchissement GET du statut | `test_source_status_carries_age_and_turns_stale` |
+| Échec d'audit masqué | incertitude ajoutée au run, état `audit` dans `/api/status` | `test_audit_cap_is_visible_in_every_run_never_a_silent_success`, `test_audit_write_error_is_reported_without_crashing_the_answer` |
 | CSRF / DNS rebinding | en-tête `X-GT-Request`, contrôle `Host` et `Origin` | `test_gt_server.py` |
 | Exposition réseau | bind refusé hors loopback | `test_bind_outside_loopback_refused` |
 | Payload surdimensionné | corps ≤ 8 Kio, question ≤ 2 000 car., réponses GitHub/hôte bornées | `test_body_bounds_and_shape`, tests fournisseurs |

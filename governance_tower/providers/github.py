@@ -6,7 +6,8 @@ Deux fournisseurs satisfont ``GithubReadProvider`` :
   locators ``fixture:github/<scénario>#<élément>`` ; jamais une preuve réelle ;
 - ``HttpGithubProvider`` : lecture réelle opt-in (provenance ``LIVE_READ``) de
   l'API REST publique, uniquement ``https://api.github.com``, uniquement GET,
-  redirections refusées, budget de requêtes borné.
+  redirections refusées, budget de requêtes borné (par question, plafond de
+  service sur fenêtre glissante, quota distant GitHub respecté entre questions).
 
 Discipline (reprise de ``frontend/src/lib/githubRoadmapReader.ts``) :
 
@@ -27,11 +28,13 @@ Ce module ne contient aucune méthode HTTP autre que GET (vérifié par test).
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -260,6 +263,9 @@ class _GithubReaderBase:
 
     def _begin_call(self) -> None:
         self._collected = format_utc(self._clock())
+
+    def begin_investigation(self) -> None:
+        """Début d'une question : ouvre son budget de lecture (aucun effet sans réseau)."""
 
     def _extra_limits(self) -> tuple[str, ...]:
         return ()
@@ -934,6 +940,9 @@ class FixtureGithubProvider(_GithubReaderBase):
 # ── Fournisseur HTTP (LIVE_READ, opt-in) ─────────────────────────────────────
 
 
+DEFAULT_REQUESTS_PER_QUESTION = 12
+
+
 class HttpGithubProvider(_GithubReaderBase):
     """Lecture réelle opt-in de l'API REST GitHub ; GET uniquement vers api.github.com."""
 
@@ -945,6 +954,8 @@ class HttpGithubProvider(_GithubReaderBase):
         transport: Transport | None = None,
         token_env: str = "GT_GITHUB_TOKEN",
         max_requests: int = 40,
+        max_requests_per_question: int | None = None,
+        window_s: float = 3600.0,
         timeout_s: float = 10.0,
         max_body_bytes: int = 1_048_576,
     ) -> None:
@@ -953,6 +964,12 @@ class HttpGithubProvider(_GithubReaderBase):
             raise ContractError("token_env : nom de variable d'environnement invalide")
         if not _is_int(max_requests) or not 1 <= max_requests <= 1_000:
             raise ContractError("max_requests : entier entre 1 et 1000 attendu")
+        if max_requests_per_question is None:  # défaut : 12 (snapshot 5 + code 3 + comparaison 1, marge 3)
+            max_requests_per_question = min(DEFAULT_REQUESTS_PER_QUESTION, max_requests)
+        if not _is_int(max_requests_per_question) or not 1 <= max_requests_per_question <= max_requests:
+            raise ContractError("max_requests_per_question : entier entre 1 et max_requests attendu")
+        if isinstance(window_s, bool) or not isinstance(window_s, (int, float)) or not 60 <= window_s <= 86_400:
+            raise ContractError("window_s : nombre dans [60, 86400] attendu")
         if isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float)) or not 0 < timeout_s <= 60:
             raise ContractError("timeout_s : nombre dans ]0, 60] attendu")
         if not _is_int(max_body_bytes) or not 1 <= max_body_bytes <= 16 * 1_048_576:
@@ -961,10 +978,15 @@ class HttpGithubProvider(_GithubReaderBase):
             raise ContractError("transport : appelable attendu")
         self._token_env = token_env
         self._max_requests = max_requests
+        self._per_question = max_requests_per_question
+        self._window_s = float(window_s)
         self._timeout = float(timeout_s)
         self._max_body = max_body_bytes
         self._transport: Transport = transport if transport is not None else UrllibTransport(max_body_bytes)
-        self._sent = 0
+        self._sent = 0  # total de la vie de l'instance (information, pas un budget)
+        self._question_sent = 0  # budget de la question en cours, rouvert par begin_investigation()
+        self._window: deque[float] = deque()  # instants d'envoi, plafond de service glissant
+        self._remote_block_until: float | None = None  # quota distant GitHub : persiste entre questions
         self._halt: _Fail | None = None
         self.info = ProviderInfo(
             name="github-http",
@@ -974,7 +996,10 @@ class HttpGithubProvider(_GithubReaderBase):
         )
 
     def __repr__(self) -> str:
-        return f"HttpGithubProvider(repo={self.repo!r}, requests_sent={self._sent}, max_requests={self._max_requests})"
+        return (
+            f"HttpGithubProvider(repo={self.repo!r}, requests_sent={self._sent}, "
+            f"max_requests={self._max_requests}, max_requests_per_question={self._per_question})"
+        )
 
     __str__ = __repr__
 
@@ -985,6 +1010,25 @@ class HttpGithubProvider(_GithubReaderBase):
     def _begin_call(self) -> None:
         super()._begin_call()
         self._halt = None
+
+    def begin_investigation(self) -> None:
+        """Rouvre le budget par question ; ne lève ni le plafond de service ni un quota distant."""
+        self._question_sent = 0
+
+    def _now_s(self) -> float:
+        return self._clock().timestamp()
+
+    def _note_remote_limit(self, headers: Mapping[str, str]) -> None:
+        """Mémorise jusqu'à quand GitHub refuse : Retry-After, sinon X-RateLimit-Reset, sinon 60 s."""
+        now = self._now_s()
+        until = now + 60.0
+        retry, reset = headers.get("retry-after", ""), headers.get("x-ratelimit-reset", "")
+        if retry.isdigit() and len(retry) <= 6:
+            until = now + min(int(retry), 3_600)
+        elif reset.isdigit() and len(reset) <= 12 and now < int(reset):
+            until = min(float(reset), now + 3_600)
+        if self._remote_block_until is None or until > self._remote_block_until:
+            self._remote_block_until = until
 
     # Requête GET unique -------------------------------------------------------------
 
@@ -1015,13 +1059,34 @@ class HttpGithubProvider(_GithubReaderBase):
             )
         if not is_allowed_api_url(url):
             return _Fail(Availability.ERROR, Reason.HOST_REFUSED, "URL refusée : seul https://api.github.com/repos/ est admis")
-        if self._sent >= self._max_requests:
+        now = self._now_s()
+        if self._remote_block_until is not None:
+            if now < self._remote_block_until:
+                self._halt = _Fail(
+                    Availability.RATE_LIMITED,
+                    Reason.RATE_LIMITED,
+                    f"quota GitHub épuisé : aucune requête envoyée avant {math.ceil(self._remote_block_until - now)} s",
+                )
+                return self._halt
+            self._remote_block_until = None
+        if self._question_sent >= self._per_question:
             return _Fail(
                 Availability.NOT_AVAILABLE,
                 Reason.BUDGET_EXCEEDED,
-                f"budget de {self._max_requests} requêtes atteint : aucune requête envoyée",
+                f"budget de {self._per_question} requêtes par question atteint : aucune requête envoyée",
+            )
+        while self._window and now - self._window[0] >= self._window_s:
+            self._window.popleft()
+        if len(self._window) >= self._max_requests:
+            return _Fail(
+                Availability.NOT_AVAILABLE,
+                Reason.BUDGET_EXCEEDED,
+                f"plafond de service de {self._max_requests} requêtes par {int(self._window_s)} s atteint : "
+                "aucune requête envoyée",
             )
         self._sent += 1
+        self._question_sent += 1
+        self._window.append(now)
         try:
             result = self._transport(url, self._headers(url), self._timeout)
         except TimeoutError:
@@ -1075,6 +1140,7 @@ class HttpGithubProvider(_GithubReaderBase):
             detail = "quota GitHub épuisé"
             if reset.isdigit() and len(reset) <= 12:
                 detail += f" (réinitialisation epoch {reset})"
+            self._note_remote_limit(headers)
             self._halt = _Fail(Availability.RATE_LIMITED, Reason.RATE_LIMITED, detail, evidence)
             return self._halt
         if status in (401, 403):

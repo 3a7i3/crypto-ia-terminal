@@ -4,13 +4,20 @@ Une question → politique (refus éventuel, avant tout outil) → plan fixe dé
 l'intention → outils read-only de la table fixe → analyse pure → réponse
 structurée → ``AgentRun`` validé par contrat. Aucun démon, aucun ordonnanceur,
 aucune boucle autonome : sans question, Sentinel ne fait rien.
+
+Chaque question ouvre le budget de lecture GitHub du fournisseur
+(``begin_investigation``) ; l'état des sources porte son âge et passe à
+``STALE`` au-delà de ``SOURCE_STALE_AFTER_S`` ; un échec du journal d'audit
+est ajouté aux incertitudes du run, jamais ignoré.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import re
 import secrets
 import threading
+from datetime import datetime
 from typing import Any
 
 from governance_tower.contracts import (
@@ -32,11 +39,12 @@ from governance_tower.contracts import (
     Statement,
     ToolCall,
     format_utc,
+    parse_utc,
 )
 from governance_tower.providers.base import Clock, GithubReadProvider, HostObservationProvider
 from governance_tower.references import load_pinned_references
 from governance_tower.sentinel.analysis import analyse
-from governance_tower.sentinel.audit import AuditLog
+from governance_tower.sentinel.audit import AuditLog, AuditUnavailable
 from governance_tower.sentinel.policy import REFUSAL_REASONS, decide
 from governance_tower.sentinel.reasoner import DeterministicDemoReasoner, Facts, Reasoner
 from governance_tower.sentinel.tools import ToolDenied, ToolRegistry
@@ -66,6 +74,25 @@ _STOPWORDS = {
     "les", "des", "une", "qui", "que", "where", "which", "what",
 }
 _SYNONYMS = {"publishers": "publish", "publisher": "publish", "publications": "publish"}
+
+
+SOURCE_STALE_AFTER_S = 300.0
+_STALE_SUFFIX = " — dernier état connu, périmé"
+AUDIT_FAILURES = {
+    "AUDIT_CAP_REACHED": "Journal d'audit plein (plafond atteint) : ce run n'a pas été journalisé.",
+    "AUDIT_WRITE_ERROR": "Écriture du journal d'audit en échec : ce run n'a pas été journalisé.",
+}
+
+
+def _aged(status: SourceStatus, now: datetime) -> SourceStatus:
+    """Âge mesuré du dernier état connu ; AVAILABLE trop ancien devient STALE, jamais l'inverse."""
+    if status.collected_at_utc is None:
+        return status
+    age = max(0.0, round((now - parse_utc(status.collected_at_utc)).total_seconds(), 3))
+    if status.availability is Availability.AVAILABLE and age > SOURCE_STALE_AFTER_S:
+        detail = status.detail[: 300 - len(_STALE_SUFFIX)] + _STALE_SUFFIX
+        return dataclasses.replace(status, availability=Availability.STALE, detail=detail, age_s=age)
+    return dataclasses.replace(status, age_s=age)
 
 
 class ProviderMixError(ValueError):
@@ -109,17 +136,18 @@ class Sentinel:
         self._audit = audit
         self._lock = threading.Lock()
         self._last_sources: dict[SourceKind, SourceStatus] = {}
+        self.audit_state: str = "DISABLED" if audit is None else "NOT_WRITTEN"
 
     # ── État des sources (dernier connu, jamais inventé) ─────────────────────
     def source_status(self) -> tuple[SourceStatus, ...]:
+        now = self._clock()
         out = []
         for kind, info in ((SourceKind.GITHUB, self._github.info), (SourceKind.HOST, self._host.info)):
-            out.append(
-                self._last_sources.get(
-                    kind,
-                    SourceStatus(kind, Availability.UNKNOWN, None, None, f"Pas encore consulté ({info.name})."),
-                )
-            )
+            last = self._last_sources.get(kind)
+            if last is None:
+                out.append(SourceStatus(kind, Availability.UNKNOWN, None, None, f"Pas encore consulté ({info.name})."))
+            else:
+                out.append(_aged(last, now))
         return tuple(out)
 
     def prime(self) -> None:
@@ -138,10 +166,12 @@ class Sentinel:
         run_id = "run-" + secrets.token_hex(8)
         if decision.refused:
             run = self._refusal_run(run_id, decision.request, decision.refusal_code or "REFUSED", started)
-            self._record(run)
-            return run
+            return self._record(run)
 
         intent = decision.intent
+        begin = getattr(self._github, "begin_investigation", None)
+        if callable(begin):  # budget GitHub propre à cette question (quotas distants conservés)
+            begin()
         session = self._tools.session()
         failed_calls: list[ToolCall] = []
         repo: RepositorySnapshot | None = None
@@ -214,8 +244,7 @@ class Sentinel:
             reasoner=self._reasoner.name,
             mode=self.mode,
         )
-        self._record(run)
-        return run
+        return self._record(run)
 
     def _sources(self, repo: RepositorySnapshot | None, host: HostSnapshot | None, intent: Intent) -> tuple[SourceStatus, ...]:
         if repo is not None:
@@ -274,9 +303,19 @@ class Sentinel:
             mode=self.mode,
         )
 
-    def _record(self, run: AgentRun) -> None:
-        if self._audit is not None:
-            self._audit.append(run)
+    def _record(self, run: AgentRun) -> AgentRun:
+        """Journalise le run ; un échec d'audit devient une incertitude visible, jamais un succès."""
+        if self._audit is None:
+            return run
+        try:
+            code = "OK" if self._audit.append(run) else "AUDIT_CAP_REACHED"
+        except (OSError, AuditUnavailable):
+            code = "AUDIT_WRITE_ERROR"
+        self.audit_state = code
+        if code == "OK":
+            return run
+        answer = dataclasses.replace(run.answer, uncertainties=run.answer.uncertainties + (AUDIT_FAILURES[code],))
+        return dataclasses.replace(run, answer=answer)
 
 
 __all__ = ["ProviderMixError", "Sentinel"]

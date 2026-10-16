@@ -86,14 +86,16 @@
       "availability": "AVAILABLE",
       "provenance": "SYNTHETIC",
       "collected_at_utc": "2026-10-16T12:00:03Z",
-      "detail": "fixture github/nominal"
+      "detail": "fixture github/nominal",
+      "age_s": 3.0
     },
     {
       "source": "HOST",
       "availability": "STALE",
       "provenance": "SYNTHETIC",
       "collected_at_utc": "2026-10-16T12:00:04Z",
-      "detail": "instantané âgé de 360 s"
+      "detail": "instantané âgé de 360 s",
+      "age_s": 2.0
     }
   ],
   "answer": {

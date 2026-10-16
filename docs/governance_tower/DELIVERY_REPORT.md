@@ -1,3 +1,48 @@
+# Governance Tower — finalisation source après reprise (#459 / #460)
+
+État du 2026-10-16. Reprise par Claude Code sur mandat de Mathieu, à partir du HEAD distant
+`31d8295086677f1d471bce69b1f10f4adf450ac1` (revue Codex ci-dessous), vérifié identique au checkout local,
+sans commit local non publié, sans worktree ni stash. Auto-revue de l'auteur, **pas une revue indépendante**.
+Périmètre : `governance_tower/`, `tests/governance_tower/`, `docs/governance_tower/` ; aucun autre fichier
+modifié. Garde #286 relue ACTIVE ; aucun accès VPS, déploiement, restart, écriture exchange ni fusion.
+
+## Matrice problème → reproduction → correction → preuve
+
+| # | Problème au HEAD 31d8295 | Reproduction | Correction minimale | Preuve |
+|---|---|---|---|---|
+| M1 | Budget GitHub compté sur la vie de l'instance (`_sent` ≥ 40 ⇒ refus définitif) ; `_halt` remis à zéro à chaque sous-méthode, donc un `429` n'empêchait pas la question suivante de réémettre | Sentinel + `HttpGithubProvider` (transport factice) : 8 questions, puis 2 h plus tard question 9 → `NOT_AVAILABLE` ; `429 Retry-After: 120` puis nouvelle question au même instant → 2 GET envoyés | budget **par question** (12 par défaut, rouvert seulement par `begin_investigation()` appelé par Sentinel, jamais par une sous-méthode), plafond de service glissant (40 GET / 3 600 s), blocage distant mémorisé (`Retry-After`, sinon `X-RateLimit-Reset`, sinon 60 s ; borné à 1 h) et persistant entre questions | même scénario après correction : question 9 → `AVAILABLE` ; 1 seul GET pendant le blocage ; 9 tests dédiés (`test_gt_github_provider.py`, section Budget) |
+| M2 | `source_status()` renvoyait le dernier état sans âge ; un `AVAILABLE` ancien restait « Disponible » ; la bannière n'était relue qu'au chargement | horloge avancée de 300 s : statut inchangé | `SourceStatus.age_s` (contrat : fini, ≥ 0, exige `collected_at_utc`) ; `AVAILABLE` > 300 s ⇒ `STALE` « dernier état connu, périmé » ; échecs conservés tels quels ; jamais consultée ⇒ `UNKNOWN` sans âge ; bannière « consulté il y a … » et relecture GET de `/api/status` toutes les 60 s (aucune consultation de source) | `test_source_status_carries_age_and_turns_stale`, `test_failed_source_keeps_its_state_and_never_becomes_available`, `test_source_status_contract_rejects_unmeasured_or_invalid_age`, `test_status_exposes_source_age_and_audit_state` |
+| M3 | `AuditLog.append()` → `False` (plafond) ignoré ; `OSError` (cible devenue lien) remontait en 500 sans réponse | `max_bytes=10` : run sans aucune mention ; lien symbolique : exception | `Sentinel._record` renvoie le run avec l'incertitude « ce run n'a pas été journalisé » (`AUDIT_CAP_REACHED` / `AUDIT_WRITE_ERROR`), refus compris ; état `audit` dans `/api/status` et la ligne de mode | 4 tests (`test_audit_*` dans `test_gt_sentinel.py`) ; aucune écriture hors cible |
+| M4 | `/sample_run.json` non servi alors que `#apercu` le demande (404) ; l'aperçu, une fois servi, remplaçait l'état réel des sources dans la bannière | GET → 404 ; navigateur : bannière remplie par les sources de l'exemple | route statique fixe (`application/json`, mêmes en-têtes et CSP, aucune source consultée) ; l'aperçu ne met plus à jour la bannière ; exemple enrichi de `age_s` et toujours conforme au contrat | `test_sample_run_preview_is_served_as_synthetic_json`, `test_ui_preview_url_matches_a_served_route`, `test_preview_never_overwrites_the_source_banner`, aller-retour de contrat |
+
+Conséquence visible assumée : en démo, la fixture hôte est datée de 12:00Z ; la bannière l'affiche donc
+`STALE` (« consulté il y a … h »), ce qui est exact pour une donnée SYNTHETIC figée.
+
+## Tests exécutés (2026-10-16, checkout local, Python 3.11.17, pytest 9.1.1, ruff 0.15.8, node 22)
+
+- Nouveaux tests contre le code de 31d8295 (worktree séparé) : 14 échecs attendus + module Sentinel
+  non importable (symboles absents) ; contre le code corrigé : tous verts.
+- `pytest tests/governance_tower` en **root** : 388 passed, 1 failed —
+  `test_snapshot_permission_denial_is_not_a_missing_source` (test Codex, `chmod 0` sans effet pour root) ;
+  échec identique au HEAD 31d8295, donc préexistant et propre à l'environnement.
+- Même suite en utilisateur **non privilégié** (`nobody`, Python 3.13.16, copie du paquet, conftest racine
+  du dépôt écarté car il importe `cold_start`, hors périmètre) : **389 passed**.
+- `ruff check --select E,F,W --ignore E501,E402` : PASS ; `ruff_baseline_gate.py check` : 0 nouvelle
+  violation ; `node --check app.js` : PASS ; `git diff --check` : PASS.
+- Navigateur (Chromium 1194, serveur local, scénario nominal, `#apercu`) : aperçu rendu, aucune réponse
+  HTTP ≥ 400 observée par la page, bannière = état réel avec âge ; une erreur console 404 restante
+  (favicon implicite, déjà notée).
+- Suite du dépôt hors Governance Tower : SUITE_COMPLETE_PLACEHOLDER
+
+La CI GitHub au HEAD exact de #460 fait foi ; son verdict est consigné dans la PR.
+
+## Verdicts inchangés
+
+Déployé = NON ; autorité opérationnelle = AUCUNE ; agent non activé ; aucune fusion. Les preuves réelles
+GitHub/VPS de la revue Codex ci-dessous ne sont ni rejouées ni étendues par cette passe.
+
+---
+
 # Governance Tower — revue indépendante et démonstration bornée (#459 / #460)
 
 État du 2026-10-16. Revue Codex du HEAD entrant `7d28820c7d6ac81dd23164637d660b6017db72e2`,

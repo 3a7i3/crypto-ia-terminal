@@ -252,6 +252,7 @@ def _rebuild(doc: dict) -> AgentRun:
                     Provenance(s["provenance"]) if s["provenance"] is not None else None,
                     s["collected_at_utc"],
                     s["detail"],
+                    s["age_s"],
                 )
                 for s in doc["sources"]
             ),
@@ -298,3 +299,17 @@ def test_app_js_syntax_with_node():
         [shutil.which("node"), "--check", str(APP)], capture_output=True, text=True, timeout=60, check=False
     )
     assert resultat.returncode == 0, resultat.stderr
+
+
+def test_preview_never_overwrites_the_source_banner():
+    src = read(APP)
+    apercu = src[src.index("async function chargerApercu"):src.index("// ── Formulaire")]
+    assert "rendreRun(donnees, true)" in apercu
+    assert "if (!apercu && Array.isArray(run.sources))" in src
+
+
+def test_banner_shows_measured_age_and_refreshes_status_by_get_only():
+    src = read(APP)
+    assert "entree.age_s" in src and "consulté il y a" in src
+    assert re.search(r"window\.setInterval\(chargerStatut, RAFRAICHIR_STATUT_MS\)", src)
+    assert "journal d'audit en échec" in src and "journal d'audit plein" in src

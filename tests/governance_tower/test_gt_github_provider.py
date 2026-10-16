@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -388,6 +388,122 @@ def test_budget_respected_and_counted():
     assert len(t.calls) == 6 == p.requests_sent
 
 
+class MovingClock:
+    def __init__(self):
+        self.now = NOW
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, seconds):
+        self.now = self.now + timedelta(seconds=seconds)
+
+
+def test_question_budget_is_shared_between_tools_and_never_exceeded():
+    t = FakeTransport()
+    p = provider(t, max_requests=40, max_requests_per_question=7)
+    p.begin_investigation()
+    assert p.repository_snapshot().availability is Availability.AVAILABLE  # 5 requêtes
+    code = p.locate_code(("publish",))  # 2 requêtes restantes sur les 3 nécessaires
+    assert code.availability is Availability.NOT_AVAILABLE and code.reason == Reason.BUDGET_EXCEEDED
+    assert p.compare_commits(BASE, HEAD).reason == Reason.BUDGET_EXCEEDED
+    assert len(t.calls) == 7 == p.requests_sent  # plafond atteint, jamais dépassé
+
+
+def test_sub_methods_do_not_reopen_the_question_budget():
+    t = FakeTransport()
+    p = provider(t, max_requests=40, max_requests_per_question=5)
+    p.begin_investigation()
+    assert p.repository_snapshot().availability is Availability.AVAILABLE
+    snap = p.repository_snapshot()  # même question : aucune remise à zéro implicite
+    assert snap.availability is Availability.NOT_AVAILABLE
+    assert snap.get(Domain.REPOSITORY)[0].reason == Reason.BUDGET_EXCEEDED
+    assert len(t.calls) == 5
+
+
+def test_each_new_question_gets_its_budget_beyond_the_former_lifetime_cap():
+    t = FakeTransport()
+    p = provider(t)  # défauts : 12 par question, 40 par fenêtre de service
+    for _ in range(8):  # 8 × 5 = 40 requêtes : l'ancien compteur d'instance épuisait tout ici
+        p.begin_investigation()
+        assert p.repository_snapshot().availability is Availability.AVAILABLE
+    assert p.requests_sent == 40
+
+
+def test_service_ceiling_holds_across_questions_until_the_window_slides():
+    c = MovingClock()
+    t = FakeTransport()
+    p = HttpGithubProvider(REPO, clock=c, transport=t, max_requests=10, max_requests_per_question=10)
+    for _ in range(2):
+        p.begin_investigation()
+        assert p.repository_snapshot().availability is Availability.AVAILABLE
+    p.begin_investigation()  # nouvelle question : le plafond de service n'est pas rouvert
+    obs = p.repository_snapshot().get(Domain.REPOSITORY)[0]
+    assert obs.reason == Reason.BUDGET_EXCEEDED and "plafond de service" in " ".join(obs.limits)
+    assert len(t.calls) == 10
+    c.advance(3_600)
+    p.begin_investigation()
+    assert p.repository_snapshot().availability is Availability.AVAILABLE
+    assert len(t.calls) == 15
+
+
+@pytest.mark.parametrize(
+    "resp, wait_s",
+    [
+        ((429, {"Retry-After": "120"}, b"{}"), 120),
+        ((403, {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": str(int(NOW.timestamp()) + 300)}, b"{}"), 300),
+        ((429, {}, b"{}"), 60),
+    ],
+)
+def test_remote_rate_limit_survives_a_new_question_and_is_never_a_success(resp, wait_s):
+    c = MovingClock()
+    t = FakeTransport({"repo": resp})
+    p = HttpGithubProvider(REPO, clock=c, transport=t)
+    p.begin_investigation()
+    snap = p.repository_snapshot()
+    assert snap.availability is Availability.RATE_LIMITED and snap.head_sha is None
+    assert all(not o.has_value for o in snap.observations)
+    p.begin_investigation()  # budget local rouvert : le quota distant reste respecté
+    again = p.repository_snapshot()
+    assert again.availability is Availability.RATE_LIMITED
+    assert p.compare_commits(BASE, HEAD).availability is Availability.RATE_LIMITED
+    assert len(t.calls) == 1  # aucune requête envoyée pendant le blocage
+    c.advance(wait_s - 1)
+    p.begin_investigation()
+    assert p.repository_snapshot().availability is Availability.RATE_LIMITED and len(t.calls) == 1
+    c.advance(1)
+    t.responses["repo"] = ok(REPO_JSON)
+    p.begin_investigation()
+    assert p.repository_snapshot().availability is Availability.AVAILABLE
+
+
+def test_budget_changes_send_only_reads_to_the_github_api():
+    t = FakeTransport()
+    p = provider(t)
+    for _ in range(3):
+        p.begin_investigation()
+        p.repository_snapshot()
+        p.locate_code(("publish",))
+        p.compare_commits(BASE, HEAD)
+    assert t.calls and all(url.startswith(API) for url, _, _ in t.calls)
+    assert "Authorization" not in t.calls[0][1]
+
+
+def test_sentinel_opens_one_github_budget_per_question():
+    from governance_tower.providers.host import NotConfiguredHostProvider
+    from governance_tower.sentinel.agent import Sentinel
+
+    t = FakeTransport()
+    p = provider(t, max_requests=40, max_requests_per_question=6)
+    s = Sentinel(p, NotConfiguredHostProvider(clock), clock)
+    # Budget de 6 par question : sans réouverture par Sentinel, la 2e question serait déjà refusée.
+    etats = [s.ask("", shortcut="examine_repository").sources[0].availability for _ in range(10)]
+    assert etats[:8] == [Availability.AVAILABLE] * 8
+    # Le plafond de service (40 par fenêtre, horloge figée) borne ensuite, visiblement, jamais au-delà.
+    assert etats[8:] == [Availability.NOT_AVAILABLE] * 2 and p.requests_sent == 40
+    assert s.ask("Redémarre Advisor").tool_calls == ()
+
+
 # ── Jeton ────────────────────────────────────────────────────────────────────
 
 
@@ -611,7 +727,7 @@ def test_module_source_contains_no_write_method():
     assert re.findall(r"method\s*=\s*['\"](\w+)['\"]", source) == ["GET"]
     for cls in (HttpGithubProvider, FixtureGithubProvider):
         public = {n for n in dir(cls) if not n.startswith("_")}
-        assert public <= {"repository_snapshot", "locate_code", "compare_commits", "requests_sent", "scenario_named", "info", "repo"}
+        assert public <= {"repository_snapshot", "locate_code", "compare_commits", "requests_sent", "scenario_named", "info", "repo", "begin_investigation"}
 
 
 def test_skipped_and_neutral_ci_are_not_counted_as_success():

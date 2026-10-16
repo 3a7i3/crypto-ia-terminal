@@ -17,6 +17,7 @@
   const URL_STATUT = "/api/status";
   const URL_QUESTION = "/api/sentinel/ask";
   const URL_APERCU = "/sample_run.json";
+  const RAFRAICHIR_STATUT_MS = 60000;
 
   // ── Vocabulaires (libellés lisibles, valeurs brutes conservées) ───────────
 
@@ -109,6 +110,12 @@
     return el("time", { texte: valeur.replace("T", " ").replace(/\.\d+Z$/, "Z"), attrs: { datetime: valeur, title: valeur } });
   }
 
+  function dureeLisible(s) {
+    if (s < 120) return Math.round(s) + " s";
+    if (s < 7200) return Math.round(s / 60) + " min";
+    return Math.round(s / 3600) + " h";
+  }
+
   function badge(texte, ton, aide, extra) {
     const attrs = Object.assign({}, extra || {});
     if (aide) attrs.title = aide;
@@ -193,6 +200,9 @@
     vider(meta);
     meta.appendChild(document.createTextNode(texteOuInconnu(entree.provenance, "provenance inconnue") + " · "));
     meta.appendChild(horodatage(entree.collected_at_utc, "jamais collecté"));
+    if (typeof entree.age_s === "number" && isFinite(entree.age_s) && entree.age_s >= 0) {
+      meta.appendChild(document.createTextNode(" · consulté il y a " + dureeLisible(entree.age_s)));
+    }
     if (typeof entree.detail === "string" && entree.detail) {
       meta.appendChild(document.createTextNode(" · " + entree.detail));
     }
@@ -230,6 +240,8 @@
       if (typeof s.scenario === "string" && s.scenario) morceaux.push("scénario " + s.scenario);
       morceaux.push("capacité " + texteOuInconnu(s.capability, "inconnue"));
       morceaux.push("autorité opérationnelle " + texteOuInconnu(s.operational_authority, "inconnue"));
+      if (s.audit === "AUDIT_CAP_REACHED") morceaux.push("journal d'audit plein : runs non journalisés");
+      else if (s.audit === "AUDIT_WRITE_ERROR") morceaux.push("journal d'audit en échec : runs non journalisés");
       ligneMode.textContent = morceaux.join(" · ");
     } catch (e) {
       // Un échec du statut n'efface pas les sources déjà décrites par un run.
@@ -537,7 +549,7 @@
     return null;
   }
 
-  function rendreRun(run) {
+  function rendreRun(run, apercu) {
     const a = run.answer;
     const evidences = Array.isArray(run.evidence) ? run.evidence : null;
     const index = new Map();
@@ -589,7 +601,8 @@
     });
     racine.appendChild(rendreTechnique(run));
 
-    if (Array.isArray(run.sources)) {
+    // L'aperçu est un exemple figé : il ne remplace jamais l'état réel des sources de la bannière.
+    if (!apercu && Array.isArray(run.sources)) {
       sourcesDepuisRun = true;
       if (majSources(run.sources)) synth = true;
     }
@@ -741,7 +754,7 @@
       const donnees = r.ok ? await lireJson(r) : undefined;
       const probleme = donnees === undefined ? "Exemple indisponible." : integrite(donnees);
       if (probleme) afficherDans(echange, etatErreur("Aperçu indisponible", probleme, "unknown", null));
-      else afficherDans(echange, rendreRun(donnees));
+      else afficherDans(echange, rendreRun(donnees, true));
     } catch (e) {
       afficherDans(echange, etatErreur("Aperçu indisponible", "Lecture de l'exemple impossible.", "unknown", null));
     }
@@ -809,6 +822,8 @@
     });
     majCompteur();
     chargerStatut();
+    // Relecture GET de l'état connu (aucune consultation de source) : l'âge affiché reste exact.
+    window.setInterval(chargerStatut, RAFRAICHIR_STATUT_MS);
     if (window.location.hash === "#apercu") chargerApercu();
   }
 

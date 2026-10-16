@@ -31,6 +31,8 @@ STATIC = {
     "/index.html": ("index.html", "text/html"),
     "/app.js": ("app.js", "text/javascript"),
     "/styles.css": ("styles.css", "text/css"),
+    # Exemple SYNTHETIC versionné (aperçu ``#apercu``), conforme au contrat AgentRun ; jamais une réponse.
+    "/sample_run.json": ("sample_run.json", "application/json"),
 }
 MAX_BODY = 8_192
 CSP = (
@@ -166,6 +168,7 @@ def status_payload(sentinel: Sentinel, scenario: str | None) -> dict[str, Any]:
         "mode": sentinel.mode,
         "scenario": scenario,
         "sources": [to_jsonable(s) for s in sentinel.source_status()],
+        "audit": sentinel.audit_state,
         "shortcuts": [{"id": i, "label": label} for i, label in SHORTCUT_LABELS],
     }
 

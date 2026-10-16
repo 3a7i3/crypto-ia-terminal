@@ -591,11 +591,19 @@ class SourceStatus:
     provenance: Provenance | None
     collected_at_utc: str | None
     detail: str
+    age_s: float | None = None  # âge de la dernière consultation au moment du statut
 
     def __post_init__(self) -> None:
         check_text(self.detail, "detail", MAX_SHORT)
         if self.collected_at_utc is not None:
             parse_utc(self.collected_at_utc)
+        if self.age_s is not None:
+            if isinstance(self.age_s, bool) or not isinstance(self.age_s, (int, float)):
+                raise ContractError("age_s : nombre attendu")
+            if not math.isfinite(self.age_s) or self.age_s < 0:
+                raise ContractError("age_s : nombre fini positif attendu")
+            if self.collected_at_utc is None:
+                raise ContractError("age_s sans collected_at_utc : âge non mesurable")
 
 
 @dataclass(frozen=True)

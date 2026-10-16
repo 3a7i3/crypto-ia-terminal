@@ -37,6 +37,7 @@ Tests : `tests/governance_tower/test_gt_contracts.py`.
 | `Discrepancy` | comparaison GitHub ↔ runtime | classes conclusives exigent les deux valeurs et des preuves |
 | `Finding` | constat candidat | `CANDIDATE_ONLY` ; `OBSERVED` exige des preuves |
 | `MissionProposal` | proposition documentée | aucune autorité, jamais exécutée |
+| `SourceStatus` | état d'une source pour la bannière | `age_s` mesuré (fini, ≥ 0) seulement avec `collected_at_utc` ; jamais consultée ⇒ `UNKNOWN` sans âge ; `AVAILABLE` âgé de plus de 300 s ⇒ `STALE` |
 | `SentinelAnswer` | sortie structurée | constats, incertitudes, écarts, constats candidats, propositions, refus, citations non fiables |
 | `AgentRun` | trace complète d'une question | preuves citées ⊆ preuves du run ; mode `DEMO` sans `LIVE_READ` et inversement ; `cost=None` (jamais inventé) |
 
