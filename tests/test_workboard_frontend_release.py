@@ -118,3 +118,11 @@ def test_builder_output_is_deterministic_and_accepted_by_verifier(tmp_path):
     (tmp_path / "frontend/dist/index.html").write_bytes(b"changed")
     with pytest.raises(ValueError, match="DIRTY_FRONTEND_CHECKOUT"):
         build(tmp_path, None)
+
+
+def test_release_pins_and_dropin_ordering():
+    assert len(SOURCE_SHA) == 40 and release.RELEASE.name == SOURCE_SHA
+    assert "bdca77f9bcf306c17846985faef870844fdd1334" in release.PREVIOUS
+    # The new drop-in must sort after the one it supersedes, and must not collide with it.
+    assert release.DROPIN.name != release.PREVIOUS_DROPIN
+    assert release.DROPIN.name > release.PREVIOUS_DROPIN
