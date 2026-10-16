@@ -97,9 +97,41 @@ le dessus), recharge systemd, redémarre **uniquement** `crypto-operator-web.ser
 `/direction/travaux` octet pour octet sur `127.0.0.1:8181`, compare Advisor/API/`current` avant/après. En cas d'échec,
 il retire `99-workboard2.conf`, recharge et redémarre le web seul : retour à bdca77f.
 
-Le bloc `final_block.sh` v4 est **épinglé à bdca77f** et ne doit pas être réutilisé tel quel. Un bloc v5 (mêmes phases,
-nouvelles empreintes, nouveaux noms) n'est pas préparé ici : il le sera après accord de l'opérateur sur ce paquet et
-ce helper, puis relu avant toute exception.
+Le bloc `final_block.sh` v4 est **épinglé à bdca77f** et ne doit pas être réutilisé. Le bloc **v5**
+(`scripts/workboard_frontend_final_block.sh`, phases `prepare` / `activate` / `rollback`) le remplace ; voir la section suivante.
+
+## Bloc v5 (source, non exécuté sur le VPS)
+
+Corrections par rapport à v4, chacune couverte par le banc `tests/workboard_frontend_block/harness.sh` (chemins isolés, faux
+`systemctl`, aucun service réel) et par `tests/test_workboard_frontend_release.py` :
+
+1. **Gardes `NeedDaemonReload`** : `daemon-reload` est global. Le bloc (prepare, activate) et le helper exigent `no`
+   sur web, Advisor et API ; toute autre valeur, y compris vide ou illisible, refuse avant toute mutation. La valeur est
+   relue après l'activation et après la restauration. En restauration, aucun `daemon-reload` n'est lancé si rien n'a été retiré
+   ni chargé, ni si Advisor ou API ont un rechargement en attente (changement étranger : échec compté, non appliqué).
+2. **Drop-in atomique** : le helper écrit un fichier caché `.99-workboard2.conf.tmp` (ignoré par systemd), `fsync`, puis
+   `link()` vers `99-workboard2.conf` (échoue si le fichier existe). Le drop-in est complet ou absent. Un contenu partiel
+   à ce chemin est donc étranger et le rollback le refuse (plus aucune tolérance de préfixe). Un temporaire n'est retiré que
+   s'il a été créé par la tentative.
+3. **Rollback vérifié** : WorkingDirectory = bdca77f, HTTP 200, **index servi = index de la release bdca77f**, web actif,
+   `99-workboard2.conf` et temporaire absents, `99-workboard.conf` inchangé (empreinte journalisée), `NeedDaemonReload=no` ×3,
+   état protégé inchangé. Le web (seul) est relancé si l'index servi n'est pas celui de bdca77f (cas d'un restart qui avait échoué).
+4. **Échecs comptés** : chaque écart incrémente `FAILS` et écrit une ligne dans `evidence/failures.log` ; le journal porte
+   `FAIL_COUNT` (cumulé) et `RESTORE_FAIL_COUNT`. L'échec de l'activation elle-même et les échecs de restauration déclarés par
+   le helper sont comptés ; une sortie inattendue après l'activation est journalisée `VERIFY_FAILED` sans rien annuler.
+5. **Preuves si la restauration est incomplète** : dossier `evidence/incomplete-restore-<UTC>-<pid>/` (état systemd, `ls`
+   des dossiers, copies de tout `evidence/`, des fichiers trouvés, `status` et `journalctl` du web, `SHA256SUMS`), journal
+   `RESTORE_INCOMPLETE`, code de sortie 7, et marqueur `evidence/INCOMPLETE_RESTORE` qui fait refuser toute nouvelle activation.
+   Le marqueur n'est retiré que par un `rollback` entièrement vérifié ; aucune preuve n'est jamais supprimée. Les sorties du
+   helper d'une tentative précédente sont conservées (`*.prev-<T0>`). Les signaux sont ignorés pendant la restauration.
+
+Codes de sortie du bloc : 0 OK ; 2 pas root ; 3 droits ; 4 prepare/inspection ; 5 abandon ; 6 rollback refusé (provenance) ;
+7 restauration/rollback incomplet ; 8 précondition d'activation ; 9 vérification obligatoire échouée après activation ;
+11 verrou pris (helper orphelin).
+
+Limites : le banc modélise systemd (rechargement, ordre lexical des drop-ins) mais n'est pas systemd ; il ne prouve rien sur
+le VPS. Le journal vit dans le staging root : il protège d'un oubli ou d'un remplacement, pas contre root. Les empreintes du
+bloc et du helper sont à recopier de la PR de release dans l'exception avant toute exécution.
 
 ## Rollback
 
