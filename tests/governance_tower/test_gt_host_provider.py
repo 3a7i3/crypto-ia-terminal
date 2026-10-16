@@ -271,7 +271,8 @@ def test_directory_reads_only_the_two_snapshot_files(tmp_path, monkeypatch):
 
     monkeypatch.setattr(host_module.os, "open", spy)
     SnapshotDirectoryHostProvider(directory, clock()).host_snapshot()
-    assert opened == [str(directory), "runtime_service_snapshot.json", "storage_snapshot.json"]
+    assert opened[-2:] == ["runtime_service_snapshot.json", "storage_snapshot.json"]
+    assert opened[:-2] == list(directory.absolute().parts)
 
 
 def test_directory_missing_is_not_available(tmp_path):
@@ -614,3 +615,48 @@ def test_providers_expose_only_read_methods():
     for cls in (NotConfiguredHostProvider, FixtureHostProvider, SnapshotDirectoryHostProvider, OperatorApiHostProvider):
         public = {n for n in vars(cls) if not n.startswith("_")}
         assert public <= {"info", "host_snapshot", "scenario"}, cls
+
+
+@pytest.mark.parametrize("status,availability", [(401, Availability.DENIED), (403, Availability.DENIED), (429, Availability.RATE_LIMITED)])
+def test_api_access_failure_is_qualified(status, availability):
+    snap = OperatorApiHostProvider("http://127.0.0.1:1234", clock(), transport=lambda *a: HttpReponse(status, b"{}" )).host_snapshot()
+    assert snap.availability is availability
+    assert all(o.value is None for o in snap.observations)
+
+
+def test_snapshot_directory_rejects_symlink_in_parent(tmp_path):
+    write_dir(tmp_path / "real" / "snapshots", *fresh_docs())
+    (tmp_path / "alias").symlink_to(tmp_path / "real", target_is_directory=True)
+    snap = SnapshotDirectoryHostProvider(tmp_path / "alias" / "snapshots", clock()).host_snapshot()
+    assert snap.availability is Availability.ERROR and snap.reason == "INVALID_PATH"
+    assert all(o.value is None for o in snap.observations)
+
+
+def test_snapshot_provenance_and_times_are_visible(tmp_path):
+    rs, st = fresh_docs()
+    snap = SnapshotDirectoryHostProvider(write_dir(tmp_path, rs, st), clock()).host_snapshot()
+    service, storage = obs_of(snap, "host.service"), obs_of(snap, "host.storage")
+    assert service.value["host_id"] == rs["host_id"]
+    for obs, doc in ((service, rs), (storage, st)):
+        assert obs.value["generated_at_utc"] == doc["generated_at_utc"]
+        assert obs.value["observed_at_utc"] == doc["observed_at_utc"]
+
+
+def test_deployment_reference_is_redacted(tmp_path):
+    rs, st = fresh_docs()
+    rs["deployment"]["evidence_ref"] = "ghp_" + "A" * 36
+    assert validate_runtime_service_snapshot(rs)
+    snap = SnapshotDirectoryHostProvider(write_dir(tmp_path, rs, st), clock()).host_snapshot()
+    assert obs_of(snap, "host.deployment").value["evidence_ref"] == "[REDACTED]"
+
+
+def test_snapshot_permission_denial_is_not_a_missing_source(tmp_path):
+    write_dir(tmp_path, *fresh_docs())
+    path = tmp_path / "runtime_service_snapshot.json"
+    path.chmod(0)
+    try:
+        snap = SnapshotDirectoryHostProvider(tmp_path, clock()).host_snapshot()
+        assert snap.availability is Availability.DENIED and snap.reason == "DENIED"
+        assert obs_of(snap, "host.storage").value["total_bytes"] is not None
+    finally:
+        path.chmod(0o600)

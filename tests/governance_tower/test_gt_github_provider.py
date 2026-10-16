@@ -612,3 +612,12 @@ def test_module_source_contains_no_write_method():
     for cls in (HttpGithubProvider, FixtureGithubProvider):
         public = {n for n in dir(cls) if not n.startswith("_")}
         assert public <= {"repository_snapshot", "locate_code", "compare_commits", "requests_sent", "scenario_named", "info", "repo"}
+
+
+def test_skipped_and_neutral_ci_are_not_counted_as_success():
+    runs = [{"name": c, "head_sha": HEAD, "status": "completed", "conclusion": c}
+            for c in ("skipped", "neutral")]
+    snap = provider(FakeTransport({"checks": ok({"total_count": 2, "check_runs": runs})})).repository_snapshot()
+    ci = snap.get(Domain.CI)[0]
+    assert ci.value["succeeded"] == 0 and ci.value["skipped"] == 1 and ci.value["neutral"] == 1
+    assert ci.value["status"] == "NONE"

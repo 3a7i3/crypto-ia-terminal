@@ -1,3 +1,145 @@
+# Governance Tower — revue indépendante et démonstration bornée (#459 / #460)
+
+État du 2026-10-16. Revue Codex du HEAD entrant `7d28820c7d6ac81dd23164637d660b6017db72e2`,
+base `ab84ba4eb370b3adbefb43fb7d651dd0ff031ecd`. Le HEAD final exact et sa CI sont consignés dans
+la synthèse courante de [#460](https://github.com/3a7i3/crypto-ia-terminal/pull/460).
+Checkout local isolé, aucun checkout de production modifié. Branche distante revérifiée inchangée
+avant correction ; aucune autre PR Governance Tower, commentaire, revue ou thread de #460 retourné.
+Les instructions CLAUDE/DEVELOPER_ENTRYPOINT et les contrats #445, #447, #315 ont été examinés.
+
+## Revue et corrections confirmées
+
+| Fichier / mécanisme initial | Reproduction et impact | Correction minimale / régression |
+|---|---|---|
+| `sentinel/policy.py` : aucune règle pour corriger/réparer | « Corrige le service Advisor » → EXAMINE_HOST, outils de lecture appelés au lieu d'un refus ; aucun outil mutateur n'existait | refus CORRECTION_DENIED avant outil, y compris « Peux-tu corriger… » ; conservation de « Ne corrige rien » et des propositions |
+| `providers/host.py` : HTTP 401/403/429 et permissions fichier confondus avec ERROR | transport 403 → ERROR, perte du diagnostic d'accès | DENIED / RATE_LIMITED distincts ; refus fichier réel local et succès partiel Stockage testés |
+| `providers/host.py` : O_NOFOLLOW sur dernier composant seulement | `alias/snapshots` avec alias symlink vers un répertoire réel → lecture AVAILABLE hors chemin attendu | ouverture de chaque composant par dir_fd + O_NOFOLLOW ; symlink parent refusé |
+| `redaction.py` : troncature avant rédaction | 189 caractères + espace + faux jeton `ghp_` de 36 caractères, limite 210 → fragment visible non rédigé | rédaction avant troncature ; même ordre dans la normalisation des questions |
+| `providers/host.py` : evidence_ref externe recopiée brute | référence de déploiement portant un faux jeton, valide pour le contrat, exposée dans la réponse | rédaction de cette référence ; host_id également rédigé |
+| `providers/github.py` : skipped/neutral incrémentaient succeeded | deux checks ignoré/neutre → deux réussites, SUCCESS | compteurs séparés ; aucun succès exécuté → NONE |
+| `sentinel/policy.py` : « stockage » absent des intentions | question Stockage → HELP sans lecture | routage EXAMINE_HOST, régression dédiée |
+| `providers/host.py` : dates de publication et identité hôte perdues dans la projection | réponse Service/Stockage sans generated_at_utc, identité seulement générique | restituer host_id expurgé et generated/observed, sans PID ni invocation complète |
+
+Minimisation facultative retenue : `sentinel/audit.py` ne conserve plus d'extrait de question ; outils,
+états, dates, refus et nombre de preuves suffisent à l'audit. Aucun contenu externe ajouté à ce journal.
+
+La revue du code confirme la table fermée de quatre outils de lecture, le plan déterministe choisi
+avant lecture des sources, les validations de paramètres par fournisseurs, l'absence de shell et de
+méthode HTTP mutatrice. GitHub : destination api.github.com, redirections refusées, requêtes/corps
+bornés, CI contrôlée au SHA demandé, absence et pagination explicites. Snapshots : contrats existants,
+UTC/futur (tolérance 120 s), âge et erreurs qualifiés. Référence #286 déclarative, jamais transformée
+en observation. EXPECTED_PINNED_RUNTIME reste un écart attendu. UI : loopback, Host/Origin/CSRF,
+CSP et textContent ; aucune nouvelle exposition. L'absence de modèle/outils mutateurs, et non les
+heuristiques de détection d'injection, porte la frontière d'exécution.
+
+## Tests effectivement exécutés
+
+Python 3.12.14, venv local séparé, pytest 9.1.1, plugins automatiques désactivés et environnement
+assaini (`env -i`, PATH Python/Node explicite, HOME temporaire, PYTHONPATH du checkout).
+
+- HEAD entrant : première passe 352 passed / 1 skipped (Node omis du PATH assaini) ; reproduction
+  avec Node dans le PATH, dans un second worktree au HEAD exact : **353 passed**, zéro skipped.
+- Après corrections : **368 passed**, zéro skipped ; un avertissement de configuration
+  `asyncio_mode` car pytest-asyncio n'est pas installé dans ce venv stdlib.
+- Ruff 0.15.8, sélection CI E/F/W : PASS ; baseline du dépôt : **0 nouvelle violation**.
+- `node --check governance_tower/ui/app.js` : PASS ; `git diff --check` : PASS.
+- Pas de pytest sur le VPS. La suite complète du dépôt et les captures navigateur de l'auteur
+  ne sont pas revendiquées comme reproduites ici. Les deux contrats partagés sont inchangés.
+
+## GitHub réel — connecteur Governance Tower
+
+`HttpGithubProvider` avec son transport urllib réel, sans fixture ni jeton demandé.
+Deux invocations bornées : budget 5 puis 6 requêtes, timeout d'inactivité 5 s par requête,
+corps au plus 1 048 576 + 1 octets de détection ; **11 GET envoyés au total**.
+
+Première question : « Quel est le dernier commit du dépôt GitHub et son état CI ? »
+Collecte 20:02:16.633617Z, fin 20:02:19.203474Z : dépôt `3a7i3/crypto-ia-terminal`, branche main,
+HEAD `ab84ba4eb370b3adbefb43fb7d651dd0ff031ecd`, commit daté 18:55:09Z ; CI de ce SHA :
+24 checks terminés/success. Preuves : `/repos/3a7i3/crypto-ia-terminal`, `/branches/main`,
+`/commits/<SHA>/check-runs?per_page=100`, `/pulls?state=open&per_page=30&sort=updated&direction=desc`,
+`/issues?state=open&per_page=50&sort=updated&direction=desc` sur https://api.github.com.
+Trois PR ouvertes et trente issues hors PR retenues dans la page. Une seule page demandée de chaque
+liste ; couverture bornée, pas un inventaire certifié exhaustif. Corps, commentaires et code des
+fichiers non analysés par ce connecteur. La recherche de code ne fournit que des chemins.
+
+Seconde invocation : 20:04:16.975786Z–20:04:20.818689Z, même main observé, six GET.
+La comparaison `116634be0d3c015cce1cfa58be7da7255414fbfd...ab84ba4eb370b3adbefb43fb7d651dd0ff031ecd`
+avec per_page=50 a reçu HTTP 200 mais dépasse 1 Mio : **ERROR / OUTPUT_LIMIT**, aucun décompte
+ni liste partielle inventés. Le classement runtime ne dépend pas de cette réponse refusée.
+Cette CI de main est distincte de la CI de la PR #460.
+
+## VPS réel — transport direct existant, puis copie locale des projections
+
+Deux GET réels, ponctuels, via Desktop Commander existant sous `chatgpt-ro` sur `crypto-advisor-2`.
+Budget strict : exactement deux requêtes, timeout 5 s, 65 537 octets de détection par réponse,
+redirections refusées, aucun cookie/auth ajouté. Aucun collector, publisher, daemon ou fichier créé
+sur le VPS. Aucun fichier decision_packets ouvert. Le répertoire privé n'a pas été ouvert ni ses
+permissions changées. Le source API actif staging-src est refusé au compte : refus conservé.
+Routes confirmées dans la release lisible `operator/current/observability/operator_api/app.py`
+(lignes 132 et 483) ; port loopback 8090 confirmé par les seuls ExecStart de l'unité/drop-in existants,
+sans lecture EnvironmentFile ni environnement du processus. Cela ne certifie pas l'identité de build
+API ou Advisor. Aucun sudo, restart ou deploy exécuté.
+
+| | Service | Stockage |
+|---|---|---|
+| Route | GET http://127.0.0.1:8090/api/operator/v1/runtime-service | GET http://127.0.0.1:8090/api/operator/v1/storage |
+| Collecte UTC | 2026-10-16T20:02:31.079468Z | 2026-10-16T20:02:31.087417Z |
+| generated = observed UTC | 2026-10-16T20:02:13.833027Z | 2026-10-16T20:02:13.683945Z |
+| HTTP / taille | 200 / 800 octets | 200 / 652 octets |
+| Fraîcheur à la lecture | FRESH / 17.252432823181152 s | FRESH / 17.405173778533936 s |
+| Contrat | RuntimeServiceSnapshot 1.0.0 / HOST_SYSTEMD_OBSERVATION | StorageSnapshot 1.0.0 / FILESYSTEM_METADATA_OBSERVATION |
+| Valeur | crypto-advisor.service, loaded / active / running, NRestarts=0 | PRESENT, 8 fichiers correspondants, 365282643 octets |
+| SHA-256 réponse HTTP | 3b97ee1f6458f1076f3a779e6b78b9b5fc581c340427998c191cea327120b4ae | f0ad2ac2ea8ce6ba165f1692523818d5737659ac915960796383d2db64aff12a |
+
+Les deux projections ont ensuite été copiées dans le workspace local, sans les deux champs de transport
+(snapshot_age_s / freshness_classification), pour lecture par `SnapshotDirectoryHostProvider` et
+validation par les contrats existants. Ce sont des **copies des projections HTTP réellement lues**,
+ni fixtures ni copies directes des fichiers privés. Les empreintes ci-dessus portent les réponses HTTP
+originales, pas les fichiers dérivés. À 20:04:20Z les copies sont honnêtement STALE (âge ~127 s).
+Questions locales : « Quel est l’état publié du service Advisor ? », « Quel est le stockage publié ? » :
+les deux réponses Sentinel citent les dates et les valeurs ci-dessus avec PÉRIMÉ.
+
+Cette méthode démontre l'accès réel aux deux publications et leur analyse locale ; elle **ne démontre
+pas** une connexion réseau VPS depuis `OperatorApiHostProvider` dans Governance Tower. Son transport
+distant reste NOT_PROVEN ; aucun tunnel ou relais supplémentaire créé. Le label de provenance
+LIVE_READ des copies indique l'origine réelle, pas une lecture courante du VPS.
+
+## Comparaison, refus et verdict
+
+GitHub observé à 20:04:16Z et snapshots VPS collectés à 20:02:31Z : instants différents explicitement
+conservés. Référence gelée déclarée : runtime `116634be0d3c015cce1cfa58be7da7255414fbfd`, epoch
+BURN-IN-EPOCH-01-20260926T064144Z, état documentaire du 2026-10-05. Snapshot runtime-service :
+**deployment NOT_AVAILABLE / NO_EVIDENCE**, SHA et empreinte d'artefact absents.
+Réponse Sentinel : **INSUFFICIENT_EVIDENCE**, sans inventer identité, alignement ni dérive.
+Le frontend 8ff089b rapporté activé par Mathieu ne donne pas l'identité du build Advisor et n'installe pas GT.
+Service active/running ≠ santé du cycle Advisor ; volume de fichiers ≠ nombre de packets ou espace libre.
+
+« Redémarre Advisor » → SERVICE_CONTROL_DENIED ; « Corrige le service Advisor » → CORRECTION_DENIED.
+Deux runs locaux, zéro appel d'outil, aucune tentative d'action sur l'hôte. Aucun outil mutateur disponible.
+
+Risques non démontrés / limites : filtrage des secrets et intentions heuristique, formats inconnus non
+garantis ; hôte HTTPS choisi explicitement par l'opérateur (pas un registre d'admission opérationnel) ;
+timeouts réseau d'inactivité, pas deadline globale ; serveur stdlib local sans authentification ni
+qualification de résistance aux clients lents. Aucune validation navigateur indépendante nouvelle.
+Raisonneur déterministe : routage et projection de faits, pas enquête générale, lecture de corps/code,
+certification ou investigation LAB. Ces limites interdisent une prétention de « vue complète » ou de
+service exposé. L3 historique, U8/L4 non certifiés, #397 HOLD, #286 ACTIVE ; Gate O non activée.
+Les réserves historiques G3–G5 restent intactes : publication préalable G3 runtime-service non établie,
+au moins quatre starts storage malgré deux blocs rapportés, durée/consommation G3 non établies.
+Preuves historiques : #286 commentaires 6221709127 et 6222207001 ; aucune régularisation rétroactive.
+
+- PRÊT POUR REVUE SOURCE (prototype local borné ; état de CI final séparé dans #460).
+- GITHUB RÉEL DÉMONTRÉ.
+- VPS RÉEL DÉMONTRÉ **par transport direct**, analyse **par copie locale** ; connecteur distant GT NON DÉMONTRÉ.
+- DÉPLOYÉ = NON ; AUTORITÉ OPÉRATIONNELLE = AUCUNE.
+
+Prochaine décision : Mathieu examine la correction source et accepte ou refuse ce périmètre de preuve
+borné dans #460. Aucune décision de fusion ou d'installation n'est exécutée dans cette mission.
+
+---
+
+# Livraison initiale de l'auteur — historique, antérieure à la revue ci-dessus
+
 # Governance Tower — Rapport de livraison GOV-TOWER-00 (lot I)
 
 Mission [#459](https://github.com/3a7i3/crypto-ia-terminal/issues/459) · Roadmap #285 · Garde #286 **ACTIVE** (relue le 2026-10-16)

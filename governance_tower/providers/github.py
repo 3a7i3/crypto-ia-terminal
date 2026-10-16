@@ -116,7 +116,6 @@ _QUERY_RE = re.compile(r"^[A-Za-z0-9=&_.-]*$")
 _TERM_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 _FAILING = frozenset({"failure", "timed_out", "cancelled", "action_required", "startup_failure", "stale"})
-_OK = frozenset({"success", "neutral", "skipped"})
 _RUN_STATUSES = frozenset({"queued", "in_progress", "completed", "waiting", "requested", "pending"})
 _COMPARE_STATUSES = frozenset({"ahead", "behind", "identical", "diverged"})
 
@@ -452,14 +451,18 @@ class _GithubReaderBase:
                 subject,
                 _Fail(Availability.UNKNOWN, Reason.TRUNCATED, "contrôles incomplets pour ce HEAD : statut inconnu", res.evidence),
             )
-        failing, pending, ok = [], [], 0
+        failing, pending, ok, skipped, neutral = [], [], 0, 0, 0
         for name, status, conclusion in runs:
             if status != "completed":
                 pending.append(name)
             elif conclusion in _FAILING:
                 failing.append(name)
-            elif conclusion in _OK:
+            elif conclusion == "success":
                 ok += 1
+            elif conclusion == "skipped":
+                skipped += 1
+            elif conclusion == "neutral":
+                neutral += 1
             else:
                 return self._absent(
                     "gh-ci",
@@ -473,6 +476,8 @@ class _GithubReaderBase:
             "status": status,
             "total": total,
             "succeeded": ok,
+            "skipped": skipped,
+            "neutral": neutral,
             "failed": len(failing),
             "pending": len(pending),
             "failing_names": [sanitize_untrusted(n, limit=100).text for n in failing[:MAX_FAILING_NAMES]],
@@ -486,7 +491,8 @@ class _GithubReaderBase:
             None,
             res.evidence,
             self._limits(
-                "CI verte = contrôles du HEAD réussis, jamais une preuve de déploiement ni d'efficacité",
+                "CI : réussis, ignorés et neutres sont distincts ; aucun échec observé ≠ tous les contrôles exécutés",
+                "jamais une preuve de déploiement ni d'efficacité",
                 "noms de contrôles = contenu non fiable",
             ),
             untrusted_content=True,

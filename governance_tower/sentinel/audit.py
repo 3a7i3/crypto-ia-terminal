@@ -16,7 +16,6 @@ import threading
 from pathlib import Path
 
 from governance_tower.contracts import AgentRun
-from governance_tower.redaction import redact
 
 DEFAULT_MAX_BYTES = 1_048_576
 
@@ -36,7 +35,6 @@ class AuditLog:
 
     @staticmethod
     def record_for(run: AgentRun) -> dict:
-        request, _ = redact(run.request[:200])
         return {
             "schema": "gt-audit/1",
             "run_id": run.run_id,
@@ -46,7 +44,6 @@ class AuditLog:
             "started_at_utc": run.started_at_utc,
             "finished_at_utc": run.finished_at_utc,
             "intent": run.intent.value,
-            "request_excerpt": request,
             "tools": [[c.tool, c.availability.value] for c in run.tool_calls],
             "refusals": [r.code for r in run.answer.refusals],
             "evidence_count": len(run.evidence),

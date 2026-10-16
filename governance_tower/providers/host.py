@@ -210,6 +210,9 @@ def _obs_service(rs: _Lecture) -> Observation:
     s = rs.doc["service"]
     invocation = s.get("invocation_id")
     valeur = {
+        "host_id": sanitize_untrusted(rs.doc["host_id"]).text,
+        "generated_at_utc": rs.doc["generated_at_utc"],
+        "observed_at_utc": rs.doc["observed_at_utc"],
         "unit": s["unit"],
         "query_status": s["query_status"],
         "load_state": s["load_state"],
@@ -241,7 +244,7 @@ def _obs_deployment(rs: _Lecture) -> Observation:
     valeur = {
         "source_code_sha": d["source_code_sha"],
         "artifact_sha256": d["artifact_sha256"],
-        "evidence_ref": d["evidence_ref"],
+        "evidence_ref": sanitize_untrusted(d["evidence_ref"]).text,
         "observed_at_utc": d["observed_at_utc"],
     }
     return Observation(
@@ -265,6 +268,8 @@ def _obs_storage(st: _Lecture) -> Observation:
             st.evidence, (LIMITE_PONCTUELLE,),
         )
     valeur = {
+        "generated_at_utc": doc["generated_at_utc"],
+        "observed_at_utc": doc["observed_at_utc"],
         "source_status": doc["source_status"],
         "matched_file_count": doc["matched_file_count"],
         "total_bytes": doc["total_bytes"],
@@ -362,7 +367,7 @@ def _lire_fichier_borne(path: Path, limite: int, *, dir_fd: int | None = None) -
     flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
     try:
         fd = os.open(path, flags, dir_fd=dir_fd)
-    except FileNotFoundError:
+    except (FileNotFoundError, PermissionError):
         raise
     except OSError as exc:  # ELOOP : lien symbolique refusé
         raise ValueError("INVALID_PATH") from exc
@@ -373,6 +378,24 @@ def _lire_fichier_borne(path: Path, limite: int, *, dir_fd: int | None = None) -
     if len(raw) > limite:
         raise ValueError("OUTPUT_LIMIT")
     return raw
+
+
+def _open_directory_no_symlinks(path: Path) -> int:
+    """Traverse chaque composant via dir_fd, sans suivre de lien ni résoudre '..'."""
+    absolute = path.absolute()
+    if ".." in absolute.parts:
+        raise OSError("INVALID_PATH")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    fd = os.open(absolute.anchor, flags)
+    try:
+        for component in absolute.parts[1:]:
+            child = os.open(component, flags, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
 
 
 def _canonique(doc: Any) -> bytes:
@@ -528,6 +551,8 @@ class SnapshotDirectoryHostProvider:
             raw = _lire_fichier_borne(Path(fichier), limite, dir_fd=dir_fd)
         except FileNotFoundError:
             return _absence(Availability.NOT_AVAILABLE, "MISSING")
+        except PermissionError:
+            return _absence(Availability.DENIED, "DENIED")
         except ValueError as exc:
             return _absence(Availability.ERROR, str(exc) if str(exc) in {"INVALID_PATH", "OUTPUT_LIMIT"} else "READ_ERROR")
         except OSError:
@@ -542,11 +567,12 @@ class SnapshotDirectoryHostProvider:
 
     def host_snapshot(self) -> HostSnapshot:
         collected_at, now_s = _collected_at(self._clock)
-        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
         try:
-            dir_fd = os.open(self._directory, flags)
+            dir_fd = _open_directory_no_symlinks(self._directory)
         except FileNotFoundError:
             return _hote_absent(self._host_label, collected_at, Availability.NOT_AVAILABLE, "SNAPSHOT_DIRECTORY_MISSING")
+        except PermissionError:
+            return _hote_absent(self._host_label, collected_at, Availability.DENIED, "DENIED")
         except OSError:  # lien symbolique (ELOOP) ou pas un répertoire (ENOTDIR)
             return _hote_absent(self._host_label, collected_at, Availability.ERROR, "INVALID_PATH")
         try:
@@ -688,6 +714,10 @@ class OperatorApiHostProvider:
         status = reponse.status
         if 300 <= status < 400:
             return _absence(Availability.ERROR, "REDIRECT_REFUSED")
+        if status in (401, 403):
+            return _absence(Availability.DENIED, "DENIED")
+        if status == 429:
+            return _absence(Availability.RATE_LIMITED, "RATE_LIMITED")
         if status in (404, 503):
             return _absence(Availability.NOT_AVAILABLE, self._raison_http(status, reponse.body))
         if status != 200:

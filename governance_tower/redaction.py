@@ -63,9 +63,8 @@ def sanitize_untrusted(text: object, limit: int = 600) -> Redacted:
     raw = text if isinstance(text, str) else ""
     raw = _CONTROL_RE.sub(" ", raw)
     truncated = len(raw) > limit
-    raw = raw[:limit]
     cleaned, n = redact(raw)
-    return Redacted(cleaned, n, truncated)
+    return Redacted(cleaned[:limit], n, truncated)
 
 
 def normalize_repo_path(path: str) -> str | None:

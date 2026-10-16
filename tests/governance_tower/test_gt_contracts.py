@@ -290,3 +290,10 @@ def test_pinned_reference_is_declared_not_observed():
     assert ref.epoch_id == "BURN-IN-EPOCH-01-20260926T064144Z"
     assert ref.evidence.provenance is Provenance.DECLARED_REFERENCE
     assert ref.evidence.locator.endswith("/issues/286")
+
+
+def test_secret_redaction_precedes_truncation():
+    from governance_tower.redaction import sanitize_untrusted
+    secret = "ghp_" + "A" * 36
+    result = sanitize_untrusted("x" * 189 + " " + secret, limit=210)
+    assert "ghp_" not in result.text and result.redactions == 1 and result.truncated

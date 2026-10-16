@@ -80,9 +80,14 @@ _DENY_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
             r"\b(valide[rz]?|approuve[rz]?|ferme[rz]?)\b.{0,20}(gate|#?315|exception))"
         ),
     ),
+    (
+        "CORRECTION_DENIED",
+        re.compile(r"(?<!ne )(?<!sans )\b(?:corrige[rz]?|r[ée]pare[rz]?|fix|repair|apply|applique[rz]?)\b"),
+    ),
 )
 
 REFUSAL_REASONS = {
+    "CORRECTION_DENIED": "Sentinel peut proposer une investigation, jamais exécuter une correction.",
     "SECRET_ACCESS_DENIED": "Sentinel ne lit, n'affiche ni ne transmet aucun secret, jeton, clé ou fichier .env.",
     "SERVICE_CONTROL_DENIED": "Sentinel observe les services sans jamais les démarrer, arrêter, redémarrer ou activer.",
     "DEPLOYMENT_DENIED": "Aucun déploiement, installation ou promotion n'est possible depuis Governance Tower.",
@@ -117,7 +122,7 @@ _INTENT_RULES: tuple[tuple[Intent, re.Pattern[str]], ...] = (
     (Intent.PROPOSE_MISSION, re.compile(r"propos\w* (une )?mission|mission de correction")),
     (Intent.COMPARE, re.compile(r"compar|[ée]cart|drift|d[ée]rive|github (et|vs|/) ?(le )?vps")),
     (Intent.DIAGNOSE, re.compile(r"anomalie|diagnost|probl[eè]me|incoh[ée]ren")),
-    (Intent.EXAMINE_HOST, re.compile(r"\bvps\b|serveur|h[ôo]te|services?\b|advisor|ressources")),
+    (Intent.EXAMINE_HOST, re.compile(r"\bvps\b|serveur|h[ôo]te|services?\b|advisor|ressources|stockage|storage")),
     (Intent.EXAMINE_REPOSITORY, re.compile(r"d[ée]p[ôo]t|\brepo|github|\bci\b|commits?|branches?")),
 )
 
@@ -137,8 +142,9 @@ class PolicyDecision:
 def normalize_request(raw: object) -> tuple[str, int]:
     text = raw if isinstance(raw, str) else ""
     text = unicodedata.normalize("NFKC", text)
-    text = _CONTROL_RE.sub(" ", text).strip()[:MAX_REQUEST]
-    return redact(text)
+    text = _CONTROL_RE.sub(" ", text).strip()
+    cleaned, count = redact(text)
+    return cleaned[:MAX_REQUEST], count
 
 
 def classify_intent(request: str, shortcut: str | None = None) -> Intent:

@@ -31,11 +31,15 @@ python -m governance_tower ask "" --shortcut compare --scenario drift --json
 
 Le serveur refuse de démarrer hors loopback (`--host 0.0.0.0` → `NotLoopback`).
 
-## 3. Lectures réelles (opt-in, hors démo, non éprouvées)
+## 3. Lectures réelles (opt-in, hors démo)
+
+Preuves datées et méthode exacte : [revue indépendante](DELIVERY_REPORT.md).
+Le connecteur GitHub a été exercé ; le VPS a été lu par transport direct existant puis copies locales.
+Le connecteur distant OperatorApiHostProvider reste non démontré.
 
 | Option | Effet | Statut |
 |---|---|---|
-| `--github-live` | GET anonymes vers `api.github.com` (jeton optionnel via `GT_GITHUB_TOKEN`, côté serveur) ; budget 40 requêtes par instance | `NOT_PROVEN` : testé avec transport simulé uniquement |
+| `--github-live` | GET anonymes vers `api.github.com` (jeton optionnel via `GT_GITHUB_TOKEN`, côté serveur) ; budget 40 requêtes par instance | Démontré réellement le 2026-10-16 (voir rapport, budget 5 puis 6 GET) |
 | `--host-snapshots DIR` | lit une **copie locale** de `runtime_service_snapshot.json` et `storage_snapshot.json` | `NOT_PROVEN` |
 | `--host-operator-api URL` | GET `/api/operator/v1/runtime-service` et `/storage` sur une URL loopback/https | `NOT_PROVEN` |
 
@@ -80,6 +84,6 @@ node --check governance_tower/ui/app.js
 ## 6. Journal d'audit (opt-in)
 
 `--audit-log /chemin/audit.jsonl` : une ligne par question (identité du run, intention, outils et états,
-codes de refus, nombre de preuves), extrait de question expurgé et tronqué, fichier `0600`,
+codes de refus, nombre de preuves), sans question ni contenu externe, fichier `0600`,
 `O_NOFOLLOW`, plafond 1 Mio puis arrêt d'écriture. Rétention proposée : supprimer à la fin de la session
 de démonstration ; aucune rotation automatique.

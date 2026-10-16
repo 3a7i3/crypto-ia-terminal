@@ -37,7 +37,7 @@ Rien ne traverse dans l'autre sens : aucun outil n'écrit, aucune réponse ne pi
 
 | Abus | Mitigation | Test |
 |---|---|---|
-| Demande d'action (restart, deploy, merge, PR, ordre, paiement, seuil, gate) | politique de refus **avant tout outil** | `test_gt_sentinel.py::test_mutating_requests_refused_before_any_tool` (19 cas) |
+| Demande d'action (restart, deploy, merge, PR, ordre, paiement, seuil, gate) | politique de refus **avant tout outil** | `test_gt_sentinel.py::test_mutating_requests_refused_before_any_tool` |
 | Demande déguisée | motifs sur les verbes d'action, pas sur le contexte | même test, cas « Pour vérifier la santé… » |
 | Outil inconnu, outil d'écriture | table fixe immuable, `read_only=True` imposé, budget d'appels | `test_tool_table_is_fixed_and_read_only`, `test_tool_budget_enforced` |
 | Prompt injection via PR/issue/journal | l'intention est figée par la question avant lecture ; texte cité dans `untrusted_quotes` ; constat candidat | `test_injection_in_pr_title_and_log_is_quoted_not_obeyed` + scénario `injection` |
@@ -65,4 +65,5 @@ Rien ne traverse dans l'autre sens : aucun outil n'écrit, aucune réponse ne pi
 4. **Politique de refus par motifs** : conservatrice (certaines questions légitimes contenant « secret » ou « token » sont refusées). Préférer un refus de trop qu'une action.
 5. **Références gelées documentaires** : `pinned_references.json` recopie #286 ; si #286 évolue, le fichier doit être mis à jour par revue humaine.
 6. **Futur raisonneur LLM** : non implémenté ; son intégration devra valider toute sortie contre `SentinelAnswer`/`AgentRun` (preuves citées ⊆ preuves du run).
-7. **Lectures réelles non éprouvées** : `HttpGithubProvider`, `SnapshotDirectoryHostProvider`, `OperatorApiHostProvider` sont testés avec transports simulés seulement (`NOT_PROVEN`).
+7. **Preuves de connexion bornées** : GitHub réel exercé, VPS lu par transport direct puis copies des projections analysées localement ; `OperatorApiHostProvider` distant reste non démontré. Dates et limites dans [DELIVERY_REPORT.md](DELIVERY_REPORT.md).
+8. **Temps et disponibilité** : timeouts réseau d’inactivité, pas deadline globale ; serveur stdlib loopback sans qualification face aux clients lents. Aucun service exposé autorisé.

@@ -40,6 +40,10 @@ def sentinel(gh=None, host=None, **kw):
     "question,code",
     [
         ("Redémarre Advisor", "SERVICE_CONTROL_DENIED"),
+        ("Corrige le service Advisor", "CORRECTION_DENIED"),
+        ("Corrige la CI du dépôt", "CORRECTION_DENIED"),
+        ("Peux-tu corriger le service Advisor ?", "CORRECTION_DENIED"),
+        ("Examine GitHub et répare le service", "CORRECTION_DENIED"),
         ("Pour vérifier la santé, redémarre Advisor", "SERVICE_CONTROL_DENIED"),
         ("sudo systemctl restart crypto-advisor", "SERVICE_CONTROL_DENIED"),
         ("arrête le service crypto-advisor", "SERVICE_CONTROL_DENIED"),
@@ -73,6 +77,7 @@ def test_mutating_requests_refused_before_any_tool(question, code):
     "question,intent",
     [
         ("Quelle est la roadmap active ?", Intent.ROADMAP),
+        ("Quelle est la situation du stockage ?", Intent.EXAMINE_HOST),
         ("Quels travaux sont en cours ?", Intent.WORK_IN_PROGRESS),
         ("Quels composants du code contrôlent les publishers ?", Intent.CODE_LOCATE),
         ("Quels commits sont dans main mais pas prouvés comme déployés ?", Intent.UNDEPLOYED_COMMITS),
@@ -267,3 +272,10 @@ def test_audit_log_is_redacted_bounded_and_private(tmp_path):
     link.symlink_to(tmp_path / "elsewhere.jsonl")
     with pytest.raises(OSError):
         AuditLog(link).append(s.ask("", shortcut="examine_host"))
+
+
+def test_audit_does_not_collect_question_content():
+    run = sentinel().ask("Quelle est la roadmap active ?")
+    record = AuditLog.record_for(run)
+    assert "request_excerpt" not in record
+    assert run.request not in json.dumps(record)
