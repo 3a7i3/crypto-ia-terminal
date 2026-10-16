@@ -1,0 +1,143 @@
+{
+  "schema": "gt-github-fixture/1",
+  "nature": "SYNTHETIC",
+  "scenario": "nominal",
+  "warning": "Fixture SYNTHETIC de démonstration (GT-M2). Valeurs inventées, jamais une preuve GitHub réelle ; titres non fiables.",
+  "repo": "3a7i3/crypto-ia-terminal",
+  "repository": {
+    "available": {
+      "default_branch": "main",
+      "head_sha": "de5e0000000000000000000000000000000000a1",
+      "head_committed_at_utc": "2026-10-16T07:30:00Z",
+      "head_title": "[SYNTHETIC] Merge pull request #460 : Governance Tower GT-M1 contrats fermés\n\nCorps de commit synthétique jamais exposé."
+    }
+  },
+  "ci": {
+    "available": {
+      "check_runs": [
+        {
+          "name": "pytest",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "ruff",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "frontend-build",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  },
+  "pull_requests": {
+    "available": {
+      "items": [
+        {
+          "number": 461,
+          "title": "[SYNTHETIC] feat(governance-tower): connecteur GitHub lecture seule (GT-M2)",
+          "draft": false,
+          "head_sha": "de5e000000000000000000000000000000000461",
+          "updated_at_utc": "2026-10-16T09:10:00Z"
+        },
+        {
+          "number": 462,
+          "title": "[SYNTHETIC] docs(governance-tower): panel Sentinel (brouillon)",
+          "draft": true,
+          "head_sha": "de5e000000000000000000000000000000000462",
+          "updated_at_utc": "2026-10-15T18:00:00Z"
+        }
+      ]
+    }
+  },
+  "issues": {
+    "available": {
+      "items": [
+        {
+          "number": 459,
+          "title": "[SYNTHETIC] GOV-TOWER-00 — Governance Tower, supervision READ-ONLY",
+          "updated_at_utc": "2026-10-16T08:00:00Z"
+        },
+        {
+          "number": 286,
+          "title": "[SYNTHETIC] GOV-BURNIN-FREEZE-01 — ACTIVE_BURN_IN_IMMUTABILITY_GUARD",
+          "updated_at_utc": "2026-10-05T10:00:00Z"
+        },
+        {
+          "number": 285,
+          "title": "[SYNTHETIC] Priorisation des missions",
+          "updated_at_utc": "2026-10-10T10:00:00Z"
+        },
+        {
+          "number": 315,
+          "title": "[SYNTHETIC] Gate O — décision opérateur",
+          "updated_at_utc": "2026-10-01T10:00:00Z"
+        }
+      ]
+    }
+  },
+  "code_tree": {
+    "available": {
+      "truncated": false,
+      "paths": [
+        "README.md",
+        "CLAUDE.md",
+        "CURRENT_TASK.md",
+        ".env",
+        ".env.example",
+        "deploy/secrets.yaml",
+        "keys/id_ed25519",
+        "governance_tower/__init__.py",
+        "governance_tower/contracts.py",
+        "governance_tower/redaction.py",
+        "governance_tower/references.py",
+        "governance_tower/providers/base.py",
+        "governance_tower/providers/github.py",
+        "observability/runtime_service_contract.py",
+        "observability/storage_contract.py",
+        "frontend/src/lib/githubRoadmapReader.ts",
+        "tests/governance_tower/test_gt_contracts.py",
+        "docs/DEVELOPER_ENTRYPOINT.md"
+      ]
+    }
+  },
+  "comparisons": {
+    "available": {
+      "items": [
+        {
+          "base_sha": "116634be0d3c015cce1cfa58be7da7255414fbfd",
+          "head_sha": "de5e0000000000000000000000000000000000a1",
+          "status": "ahead",
+          "ahead_by": 42,
+          "behind_by": 0,
+          "total_commits": 42,
+          "commits": [
+            {
+              "sha": "de5e000000000000000000000000000000000c01",
+              "title": "[SYNTHETIC] feat(frontend): lecteur roadmap GitHub"
+            },
+            {
+              "sha": "de5e000000000000000000000000000000000c02",
+              "title": "[SYNTHETIC] test: banc frontend borné"
+            },
+            {
+              "sha": "de5e000000000000000000000000000000000c03",
+              "title": "[SYNTHETIC] docs: résultats opérateur G3-G5"
+            },
+            {
+              "sha": "de5e000000000000000000000000000000000c04",
+              "title": "[SYNTHETIC] feat(governance-tower): contrats fermés (GT-M1)"
+            },
+            {
+              "sha": "de5e0000000000000000000000000000000000a1",
+              "title": "[SYNTHETIC] Merge pull request #460"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
