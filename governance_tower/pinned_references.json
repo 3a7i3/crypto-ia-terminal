@@ -1,0 +1,16 @@
+{
+  "schema": "gt-pinned-references/1",
+  "nature": "DECLARED_REFERENCE",
+  "warning": "Références documentaires déclarées sous #286. Sentinel ne les observe pas ; elles servent uniquement à reconnaître un runtime volontairement épinglé (EXPECTED_PINNED_RUNTIME). Toute mise à jour exige une revue humaine et une source GitHub datée.",
+  "references": [
+    {
+      "reference_id": "BURN_IN_EPOCH_01",
+      "epoch_id": "BURN-IN-EPOCH-01-20260926T064144Z",
+      "runtime_source_sha": "116634be0d3c015cce1cfa58be7da7255414fbfd",
+      "config_sha256": "9d9de1af4ac5aa5afc030ff64b08eeada0e1388a5d87c6475cb39c042be230d4",
+      "declared_in": "GitHub #286 — GOV-BURNIN-FREEZE-01, ACTIVE_BURN_IN_IMMUTABILITY_GUARD",
+      "status_date": "2026-10-05",
+      "locator": "https://github.com/3a7i3/crypto-ia-terminal/issues/286"
+    }
+  ]
+}
