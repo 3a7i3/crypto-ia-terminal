@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import http.server
 import importlib.util
 import json
+import os
 import re
+import sys
+import threading
 import unittest
 from pathlib import Path
+from typing import ClassVar
+from unittest import mock
 
 import yaml
 
@@ -44,6 +50,7 @@ def read_workflow():
 def load_script():
     spec = importlib.util.spec_from_file_location("gt01_g_smoke_identity", SCRIPT)
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module  # requis par @dataclass
     spec.loader.exec_module(module)
     return module
 
@@ -141,14 +148,15 @@ class TestWorkflowContract(unittest.TestCase):
 
 
 class FakeGitHub:
-    def __init__(self, routes):
+    def __init__(self, module, routes):
+        self.m = module
         self.routes = routes
         self.paths = []
 
     def __call__(self, path):
         self.paths.append(path)
         status, body = self.routes.get(path, (404, {"message": "Not Found"}))
-        return status, {"X-RateLimit-Remaining": "4990"}, body
+        return self.m.Response(status, {"X-RateLimit-Remaining": "4990"}, body)
 
 
 MAIN_SHA = "a" * 40
@@ -211,12 +219,14 @@ def healthy_routes(m):
                 "total_count": 2,
                 "check_runs": [
                     {
+                        "id": 1,
                         "name": "pytest",
                         "status": "completed",
                         "conclusion": "success",
                         "head_sha": PR_SHA,
                     },
                     {
+                        "id": 2,
                         "name": "ruff",
                         "status": "completed",
                         "conclusion": "failure",
@@ -233,12 +243,13 @@ class TestReportScript(unittest.TestCase):
         self.m = load_script()
 
     def run_with(self, routes, **kw):
-        fake = FakeGitHub(routes)
+        fake = FakeGitHub(self.m, routes)
         args = {
             "app_slug": self.m.EXPECTED_APP_SLUG,
             "installation_id": "42",
             "local_claude_md": CLAUDE,
             "expected_claude_md_sha256": "",
+            "checkout_sha": MAIN_SHA,
         }
         args.update(kw)
         return self.m.run_checks(fake, **args), fake
@@ -307,6 +318,131 @@ class TestReportScript(unittest.TestCase):
         report, _ = self.run_with(routes)
         self.assertIn("pr_462_check_runs", report.failures)
 
+    # --- M2 : cohérence et divergences -------------------------------------
+
+    def _fact(self, report, check):
+        return next(f for f in report.facts if f["check"] == check)
+
+    def _check_runs_path(self, page=1):
+        return (
+            f"/repos/{self.m.OWNER}/{self.m.REPO}/commits/{PR_SHA}/check-runs"
+            f"?per_page=100&page={page}"
+        )
+
+    def test_check_runs_total_count_mismatch_fails(self):
+        routes = healthy_routes(self.m)
+        routes[self._check_runs_path()][1]["total_count"] = 3
+        report, _ = self.run_with(routes)
+        self.assertIn("pr_462_check_runs", report.failures)
+        self.assertEqual(
+            self._fact(report, "pr_462_check_runs")["detail"]["status"],
+            "COUNT_MISMATCH",
+        )
+
+    def test_check_runs_total_count_changing_between_pages_fails(self):
+        routes = healthy_routes(self.m)
+        first = [
+            {"id": i, "name": f"c{i}", "head_sha": PR_SHA, "conclusion": "success"}
+            for i in range(100)
+        ]
+        routes[self._check_runs_path(1)] = (
+            200,
+            {"total_count": 150, "check_runs": first},
+        )
+        routes[self._check_runs_path(2)] = (
+            200,
+            {"total_count": 151, "check_runs": []},
+        )
+        report, _ = self.run_with(routes)
+        self.assertEqual(
+            self._fact(report, "pr_462_check_runs")["detail"]["status"],
+            "TOTAL_COUNT_CHANGED",
+        )
+
+    def test_check_runs_two_pages_complete(self):
+        routes = healthy_routes(self.m)
+        runs = [
+            {"id": i, "name": f"c{i}", "head_sha": PR_SHA, "conclusion": "success"}
+            for i in range(130)
+        ]
+        routes[self._check_runs_path(1)] = (
+            200,
+            {"total_count": 130, "check_runs": runs[:100]},
+        )
+        routes[self._check_runs_path(2)] = (
+            200,
+            {"total_count": 130, "check_runs": runs[100:]},
+        )
+        report, _ = self.run_with(routes)
+        self.assertEqual(report.failures, [])
+        self.assertEqual(
+            self._fact(report, "pr_462_check_runs")["detail"]["collected"], 130
+        )
+
+    def test_check_runs_duplicates_and_foreign_sha_fail(self):
+        routes = healthy_routes(self.m)
+        runs = routes[self._check_runs_path()][1]["check_runs"]
+        runs[1]["id"] = 1
+        report, _ = self.run_with(routes)
+        self.assertEqual(
+            self._fact(report, "pr_462_check_runs")["detail"]["status"],
+            "DUPLICATE_CHECK_RUNS",
+        )
+        routes = healthy_routes(self.m)
+        routes[self._check_runs_path()][1]["check_runs"][1]["head_sha"] = "c" * 40
+        report, _ = self.run_with(routes)
+        self.assertEqual(
+            self._fact(report, "pr_462_check_runs")["detail"]["status"],
+            "HEAD_SHA_MISMATCH",
+        )
+
+    def test_invalid_total_count_fails(self):
+        routes = healthy_routes(self.m)
+        routes[self._check_runs_path()][1]["total_count"] = "2"
+        report, _ = self.run_with(routes)
+        self.assertEqual(
+            self._fact(report, "pr_462_check_runs")["detail"]["status"],
+            "TOTAL_COUNT_INVALID",
+        )
+
+    def test_checkout_diverging_from_main_fails_explicitly(self):
+        report, _ = self.run_with(healthy_routes(self.m), checkout_sha="c" * 40)
+        self.assertIn("checkout_matches_main_head", report.failures)
+        fact = self._fact(report, "checkout_matches_main_head")
+        self.assertEqual(fact["detail"]["status"], "CHECKOUT_DIVERGES_FROM_MAIN")
+        fp = self._fact(report, "claude_md_fingerprint")
+        self.assertEqual(
+            fp["detail"]["local_checkout"], "NOT_COMPARED_CHECKOUT_DIVERGES"
+        )
+
+    def test_local_claude_md_mismatch_or_missing_fails(self):
+        report, _ = self.run_with(healthy_routes(self.m), local_claude_md=b"other\n")
+        self.assertIn("claude_md_fingerprint", report.failures)
+        report, _ = self.run_with(healthy_routes(self.m), local_claude_md=None)
+        self.assertIn("claude_md_fingerprint", report.failures)
+
+    def test_client_refusal_is_reported_not_swallowed(self):
+        m = self.m
+
+        def refusing(path):
+            return m.Response(301, {}, None, m.REFUSED_REDIRECT)
+
+        report = m.run_checks(
+            refusing,
+            app_slug=m.EXPECTED_APP_SLUG,
+            installation_id="42",
+            local_claude_md=CLAUDE,
+            expected_claude_md_sha256="",
+            checkout_sha=MAIN_SHA,
+        )
+        doc = m.build_document(report, {})
+        self.assertEqual(doc["verdict"], m.VERDICT_FAILED)
+        self.assertIn("installation_scope", report.failures)
+        self.assertIn("main_head", report.failures)
+        self.assertTrue(
+            all(c["refusal"] == m.REFUSED_REDIRECT for c in doc["api_calls"])
+        )
+
     def test_closed_path_list_refuses_anything_else(self):
         for path in (
             "/repos/3a7i3/crypto-ia-terminal/actions/secrets",
@@ -337,6 +473,127 @@ class TestReportScript(unittest.TestCase):
             "paramiko",
         ):
             self.assertNotIn(verb, source)
+
+
+# --- M1/M2 : client HTTP réel contre des serveurs loopback ---------------------
+
+TOKEN = "ghs_" + "T" * 36
+INSTALL_PATH = "/installation/repositories?per_page=100"
+
+
+class _Recorder(http.server.BaseHTTPRequestHandler):
+    """Serveur configurable ; enregistre chaque requête et son Authorization."""
+
+    behaviour: ClassVar[dict] = {}
+    seen: ClassVar[list] = []
+
+    def do_GET(self):
+        type(self).seen.append((self.path, self.headers.get("Authorization")))
+        kind, arg = type(self).behaviour.get("kind"), type(self).behaviour.get("arg")
+        if kind == "redirect":
+            self.send_response(arg["code"])
+            self.send_header("Location", arg["location"])
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        elif kind == "body":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            if arg.get("content_length") is not None:
+                self.send_header("Content-Length", str(arg["content_length"]))
+            self.end_headers()
+            self.wfile.write(arg["data"])
+        else:
+            self.send_response(500)
+            self.end_headers()
+
+    def log_message(self, *args):
+        pass
+
+
+def _server(behaviour):
+    handler = type("H", (_Recorder,), {"behaviour": behaviour, "seen": []})
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, handler
+
+
+class TestHttpClientHardening(unittest.TestCase):
+    def setUp(self):
+        self.m = load_script()
+        patcher = mock.patch.dict(
+            os.environ,
+            {"NO_PROXY": "127.0.0.1,localhost", "no_proxy": "127.0.0.1,localhost"},
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.servers = []
+
+    def tearDown(self):
+        for srv in self.servers:
+            srv.shutdown()
+            srv.server_close()
+
+    def start(self, behaviour):
+        srv, handler = _server(behaviour)
+        self.servers.append(srv)
+        return f"http://127.0.0.1:{srv.server_address[1]}", handler
+
+    def test_redirects_are_refused_and_authorization_never_forwarded(self):
+        for code in (301, 302, 303, 307, 308):
+            with self.subTest(code=code):
+                target, target_h = self.start({"kind": "body", "arg": {"data": b"{}"}})
+                origin, origin_h = self.start(
+                    {
+                        "kind": "redirect",
+                        "arg": {"code": code, "location": target + INSTALL_PATH},
+                    }
+                )
+                resp = self.m.make_fetch(TOKEN, api=origin)(INSTALL_PATH)
+                self.assertEqual(resp.refusal, self.m.REFUSED_REDIRECT)
+                self.assertEqual(resp.status, code)
+                self.assertIsNone(resp.body)
+                self.assertEqual(len(origin_h.seen), 1)
+                self.assertEqual(
+                    target_h.seen, [], "la cible ne doit jamais être contactée"
+                )
+
+    def test_oversized_body_with_content_length_is_refused(self):
+        api, _ = self.start(
+            {"kind": "body", "arg": {"data": b"{}", "content_length": 10_000}}
+        )
+        resp = self.m.make_fetch(TOKEN, api=api, limit=1024)(INSTALL_PATH)
+        self.assertEqual(resp.refusal, self.m.REFUSED_TOO_LARGE)
+        self.assertIsNone(resp.body)
+
+    def test_oversized_body_without_content_length_is_refused(self):
+        data = b'{"x": "' + b"a" * 5000 + b'"}'
+        api, _ = self.start({"kind": "body", "arg": {"data": data}})
+        resp = self.m.make_fetch(TOKEN, api=api, limit=1024)(INSTALL_PATH)
+        self.assertEqual(resp.refusal, self.m.REFUSED_TOO_LARGE)
+
+    def test_invalid_json_is_refused(self):
+        api, _ = self.start({"kind": "body", "arg": {"data": b"<html>"}})
+        resp = self.m.make_fetch(TOKEN, api=api)(INSTALL_PATH)
+        self.assertEqual(resp.refusal, self.m.REFUSED_INVALID_JSON)
+
+    def test_bounded_valid_response_is_accepted(self):
+        api, handler = self.start(
+            {"kind": "body", "arg": {"data": b'{"total_count": 1}'}}
+        )
+        resp = self.m.make_fetch(TOKEN, api=api)(INSTALL_PATH)
+        self.assertIsNone(resp.refusal)
+        self.assertEqual(resp.body, {"total_count": 1})
+        self.assertEqual(handler.seen, [(INSTALL_PATH, f"Bearer {TOKEN}")])
+
+    def test_transport_error_is_a_refusal(self):
+        resp = self.m.make_fetch(TOKEN, api="http://127.0.0.1:9")(INSTALL_PATH)
+        self.assertEqual(resp.refusal, self.m.REFUSED_TRANSPORT)
+
+    def test_path_outside_allowlist_never_reaches_network(self):
+        api, handler = self.start({"kind": "body", "arg": {"data": b"{}"}})
+        with self.assertRaises(self.m.PathNotAllowed):
+            self.m.make_fetch(TOKEN, api=api)("/user")
+        self.assertEqual(handler.seen, [])
 
 
 if __name__ == "__main__":

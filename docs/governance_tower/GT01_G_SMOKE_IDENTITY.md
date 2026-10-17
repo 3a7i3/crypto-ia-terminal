@@ -38,6 +38,26 @@ v3.3.0 (2026-10-12) existe mais n'avait que cinq jours lors de la préparation ;
 | issue #461, PR #462 | VERIFIED | `GET /repos/…/issues/461`, `GET /repos/…/pulls/462` |
 | check-runs au SHA exact de la PR | VERIFIED | `GET /repos/…/commits/{sha}/check-runs` (paginé) |
 | statuts de commit | NOT_VERIFIABLE | permission « Commit statuses » non demandée |
+| checkout (`GITHUB_SHA`) = HEAD observé de `main` | VERIFIED | sinon `CHECKOUT_DIVERGES_FROM_MAIN`, échec ; `CLAUDE.md` local non comparé |
+
+## Comportements de refus du client HTTP (GT01-G-SMOKE-01-R1)
+
+| Situation | Code | Effet |
+|---|---|---|
+| chemin hors liste fermée | `PathNotAllowed` (exception) | aucune requête émise |
+| réponse 301, 302, 303, 307, 308 | `REDIRECT_REFUSED` | redirection jamais suivie : `Authorization` ne part vers aucune autre destination |
+| `Content-Length` > 4 Mio, ou corps lu > 4 Mio | `RESPONSE_TOO_LARGE` | corps jamais décodé |
+| corps non JSON | `INVALID_JSON` | contrôle en échec |
+| erreur réseau | `TRANSPORT_ERROR` | contrôle en échec |
+| check-runs : `total_count` absent/non entier | `TOTAL_COUNT_INVALID` | échec |
+| check-runs : `total_count` change entre pages | `TOTAL_COUNT_CHANGED` | échec |
+| check-runs : nombre récupéré ≠ `total_count` | `COUNT_MISMATCH` | échec |
+| check-runs : identifiants dupliqués | `DUPLICATE_CHECK_RUNS` | échec |
+| check-runs : `head_sha` ≠ SHA de la PR | `HEAD_SHA_MISMATCH` | échec |
+| check-runs : plus de 5 pages | `PAGE_LIMIT_REACHED` | échec |
+| `CLAUDE.md` local absent ou différent (checkout = HEAD) | `local_checkout` / `local_matches_main` | échec |
+
+Chaque refus est un échec visible dans le rapport, jamais une population vide.
 
 Le client refuse tout chemin hors d'une liste fermée et n'émet que des GET. Le rapport
 (JSON + Markdown) va dans le résumé du job et le journal ; il est refusé s'il contient le

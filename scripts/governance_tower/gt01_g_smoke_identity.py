@@ -24,9 +24,9 @@ import os
 import re
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -65,11 +65,42 @@ _ALLOWED_PATHS = (
     ),
 )
 
-Fetch = Callable[[str], "tuple[int, dict, object]"]
+MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+
+# Codes de refus du client (jamais une population vide) :
+REFUSED_REDIRECT = "REDIRECT_REFUSED"
+REFUSED_TOO_LARGE = "RESPONSE_TOO_LARGE"
+REFUSED_INVALID_JSON = "INVALID_JSON"
+REFUSED_TRANSPORT = "TRANSPORT_ERROR"
+
+
+@dataclass(frozen=True)
+class Response:
+    status: int
+    headers: dict
+    body: object
+    refusal: str | None = None
+
+
+Fetch = Callable[[str], Response]
 
 
 class PathNotAllowed(ValueError):
     pass
+
+
+class RedirectRefused(urllib.error.URLError):
+    def __init__(self, code: int) -> None:
+        super().__init__(f"redirect {code} refused")
+        self.code = code
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse toute redirection : l'en-tête Authorization ne quitte jamais l'URL demandée."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        fp.close()
+        raise RedirectRefused(code)
 
 
 def check_path(path: str) -> str:
@@ -78,13 +109,28 @@ def check_path(path: str) -> str:
     return path
 
 
-def make_fetch(token: str, api: str = API) -> Fetch:
-    """GET-only client bound to the closed path list."""
+def _read_bounded(fp, headers: dict, limit: int) -> bytes | None:
+    """Lit au plus `limit` octets ; None si la réponse dépasse la limite."""
+    declared = headers.get("Content-Length") or headers.get("content-length")
+    if declared is not None:
+        try:
+            if int(declared) > limit:
+                return None
+        except ValueError:
+            return None
+    raw = fp.read(limit + 1)
+    return None if len(raw) > limit else raw
 
-    def fetch(path: str):
+
+def make_fetch(token: str, api: str = API, limit: int = MAX_RESPONSE_BYTES) -> Fetch:
+    """GET-only client bound to the closed path list, without redirects."""
+    opener = urllib.request.build_opener(_NoRedirect)
+
+    def fetch(path: str) -> Response:
         check_path(path)
+        url = api + path
         req = urllib.request.Request(
-            api + path,
+            url,
             method="GET",
             headers={
                 "Accept": "application/vnd.github+json",
@@ -94,15 +140,27 @@ def make_fetch(token: str, api: str = API) -> Fetch:
             },
         )
         try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                status, headers, raw = resp.status, dict(resp.headers), resp.read()
+            with opener.open(req, timeout=20) as resp:
+                status, headers = resp.status, dict(resp.headers)
+                if resp.geturl() != url:
+                    return Response(status, {}, None, REFUSED_REDIRECT)
+                raw = _read_bounded(resp, headers, limit)
+        except RedirectRefused as exc:
+            return Response(exc.code, {}, None, REFUSED_REDIRECT)
         except urllib.error.HTTPError as exc:
-            status, headers, raw = exc.code, dict(exc.headers or {}), exc.read()
+            status, headers = exc.code, dict(exc.headers or {})
+            if 300 <= status < 400:
+                return Response(status, {}, None, REFUSED_REDIRECT)
+            raw = _read_bounded(exc, headers, limit)
+        except (urllib.error.URLError, OSError):
+            return Response(0, {}, None, REFUSED_TRANSPORT)
+        if raw is None:
+            return Response(status, headers, None, REFUSED_TOO_LARGE)
         try:
             body = json.loads(raw.decode("utf-8")) if raw else None
         except ValueError:
-            body = None
-        return status, headers, body
+            return Response(status, headers, None, REFUSED_INVALID_JSON)
+        return Response(status, headers, body)
 
     return fetch
 
@@ -125,18 +183,27 @@ class Report:
 
 
 def _get(fetch: Fetch, path: str, report: Report, check: str):
-    status, headers, body = fetch(path)
-    report.calls.append({"method": "GET", "path": path, "status": status})
-    if headers:
-        remaining = headers.get("X-RateLimit-Remaining") or headers.get(
-            "x-ratelimit-remaining"
+    resp = fetch(path)
+    report.calls.append(
+        {"method": "GET", "path": path, "status": resp.status, "refusal": resp.refusal}
+    )
+    remaining = resp.headers.get("X-RateLimit-Remaining") or resp.headers.get(
+        "x-ratelimit-remaining"
+    )
+    if remaining is not None:
+        report.rate_limit_remaining = remaining
+    if resp.refusal or resp.status != 200 or not isinstance(resp.body, dict):
+        report.add(
+            check,
+            "VERIFIED",
+            False,
+            {
+                "http_status": resp.status,
+                "refusal": resp.refusal or "UNEXPECTED_RESPONSE",
+            },
         )
-        if remaining is not None:
-            report.rate_limit_remaining = remaining
-    if status != 200 or body is None:
-        report.add(check, "VERIFIED", False, {"http_status": status})
         return None
-    return body
+    return resp.body
 
 
 def run_checks(
@@ -146,6 +213,7 @@ def run_checks(
     installation_id: str,
     local_claude_md: bytes | None,
     expected_claude_md_sha256: str,
+    checkout_sha: str = "",
 ) -> Report:
     report = Report()
 
@@ -188,7 +256,7 @@ def run_checks(
         fetch, "/installation/repositories?per_page=100", report, "installation_scope"
     )
     if inst is not None:
-        names = sorted(r.get("full_name") for r in inst.get("repositories") or [])
+        names = sorted(str(r.get("full_name")) for r in inst.get("repositories") or [])
         report.add(
             "installation_scope",
             "VERIFIED",
@@ -231,6 +299,20 @@ def run_checks(
             bool(main_sha and _SHA40.match(main_sha)),
             {"sha": main_sha},
         )
+        # Le checkout (GITHUB_SHA) et le HEAD observé doivent coïncider : sinon
+        # main a bougé pendant le run et les preuves locales ne portent pas
+        # sur le HEAD lu ; le run échoue au lieu de mélanger deux révisions.
+        diverged = checkout_sha != main_sha
+        report.add(
+            "checkout_matches_main_head",
+            "VERIFIED",
+            not diverged,
+            {
+                "checkout_sha": checkout_sha or None,
+                "main_head_sha": main_sha,
+                "status": "CHECKOUT_DIVERGES_FROM_MAIN" if diverged else "MATCH",
+            },
+        )
 
     # 4. CLAUDE.md au SHA exact de main et empreinte.
     if main_sha and _SHA40.match(main_sha):
@@ -255,11 +337,20 @@ def run_checks(
                 "git_blob_sha1_github": doc.get("sha"),
             }
             ok = data != b"" and blob == doc.get("sha")
-            if local_claude_md is not None:
-                detail["local_checkout_sha256"] = hashlib.sha256(
-                    local_claude_md
-                ).hexdigest()
-                detail["local_matches_main"] = local_claude_md == data
+            # Comparaison locale seulement si le checkout est bien le HEAD lu ;
+            # sinon la divergence est déjà un échec explicite ci-dessus.
+            if checkout_sha == main_sha:
+                if local_claude_md is None:
+                    detail["local_checkout"] = "MISSING"
+                    ok = False
+                else:
+                    detail["local_checkout_sha256"] = hashlib.sha256(
+                        local_claude_md
+                    ).hexdigest()
+                    detail["local_matches_main"] = local_claude_md == data
+                    ok = ok and local_claude_md == data
+            else:
+                detail["local_checkout"] = "NOT_COMPARED_CHECKOUT_DIVERGES"
             if expected_claude_md_sha256:
                 detail["expected_sha256"] = expected_claude_md_sha256
                 ok = ok and sha256 == expected_claude_md_sha256
@@ -306,7 +397,7 @@ def run_checks(
     if pr_sha and _SHA40.match(pr_sha):
         runs: list[dict] = []
         total = None
-        complete = False
+        problem = None
         for page in range(1, MAX_CHECK_PAGES + 1):
             body = _get(
                 fetch,
@@ -315,14 +406,34 @@ def run_checks(
                 "pr_462_check_runs",
             )
             if body is None:
+                problem = "READ_FAILED"
                 break
-            total = body.get("total_count")
-            batch = body.get("check_runs") or []
-            runs.extend(batch)
-            if len(batch) < 100 or (total is not None and len(runs) >= total):
-                complete = True
+            page_total = body.get("total_count")
+            batch = body.get("check_runs")
+            if not isinstance(page_total, int) or page_total < 0:
+                problem = "TOTAL_COUNT_INVALID"
                 break
-        if total is not None:
+            if not isinstance(batch, list):
+                problem = "CHECK_RUNS_INVALID"
+                break
+            if total is not None and page_total != total:
+                problem = "TOTAL_COUNT_CHANGED"
+                break
+            total = page_total
+            runs.extend(r for r in batch if isinstance(r, dict))
+            if len(runs) >= total or len(batch) < 100:
+                break
+        else:
+            problem = "PAGE_LIMIT_REACHED"
+        if problem is None and total is not None:
+            ids = {r.get("id") for r in runs}
+            if len(runs) != total:
+                problem = "COUNT_MISMATCH"
+            elif len(ids) != len(runs):
+                problem = "DUPLICATE_CHECK_RUNS"
+            elif any(r.get("head_sha") != pr_sha for r in runs):
+                problem = "HEAD_SHA_MISMATCH"
+        if problem != "READ_FAILED":
             summary: dict[str, int] = {}
             for r in runs:
                 key = r.get("conclusion") or r.get("status") or "UNKNOWN"
@@ -330,12 +441,12 @@ def run_checks(
             report.add(
                 "pr_462_check_runs",
                 "VERIFIED",
-                complete and all((r.get("head_sha") or pr_sha) == pr_sha for r in runs),
+                problem is None,
                 {
                     "head_sha": pr_sha,
                     "total_count": total,
                     "collected": len(runs),
-                    "complete": complete,
+                    "status": problem or "COMPLETE",
                     "by_conclusion": summary,
                     "runs": sorted(
                         (
@@ -445,6 +556,7 @@ def main() -> int:
         installation_id=os.environ.get("INSTALLATION_ID", ""),
         local_claude_md=local.read_bytes() if local.is_file() else None,
         expected_claude_md_sha256=expected,
+        checkout_sha=os.environ.get("GITHUB_SHA", ""),
     )
     env = os.environ.get
     meta = {
