@@ -1578,6 +1578,7 @@ class HttpGithubProvider(_GithubReaderBase):
         self._attested_fp: str | None = None
         self._attest_fail: _Fail | None = None
         self._attest_fail_fp: str | None = None
+        self._auth_reason: str | None = None  # dernier refus AUTH_* (affichable)
         self._max_requests = max_requests
         self._per_question = max_requests_per_question
         self._window_s = float(window_s)
@@ -1649,12 +1650,7 @@ class HttpGithubProvider(_GithubReaderBase):
                 "installation_repository": self.repo,
                 "reason": None,
             }
-        fail = self._attest_fail
-        return {
-            "mode": self._auth_mode,
-            "identity": "NOT_ATTESTED",
-            "reason": fail.reason if fail is not None else None,
-        }
+        return {"mode": self._auth_mode, "identity": "NOT_ATTESTED", "reason": self._auth_reason}
 
     def _begin_call(self) -> None:
         super()._begin_call()
@@ -1717,6 +1713,14 @@ class HttpGithubProvider(_GithubReaderBase):
         """Mode strict : jeton, slug déclaré et périmètre d'installation attestés avant toute lecture."""
         if self._auth_mode != AuthMode.APP_INSTALLATION:
             return None
+        fail = self._auth_check()
+        if fail is None:
+            self._auth_reason = None
+        elif fail.reason in (Reason.AUTH_MISSING, Reason.AUTH_IDENTITY_MISMATCH, Reason.AUTH_UNATTESTED):
+            self._auth_reason = fail.reason
+        return fail
+
+    def _auth_check(self) -> _Fail | None:
         fp = self._token_fingerprint()
         if fp is None:
             return _Fail(

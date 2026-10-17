@@ -41,6 +41,7 @@ Le connecteur distant OperatorApiHostProvider reste non démontré.
 | Option | Effet | Statut |
 |---|---|---|
 | `--github-live` | GET anonymes vers `api.github.com` (jeton optionnel via `GT_GITHUB_TOKEN`, côté serveur) ; budget 12 requêtes par question, plafond de service 40 requêtes par heure glissante, quota distant GitHub (`429`/`Retry-After`/`X-RateLimit-Reset`) respecté entre questions | Démontré réellement le 2026-10-16 (voir rapport, budget 5 puis 6 GET) |
+| `--github-live --github-auth app-installation` | mode strict : jeton d'installation de l'App Sentinel obligatoire (`GT_SENTINEL_INSTALLATION_TOKEN`, `ghs_…`) et slug déclaré (`GT_SENTINEL_APP_SLUG`) ; aucune requête anonyme, périmètre d'installation attesté avant toute lecture ([GT01-G-INTEGRATION](GT01_G_INTEGRATION.md)) | `IMPLEMENTED_SOURCE`, `NOT_RUN` ; le jeton n'existe que dans le job Actions protégé |
 | `--host-snapshots DIR` | lit une **copie locale** de `runtime_service_snapshot.json` et `storage_snapshot.json` | `NOT_PROVEN` |
 | `--host-operator-api URL` | GET `/api/operator/v1/runtime-service` et `/storage` sur une URL loopback/https | `NOT_PROVEN` |
 
