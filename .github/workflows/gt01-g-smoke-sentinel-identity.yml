@@ -1,0 +1,66 @@
+name: GT01-G-SMOKE Sentinel GitHub identity
+
+# GT01-G-SMOKE-01 (parent GOV-TOWER-01, #461) — banc d'essai READ-ONLY.
+# Prouve que Sentinel lit le dépôt avec SA propre identité GitHub App
+# (crypto-ai-sentinel-observer), jamais avec GITHUB_TOKEN.
+#
+# Frontières (garde #286 active) : déclenchement manuel uniquement, aucun
+# pull_request_target, aucune écriture GitHub (seule la révocation du jeton
+# par le post-step de l'action officielle), aucun VPS, aucun déploiement,
+# aucun secret dans le dépôt. Les identifiants vivent exclusivement dans
+# l'environnement GitHub Actions `sentinel-github-identity-smoke`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_claude_md_sha256:
+        description: "Optionnel : SHA-256 attendu de CLAUDE.md sur main (64 hexadécimaux)"
+        required: false
+        type: string
+
+# GITHUB_TOKEN ne reçoit que la lecture du contenu, pour le checkout.
+permissions:
+  contents: read
+
+concurrency:
+  group: gt01-g-smoke-sentinel-identity
+  cancel-in-progress: false
+
+jobs:
+  sentinel-identity:
+    name: "GT01-G-SMOKE SENTINEL IDENTITY (READ-ONLY)"
+    if: github.repository == '3a7i3/crypto-ia-terminal' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: sentinel-github-identity-smoke
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout (sans identifiants persistés)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Create Sentinel installation token (read-only, single repository)
+        id: sentinel
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTINEL_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}
+          owner: 3a7i3
+          repositories: crypto-ia-terminal
+          permission-contents: read
+          permission-checks: read
+          permission-issues: read
+          permission-pull-requests: read
+
+      - name: Verify identity, scope and read targets
+        env:
+          SENTINEL_TOKEN: ${{ steps.sentinel.outputs.token }}
+          APP_SLUG: ${{ steps.sentinel.outputs.app-slug }}
+          INSTALLATION_ID: ${{ steps.sentinel.outputs.installation-id }}
+          EXPECTED_CLAUDE_MD_SHA256: ${{ inputs.expected_claude_md_sha256 }}
+          REPORT_DIR: ${{ runner.temp }}/gt01-g-smoke
+        run: python3 -I scripts/governance_tower/gt01_g_smoke_identity.py
