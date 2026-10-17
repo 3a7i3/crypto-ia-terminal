@@ -28,6 +28,10 @@ SCENARIOS: dict[str, tuple[str, str]] = {
     "stale": ("nominal", "stale"),
     "host_unavailable": ("nominal", "host_unavailable"),
     "github_denied": ("github_denied", "nominal"),
+    # GOV-TOWER-01 M3 : cas de diagnostic croisé supplémentaires.
+    "github_rate_limited": ("github_rate_limited", "nominal"),
+    "no_deployment_id": ("nominal", "no_deployment_id"),
+    "partial": ("nominal", "partial"),
 }
 
 

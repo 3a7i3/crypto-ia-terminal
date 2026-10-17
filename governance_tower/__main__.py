@@ -44,6 +44,20 @@ def render_text(run: AgentRun) -> str:
     if a.statements:
         lines.append("CONSTATS")
         lines += [f"  - [{s.claim_status.value}] {s.text}  {list(s.evidence_ids) or ''}" for s in a.statements]
+    if a.diagnostics:
+        lines.append("DIAGNOSTICS (observation → interprétation → à vérifier)")
+        for d in a.diagnostics:
+            lines.append(f"  - [{d.level.value}] {d.code.value} — {d.title}")
+            lines.append(f"      observation : {d.observation}")
+            lines.append(f"      interprétation possible : {d.interpretation}")
+            lines += [f"      à vérifier : {v}" for v in d.verification]
+            if d.proposal_ref:
+                lines.append(f"      proposition (non exécutée) : {d.proposal_ref}")
+    if a.excerpts:
+        lines.append("EXTRAITS (contenu non fiable, cité)")
+        for x in a.excerpts:
+            lines.append(f"  - {x.repo}@{x.ref_sha[:12]}:{x.path} L{x.line_start}-L{x.line_end}/{x.total_lines}")
+            lines += [f"      {n:>5} │ {t}" for n, t in enumerate(x.text.split("\n"), start=x.line_start)]
     if a.discrepancies:
         lines.append("ÉCARTS GITHUB / VPS")
         lines += [f"  - {d.classification.value} : {d.explanation}" for d in a.discrepancies]

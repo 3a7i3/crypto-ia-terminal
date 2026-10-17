@@ -33,6 +33,10 @@ EXPECTED = {
     "stale": DiscrepancyClass.STALE,
     "host_unavailable": DiscrepancyClass.INSUFFICIENT_EVIDENCE,
     "github_denied": DiscrepancyClass.INSUFFICIENT_EVIDENCE,
+    # GOV-TOWER-01 M3 (le diagnostic détaillé est vérifié dans test_gt01_diagnostics.py)
+    "github_rate_limited": DiscrepancyClass.INSUFFICIENT_EVIDENCE,
+    "no_deployment_id": DiscrepancyClass.INSUFFICIENT_EVIDENCE,
+    "partial": DiscrepancyClass.EXPECTED_PINNED_RUNTIME,
 }
 
 
