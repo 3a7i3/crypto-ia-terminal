@@ -1,0 +1,60 @@
+name: GT01-G-INTEGRATION Sentinel backend (GitHub App)
+
+# GT01-G-INTEGRATION-01 (parent GOV-TOWER-01, #461) — READ-ONLY.
+# Chaîne : environnement approuvé → action officielle → jeton d'installation
+# temporaire → backend governance_tower du checkout de main (mode strict
+# APP_INSTALLATION) → GET allowlistés → EvidenceRef / AgentRun → rapport borné
+# → révocation du jeton par le post-step de l'action.
+#
+# Piège de bootstrap : seul le code de main, au SHA du déclenchement, est
+# exécuté ; aucun autre ref n'est extrait. Frontières (garde #286 active) :
+# déclenchement manuel uniquement, aucune écriture GitHub, aucun VPS, aucun
+# déploiement, aucun artifact, aucun secret dans le dépôt.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gt01-g-integration-sentinel-backend
+  cancel-in-progress: false
+
+jobs:
+  sentinel-backend:
+    name: "GT01-G-INTEGRATION SENTINEL BACKEND (READ-ONLY)"
+    if: github.repository == '3a7i3/crypto-ia-terminal' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: sentinel-github-identity-smoke
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout main (sans identifiants persistés)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Create Sentinel installation token (read-only, single repository)
+        id: sentinel
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTINEL_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}
+          owner: 3a7i3
+          repositories: crypto-ia-terminal
+          permission-contents: read
+          permission-checks: read
+          permission-issues: read
+          permission-pull-requests: read
+
+      - name: Run Sentinel backend in strict App mode
+        env:
+          GT_SENTINEL_INSTALLATION_TOKEN: ${{ steps.sentinel.outputs.token }}
+          GT_SENTINEL_APP_SLUG: ${{ steps.sentinel.outputs.app-slug }}
+          GT_SENTINEL_INSTALLATION_ID: ${{ steps.sentinel.outputs.installation-id }}
+          REPORT_DIR: ${{ runner.temp }}/gt01-g-integration
+        run: python3 -I scripts/governance_tower/gt01_g_integration_run.py

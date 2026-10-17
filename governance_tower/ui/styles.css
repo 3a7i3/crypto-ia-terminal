@@ -510,6 +510,64 @@ textarea {
 .pied p { margin: 4px 0; }
 .pied-discret { font-size: 0.8rem; }
 
+/* ── GOV-TOWER-01 : diagnostics, extraits, bandeau de sources ─────────────── */
+
+.diagnostic { border-left: 6px solid var(--unknown); }
+.diagnostic[data-niveau="INFO"] { border-left-color: var(--accent); }
+.diagnostic[data-niveau="ATTENTION"] { border-left-color: var(--stale); }
+.etapes-diagnostic { list-style: none; margin: 8px 0 0; padding: 0; counter-reset: etape; }
+.etapes-diagnostic > li { position: relative; padding: 0 0 8px 34px; counter-increment: etape; }
+.etapes-diagnostic > li::before {
+  content: counter(etape);
+  position: absolute; left: 0; top: 0;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-text);
+  font-weight: 700; font-size: 0.82rem; line-height: 24px; text-align: center;
+}
+.etapes-diagnostic h4 { margin: 0 0 2px; }
+.etapes-diagnostic p { margin: 0; }
+
+.figure-extrait { margin: 0; }
+.figure-extrait figcaption { font-size: 0.85rem; color: var(--text-sec); margin-bottom: 6px; overflow-wrap: anywhere; }
+pre.extrait {
+  margin: 0;
+  max-height: 28rem;
+  overflow: auto;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  tab-size: 4;
+}
+pre.extrait:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.extrait-num {
+  display: inline-block;
+  min-width: 3.2em;
+  padding-right: 10px;
+  margin-right: 8px;
+  border-right: 1px solid var(--border);
+  color: var(--muted);
+  text-align: right;
+  user-select: none;
+}
+
+.bandeau-sources {
+  border-left: 6px solid var(--stale);
+  background: var(--stale-bg);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin: 8px 0 12px;
+}
+.bandeau-sources .alerte-titre { color: var(--stale); }
+.bandeau-sources li { background: transparent; }
+.bandeau-sources li.ton-ko strong { color: var(--ko); }
+.bandeau-sources li.ton-unknown strong { color: var(--unknown); }
+
+details.preuves-repliees { margin-top: 12px; }
+
 /* ── Mobile (360–430 px) ─────────────────────────────────────────────────── */
 
 @media (max-width: 600px) {
@@ -524,4 +582,6 @@ textarea {
   .dl dt { margin-top: 4px; }
   .question-bulle { max-width: 100%; }
   .banniere-detail { display: block; font-size: 0.9rem; }
+  .etapes-diagnostic > li { padding-left: 30px; }
+  pre.extrait { font-size: 0.8rem; max-height: 22rem; }
 }

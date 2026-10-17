@@ -22,6 +22,13 @@ from governance_tower.contracts import (
 from governance_tower.providers.base import Clock, GithubReadProvider, HostObservationProvider
 
 MAX_CALLS_PER_RUN = 6
+#: Lectures ciblées GOV-TOWER-01 : enregistrées seulement si le fournisseur les offre.
+OPTIONAL_GITHUB_TOOLS = (
+    ("github.read_file", "Extrait borné d'un fichier admis, par SHA", "read_file"),
+    ("github.issue_detail", "Issue nommée, corps borné", "issue_detail"),
+    ("github.pull_detail", "PR nommée, corps borné", "pull_detail"),
+    ("github.ci_for_sha", "CI d'un SHA exact", "ci_for_sha"),
+)
 
 
 class ToolDenied(RuntimeError):
@@ -58,6 +65,10 @@ class ToolRegistry:
             ToolSpec("github.locate_code", "Chemins de code par termes", github.locate_code),
             ToolSpec("github.compare_commits", "Commits entre deux SHA", github.compare_commits),
             ToolSpec("host.host_snapshot", "Snapshots publiés de l'hôte", host.host_snapshot),
+        ) + tuple(
+            ToolSpec(name, description, getattr(github, attr))
+            for name, description, attr in OPTIONAL_GITHUB_TOOLS
+            if callable(getattr(github, attr, None))
         )
         self._tools: Mapping[str, ToolSpec] = MappingProxyType({s.name: s for s in specs})
         self._clock = clock

@@ -23,6 +23,7 @@ from typing import Any
 from governance_tower import AGENT_ID, CAPABILITY, OPERATIONAL_AUTHORITY
 from governance_tower.contracts import to_jsonable
 from governance_tower.sentinel.agent import Sentinel
+from governance_tower.sentinel.llm_adapter import GT01_LLM_LIVE
 from governance_tower.sentinel.policy import SHORTCUT_LABELS
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
@@ -170,6 +171,10 @@ def status_payload(sentinel: Sentinel, scenario: str | None) -> dict[str, Any]:
         "sources": [to_jsonable(s) for s in sentinel.source_status()],
         "audit": sentinel.audit_state,
         "shortcuts": [{"id": i, "label": label} for i, label in SHORTCUT_LABELS],
+        # GOV-TOWER-01 : informations d'état, jamais des permissions.
+        "reasoner": sentinel.reasoner_name,
+        "llm_live": GT01_LLM_LIVE,
+        "github_budget": sentinel.github_budget(),
     }
 
 

@@ -5,6 +5,10 @@ l'intention → outils read-only de la table fixe → analyse pure → réponse
 structurée → ``AgentRun`` validé par contrat. Aucun démon, aucun ordonnanceur,
 aucune boucle autonome : sans question, Sentinel ne fait rien.
 
+GOV-TOWER-01 : lectures ciblées (fichier par SHA, issue, PR, CI d'un SHA) dont
+les paramètres viennent uniquement de la demande de l'utilisateur, cartographie
+de couverture sans appel d'outil, diagnostics croisés pédagogiques.
+
 Chaque question ouvre le budget de lecture GitHub du fournisseur
 (``begin_investigation``) ; l'état des sources porte son âge et passe à
 ``STALE`` au-delà de ``SOURCE_STALE_AFTER_S`` ; un échec du journal d'audit
@@ -25,6 +29,7 @@ from governance_tower.contracts import (
     AgentRun,
     Availability,
     ClaimStatus,
+    Domain,
     EvidenceRef,
     HostSnapshot,
     Intent,
@@ -41,6 +46,7 @@ from governance_tower.contracts import (
     format_utc,
     parse_utc,
 )
+from governance_tower.coverage import COVERAGE_LOCATOR
 from governance_tower.providers.base import Clock, GithubReadProvider, HostObservationProvider
 from governance_tower.references import load_pinned_references
 from governance_tower.sentinel.analysis import analyse
@@ -67,6 +73,13 @@ _HOST_INTENTS = {
     Intent.PROPOSE_MISSION,
     Intent.UNDEPLOYED_COMMITS,
     Intent.FULL_REVIEW,
+}
+_DETAIL_INTENTS = {Intent.READ_FILE, Intent.ISSUE_DETAIL, Intent.PULL_DETAIL, Intent.CI_FOR_SHA}
+_DETAIL_DOMAINS = {
+    Intent.READ_FILE: Domain.CODE_CONTENT,
+    Intent.ISSUE_DETAIL: Domain.ISSUES,
+    Intent.PULL_DETAIL: Domain.PULL_REQUESTS,
+    Intent.CI_FOR_SHA: Domain.CI,
 }
 _STOPWORDS = {
     "quels", "quelles", "quel", "quelle", "sont", "dans", "code", "composants", "composant", "contrôlent",
@@ -191,6 +204,34 @@ class Sentinel:
                 )
                 return None
 
+        details: list[Observation] = []
+        params = dict(decision.params)
+
+        def detail(name: str, *args: Any) -> Observation | None:
+            if name not in self._tools.names:
+                obs = Observation.absent(
+                    "gh-detail", _DETAIL_DOMAINS[intent], "Lecture ciblée", Availability.NOT_AVAILABLE,
+                    "NOT_IMPLEMENTED", limits=("fournisseur GitHub sans lecture ciblée",),
+                )
+            else:
+                obs = call(name, *args)
+            if isinstance(obs, Observation):
+                details.append(obs)
+                return obs
+            return None
+
+        if intent is Intent.READ_FILE:
+            detail("github.read_file", params.get("path"), params.get("ref_sha"), params.get("line_start"),
+                   params.get("line_end"))
+        elif intent is Intent.ISSUE_DETAIL:
+            detail("github.issue_detail", params.get("number"))
+        elif intent is Intent.PULL_DETAIL:
+            pr = detail("github.pull_detail", params.get("number"))
+            if pr is not None and pr.has_value and isinstance(pr.value, dict):
+                detail("github.ci_for_sha", pr.value.get("head_sha"))
+        elif intent is Intent.CI_FOR_SHA:
+            detail("github.ci_for_sha", params.get("sha"))
+
         if intent in _REPO_INTENTS:
             repo = call("github.repository_snapshot")
         if intent in _HOST_INTENTS:
@@ -206,8 +247,23 @@ class Sentinel:
             if base and base != head:
                 compare_obs = call("github.compare_commits", base, head)
 
-        analysis = analyse(repo, host, self._pinned, tuple(o for o in (compare_obs, code_obs) if o is not None))
-        facts = Facts(intent, decision.request, self.mode, repo, host, self._pinned, compare_obs, code_obs, analysis)
+        analysis = analyse(
+            repo, host, self._pinned, tuple(o for o in (compare_obs, code_obs) if o is not None) + tuple(details)
+        )
+        coverage_ev = (
+            EvidenceRef(
+                "ref-gt-coverage-matrix",
+                SourceKind.DECLARED_REFERENCE,
+                COVERAGE_LOCATOR,
+                Provenance.DECLARED_REFERENCE,
+                started,
+                note="Cartographie déclarée (governance_tower/coverage.py) ; ne prouve aucune lecture.",
+            ),
+        ) if intent is Intent.COVERAGE_MAP else ()
+        facts = Facts(
+            intent, decision.request, self.mode, repo, host, self._pinned, compare_obs, code_obs, analysis,
+            details=tuple(details), sources=self.source_status(), coverage_evidence=coverage_ev,
+        )
         answer = self._reasoner.compose(facts)
 
         evidence: dict[str, EvidenceRef] = {}
@@ -220,17 +276,20 @@ class Sentinel:
             if snap is not None:
                 for obs in snap.observations:
                     collect(obs.evidence)
-        for obs in (compare_obs, code_obs):
+        for obs in (compare_obs, code_obs, *details):
             if obs is not None:
                 collect(obs.evidence)
         for p in self._pinned:
             collect((p.evidence,))
+        collect(coverage_ev)
         for d in answer.discrepancies:
             collect(d.evidence)
         for f in answer.findings:
             collect(f.evidence)
+        for g in answer.diagnostics:
+            collect(g.evidence)
 
-        sources = self._sources(repo, host, intent)
+        sources = self._sources(repo, host, intent, tuple(details))
         run = AgentRun(
             run_id=run_id,
             request=decision.request,
@@ -246,7 +305,34 @@ class Sentinel:
         )
         return self._record(run)
 
-    def _sources(self, repo: RepositorySnapshot | None, host: HostSnapshot | None, intent: Intent) -> tuple[SourceStatus, ...]:
+    @property
+    def reasoner_name(self) -> str:
+        return self._reasoner.name
+
+    def github_budget(self) -> dict[str, Any] | None:
+        """Budget de lecture GitHub du fournisseur réel ; None pour une fixture (aucune requête)."""
+        status = getattr(self._github, "budget_status", None)
+        return status() if callable(status) else None
+
+    def _sources(
+        self,
+        repo: RepositorySnapshot | None,
+        host: HostSnapshot | None,
+        intent: Intent,
+        details: tuple[Observation, ...] = (),
+    ) -> tuple[SourceStatus, ...]:
+        # Une lecture ciblée ne met à jour l'état GitHub que si une requête a réellement eu lieu
+        # (preuve présente) : un refus local (chemin, budget) ne décrit pas GitHub.
+        consulted = [o for o in details if o.evidence]
+        if repo is None and consulted:
+            last = consulted[-1]
+            self._last_sources[SourceKind.GITHUB] = SourceStatus(
+                SourceKind.GITHUB,
+                last.availability,
+                self._github.info.provenance if last.availability in VALUE_BEARING else None,
+                last.evidence[-1].collected_at_utc,
+                f"lecture ciblée — {last.subject}"[:300],
+            )
         if repo is not None:
             self._last_sources[SourceKind.GITHUB] = SourceStatus(
                 SourceKind.GITHUB,
