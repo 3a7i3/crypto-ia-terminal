@@ -1,0 +1,43 @@
+{
+  "schema": "gt-github-fixture/1",
+  "nature": "SYNTHETIC",
+  "scenario": "github_denied",
+  "warning": "Fixture SYNTHETIC de démonstration (GT-M2). Valeurs inventées, jamais une preuve GitHub réelle ; titres non fiables. Scénario de refus : GitHub répond DENIED, aucune valeur.",
+  "repo": "3a7i3/crypto-ia-terminal",
+  "repository": {
+    "absent": {
+      "availability": "DENIED",
+      "reason": "DENIED"
+    }
+  },
+  "ci": {
+    "absent": {
+      "availability": "DENIED",
+      "reason": "DENIED"
+    }
+  },
+  "pull_requests": {
+    "absent": {
+      "availability": "DENIED",
+      "reason": "DENIED"
+    }
+  },
+  "issues": {
+    "absent": {
+      "availability": "DENIED",
+      "reason": "DENIED"
+    }
+  },
+  "code_tree": {
+    "absent": {
+      "availability": "DENIED",
+      "reason": "DENIED"
+    }
+  },
+  "comparisons": {
+    "absent": {
+      "availability": "DENIED",
+      "reason": "DENIED"
+    }
+  }
+}
