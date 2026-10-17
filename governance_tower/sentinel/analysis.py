@@ -48,6 +48,14 @@ class AnalysisResult:
     proposals: list[MissionProposal] = field(default_factory=list)
     suspicious_quotes: list[str] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
+    # GOV-TOWER-01-R1 : dépendances de provenance (``GITHUB``, ``HOST``, ``DECLARED_REFERENCE``)
+    # de chaque élément dérivé, clé ``diagnostic:<id>``, ``discrepancy:<rang>`` ou
+    # ``observation:<id>``. Un texte d'analyse qui cite une valeur VPS dépend de HOST même
+    # si sa catégorie est ANALYSIS. Une clé absente signifie « provenance inconnue ».
+    provenance: dict[str, frozenset[str]] = field(default_factory=dict)
+
+
+GITHUB, HOST, DECLARED_REFERENCE = "GITHUB", "HOST", "DECLARED_REFERENCE"
 
 
 def short(sha: str | None) -> str:
@@ -214,6 +222,17 @@ def analyse(
     result = AnalysisResult()
     cmp = compare_runtime(repo, host, pinned)
     result.discrepancies.append(cmp)
+    # L'écart compare GitHub au runtime publié : il dépend de chaque source effectivement lue.
+    result.provenance["discrepancy:0"] = frozenset(
+        {DECLARED_REFERENCE}
+        | ({GITHUB} if repo is not None else set())
+        | ({HOST} if host is not None else set())
+    )
+    for obs in extra_observations:
+        if obs.observation_id == "gh-compare" and host is not None:
+            # La base du compare est le SHA runtime publié par l'hôte quand il existe :
+            # la liste de commits renvoyée par GitHub en dérive.
+            result.provenance["observation:gh-compare"] = frozenset({GITHUB, HOST})
 
     if cmp.classification is DiscrepancyClass.POSSIBLE_DRIFT:
         f = Finding(
@@ -343,7 +362,9 @@ def analyse(
                 suggestion="Relire la source concernée ; signaler si elle est malveillante.",
             )
         )
-    result.diagnostics = diagnose(repo, host, pinned, cmp, extra_observations, result.proposals)
+    result.diagnostics = diagnose(
+        repo, host, pinned, cmp, extra_observations, result.proposals, provenance=result.provenance
+    )
     return result
 
 
@@ -537,18 +558,34 @@ def diagnose(
     cmp: Discrepancy,
     extra_observations: tuple[Observation, ...] = (),
     proposals: list[MissionProposal] | tuple[MissionProposal, ...] = (),
+    provenance: dict[str, frozenset[str]] | None = None,
 ) -> list[Diagnostic]:
-    """Diagnostics déterministes, chacun borné à ses preuves ; aucun ne vaut autorisation."""
+    """Diagnostics déterministes, chacun borné à ses preuves ; aucun ne vaut autorisation.
+
+    Chaque diagnostic enregistre dans ``provenance`` les sources dont son texte dérive
+    (déclaré au point de construction, jamais déduit du texte).
+    """
     proposal_ids = {p.proposal_id for p in proposals}
     compare = next((o for o in extra_observations if o.observation_id == "gh-compare"), None)
     out: list[Diagnostic] = []
+    prov = provenance if provenance is not None else {}
+    _GH_ONLY = frozenset({GITHUB})
+    _HOST_ONLY = frozenset({HOST})
+    # Runtime : SHA publié par l'hôte, comparé à main (si lu) et à la référence #286.
+    _RT = frozenset({HOST, DECLARED_REFERENCE} | ({GITHUB} if repo is not None else set()))
+    # Compare : sa base est le SHA runtime de l'hôte dès que l'hôte a été lu.
+    _CMP = frozenset({GITHUB, DECLARED_REFERENCE} | ({HOST} if host is not None else set()))
+
+    def add(deps: frozenset[str], d: Diagnostic) -> None:
+        out.append(d)
+        prov["diagnostic:" + d.diagnostic_id] = deps
     if host is not None:
-        out.append(_runtime_diagnostic(repo, host, pinned, cmp, compare, proposal_ids))
+        add(_RT, _runtime_diagnostic(repo, host, pinned, cmp, compare, proposal_ids))
     if repo is not None and repo.availability not in VALUE_BEARING:
         first = repo.observations[0] if repo.observations else None
         reason = first.reason if first is not None else "inconnue"
         rate = repo.availability is Availability.RATE_LIMITED
-        out.append(
+        add(_GH_ONLY,
             Diagnostic(
                 "diag-github",
                 _ABSENCE_CODES.get(repo.availability, DiagnosticCode.SOURCE_UNAVAILABLE),
@@ -566,7 +603,7 @@ def diagnose(
             )
         )
     if compare is not None and not compare.has_value:
-        out.append(
+        add(_CMP,
             Diagnostic(
                 "diag-compare",
                 DiagnosticCode.NOT_COMPARABLE,
@@ -580,7 +617,7 @@ def diagnose(
         )
     elif compare is not None and _value(compare).get("status") == "diverged":
         c = _value(compare)
-        out.append(
+        add(_CMP,
             Diagnostic(
                 "diag-compare",
                 DiagnosticCode.DIVERGED_HISTORY,
@@ -598,7 +635,7 @@ def diagnose(
     for obs in ci_obs:
         d = _ci_diagnostic(obs, proposal_ids)
         if d is not None:
-            out.append(d)
+            add(_GH_ONLY, d)
     if host is not None and host.availability in VALUE_BEARING:
         service, storage = _first(host, Domain.HOST_SERVICE), _first(host, Domain.HOST_STORAGE)
         v = _value(service) if service is not None else {}
@@ -612,7 +649,7 @@ def diagnose(
                 else "Métadonnées de stockage indisponibles : activité non corroborée"
             )
             if running:
-                out.append(
+                add(_HOST_ONLY,
                     Diagnostic(
                         "diag-service",
                         DiagnosticCode.ACTIVE_NOT_HEALTH,
@@ -627,7 +664,7 @@ def diagnose(
                     )
                 )
             else:
-                out.append(
+                add(_HOST_ONLY,
                     Diagnostic(
                         "diag-service",
                         DiagnosticCode.SERVICE_NOT_RUNNING,
@@ -643,7 +680,7 @@ def diagnose(
         fresh = [o for o in (service, storage) if o is not None and o.availability is Availability.AVAILABLE]
         if service is not None and storage is not None and len(fresh) == 1:
             other = storage if fresh[0] is service else service
-            out.append(
+            add(_HOST_ONLY,
                 Diagnostic(
                     "diag-host-partial",
                     DiagnosticCode.PARTIAL_HOST_EVIDENCE,

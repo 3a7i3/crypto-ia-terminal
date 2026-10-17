@@ -13,6 +13,7 @@ modèle) n'est apportée : voir § 4.
 | GT01_LIVE_GITHUB_PROVEN | **NOT_PROVEN** (§ 4) |
 | GT01_LIVE_VPS_PROVEN | **NOT_PROVEN** |
 | GT01_LLM_ADAPTER_TESTED_OFFLINE | OUI (42 tests) |
+| GT01_LLM_PROVENANCE_BOUNDARY_VERIFIED | OUI (R1, 32 tests ; voir § 9) |
 | GT01_LLM_LIVE | **DISABLED** |
 | GT01_RUNTIME_DEPLOYED | **FALSE** |
 | GT01_OPERATIONAL_AUTHORITY | **DENIED** |
@@ -143,3 +144,30 @@ Voir la PR brouillon : la CI au SHA exact de sa tête fait foi ; ce rapport ne l
    tests adversariaux réels.
 4. **GT01-R, authentification et exposition** : aujourd'hui loopback seul, sans authentification.
 5. **Release** : revue indépendante, fusion de la source, puis décision distincte de publication.
+
+## 9. Correctif R1 — frontière de provenance LLM (2026-10-17)
+
+Mission GOV-TOWER-01-R1, issue d'une revue indépendante de `11d4493`.
+
+Défaut reproduit : avec `allow_host_facts=False`, `build_fact_bundle()` retirait les
+observations HOST mais transmettait les diagnostics et l'explication d'écart (catégorie
+ANALYSIS) qui citent des valeurs VPS. Sur un hôte simulé publiant le SHA canari
+`c0ffee…c0ffee` et l'état `failed/failed`, ces deux valeurs figuraient dans la requête ;
+seuls les identifiants de preuves HOST en étaient retirés.
+
+Correctif :
+
+- `analyse()` déclare la provenance (`GITHUB`, `HOST`, `DECLARED_REFERENCE`) de chaque
+  diagnostic, de l'écart et du compare au point de construction
+  (`AnalysisResult.provenance`, métadonnée interne non sérialisée).
+- L'adaptateur unit cette déclaration aux sources des preuves citées et retient, sans
+  accord explicite, tout élément dépendant de `HOST` ou de provenance inconnue, avec ses
+  preuves. Le compare dépend du VPS dès que l'hôte a été lu (sa base est le SHA publié).
+- Contrats publics (`AgentRun`, `Diagnostic`, `sample_run.json`) et réponses déterministes
+  inchangés.
+
+Preuve : `tests/governance_tower/test_gt01_llm_provenance.py`, 32 tests ; restaurer
+l'adaptateur de `11d4493` en fait échouer 17. Régression complète
+(`pytest -q -m "not performance and not slow" tests/`) : **8277 réussis**, même unique
+échec propre à root ; portail ruff : 0 nouvelle violation. Aucun appel de modèle, aucune
+lecture VPS, aucun secret, aucun déploiement ; PR #462 maintenue en brouillon.

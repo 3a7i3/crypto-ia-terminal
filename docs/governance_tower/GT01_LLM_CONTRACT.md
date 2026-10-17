@@ -21,13 +21,27 @@ preuves admises → faits structurés → expurgation / rétention VPS → requ�
 | Catégorie | Par défaut | Remarque |
 |---|---|---|
 | Observations GitHub (dépôt, CI, PR/issues, fichiers, compare) | transmises, expurgées, ≤ 600 car. par fait, ≤ 80 faits | titres et corps marqués `UNTRUSTED_QUOTE` |
-| Diagnostics, écarts, référence #286 déclarée | transmis | preuves VPS retirées des citations |
+| Diagnostics et écarts dont la provenance est GitHub ou référence déclarée seulement (ex. CI) | transmis | provenance déclarée par l'analyse |
+| Référence #286 déclarée | transmise | — |
 | Observations VPS (service, déploiement, stockage) | **retenues** | `allow_host_facts=True` seulement avec accord explicite |
+| Diagnostics, écart et compare **dérivés du VPS** (runtime, dérive, identité absente, service, snapshot périmé ou partiel, compare dont la base est le SHA publié) | **retenus**, avec leurs preuves | même règle que les observations VPS (R1) |
+| Tout élément de provenance inconnue | **retenu** | fail-closed |
 | Secrets, PPL, FIN, journaux | jamais | non lus par Sentinel |
 | Question de l'opérateur | transmise, ≤ 600 car. | refus `SECRET_IN_REQUEST` si un secret y figure |
 
 Le run d'audit ne garde que l'empreinte SHA-256 de la requête, le nombre de faits, l'estimation
 de jetons et le code de résultat ; jamais le texte du modèle.
+
+### Frontière de provenance (GOV-TOWER-01-R1)
+
+La règle porte sur la provenance, pas sur la catégorie. `analyse()` déclare, au point de
+construction, les sources dont dépend chaque diagnostic (`diagnostic:<id>`), l'écart
+(`discrepancy:<rang>`) et le compare (`observation:gh-compare`, qui dépend du VPS dès que
+l'hôte a été lu, puisque sa base est alors le SHA publié). L'adaptateur unit cette
+déclaration aux sources des preuves citées ; sans accord explicite, tout ce qui contient
+`HOST` ou une provenance inconnue reste local. Tests :
+`tests/governance_tower/test_gt01_llm_provenance.py` (32 tests ; 17 échouent sur
+l'adaptateur de 11d4493, qui transmettait le SHA déployé et l'état systemd via ces textes).
 
 ## 3. Rejets (fail-closed)
 
@@ -42,7 +56,8 @@ incertitude qui nomme le code.
 
 **Non mesuré.** Estimation prudente : 1 jeton ≈ 3 caractères. Sur le scénario nominal, la
 question « Le VPS exécute-t-il la même version que GitHub ? » produit une requête estimée à
-environ 1 800 jetons d'entrée (9 faits, 4 observations VPS retenues) ; plafonds par défaut :
+environ 1 160 jetons d'entrée (5 faits ; 5 observations, 2 diagnostics et 1 écart VPS retenus ;
+environ 1 800 avant R1) ; plafonds par défaut :
 6 000 jetons d'entrée, 1 200 de sortie. Aucun prix n'est avancé : il dépend du modèle choisi
 à la gate GT01-I.
 

@@ -36,6 +36,7 @@ from typing import Any, Callable, Protocol
 from governance_tower.contracts import (
     VALUE_BEARING,
     ClaimStatus,
+    EvidenceRef,
     Observation,
     SentinelAnswer,
     Statement,
@@ -122,12 +123,46 @@ def _source_of(obs: Observation) -> str:
     return obs.evidence[0].source.value if obs.evidence else "UNKNOWN"
 
 
+UNKNOWN_PROVENANCE = frozenset({"UNKNOWN"})
+
+
+def _evidence_sources(evidence: tuple[EvidenceRef, ...]) -> frozenset[str]:
+    return frozenset(e.source.value for e in evidence)
+
+
+def _observation_deps(obs: Observation, provenance: dict[str, frozenset[str]]) -> frozenset[str]:
+    deps = set(_evidence_sources(obs.evidence)) | set(provenance.get("observation:" + obs.observation_id, ()))
+    if obs.domain.value.startswith("host_"):
+        deps.add("HOST")
+    return frozenset(deps) or UNKNOWN_PROVENANCE
+
+
+def _derived_deps(key: str, evidence: tuple[EvidenceRef, ...], provenance: dict[str, frozenset[str]]) -> frozenset[str]:
+    """Provenance déclarée par l'analyse ∪ sources des preuves citées ; clé absente ⇒ inconnue."""
+    declared = provenance.get(key)
+    if declared is None:
+        return UNKNOWN_PROVENANCE | _evidence_sources(evidence)
+    return frozenset(declared) | _evidence_sources(evidence)
+
+
+def _withheld_without_host(deps: frozenset[str]) -> bool:
+    """Sans accord VPS, tout ce qui dépend de HOST, ou dont la provenance est inconnue, est retenu."""
+    return "HOST" in deps or "UNKNOWN" in deps
+
+
 def build_fact_bundle(facts: Facts, *, allow_host_facts: bool = False) -> FactBundle:
-    """Faits expurgés et bornés ; les observations VPS sont retenues par défaut (aucun egress)."""
+    """Faits expurgés et bornés ; tout ce qui dérive du VPS est retenu par défaut (aucun egress).
+
+    La règle porte sur la **provenance**, pas sur la catégorie : un diagnostic ou un écart
+    (catégorie ANALYSIS) qui cite une valeur VPS dépend de HOST et reste local, avec ses
+    preuves. Une provenance inconnue est traitée comme VPS (fail-closed).
+    """
+    allow = allow_host_facts is True
     out: list[Fact] = []
     withheld: list[str] = []
     redactions = 0
-    host_withheld = 0
+    held = {"observation": 0, "diagnostic": 0, "écart": 0}
+    provenance = facts.analysis.provenance
 
     def add(kind: str, source: str, trust: str, text: str, ids: tuple[str, ...]) -> None:
         nonlocal redactions
@@ -144,29 +179,35 @@ def build_fact_bundle(facts: Facts, *, allow_host_facts: bool = False) -> FactBu
     observations.extend(o for o in (facts.compare, facts.code) if o is not None)
     observations.extend(facts.details)
     for obs in observations:
+        if not allow and _withheld_without_host(_observation_deps(obs, provenance)):
+            held["observation"] += 1
+            continue
         source = _source_of(obs)
-        if source == "HOST" or obs.domain.value.startswith("host_"):
-            if not allow_host_facts:
-                host_withheld += 1
-                continue
         ids = tuple(e.evidence_id for e in obs.evidence)
         if obs.availability in VALUE_BEARING:
             trust = "UNTRUSTED_QUOTE" if obs.untrusted_content else "STRUCTURED"
             add("OBSERVATION", source, trust, f"{obs.subject} : {_compact(obs.value)}", ids)
         else:
             add("ABSENCE", source, "STRUCTURED", f"{obs.subject} : {obs.availability.value} ({obs.reason})", ids)
-    for d in facts.analysis.discrepancies:
+    for rank, d in enumerate(facts.analysis.discrepancies):
+        if not allow and _withheld_without_host(_derived_deps(f"discrepancy:{rank}", d.evidence, provenance)):
+            held["écart"] += 1
+            continue
         add("DISCREPANCY", "ANALYSIS", "STRUCTURED", f"{d.classification.value} : {d.explanation}",
-            tuple(e.evidence_id for e in d.evidence if allow_host_facts or e.source.value != "HOST"))
+            tuple(e.evidence_id for e in d.evidence))
     for g in facts.analysis.diagnostics:
+        if not allow and _withheld_without_host(_derived_deps("diagnostic:" + g.diagnostic_id, g.evidence, provenance)):
+            held["diagnostic"] += 1
+            continue
         add("DIAGNOSTIC", "ANALYSIS", "STRUCTURED", f"{g.code.value} : {g.observation} {g.interpretation}",
-            tuple(e.evidence_id for e in g.evidence if allow_host_facts or e.source.value != "HOST"))
+            tuple(e.evidence_id for e in g.evidence))
     for p in facts.pinned:
         add("REFERENCE", "DECLARED_REFERENCE", "STRUCTURED",
             f"Référence déclarée #286 (non observée) : epoch {p.epoch_id}, runtime {p.runtime_source_sha}",
             (p.evidence.evidence_id,))
-    if host_withheld:
-        withheld.append(f"VPS : {host_withheld} observation(s) retenue(s) — egress interdit sans gate GT01-I")
+    if any(held.values()):
+        detail = ", ".join(f"{n} {k}(s)" for k, n in held.items() if n)
+        withheld.append(f"VPS : {detail} retenu(s) — provenance VPS ou inconnue, egress interdit sans gate GT01-I")
     if len(out) >= MAX_FACTS:
         withheld.append(f"faits au-delà de {MAX_FACTS} non transmis")
     return FactBundle(tuple(out), tuple(withheld), redactions)
