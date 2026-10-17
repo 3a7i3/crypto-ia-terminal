@@ -28,6 +28,20 @@ Discipline (reprise de ``frontend/src/lib/githubRoadmapReader.ts``) :
 - le jeton optionnel est lu dans l'environnement au moment de la requête,
   envoyé seulement à ``api.github.com`` et n'apparaît dans aucune sortie.
 
+Modes d'authentification de ``HttpGithubProvider`` (GT01-G-INTEGRATION-01) :
+
+- ``AuthMode.OPTIONAL_TOKEN`` (défaut, héritage) : GET anonymes, jeton
+  ``GT_GITHUB_TOKEN`` ajouté s'il est présent et bien formé ; l'origine du
+  jeton n'est **pas** attestée, ce mode ne certifie aucune identité ;
+- ``AuthMode.APP_INSTALLATION`` (strict) : jeton d'installation GitHub App
+  (``ghs_…``) obligatoire, slug d'App déclaré par l'appelant obligatoire ;
+  aucune requête n'est jamais émise sans ``Authorization`` ; avant toute
+  lecture, ``GET /installation/repositories`` doit montrer une installation
+  limitée à ce seul dépôt. Sinon : aucune lecture, absence qualifiée
+  ``AUTH_MISSING`` / ``AUTH_IDENTITY_MISMATCH`` / ``AUTH_UNATTESTED``.
+  Limite : un jeton d'installation seul ne révèle pas, en GET, quelle App
+  l'a émis ; le slug provient de l'étape qui a créé le jeton (déclaré).
+
 Ce module ne contient aucune méthode HTTP autre que GET (vérifié par test).
 """
 
@@ -146,11 +160,32 @@ class Reason:
     SECRET_CONTENT_REFUSED = "SECRET_CONTENT_REFUSED"
     INTEGRITY_MISMATCH = "INTEGRITY_MISMATCH"
     NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
+    # Mode APP_INSTALLATION (GT01-G-INTEGRATION-01) : aucune requête de lecture émise.
+    AUTH_MISSING = "AUTH_MISSING"
+    AUTH_IDENTITY_MISMATCH = "AUTH_IDENTITY_MISMATCH"
+    AUTH_UNATTESTED = "AUTH_UNATTESTED"
+
+
+class AuthMode:
+    """Modes d'authentification du fournisseur HTTP (codes stables)."""
+
+    OPTIONAL_TOKEN = "OPTIONAL_TOKEN"
+    APP_INSTALLATION = "APP_INSTALLATION"
+
+
+#: App GitHub de Sentinel (lecture seule), cf. GT01-G-SMOKE-01.
+SENTINEL_APP_SLUG = "crypto-ai-sentinel-observer"
+INSTALLATION_TOKEN_ENV = "GT_SENTINEL_INSTALLATION_TOKEN"
+APP_SLUG_ENV = "GT_SENTINEL_APP_SLUG"
+#: Seul endpoint hors ``/repos/`` admis : attestation du périmètre d'installation.
+INSTALLATION_REPOS_URL = f"{API_ROOT}/installation/repositories?per_page=100"
 
 
 _REPO_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}$")
 _REF_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._/-]{0,199}$")
 _TOKEN_RE = re.compile(r"^[A-Za-z0-9_.-]{1,512}$")
+_INSTALLATION_TOKEN_RE = re.compile(r"^ghs_[A-Za-z0-9_]{36,251}$")
+_APP_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,99}$")
 _ENV_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 _SCENARIO_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
 _REASON_RE = re.compile(r"^[A-Z][A-Z_]{1,40}$")
@@ -189,9 +224,14 @@ def is_safe_ref(ref: Any) -> bool:
 
 
 def is_allowed_api_url(url: Any) -> bool:
-    """True seulement pour ``https://api.github.com/repos/...`` sans port, identifiant ni traversée."""
+    """True seulement pour ``https://api.github.com/repos/...`` sans port, identifiant ni traversée.
+
+    Exception unique et exacte : ``INSTALLATION_REPOS_URL`` (attestation du mode strict).
+    """
     if not isinstance(url, str) or len(url) > 2_000:
         return False
+    if url == INSTALLATION_REPOS_URL:
+        return True
     if any(c in url for c in " \\\t\r\n%#@") or _TERM_CONTROL_RE.search(url):
         return False
     try:
@@ -1499,7 +1539,9 @@ class HttpGithubProvider(_GithubReaderBase):
         *,
         clock: Clock,
         transport: Transport | None = None,
-        token_env: str = "GT_GITHUB_TOKEN",
+        token_env: str | None = None,
+        auth_mode: str = AuthMode.OPTIONAL_TOKEN,
+        expected_app_slug: str = SENTINEL_APP_SLUG,
         max_requests: int = 40,
         max_requests_per_question: int | None = None,
         window_s: float = 3600.0,
@@ -1507,6 +1549,12 @@ class HttpGithubProvider(_GithubReaderBase):
         max_body_bytes: int = 1_048_576,
     ) -> None:
         super().__init__(repo, clock)
+        if auth_mode not in (AuthMode.OPTIONAL_TOKEN, AuthMode.APP_INSTALLATION):
+            raise ContractError("auth_mode : OPTIONAL_TOKEN ou APP_INSTALLATION attendu")
+        if token_env is None:
+            token_env = INSTALLATION_TOKEN_ENV if auth_mode == AuthMode.APP_INSTALLATION else "GT_GITHUB_TOKEN"
+        if not isinstance(expected_app_slug, str) or not _APP_SLUG_RE.match(expected_app_slug):
+            raise ContractError("expected_app_slug : slug d'App GitHub invalide")
         if not isinstance(token_env, str) or not _ENV_NAME_RE.match(token_env):
             raise ContractError("token_env : nom de variable d'environnement invalide")
         if not _is_int(max_requests) or not 1 <= max_requests <= 1_000:
@@ -1524,6 +1572,12 @@ class HttpGithubProvider(_GithubReaderBase):
         if transport is not None and not callable(transport):
             raise ContractError("transport : appelable attendu")
         self._token_env = token_env
+        self._auth_mode = auth_mode
+        self._expected_slug = expected_app_slug
+        # Attestation liée à l'empreinte du jeton (jamais le jeton lui-même).
+        self._attested_fp: str | None = None
+        self._attest_fail: _Fail | None = None
+        self._attest_fail_fp: str | None = None
         self._max_requests = max_requests
         self._per_question = max_requests_per_question
         self._window_s = float(window_s)
@@ -1535,16 +1589,24 @@ class HttpGithubProvider(_GithubReaderBase):
         self._window: deque[float] = deque()  # instants d'envoi, plafond de service glissant
         self._remote_block_until: float | None = None  # quota distant GitHub : persiste entre questions
         self._halt: _Fail | None = None
+        strict = auth_mode == AuthMode.APP_INSTALLATION
         self.info = ProviderInfo(
             name="github-http",
             provenance=Provenance.LIVE_READ,
             live=True,
-            description="Lecture réelle opt-in de api.github.com (GET uniquement, budget borné).",
+            description=(
+                "Lecture réelle opt-in de api.github.com (GET uniquement, budget borné), "
+                + (
+                    f"authentifiée par jeton d'installation de l'App {expected_app_slug}, attestée par périmètre."
+                    if strict
+                    else "jeton optionnel non attesté (aucune identité certifiée)."
+                )
+            ),
         )
 
     def __repr__(self) -> str:
         return (
-            f"HttpGithubProvider(repo={self.repo!r}, requests_sent={self._sent}, "
+            f"HttpGithubProvider(repo={self.repo!r}, auth_mode={self._auth_mode}, requests_sent={self._sent}, "
             f"max_requests={self._max_requests}, max_requests_per_question={self._per_question})"
         )
 
@@ -1569,6 +1631,29 @@ class HttpGithubProvider(_GithubReaderBase):
             "used_in_window": used_in_window,
             "requests_sent_total": self._sent,
             "remote_blocked_for_s": blocked,
+        }
+
+    @property
+    def auth_mode(self) -> str:
+        return self._auth_mode
+
+    def auth_status(self) -> dict[str, Any]:
+        """État d'authentification affichable : aucun jeton, aucune empreinte, aucune requête."""
+        if self._auth_mode == AuthMode.OPTIONAL_TOKEN:
+            return {"mode": self._auth_mode, "identity": "NOT_ATTESTED", "reason": None}
+        if self._attested_fp is not None and self._attested_fp == self._token_fingerprint():
+            return {
+                "mode": self._auth_mode,
+                "identity": "INSTALLATION_SCOPE_VERIFIED",
+                "app_slug_declared": self._expected_slug,
+                "installation_repository": self.repo,
+                "reason": None,
+            }
+        fail = self._attest_fail
+        return {
+            "mode": self._auth_mode,
+            "identity": "NOT_ATTESTED",
+            "reason": fail.reason if fail is not None else None,
         }
 
     def _begin_call(self) -> None:
@@ -1601,20 +1686,103 @@ class HttpGithubProvider(_GithubReaderBase):
         url = f"{API_ROOT}/repos/{self.repo}" + (f"/{path}" if path else "")
         return f"{url}?{query}" if query else url
 
-    def _headers(self, url: str) -> dict[str, str]:
+    def _installation_token(self) -> str | None:
+        token = os.environ.get(self._token_env, "")
+        return token if _INSTALLATION_TOKEN_RE.match(token) else None
+
+    def _token_fingerprint(self) -> str | None:
+        token = self._installation_token()
+        return hashlib.sha256(token.encode("ascii")).hexdigest() if token else None
+
+    def _headers(self, url: str) -> dict[str, str] | None:
+        """En-têtes du GET ; ``None`` en mode strict sans jeton valide (la requête n'est pas émise)."""
         headers = {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
             "User-Agent": "governance-tower-sentinel/0.1 (read-only)",
         }
+        if self._auth_mode == AuthMode.APP_INSTALLATION:
+            token = self._installation_token()
+            if token is None or not is_allowed_api_url(url):
+                return None
+            headers["Authorization"] = f"Bearer {token}"
+            return headers
         if is_allowed_api_url(url):
             token = os.environ.get(self._token_env, "")
             if token and _TOKEN_RE.match(token):
                 headers["Authorization"] = f"Bearer {token}"
         return headers
 
+    def _auth_gate(self) -> _Fail | None:
+        """Mode strict : jeton, slug déclaré et périmètre d'installation attestés avant toute lecture."""
+        if self._auth_mode != AuthMode.APP_INSTALLATION:
+            return None
+        fp = self._token_fingerprint()
+        if fp is None:
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_MISSING,
+                "jeton d'installation GitHub App absent ou mal formé : aucune requête émise (jamais de repli anonyme)",
+            )
+        if os.environ.get(APP_SLUG_ENV, "") != self._expected_slug:
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_IDENTITY_MISMATCH,
+                f"slug d'App déclaré différent de {self._expected_slug} : aucune requête émise",
+            )
+        if self._attested_fp == fp:
+            return None
+        if self._attest_fail is not None and self._attest_fail_fp == fp:
+            return self._attest_fail
+        res = self._send(INSTALLATION_REPOS_URL, "installation-scope")
+        fail = self._check_installation_scope(res)
+        if fail is not None:
+            if fail.reason == Reason.AUTH_UNATTESTED:  # même jeton : jamais réessayé
+                self._attest_fail, self._attest_fail_fp = fail, fp
+            return fail
+        self._attested_fp, self._attest_fail, self._attest_fail_fp = fp, None, None
+        return None
+
+    def _check_installation_scope(self, res: _Ok | _Fail) -> _Fail | None:
+        if isinstance(res, _Fail):
+            if res.reason in (Reason.BUDGET_EXCEEDED, Reason.RATE_LIMITED, Reason.NOT_FETCHED):
+                return res  # non concluant : réessayé à la question suivante
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_UNATTESTED,
+                f"périmètre d'installation non attesté ({res.reason}) : aucune lecture",
+                res.evidence,
+            )
+        data = res.data if isinstance(res.data, dict) else {}
+        repos = data.get("repositories")
+        names = (
+            [r.get("full_name") for r in repos if isinstance(r, dict)] if isinstance(repos, list) else None
+        )
+        if data.get("total_count") != 1 or names is None or len(names) != 1 or names[0] != self.repo:
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_UNATTESTED,
+                f"installation non limitée au seul dépôt {self.repo} : aucune lecture",
+                res.evidence,
+            )
+        return None
+
     def _get(self, url: str, element: str, source_sha: str | None = None) -> _Ok | _Fail:
         """Un GET borné ; retourne le JSON décodé ou un échec qualifié, jamais d'exception."""
+        if self._halt is not None:
+            return _Fail(
+                Availability.UNKNOWN,
+                Reason.NOT_FETCHED,
+                f"requête non envoyée : lecture interrompue après {self._halt.reason}",
+            )
+        gate = self._auth_gate()
+        if gate is not None:
+            if gate.reason != Reason.BUDGET_EXCEEDED:
+                self._halt = gate
+            return gate
+        return self._send(url, element, source_sha)
+
+    def _send(self, url: str, element: str, source_sha: str | None = None) -> _Ok | _Fail:
         if self._halt is not None:
             return _Fail(
                 Availability.UNKNOWN,
@@ -1648,11 +1816,14 @@ class HttpGithubProvider(_GithubReaderBase):
                 f"plafond de service de {self._max_requests} requêtes par {int(self._window_s)} s atteint : "
                 "aucune requête envoyée",
             )
+        headers = self._headers(url)
+        if headers is None:  # mode strict : jamais de requête sans Authorization
+            return _Fail(Availability.DENIED, Reason.AUTH_MISSING, "jeton d'installation absent : aucune requête émise")
         self._sent += 1
         self._question_sent += 1
         self._window.append(now)
         try:
-            result = self._transport(url, self._headers(url), self._timeout)
+            result = self._transport(url, headers, self._timeout)
         except TimeoutError:
             self._halt = _Fail(Availability.NOT_AVAILABLE, Reason.TIMEOUT, "délai dépassé")
             return self._halt
@@ -1679,7 +1850,8 @@ class HttpGithubProvider(_GithubReaderBase):
                 provenance=Provenance.LIVE_READ,
                 collected_at_utc=self._collected,
                 source_sha=source_sha if status == 200 else None,
-                note=f"GET HTTP {status}",
+                note=f"GET HTTP {status}"
+                + (" · auth APP_INSTALLATION" if self._auth_mode == AuthMode.APP_INSTALLATION else ""),
             ),
         )
         failure = self._classify(status, headers, evidence)
@@ -1711,6 +1883,7 @@ class HttpGithubProvider(_GithubReaderBase):
             fail = _Fail(Availability.DENIED, Reason.DENIED, f"accès refusé par GitHub (HTTP {status})", evidence)
             if status == 401:
                 self._halt = fail
+                self._attested_fp = None  # jeton refusé : attestation à refaire
             return fail
         if status == 404:
             return _Fail(Availability.NOT_AVAILABLE, Reason.NOT_FOUND, "objet introuvable sur GitHub (404)", evidence)

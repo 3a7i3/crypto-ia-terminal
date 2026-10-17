@@ -10,7 +10,7 @@ from pathlib import Path
 
 from governance_tower.contracts import utc_now
 from governance_tower.providers.base import Clock, GithubReadProvider, HostObservationProvider
-from governance_tower.providers.github import FixtureGithubProvider, HttpGithubProvider
+from governance_tower.providers.github import AuthMode, FixtureGithubProvider, HttpGithubProvider
 from governance_tower.providers.host import (
     FixtureHostProvider,
     NotConfiguredHostProvider,
@@ -50,14 +50,19 @@ def live_providers(
     github_live: bool,
     host_snapshots: Path | None,
     host_operator_api: str | None,
+    github_auth: str = AuthMode.OPTIONAL_TOKEN,
     clock: Clock = utc_now,
 ) -> tuple[GithubReadProvider, HostObservationProvider]:
-    """Fournisseurs réels opt-in. Sans option explicite, l'hôte reste NOT_AVAILABLE."""
+    """Fournisseurs réels opt-in. Sans option explicite, l'hôte reste NOT_AVAILABLE.
+
+    ``github_auth=AuthMode.APP_INSTALLATION`` exige le jeton d'installation de l'App
+    Sentinel (aucun repli anonyme) ; le défaut reste le mode à jeton optionnel non attesté.
+    """
     if host_snapshots is not None and host_operator_api is not None:
         raise ValueError("choisir une seule source hôte")
     if not github_live:
         raise ValueError("le mode lecture réelle exige --github-live explicite")
-    github = HttpGithubProvider(clock=clock)
+    github = HttpGithubProvider(clock=clock, auth_mode=github_auth)
     host: HostObservationProvider
     if host_snapshots is not None:
         host = SnapshotDirectoryHostProvider(host_snapshots, clock)

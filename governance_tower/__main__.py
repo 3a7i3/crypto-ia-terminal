@@ -17,9 +17,13 @@ import sys
 from pathlib import Path
 
 from governance_tower.contracts import AgentRun, utc_now
+from governance_tower.providers.github import AuthMode
 from governance_tower.scenarios import SCENARIOS, demo_providers, live_providers
 from governance_tower.sentinel.agent import Sentinel
 from governance_tower.sentinel.audit import AuditLog
+
+
+_GITHUB_AUTH = {"optional-token": AuthMode.OPTIONAL_TOKEN, "app-installation": AuthMode.APP_INSTALLATION}
 
 
 def build_sentinel(args: argparse.Namespace) -> tuple[Sentinel, str | None]:
@@ -29,6 +33,7 @@ def build_sentinel(args: argparse.Namespace) -> tuple[Sentinel, str | None]:
             github_live=args.github_live,
             host_snapshots=Path(args.host_snapshots) if args.host_snapshots else None,
             host_operator_api=args.host_operator_api,
+            github_auth=_GITHUB_AUTH[args.github_auth],
         )
         return Sentinel(github, host, utc_now, audit=audit), None
     github, host = demo_providers(args.scenario)
@@ -83,6 +88,13 @@ def main(argv: list[str] | None = None) -> int:
         p = sub.add_parser(name)
         p.add_argument("--scenario", default="nominal", choices=sorted(SCENARIOS))
         p.add_argument("--github-live", action="store_true", help="lecture GitHub réelle (GET, opt-in)")
+        p.add_argument(
+            "--github-auth",
+            default="optional-token",
+            choices=sorted(_GITHUB_AUTH),
+            help="optional-token : jeton GT_GITHUB_TOKEN facultatif, non attesté ; app-installation : jeton "
+            "d'installation de l'App Sentinel obligatoire (GT_SENTINEL_INSTALLATION_TOKEN, GT_SENTINEL_APP_SLUG)",
+        )
         p.add_argument("--host-snapshots", help="dossier local de snapshots publiés (opt-in)")
         p.add_argument("--host-operator-api", help="URL loopback de l'Operator API (opt-in)")
         p.add_argument("--audit-log", help="fichier de journal d'audit local (opt-in)")
@@ -94,6 +106,8 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--shortcut", default=None)
             p.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
+    if args.github_auth != "optional-token" and not args.github_live:
+        parser.error("--github-auth app-installation exige --github-live")
     sentinel, scenario = build_sentinel(args)
 
     if args.command == "ask":

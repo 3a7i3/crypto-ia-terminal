@@ -729,7 +729,9 @@ def test_module_source_contains_no_write_method():
         public = {n for n in dir(cls) if not n.startswith("_")}
         # GOV-TOWER-01 M1 : cinq lectures ciblées s'ajoutent, toutes GET (vérifié ci-dessus et dans test_gt01_github).
         assert public <= {"repository_snapshot", "locate_code", "compare_commits", "requests_sent", "scenario_named", "info", "repo", "begin_investigation",
-                          "read_file", "issue_detail", "pull_detail", "ci_for_sha", "branch_head", "budget_status"}
+                          "read_file", "issue_detail", "pull_detail", "ci_for_sha", "branch_head", "budget_status",
+                          # GT01-G-INTEGRATION-01 : état d'authentification affichable, sans requête.
+                          "auth_mode", "auth_status"}
 
 
 def test_skipped_and_neutral_ci_are_not_counted_as_success():
