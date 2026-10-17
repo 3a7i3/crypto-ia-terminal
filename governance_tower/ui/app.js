@@ -54,6 +54,13 @@
     CRITICAL: { libelle: "Critique", ton: "ko" },
   };
 
+  // GOV-TOWER-01 M5 : niveau d'un diagnostic croisé (jamais une santé ni une violation).
+  const NIVEAU_DIAGNOSTIC = {
+    INFO: { libelle: "Information", ton: "accent" },
+    ATTENTION: { libelle: "À vérifier", ton: "stale" },
+    UNKNOWN: { libelle: "Inconnu", ton: "unknown" },
+  };
+
   const NOM_SOURCE = { GITHUB: "GitHub", HOST: "VPS", DECLARED_REFERENCE: "Référence déclarée" };
 
   const ERREURS_HTTP = {
@@ -227,6 +234,21 @@
     });
   }
 
+  /** Budget GET GitHub publié par le serveur ; null pour une fixture (aucune requête envoyée). */
+  function ligneBudget(b) {
+    if (!estObjet(b)) return null;
+    const n = function (v) {
+      return typeof v === "number" && isFinite(v) ? String(v) : "?";
+    };
+    let texte =
+      "budget GitHub " + n(b.used_this_question) + "/" + n(b.per_question) + " GET par question, " +
+      n(b.used_in_window) + "/" + n(b.service_cap) + " sur " + (typeof b.window_s === "number" ? dureeLisible(b.window_s) : "?");
+    if (typeof b.remote_blocked_for_s === "number" && b.remote_blocked_for_s > 0) {
+      texte += " · quota GitHub atteint : aucune requête avant " + dureeLisible(b.remote_blocked_for_s);
+    }
+    return texte;
+  }
+
   async function chargerStatut() {
     try {
       const r = await fetch(URL_STATUT, { cache: "no-store", credentials: "same-origin", redirect: "error" });
@@ -236,10 +258,14 @@
       const synth = majSources(s.sources);
       const demo = s.mode === "DEMO";
       majBanniere(demo || synth);
-      const morceaux = ["Mode : " + (demo ? "DÉMO" : s.mode === "LIVE_READ" ? "lecture réelle (LIVE_READ)" : "inconnu")];
+      const morceaux = ["Mode : " + (demo ? "DÉMO" : s.mode === "LIVE_READ" ? "lecture réelle bornée (LIVE_READ, GET seulement)" : "inconnu")];
       if (typeof s.scenario === "string" && s.scenario) morceaux.push("scénario " + s.scenario);
       morceaux.push("capacité " + texteOuInconnu(s.capability, "inconnue"));
       morceaux.push("autorité opérationnelle " + texteOuInconnu(s.operational_authority, "inconnue"));
+      morceaux.push("raisonneur " + texteOuInconnu(s.reasoner, "inconnu"));
+      morceaux.push("modèle externe " + (s.llm_live === "DISABLED" ? "désactivé" : texteOuInconnu(s.llm_live, "état inconnu")));
+      const budget = ligneBudget(s.github_budget);
+      if (budget) morceaux.push(budget);
       if (s.audit === "AUDIT_CAP_REACHED") morceaux.push("journal d'audit plein : runs non journalisés");
       else if (s.audit === "AUDIT_WRITE_ERROR") morceaux.push("journal d'audit en échec : runs non journalisés");
       ligneMode.textContent = morceaux.join(" · ");
@@ -453,6 +479,119 @@
     return ul;
   }
 
+  /** Diagnostic croisé : observation → interprétation possible → vérifications → proposition (non exécutée). */
+  function rendreDiagnostics(liste, index, propositions) {
+    const ul = el("ul", { classe: "liste" });
+    const titres = new Map();
+    (Array.isArray(propositions) ? propositions : []).forEach(function (p) {
+      if (estObjet(p) && typeof p.proposal_id === "string") titres.set(p.proposal_id, p.title);
+    });
+    liste.forEach(function (g) {
+      if (!estObjet(g)) return;
+      const niveau = NIVEAU_DIAGNOSTIC[g.level] || { libelle: "Niveau hors vocabulaire", ton: "unknown" };
+      const verifs = Array.isArray(g.verification) ? g.verification : [];
+      const etapes = el("ol", { classe: "etapes-diagnostic" }, [
+        el("li", {}, [el("h4", { texte: "Observation" }), el("p", { texte: g.observation })]),
+        el("li", {}, [el("h4", { texte: "Interprétation possible" }), el("p", { texte: g.interpretation })]),
+        el("li", {}, [
+          el("h4", { texte: "Ce qui reste à vérifier" }),
+          verifs.length
+            ? el(
+                "ul",
+                { classe: "liste-puces" },
+                verifs.map(function (v) {
+                  return el("li", { texte: v });
+                })
+              )
+            : illisible("verification"),
+        ]),
+        el("li", {}, [
+          el("h4", { texte: "Proposition de mission" }),
+          typeof g.proposal_ref === "string" && g.proposal_ref
+            ? el("p", {}, [
+                el("span", { classe: "non-execute", texte: "Non exécutée" }),
+                " ",
+                texteOuInconnu(titres.get(g.proposal_ref), "proposition citée absente de la réponse"),
+                " (",
+                el("code", { texte: g.proposal_ref }),
+                ")",
+              ])
+            : el("p", { classe: "vide", texte: "Aucune proposition pour ce diagnostic." }),
+        ]),
+      ]);
+      ul.appendChild(
+        el("li", { classe: "carte diagnostic", attrs: { "data-niveau": texteOuInconnu(g.level, "UNKNOWN") } }, [
+          el("p", { classe: "carte-titre", texte: g.title }),
+          el("div", { classe: "ligne-badges" }, [
+            badge(niveau.libelle, niveau.ton, "Niveau brut : " + String(g.level)),
+            badge(texteOuInconnu(g.code, "CODE INCONNU"), "unknown", "Code de diagnostic (vocabulaire fermé)"),
+          ]),
+          etapes,
+          pucesPreuve(idsDe(g.evidence), index),
+        ])
+      );
+    });
+    return ul;
+  }
+
+  /** Extrait de fichier : texte non fiable rendu ligne à ligne par textContent, jamais interprété. */
+  function rendreExtraits(liste, index) {
+    const ul = el("ul", { classe: "liste" });
+    liste.forEach(function (x) {
+      if (!estObjet(x)) return;
+      const debut = typeof x.line_start === "number" ? x.line_start : 1;
+      const lignes = typeof x.text === "string" ? x.text.split("\n") : [];
+      const pre = el("pre", { classe: "extrait", attrs: { tabindex: "0", "aria-label": "Extrait de " + String(x.path) } });
+      lignes.forEach(function (ligne, i) {
+        pre.appendChild(el("span", { classe: "extrait-num", texte: String(debut + i), attrs: { "aria-hidden": "true" } }));
+        pre.appendChild(el("span", { classe: "extrait-ligne", texte: ligne }));
+        pre.appendChild(document.createTextNode("\n"));
+      });
+      const ev = index.get(x.evidence_id);
+      const legende = [
+        el("code", { texte: texteOuInconnu(x.path, "chemin inconnu") }),
+        " · lignes " + String(x.line_start) + "–" + String(x.line_end) + " sur " + String(x.total_lines),
+        " · SHA ",
+        el("code", { texte: typeof x.ref_sha === "string" ? x.ref_sha.slice(0, 12) : "inconnu", attrs: { title: String(x.ref_sha) } }),
+      ];
+      const meta = [badge("Contenu non fiable — cité comme donnée", "stale")];
+      if (x.truncated) meta.push(badge("Extrait tronqué", "unknown"));
+      if (typeof x.redactions === "number" && x.redactions > 0) meta.push(badge(x.redactions + " expurgation(s)", "accent"));
+      ul.appendChild(
+        el("li", { classe: "carte" }, [
+          el("figure", { classe: "figure-extrait" }, [el("figcaption", {}, legende), pre]),
+          el("div", { classe: "ligne-badges" }, meta),
+          definitions([
+            ["Dépôt", codeOuAbsent(x.repo, "inconnu")],
+            ["Empreinte Git (blob)", codeOuAbsent(x.blob_sha, "non fournie")],
+            ["Lien permanent", estObjet(ev) ? locator(ev.locator) : el("span", { classe: "vide", texte: "preuve absente du run" })],
+          ]),
+        ])
+      );
+    });
+    return ul;
+  }
+
+  /** Bandeau d'état des sources du run : périmé ou inconnu n'est jamais présenté comme frais. */
+  function bandeauSources(sources) {
+    if (!Array.isArray(sources)) return el("p", { classe: "alerte ton-unknown", texte: "État des sources non communiqué : fraîcheur inconnue." });
+    const alertes = [];
+    sources.forEach(function (src) {
+      if (!estObjet(src) || src.availability === "AVAILABLE") return;
+      const dispo = DISPONIBILITE[src.availability] || { libelle: "Hors vocabulaire", ton: "unknown" };
+      const nom = NOM_SOURCE[src.source] || texteOuInconnu(src.source, "source inconnue");
+      const detail = typeof src.detail === "string" && src.detail ? " — " + src.detail : "";
+      alertes.push(
+        el("li", { classe: "ton-" + dispo.ton }, [el("strong", { texte: nom + " : " + dispo.libelle }), detail])
+      );
+    });
+    if (!alertes.length) return null;
+    return el("div", { classe: "bandeau-sources", attrs: { role: "note" } }, [
+      el("p", { classe: "alerte-titre", texte: "Sources non fraîches ou non lues : les conclusions restent limitées" }),
+      el("ul", { classe: "liste-puces" }, alertes),
+    ]);
+  }
+
   function rendreRefus(liste) {
     const ul = el("ul", { classe: "liste" });
     liste.forEach(function (r) {
@@ -569,18 +708,18 @@
     racine.appendChild(el("span", { classe: "etiquette", texte: "Sentinel" }));
     racine.appendChild(entete);
     racine.appendChild(el("p", { classe: "resume", texte: texteOuInconnu(a.summary, "Résumé absent.") }));
+    const bandeau = bandeauSources(run.sources);
+    if (bandeau) racine.appendChild(bandeau);
+
+    // GOV-TOWER-01 : champs absents des runs GOV-TOWER-00 (aperçu ancien) : simplement non affichés.
+    const diagnostics = tableau(a, "diagnostics");
+    if (diagnostics && diagnostics.length) {
+      racine.appendChild(bloc("Diagnostics", rendreDiagnostics(diagnostics, index, tableau(a, "proposals"))));
+    }
+    const extraits = tableau(a, "excerpts");
+    if (extraits && extraits.length) racine.appendChild(bloc("Extraits de fichiers", rendreExtraits(extraits, index)));
 
     racine.appendChild(bloc("Constats", rendreConstats(tableau(a, "statements"), index)));
-    racine.appendChild(
-      bloc(
-        "Preuves",
-        evidences === null
-          ? illisible("evidence")
-          : evidences.length
-            ? rendrePreuves(evidences)
-            : el("p", { classe: "vide", texte: "Aucune preuve citée dans ce run." })
-      )
-    );
     racine.appendChild(bloc("Incertitudes", rendreIncertitudes(tableau(a, "uncertainties"))));
 
     const sections = [
@@ -599,6 +738,16 @@
       }
       if (liste.length) racine.appendChild(bloc(s[1], s[2](liste, index)));
     });
+    racine.appendChild(
+      el("details", { classe: "technique preuves-repliees" }, [
+        el("summary", { texte: "Preuves" + (evidences ? " (" + evidences.length + ")" : "") }),
+        evidences === null
+          ? illisible("evidence")
+          : evidences.length
+            ? rendrePreuves(evidences)
+            : el("p", { classe: "vide", texte: "Aucune preuve citée dans ce run." }),
+      ])
+    );
     racine.appendChild(rendreTechnique(run));
 
     // L'aperçu est un exemple figé : il ne remplace jamais l'état réel des sources de la bannière.

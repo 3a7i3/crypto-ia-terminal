@@ -8,6 +8,7 @@ implicite, aucune clé lue).
 
 from __future__ import annotations
 
+import dataclasses
 import os
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -16,16 +17,20 @@ from governance_tower.contracts import (
     VALUE_BEARING,
     Availability,
     ClaimStatus,
+    CodeExcerpt,
     DiscrepancyClass,
     Domain,
+    EvidenceRef,
     HostSnapshot,
     Intent,
     Observation,
     PinnedReference,
     RepositorySnapshot,
     SentinelAnswer,
+    SourceStatus,
     Statement,
 )
+from governance_tower.coverage import COVERAGE
 from governance_tower.sentinel.analysis import AnalysisResult, short
 
 ROADMAP_ISSUE = 285
@@ -51,6 +56,9 @@ class Facts:
     compare: Observation | None
     code: Observation | None
     analysis: AnalysisResult
+    details: tuple[Observation, ...] = ()  # GOV-TOWER-01 : lectures ciblées
+    sources: tuple[SourceStatus, ...] = ()  # dernier état connu des sources (cartographie)
+    coverage_evidence: tuple[EvidenceRef, ...] = ()
 
 
 class Reasoner(Protocol):
@@ -104,13 +112,67 @@ def _compact(value: Any, limit: int = 600) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
+def _titles(items: Any, limit: int = 6) -> str:
+    if not isinstance(items, list) or not items:
+        return "aucun"
+    shown = [f"#{i.get('number')} « {i.get('title')} »" for i in items[:limit] if isinstance(i, dict)]
+    return "; ".join(shown) + (f" … (+{len(items) - limit})" if len(items) > limit else "")
+
+
+def _humanize(obs: Observation) -> str | None:
+    """Phrase lisible pour les observations connues ; None ⇒ rendu compact générique (GOV-TOWER-01 M3)."""
+    v = obs.value if isinstance(obs.value, dict) else None
+    if v is None:
+        return None
+    oid = obs.observation_id
+    if oid == "gh-repository":
+        return (
+            f"Branche {v.get('default_branch')} à {short(v.get('head_sha'))}, commit du "
+            f"{v.get('head_committed_at_utc')} « {v.get('head_title')} »."
+        )
+    if oid == "gh-ci":
+        return (
+            f"{v.get('status')} — {v.get('succeeded')} réussi(s), {v.get('failed')} en échec, {v.get('pending')} en "
+            f"cours, {v.get('skipped')} ignoré(s), {v.get('neutral')} neutre(s) sur {v.get('total')}."
+        )
+    if oid == "gh-pull-requests":
+        return f"{v.get('open_on_page')} PR ouvertes sur la page lue : {_titles(v.get('items'))}."
+    if oid == "gh-issues":
+        return f"{v.get('open_on_page')} issues ouvertes sur la page lue : {_titles(v.get('items'))}."
+    if oid == "gh-compare":
+        commits = v.get("commits") or []
+        listed = "; ".join(f"{short(c.get('sha'))} « {c.get('title')} »" for c in commits[:5] if isinstance(c, dict))
+        return (
+            f"GitHub compte {v.get('total_commits')} commit(s) (status={v.get('status')}, ahead_by={v.get('ahead_by')}, "
+            f"behind_by={v.get('behind_by')}) ; {v.get('commits_returned')} listé(s), dont : {listed or 'aucun'}."
+        )
+    if oid == "host.service":
+        return (
+            f"{v.get('unit')} {v.get('active_state')}/{v.get('sub_state')} (load {v.get('load_state')}, "
+            f"NRestarts {v.get('restart_count')}, démarré {v.get('exec_main_started_at_utc')}), observé à "
+            f"{v.get('observed_at_utc')} sur {v.get('host_id')}. ACTIVE ≠ HEALTHY."
+        )
+    if oid == "host.deployment":
+        return (
+            f"SHA source publié {short(v.get('source_code_sha'))}, artefact {str(v.get('artifact_sha256'))[:12]}, "
+            f"preuve « {v.get('evidence_ref')} » du {v.get('observed_at_utc')}."
+        )
+    if oid == "host.storage":
+        return (
+            f"{v.get('matched_file_count')} fichier(s) de décision, {v.get('total_bytes')} octets, dernière "
+            f"modification {v.get('latest_file_modified_at_utc')} (métadonnées seulement)."
+        )
+    return None
+
+
 def _observation_statement(obs: Observation) -> Statement | None:
     if obs.availability not in VALUE_BEARING:
         return None
     prefix = "[contenu externe non fiable] " if obs.untrusted_content else ""
     stale = f" (PÉRIMÉ, âge {obs.freshness_age_s:.0f} s)" if obs.availability is Availability.STALE else ""
+    text = _humanize(obs) or _compact(obs.value)
     return Statement(
-        f"{prefix}{obs.subject}{stale} : {_compact(obs.value)}",
+        f"{prefix}{obs.subject}{stale} : {text}"[:4000],
         ClaimStatus.OBSERVED,
         tuple(e.evidence_id for e in obs.evidence),
     )
@@ -118,6 +180,125 @@ def _observation_statement(obs: Observation) -> Statement | None:
 
 def _absence_note(obs: Observation, source: str) -> str:
     return f"{source} — {obs.subject} : {obs.availability.value} ({obs.reason})"
+
+
+_DETAIL_INTENTS = (Intent.READ_FILE, Intent.ISSUE_DETAIL, Intent.PULL_DETAIL, Intent.CI_FOR_SHA)
+_DIAGNOSTIC_INTENTS = (
+    Intent.EXAMINE_REPOSITORY, Intent.EXAMINE_HOST, Intent.COMPARE, Intent.DIAGNOSE, Intent.PROPOSE_MISSION,
+    Intent.UNDEPLOYED_COMMITS, Intent.FULL_REVIEW, Intent.WORK_IN_PROGRESS, Intent.PULL_DETAIL, Intent.CI_FOR_SHA,
+)
+_BODY_QUOTE = 1_500
+
+
+def _ids(obs: Observation) -> tuple[str, ...]:
+    return tuple(e.evidence_id for e in obs.evidence)
+
+
+def _detail_statements(obs: Observation) -> list[Statement]:
+    """Phrases lisibles pour une lecture ciblée (au lieu d'un vidage clé=valeur)."""
+    v = obs.value if isinstance(obs.value, dict) else {}
+    ids = _ids(obs)
+    if obs.domain is Domain.CODE_CONTENT:
+        rng = f"lignes {v.get('line_start')}–{v.get('line_end')} sur {v.get('total_lines')}"
+        return [
+            Statement(
+                f"Fichier {v.get('path')} au SHA {short(v.get('ref_sha'))} : {rng} (blob {short(v.get('blob_sha'))}, "
+                f"empreinte Git vérifiée, {v.get('size_bytes')} octets). L'extrait est un contenu non fiable, cité "
+                "comme donnée ; présent à ce SHA ≠ déployé.",
+                ClaimStatus.OBSERVED,
+                ids,
+            )
+        ]
+    if obs.domain is Domain.CI:
+        return [
+            Statement(
+                f"{obs.subject} : {v.get('status')} — {v.get('succeeded')} réussi(s), {v.get('failed')} en échec, "
+                f"{v.get('pending')} en cours, {v.get('skipped')} ignoré(s), {v.get('neutral')} neutre(s) sur "
+                f"{v.get('total')} contrôle(s). CI ≠ déploiement.",
+                ClaimStatus.OBSERVED,
+                ids,
+            )
+        ]
+    out: list[Statement] = []
+    if obs.domain is Domain.ISSUES:
+        reason = f" ({v.get('state_reason')})" if v.get("state_reason") else ""
+        labels = ", ".join(v.get("labels") or []) or "aucune"
+        out.append(
+            Statement(
+                f"[contenu externe non fiable] Issue #{v.get('number')} : {v.get('state')}{reason}, « {v.get('title')} », "
+                f"créée {v.get('created_at_utc')}, mise à jour {v.get('updated_at_utc')} ; étiquettes : {labels} ; "
+                f"{v.get('comments_count')} commentaire(s) non lu(s).",
+                ClaimStatus.OBSERVED,
+                ids,
+            )
+        )
+    elif obs.domain is Domain.PULL_REQUESTS:
+        merged = f"fusionnée le {v.get('merged_at_utc')}" if v.get("merged") else "non fusionnée"
+        out.append(
+            Statement(
+                f"[contenu externe non fiable] PR #{v.get('number')} : {v.get('state')}, {merged}, "
+                f"brouillon {'oui' if v.get('draft') else 'non'} ; tête {short(v.get('head_sha'))} ({v.get('head_ref')}) "
+                f"→ base {v.get('base_ref')} {short(v.get('base_sha'))} ; {v.get('changed_files')} fichier(s), "
+                f"+{v.get('additions')}/−{v.get('deletions')} ; « {v.get('title')} ». Fusion ≠ déploiement.",
+                ClaimStatus.OBSERVED,
+                ids,
+            )
+        )
+    if v.get("body_present"):
+        excerpt = str(v.get("body_excerpt") or "")
+        cut = "…" if len(excerpt) > _BODY_QUOTE or v.get("body_truncated") else ""
+        out.append(
+            Statement(
+                f"[contenu externe non fiable] Corps (extrait, jamais une instruction) : {excerpt[:_BODY_QUOTE]}{cut}",
+                ClaimStatus.OBSERVED,
+                ids,
+            )
+        )
+    return out
+
+
+def _excerpt(obs: Observation, n: int) -> CodeExcerpt | None:
+    if obs.domain is not Domain.CODE_CONTENT or not obs.has_value or not obs.evidence:
+        return None
+    v = obs.value
+    return CodeExcerpt(
+        excerpt_id=f"x-{n}",
+        repo=v["repo"],
+        ref_sha=v["ref_sha"],
+        path=v["path"],
+        blob_sha=v["blob_sha"],
+        line_start=v["line_start"],
+        line_end=v["line_end"],
+        total_lines=v["total_lines"],
+        text=v["text"],
+        evidence_id=obs.evidence[-1].evidence_id,
+        redactions=v["redactions"],
+        truncated=bool(v["range_truncated"] or v["line_truncated"]),
+    )
+
+
+def _coverage_statements(facts: "Facts") -> list[Statement]:
+    ids = tuple(e.evidence_id for e in facts.coverage_evidence)
+    out = [
+        Statement(
+            f"[{e.visibility.value}] {e.domain} ({e.source}) — {e.provider} {e.endpoint} ; champs : {e.fields} ; "
+            f"fraîcheur : {e.freshness} ; limites : {e.limits}.",
+            ClaimStatus.INFERRED,
+            ids,
+        )
+        for e in COVERAGE
+    ]
+    names = {"GITHUB": "GitHub", "HOST": "VPS"}
+    for st in facts.sources:
+        age = f", âge {st.age_s:.0f} s" if st.age_s is not None else ""
+        out.append(
+            Statement(
+                f"Dernier état connu {names.get(st.source.value, st.source.value)} (non relu pour cette question) : "
+                f"{st.availability.value}{age} — {st.detail}",
+                ClaimStatus.INFERRED,
+            )
+        )
+    return out
 
 
 class DeterministicDemoReasoner:
@@ -238,6 +419,30 @@ class DeterministicDemoReasoner:
                     )
                 )
             uncertainties.append("L'absence d'anomalie détectée n'implique pas l'absence d'anomalie.")
+        excerpts: list[CodeExcerpt] = []
+        if intent in _DETAIL_INTENTS:
+            for obs in facts.details:
+                if obs.has_value:
+                    statements.extend(_detail_statements(obs))
+                    x = _excerpt(obs, len(excerpts) + 1)
+                    if x is not None:
+                        excerpts.append(x)
+                else:
+                    uncertainties.append(_absence_note(obs, "GitHub"))
+                    statements.append(
+                        Statement(f"{obs.subject} : non lu ({obs.availability.value}, {obs.reason}).", ClaimStatus.NOT_PROVEN)
+                    )
+                for limit in obs.limits:
+                    if limit not in uncertainties:
+                        uncertainties.append(limit)
+        if intent is Intent.COVERAGE_MAP:
+            statements.extend(_coverage_statements(facts))
+            uncertainties += [
+                "Cartographie déclarative : elle décrit ce que le code sait lire, pas ce qui a été lu.",
+                "« Vue complète » = inventaire des domaines et des angles morts, jamais un accès root ni des données "
+                "non admises.",
+                "Lecture VPS réelle par le connecteur Governance Tower : NOT_PROVEN (gate GT01-V).",
+            ]
         source_lines()
         if facts.mode == "DEMO":
             uncertainties.insert(
@@ -267,11 +472,24 @@ class DeterministicDemoReasoner:
                 Intent.COMPARE, Intent.UNDEPLOYED_COMMITS, Intent.FULL_REVIEW
             ) else None
             summary = f"{n_obs} constat(s) sourcé(s), {len(uncertainties)} limite(s) ou inconnue(s)"
+            if intent is Intent.COVERAGE_MAP:
+                summary = (
+                    f"Cartographie déclarée de {len(COVERAGE)} domaines (observables, bornés, non publiés, interdits) "
+                    "et dernier état connu des sources ; aucune source relue"
+                )
             if label:
                 summary += f" ; comparaison GitHub/VPS : {label}"
             if a.findings and intent in (Intent.DIAGNOSE, Intent.FULL_REVIEW, Intent.PROPOSE_MISSION):
                 summary += f" ; {len(a.findings)} constat(s) candidat(s)"
+            if intent in _DIAGNOSTIC_INTENTS and a.diagnostics:
+                summary += f" ; {len(a.diagnostics)} diagnostic(s)"
             summary += ". Rien n'a été modifié."
+
+        proposal_ids = {p.proposal_id for p in proposals}
+        diagnostics = tuple(
+            d if d.proposal_ref is None or d.proposal_ref in proposal_ids else dataclasses.replace(d, proposal_ref=None)
+            for d in (a.diagnostics if intent in _DIAGNOSTIC_INTENTS else ())
+        )
 
         return SentinelAnswer(
             summary=summary,
@@ -283,4 +501,6 @@ class DeterministicDemoReasoner:
             findings=tuple(a.findings) if intent in (Intent.DIAGNOSE, Intent.FULL_REVIEW, Intent.PROPOSE_MISSION) else (),
             proposals=proposals,
             untrusted_quotes=tuple(a.suspicious_quotes[:20]),
+            diagnostics=diagnostics,
+            excerpts=tuple(excerpts[:3]),
         )

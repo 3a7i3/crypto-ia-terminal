@@ -20,3 +20,6 @@ Aucun fichier existant n'est modifié par GOV-TOWER-00.
 | Passerelle d'opérations #445 | FUTURE | exécution privilégiée | Sentinel peut seulement *proposer* une mission |
 | Agent Registry #374, Agent Economy #284 | FUTURE | économie/paiements | refus `TRADING_OR_PAYMENT_DENIED` |
 | CI `ci.yml`, portail ruff | KEEP | — | nouveaux tests sous `tests/governance_tower/` collectés automatiquement ; aucun workflow modifié |
+
+GOV-TOWER-01 étend ces décisions sans les changer : voir
+[GOV_TOWER_01_ARCHITECTURE.md](GOV_TOWER_01_ARCHITECTURE.md) (matrice EXISTING / REUSE / EXTEND / NEW / OUT-OF-SCOPE).

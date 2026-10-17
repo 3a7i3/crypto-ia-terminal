@@ -1,4 +1,4 @@
-"""Contrats fermés de Governance Tower (GOV-TOWER-00, lot B).
+"""Contrats fermés de Governance Tower (GOV-TOWER-00, lot B ; étendus par GOV-TOWER-01 M0).
 
 Noyau typé, déterministe et sans effet de bord. Règles :
 
@@ -109,6 +109,8 @@ class Domain(str, Enum):
     HOST_STORAGE = "host_storage"
     HOST_DEPLOYMENT = "host_deployment"
     REFERENCE = "reference"
+    CODE_CONTENT = "code_content"  # GOV-TOWER-01 : extrait borné d'un fichier admis, par SHA
+    COVERAGE = "coverage"  # GOV-TOWER-01 : cartographie déclarée des domaines observables
 
 
 class Intent(str, Enum):
@@ -122,8 +124,55 @@ class Intent(str, Enum):
     CODE_LOCATE = "CODE_LOCATE"
     UNDEPLOYED_COMMITS = "UNDEPLOYED_COMMITS"
     FULL_REVIEW = "FULL_REVIEW"
+    READ_FILE = "READ_FILE"
+    ISSUE_DETAIL = "ISSUE_DETAIL"
+    PULL_DETAIL = "PULL_DETAIL"
+    CI_FOR_SHA = "CI_FOR_SHA"
+    COVERAGE_MAP = "COVERAGE_MAP"
     HELP = "HELP"
     REFUSED = "REFUSED"
+
+
+class DiagnosticCode(str, Enum):
+    """Diagnostics croisés (GOV-TOWER-01 M3). Aucun code n'exprime une violation ni une santé :
+    Sentinel qualifie des preuves, il ne rend pas de verdict d'autorité (#315/#445)."""
+
+    EXPECTED_PINNED_RUNTIME = "EXPECTED_PINNED_RUNTIME"
+    ALIGNED_WITH_MAIN = "ALIGNED_WITH_MAIN"
+    POSSIBLE_DRIFT = "POSSIBLE_DRIFT"
+    STALE = "STALE"
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    NO_DEPLOYED_BUILD_ID = "NO_DEPLOYED_BUILD_ID"
+    NOT_COMPARABLE = "NOT_COMPARABLE"
+    DIVERGED_HISTORY = "DIVERGED_HISTORY"
+    SOURCE_DENIED = "SOURCE_DENIED"
+    SOURCE_RATE_LIMITED = "SOURCE_RATE_LIMITED"
+    SOURCE_UNAVAILABLE = "SOURCE_UNAVAILABLE"
+    CI_FAILURE = "CI_FAILURE"
+    CI_INCONCLUSIVE = "CI_INCONCLUSIVE"
+    ACTIVE_NOT_HEALTH = "ACTIVE_NOT_HEALTH"
+    SERVICE_NOT_RUNNING = "SERVICE_NOT_RUNNING"
+    PARTIAL_HOST_EVIDENCE = "PARTIAL_HOST_EVIDENCE"
+
+
+class DiagnosticLevel(str, Enum):
+    INFO = "INFO"  # constat attendu, rien à signaler de plus que ses limites
+    ATTENTION = "ATTENTION"  # à vérifier par l'opérateur
+    UNKNOWN = "UNKNOWN"  # preuves manquantes : aucune conclusion
+
+
+#: Codes qui décrivent une absence de preuve : ils peuvent n'en citer aucune.
+DIAGNOSTICS_WITHOUT_EVIDENCE = frozenset(
+    {
+        DiagnosticCode.INSUFFICIENT_EVIDENCE,
+        DiagnosticCode.NO_DEPLOYED_BUILD_ID,
+        DiagnosticCode.NOT_COMPARABLE,
+        DiagnosticCode.SOURCE_DENIED,
+        DiagnosticCode.SOURCE_RATE_LIMITED,
+        DiagnosticCode.SOURCE_UNAVAILABLE,
+        DiagnosticCode.CI_INCONCLUSIVE,
+    }
+)
 
 
 # ── Utilitaires purs ─────────────────────────────────────────────────────────
@@ -556,6 +605,87 @@ class MissionProposal:
 
 
 @dataclass(frozen=True)
+class Diagnostic:
+    """Diagnostic pédagogique : observation → interprétation limitée → vérification → proposition.
+
+    ``verification`` n'est jamais vide : un diagnostic dit toujours ce qui reste à
+    prouver (aucun indicateur vert éternel). ``proposal_ref`` désigne au plus une
+    ``MissionProposal`` de la même réponse, qui reste ``NOT_EXECUTED``.
+    """
+
+    diagnostic_id: str
+    code: DiagnosticCode
+    level: DiagnosticLevel
+    title: str
+    observation: str
+    interpretation: str
+    verification: tuple[str, ...]
+    evidence: tuple[EvidenceRef, ...]
+    proposal_ref: str | None = None
+
+    def __post_init__(self) -> None:
+        check_id(self.diagnostic_id, "diagnostic_id")
+        if not isinstance(self.code, DiagnosticCode) or not isinstance(self.level, DiagnosticLevel):
+            raise ContractError("Diagnostic: vocabulaire")
+        check_text(self.title, "title", MAX_SHORT)
+        check_text(self.observation, "observation", MAX_SHORT * 3)
+        check_text(self.interpretation, "interpretation", MAX_SHORT * 3)
+        if not check_items(self.verification, "verification", 12):
+            raise ContractError("un diagnostic dit toujours ce qui reste à vérifier")
+        for item in self.verification:
+            check_text(item, "verification", MAX_SHORT * 2)
+        for ev in check_items(self.evidence, "evidence"):
+            if not isinstance(ev, EvidenceRef):
+                raise ContractError("Diagnostic.evidence: EvidenceRef attendu")
+        if not self.evidence and self.code not in DIAGNOSTICS_WITHOUT_EVIDENCE:
+            raise ContractError(f"{self.code.value} exige au moins une preuve")
+        if self.proposal_ref is not None:
+            check_id(self.proposal_ref, "proposal_ref")
+
+
+MAX_EXCERPT_CHARS = 16_000
+
+
+@dataclass(frozen=True)
+class CodeExcerpt:
+    """Extrait borné d'un fichier admis, identifié par dépôt, SHA immuable, chemin et lignes.
+
+    Le texte est un **contenu non fiable** (jamais une instruction), expurgé des
+    motifs de secrets ; ``blob_sha`` est l'empreinte Git vérifiée du contenu lu.
+    """
+
+    excerpt_id: str
+    repo: str
+    ref_sha: str
+    path: str
+    blob_sha: str
+    line_start: int
+    line_end: int
+    total_lines: int
+    text: str
+    evidence_id: str
+    redactions: int = 0
+    truncated: bool = False
+
+    def __post_init__(self) -> None:
+        check_id(self.excerpt_id, "excerpt_id")
+        check_id(self.evidence_id, "evidence_id")
+        check_text(self.repo, "repo", 100)
+        check_text(self.path, "path", 300)
+        if not (is_sha1(self.ref_sha) and is_sha1(self.blob_sha)):
+            raise ContractError("CodeExcerpt: SHA immuables attendus")
+        for name in ("line_start", "line_end", "total_lines", "redactions"):
+            v = getattr(self, name)
+            if isinstance(v, bool) or not isinstance(v, int) or v < 0:
+                raise ContractError(f"CodeExcerpt.{name}: entier positif attendu")
+        if self.total_lines and not 1 <= self.line_start <= self.line_end <= self.total_lines:
+            raise ContractError("CodeExcerpt: plage de lignes incohérente")
+        check_text(self.text, "text", MAX_EXCERPT_CHARS, allow_empty=True)
+        if not isinstance(self.truncated, bool):
+            raise ContractError("CodeExcerpt.truncated: booléen attendu")
+
+
+@dataclass(frozen=True)
 class Statement:
     text: str
     claim_status: ClaimStatus
@@ -618,6 +748,8 @@ class SentinelAnswer:
     proposals: tuple[MissionProposal, ...] = ()
     refusals: tuple[Refusal, ...] = ()
     untrusted_quotes: tuple[str, ...] = ()
+    diagnostics: tuple[Diagnostic, ...] = ()
+    excerpts: tuple[CodeExcerpt, ...] = ()
 
     def __post_init__(self) -> None:
         check_text(self.summary, "summary", MAX_SHORT * 2)
@@ -629,12 +761,23 @@ class SentinelAnswer:
             "proposals",
             "refusals",
             "untrusted_quotes",
+            "diagnostics",
         ):
             check_items(getattr(self, name), name)
+        check_items(self.excerpts, "excerpts", 3)
         for u in self.uncertainties:
             check_text(u, "uncertainty", MAX_SHORT * 2)
         for q in self.untrusted_quotes:
             check_text(q, "untrusted_quote", MAX_SHORT * 2, allow_empty=True)
+        proposal_ids = {p.proposal_id for p in self.proposals}
+        for d in self.diagnostics:
+            if not isinstance(d, Diagnostic):
+                raise ContractError("diagnostics: Diagnostic attendu")
+            if d.proposal_ref is not None and d.proposal_ref not in proposal_ids:
+                raise ContractError("un diagnostic ne peut renvoyer qu'à une proposition de la même réponse")
+        for x in self.excerpts:
+            if not isinstance(x, CodeExcerpt):
+                raise ContractError("excerpts: CodeExcerpt attendu")
 
 
 @dataclass(frozen=True)
@@ -696,9 +839,10 @@ class AgentRun:
         cited: set[str] = set()
         for st in self.answer.statements:
             cited.update(st.evidence_ids)
-        for group in (self.answer.discrepancies, self.answer.findings):
+        for group in (self.answer.discrepancies, self.answer.findings, self.answer.diagnostics):
             for item in group:
                 cited.update(e.evidence_id for e in item.evidence)
+        cited.update(x.evidence_id for x in self.answer.excerpts)
         unknown = cited - known
         if unknown:
             raise ContractError(f"preuves citées absentes du run: {sorted(unknown)[:5]}")

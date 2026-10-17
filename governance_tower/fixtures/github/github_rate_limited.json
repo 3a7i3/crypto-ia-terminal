@@ -1,0 +1,43 @@
+{
+  "schema": "gt-github-fixture/1",
+  "nature": "SYNTHETIC",
+  "scenario": "github_rate_limited",
+  "warning": "Fixture SYNTHETIC de démonstration (GOV-TOWER-01 M3). Valeurs inventées, jamais une preuve GitHub réelle. Scénario de quota : GitHub répond RATE_LIMITED, aucune valeur.",
+  "repo": "3a7i3/crypto-ia-terminal",
+  "repository": {
+    "absent": {
+      "availability": "RATE_LIMITED",
+      "reason": "RATE_LIMITED"
+    }
+  },
+  "ci": {
+    "absent": {
+      "availability": "RATE_LIMITED",
+      "reason": "RATE_LIMITED"
+    }
+  },
+  "pull_requests": {
+    "absent": {
+      "availability": "RATE_LIMITED",
+      "reason": "RATE_LIMITED"
+    }
+  },
+  "issues": {
+    "absent": {
+      "availability": "RATE_LIMITED",
+      "reason": "RATE_LIMITED"
+    }
+  },
+  "code_tree": {
+    "absent": {
+      "availability": "RATE_LIMITED",
+      "reason": "RATE_LIMITED"
+    }
+  },
+  "comparisons": {
+    "absent": {
+      "availability": "RATE_LIMITED",
+      "reason": "RATE_LIMITED"
+    }
+  }
+}

@@ -139,5 +139,136 @@
         }
       ]
     }
+  },
+  "files": {
+    "available": {
+      "items": [
+        {
+          "ref_sha": "de5e0000000000000000000000000000000000a1",
+          "path": "governance_tower/contracts.py",
+          "type": "file",
+          "content": "\"\"\"[SYNTHETIC] Extrait de démonstration : ce n'est pas le vrai fichier du dépôt.\"\"\"\n\nfrom enum import Enum\n\n\nclass Availability(str, Enum):\n    AVAILABLE = \"AVAILABLE\"\n    STALE = \"STALE\"\n    UNKNOWN = \"UNKNOWN\"\n\n"
+        },
+        {
+          "ref_sha": "de5e0000000000000000000000000000000000a1",
+          "path": "README.md",
+          "type": "file",
+          "content": "# [SYNTHETIC] README de démonstration\n\nAucune donnée réelle.\n"
+        }
+      ]
+    }
+  },
+  "issue_details": {
+    "available": {
+      "items": [
+        {
+          "number": 461,
+          "is_pull_request": false,
+          "state": "open",
+          "state_reason": null,
+          "title": "[SYNTHETIC] GOV-TOWER-01 — Real Observability & Sentinel Intelligence",
+          "body": "[SYNTHETIC] Corps borné de démonstration : passer d'un prototype à un assistant d'investigation READ-ONLY.",
+          "labels": [
+            "governance"
+          ],
+          "comments": 2,
+          "created_at_utc": "2026-10-01T08:00:00Z",
+          "updated_at_utc": "2026-10-16T08:00:00Z",
+          "closed_at_utc": null
+        },
+        {
+          "number": 286,
+          "is_pull_request": false,
+          "state": "open",
+          "state_reason": null,
+          "title": "[SYNTHETIC] GOV-BURNIN-FREEZE-01 — Garde-fou constitutionnel",
+          "body": "[SYNTHETIC] ACTIVE_BURN_IN_IMMUTABILITY_GUARD : référence gelée 116634be0d3c.",
+          "labels": [
+            "governance"
+          ],
+          "comments": 2,
+          "created_at_utc": "2026-10-01T08:00:00Z",
+          "updated_at_utc": "2026-10-16T08:00:00Z",
+          "closed_at_utc": null
+        },
+        {
+          "number": 285,
+          "is_pull_request": false,
+          "state": "open",
+          "state_reason": null,
+          "title": "[SYNTHETIC] Roadmap active",
+          "body": "[SYNTHETIC] Priorisation de démonstration.",
+          "labels": [
+            "governance"
+          ],
+          "comments": 2,
+          "created_at_utc": "2026-10-01T08:00:00Z",
+          "updated_at_utc": "2026-10-16T08:00:00Z",
+          "closed_at_utc": null
+        }
+      ]
+    }
+  },
+  "pull_details": {
+    "available": {
+      "items": [
+        {
+          "number": 460,
+          "state": "closed",
+          "draft": false,
+          "merged": true,
+          "merged_at_utc": "2026-10-16T07:30:00Z",
+          "title": "[SYNTHETIC] feat(governance-tower): fondation Sentinel-01",
+          "body": "[SYNTHETIC] Corps de PR de démonstration.",
+          "head_sha": "de5e0000000000000000000000000000000000b2",
+          "head_ref": "claude/governance-tower-architecture",
+          "base_ref": "main",
+          "base_sha": "116634be0d3c015cce1cfa58be7da7255414fbfd",
+          "updated_at_utc": "2026-10-16T07:30:00Z",
+          "changed_files": 40,
+          "additions": 9000,
+          "deletions": 0
+        }
+      ]
+    }
+  },
+  "ci_by_sha": {
+    "available": {
+      "items": [
+        {
+          "sha": "de5e0000000000000000000000000000000000b2",
+          "check_runs": [
+            {
+              "name": "[SYNTHETIC] TEST REGRESSION GATE",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "name": "[SYNTHETIC] LINT REGRESSION GATE",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "name": "[SYNTHETIC] Claude Approvals",
+              "status": "in_progress",
+              "conclusion": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "branches": {
+    "available": {
+      "items": [
+        {
+          "name": "main",
+          "sha": "de5e0000000000000000000000000000000000a1",
+          "committed_at_utc": "2026-10-16T07:30:00Z",
+          "title": "[SYNTHETIC] Merge #460",
+          "protected": true
+        }
+      ]
+    }
   }
 }

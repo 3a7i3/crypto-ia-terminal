@@ -19,7 +19,8 @@ python -m governance_tower serve --scenario injection --port 8766
 
 Scénarios : `nominal` (runtime épinglé attendu), `injection` (instructions cachées dans PR, issue et journal),
 `drift` (SHA inattendu), `stale` (snapshot périmé), `host_unavailable` (VPS indisponible),
-`github_denied` (GitHub refuse l'accès). Toutes les données sont **SYNTHETIC** et le bandeau
+`github_denied` (GitHub refuse l'accès), et depuis GOV-TOWER-01 `github_rate_limited` (quota GitHub atteint),
+`no_deployment_id` (aucune identité de build publiée), `partial` (un seul snapshot frais). Toutes les données sont **SYNTHETIC** et le bandeau
 « DÉMO — DONNÉES SYNTHÉTIQUES » reste affiché.
 
 Question en ligne de commande :
@@ -99,3 +100,47 @@ un dernier état `AVAILABLE` devient `STALE` (« dernier état connu, périmé �
 (`DENIED`, `ERROR`…) garde son état. La page relit `/api/status` (GET) toutes les 60 s : cette relecture
 ne consulte aucune source. `http://127.0.0.1:8765/#apercu` affiche `sample_run.json`, exemple
 SYNTHETIC versionné, sans remplacer l'état réel des sources de la bannière.
+
+## 8. GOV-TOWER-01 — lectures ciblées, diagnostics, cartographie
+
+Statuts : `GT01_LIVE_GITHUB_PROVEN = NOT_PROVEN`, `GT01_LIVE_VPS_PROVEN = NOT_PROVEN`,
+`GT01_LLM_LIVE = DISABLED`. Tout ce qui suit fonctionne en démo SYNTHETIC ; `--github-live`
+utilise le même code, sous le même budget.
+
+Questions nouvelles :
+
+| Question | Intention | Lecture |
+|---|---|---|
+| « Le VPS exécute-t-il la même version que GitHub ? » | `COMPARE` | dépôt + snapshots, diagnostics croisés |
+| « Lis le fichier governance_tower/contracts.py lignes 1-40 » (option « au SHA <40 hex> ») | `READ_FILE` | 1 GET `/contents`, extrait ≤ 200 lignes, empreinte Git vérifiée |
+| « Montre l'issue #461 » | `ISSUE_DETAIL` | 1 GET, corps ≤ 3000 car. expurgé, commentaires non lus |
+| « Détaille la PR 460 » | `PULL_DETAIL` | 1 GET + CI du SHA de tête de la PR |
+| « Quelle est la CI du commit <40 hex> ? » | `CI_FOR_SHA` | 1 GET check-runs (≤ 100) |
+| « Quels sont tes angles morts ? » | `COVERAGE_MAP` | aucune lecture : cartographie déclarée (`governance_tower/coverage.py`) |
+
+Chemins refusés avant toute requête : `.env*`, `secrets/`, clés (`*.pem`, `id_rsa`…), `.git/`,
+traversée, binaires, extensions hors allowlist. « relance la CI », « ferme l'issue » et toute
+écriture GitHub sont refusés.
+
+Lire un diagnostic : **Observation** (ce qui est publié) → **Interprétation possible** (jamais
+une violation ni une santé) → **Ce qui reste à vérifier** (jamais vide) → **Proposition de
+mission** (non exécutée, aucune autorité). Le code (`EXPECTED_PINNED_RUNTIME`, `POSSIBLE_DRIFT`,
+`NO_DEPLOYED_BUILD_ID`, `ACTIVE_NOT_HEALTH`…) vient du serveur. Les preuves sont repliées sous
+« Preuves (n) » ; un bandeau signale toute source non fraîche ou non lue.
+
+La ligne de mode affiche le raisonneur, l'état du modèle externe (désactivé) et, en lecture
+GitHub réelle, le budget GET consommé.
+
+Démo : en mode DÉMO, l'âge affiché dans la bannière compare l'horodatage figé des fixtures à
+l'horloge réelle (le VPS apparaît « Périmé ») alors que les diagnostics utilisent l'horloge des
+fixtures ; c'est une limite de la démo, pas un état du VPS.
+
+Tests et parcours navigateur :
+
+```bash
+python -m pytest -q tests/governance_tower
+NODE_PATH=$(npm root -g) node scripts/governance_tower/gt01_ui_e2e.mjs docs/governance_tower/screenshots
+```
+
+Le parcours E2E lance des serveurs DÉMO sur `127.0.0.1:18761-18764`, bloque toute requête hors
+loopback et produit les captures `gt01_*` à 390 et 1440 px.

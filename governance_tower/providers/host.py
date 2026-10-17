@@ -9,6 +9,12 @@ Quatre fournisseurs implémentent ``HostObservationProvider`` :
 - ``OperatorApiHostProvider`` (opt-in) : GET des projections de l'Operator API
   via un tunnel local ou HTTPS.
 
+GOV-TOWER-01 M2 (fixtures uniquement, aucune lecture réelle) : identité d'hôte
+attendue (``HOST_MISMATCH``), monotonicité des horodatages entre deux lectures
+(``NON_MONOTONIC``), type de contenu HTTP (``UNEXPECTED_CONTENT_TYPE``), ETag
+consigné comme preuve s'il est sûr. Chaque refus reste borné au snapshot
+concerné : les champs encore prouvés par l'autre snapshot sont conservés.
+
 Règles : aucun shell, aucun processus lancé, aucune commande de service, aucune
 lecture de journaux, aucun accès direct au VPS, aucun secret. Les documents lus
 sont validés par les contrats existants (``observability.runtime_service_contract``
@@ -29,7 +35,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
 
 from governance_tower.contracts import (
@@ -75,7 +81,7 @@ STORAGE_PATH = "/api/operator/v1/storage"
 
 FIXTURE_SCHEMA = "gt-host-fixture/1"
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "host"
-FIXTURE_SCENARIOS = ("nominal", "drift", "stale", "host_unavailable", "injection")
+FIXTURE_SCENARIOS = ("nominal", "drift", "stale", "host_unavailable", "injection", "no_deployment_id", "partial")
 _FIXTURE_REQUIRED = {
     "schema_version",
     "scenario",
@@ -90,6 +96,8 @@ _FIXTURE_REQUIRED = {
 _FIXTURE_OPTIONAL = {"journal_excerpt"}
 _FIXTURE_UNAVAILABLE_REASONS = {"UNREACHABLE", "TIMEOUT", "DENIED"}
 _ERROR_CODE_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
+_ETAG_RE = re.compile(r'^(?:W/)?"[A-Za-z0-9._:+/=-]{1,128}"$')
+_HOST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}$")
 
 # Champs de service exposés : jamais le PID ; l'invocation est tronquée.
 _INVOCATION_PREFIX = 8
@@ -334,6 +342,40 @@ def _check_stale(stale_after_s: float) -> float:
     return value
 
 
+def _check_expected_host(expected_host_id: str | None) -> str | None:
+    if expected_host_id is None:
+        return None
+    if not isinstance(expected_host_id, str) or not _HOST_ID_RE.match(expected_host_id):
+        raise ContractError("expected_host_id: identifiant d'hôte invalide")
+    return expected_host_id
+
+
+class _Controles:
+    """Contrôles inter-lectures d'un fournisseur réel : identité d'hôte et monotonicité.
+
+    Un document qui recule dans le temps par rapport à la lecture précédente
+    (rejeu, cache inversé, document forgé) ou qui décrit un autre hôte devient
+    une absence ``ERROR`` ; il ne remplace jamais la valeur prouvée précédente.
+    """
+
+    def __init__(self, expected_host_id: str | None) -> None:
+        self._expected = _check_expected_host(expected_host_id)
+        self._dernier_observe: dict[str, float] = {}
+
+    def appliquer(self, nom: str, lecture: _Lecture) -> _Lecture:
+        if not lecture.lisible:
+            return lecture
+        doc = lecture.doc
+        if nom == "runtime_service" and self._expected is not None and doc["host_id"] != self._expected:
+            return _absence(Availability.ERROR, "HOST_MISMATCH", lecture.evidence)
+        observe = utc_seconds(doc["observed_at_utc"])
+        precedent = self._dernier_observe.get(nom)
+        if observe is None or (precedent is not None and observe < precedent):
+            return _absence(Availability.ERROR, "NON_MONOTONIC", lecture.evidence)
+        self._dernier_observe[nom] = observe
+        return lecture
+
+
 # ── Fournisseur par défaut : non configuré ──────────────────────────────────
 
 
@@ -530,11 +572,13 @@ class SnapshotDirectoryHostProvider:
         *,
         host_label: str = "VPS",
         stale_after_s: float = DEFAULT_STALE_AFTER_S,
+        expected_host_id: str | None = None,
     ) -> None:
         self._directory = Path(directory)
         self._clock = clock
         self._host_label = check_text(host_label, "host_label", 100)
         self._stale_after_s = _check_stale(stale_after_s)
+        self._controles = _Controles(expected_host_id)
 
     def _preuve(self, nom: str, collected_at: str) -> Callable[..., EvidenceRef]:
         def fabrique(**kw: Any) -> EvidenceRef:
@@ -580,6 +624,8 @@ class SnapshotDirectoryHostProvider:
             st = self._lire(dir_fd, "storage", STORAGE_FILE, STORAGE_MAX_BYTES, collected_at, now_s)
         finally:
             os.close(dir_fd)
+        rs = self._controles.appliquer("runtime_service", rs)
+        st = self._controles.appliquer("storage", st)
         return _assembler(self._host_label, collected_at, rs, st)
 
 
@@ -590,6 +636,7 @@ class SnapshotDirectoryHostProvider:
 class HttpReponse:
     status: int
     body: bytes
+    headers: Mapping[str, str] | None = None  # en-têtes de réponse (noms insensibles à la casse)
 
 
 #: ``transport(url, timeout_s, max_bytes)`` → ``HttpReponse`` ; lève ``TimeoutError``
@@ -641,7 +688,7 @@ def _transport_urllib(url: str, timeout_s: float, max_bytes: int) -> HttpReponse
     requete = urllib.request.Request(url, method="GET")
     try:
         with opener.open(requete, timeout=timeout_s) as reponse:
-            return HttpReponse(reponse.status, reponse.read(max_bytes + 1))
+            return HttpReponse(reponse.status, reponse.read(max_bytes + 1), dict(reponse.headers.items()))
     except urllib.error.HTTPError as exc:
         try:
             body = exc.read(max_bytes + 1)
@@ -649,7 +696,7 @@ def _transport_urllib(url: str, timeout_s: float, max_bytes: int) -> HttpReponse
             body = b""
         finally:
             exc.close()
-        return HttpReponse(exc.code, body)
+        return HttpReponse(exc.code, body, dict(exc.headers.items()) if exc.headers else None)
     except urllib.error.URLError as exc:
         if isinstance(exc.reason, TimeoutError):
             raise TimeoutError("TIMEOUT") from exc
@@ -679,6 +726,7 @@ class OperatorApiHostProvider:
         timeout_s: float = 5.0,
         host_label: str = "VPS",
         stale_after_s: float = DEFAULT_STALE_AFTER_S,
+        expected_host_id: str | None = None,
     ) -> None:
         self._base = check_base_url(base_url)
         self._clock = clock
@@ -688,15 +736,26 @@ class OperatorApiHostProvider:
         self._timeout_s = float(timeout_s)
         self._host_label = check_text(host_label, "host_label", 100)
         self._stale_after_s = _check_stale(stale_after_s)
+        self._controles = _Controles(expected_host_id)
 
-    def _preuve(self, nom: str, collected_at: str) -> Callable[..., EvidenceRef]:
+    def _preuve(self, nom: str, collected_at: str, etag: str | None = None) -> Callable[..., EvidenceRef]:
+        note = "via Operator API" + (f" · ETag {etag}" if etag else "")
+
         def fabrique(**kw: Any) -> EvidenceRef:
             return EvidenceRef(
                 f"ev-host-{nom}", SourceKind.HOST, f"snapshot:{nom}", Provenance.LIVE_READ, collected_at,
-                note="via Operator API", **kw,
+                note=note, **kw,
             )
 
         return fabrique
+
+    @staticmethod
+    def _entetes(reponse: HttpReponse) -> dict[str, str] | None:
+        if reponse.headers is None:
+            return None
+        if not isinstance(reponse.headers, Mapping):
+            raise TypeError("en-têtes hors contrat")
+        return {str(k).lower(): str(v)[:300] for k, v in reponse.headers.items()}
 
     def _lire(self, nom: str, route: str, collected_at: str, now_s: float) -> _Lecture:
         try:
@@ -708,6 +767,10 @@ class OperatorApiHostProvider:
         except Exception:  # transport défaillant : erreur qualifiée, jamais une valeur
             return _absence(Availability.ERROR, "TRANSPORT_ERROR")
         if not isinstance(reponse, HttpReponse) or not isinstance(reponse.body, bytes):
+            return _absence(Availability.ERROR, "TRANSPORT_ERROR")
+        try:
+            entetes = self._entetes(reponse)
+        except TypeError:
             return _absence(Availability.ERROR, "TRANSPORT_ERROR")
         if len(reponse.body) > HTTP_MAX_BYTES:
             return _absence(Availability.ERROR, "OUTPUT_LIMIT")
@@ -722,7 +785,13 @@ class OperatorApiHostProvider:
             return _absence(Availability.NOT_AVAILABLE, self._raison_http(status, reponse.body))
         if status != 200:
             return _absence(Availability.ERROR, f"HTTP_{status}")
-        preuve = self._preuve(nom, collected_at)
+        etag = None
+        if entetes is not None:
+            if entetes.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+                return _absence(Availability.ERROR, "UNEXPECTED_CONTENT_TYPE")
+            candidat = entetes.get("etag")
+            etag = candidat if candidat is not None and _ETAG_RE.match(candidat) else None
+        preuve = self._preuve(nom, collected_at, etag)
         try:
             doc = _charger_json_strict(reponse.body)
         except (ValueError, UnicodeError, RecursionError):
@@ -746,8 +815,8 @@ class OperatorApiHostProvider:
 
     def host_snapshot(self) -> HostSnapshot:
         collected_at, now_s = _collected_at(self._clock)
-        rs = self._lire("runtime_service", RUNTIME_SERVICE_PATH, collected_at, now_s)
-        st = self._lire("storage", STORAGE_PATH, collected_at, now_s)
+        rs = self._controles.appliquer("runtime_service", self._lire("runtime_service", RUNTIME_SERVICE_PATH, collected_at, now_s))
+        st = self._controles.appliquer("storage", self._lire("storage", STORAGE_PATH, collected_at, now_s))
         return _assembler(self._host_label, collected_at, rs, st)
 
 
