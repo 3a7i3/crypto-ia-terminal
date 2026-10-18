@@ -19,8 +19,9 @@ from typing import Callable
 from sentinel_activity.canonical import (
     LedgerError, canonical_bytes, digest, format_utc, parse_utc, pure_int, require, strict_loads,
 )
-from sentinel_activity.contracts import QUEST_TYPES, candidate_from, event_hash, identifier, validate_candidate, validate_recorded
+from sentinel_activity.contracts import candidate_from, event_hash, identifier, validate_candidate, validate_recorded
 from sentinel_activity.policy import admit, validate_policy
+from sentinel_activity.quests import project as _project, projection_bytes
 
 STORAGE_VERSION = "j01-storage/1"
 DB_NAME = "activity.sqlite3"
@@ -58,12 +59,6 @@ class Limits:
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _project(events: list[dict], policy: dict) -> dict:
-    # Quest state support arrives in M3; prior stage fails closed.
-    require(not any(e["event_type"] in QUEST_TYPES for e in events), "ILLEGAL_TRANSITION")
-    return {"quests": {}, "participations": {}}
 
 
 def _root(path: Path) -> Path:
@@ -138,7 +133,7 @@ class ActivityStore:
                         "limits": {"max_events": limits.max_events, "max_bytes": limits.max_bytes,
                                    "per_producer": limits.per_producer}}
                 conn.execute("INSERT INTO ledger_meta VALUES(1,?)", (canonical_bytes(meta).decode(),))
-                conn.execute("INSERT INTO projection VALUES(1,?)", (canonical_bytes(_project([], policy)).decode(),))
+                conn.execute("INSERT INTO projection VALUES(1,?)", (projection_bytes(_project([], policy)).decode(),))
                 conn.commit()
             finally:
                 conn.close()
@@ -218,7 +213,7 @@ class ActivityStore:
         try:
             projection = _project(events, meta["policy"])
             row = conn.execute("SELECT body FROM projection WHERE id=1").fetchone()
-            require(row is not None and row[0] == canonical_bytes(projection).decode(), "CORRUPTED")
+            require(row is not None and row[0] == projection_bytes(projection).decode(), "CORRUPTED")
         except LedgerError as exc:
             raise LedgerError("CORRUPTED") from exc
         return meta, events, projection
@@ -276,7 +271,7 @@ class ActivityStore:
                 conn.execute("INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)", (
                     event["sequence"], event["event_id"], producer_id, request_hash, event["quest_id"],
                     event["actor_id"], event["correlation_id"], recorded, canonical_bytes(event).decode()))
-                conn.execute("UPDATE projection SET body=? WHERE id=1", (canonical_bytes(projection).decode(),))
+                conn.execute("UPDATE projection SET body=? WHERE id=1", (projection_bytes(projection).decode(),))
                 conn.commit()
                 return event
             except BaseException:

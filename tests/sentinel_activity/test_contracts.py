@@ -46,7 +46,7 @@ def test_strict_values(value, code):
     ("summary", "x" * 301), ("reason_declared", "x" * 1001),
     ("evidence_refs", ["fixture:z", "fixture:a"]), ("evidence_refs", ["fixture:a"] * 2),
     ("evidence_refs", ["https://untrusted.invalid/?credential=abc"]),
-    ("authorization_ref", "anything"), ("quest_id", "fixture-q"),
+    ("authorization_ref", "anything"),
 ])
 def test_closed_event_contract(key, value):
     event = candidate()

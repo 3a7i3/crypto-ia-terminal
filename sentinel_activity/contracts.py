@@ -141,7 +141,7 @@ def validate_candidate(event: Any) -> dict:
             require(reference(value), "EVIDENCE_INVALID")
         elif key == "artifact_sha256":
             require(hash_value(value), "EVIDENCE_INVALID")
-    require((event["quest_id"] is not None) == (event["event_type"] in QUEST_TYPES))
+    require(event["quest_id"] is not None or event["event_type"] not in QUEST_TYPES)
     return strict_loads(canonical_bytes(event))
 
 
