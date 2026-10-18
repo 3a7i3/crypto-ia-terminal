@@ -201,6 +201,53 @@ def test_total_count_must_be_a_strict_integer_equal_to_one(app_env, total, accep
         assert r.urls == [INSTALLATION_REPOS_URL]  # aucune lecture du dépôt après le refus
 
 
+# ── R2 / F5 : liste repositories validée brute, sans filtrage ────────────────
+
+_VALID = {"full_name": REPO}
+
+
+@pytest.mark.parametrize(
+    "doc, accepted",
+    [
+        pytest.param({"total_count": 1, "repositories": [_VALID]}, True, id="A-valide"),
+        pytest.param({"total_count": 1, "repositories": [_VALID, "junk"]}, False, id="B-junk"),
+        pytest.param({"total_count": 1, "repositories": [_VALID, None]}, False, id="C-null"),
+        pytest.param({"total_count": 1, "repositories": [_VALID, {}]}, False, id="D-objet-vide"),
+        pytest.param({"total_count": 1, "repositories": ["junk"]}, False, id="E-seul-junk"),
+        pytest.param({"total_count": 1, "repositories": []}, False, id="F-vide"),
+        pytest.param(
+            {"total_count": 2, "repositories": [_VALID, {"full_name": "3a7i3/autre"}]}, False, id="G-deux-depots"
+        ),
+        pytest.param({"total_count": 1}, False, id="H-absent"),
+        pytest.param({"total_count": 1, "repositories": {"0": _VALID}}, False, id="I-objet"),
+        pytest.param({"total_count": True, "repositories": [_VALID]}, False, id="J-total-bool"),
+        pytest.param({"total_count": 1, "repositories": [{"full_name": [REPO]}]}, False, id="full_name-non-texte"),
+    ],
+)
+def test_installation_repositories_are_validated_raw(app_env, doc, accepted):
+    r = Router(scope=ok(doc))
+    p = strict(r)
+    obs = p.branch_head("main")
+    assert all(h.get("Authorization") == f"Bearer {APP_TOKEN}" for _, h in r.calls)  # aucune requête anonyme
+    if accepted:
+        assert obs.has_value and p.auth_status()["identity"] == "INSTALLATION_SCOPE_VERIFIED"
+        assert r.urls == [INSTALLATION_REPOS_URL, f"{API}/branches/main"]
+        return
+    assert obs.availability is Availability.DENIED and obs.reason == Reason.AUTH_UNATTESTED
+    assert p.auth_status()["identity"] == "NOT_ATTESTED"
+    assert r.urls == [INSTALLATION_REPOS_URL]  # aucun GET métier après le refus
+    assert APP_TOKEN not in json.dumps(to_jsonable(obs)) + repr(p) + json.dumps(p.auth_status())
+
+
+def test_f5_regression_extra_non_object_entry_is_not_dropped(app_env):
+    """Le code R1 filtrait les non-objets avant de compter : [dépôt, "junk"] passait (F5)."""
+    r = Router(scope=ok({"total_count": 1, "repositories": [_VALID, "junk"]}))
+    p = strict(r)
+    assert p.branch_head("main").reason == Reason.AUTH_UNATTESTED
+    assert p.auth_status()["identity"] != "INSTALLATION_SCOPE_VERIFIED"
+    assert r.urls == [INSTALLATION_REPOS_URL]
+
+
 # ── R1 / F2 : échec transitoire d'attestation = non concluant, puis récupération ──
 
 

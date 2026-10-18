@@ -17,7 +17,7 @@ sous le nom `OPTIONAL_TOKEN` (défaut), déclaré « non attesté ».
 |---|---|
 | `GT_SENTINEL_INSTALLATION_TOKEN` = jeton d'installation (`ghs_…`) | `AUTH_MISSING`, aucune requête |
 | `GT_SENTINEL_APP_SLUG` = `crypto-ai-sentinel-observer` | `AUTH_IDENTITY_MISMATCH`, aucune requête |
-| `GET /installation/repositories?per_page=100` : `total_count` entier JSON strict égal à 1 (ni booléen, ni `1.0`, ni `"1"`), seul dépôt `3a7i3/crypto-ia-terminal` | `AUTH_UNATTESTED`, aucune lecture ; pas de relance avec le même jeton |
+| `GET /installation/repositories?per_page=100` : `total_count` entier JSON strict égal à 1 (ni booléen, ni `1.0`, ni `"1"`) ; `repositories` liste brute d'exactement un objet, sans filtrage (R2) ; `full_name` = `3a7i3/crypto-ia-terminal` | `AUTH_UNATTESTED`, aucune lecture ; pas de relance avec le même jeton |
 | attestation impossible : `NETWORK`, `TIMEOUT`, `TRANSPORT_ERROR`, `SERVER_ERROR` (5xx) | `NOT_AVAILABLE` avec la raison d'origine, aucune lecture, **non mis en cache** : nouvel essai à la question suivante, dans les budgets (absence de preuve ≠ refus, R1) |
 | chaque requête porte `Authorization` | jeton disparu en cours de route : `AUTH_MISSING`, rien n'est émis |
 | `GT_GITHUB_TOKEN` | jamais lu en mode strict (aucun repli) |

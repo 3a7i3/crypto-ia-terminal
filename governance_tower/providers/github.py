@@ -1769,13 +1769,12 @@ class HttpGithubProvider(_GithubReaderBase):
                 f"périmètre d'installation non attesté ({res.reason}) : aucune lecture",
                 res.evidence,
             )
+        # Liste brute, sans filtrage (R2) : exactement un élément, et cet élément est un objet.
         data = res.data if isinstance(res.data, dict) else {}
         repos = data.get("repositories")
-        names = (
-            [r.get("full_name") for r in repos if isinstance(r, dict)] if isinstance(repos, list) else None
-        )
+        only = repos[0] if isinstance(repos, list) and len(repos) == 1 else None
         total = data.get("total_count")
-        if not _is_int(total) or total != 1 or names is None or len(names) != 1 or names[0] != self.repo:
+        if not _is_int(total) or total != 1 or not isinstance(only, dict) or only.get("full_name") != self.repo:
             return _Fail(
                 Availability.DENIED,
                 Reason.AUTH_UNATTESTED,
