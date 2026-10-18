@@ -49,7 +49,7 @@ Python 3.11.17, Ruff 0.15.8, repository CI dependencies; no dependency file edit
 
 | Validation | Result and scope |
 |---|---|
-| Final focused run | **939 passed**, one deprecation warning: 109 J01 + 830 Governance Tower/cross-stack tests |
+| Final focused run | **940 passed**, one deprecation warning: 110 J01 + 830 Governance Tower/cross-stack tests |
 | Prior J01-only coverage run | 108 passed, **98%** combined statement/branch report (rounded); supplementary config outside repo, no baseline change |
 | Ruff direct + regression gate | PASS, **0 new findings** |
 | Broad local regression | 8,470 passed, **11 failed**, 21 skipped, 13 deselected, 2 xfailed; not a global PASS |
@@ -72,8 +72,9 @@ python -m pytest -q -m 'not performance and not slow' tests/
 
 The existing .coveragerc includes historical modules but excludes J01 from its
 report. The supplemental J01 coverage configuration was outside the repository;
-no existing coverage target or gate was weakened. The last independent envelope
-hash test was added after that coverage run and passes in the final focused run.
+no existing coverage target or gate was weakened. The later independent envelope
+hash and optimized-process retry tests pass in the final focused run; neither
+is counted in that earlier coverage figure.
 
 ## Local regression failures: preserved, not bypassed
 
@@ -109,8 +110,8 @@ A separate process reopens the database and obtains the same count, head hash
 and quest/participation projections. Retrying the last event adds no record.
 The test harness terminates actual child processes with os._exit before commit
 and after commit/before acknowledgment. Before commit: zero events; after commit:
-one durable event and the original receipt on retry. No production crash hook
-is shipped. These are process-crash tests, NOT power-loss/fsync hardware proof.
+one durable event and the original receipt on retry. The demo retry is explicit rather than an assertion side effect, and is
+verified under optimized Python (-O) as well. No production crash hook is shipped. These are process-crash tests, NOT power-loss/fsync hardware proof.
 
 | Threat/invariant | Executed evidence |
 |---|---|

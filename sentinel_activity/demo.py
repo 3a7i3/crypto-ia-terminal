@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 
 from sentinel_activity import SCHEMA_VERSION
+from sentinel_activity.canonical import require
 from sentinel_activity.integrity import report
 from sentinel_activity.store import ActivityStore, utc_now
 
@@ -56,7 +57,8 @@ def run_demo(root: Path, *, clock=utc_now) -> dict:
         }
         last_record = store.append(last_candidate, producer_id='fixture-' + actor)
     reopened = ActivityStore(root, clock=clock)
-    assert reopened.append(last_candidate, producer_id='fixture-closer') == last_record
+    retry = reopened.append(last_candidate, producer_id='fixture-closer')
+    require(retry == last_record, 'CORRUPTED')
     meta, events, projection = reopened.snapshot()
     return {**report(meta, events), 'projection': projection, 'retry_added_events': 0,
             'real_agents_running': 'NOT_PROVEN', 'runtime_authority': 'NONE'}

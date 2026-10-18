@@ -270,3 +270,27 @@ def test_recorded_chain_hashes_match_independent_full_envelope_formula(tmp_path)
         assert actual == hashlib.sha256(raw).hexdigest()
         assert material['integrity']['previous_hash'] == previous
         previous = actual
+
+
+def test_demo_exercises_retry_even_under_optimized_python(tmp_path):
+    root = tmp_path / 'j01-lab-optimized-demo'
+    root.mkdir(mode=0o700)
+    code = '''
+import sys
+from pathlib import Path
+from sentinel_activity.demo import run_demo
+from sentinel_activity.store import ActivityStore
+original = ActivityStore.append
+calls = []
+def tracked(self, candidate, **kwargs):
+    calls.append(candidate['event_id'])
+    return original(self, candidate, **kwargs)
+ActivityStore.append = tracked
+run_demo(Path(sys.argv[1]))
+if len(calls) != 10 or calls[-1] != calls[-2]:
+    raise RuntimeError('synthetic retry was skipped')
+'''
+    # Execute the actual demo in a fresh optimized process; no assertion may carry an action.
+    result = subprocess.run([sys.executable, '-O', '-c', code, str(root)], cwd=ROOT,
+                            capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
