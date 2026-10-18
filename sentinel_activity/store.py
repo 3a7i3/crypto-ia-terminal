@@ -21,6 +21,7 @@ from sentinel_activity.canonical import (
 )
 from sentinel_activity.contracts import candidate_from, event_hash, identifier, validate_candidate, validate_recorded
 from sentinel_activity.policy import admit, validate_policy
+from sentinel_activity.integrity import validate_causation, verify_events
 from sentinel_activity.quests import project as _project, projection_bytes
 
 STORAGE_VERSION = "j01-storage/1"
@@ -95,6 +96,8 @@ def _translate():
             raise LedgerError("BUSY") from exc
         if code in {sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB}:
             raise LedgerError("CORRUPTED") from exc
+        if code == sqlite3.SQLITE_ERROR:
+            raise LedgerError("CORRUPTED") from exc
         raise LedgerError("UNAVAILABLE") from exc
     except OSError as exc:
         raise LedgerError("UNAVAILABLE") from exc
@@ -142,8 +145,13 @@ class ActivityStore:
     @contextmanager
     def _connection(self, readonly: bool = False):
         _root(self.root)
+        total_size = 0
         for suffix in ("", "-wal", "-shm", "-journal"):
-            _private_file(Path(str(self.path) + suffix), missing=bool(suffix))
+            path = Path(str(self.path) + suffix)
+            _private_file(path, missing=bool(suffix))
+            if path.exists():
+                total_size += path.stat().st_size
+        require(total_size <= 128 * 1024 * 1024, "BUDGET_EXCEEDED")
         uri = self.path.as_uri() + ("?mode=ro" if readonly else "?mode=rw")
         conn = sqlite3.connect(uri, uri=True, timeout=2, isolation_level=None)
         try:
@@ -161,6 +169,14 @@ class ActivityStore:
 
     @staticmethod
     def _metadata(conn):
+        # Refuse altered table/index/trigger definitions, including removed guards.
+        reference = sqlite3.connect(":memory:")
+        try:
+            reference.executescript(_SCHEMA)
+            query = "SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name"
+            require(conn.execute(query).fetchall() == reference.execute(query).fetchall(), "CORRUPTED")
+        finally:
+            reference.close()
         row = conn.execute("SELECT body FROM ledger_meta WHERE id=1").fetchone()
         require(row is not None, "CORRUPTED")
         meta = strict_loads(row[0])
@@ -178,57 +194,37 @@ class ActivityStore:
 
     def _verified(self, conn):
         meta = self._metadata(conn)
+        require(conn.execute("SELECT COUNT(*) FROM ledger_meta").fetchone()[0] == 1, "CORRUPTED")
+        require(conn.execute("SELECT COUNT(*) FROM projection").fetchone()[0] == 1, "CORRUPTED")
+        require(conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] <= meta["limits"]["max_events"], "CORRUPTED")
+        require(conn.execute("SELECT COUNT(*) FROM events WHERE length(CAST(body AS BLOB))>32768").fetchone()[0]
+                == 0, "CORRUPTED")
         events = []
         rows = conn.execute("SELECT sequence,event_id,producer_id,request_hash,quest_id,actor_id,"
                             "correlation_id,recorded_at_utc,body FROM events ORDER BY sequence")
-        previous = "GENESIS"
-        seen = {}
         for row in rows:
             require(len(events) < meta["limits"]["max_events"], "CORRUPTED")
             try:
                 event = strict_loads(row[8])
-                validate_recorded(event)
                 require(canonical_bytes(event).decode() == row[8], "CORRUPTED")
-                admit(event, event["producer_id"], meta["policy"])
                 expected = (event["sequence"], event["event_id"], event["producer_id"],
                             digest({"candidate": candidate_from(event), "producer_id": event["producer_id"]}),
                             event["quest_id"], event["actor_id"], event["correlation_id"], event["recorded_at_utc"])
                 require(tuple(row[:8]) == expected, "CORRUPTED")
-                require(event["ledger_id"] == meta["ledger_id"] and event["ingestion_policy_version"] ==
-                        meta["policy"]["version"], "CORRUPTED")
-                require(event["sequence"] == len(events) + 1 and event["integrity"]["previous_hash"] == previous,
-                        "CORRUPTED")
-                require(event["event_id"] not in seen, "CORRUPTED")
-                self._causation(event, seen)
-                if events:
-                    require(parse_utc(event["recorded_at_utc"]) >= parse_utc(events[-1]["recorded_at_utc"]),
-                            "CORRUPTED")
-                previous = event["integrity"]["event_hash"]
-                seen[event["event_id"]] = event
                 events.append(event)
             except LedgerError as exc:
                 if exc.code == "UNKNOWN_VERSION":
                     raise
                 raise LedgerError("CORRUPTED") from exc
+            except (KeyError, TypeError, IndexError) as exc:
+                raise LedgerError("CORRUPTED") from exc
         try:
-            projection = _project(events, meta["policy"])
+            projection = verify_events(meta, events)
             row = conn.execute("SELECT body FROM projection WHERE id=1").fetchone()
             require(row is not None and row[0] == projection_bytes(projection).decode(), "CORRUPTED")
         except LedgerError as exc:
             raise LedgerError("CORRUPTED") from exc
         return meta, events, projection
-
-    @staticmethod
-    def _causation(event, seen):
-        cause = event["causation_event_id"]
-        if cause is not None:
-            require(cause in seen, "CAUSATION_INVALID")
-            parent = seen[cause]
-            require(parent["quest_id"] == event["quest_id"] and parent["correlation_id"] == event["correlation_id"],
-                    "CAUSATION_INVALID")
-        related = event["payload"].get("related_event_id")
-        if related is not None:
-            require(related in seen and related == cause, "CAUSATION_INVALID")
 
     def snapshot(self):
         with _translate(), self._connection(readonly=True) as conn:
@@ -250,7 +246,7 @@ class ActivityStore:
                             == request_hash, "EVENT_ID_COLLISION")
                     conn.rollback()
                     return existing
-                self._causation(event, {e["event_id"]: e for e in events})
+                validate_causation(event, {e["event_id"]: e for e in events})
                 recorded = format_utc(self.clock())
                 require(not events or parse_utc(recorded) >= parse_utc(events[-1]["recorded_at_utc"]),
                         "CLOCK_REGRESSION")
@@ -267,7 +263,8 @@ class ActivityStore:
                         "BUDGET_EXCEEDED")
                 # Reserve for WAL frames, index pages and this bounded transaction.
                 size = sum(p.stat().st_size for p in self.root.glob(DB_NAME + "*") if p.is_file())
-                require(size + 65_536 + 4 * len(canonical_bytes(event)) <= limits["max_bytes"], "BUDGET_EXCEEDED")
+                require(size + 65_536 + 4 * len(canonical_bytes(event)) +
+                        2 * len(projection_bytes(projection)) <= limits["max_bytes"], "BUDGET_EXCEEDED")
                 conn.execute("INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)", (
                     event["sequence"], event["event_id"], producer_id, request_hash, event["quest_id"],
                     event["actor_id"], event["correlation_id"], recorded, canonical_bytes(event).decode()))
