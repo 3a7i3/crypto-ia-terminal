@@ -25,7 +25,7 @@ def verify_events(meta: dict, events: list[dict]) -> dict:
     try:
         validate_policy(meta["policy"])
         require(meta["mode"] == "SIMULATED_ONLY" and meta["policy_hash"] == digest(meta["policy"]), "CORRUPTED")
-        require(type(events) is list and len(events) <= meta["limits"]["max_events"], "CORRUPTED")
+        require(type(events) is list and len(events) <= min(10_000, meta["limits"]["max_events"]), "CORRUPTED")
         seen, counts = {}, {}
         previous = "GENESIS"
         previous_recorded = None

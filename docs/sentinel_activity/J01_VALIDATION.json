@@ -1,0 +1,107 @@
+{
+  "evidence_schema": "j01-source-validation/1",
+  "status": "READY_FOR_INDEPENDENT_SOURCE_REVIEW_NOT_CERTIFIED",
+  "base_sha": "a49eedfcd683145cf8ae6e38c6dc38cff8ea698e",
+  "plan_reference": "PR #465 @ 811c2feda8dfe4439c77ec23bd8e88d4248aedef; explicit Work implementation approval 2026-10-18",
+  "scope": "SOURCE_ONLY / SIMULATED_ONLY / NOT_DEPLOYED / #286 ACTIVE",
+  "python": "3.11.17",
+  "final_focused_run": {
+    "command": "python -m pytest -q tests/sentinel_activity/ tests/governance_tower/ tests/cross_stack/",
+    "passed": 939,
+    "j01_tests": 109,
+    "neighbor_tests": 830,
+    "log_sha256": "f988335215070cdd4f0a8cb18202d83d9415d088e117f703cd8102a796710268"
+  },
+  "prior_j01_coverage_run": {
+    "passed": 108,
+    "statement_and_branch_combined_percent_rounded": 98,
+    "scope_note": "Supplementary J01-only coverage configuration outside the repository. Existing .coveragerc and baselines unchanged. One later independent full-envelope hash test is covered by final focused run, not by this earlier coverage figure."
+  },
+  "broad_regression_run": {
+    "command": "python -m pytest -q -m 'not performance and not slow' tests/",
+    "passed": 8470,
+    "failed": 11,
+    "skipped": 21,
+    "deselected": 13,
+    "xfailed": 2,
+    "duration_s": 269.39,
+    "scope_note": "Earlier M5 qualification snapshot (99 J01 tests). Final focused run validates the subsequent pure verifier bound, stronger corruption assertions and added tests. This is not a final-HEAD global PASS. Exact final-HEAD CI remains required."
+  },
+  "baseline_comparison": {
+    "baseline_sha": "a49eedfcd683145cf8ae6e38c6dc38cff8ea698e",
+    "global_failed": [
+      "tests/test_passive_publishers_g2.py::test_apply_and_rollback_refuse_an_unprotected_script_copy",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_a_publisher_fails",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_the_artifact_is_missing",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_the_contract_is_invalid",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_verify_fails_but_still_reports_and_cleans",
+      "tests/test_passive_publishers_units.py::test_g1_never_validates_a_failed_run_with_the_artifact_of_a_previous_run",
+      "tests/test_passive_publishers_units.py::test_g1_paste_block_verifies_its_hash_runs_and_removes_its_directory",
+      "tests/test_passive_publishers_units.py::test_g1_signal_stops_the_running_child_cleans_up_and_exits_with_the_signal_status[SIGHUP-129]",
+      "tests/test_passive_publishers_units.py::test_g1_signal_stops_the_running_child_cleans_up_and_exits_with_the_signal_status[SIGINT-130]",
+      "tests/test_passive_publishers_units.py::test_g1_signal_stops_the_running_child_cleans_up_and_exits_with_the_signal_status[SIGTERM-143]",
+      "tests/test_passive_publishers_units.py::test_g1_writes_only_to_a_temporary_directory_and_cleans_up"
+    ],
+    "baseline_failed": [
+      "tests/test_passive_publishers_g2.py::test_apply_and_rollback_refuse_an_unprotected_script_copy",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_a_publisher_fails",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_the_artifact_is_missing",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_the_contract_is_invalid",
+      "tests/test_passive_publishers_units.py::test_g1_exits_nonzero_when_verify_fails_but_still_reports_and_cleans",
+      "tests/test_passive_publishers_units.py::test_g1_never_validates_a_failed_run_with_the_artifact_of_a_previous_run",
+      "tests/test_passive_publishers_units.py::test_g1_paste_block_verifies_its_hash_runs_and_removes_its_directory",
+      "tests/test_passive_publishers_units.py::test_g1_signal_stops_the_running_child_cleans_up_and_exits_with_the_signal_status[SIGHUP-129]",
+      "tests/test_passive_publishers_units.py::test_g1_signal_stops_the_running_child_cleans_up_and_exits_with_the_signal_status[SIGINT-130]",
+      "tests/test_passive_publishers_units.py::test_g1_signal_stops_the_running_child_cleans_up_and_exits_with_the_signal_status[SIGTERM-143]",
+      "tests/test_passive_publishers_units.py::test_g1_writes_only_to_a_temporary_directory_and_cleans_up"
+    ],
+    "identical_failure_set": true,
+    "candidate_only_failures": [],
+    "baseline_group_result": {
+      "failed": 11,
+      "passed": 64
+    }
+  },
+  "lint": {
+    "ruff_version": "0.15.8",
+    "new_findings": 0,
+    "baseline_unchanged": true
+  },
+  "benchmark": {
+    "sample_events": 100,
+    "append_median_ms": 78.903,
+    "append_max_ms": 172.406,
+    "full_snapshot_ms": 167.582,
+    "files_bytes_after_closed_connections": 208896,
+    "network_calls": 0,
+    "qualification": "LOCAL_SAMPLE_ONLY_NOT_CAPACITY_CERTIFICATION"
+  },
+  "source_sha256": {
+    "sentinel_activity/__init__.py": "d3aee8b5e07eb290147baaea7e9ab030052fc810e344a32a4ca0ceb5c0090372",
+    "sentinel_activity/backup.py": "906de968735c3dce51b167bb122b96d35c72f46be7b29e87923863d0847fe72d",
+    "sentinel_activity/canonical.py": "cda0928be444dc8efa87a1892f34b35f803470ff18707ad18985a694eb89ec2a",
+    "sentinel_activity/contracts.py": "ce4434a137b34e60af9652ae2b62060adb3f2a1d55c71a66f61f0e59546348ac",
+    "sentinel_activity/demo.py": "6ce0cf517171b8c264673f53222da8a7a1e54e4f040712bf269aef6e3edc58d2",
+    "sentinel_activity/integrity.py": "b087dc327c6207f2724cc078326a505bc2428bb397ecf99a891869b965c5d00d",
+    "sentinel_activity/policy.py": "b900df23cc465155c72d1bb0cca93143e470cce10c63493ece9866f4c124d0ec",
+    "sentinel_activity/quests.py": "2c9375c9a3c7138dceef74ecc7bc0b71e2047db6e606fa4c007f86f124a51a05",
+    "sentinel_activity/reader.py": "bce9e4ce788844a0ac92a02124b344ffd3f5e968bbb92f39eb887c3559118475",
+    "sentinel_activity/store.py": "66494e76f60100803da76db9ba3d2fadd9077ced2c64c6c99367809107591951",
+    "tests/sentinel_activity/__init__.py": "4d440a2df74464b7f0edef6dd444675b8bc67feead5f80ec42c32c8fd64009aa",
+    "tests/sentinel_activity/builders.py": "64fcb05d597e1a8e26fd0e10bf65275c31b35eb80ce6852a5d967db3b84ca6df",
+    "tests/sentinel_activity/process_probe.py": "9392737121777622a70b0016e9acf198bfa614875d3a8180fa9fa97ad4e7f99f",
+    "tests/sentinel_activity/quest_builders.py": "b94b8746584e4c6f93641b6eb2d985098d56a93f1f2a72ab7fbdfd9729c2e5a0",
+    "tests/sentinel_activity/test_contracts.py": "dc60510384112674f404e7a488f77199cd63692e4c97c4af4dc1dcb649dae99d",
+    "tests/sentinel_activity/test_qualification.py": "1bc1f1f871e5d3cbaa58387706ae51c1d1dd2859ae1a81b0768548a68a1a6349",
+    "tests/sentinel_activity/test_quests.py": "93a948bd9bea866eb13de77928e81871ca8d297d5915a5d56cb0a0a6450cbd74",
+    "tests/sentinel_activity/test_recovery.py": "ae6226c45065a0ca1b6f3eafb167c9ea9303f133ebe40c8f293df28231dbb937",
+    "tests/sentinel_activity/test_store.py": "29fe9c7294586c9a641f5e0b459ba02338927088f3b10b384ecdcd227af33adc"
+  },
+  "limits": [
+    "No independent review performed by another reviewer in this implementation session.",
+    "No real producer authentication, external anti-rollback anchor, tail completeness or power-loss qualification.",
+    "No runtime deployment, API route, worker, real operator approval, LLM, AIC, GitHub writer or VPS access.",
+    "Adjacent backup manifest and hash chain are consistency mechanisms, not independent authenticity proofs.",
+    "Final remote commit/tree, CI and review status must be read from PR metadata."
+  ]
+}

@@ -62,6 +62,7 @@ def test_partial_database_tampering_detected_before_retry(tmp_path, mutation):
     store.append(candidate(), producer_id='fixture-producer')
     store.append(candidate('fixture-next'), producer_id='fixture-producer')
     with sqlite3.connect(store.path) as conn:
+        triggers = conn.execute("SELECT sql FROM sqlite_master WHERE name IN ('events_no_update','events_no_delete')").fetchall()
         conn.execute('DROP TRIGGER events_no_update')
         conn.execute('DROP TRIGGER events_no_delete')
         if mutation == 'index':
@@ -79,6 +80,8 @@ def test_partial_database_tampering_detected_before_retry(tmp_path, mutation):
             else:
                 event['summary'] = 'Changed after recording'
             conn.execute('UPDATE events SET body=? WHERE sequence=1', (canonical_bytes(event).decode(),))
+        for (trigger,) in triggers:
+            conn.execute(trigger)
     assert read_page(store.root)['status'] == 'CORRUPTED'
     with pytest.raises(LedgerError, match='CORRUPTED'):
         store.append(candidate(), producer_id='fixture-producer')
