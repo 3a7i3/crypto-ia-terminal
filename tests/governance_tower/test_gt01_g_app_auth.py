@@ -63,6 +63,8 @@ class Router:
     def __call__(self, url, headers, timeout):
         self.calls.append((url, dict(headers)))
         if url == INSTALLATION_REPOS_URL:
+            if isinstance(self.scope, BaseException):
+                raise self.scope
             return self.scope
         if url == f"{API}/branches/main":
             return self.branch
@@ -169,6 +171,103 @@ def test_unattested_scope_blocks_every_read(app_env, scope):
     again = p.branch_head("main")
     assert again.reason == Reason.AUTH_UNATTESTED and r.urls == [INSTALLATION_REPOS_URL]  # même jeton : pas de relance
     assert p.auth_status() == {"mode": AuthMode.APP_INSTALLATION, "identity": "NOT_ATTESTED", "reason": Reason.AUTH_UNATTESTED}
+
+
+# ── R1 / F1 : total_count strictement entier égal à 1 ───────────────────────
+
+_ABSENT = object()
+
+
+@pytest.mark.parametrize(
+    "total, accepted",
+    [
+        (True, False), (False, False), (1, True), (0, False), (2, False),
+        ("1", False), (1.0, False), (None, False), (_ABSENT, False), ([1], False), ({"n": 1}, False),
+    ],
+)
+def test_total_count_must_be_a_strict_integer_equal_to_one(app_env, total, accepted):
+    doc = {"repositories": [{"full_name": REPO}]}
+    if total is not _ABSENT:
+        doc["total_count"] = total
+    r = Router(scope=ok(doc))
+    p = strict(r)
+    obs = p.branch_head("main")
+    if accepted:
+        assert obs.has_value and p.auth_status()["identity"] == "INSTALLATION_SCOPE_VERIFIED"
+        assert r.urls == [INSTALLATION_REPOS_URL, f"{API}/branches/main"]
+    else:
+        assert obs.availability is Availability.DENIED and obs.reason == Reason.AUTH_UNATTESTED
+        assert p.auth_status()["identity"] == "NOT_ATTESTED"
+        assert r.urls == [INSTALLATION_REPOS_URL]  # aucune lecture du dépôt après le refus
+
+
+# ── R1 / F2 : échec transitoire d'attestation = non concluant, puis récupération ──
+
+
+@pytest.mark.parametrize(
+    "failure, reason",
+    [
+        (ConnectionError("réseau"), Reason.NETWORK),
+        (TimeoutError("délai"), Reason.TIMEOUT),
+        (ValueError("transport"), Reason.TRANSPORT_ERROR),
+        ((500, {}, b"{}"), Reason.SERVER_ERROR),
+        ((503, {}, b"{}"), Reason.SERVER_ERROR),
+    ],
+)
+def test_transient_attestation_failure_is_inconclusive_and_recovers(app_env, failure, reason):
+    r = Router(scope=failure)
+    p = strict(r)
+    # Question 1 : attestation impossible.
+    p.begin_investigation()
+    obs = p.branch_head("main")
+    assert obs.availability is Availability.NOT_AVAILABLE and obs.reason == reason
+    assert not obs.has_value
+    assert r.urls == [INSTALLATION_REPOS_URL]  # aucune lecture métier
+    assert all(h.get("Authorization") == f"Bearer {APP_TOKEN}" for _, h in r.calls)  # aucune requête anonyme
+    assert p.auth_status() == {"mode": AuthMode.APP_INSTALLATION, "identity": "NOT_ATTESTED", "reason": None}
+    assert p._attest_fail is None  # aucun refus d'identité mis en cache
+    assert p.budget_status()["used_this_question"] == 1
+    # Question 2 : même fournisseur, même jeton, transport rétabli.
+    r.scope = ok(SCOPE_OK)
+    p.begin_investigation()
+    obs = p.branch_head("main")
+    assert obs.has_value and obs.value["sha"] == HEAD
+    assert r.urls == [INSTALLATION_REPOS_URL, INSTALLATION_REPOS_URL, f"{API}/branches/main"]
+    assert all(e.provenance.value == "LIVE_READ" and e.note.endswith("auth APP_INSTALLATION") for e in obs.evidence)
+    assert p.auth_status()["identity"] == "INSTALLATION_SCOPE_VERIFIED"
+    status = p.budget_status()
+    assert status["used_this_question"] == 2 and status["used_in_window"] == 3 and p.requests_sent == 3
+    assert APP_TOKEN not in json.dumps(to_jsonable(obs)) + repr(p) + json.dumps(p.auth_status())
+
+
+def test_transient_failure_within_a_question_stops_further_reads(app_env):
+    r = Router(scope=ConnectionError("réseau"))
+    p = strict(r)
+    snap = p.repository_snapshot()
+    assert snap.head_sha is None and snap.availability is not Availability.AVAILABLE
+    assert r.urls == [INSTALLATION_REPOS_URL]  # un seul essai, aucune boucle
+
+
+def test_recovery_never_bypasses_budgets_or_remote_block(app_env):
+    r = Router(scope=(503, {}, b"{}"))
+    p = HttpGithubProvider(
+        REPO, clock=clock, transport=r, auth_mode=AuthMode.APP_INSTALLATION,
+        max_requests=2, max_requests_per_question=1,
+    )
+    for _ in range(2):  # deux questions, chacune un seul essai d'attestation
+        p.begin_investigation()
+        assert p.branch_head("main").reason == Reason.SERVER_ERROR
+    r.scope = ok(SCOPE_OK)
+    p.begin_investigation()
+    obs = p.branch_head("main")  # plafond de service atteint : rien n'est émis
+    assert obs.reason == Reason.BUDGET_EXCEEDED and len(r.calls) == 2
+    # Quota distant GitHub : le blocage persiste entre questions, aucune relance.
+    r2 = Router(scope=(429, {"retry-after": "120"}, b"{}"))
+    p2 = strict(r2)
+    p2.branch_head("main")
+    r2.scope = ok(SCOPE_OK)
+    p2.begin_investigation()
+    assert p2.branch_head("main").reason == Reason.RATE_LIMITED and len(r2.calls) == 1
 
 
 def test_rate_limited_attestation_is_not_cached_as_unattested(app_env):

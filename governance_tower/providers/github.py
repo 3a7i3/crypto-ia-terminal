@@ -184,6 +184,8 @@ INSTALLATION_REPOS_URL = f"{API_ROOT}/installation/repositories?per_page=100"
 _REPO_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}$")
 _REF_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._/-]{0,199}$")
 _TOKEN_RE = re.compile(r"^[A-Za-z0-9_.-]{1,512}$")
+#: Échecs d'attestation non concluants (GT01-G-INTEGRATION-01-R1) : jamais un refus d'identité.
+_TRANSIENT_ATTESTATION = frozenset({Reason.NETWORK, Reason.TIMEOUT, Reason.TRANSPORT_ERROR, Reason.SERVER_ERROR})
 _INSTALLATION_TOKEN_RE = re.compile(r"^ghs_[A-Za-z0-9_]{36,251}$")
 _APP_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,99}$")
 _ENV_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
@@ -1714,10 +1716,12 @@ class HttpGithubProvider(_GithubReaderBase):
         if self._auth_mode != AuthMode.APP_INSTALLATION:
             return None
         fail = self._auth_check()
-        if fail is None:
-            self._auth_reason = None
-        elif fail.reason in (Reason.AUTH_MISSING, Reason.AUTH_IDENTITY_MISMATCH, Reason.AUTH_UNATTESTED):
+        if fail is not None and fail.reason in (
+            Reason.AUTH_MISSING, Reason.AUTH_IDENTITY_MISMATCH, Reason.AUTH_UNATTESTED
+        ):
             self._auth_reason = fail.reason
+        else:  # succès ou échec non concluant : aucun refus d'identité affiché
+            self._auth_reason = None
         return fail
 
     def _auth_check(self) -> _Fail | None:
@@ -1751,6 +1755,14 @@ class HttpGithubProvider(_GithubReaderBase):
         if isinstance(res, _Fail):
             if res.reason in (Reason.BUDGET_EXCEEDED, Reason.RATE_LIMITED, Reason.NOT_FETCHED):
                 return res  # non concluant : réessayé à la question suivante
+            if res.reason in _TRANSIENT_ATTESTATION:
+                # Absence de preuve ≠ refus : non concluant, jamais mis en cache, réessayé plus tard.
+                return _Fail(
+                    Availability.NOT_AVAILABLE,
+                    res.reason,
+                    f"périmètre d'installation non vérifiable pour l'instant ({res.reason}) : aucune lecture",
+                    res.evidence,
+                )
             return _Fail(
                 Availability.DENIED,
                 Reason.AUTH_UNATTESTED,
@@ -1762,7 +1774,8 @@ class HttpGithubProvider(_GithubReaderBase):
         names = (
             [r.get("full_name") for r in repos if isinstance(r, dict)] if isinstance(repos, list) else None
         )
-        if data.get("total_count") != 1 or names is None or len(names) != 1 or names[0] != self.repo:
+        total = data.get("total_count")
+        if not _is_int(total) or total != 1 or names is None or len(names) != 1 or names[0] != self.repo:
             return _Fail(
                 Availability.DENIED,
                 Reason.AUTH_UNATTESTED,
