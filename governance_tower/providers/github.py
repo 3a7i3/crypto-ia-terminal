@@ -1,4 +1,4 @@
-"""Connecteur GitHub en LECTURE SEULE de Governance Tower (GT-M2, #459).
+"""Connecteur GitHub en LECTURE SEULE de Governance Tower (GT-M2 #459, étendu par GOV-TOWER-01 M1 #461).
 
 Deux fournisseurs satisfont ``GithubReadProvider`` :
 
@@ -11,9 +11,15 @@ Deux fournisseurs satisfont ``GithubReadProvider`` :
 
 Discipline (reprise de ``frontend/src/lib/githubRoadmapReader.ts``) :
 
-- les corps d'issues, de PR et les commentaires ne sont jamais demandés à un
-  point d'accès dédié ni lus : seuls titres, numéros, états, SHA et dates sont
-  extraits ; les champs ``body`` présents dans une liste REST sont ignorés ;
+- les listes (PR, issues) n'extraient que titres, numéros, états, SHA et dates ;
+  les champs ``body`` présents dans une liste REST sont ignorés ;
+- GOV-TOWER-01 : lecture **ciblée** et explicite d'un fichier admis (par SHA
+  immuable, chemin allowlisté, plage de lignes bornée, empreinte Git vérifiée),
+  du corps borné d'une issue/PR nommée, de la CI d'un SHA et d'une branche ;
+  les commentaires ne sont jamais lus (seul leur nombre est observé) ;
+- tout contenu (titre, corps, fichier, nom de contrôle) est une **donnée non
+  fiable** : bornée, expurgée, citée, jamais une instruction ni un « system
+  prompt » ; un fichier contenant une clé privée est refusé en entier ;
 - tout titre est une **donnée non fiable** : bornée, expurgée, citée, jamais une
   instruction ni une preuve d'efficacité ;
 - une panne de source devient une ``Observation`` absente qualifiée (``DENIED``,
@@ -22,19 +28,37 @@ Discipline (reprise de ``frontend/src/lib/githubRoadmapReader.ts``) :
 - le jeton optionnel est lu dans l'environnement au moment de la requête,
   envoyé seulement à ``api.github.com`` et n'apparaît dans aucune sortie.
 
+Modes d'authentification de ``HttpGithubProvider`` (GT01-G-INTEGRATION-01) :
+
+- ``AuthMode.OPTIONAL_TOKEN`` (défaut, héritage) : GET anonymes, jeton
+  ``GT_GITHUB_TOKEN`` ajouté s'il est présent et bien formé ; l'origine du
+  jeton n'est **pas** attestée, ce mode ne certifie aucune identité ;
+- ``AuthMode.APP_INSTALLATION`` (strict) : jeton d'installation GitHub App
+  (``ghs_…``) obligatoire, slug d'App déclaré par l'appelant obligatoire ;
+  aucune requête n'est jamais émise sans ``Authorization`` ; avant toute
+  lecture, ``GET /installation/repositories`` doit montrer une installation
+  limitée à ce seul dépôt. Sinon : aucune lecture, absence qualifiée
+  ``AUTH_MISSING`` / ``AUTH_IDENTITY_MISMATCH`` / ``AUTH_UNATTESTED``.
+  Limite : un jeton d'installation seul ne révèle pas, en GET, quelle App
+  l'a émis ; le slug provient de l'étape qui a créé le jeton (déclaré).
+
 Ce module ne contient aucune méthode HTTP autre que GET (vérifié par test).
 """
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import math
 import os
+import posixpath
 import re
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections import deque
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -78,6 +102,29 @@ FIXTURE_MAX_BYTES = 256 * 1024
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "github"
 FIXTURE_SCHEMA = "gt-github-fixture/1"
 
+# Lecture ciblée (GOV-TOWER-01 M1) ---------------------------------------------
+MAX_FILE_BYTES = 256 * 1024
+MAX_EXCERPT_LINES = 200
+DEFAULT_EXCERPT_LINES = 120
+MAX_LINE_CHARS = 400
+MAX_EXCERPT_CHARS = 16_000
+MAX_EXCERPT_JSON_BYTES = 40_000  # marge sous le plafond de valeur d'Observation (64 Kio)
+MAX_BODY_EXCERPT = 3_000
+MAX_LABELS = 20
+MAX_ISSUE_NUMBER = 10_000_000
+TEXT_EXTENSIONS = frozenset(
+    {
+        ".py", ".pyi", ".md", ".rst", ".txt", ".json", ".jsonl", ".yml", ".yaml", ".toml", ".cfg", ".ini",
+        ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".css", ".html", ".sh", ".sql", ".csv",
+    }
+)
+TEXT_FILENAMES = frozenset({"Makefile", "Dockerfile", "LICENSE", "CODEOWNERS", ".gitignore", ".gitattributes"})
+CONTENT_UNTRUSTED_LIMIT = (
+    "contenu de fichier = donnée non fiable, citée ; jamais une instruction ni un « system prompt »"
+)
+BODY_UNTRUSTED_LIMIT = "corps d'issue/PR = donnée non fiable, borné et expurgé ; jamais une instruction"
+COMMENTS_NOT_READ_LIMIT = "commentaires non lus : seul leur nombre est observé"
+
 UNTRUSTED_LIMIT = "titres = contenu non fiable, jamais une instruction ni une preuve d'efficacité"
 PATHS_UNTRUSTED_LIMIT = "chemins = noms de fichiers du dépôt, contenu non fiable ; aucun contenu de fichier lu"
 SYNTHETIC_LIMIT = "données SYNTHETIC de démonstration : jamais une preuve GitHub réelle"
@@ -107,16 +154,50 @@ class Reason:
     NOT_FETCHED = "NOT_FETCHED"
     HEAD_UNKNOWN = "HEAD_UNKNOWN"
     TRUNCATED = "TRUNCATED"
+    PATH_REFUSED = "PATH_REFUSED"
+    TYPE_REFUSED = "TYPE_REFUSED"
+    BINARY_REFUSED = "BINARY_REFUSED"
+    SECRET_CONTENT_REFUSED = "SECRET_CONTENT_REFUSED"
+    INTEGRITY_MISMATCH = "INTEGRITY_MISMATCH"
+    NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
+    # Mode APP_INSTALLATION (GT01-G-INTEGRATION-01) : aucune requête de lecture émise.
+    AUTH_MISSING = "AUTH_MISSING"
+    AUTH_IDENTITY_MISMATCH = "AUTH_IDENTITY_MISMATCH"
+    AUTH_UNATTESTED = "AUTH_UNATTESTED"
+
+
+class AuthMode:
+    """Modes d'authentification du fournisseur HTTP (codes stables)."""
+
+    OPTIONAL_TOKEN = "OPTIONAL_TOKEN"
+    APP_INSTALLATION = "APP_INSTALLATION"
+
+
+#: App GitHub de Sentinel (lecture seule), cf. GT01-G-SMOKE-01.
+SENTINEL_APP_SLUG = "crypto-ai-sentinel-observer"
+INSTALLATION_TOKEN_ENV = "GT_SENTINEL_INSTALLATION_TOKEN"
+APP_SLUG_ENV = "GT_SENTINEL_APP_SLUG"
+#: Seul endpoint hors ``/repos/`` admis : attestation du périmètre d'installation.
+INSTALLATION_REPOS_URL = f"{API_ROOT}/installation/repositories?per_page=100"
 
 
 _REPO_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}$")
 _REF_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._/-]{0,199}$")
 _TOKEN_RE = re.compile(r"^[A-Za-z0-9_.-]{1,512}$")
+#: Échecs d'attestation non concluants (GT01-G-INTEGRATION-01-R1) : jamais un refus d'identité.
+_TRANSIENT_ATTESTATION = frozenset({Reason.NETWORK, Reason.TIMEOUT, Reason.TRANSPORT_ERROR, Reason.SERVER_ERROR})
+_INSTALLATION_TOKEN_RE = re.compile(r"^ghs_[A-Za-z0-9_]{36,251}$")
+_APP_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,99}$")
 _ENV_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 _SCENARIO_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
 _REASON_RE = re.compile(r"^[A-Z][A-Z_]{1,40}$")
 _QUERY_RE = re.compile(r"^[A-Za-z0-9=&_.-]*$")
 _TERM_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_CONTENT_PATH_RE = re.compile(r"^[A-Za-z0-9_.][A-Za-z0-9_./-]{0,299}$")
+_PRIVATE_KEY_RE = re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----")
+_ISSUE_STATES = frozenset({"open", "closed"})
+_STATE_REASONS = frozenset({"completed", "not_planned", "reopened", "duplicate"})
+_CONTENT_TYPES = frozenset({"file", "dir", "symlink", "submodule"})
 
 _FAILING = frozenset({"failure", "timed_out", "cancelled", "action_required", "startup_failure", "stale"})
 _RUN_STATUSES = frozenset({"queued", "in_progress", "completed", "waiting", "requested", "pending"})
@@ -145,9 +226,14 @@ def is_safe_ref(ref: Any) -> bool:
 
 
 def is_allowed_api_url(url: Any) -> bool:
-    """True seulement pour ``https://api.github.com/repos/...`` sans port, identifiant ni traversée."""
+    """True seulement pour ``https://api.github.com/repos/...`` sans port, identifiant ni traversée.
+
+    Exception unique et exacte : ``INSTALLATION_REPOS_URL`` (attestation du mode strict).
+    """
     if not isinstance(url, str) or len(url) > 2_000:
         return False
+    if url == INSTALLATION_REPOS_URL:
+        return True
     if any(c in url for c in " \\\t\r\n%#@") or _TERM_CONTROL_RE.search(url):
         return False
     try:
@@ -177,6 +263,52 @@ def _is_utc(value: Any) -> bool:
 
 def _first_line(text: Any) -> Any:
     return text.split("\n", 1)[0] if isinstance(text, str) else text
+
+
+def git_blob_sha(raw: bytes) -> str:
+    """Empreinte Git d'un blob (``sha1("blob <taille>\\0" + contenu)``) : vérifie l'intégrité lue."""
+    return hashlib.sha1(b"blob %d\x00" % len(raw) + raw).hexdigest()
+
+
+def check_content_path(path: Any) -> tuple[str | None, str, str]:
+    """Chemin de fichier admis pour une lecture ciblée → (chemin, code, détail).
+
+    ASCII seul (aucun encodage ambigu), forme canonique, aucune traversée, aucun
+    chemin sensible, type texte allowlisté. Un refus n'envoie aucune requête.
+    """
+    if not isinstance(path, str) or not path.isascii():
+        return None, Reason.PATH_REFUSED, "chemin refusé : ASCII uniquement (aucun encodage ambigu)"
+    if not _CONTENT_PATH_RE.match(path) or "//" in path or path.endswith("/"):
+        return None, Reason.PATH_REFUSED, "chemin refusé : caractères ou forme non admis"
+    segments = path.split("/")
+    if any(seg in {"", ".", ".."} for seg in segments):
+        return None, Reason.PATH_REFUSED, "chemin refusé : traversée ou segment vide"
+    if normalize_repo_path(path) != path:
+        return None, Reason.PATH_REFUSED, "chemin refusé : forme non canonique"
+    if is_forbidden_path(path):
+        return None, Reason.PATH_REFUSED, "chemin sensible refusé (secret, clé, .env ou répertoire privé)"
+    name = segments[-1]
+    if posixpath.splitext(name)[1].lower() not in TEXT_EXTENSIONS and name not in TEXT_FILENAMES:
+        return None, Reason.TYPE_REFUSED, "type de fichier non admis : seuls les fichiers texte allowlistés sont lus"
+    return path, "", ""
+
+
+def _element_key(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def _validate_line_range(start: Any, end: Any) -> tuple[int, int | None] | None:
+    if start is None and end is None:
+        return 1, None
+    if start is None:
+        start = 1
+    if not _is_int(start) or start < 1 or start > 1_000_000:
+        return None
+    if end is None:
+        return start, None
+    if not _is_int(end) or end < start or end - start + 1 > MAX_EXCERPT_LINES:
+        return None
+    return start, end
 
 
 # ── Transport par défaut (urllib, GET uniquement) ───────────────────────────
@@ -286,6 +418,18 @@ class _GithubReaderBase:
         raise NotImplementedError
 
     def _read_compare(self, base_sha: str, head_sha: str) -> _Ok | _Fail:
+        raise NotImplementedError
+
+    def _read_contents(self, path: str, ref_sha: str) -> _Ok | _Fail:
+        raise NotImplementedError
+
+    def _read_issue(self, number: int) -> _Ok | _Fail:
+        raise NotImplementedError
+
+    def _read_pull(self, number: int) -> _Ok | _Fail:
+        raise NotImplementedError
+
+    def _read_branch(self, ref: str) -> _Ok | _Fail:
         raise NotImplementedError
 
     # Aides ------------------------------------------------------------------------
@@ -423,6 +567,122 @@ class _GithubReaderBase:
             "gh-compare", Domain.REPOSITORY, subject, lambda: self._compare_obs(base_sha, head_sha, res)
         )
 
+    # Lectures ciblées (GOV-TOWER-01 M1) -------------------------------------------
+
+    def read_file(
+        self,
+        path: str,
+        ref_sha: str | None = None,
+        line_start: int | None = None,
+        line_end: int | None = None,
+    ) -> Observation:
+        """Extrait borné d'un fichier admis, au SHA immuable demandé (HEAD par défaut)."""
+        self._begin_call()
+        subject = "Lecture ciblée de fichier"
+        norm, code, detail = check_content_path(path)
+        if norm is None:
+            return self._absent("gh-file", Domain.CODE_CONTENT, subject, _Fail(Availability.DENIED, code, detail))
+        subject = f"Fichier {norm}"[:300]
+        rng = _validate_line_range(line_start, line_end)
+        if rng is None:
+            return self._absent(
+                "gh-file",
+                Domain.CODE_CONTENT,
+                subject,
+                _Fail(
+                    Availability.ERROR,
+                    Reason.INVALID_INPUT,
+                    f"plage refusée : lignes entières ≥ 1, au plus {MAX_EXCERPT_LINES} lignes",
+                ),
+            )
+        head_evidence: tuple[EvidenceRef, ...] = ()
+        if ref_sha is None:
+            head = self._read_head()
+            if isinstance(head, _Fail):
+                return self._absent("gh-file", Domain.CODE_CONTENT, subject, head)
+            ref_sha = head.data["head_sha"]
+            head_evidence = head.evidence
+        elif not is_sha1(ref_sha):
+            return self._absent(
+                "gh-file",
+                Domain.CODE_CONTENT,
+                subject,
+                _Fail(Availability.ERROR, Reason.INVALID_INPUT, "référence refusée : SHA immuable de 40 caractères attendu"),
+            )
+        res = self._read_contents(norm, ref_sha)
+        if isinstance(res, _Fail):
+            return self._absent("gh-file", Domain.CODE_CONTENT, subject, res)
+        return self._guard(
+            "gh-file",
+            Domain.CODE_CONTENT,
+            subject,
+            lambda: self._content_obs(norm, ref_sha, rng, res, head_evidence),
+        )
+
+    def issue_detail(self, number: int) -> Observation:
+        """Issue nommée : état, étiquettes, dates, corps borné et expurgé (commentaires non lus)."""
+        self._begin_call()
+        if not _is_int(number) or not 1 <= number <= MAX_ISSUE_NUMBER:
+            return self._absent(
+                "gh-issue",
+                Domain.ISSUES,
+                "Issue demandée",
+                _Fail(Availability.ERROR, Reason.INVALID_INPUT, "numéro d'issue refusé"),
+            )
+        obs_id, subject = f"gh-issue-{number}", f"Issue #{number}"
+        res = self._read_issue(number)
+        if isinstance(res, _Fail):
+            return self._absent(obs_id, Domain.ISSUES, subject, res)
+        return self._guard(obs_id, Domain.ISSUES, subject, lambda: self._issue_obs(obs_id, subject, res))
+
+    def pull_detail(self, number: int) -> Observation:
+        """PR nommée : état, fusion, SHA de tête et de base, volumétrie, corps borné."""
+        self._begin_call()
+        if not _is_int(number) or not 1 <= number <= MAX_ISSUE_NUMBER:
+            return self._absent(
+                "gh-pull",
+                Domain.PULL_REQUESTS,
+                "PR demandée",
+                _Fail(Availability.ERROR, Reason.INVALID_INPUT, "numéro de PR refusé"),
+            )
+        obs_id, subject = f"gh-pull-{number}", f"PR #{number}"
+        res = self._read_pull(number)
+        if isinstance(res, _Fail):
+            return self._absent(obs_id, Domain.PULL_REQUESTS, subject, res)
+        return self._guard(obs_id, Domain.PULL_REQUESTS, subject, lambda: self._pull_obs(obs_id, subject, res))
+
+    def ci_for_sha(self, sha: str) -> Observation:
+        """Contrôles CI d'un SHA exact ; une liste incomplète reste UNKNOWN, jamais « vert »."""
+        self._begin_call()
+        if not is_sha1(sha):
+            return self._absent(
+                "gh-ci-sha",
+                Domain.CI,
+                "CI d'un SHA",
+                _Fail(Availability.ERROR, Reason.INVALID_INPUT, "SHA refusé : 40 caractères hexadécimaux minuscules"),
+            )
+        obs_id, subject = f"gh-ci-{sha[:12]}", f"CI du SHA {sha[:12]}"
+        res = self._read_ci(sha, f"ci-{sha[:12]}")
+        if isinstance(res, _Fail):
+            return self._absent(obs_id, Domain.CI, subject, res)
+        return self._guard(obs_id, Domain.CI, subject, lambda: self._ci_obs(sha, res, obs_id))
+
+    def branch_head(self, ref: str) -> Observation:
+        """Tête d'une branche nommée (SHA, date, protection) ; aucun autre métadonnée."""
+        self._begin_call()
+        if not is_safe_ref(ref):
+            return self._absent(
+                "gh-branch",
+                Domain.REPOSITORY,
+                "Branche demandée",
+                _Fail(Availability.ERROR, Reason.INVALID_INPUT, "nom de branche refusé"),
+            )
+        obs_id, subject = f"gh-branch-{_element_key(ref)}", f"Branche {ref}"[:300]
+        res = self._read_branch(ref)
+        if isinstance(res, _Fail):
+            return self._absent(obs_id, Domain.REPOSITORY, subject, res)
+        return self._guard(obs_id, Domain.REPOSITORY, subject, lambda: self._branch_obs(obs_id, subject, ref, res))
+
     # Construction des valeurs -----------------------------------------------------
 
     def _repo_obs(self, head: _Ok) -> Observation:
@@ -446,13 +706,13 @@ class _GithubReaderBase:
             untrusted_content=True,
         )
 
-    def _ci_obs(self, head_sha: str, res: _Ok) -> Observation:
+    def _ci_obs(self, head_sha: str, res: _Ok, obs_id: str = "gh-ci") -> Observation:
         runs = res.data["runs"]
         total = res.data["total_count"]
-        subject = f"CI du HEAD {head_sha[:12]}"
+        subject = f"CI du HEAD {head_sha[:12]}" if obs_id == "gh-ci" else f"CI du SHA {head_sha[:12]}"
         if total != len(runs):
             return self._absent(
-                "gh-ci",
+                obs_id,
                 Domain.CI,
                 subject,
                 _Fail(Availability.UNKNOWN, Reason.TRUNCATED, "contrôles incomplets pour ce HEAD : statut inconnu", res.evidence),
@@ -471,7 +731,7 @@ class _GithubReaderBase:
                 neutral += 1
             else:
                 return self._absent(
-                    "gh-ci",
+                    obs_id,
                     Domain.CI,
                     subject,
                     _Fail(Availability.ERROR, Reason.INVALID_RESPONSE, "conclusion de contrôle inconnue", res.evidence),
@@ -487,9 +747,10 @@ class _GithubReaderBase:
             "failed": len(failing),
             "pending": len(pending),
             "failing_names": [sanitize_untrusted(n, limit=100).text for n in failing[:MAX_FAILING_NAMES]],
+            "coverage": {"returned": len(runs), "total": total, "complete": True},
         }
         return Observation(
-            "gh-ci",
+            obs_id,
             Domain.CI,
             subject,
             Availability.AVAILABLE,
@@ -631,6 +892,219 @@ class _GithubReaderBase:
             untrusted_content=True,
         )
 
+    def _content_obs(
+        self,
+        path: str,
+        ref_sha: str,
+        rng: tuple[int, int | None],
+        res: _Ok,
+        head_evidence: tuple[EvidenceRef, ...],
+    ) -> Observation:
+        d = res.data
+        subject = f"Fichier {path}"[:300]
+
+        def refuse(availability: Availability, reason: str, detail: str) -> Observation:
+            return self._absent("gh-file", Domain.CODE_CONTENT, subject, _Fail(availability, reason, detail, res.evidence))
+
+        kind = d["type"]
+        if kind != "file":
+            return refuse(Availability.DENIED, Reason.TYPE_REFUSED, f"objet « {kind} » refusé : seul un fichier régulier est lu")
+        if d["path"] != path:
+            return refuse(Availability.ERROR, Reason.INTEGRITY_MISMATCH, "chemin retourné différent du chemin demandé")
+        raw: bytes = d["raw"]
+        if d["size"] > MAX_FILE_BYTES or len(raw) > MAX_FILE_BYTES:
+            return refuse(Availability.ERROR, Reason.OUTPUT_LIMIT, f"fichier > {MAX_FILE_BYTES} octets : non lu")
+        if len(raw) != d["size"] or git_blob_sha(raw) != d["blob_sha"]:
+            return refuse(Availability.ERROR, Reason.INTEGRITY_MISMATCH, "contenu lu ≠ empreinte Git annoncée : refusé")
+        if b"\x00" in raw:
+            return refuse(Availability.DENIED, Reason.BINARY_REFUSED, "contenu binaire refusé")
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return refuse(Availability.DENIED, Reason.BINARY_REFUSED, "contenu non UTF-8 refusé")
+        if _PRIVATE_KEY_RE.search(text):
+            return refuse(
+                Availability.DENIED, Reason.SECRET_CONTENT_REFUSED, "clé privée détectée : fichier refusé en entier"
+            )
+        lines = text.splitlines()
+        total = len(lines)
+        start, wanted_end = rng
+        if total == 0:
+            start = end = 0
+        elif start > total:
+            return refuse(Availability.ERROR, Reason.INVALID_INPUT, f"ligne {start} au-delà de la fin ({total} lignes)")
+        else:
+            end = min(total, wanted_end if wanted_end is not None else start + DEFAULT_EXCERPT_LINES - 1)
+        out: list[str] = []
+        redactions, chars, encoded = 0, 0, 0
+        line_truncated = range_truncated = False
+        last = start - 1
+        for number in range(start, end + 1) if total else ():
+            cleaned = sanitize_untrusted(lines[number - 1], limit=MAX_LINE_CHARS)
+            size = len(json.dumps(cleaned.text)) + 2
+            if chars + len(cleaned.text) + 1 > MAX_EXCERPT_CHARS or encoded + size > MAX_EXCERPT_JSON_BYTES:
+                range_truncated = True
+                break
+            out.append(cleaned.text)
+            chars += len(cleaned.text) + 1
+            encoded += size
+            redactions += cleaned.redactions
+            line_truncated = line_truncated or cleaned.truncated
+            last = number
+        if total and last < start:
+            return refuse(Availability.ERROR, Reason.OUTPUT_LIMIT, "première ligne trop volumineuse pour un extrait")
+        end = last if total else 0
+        if wanted_end is not None and end < min(wanted_end, total):
+            range_truncated = True
+        limits = [
+            CONTENT_UNTRUSTED_LIMIT,
+            f"extrait borné : lignes {start}–{end} sur {total}" if total else "fichier vide",
+            "présent à ce SHA ≠ déployé ≠ certifié",
+        ]
+        if redactions:
+            limits.append(f"{redactions} motif(s) de secret expurgé(s) : [REDACTED]")
+        if line_truncated:
+            limits.append(f"lignes de plus de {MAX_LINE_CHARS} caractères tronquées")
+        if range_truncated:
+            limits.append("plage réduite : plafond de taille d'extrait atteint")
+        evidence = head_evidence + tuple(
+            dataclasses.replace(e, content_sha256=hashlib.sha256(raw).hexdigest(), source_sha=ref_sha)
+            for e in res.evidence
+        )
+        value = {
+            "repo": self.repo,
+            "ref_sha": ref_sha,
+            "path": path,
+            "blob_sha": d["blob_sha"],
+            "size_bytes": len(raw),
+            "total_lines": total,
+            "line_start": start,
+            "line_end": end,
+            "lines_returned": len(out),
+            "redactions": redactions,
+            "line_truncated": line_truncated,
+            "range_truncated": range_truncated,
+            "permalink": f"https://github.com/{self.repo}/blob/{ref_sha}/{path}"
+            + (f"#L{start}-L{end}" if total else ""),
+            "text": "\n".join(out),
+        }
+        return Observation(
+            "gh-file",
+            Domain.CODE_CONTENT,
+            subject,
+            Availability.AVAILABLE,
+            value,
+            None,
+            evidence,
+            self._limits(*limits),
+            untrusted_content=True,
+        )
+
+    @staticmethod
+    def _body(raw: Any) -> dict[str, Any]:
+        if raw is None or raw == "":
+            return {"body_present": False, "body_excerpt": None, "body_sha256": None, "body_redactions": 0,
+                    "body_truncated": False}
+        if not isinstance(raw, str):
+            raise TypeError("corps non textuel")
+        cleaned = sanitize_untrusted(raw, limit=MAX_BODY_EXCERPT)
+        return {
+            "body_present": True,
+            "body_excerpt": cleaned.text,
+            "body_sha256": hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+            "body_redactions": cleaned.redactions,
+            "body_truncated": cleaned.truncated,
+        }
+
+    def _issue_obs(self, obs_id: str, subject: str, res: _Ok) -> Observation:
+        d = res.data
+        if d["state"] not in _ISSUE_STATES or not (d["state_reason"] is None or d["state_reason"] in _STATE_REASONS):
+            raise ValueError("état hors vocabulaire")
+        for key in ("created_at_utc", "updated_at_utc"):
+            if not _is_utc(d[key]):
+                raise ValueError(key)
+        if d["closed_at_utc"] is not None and not _is_utc(d["closed_at_utc"]):
+            raise ValueError("closed_at_utc")
+        if not _is_int(d["comments"]) or d["comments"] < 0 or not isinstance(d["is_pull_request"], bool):
+            raise ValueError("compteurs")
+        labels = [sanitize_untrusted(lbl, limit=60).text for lbl in d["labels"][:MAX_LABELS]]
+        body = self._body(d["body"])
+        value = {
+            "number": d["number"],
+            "kind": "pull_request" if d["is_pull_request"] else "issue",
+            "state": d["state"],
+            "state_reason": d["state_reason"],
+            **self._title(d["title"]),
+            "labels": labels,
+            "comments_count": d["comments"],
+            "created_at_utc": d["created_at_utc"],
+            "updated_at_utc": d["updated_at_utc"],
+            "closed_at_utc": d["closed_at_utc"],
+            **body,
+        }
+        limits = [UNTRUSTED_LIMIT, BODY_UNTRUSTED_LIMIT, COMMENTS_NOT_READ_LIMIT]
+        if body["body_truncated"]:
+            limits.append(f"corps tronqué à {MAX_BODY_EXCERPT} caractères (empreinte du corps complet fournie)")
+        if len(d["labels"]) > MAX_LABELS:
+            limits.append(f"étiquettes tronquées à {MAX_LABELS}")
+        return Observation(
+            obs_id, Domain.ISSUES, subject, Availability.AVAILABLE, value, None, res.evidence,
+            self._limits(*limits), untrusted_content=True,
+        )
+
+    def _pull_obs(self, obs_id: str, subject: str, res: _Ok) -> Observation:
+        d = res.data
+        if d["state"] not in _ISSUE_STATES or not isinstance(d["draft"], bool) or not isinstance(d["merged"], bool):
+            raise ValueError("état hors vocabulaire")
+        if not (is_sha1(d["head_sha"]) and is_sha1(d["base_sha"]) and _is_utc(d["updated_at_utc"])):
+            raise ValueError("identités")
+        if d["merged_at_utc"] is not None and not _is_utc(d["merged_at_utc"]):
+            raise ValueError("merged_at_utc")
+        for key in ("changed_files", "additions", "deletions"):
+            if not _is_int(d[key]) or d[key] < 0:
+                raise ValueError(key)
+        body = self._body(d["body"])
+        value = {
+            "number": d["number"],
+            "state": d["state"],
+            "draft": d["draft"],
+            "merged": d["merged"],
+            "merged_at_utc": d["merged_at_utc"],
+            **self._title(d["title"]),
+            "head_sha": d["head_sha"],
+            "head_ref": sanitize_untrusted(d["head_ref"], limit=200).text,
+            "base_ref": sanitize_untrusted(d["base_ref"], limit=200).text,
+            "base_sha": d["base_sha"],
+            "updated_at_utc": d["updated_at_utc"],
+            "changed_files": d["changed_files"],
+            "additions": d["additions"],
+            "deletions": d["deletions"],
+            **body,
+        }
+        limits = [UNTRUSTED_LIMIT, BODY_UNTRUSTED_LIMIT, COMMENTS_NOT_READ_LIMIT, "fusion ≠ déploiement ≠ certification"]
+        if body["body_truncated"]:
+            limits.append(f"corps tronqué à {MAX_BODY_EXCERPT} caractères (empreinte du corps complet fournie)")
+        return Observation(
+            obs_id, Domain.PULL_REQUESTS, subject, Availability.AVAILABLE, value, None, res.evidence,
+            self._limits(*limits), untrusted_content=True,
+        )
+
+    def _branch_obs(self, obs_id: str, subject: str, ref: str, res: _Ok) -> Observation:
+        d = res.data
+        if not is_sha1(d["sha"]) or not _is_utc(d["committed_at_utc"]) or not isinstance(d["protected"], bool):
+            raise ValueError("branche hors contrat")
+        value = {
+            "name": ref,
+            "sha": d["sha"],
+            "committed_at_utc": d["committed_at_utc"],
+            "protected": d["protected"],
+            **{f"head_{k}": v for k, v in self._title(d["title"]).items()},
+        }
+        return Observation(
+            obs_id, Domain.REPOSITORY, subject, Availability.AVAILABLE, value, None, res.evidence,
+            self._limits(UNTRUSTED_LIMIT, NOT_DEPLOYED_LIMIT), untrusted_content=True,
+        )
+
 
 def _validate_terms(terms: Any) -> tuple[str, ...] | None:
     if isinstance(terms, str) or not isinstance(terms, (tuple, list)) or not 1 <= len(terms) <= 10:
@@ -661,6 +1135,8 @@ _FX_TOP = {
     "code_tree",
     "comparisons",
 }
+#: Sections facultatives (GOV-TOWER-01 M1) : absentes ⇒ NOT_AVAILABLE/NOT_FOUND, jamais vides.
+_FX_OPTIONAL = {"files", "issue_details", "pull_details", "ci_by_sha", "branches"}
 
 
 def _fx_fail(msg: str) -> ContractError:
@@ -814,6 +1290,75 @@ def _fx_comparisons(raw: Any) -> dict:
     return out
 
 
+def _fx_files(raw: Any) -> dict:
+    d = _fx_keys(raw, {"items"}, "files")
+    out: dict[tuple[str, str], dict] = {}
+    for item in _fx_list(d["items"], "files.items", 50):
+        if not isinstance(item, dict) or not {"ref_sha", "path", "type", "content"} <= set(item) or not set(item) <= {
+            "ref_sha", "path", "type", "content", "blob_sha", "returned_path"
+        }:
+            raise _fx_fail("files.items[] : clés inattendues")
+        if item["type"] not in _CONTENT_TYPES:
+            raise _fx_fail("files.items[].type : hors vocabulaire")
+        raw = _fx_str(item["content"], "files.content", MAX_FILE_BYTES * 2).encode("utf-8")
+        blob = item.get("blob_sha", git_blob_sha(raw))
+        out[(_fx_sha(item["ref_sha"], "files.ref_sha"), _fx_str(item["path"], "files.path", 300))] = {
+            "type": item["type"],
+            "path": _fx_str(item.get("returned_path", item["path"]), "files.returned_path", 300),
+            "blob_sha": _fx_sha(blob, "files.blob_sha"),
+            "size": len(raw),
+            "raw": raw,
+        }
+    return out
+
+
+_FX_ISSUE_KEYS = {
+    "number", "is_pull_request", "state", "state_reason", "title", "body", "labels", "comments",
+    "created_at_utc", "updated_at_utc", "closed_at_utc",
+}
+_FX_PULL_KEYS = {
+    "number", "state", "draft", "merged", "merged_at_utc", "title", "body", "head_sha", "head_ref", "base_ref",
+    "base_sha", "updated_at_utc", "changed_files", "additions", "deletions",
+}
+
+
+def _fx_by_number(raw: Any, name: str, keys: set[str]) -> dict:
+    d = _fx_keys(raw, {"items"}, name)
+    out: dict[int, dict] = {}
+    for item in _fx_list(d["items"], f"{name}.items", 50):
+        i = dict(_fx_keys(item, keys, f"{name}.items[]"))
+        i["number"] = _fx_number(i["number"], f"{name}.number")
+        if "labels" in i and (not isinstance(i["labels"], list) or not all(isinstance(x, str) for x in i["labels"])):
+            raise _fx_fail(f"{name}.labels : liste de textes attendue")
+        out[i["number"]] = i
+    return out
+
+
+def _fx_ci_by_sha(raw: Any) -> dict:
+    d = _fx_keys(raw, {"items"}, "ci_by_sha")
+    out: dict[str, dict] = {}
+    for item in _fx_list(d["items"], "ci_by_sha.items", 20):
+        i = _fx_keys(item, {"sha", "check_runs"}, "ci_by_sha.items[]")
+        out[_fx_sha(i["sha"], "ci_by_sha.sha")] = _fx_ci({"check_runs": i["check_runs"]})
+    return out
+
+
+def _fx_branches(raw: Any) -> dict:
+    d = _fx_keys(raw, {"items"}, "branches")
+    out: dict[str, dict] = {}
+    for item in _fx_list(d["items"], "branches.items", 20):
+        b = _fx_keys(item, {"name", "sha", "committed_at_utc", "title", "protected"}, "branches.items[]")
+        if not is_safe_ref(b["name"]) or not isinstance(b["protected"], bool):
+            raise _fx_fail("branches.items[] : nom ou protection invalides")
+        out[b["name"]] = {
+            "sha": _fx_sha(b["sha"], "branches.sha"),
+            "committed_at_utc": _fx_utc(b["committed_at_utc"], "branches.committed_at_utc"),
+            "title": _fx_str(b["title"], "branches.title"),
+            "protected": b["protected"],
+        }
+    return out
+
+
 def _reject_constant(name: str) -> Any:
     raise _fx_fail(f"constante JSON non finie refusée ({name})")
 
@@ -843,7 +1388,8 @@ def load_github_fixture(path: Path) -> dict[str, Any]:
         )
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise _fx_fail("JSON invalide") from exc
-    doc = _fx_keys(doc, _FX_TOP, "racine")
+    if not isinstance(doc, dict) or not _FX_TOP <= set(doc) or not set(doc) <= _FX_TOP | _FX_OPTIONAL:
+        raise _fx_fail(f"racine : clés attendues {sorted(_FX_TOP)} (+ facultatives {sorted(_FX_OPTIONAL)})")
     if doc["schema"] != FIXTURE_SCHEMA or doc["nature"] != "SYNTHETIC":
         raise _fx_fail("schéma ou nature inattendus")
     if not isinstance(doc["scenario"], str) or not _SCENARIO_RE.match(doc["scenario"]):
@@ -860,7 +1406,18 @@ def load_github_fixture(path: Path) -> dict[str, Any]:
         "issues": _fx_section(doc["issues"], "issues", _fx_issues),
         "code_tree": _fx_section(doc["code_tree"], "code_tree", _fx_tree),
         "comparisons": _fx_section(doc["comparisons"], "comparisons", _fx_comparisons),
+        "files": _fx_optional(doc, "files", _fx_files),
+        "issue_details": _fx_optional(doc, "issue_details", lambda r: _fx_by_number(r, "issue_details", _FX_ISSUE_KEYS)),
+        "pull_details": _fx_optional(doc, "pull_details", lambda r: _fx_by_number(r, "pull_details", _FX_PULL_KEYS)),
+        "ci_by_sha": _fx_optional(doc, "ci_by_sha", _fx_ci_by_sha),
+        "branches": _fx_optional(doc, "branches", _fx_branches),
     }
+
+
+def _fx_optional(doc: Mapping[str, Any], name: str, parse: Callable[[Any], Any]) -> tuple[str, Any]:
+    if name not in doc:
+        return "missing", None
+    return _fx_section(doc[name], name, parse)
 
 
 class FixtureGithubProvider(_GithubReaderBase):
@@ -905,6 +1462,8 @@ class FixtureGithubProvider(_GithubReaderBase):
 
     def _section(self, name: str, source_sha: str | None = None) -> _Ok | _Fail:
         state, payload = self._fx[name]
+        if state == "missing":
+            return _Fail(Availability.NOT_AVAILABLE, Reason.NOT_FOUND, f"section {name} absente de la fixture {self.scenario}")
         if state == "absent":
             availability, reason = payload
             return _Fail(availability, reason, f"source {name} absente dans la fixture {self.scenario}")
@@ -914,8 +1473,38 @@ class FixtureGithubProvider(_GithubReaderBase):
         state, payload = self._fx["repository"]
         return self._section("repository", payload["head_sha"] if state == "available" else None)
 
-    def _read_ci(self, head_sha: str) -> _Ok | _Fail:
-        return self._section("ci", head_sha)
+    def _read_ci(self, head_sha: str, element: str = "ci") -> _Ok | _Fail:
+        state, payload = self._fx["repository"]
+        if element == "ci" or (state == "available" and payload["head_sha"] == head_sha):
+            return self._section("ci", head_sha)
+        return self._lookup("ci_by_sha", head_sha, element, head_sha)
+
+    def _lookup(self, name: str, key: Any, element: str, source_sha: str | None = None) -> _Ok | _Fail:
+        res = self._section(name)
+        if isinstance(res, _Fail):
+            return res
+        found = res.data.get(key)
+        if found is None:
+            return _Fail(Availability.NOT_AVAILABLE, Reason.NOT_FOUND, f"objet absent de la fixture ({name})")
+        return _Ok(found, self._evidence(element, source_sha))
+
+    def _read_contents(self, path: str, ref_sha: str) -> _Ok | _Fail:
+        return self._lookup("files", (ref_sha, path), f"file-{ref_sha[:12]}-{_element_key(path)}", ref_sha)
+
+    def _read_issue(self, number: int) -> _Ok | _Fail:
+        return self._lookup("issue_details", number, f"issue-{number}")
+
+    def _read_pull(self, number: int) -> _Ok | _Fail:
+        res = self._lookup("pull_details", number, f"pull-{number}")
+        if isinstance(res, _Ok):
+            return _Ok(res.data, self._evidence(f"pull-{number}", res.data["head_sha"]))
+        return res
+
+    def _read_branch(self, ref: str) -> _Ok | _Fail:
+        res = self._lookup("branches", ref, f"branch-{_element_key(ref)}")
+        if isinstance(res, _Ok):
+            return _Ok(res.data, self._evidence(f"branch-{_element_key(ref)}", res.data["sha"]))
+        return res
 
     def _read_pulls(self) -> _Ok | _Fail:
         return self._section("pull_requests")
@@ -952,7 +1541,9 @@ class HttpGithubProvider(_GithubReaderBase):
         *,
         clock: Clock,
         transport: Transport | None = None,
-        token_env: str = "GT_GITHUB_TOKEN",
+        token_env: str | None = None,
+        auth_mode: str = AuthMode.OPTIONAL_TOKEN,
+        expected_app_slug: str = SENTINEL_APP_SLUG,
         max_requests: int = 40,
         max_requests_per_question: int | None = None,
         window_s: float = 3600.0,
@@ -960,6 +1551,12 @@ class HttpGithubProvider(_GithubReaderBase):
         max_body_bytes: int = 1_048_576,
     ) -> None:
         super().__init__(repo, clock)
+        if auth_mode not in (AuthMode.OPTIONAL_TOKEN, AuthMode.APP_INSTALLATION):
+            raise ContractError("auth_mode : OPTIONAL_TOKEN ou APP_INSTALLATION attendu")
+        if token_env is None:
+            token_env = INSTALLATION_TOKEN_ENV if auth_mode == AuthMode.APP_INSTALLATION else "GT_GITHUB_TOKEN"
+        if not isinstance(expected_app_slug, str) or not _APP_SLUG_RE.match(expected_app_slug):
+            raise ContractError("expected_app_slug : slug d'App GitHub invalide")
         if not isinstance(token_env, str) or not _ENV_NAME_RE.match(token_env):
             raise ContractError("token_env : nom de variable d'environnement invalide")
         if not _is_int(max_requests) or not 1 <= max_requests <= 1_000:
@@ -977,6 +1574,13 @@ class HttpGithubProvider(_GithubReaderBase):
         if transport is not None and not callable(transport):
             raise ContractError("transport : appelable attendu")
         self._token_env = token_env
+        self._auth_mode = auth_mode
+        self._expected_slug = expected_app_slug
+        # Attestation liée à l'empreinte du jeton (jamais le jeton lui-même).
+        self._attested_fp: str | None = None
+        self._attest_fail: _Fail | None = None
+        self._attest_fail_fp: str | None = None
+        self._auth_reason: str | None = None  # dernier refus AUTH_* (affichable)
         self._max_requests = max_requests
         self._per_question = max_requests_per_question
         self._window_s = float(window_s)
@@ -988,16 +1592,24 @@ class HttpGithubProvider(_GithubReaderBase):
         self._window: deque[float] = deque()  # instants d'envoi, plafond de service glissant
         self._remote_block_until: float | None = None  # quota distant GitHub : persiste entre questions
         self._halt: _Fail | None = None
+        strict = auth_mode == AuthMode.APP_INSTALLATION
         self.info = ProviderInfo(
             name="github-http",
             provenance=Provenance.LIVE_READ,
             live=True,
-            description="Lecture réelle opt-in de api.github.com (GET uniquement, budget borné).",
+            description=(
+                "Lecture réelle opt-in de api.github.com (GET uniquement, budget borné), "
+                + (
+                    f"authentifiée par jeton d'installation de l'App {expected_app_slug}, attestée par périmètre."
+                    if strict
+                    else "jeton optionnel non attesté (aucune identité certifiée)."
+                )
+            ),
         )
 
     def __repr__(self) -> str:
         return (
-            f"HttpGithubProvider(repo={self.repo!r}, requests_sent={self._sent}, "
+            f"HttpGithubProvider(repo={self.repo!r}, auth_mode={self._auth_mode}, requests_sent={self._sent}, "
             f"max_requests={self._max_requests}, max_requests_per_question={self._per_question})"
         )
 
@@ -1006,6 +1618,41 @@ class HttpGithubProvider(_GithubReaderBase):
     @property
     def requests_sent(self) -> int:
         return self._sent
+
+    def budget_status(self) -> dict[str, float | int | None]:
+        """État du budget GET (information affichable ; aucun secret, aucune requête envoyée)."""
+        now = self._now_s()
+        used_in_window = sum(1 for t in self._window if now - t < self._window_s)
+        blocked = None
+        if self._remote_block_until is not None and now < self._remote_block_until:
+            blocked = math.ceil(self._remote_block_until - now)
+        return {
+            "per_question": self._per_question,
+            "used_this_question": self._question_sent,
+            "service_cap": self._max_requests,
+            "window_s": self._window_s,
+            "used_in_window": used_in_window,
+            "requests_sent_total": self._sent,
+            "remote_blocked_for_s": blocked,
+        }
+
+    @property
+    def auth_mode(self) -> str:
+        return self._auth_mode
+
+    def auth_status(self) -> dict[str, Any]:
+        """État d'authentification affichable : aucun jeton, aucune empreinte, aucune requête."""
+        if self._auth_mode == AuthMode.OPTIONAL_TOKEN:
+            return {"mode": self._auth_mode, "identity": "NOT_ATTESTED", "reason": None}
+        if self._attested_fp is not None and self._attested_fp == self._token_fingerprint():
+            return {
+                "mode": self._auth_mode,
+                "identity": "INSTALLATION_SCOPE_VERIFIED",
+                "app_slug_declared": self._expected_slug,
+                "installation_repository": self.repo,
+                "reason": None,
+            }
+        return {"mode": self._auth_mode, "identity": "NOT_ATTESTED", "reason": self._auth_reason}
 
     def _begin_call(self) -> None:
         super()._begin_call()
@@ -1037,20 +1684,121 @@ class HttpGithubProvider(_GithubReaderBase):
         url = f"{API_ROOT}/repos/{self.repo}" + (f"/{path}" if path else "")
         return f"{url}?{query}" if query else url
 
-    def _headers(self, url: str) -> dict[str, str]:
+    def _installation_token(self) -> str | None:
+        token = os.environ.get(self._token_env, "")
+        return token if _INSTALLATION_TOKEN_RE.match(token) else None
+
+    def _token_fingerprint(self) -> str | None:
+        token = self._installation_token()
+        return hashlib.sha256(token.encode("ascii")).hexdigest() if token else None
+
+    def _headers(self, url: str) -> dict[str, str] | None:
+        """En-têtes du GET ; ``None`` en mode strict sans jeton valide (la requête n'est pas émise)."""
         headers = {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
             "User-Agent": "governance-tower-sentinel/0.1 (read-only)",
         }
+        if self._auth_mode == AuthMode.APP_INSTALLATION:
+            token = self._installation_token()
+            if token is None or not is_allowed_api_url(url):
+                return None
+            headers["Authorization"] = f"Bearer {token}"
+            return headers
         if is_allowed_api_url(url):
             token = os.environ.get(self._token_env, "")
             if token and _TOKEN_RE.match(token):
                 headers["Authorization"] = f"Bearer {token}"
         return headers
 
+    def _auth_gate(self) -> _Fail | None:
+        """Mode strict : jeton, slug déclaré et périmètre d'installation attestés avant toute lecture."""
+        if self._auth_mode != AuthMode.APP_INSTALLATION:
+            return None
+        fail = self._auth_check()
+        if fail is not None and fail.reason in (
+            Reason.AUTH_MISSING, Reason.AUTH_IDENTITY_MISMATCH, Reason.AUTH_UNATTESTED
+        ):
+            self._auth_reason = fail.reason
+        else:  # succès ou échec non concluant : aucun refus d'identité affiché
+            self._auth_reason = None
+        return fail
+
+    def _auth_check(self) -> _Fail | None:
+        fp = self._token_fingerprint()
+        if fp is None:
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_MISSING,
+                "jeton d'installation GitHub App absent ou mal formé : aucune requête émise (jamais de repli anonyme)",
+            )
+        if os.environ.get(APP_SLUG_ENV, "") != self._expected_slug:
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_IDENTITY_MISMATCH,
+                f"slug d'App déclaré différent de {self._expected_slug} : aucune requête émise",
+            )
+        if self._attested_fp == fp:
+            return None
+        if self._attest_fail is not None and self._attest_fail_fp == fp:
+            return self._attest_fail
+        res = self._send(INSTALLATION_REPOS_URL, "installation-scope")
+        fail = self._check_installation_scope(res)
+        if fail is not None:
+            if fail.reason == Reason.AUTH_UNATTESTED:  # même jeton : jamais réessayé
+                self._attest_fail, self._attest_fail_fp = fail, fp
+            return fail
+        self._attested_fp, self._attest_fail, self._attest_fail_fp = fp, None, None
+        return None
+
+    def _check_installation_scope(self, res: _Ok | _Fail) -> _Fail | None:
+        if isinstance(res, _Fail):
+            if res.reason in (Reason.BUDGET_EXCEEDED, Reason.RATE_LIMITED, Reason.NOT_FETCHED):
+                return res  # non concluant : réessayé à la question suivante
+            if res.reason in _TRANSIENT_ATTESTATION:
+                # Absence de preuve ≠ refus : non concluant, jamais mis en cache, réessayé plus tard.
+                return _Fail(
+                    Availability.NOT_AVAILABLE,
+                    res.reason,
+                    f"périmètre d'installation non vérifiable pour l'instant ({res.reason}) : aucune lecture",
+                    res.evidence,
+                )
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_UNATTESTED,
+                f"périmètre d'installation non attesté ({res.reason}) : aucune lecture",
+                res.evidence,
+            )
+        # Liste brute, sans filtrage (R2) : exactement un élément, et cet élément est un objet.
+        data = res.data if isinstance(res.data, dict) else {}
+        repos = data.get("repositories")
+        only = repos[0] if isinstance(repos, list) and len(repos) == 1 else None
+        total = data.get("total_count")
+        if not _is_int(total) or total != 1 or not isinstance(only, dict) or only.get("full_name") != self.repo:
+            return _Fail(
+                Availability.DENIED,
+                Reason.AUTH_UNATTESTED,
+                f"installation non limitée au seul dépôt {self.repo} : aucune lecture",
+                res.evidence,
+            )
+        return None
+
     def _get(self, url: str, element: str, source_sha: str | None = None) -> _Ok | _Fail:
         """Un GET borné ; retourne le JSON décodé ou un échec qualifié, jamais d'exception."""
+        if self._halt is not None:
+            return _Fail(
+                Availability.UNKNOWN,
+                Reason.NOT_FETCHED,
+                f"requête non envoyée : lecture interrompue après {self._halt.reason}",
+            )
+        gate = self._auth_gate()
+        if gate is not None:
+            if gate.reason != Reason.BUDGET_EXCEEDED:
+                self._halt = gate
+            return gate
+        return self._send(url, element, source_sha)
+
+    def _send(self, url: str, element: str, source_sha: str | None = None) -> _Ok | _Fail:
         if self._halt is not None:
             return _Fail(
                 Availability.UNKNOWN,
@@ -1084,11 +1832,14 @@ class HttpGithubProvider(_GithubReaderBase):
                 f"plafond de service de {self._max_requests} requêtes par {int(self._window_s)} s atteint : "
                 "aucune requête envoyée",
             )
+        headers = self._headers(url)
+        if headers is None:  # mode strict : jamais de requête sans Authorization
+            return _Fail(Availability.DENIED, Reason.AUTH_MISSING, "jeton d'installation absent : aucune requête émise")
         self._sent += 1
         self._question_sent += 1
         self._window.append(now)
         try:
-            result = self._transport(url, self._headers(url), self._timeout)
+            result = self._transport(url, headers, self._timeout)
         except TimeoutError:
             self._halt = _Fail(Availability.NOT_AVAILABLE, Reason.TIMEOUT, "délai dépassé")
             return self._halt
@@ -1115,7 +1866,8 @@ class HttpGithubProvider(_GithubReaderBase):
                 provenance=Provenance.LIVE_READ,
                 collected_at_utc=self._collected,
                 source_sha=source_sha if status == 200 else None,
-                note=f"GET HTTP {status}",
+                note=f"GET HTTP {status}"
+                + (" · auth APP_INSTALLATION" if self._auth_mode == AuthMode.APP_INSTALLATION else ""),
             ),
         )
         failure = self._classify(status, headers, evidence)
@@ -1147,6 +1899,7 @@ class HttpGithubProvider(_GithubReaderBase):
             fail = _Fail(Availability.DENIED, Reason.DENIED, f"accès refusé par GitHub (HTTP {status})", evidence)
             if status == 401:
                 self._halt = fail
+                self._attested_fp = None  # jeton refusé : attestation à refaire
             return fail
         if status == 404:
             return _Fail(Availability.NOT_AVAILABLE, Reason.NOT_FOUND, "objet introuvable sur GitHub (404)", evidence)
@@ -1160,14 +1913,8 @@ class HttpGithubProvider(_GithubReaderBase):
 
     # Lectures --------------------------------------------------------------------
 
-    def _read_head(self) -> _Ok | _Fail:
-        repo = self._get(self._url(), "repository")
-        if isinstance(repo, _Fail):
-            return repo
-        branch = repo.data.get("default_branch") if isinstance(repo.data, dict) else None
-        if not is_safe_ref(branch):
-            return self._invalid(repo, "branche par défaut absente ou non sûre")
-        res = self._get(self._url("branches", branch), "branch")
+    def _branch_get(self, branch: str, element: str) -> _Ok | _Fail:
+        res = self._get(self._url("branches", branch), element)
         if isinstance(res, _Fail):
             return res
         try:
@@ -1178,24 +1925,132 @@ class HttpGithubProvider(_GithubReaderBase):
             message = inner["message"]
         except (KeyError, TypeError):
             return self._invalid(res)
-        if not is_sha1(sha) or not _is_utc(date) or not isinstance(message, str):
+        protected = res.data.get("protected", False) if isinstance(res.data, dict) else None
+        if not is_sha1(sha) or not _is_utc(date) or not isinstance(message, str) or not isinstance(protected, bool):
             return self._invalid(res)
-        evidence = tuple(
-            EvidenceRef(
-                e.evidence_id, e.source, e.locator, e.provenance, e.collected_at_utc, source_sha=sha, note=e.note
-            )
-            for e in repo.evidence + res.evidence
-        )
+        evidence = tuple(dataclasses.replace(e, source_sha=sha) for e in res.evidence)
+        return _Ok({"sha": sha, "committed_at_utc": date, "title": message, "protected": protected}, evidence)
+
+    def _read_head(self) -> _Ok | _Fail:
+        repo = self._get(self._url(), "repository")
+        if isinstance(repo, _Fail):
+            return repo
+        branch = repo.data.get("default_branch") if isinstance(repo.data, dict) else None
+        if not is_safe_ref(branch):
+            return self._invalid(repo, "branche par défaut absente ou non sûre")
+        res = self._branch_get(branch, "branch")
+        if isinstance(res, _Fail):
+            return res
+        sha = res.data["sha"]
+        evidence = tuple(dataclasses.replace(e, source_sha=sha) for e in repo.evidence) + res.evidence
         return _Ok(
-            {"default_branch": branch, "head_sha": sha, "head_committed_at_utc": date, "head_title": message},
+            {
+                "default_branch": branch,
+                "head_sha": sha,
+                "head_committed_at_utc": res.data["committed_at_utc"],
+                "head_title": res.data["title"],
+            },
             evidence,
         )
 
-    def _read_ci(self, head_sha: str) -> _Ok | _Fail:
+    def _read_branch(self, ref: str) -> _Ok | _Fail:
+        return self._branch_get(ref, f"branch-{_element_key(ref)}")
+
+    def _read_contents(self, path: str, ref_sha: str) -> _Ok | _Fail:
+        res = self._get(
+            self._url("contents", path, query=f"ref={ref_sha}"), f"file-{ref_sha[:12]}-{_element_key(path)}", ref_sha
+        )
+        if isinstance(res, _Fail):
+            return res
+        d = res.data
+        if isinstance(d, list):
+            return _Fail(Availability.DENIED, Reason.TYPE_REFUSED, "répertoire : aucun listing de contenu", res.evidence)
+        if not isinstance(d, dict) or d.get("type") not in _CONTENT_TYPES:
+            return self._invalid(res)
+        returned, blob, size = d.get("path"), d.get("sha"), d.get("size")
+        if not isinstance(returned, str) or not is_sha1(blob) or not _is_int(size) or size < 0:
+            return self._invalid(res)
+        if d["type"] != "file":
+            return _Ok({"type": d["type"], "path": returned, "blob_sha": blob, "size": size, "raw": b""}, res.evidence)
+        if size > MAX_FILE_BYTES:
+            return _Fail(Availability.ERROR, Reason.OUTPUT_LIMIT, f"fichier > {MAX_FILE_BYTES} octets : non lu", res.evidence)
+        content = d.get("content")
+        if d.get("encoding") != "base64" or not isinstance(content, str):
+            return self._invalid(res, "contenu non fourni en base64")
+        try:
+            raw = base64.b64decode("".join(content.split()), validate=True)
+        except ValueError:
+            return self._invalid(res, "base64 invalide")
+        return _Ok({"type": "file", "path": returned, "blob_sha": blob, "size": size, "raw": raw}, res.evidence)
+
+    def _read_issue(self, number: int) -> _Ok | _Fail:
+        res = self._get(self._url("issues", str(number)), f"issue-{number}")
+        if isinstance(res, _Fail):
+            return res
+        d = res.data
+        if not isinstance(d, dict) or d.get("number") != number or not isinstance(d.get("title"), str):
+            return self._invalid(res)
+        labels = d.get("labels")
+        if not isinstance(labels, list):
+            return self._invalid(res)
+        names = [lbl.get("name") for lbl in labels if isinstance(lbl, dict)]
+        if len(names) != len(labels) or not all(isinstance(n, str) for n in names):
+            return self._invalid(res)
+        return _Ok(
+            {
+                "number": number,
+                "is_pull_request": "pull_request" in d,
+                "state": d.get("state"),
+                "state_reason": d.get("state_reason"),
+                "title": d["title"],
+                "body": d.get("body"),
+                "labels": names,
+                "comments": d.get("comments"),
+                "created_at_utc": d.get("created_at"),
+                "updated_at_utc": d.get("updated_at"),
+                "closed_at_utc": d.get("closed_at"),
+            },
+            res.evidence,
+        )
+
+    def _read_pull(self, number: int) -> _Ok | _Fail:
+        res = self._get(self._url("pulls", str(number)), f"pull-{number}")
+        if isinstance(res, _Fail):
+            return res
+        d = res.data
+        if not isinstance(d, dict) or d.get("number") != number:
+            return self._invalid(res)
+        head, base = d.get("head"), d.get("base")
+        if not isinstance(head, dict) or not isinstance(base, dict) or not isinstance(d.get("title"), str):
+            return self._invalid(res)
+        head_sha = head.get("sha")
+        evidence = tuple(dataclasses.replace(e, source_sha=head_sha) for e in res.evidence) if is_sha1(head_sha) else res.evidence
+        return _Ok(
+            {
+                "number": number,
+                "state": d.get("state"),
+                "draft": d.get("draft"),
+                "merged": d.get("merged"),
+                "merged_at_utc": d.get("merged_at"),
+                "title": d["title"],
+                "body": d.get("body"),
+                "head_sha": head_sha,
+                "head_ref": head.get("ref"),
+                "base_ref": base.get("ref"),
+                "base_sha": base.get("sha"),
+                "updated_at_utc": d.get("updated_at"),
+                "changed_files": d.get("changed_files"),
+                "additions": d.get("additions"),
+                "deletions": d.get("deletions"),
+            },
+            evidence,
+        )
+
+    def _read_ci(self, head_sha: str, element: str = "ci") -> _Ok | _Fail:
         if not is_sha1(head_sha):
             return _Fail(Availability.ERROR, Reason.INVALID_INPUT, "SHA du HEAD invalide")
         res = self._get(
-            self._url("commits", head_sha, "check-runs", query=f"per_page={MAX_CHECK_RUNS}"), "ci", head_sha
+            self._url("commits", head_sha, "check-runs", query=f"per_page={MAX_CHECK_RUNS}"), element, head_sha
         )
         if isinstance(res, _Fail):
             return res
@@ -1308,6 +2163,10 @@ def _reject_json_constant(name: str) -> Any:
 
 __all__ = [
     "API_HOST",
+    "MAX_EXCERPT_LINES",
+    "MAX_FILE_BYTES",
+    "check_content_path",
+    "git_blob_sha",
     "DEFAULT_REPO",
     "FIXTURE_DIR",
     "TRACKED_ISSUES",

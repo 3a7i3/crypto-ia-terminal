@@ -21,6 +21,10 @@ from governance_tower.contracts import (
     AgentRun,
     Availability,
     ClaimStatus,
+    CodeExcerpt,
+    Diagnostic,
+    DiagnosticCode,
+    DiagnosticLevel,
     Discrepancy,
     DiscrepancyClass,
     EvidenceRef,
@@ -236,6 +240,20 @@ def _rebuild(doc: dict) -> AgentRun:
         ),
         refusals=tuple(Refusal(**r) for r in a["refusals"]),
         untrusted_quotes=tuple(a["untrusted_quotes"]),
+        # GOV-TOWER-01 M3/M5 : diagnostics croisés et extraits de fichier.
+        diagnostics=tuple(
+            Diagnostic(
+                **{
+                    **g,
+                    "code": DiagnosticCode(g["code"]),
+                    "level": DiagnosticLevel(g["level"]),
+                    "verification": tuple(g["verification"]),
+                    "evidence": tuple(map(_ev, g["evidence"])),
+                }
+            )
+            for g in a.get("diagnostics", [])
+        ),
+        excerpts=tuple(CodeExcerpt(**x) for x in a.get("excerpts", [])),
     )
     return AgentRun(
         **{
@@ -282,8 +300,11 @@ def test_sample_run_is_synthetic_and_covers_every_section():
     for s in doc["sources"]:
         assert s["provenance"] == "SYNTHETIC"
     a = doc["answer"]
-    for cle in ("statements", "uncertainties", "discrepancies", "findings", "proposals", "refusals", "untrusted_quotes"):
+    for cle in ("statements", "uncertainties", "discrepancies", "findings", "proposals", "refusals", "untrusted_quotes",
+                "diagnostics", "excerpts"):
         assert a[cle], cle
+    proposals = {p["proposal_id"] for p in a["proposals"]}
+    assert all(g["proposal_ref"] in proposals for g in a["diagnostics"] if g["proposal_ref"])
     assert {d["classification"] for d in a["discrepancies"]} >= {"EXPECTED_PINNED_RUNTIME"}
     assert {s["claim_status"] for s in a["statements"]} >= {"OBSERVED", "INFERRED", "NOT_PROVEN"}
     for p in a["proposals"]:
