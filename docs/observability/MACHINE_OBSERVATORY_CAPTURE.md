@@ -99,3 +99,35 @@ et baseline gate réussis (aucune nouvelle violation). Le résumé a également
 174 ouvertures et 172 clôtures, séquences continues ; pas une lecture canonique.
 La régression complète et la CI distante ne sont pas attestées par cette note.
 Le script n'a pas été exécuté sur le VPS. Revue indépendante encore requise.
+
+## Module complémentaire : journaux filtrés et déclarations systemd
+
+`scripts/machine_visibility_report.py --share` s'exécute ponctuellement comme
+mathieu, depuis une copie séparée contenant également machine_observatory.py.
+Il crée uniquement un nouveau rapport dans `/var/tmp/sentinel-visibility-*`,
+avec lecture ACL pour chatgpt-ro et commande de révocation. Aucun droit sur les
+sources ou les services n'est élargi ; aucun daemon n'est installé.
+
+Huit journaux de services explicitement sélectionnés sont traités localement :
+les 200 dernières lignes dans une fenêtre de 24 h, 1 Mio et 3 s maximum par
+commande. Seuls le nombre de lignes et la répartition des priorités sortent du
+module. Les messages bruts sont lus en mémoire mais jamais exportés. Aucune
+preuve de livraison Telegram n'est déduite. Une fenêtre vide signifie
+NO_VISIBLE_RECORDS avec permission NOT_PROVEN, jamais zéro activité certifiée.
+
+Six fichiers d'unités/drop-ins fixes sont lus en mémoire ; seules les variables
+de chemins de présentation en liste fermée et WorkingDirectory sont publiées.
+ExecStart et les autres valeurs d'environnement ne sont pas exportés. Les
+fichiers .env et secrets ne sont jamais ouverts. Les déclarations partielles
+ne sont pas une configuration effective fusionnée par systemd ; les autres
+drop-ins, overrides temporaires et modifications concurrentes ne sont pas
+exclus par cette capture. Le modèle ne couvre pas un attaquant root/same-uid.
+
+Les commandes sont fixes, sans shell ni stdout/stderr brut dans le rapport ;
+timeouts et plafonds refusent la capture concernée. Le résumé des services
+réutilise le collecteur à unités explicites, évitant l'inventaire vide obtenu
+avec systemctl show sans noms d'unités. Le rapport est limité à 256 Kio.
+
+Validation du complément : 25 tests unittest réussis (17 cœur + 8 complément),
+Ruff 0.15.8 ciblé réussi. Le complément n'a pas encore fait l'objet d'une revue
+indépendante ni d'une capture opérateur lors de cette qualification source.
