@@ -1,0 +1,975 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:crypto-ia-terminal:sentinel:event:0.1",
+  "title": "J01 recorded activity event",
+  "description": "SOURCE_ONLY SIMULATED_ONLY. Python validator additionally enforces NFC, strict numeric token types, sorted references, secret rejection, quotas, hashes, producer policy and legal history. Schema validity is not authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "actor_id",
+    "actor_kind",
+    "actor_version",
+    "authorization_ref",
+    "causation_event_id",
+    "correlation_id",
+    "event_id",
+    "event_type",
+    "evidence_refs",
+    "ingestion_policy_version",
+    "integrity",
+    "ledger_id",
+    "occurred_at_utc",
+    "payload",
+    "producer_id",
+    "quest_id",
+    "reason_declared",
+    "recorded_at_utc",
+    "schema_version",
+    "sequence",
+    "source_kind",
+    "summary"
+  ],
+  "properties": {
+    "event_type": {
+      "enum": [
+        "QUEST_PROPOSED",
+        "QUEST_APPROVED",
+        "QUEST_REJECTED",
+        "QUEST_PUBLISHED",
+        "QUEST_ACCEPTED",
+        "QUEST_DECLINED",
+        "WORK_STARTED",
+        "ARTIFACT_SUBMITTED",
+        "REVIEW_PASSED",
+        "REVIEW_FAILED",
+        "QUEST_COMPLETED",
+        "QUEST_FAILED",
+        "OBSERVATION_RECORDED",
+        "ANOMALY_DETECTED",
+        "RUN_INTERRUPTED",
+        "BUDGET_EXHAUSTED",
+        "POLICY_DENIED",
+        "AUDIT_UNAVAILABLE"
+      ]
+    },
+    "payload": {
+      "type": "object"
+    },
+    "correlation_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "producer_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "source_kind": {
+      "enum": [
+        "SIMULATED",
+        "AGENT_REPORTED",
+        "SYSTEM_OBSERVED",
+        "OPERATOR_DECISION"
+      ]
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previous_hash",
+        "event_hash"
+      ],
+      "properties": {
+        "previous_hash": {
+          "type": "string",
+          "pattern": "^(GENESIS|[0-9a-f]{64})$"
+        },
+        "event_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "quest_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "causation_event_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "ingestion_policy_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "actor_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "reason_declared": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "ledger_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "actor_kind": {
+      "enum": [
+        "AGENT",
+        "OPERATOR",
+        "SYSTEM"
+      ]
+    },
+    "actor_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "schema_version": {
+      "const": "sentinel-event/0.1"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 240
+      }
+    },
+    "recorded_at_utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "occurred_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "authorization_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 240
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_PROPOSED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "acceptance_criteria",
+              "budget_units",
+              "cost",
+              "scope",
+              "title"
+            ],
+            "properties": {
+              "scope": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                }
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "acceptance_criteria": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                }
+              },
+              "cost": {
+                "type": "null"
+              },
+              "budget_units": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_APPROVED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision",
+              "proposal_event_id"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              },
+              "proposal_event_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_REJECTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision",
+              "proposal_event_id"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              },
+              "proposal_event_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_PUBLISHED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "approval_event_id",
+              "cost",
+              "expected_revision"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              },
+              "approval_event_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_ACCEPTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_DECLINED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "WORK_STARTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "attempt",
+              "cost",
+              "expected_revision"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              },
+              "cost": {
+                "type": "null"
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ARTIFACT_SUBMITTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_ref",
+              "artifact_sha256",
+              "attempt",
+              "cost",
+              "expected_revision"
+            ],
+            "properties": {
+              "cost": {
+                "type": "null"
+              },
+              "artifact_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "artifact_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "REVIEW_PASSED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision",
+              "submission_event_id"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              },
+              "submission_event_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "REVIEW_FAILED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision",
+              "submission_event_id"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              },
+              "submission_event_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_COMPLETED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision",
+              "review_event_id"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              },
+              "review_event_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "QUEST_FAILED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cost",
+              "expected_revision",
+              "reason_code"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "cost": {
+                "type": "null"
+              },
+              "reason_code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              }
+            }
+          },
+          "quest_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "OBSERVATION_RECORDED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "cost",
+              "related_event_id"
+            ],
+            "properties": {
+              "cost": {
+                "type": "null"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "related_event_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ANOMALY_DETECTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "cost",
+              "related_event_id"
+            ],
+            "properties": {
+              "cost": {
+                "type": "null"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "related_event_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "RUN_INTERRUPTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "cost",
+              "related_event_id"
+            ],
+            "properties": {
+              "cost": {
+                "type": "null"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "related_event_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "BUDGET_EXHAUSTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "cost",
+              "related_event_id"
+            ],
+            "properties": {
+              "cost": {
+                "type": "null"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "related_event_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "POLICY_DENIED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "cost",
+              "related_event_id"
+            ],
+            "properties": {
+              "cost": {
+                "type": "null"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "related_event_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AUDIT_UNAVAILABLE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "cost",
+              "related_event_id"
+            ],
+            "properties": {
+              "cost": {
+                "type": "null"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "related_event_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "quest_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        }
+      }
+    }
+  ]
+}
