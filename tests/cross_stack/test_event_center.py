@@ -18,6 +18,24 @@ from tests.cross_stack.generate_event_center_fixture import generate
 STAMP = "2027-01-15T08:06:40Z"
 
 
+def test_one_character_base_preserves_entire_lifecycle_source(tmp_path):
+    generate(tmp_path)
+    root = tmp_path / "_producer"
+    burn = root / "J_burn_in" / "burn_in_status_snapshot.json"
+    doc = json.loads(burn.read_text())
+    for row in doc["lifecycle_history"] + doc["open_lifecycles"]:
+        if row["symbol"] == "BTC/USDT":
+            row["symbol"] = "O/USDT"
+    burn.write_text(json.dumps(doc))
+    result = build_event_center(generated_at_utc=STAMP, ppl_lifecycles=burn)
+    assert result["sources"][2]["status"] == "PRESENT"
+    assert result["sources"][2]["events_observed"] == 5
+    assert {row["symbol"] for row in result["events"]} == {"O/USDT", "ETH/USDT", "SOL/USDT"}
+    artifact = root / "event_center_single_base.json"
+    artifact.write_text(json.dumps(result))
+    assert EventCenterReader(artifact, now_fn=lambda: NOW + 5).read().ok
+
+
 def alert(ts=NOW - 10):
     return json.dumps({"rule": "MEMORY", "severity": "CRITICAL", "ts": ts, "message": "secret", "value": 91, "threshold": 90}) + "\n"
 

@@ -92,7 +92,7 @@ export function validateEventCenter(x: unknown): x is EventCenterSnapshot {
     const stamp = utc(e.occurred_at_utc);
     if (e.time_status === "PRESENT" ? stamp === null || stamp > generated : e.time_status !== "UNKNOWN" || e.occurred_at_utc !== null) return false;
     if (index === 2) {
-      if (!member(e.kind, pplKinds) || e.time_status !== "PRESENT" || e.severity !== (e.kind === "POSITION_UNRESOLVED" ? "WARNING" : "INFO") || !match(e.symbol, /^[A-Z0-9]{2,24}(?:\/[A-Z0-9]{2,24})?$/) || !uint(e.sequence) || e.sequence < 1 || stamp! > utc(source.source_generated_at_utc)!) return false;
+      if (!member(e.kind, pplKinds) || e.time_status !== "PRESENT" || e.severity !== (e.kind === "POSITION_UNRESOLVED" ? "WARNING" : "INFO") || !match(e.symbol, /^[A-Z0-9]{1,24}(?:\/[A-Z0-9]{2,24})?$/) || !uint(e.sequence) || e.sequence < 1 || stamp! > utc(source.source_generated_at_utc)!) return false;
           if (sequences.has(e.sequence)) return false;
       sequences.add(e.sequence);
     } else if (!member(e.kind, alertKinds) || e.symbol !== null || e.sequence !== null) return false;

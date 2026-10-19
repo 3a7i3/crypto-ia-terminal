@@ -16,6 +16,24 @@ const response = (body: unknown, ok = true) => ({ ok, json: async () => body }) 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe.skipIf(!hasFixture)("APP-EVENTS-01 Python -> API -> React", () => {
+  it("accepts a one-character base and renders it without discarding the source", async () => {
+    const body = fixture();
+    for (const event of body.events) {
+      if (event.symbol === "BTC/USDT") event.symbol = "O/USDT";
+    }
+    expect(validateEventCenter(body)).toBe(true);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(body)));
+    render(<EventsView />);
+    await waitFor(() => expect(screen.getAllByTestId("event-row")).toHaveLength(8));
+    expect(screen.getByTestId("events-view")).toHaveTextContent("O/USDT");
+  });
+
+  it.each(["/USDT", "O/", "O/U", "o/USDT", "<O>/USDT"])("rejects malformed symbol %s", (symbol) => {
+    const body = fixture();
+    body.events.find((event: any) => event.source_id === "ppl_lifecycles").symbol = symbol;
+    expect(validateEventCenter(body)).toBe(false);
+  });
+
   it("accepts the real contract and displays distinct source coverage and unknown dates", async () => {
     const body = fixture();
     expect(validateEventCenter(body)).toBe(true);
