@@ -191,7 +191,7 @@ def _validate_event_center(doc, *, transport=False) -> bool:
         if event["source_id"] == "ppl_lifecycles":
             if event["kind"] not in {"POSITION_OPENED", "POSITION_CLOSED", "POSITION_UNRESOLVED"} or event["time_status"] != "PRESENT" or event["severity"] != ("WARNING" if event["kind"] == "POSITION_UNRESOLVED" else "INFO"):
                 return False
-            if not isinstance(event["symbol"], str) or not re.fullmatch(r"[A-Z0-9]{2,24}(?:/[A-Z0-9]{2,24})?", event["symbol"]) or not unsigned(event["sequence"]) or event["sequence"] < 1:
+            if not isinstance(event["symbol"], str) or not re.fullmatch(r"[A-Z0-9]{1,24}(?:/[A-Z0-9]{2,24})?", event["symbol"]) or not unsigned(event["sequence"]) or event["sequence"] < 1:
                 return False
             if event["sequence"] in sequences:
                 return False
