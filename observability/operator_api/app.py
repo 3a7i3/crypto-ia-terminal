@@ -512,6 +512,23 @@ def get_burn_in_status() -> Any:
     return payload
 
 
+@app.get("/api/operator/v1/burn-in/statistics")
+def get_burn_in_statistics() -> Any:
+    """Descriptive metrics over the validated complete PPL presentation."""
+    from observability.burn_in_statistics import build_burn_in_statistics
+
+    result = get_burn_in_status_reader().read()
+    if not result.ok:
+        return _burn_in_status_failure_response(result)
+    try:
+        payload = build_burn_in_statistics(dict(result.snapshot or {}))
+    except (ValueError, TypeError):
+        return JSONResponse(status_code=503, content={"error_code": "BURN_IN_STATISTICS_INVALID_POPULATION"})
+    payload["snapshot_age_s"] = result.snapshot_age_s
+    payload["freshness_classification"] = result.freshness_classification
+    return payload
+
+
 @app.get("/api/operator/v1/market")
 def get_market() -> Any:
     """Return only the validated CryptoRadar presentation artifact.
