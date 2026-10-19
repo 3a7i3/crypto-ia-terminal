@@ -45,3 +45,11 @@
 .portfolio-field > span { min-width:0; }
 .overview-diagnostics .flex { display:flex; justify-content:space-between; padding:8px 0; }
 .burnin-panel > summary { min-height:44px; padding:12px 0; cursor:pointer; }
+
+/* Read-only order history: filters remain usable on narrow screens. */
+.burnin-history-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-block: 16px; }
+.burnin-history-controls label { display: grid; gap: 6px; min-width: 0; }
+.burnin-history-controls input, .burnin-history-controls select { width: 100%; min-height: 44px; padding: 8px; border: 1px solid #a9bbd0; border-radius: 8px; background: white; color: #243b53; box-sizing: border-box; }
+.burnin-history-pagination { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.burnin-history-pagination button { min-height: 44px; padding: 8px 16px; }
+.burnin-provenance-grid code { overflow-wrap: anywhere; }

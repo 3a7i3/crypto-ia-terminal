@@ -1,8 +1,9 @@
 import { SourceAvailability } from "../components/SourceAvailability";
-import React from "react";
+import React, { useState } from "react";
+import { BurnInStatistics } from "../components/BurnInStatistics";
 import { fr } from "../lib/presentationFr";
 import { useBurnInStatus } from "../lib/burnInStatusClient";
-import type { BurnInHistoryRow, BurnInOpenLifecycle } from "../lib/burnInStatusTypes";
+import type { BurnInHistoryRow, BurnInOpenLifecycle, BurnInStatusSnapshot } from "../lib/burnInStatusTypes";
 
 function duration(value: number | null): string {
   if (value === null) return "NOT_AVAILABLE";
@@ -49,6 +50,7 @@ const HistoryMobileCard: React.FC<{ row: BurnInHistoryRow }> = ({ row }) => (
       <div><dt>Principal USD</dt><dd>{row.principal_usd}</dd></div>
       <div><dt>Entrée / sortie</dt><dd>{row.entry_price} / {num(row.exit_price)}</dd></div>
       <div><dt>Frais entrée / sortie</dt><dd>{row.entry_fee_usd} / {num(row.exit_fee_usd)}</dd></div>
+      <div><dt>PnL brut USD</dt><dd>{num(row.gross_pnl_usd)}</dd></div>
       <div><dt>PnL net réalisé</dt><dd>{row.status === "UNRESOLVED" ? "UNRESOLVED" : num(row.net_realized_pnl_usd)}</dd></div>
       <div><dt>Durée</dt><dd>{duration(row.duration_seconds)}</dd></div>
       <div><dt>Trade ID</dt><dd>{row.trade_id}</dd></div>
@@ -56,6 +58,66 @@ const HistoryMobileCard: React.FC<{ row: BurnInHistoryRow }> = ({ row }) => (
     </dl>
   </article>
 );
+
+export function BurnInHistory({ s }: { s: BurnInStatusSnapshot }) {
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const [side, setSide] = useState("ALL");
+  const [from, setFrom] = useState("");
+  const [until, setUntil] = useState("");
+  const [page, setPage] = useState(0);
+  const filtered = s.lifecycle_history.filter(row =>
+    (status === "ALL" || row.status === status) && (side === "ALL" || row.side === side) &&
+    (!from || row.opened_at_utc.slice(0, 10) >= from) && (!until || row.opened_at_utc.slice(0, 10) <= until) &&
+    [row.symbol, row.trade_id, row.open_decision_id ?? "", row.terminal_decision_id ?? ""].some(value => value.toLowerCase().includes(query.trim().toLowerCase())));
+  const pages = Math.max(1, Math.ceil(filtered.length / 20));
+  const currentPage = Math.min(page, pages - 1);
+  const visible = filtered.slice(currentPage * 20, (currentPage + 1) * 20);
+  return (
+      <section className="burnin-panel" data-testid="burnin-history">
+        <div className="burnin-section-head">
+          <div><h3>Historique des ordres PAPER</h3><span>Une ligne par lifecycle PPL · plus récent en premier.</span></div>
+          <strong>{s.lifecycle_history.length}</strong>
+        </div>
+        <div className="burnin-history-controls">
+          <label>Rechercher un symbole ou une identité<input aria-label="Rechercher un ordre" value={query} onChange={event => { setQuery(event.target.value); setPage(0); }} /></label>
+          <label>Statut<select aria-label="Statut des ordres" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}><option value="ALL">Tous les statuts</option><option value="OPEN">Ouverts</option><option value="CLOSED">Clôturés</option><option value="UNRESOLVED">Non résolus</option></select></label>
+          <label>Sens<select aria-label="Sens des ordres" value={side} onChange={event => { setSide(event.target.value); setPage(0); }}><option value="ALL">Tous les sens</option><option value="LONG">LONG</option><option value="SHORT">SHORT</option></select></label>
+          <label>Ouverture à partir du (UTC)<input type="date" aria-label="Date de début" value={from} onChange={event => { setFrom(event.target.value); setPage(0); }} /></label>
+          <label>Ouverture jusqu’au (UTC)<input type="date" aria-label="Date de fin" value={until} onChange={event => { setUntil(event.target.value); setPage(0); }} /></label>
+        </div>
+        <p role="status">{filtered.length} ordres correspondent sur {s.lifecycle_history.length} cycles capturés. Page {currentPage + 1} sur {pages}.</p>
+        {filtered.length === 0 && <p>Aucun ordre ne correspond aux filtres.</p>}
+        <div className="burnin-history-table-wrap">
+          <table className="burnin-history-table">
+            <thead><tr>
+              <th>Identité</th><th>Statut</th><th>Symbole</th><th>Sens</th><th>Ouverture</th><th>Fin</th>
+              <th>Principal USD</th><th>Entrée</th><th>Sortie</th><th>Frais E/X</th><th>PnL brut</th><th>PnL net</th><th>Durée</th><th>Raison</th>
+            </tr></thead>
+            <tbody>
+              {visible.map((row) => (
+                <tr key={row.trade_id} data-testid="burnin-history-row">
+                  <td>{row.trade_id}</td><td><span className={`burnin-status burnin-status-${row.status.toLowerCase()}`}>{row.status}</span></td>
+                  <td>{row.symbol}</td><td>{row.side}</td><td>{row.opened_at_utc}</td><td>{row.terminal_at_utc ?? "EN COURS"}</td>
+                  <td>{row.principal_usd}</td><td>{row.entry_price}</td><td>{num(row.exit_price)}</td>
+                  <td>{row.entry_fee_usd} / {num(row.exit_fee_usd)}</td>
+                  <td>{num(row.gross_pnl_usd)}</td>
+                  <td>{row.status === "UNRESOLVED" ? "UNRESOLVED" : num(row.net_realized_pnl_usd)}</td>
+                  <td>{duration(row.duration_seconds)}</td>
+                  <td>{row.unresolved_reason ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="burnin-history-mobile">
+          {visible.map((row) => <HistoryMobileCard key={row.trade_id} row={row} />)}
+        </div>
+        <nav className="burnin-history-pagination" aria-label="Pagination des ordres"><button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Page précédente</button><button disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>Page suivante</button></nav>
+      </section>
+
+  );
+}
 
 export const BurnInStatusView: React.FC = () => {
   const state = useBurnInStatus();
@@ -116,36 +178,8 @@ export const BurnInStatusView: React.FC = () => {
         )}
       </section>
 
-      <section className="burnin-panel" data-testid="burnin-history">
-        <div className="burnin-section-head">
-          <div><h3>Historique des ordres PAPER</h3><span>Une ligne par lifecycle PPL · plus récent en premier.</span></div>
-          <strong>{s.lifecycle_history.length}</strong>
-        </div>
-        <div className="burnin-history-table-wrap">
-          <table className="burnin-history-table">
-            <thead><tr>
-              <th>Statut</th><th>Symbole</th><th>Sens</th><th>Ouverture</th><th>Fin</th>
-              <th>Principal USD</th><th>Entrée</th><th>Sortie</th><th>Frais E/X</th><th>PnL net</th><th>Durée</th><th>Raison</th>
-            </tr></thead>
-            <tbody>
-              {s.lifecycle_history.map((row) => (
-                <tr key={row.trade_id} data-testid="burnin-history-row">
-                  <td><span className={`burnin-status burnin-status-${row.status.toLowerCase()}`}>{row.status}</span></td>
-                  <td>{row.symbol}</td><td>{row.side}</td><td>{row.opened_at_utc}</td><td>{row.terminal_at_utc ?? "EN COURS"}</td>
-                  <td>{row.principal_usd}</td><td>{row.entry_price}</td><td>{num(row.exit_price)}</td>
-                  <td>{row.entry_fee_usd} / {num(row.exit_fee_usd)}</td>
-                  <td>{row.status === "UNRESOLVED" ? "UNRESOLVED" : num(row.net_realized_pnl_usd)}</td>
-                  <td>{duration(row.duration_seconds)}</td>
-                  <td>{row.unresolved_reason ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="burnin-history-mobile">
-          {s.lifecycle_history.map((row) => <HistoryMobileCard key={row.trade_id} row={row} />)}
-        </div>
-      </section>
+      <BurnInStatistics snapshot={s} />
+      <BurnInHistory s={s} />
 
       <details className="burnin-panel"><summary>Diagnostics techniques · configuration et provenance</summary>
         <div className="burnin-section-head"><div><h3>Configuration gelée & provenance</h3><span>Whitelist issue du snapshot BURN_IN_EXPERIMENT_CONFIG_V1.</span></div></div>

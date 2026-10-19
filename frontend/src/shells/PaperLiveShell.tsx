@@ -20,7 +20,7 @@ const mainLinks = [
 
 const paperLinks = [
   { to: "/paper-live/portfolio", label: "Portefeuille", testId: "tab-portfolio" },
-  { to: "/paper-live/burn-in", label: "Burn-in", testId: "tab-burn-in" },
+  { to: "/paper-live/burn-in", label: "Ordres & Burn-in", testId: "tab-burn-in" },
   { to: "/paper-live/decisions", label: "Décisions", testId: "tab-decisions" },
   { to: "/paper-live/lifecycle", label: "Comparaison simulateur / PPL", testId: "tab-ppl" },
   { to: "/paper-live/finance", label: "Finance", testId: "tab-finance" },
