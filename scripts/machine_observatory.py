@@ -288,7 +288,7 @@ def capture(*, source_root, epoch, include_api=False, include_services=False):
     paths = {**ARTIFACTS,
              "epoch_config": f"databases/ppl_authority/{epoch}.burn-in-experiment-config.json"}
     digest = hashlib.sha256(epoch.encode()).hexdigest()
-    epoch_path = root / "databases/ppl_authority/epochs" / (digest + ".jsonl")
+    epoch_path = root / "databases/ppl_authority/store/epochs" / (digest + ".jsonl")
     return {"schema": VERSION, "generated_at_utc": utc_now(),
             "mode": "READ_ONLY_ONE_SHOT", "runtime_deployed": "NOT_ATTESTED",
             "coverage": "FIXED_ALLOWLIST_NOT_GLOBAL_MACHINE_ACCESS",

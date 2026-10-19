@@ -34,7 +34,9 @@ rapport dans un emplacement de preuve distinct, jamais sur un fichier source.
   La présence n'établit pas la lisibilité du contenu. Les noms de variables,
   leurs valeurs, validité et consommateurs restent NOT_COLLECTED.
 - Lecture du seul JSONL PPL d'epoch sélectionné, chemin dérivé par SHA-256
-  comme le producteur burn-in existant. Résumé de structure, comptage par type,
+  sous `databases/ppl_authority/store/epochs/` (chemin runtime observé le
+  19 octobre ; le producteur métier reçoit sa racine store explicitement).
+  Résumé de structure, comptage par type,
   séquences et empreinte du fichier à une frontière stable. Aucun payload, ID
   arbitraire, message d'erreur source ou valeur financière exporté.
 - États des sources : MISSING, DENIED, INVALID_PATH, SOURCE_CHANGED,

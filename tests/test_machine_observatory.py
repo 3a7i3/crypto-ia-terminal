@@ -25,7 +25,7 @@ class CollectorTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.epoch = "TEST-EPOCH-01"
-        self.path = self.root / "databases/ppl_authority/epochs" / (
+        self.path = self.root / "databases/ppl_authority/store/epochs" / (
             hashlib.sha256(self.epoch.encode()).hexdigest() + ".jsonl")
         self.path.parent.mkdir(parents=True)
 
