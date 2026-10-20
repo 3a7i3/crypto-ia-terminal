@@ -140,7 +140,9 @@ def test_prompt_injection_remains_untrusted_data(tmp_path):
 
 
 def test_no_shipped_runtime_network_imports_or_hooks():
-    allowed_external = {'governance_tower.redaction'}
+    # Only the display-only feed may read the evolving Tower rules; storage,
+    # validation and replay are bound to the frozen J01 profile.
+    allowed_external = {'feed.py': {'governance_tower.redaction'}}
     allowed_stdlib = {'__future__', 'argparse', 'contextlib', 'dataclasses', 'datetime', 'enum',
                       'hashlib', 'json', 'os', 'pathlib', 're', 'sqlite3', 'stat', 'typing', 'unicodedata'}
     for path in (ROOT / 'sentinel_activity').glob('*.py'):
@@ -153,7 +155,8 @@ def test_no_shipped_runtime_network_imports_or_hooks():
             else:
                 imports = []
             for name in imports:
-                assert name.startswith('sentinel_activity') or name in allowed_external or name in allowed_stdlib
+                assert (name.startswith('sentinel_activity') or name in allowed_external.get(path.name, ())
+                        or name in allowed_stdlib), (path.name, name)
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 assert node.func.attr not in {'system', 'popen', 'fork', 'execve', 'remove', 'unlink', 'rmtree'}
     # Existing components must not import the new writer package.
@@ -166,7 +169,6 @@ def test_no_shipped_runtime_network_imports_or_hooks():
 def test_import_purity_in_fresh_process():
     code = '''
 import os, sys, pathlib, sqlite3, json, hashlib, datetime, enum, re, unicodedata, dataclasses, contextlib
-from governance_tower import redaction
 
 def deny(*args, **kwargs):
     raise AssertionError('import-time side effect')
@@ -186,6 +188,8 @@ sys.addaudithook(audit)
 import sentinel_activity.backup, sentinel_activity.canonical, sentinel_activity.contracts
 import sentinel_activity.demo, sentinel_activity.integrity, sentinel_activity.policy
 import sentinel_activity.quests, sentinel_activity.reader, sentinel_activity.store
+assert not any(name.startswith('governance_tower') for name in sys.modules), 'storage imports the Tower'
+import sentinel_activity.feed
 '''
     result = subprocess.run([sys.executable, '-B', '-c', code], cwd=ROOT, text=True,
                             capture_output=True, timeout=30)

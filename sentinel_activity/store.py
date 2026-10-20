@@ -25,6 +25,7 @@ from sentinel_activity.integrity import validate_causation, verify_events
 from sentinel_activity.quests import project as _project, projection_bytes
 
 STORAGE_VERSION = "j01-storage/1"
+APPEND_ATTEMPTS = 8
 DB_NAME = "activity.sqlite3"
 _SCHEMA = """
 CREATE TABLE ledger_meta (id INTEGER PRIMARY KEY CHECK(id=1), body TEXT NOT NULL);
@@ -237,9 +238,12 @@ class ActivityStore:
         with _translate(), self._connection() as conn:
             # Keep full verification, admission and projection outside SQLite's
             # writer lock. A changed data_version invalidates all preparation.
-            for _attempt in range(8):
+            # The last attempt verifies under the writer lock, as J01 did, so a
+            # writer that keeps losing optimistic races still makes progress.
+            for attempt in range(APPEND_ATTEMPTS):
+                final = attempt == APPEND_ATTEMPTS - 1
                 version = conn.execute("PRAGMA data_version").fetchone()[0]
-                conn.execute("BEGIN")
+                conn.execute("BEGIN IMMEDIATE" if final else "BEGIN")
                 try:
                     meta, events, _ = self._verified(conn)
                     event = dict(original)
@@ -268,11 +272,12 @@ class ActivityStore:
                             "BUDGET_EXCEEDED")
                     body = canonical_bytes(event)
                     projected = projection_bytes(projection)
-                    conn.rollback()
-                    conn.execute("BEGIN IMMEDIATE")
-                    if conn.execute("PRAGMA data_version").fetchone()[0] != version:
+                    if not final:
                         conn.rollback()
-                        continue
+                        conn.execute("BEGIN IMMEDIATE")
+                        if conn.execute("PRAGMA data_version").fetchone()[0] != version:
+                            conn.rollback()
+                            continue
                     # No other connection has committed since verification.
                     # Recheck physical space now, inside the short write phase.
                     size = sum(p.stat().st_size for p in self.root.glob(DB_NAME + "*") if p.is_file())
