@@ -232,45 +232,59 @@ class ActivityStore:
             return self._verified(conn)
 
     def append(self, candidate: dict, *, producer_id: str) -> dict:
-        event = validate_candidate(candidate)
+        original = validate_candidate(candidate)
         require(identifier(producer_id), "ACTOR_DENIED")
         with _translate(), self._connection() as conn:
-            conn.execute("BEGIN IMMEDIATE")
-            try:
-                meta, events, _ = self._verified(conn)
-                admit(event, producer_id, meta["policy"])
-                request_hash = digest({"candidate": event, "producer_id": producer_id})
-                existing = next((e for e in events if e["event_id"] == event["event_id"]), None)
-                if existing is not None:
-                    require(digest({"candidate": candidate_from(existing), "producer_id": existing["producer_id"]})
-                            == request_hash, "EVENT_ID_COLLISION")
+            # Keep full verification, admission and projection outside SQLite's
+            # writer lock. A changed data_version invalidates all preparation.
+            for _attempt in range(8):
+                version = conn.execute("PRAGMA data_version").fetchone()[0]
+                conn.execute("BEGIN")
+                try:
+                    meta, events, _ = self._verified(conn)
+                    event = dict(original)
+                    admit(event, producer_id, meta["policy"])
+                    request_hash = digest({"candidate": event, "producer_id": producer_id})
+                    existing = next((e for e in events if e["event_id"] == event["event_id"]), None)
+                    if existing is not None:
+                        require(digest({"candidate": candidate_from(existing), "producer_id": existing["producer_id"]})
+                                == request_hash, "EVENT_ID_COLLISION")
+                        conn.rollback()
+                        return existing
+                    validate_causation(event, {e["event_id"]: e for e in events})
+                    recorded = format_utc(self.clock())
+                    require(not events or parse_utc(recorded) >= parse_utc(events[-1]["recorded_at_utc"]),
+                            "CLOCK_REGRESSION")
+                    event.update(ledger_id=meta["ledger_id"], producer_id=producer_id,
+                                 ingestion_policy_version=meta["policy"]["version"], sequence=len(events) + 1,
+                                 recorded_at_utc=recorded,
+                                 integrity={"previous_hash": events[-1]["integrity"]["event_hash"] if events else "GENESIS"})
+                    event["integrity"]["event_hash"] = event_hash(event)
+                    validate_recorded(event)
+                    projection = _project(events + [event], meta["policy"])
+                    limits = meta["limits"]
+                    require(len(events) < limits["max_events"], "BUDGET_EXCEEDED")
+                    require(sum(e["producer_id"] == producer_id for e in events) < limits["per_producer"],
+                            "BUDGET_EXCEEDED")
+                    body = canonical_bytes(event)
+                    projected = projection_bytes(projection)
                     conn.rollback()
-                    return existing
-                validate_causation(event, {e["event_id"]: e for e in events})
-                recorded = format_utc(self.clock())
-                require(not events or parse_utc(recorded) >= parse_utc(events[-1]["recorded_at_utc"]),
-                        "CLOCK_REGRESSION")
-                event.update(ledger_id=meta["ledger_id"], producer_id=producer_id,
-                             ingestion_policy_version=meta["policy"]["version"], sequence=len(events) + 1,
-                             recorded_at_utc=recorded,
-                             integrity={"previous_hash": events[-1]["integrity"]["event_hash"] if events else "GENESIS"})
-                event["integrity"]["event_hash"] = event_hash(event)
-                validate_recorded(event)
-                projection = _project(events + [event], meta["policy"])
-                limits = meta["limits"]
-                require(len(events) < limits["max_events"], "BUDGET_EXCEEDED")
-                require(sum(e["producer_id"] == producer_id for e in events) < limits["per_producer"],
-                        "BUDGET_EXCEEDED")
-                # Reserve for WAL frames, index pages and this bounded transaction.
-                size = sum(p.stat().st_size for p in self.root.glob(DB_NAME + "*") if p.is_file())
-                require(size + 65_536 + 4 * len(canonical_bytes(event)) +
-                        2 * len(projection_bytes(projection)) <= limits["max_bytes"], "BUDGET_EXCEEDED")
-                conn.execute("INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)", (
-                    event["sequence"], event["event_id"], producer_id, request_hash, event["quest_id"],
-                    event["actor_id"], event["correlation_id"], recorded, canonical_bytes(event).decode()))
-                conn.execute("UPDATE projection SET body=? WHERE id=1", (projection_bytes(projection).decode(),))
-                conn.commit()
-                return event
-            except BaseException:
-                conn.rollback()
-                raise
+                    conn.execute("BEGIN IMMEDIATE")
+                    if conn.execute("PRAGMA data_version").fetchone()[0] != version:
+                        conn.rollback()
+                        continue
+                    # No other connection has committed since verification.
+                    # Recheck physical space now, inside the short write phase.
+                    size = sum(p.stat().st_size for p in self.root.glob(DB_NAME + "*") if p.is_file())
+                    require(size + 65_536 + 4 * len(body) + 2 * len(projected)
+                            <= limits["max_bytes"], "BUDGET_EXCEEDED")
+                    conn.execute("INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)", (
+                        event["sequence"], event["event_id"], producer_id, request_hash, event["quest_id"],
+                        event["actor_id"], event["correlation_id"], recorded, body.decode()))
+                    conn.execute("UPDATE projection SET body=? WHERE id=1", (projected.decode(),))
+                    conn.commit()
+                    return event
+                except BaseException:
+                    conn.rollback()
+                    raise
+        raise LedgerError("BUSY")
