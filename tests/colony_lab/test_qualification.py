@@ -79,8 +79,12 @@ def test_every_criteria_revision_is_pinned_and_only_tightens():
              if name not in old["expect"]}
     assert {name for _, name in added} == {"journal_last"}  # the one disclosed addition
     r7, _ = q.load_criteria("r7")
-    assert r7["revision"]["supersedes_sha256"] == q.CRITERIA["r6"][1] and q.CURRENT == "r7"
+    assert r7["revision"]["supersedes_sha256"] == q.CRITERIA["r6"][1]
     assert r7["predicates"] == r6["predicates"] and r7["subject"] == r6["subject"] and r7["trials"] == r6["trials"]
+    r8, _ = q.load_criteria("r8")
+    assert r8["revision"]["supersedes_sha256"] == q.CRITERIA["r7"][1] and q.CURRENT == "r8"
+    assert r8["predicates"] == r7["predicates"] and r8["subject"] == r7["subject"] and r8["trials"] == r7["trials"]
+    assert r8["golden_answers"] == r7["golden_answers"]  # the subject did not change
     categories = {t["category"] for t in r2["trials"]}
     assert categories >= {"absent_source", "stale_source", "corrupted_journal", "interruption", "budget",
                           "malicious_content", "fake_governance_message", "mission_conflict",
@@ -123,10 +127,7 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     assert c8["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c8["failure_reasons"] == []
     assert c8["sandbox_view"]["matches_subject"] and c8["evaluator_runtime"]["source_only"]
     assert c8["code_irregular"] == [] and c8["evaluator_runtime"]["flags"]["isolated"]
-    # Tripwires: the latest accepted evidence names the code at this commit; a changed subject or
-    # evaluator needs a new campaign (and a new review) before any record.
-    assert c8["subject"]["subject_code_sha256"] == q.subject_code_sha256()
-    assert c8["evaluator_code_sha256"] == q.evaluator_code_sha256()
+    assert c8["subject"]["subject_code_sha256"] == q.subject_code_sha256()  # r8 did not change the subject
 
 
 CLEAN_TREE = {"git_head": "0" * 40, "tracked_clean": True, "stray_code": []}
@@ -248,7 +249,8 @@ def test_superseded_criteria_never_propose_a_qualification(monkeypatch, tmp_path
     assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r4")["failure_reasons"]
     assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r5")["failure_reasons"]
     assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r6")["failure_reasons"]
-    assert q.qualify(tmp_path, "r7")["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED"
+    assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r7")["failure_reasons"]
+    assert q.qualify(tmp_path, "r8")["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED"
 
 
 def test_changed_subject_code_never_proposes_a_qualification(monkeypatch, tmp_path):
@@ -556,6 +558,7 @@ def test_a_campaign_outside_the_observed_view_or_from_bytecode_fails(monkeypatch
 
 
 def test_main_exits_non_zero_on_a_failed_campaign(monkeypatch, tmp_path):
+    monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
     monkeypatch.setattr(q, "qualify", lambda workdir, revision: {"proposed_state": "FAILED", "failure_reasons": ["X"],
                                                                  "rounds": [[]]})
     assert q.main(["--out", str(tmp_path)]) == 1
@@ -580,11 +583,75 @@ def test_evaluator_runtime_is_source_only_only_isolated_without_site_or_bytecode
     assert runtime("-I", "-S", "-B", "-X", f"pycache_prefix={tmp_path}")["source_only"] is False  # existing cache
 
 
-def test_the_evaluator_reexecutes_itself_isolated_and_still_runs():
-    command = q.reexec_argv(["--help"])
-    assert command is not None and command[1:1 + len(q.EVALUATOR_FLAGS)] == list(q.EVALUATOR_FLAGS)
-    out = subprocess.run(command, capture_output=True, text=True, timeout=120)
-    assert out.returncode == 0 and "Sentinel lab trials" in out.stdout
+def test_the_evaluator_refuses_to_run_unless_started_isolated(tmp_path):
+    """Review 7, M5-ter: a sitecustomize reached through PYTHONPATH rewrote a self re-execution. The
+    evaluator now only refuses, and the isolated launch command ignores PYTHONPATH and site."""
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    marker = tmp_path / "ran"
+    (planted / "sitecustomize.py").write_text(f"open({str(marker)!r}, 'w').close()\n")
+    env = {"PATH": "/usr/bin:/bin", "PYTHONPATH": str(planted)}
+    plain = subprocess.run([sys.executable, "-m", "colony_lab.qualification", "--out", str(tmp_path / "out")],
+                           capture_output=True, text=True, timeout=120, cwd=q.sup.REPO, env=env)
+    assert plain.returncode == q.NOT_ISOLATED_EXIT and "refusing to run" in plain.stderr
+    assert marker.exists() and not (tmp_path / "out").exists()  # the planted code ran there, and nothing else did
+    marker.unlink()
+    command = q.launch_command(["--help"])
+    assert command[1:1 + len(q.EVALUATOR_FLAGS)] == list(q.EVALUATOR_FLAGS)
+    isolated = subprocess.run(command, capture_output=True, text=True, timeout=120, env=env)
+    assert isolated.returncode == 0 and "Sentinel lab trials" in isolated.stdout and not marker.exists()
+
+
+def test_the_bootstrap_appends_the_repository_after_the_standard_library(tmp_path):
+    out = subprocess.run([sys.executable, *q.EVALUATOR_FLAGS, "-c", q._BOOTSTRAP + "import json; print(json.dumps("
+                          "[sys.path, sys.argv]))", str(q.sup.REPO), "x"], capture_output=True, text=True,
+                         timeout=60, check=True)
+    path, argv = json.loads(out.stdout)
+    assert path[-1] == str(q.sup.REPO) and path.count(str(q.sup.REPO)) == 1 and argv == ["-c", "x"]
+
+
+def test_the_interrupted_supervisor_runs_isolated(monkeypatch, tmp_path):
+    """Review 6, M1-bis: the subprocess Q05 kills is an evaluator process too."""
+    seen = []
+
+    class Stop(Exception):
+        pass
+
+    def popen(argv, **kwargs):
+        seen.append(argv)
+        raise Stop
+
+    monkeypatch.setattr(q.subprocess, "Popen", popen)
+    with pytest.raises(Stop):
+        q._kill_mid_run(tmp_path, "agent", {"question": "x", "shortcut": None, "scenario": "nominal"})
+    argv = seen[0]
+    assert argv[0] == sys.executable and argv[1:1 + len(q.EVALUATOR_FLAGS)] == list(q.EVALUATOR_FLAGS)
+    assert argv[1 + len(q.EVALUATOR_FLAGS)] == "-c" and argv[2 + len(q.EVALUATOR_FLAGS)].startswith(q._BOOTSTRAP)
+
+
+def test_walk_code_flags_top_level_links_and_stray_cache_entries():
+    link = q.sup.REPO / "colony-planted-link"
+    cache = q.sup.REPO / "governance_tower" / "__pycache__"
+    created = not cache.exists()
+    cache.mkdir(exist_ok=True)
+    planted = [cache / "colony-planted.py", cache / "colony-planted.cpython-311.pyc.bak",
+               cache / "colony-planted.cpython-311.pyc"]
+    try:
+        link.symlink_to("governance_tower")
+        for path in planted:
+            path.write_text("")
+        regular, irregular = q.sup.walk_code(("colony-planted-link", "governance_tower"))
+        assert "colony-planted-link" in irregular and not any(n.startswith("colony-planted-link/") for n in regular)
+        assert {"governance_tower/__pycache__/colony-planted.py",
+                "governance_tower/__pycache__/colony-planted.cpython-311.pyc.bak"} <= set(irregular)
+        assert "governance_tower/__pycache__/colony-planted.cpython-311.pyc" not in irregular  # inert bytecode
+        assert not any("__pycache__" in name for name in regular)
+    finally:
+        link.unlink()
+        for path in planted:
+            path.unlink()
+        if created:
+            cache.rmdir()
 
 
 def test_sandbox_view_matches_only_the_exact_list(monkeypatch, tmp_path):
@@ -650,6 +717,9 @@ def test_tree_state_sees_nested_repositories_subdirectories_native_and_staged_ch
     git("update-index", "--no-skip-worktree", "kept.py")
     git("checkout", "--", "kept.py")
     assert q.tree_state(tmp_path)["tracked_clean"]
+    git("update-index", "--assume-unchanged", "kept.py")
+    assert not q.tree_state(tmp_path)["tracked_clean"]
+    git("update-index", "--no-assume-unchanged", "kept.py")
     (tmp_path / "kept.py").write_text("X = 2\n")
     git("add", "kept.py")  # staged only: the working tree matches the index, not HEAD
     assert not q.tree_state(tmp_path)["tracked_clean"]

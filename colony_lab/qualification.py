@@ -1,7 +1,8 @@
 """Sentinel lab trials against the frozen criteria; the evaluator is never the individual.
 
-``python -m colony_lab.qualification --out DIR`` runs every trial twice, each in
-a fresh lab, and writes an evidence file. The verdict it proposes is at most
+``python -I -S -B -X pycache_prefix=/colony-no-bytecode -c "<bootstrap>" REPO --out DIR``
+(``launch_command``; started any other way it refuses and prints that command) runs every
+trial twice, each in a fresh lab, and writes an evidence file. The verdict it proposes is at most
 ``PROPOSED_QUALIFIED_SIMULATED``; the qualification record itself is issued
 only after an independent review of that evidence.
 """
@@ -12,7 +13,6 @@ import argparse
 import copy
 import hashlib
 import json
-import os
 import platform
 import re
 import shutil
@@ -43,8 +43,9 @@ CRITERIA = {
     "r5": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R5.json", "3c5114365e9639f98f0bc1248df1cb4a131a971bfc7595f0515d6cb1a8d57103"),
     "r6": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R6.json", "a0e9076bcbfbc6b8e418ad9602a3b9bd72ada1006ac48773fd5168786629222e"),
     "r7": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R7.json", "c260b57b5e992b23a26a6717e939fb7a22b481ff0a8eaeb75270ed89c38ac486"),
+    "r8": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R8.json", "22528f1629db5d565f54137e11e99f670c68152eb3127cbafabe5f1072ca990a"),
 }
-CURRENT = "r7"
+CURRENT = "r8"
 EVIDENCE_SCHEMA = "colony-lab.qualification-evidence/0"
 MISSION = "fixture-sentinel-qualification"
 BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "output_bytes": 1 << 20,
@@ -143,10 +144,11 @@ _BOOTSTRAP = "import sys; sys.path.append(sys.argv[1]); del sys.argv[1]\n"
 
 
 def evaluator_runtime() -> dict:
-    """The interpreter the evaluator runs on and its flags. A campaign is valid only from an isolated
-    interpreter without site that cannot load repository bytecode (``EVALUATOR_FLAGS``, which the
-    module re-executes itself with): a ``PYTHONPATH``, a ``.pth`` or a forged ``__pycache__`` file
-    would otherwise run unhashed code in the evaluator."""
+    """The interpreter the evaluator runs on and its flags. A campaign runs only from an isolated
+    interpreter without site that cannot load repository bytecode (``EVALUATOR_FLAGS``, see
+    ``launch_command``): a ``PYTHONPATH``, a ``.pth`` or a forged ``__pycache__`` file would otherwise
+    run unhashed code in the evaluator. The evaluator never re-executes itself: code that already ran
+    in a process could rewrite that command."""
     flags = {"isolated": bool(sys.flags.isolated), "no_site": bool(sys.flags.no_site),
              "dont_write_bytecode": bool(sys.dont_write_bytecode), "pycache_prefix": sys.pycache_prefix}
     return {"executable": sys.executable, "prefix": sys.prefix, "base_prefix": sys.base_prefix,
@@ -155,10 +157,9 @@ def evaluator_runtime() -> dict:
                                 and sys.pycache_prefix and not Path(sys.pycache_prefix).exists())}
 
 
-def reexec_argv(argv: list[str]) -> list[str] | None:
-    """The command that runs the evaluator again from sources and isolated, or None when it already is."""
-    if evaluator_runtime()["source_only"]:
-        return None
+def launch_command(argv: list[str]) -> list[str]:
+    """The only command a campaign runs from: isolated, without site, from sources (the repository is
+    appended to sys.path by the bootstrap, after the standard library)."""
     return [sys.executable, *EVALUATOR_FLAGS, "-c",
             _BOOTSTRAP + "from colony_lab.qualification import main\nsys.exit(main(sys.argv[1:]))",
             str(sup.REPO), *argv]
@@ -528,7 +529,15 @@ def capture_golden(workdir: Path, revision: str, trials_file: Path | None = None
             "subject_code_sha256": subject_code_sha256(), "outputs": outputs}
 
 
+NOT_ISOLATED_EXIT = 2
+
+
 def main(argv: list[str] | None = None) -> int:
+    if not evaluator_runtime()["source_only"]:
+        print("refusing to run: the evaluator must be started isolated, without site and from sources:\n"
+              + " ".join(json.dumps(part) for part in launch_command(sys.argv[1:] if argv is None else argv)),
+              file=sys.stderr)
+        return NOT_ISOLATED_EXIT
     parser = argparse.ArgumentParser(description="Sentinel lab trials (simulated, deterministic)")
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--criteria", choices=sorted(CRITERIA), default=CURRENT)
@@ -556,7 +565,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    command = reexec_argv(sys.argv[1:])  # what ran so far may be bytecode or site code: run again from sources
-    if command is not None:
-        os.execv(sys.executable, command)
     sys.exit(main())
