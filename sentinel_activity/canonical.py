@@ -12,7 +12,7 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any
 
-from governance_tower.redaction import redact
+from sentinel_activity.redaction_v1 import redact
 
 ERROR_CODES = frozenset({
     "INVALID_JSON", "DUPLICATE_KEY", "SCHEMA_VIOLATION", "NUMERIC_AMBIGUITY",
