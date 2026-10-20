@@ -71,7 +71,8 @@ the run claimed (`inflight.json`) then charged (a crash at any point never refun
   supervisor death) makes the init kill every process. `PR_SET_PDEATHSIG` and `--kill-child` stay as
   second layers;
 - the outcome is classified from the init's own status pipe (CPU total, signal, setup failure). The
-  child cannot write it, signal the init or trace it, so it cannot claim `CPU_EXCEEDED` or a sandbox
+  child cannot write it or trace the init, and a signal it sends to the init has no effect (the
+  kernel ignores signals without a handler sent to a namespace init from inside), so it cannot claim `CPU_EXCEEDED` or a sandbox
   failure by choosing an exit code or a signal (`CHILD_FAILED` then). Its only self-reported outcome
   is `MEMORY_EXCEEDED` (exit 70 on `MemoryError`), which can only cost the individual itself.
 

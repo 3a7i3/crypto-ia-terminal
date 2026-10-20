@@ -10,8 +10,8 @@ It forks the child, then until the child ends:
   stopped, timed out or died), so nothing outlives its supervisor.
 
 Then it kills what is left and writes one status line on its own pipe. The
-child cannot forge that line, signal this init (namespace init) or trace it
-(it holds capabilities the child dropped). Python standard library only.
+child cannot forge that line or trace this init (it holds capabilities the child
+dropped); a signal the child sends it has no effect (namespace init, no handler). Python standard library only.
 """
 
 import errno

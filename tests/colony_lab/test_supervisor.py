@@ -195,6 +195,14 @@ def test_cpu_budget_counts_every_process(sandboxed):
     assert (result["status"], result["code"]) == ("BUDGET_EXHAUSTED", "CPU")
 
 
+def test_cpu_budget_counts_live_processes(sandboxed):
+    """Nothing is reaped: the CPU is only visible in /proc, and the budget still applies."""
+    budget = {**BUDGET, "cpu_seconds": 2, "wall_seconds": 30}
+    supervisor, record = sandboxed(budget=budget)
+    result = supervisor.run(record["agent_id"], task("t-hold-spin", "hold_spin", processes=4, each_cpu_ms=1500))
+    assert (result["status"], result["code"]) == ("BUDGET_EXHAUSTED", "CPU")
+
+
 def test_process_count_is_bounded(sandboxed):
     supervisor, record = sandboxed()
     result = supervisor.run(record["agent_id"], task("t-fork-bomb", "fork_bomb"))
