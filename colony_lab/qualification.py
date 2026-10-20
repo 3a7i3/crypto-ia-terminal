@@ -15,6 +15,7 @@ import hashlib
 import json
 import platform
 import re
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -535,7 +536,7 @@ NOT_ISOLATED_EXIT = 2
 def main(argv: list[str] | None = None) -> int:
     if not evaluator_runtime()["source_only"]:
         print("refusing to run: the evaluator must be started isolated, without site and from sources:\n"
-              + " ".join(json.dumps(part) for part in launch_command(sys.argv[1:] if argv is None else argv)),
+              + shlex.join(launch_command(sys.argv[1:] if argv is None else argv)),
               file=sys.stderr)
         return NOT_ISOLATED_EXIT
     parser = argparse.ArgumentParser(description="Sentinel lab trials (simulated, deterministic)")
