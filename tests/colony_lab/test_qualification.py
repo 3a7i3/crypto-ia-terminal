@@ -118,6 +118,15 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     assert c7["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c7["failure_reasons"] == []
     assert c7["sandbox_view"]["matches_subject"] and c7["evaluator_runtime"]["source_only"]
     assert c7["subject"]["subject_code_sha256"] == q.load_criteria("r6")[0]["_golden"]["subject_code_sha256"]
+    c8 = json.loads((q.DOCS / "evidence" / "C8_sentinel_evidence.json").read_text())
+    assert c8["criteria_revision"] == "r7" and c8["criteria_sha256"] == q.CRITERIA["r7"][1]
+    assert c8["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c8["failure_reasons"] == []
+    assert c8["sandbox_view"]["matches_subject"] and c8["evaluator_runtime"]["source_only"]
+    assert c8["code_irregular"] == [] and c8["evaluator_runtime"]["flags"]["isolated"]
+    # Tripwires: the latest accepted evidence names the code at this commit; a changed subject or
+    # evaluator needs a new campaign (and a new review) before any record.
+    assert c8["subject"]["subject_code_sha256"] == q.subject_code_sha256()
+    assert c8["evaluator_code_sha256"] == q.evaluator_code_sha256()
 
 
 CLEAN_TREE = {"git_head": "0" * 40, "tracked_clean": True, "stray_code": []}
