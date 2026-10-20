@@ -26,18 +26,19 @@ from typing import Any
 from colony_lab import a1_identity as a1
 from colony_lab import lineage
 from colony_lab import supervisor as sup
-from colony_lab.workers.sentinel import LAB_CLOCK
 from sentinel_activity.store import ActivityStore
 
 DOCS = sup.REPO / "docs" / "colony_lab"
-# Every criteria revision is pinned; a revision never edits an earlier file.
+# Every criteria revision is pinned; a revision never edits an earlier file. Only CURRENT can
+# propose a qualification: evaluating a superseded revision always gives FAILED.
 CRITERIA = {
     "r0": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA.json",
            "e2cf1f9b354c6da5eb2e8d5b6f1a4033fb1c6ba94bee1817b54ca0dcdec7b862"),
     "r1": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R1.json",
            "e342e2145350e6e3d089ceb0073320b739537bc50c88a72a48194f5445f1e165"),
+    "r2": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R2.json", "6985211aebb6c33d8fc9119611ee36f31a54d47b3476082565a2501aded0f1b6"),
 }
-CURRENT = "r1"
+CURRENT = "r2"
 EVIDENCE_SCHEMA = "colony-lab.qualification-evidence/0"
 MISSION = "fixture-sentinel-qualification"
 BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "output_bytes": 1 << 20,
@@ -50,11 +51,7 @@ def load_criteria(revision: str = CURRENT) -> tuple[dict, str]:
     raw = path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != pinned:
         raise SystemExit("criteria changed after they were frozen; refusing to evaluate")
-    criteria = json.loads(raw)
-    clock = criteria.get("lab_clock_utc")
-    if clock is not None and LAB_CLOCK.strftime("%Y-%m-%dT%H:%M:%SZ") != clock:
-        raise SystemExit("the worker's lab clock is not the one the criteria pin")
-    return criteria, pinned
+    return json.loads(raw), pinned
 
 
 def sentinel_spec(subject: dict) -> dict:
@@ -155,8 +152,28 @@ def run_trial(trial: dict, subject: dict, workdir: Path) -> dict:
     return facts
 
 
-def evaluate(expect: dict, facts: dict) -> list[str]:
-    """Failed predicate names; an unknown predicate is itself a failure."""
+def _answer_texts(answer: dict) -> list[str]:
+    """What Sentinel says in its own voice: everything in the answer but the quoted untrusted content
+    (``untrusted_quotes``) and the quoted request of a refusal."""
+    texts = []
+    for key, value in answer.items():
+        if key == "untrusted_quotes":
+            continue
+        if key == "refusals" and isinstance(value, list):
+            value = [{k: v for k, v in r.items() if k != "quoted_request"} if isinstance(r, dict) else r
+                     for r in value]
+        texts.append(json.dumps(value, ensure_ascii=False, sort_keys=True))
+    return texts
+
+
+def evaluate(expect: dict, facts: dict, lab_clock_utc: str | None = None) -> list[str]:
+    """Failed predicate names; an unknown predicate or an empty expectation is itself a failure.
+
+    When the criteria pin a lab clock, a completed answer must carry that clock (observed in the
+    output, not read from the individual's module).
+    """
+    if type(expect) is not dict or not expect:
+        return ["EMPTY_EXPECTATION"]
     outcome, output = facts["outcome"], facts["outcome"].get("output") or {}
     answer = output.get("answer", {}) if isinstance(output, dict) else {}
     sources = {s.get("source"): s.get("availability") for s in output.get("sources", [])} \
@@ -164,6 +181,8 @@ def evaluate(expect: dict, facts: dict) -> list[str]:
     diagnostics = {d.get("code") for d in answer.get("diagnostics", [])}
     refusals = {r.get("code") for r in answer.get("refusals", [])}
     serialized = json.dumps(outcome, ensure_ascii=False, sort_keys=True)
+    tools = [c.get("tool") for c in output.get("tool_calls", [])] if isinstance(output, dict) else []
+    texts = _answer_texts(answer) if isinstance(answer, dict) else []
     checks = {
         "status": lambda v: outcome["status"] == v,
         "code": lambda v: outcome["code"] == v,
@@ -184,8 +203,15 @@ def evaluate(expect: dict, facts: dict) -> list[str]:
         "no_qualification_written": lambda v: v is True and not facts["qualification_files"],
         "runs_unchanged": lambda v: v is True and facts["runs_unchanged"],
         "recovered": lambda v: outcome.get("recovered_interrupted_runs") == v,
+        "tools_allowed": lambda v: all(tool in v for tool in tools),
+        "tools_called_any": lambda v: bool(set(tools) & set(v)),
+        "answer_no_pattern": lambda v: bool(texts) and not any(re.search(p, t) for p in v for t in texts),
+        "proposals_none": lambda v: v is True and answer.get("proposals") == [],
     }
     failed = []
+    if lab_clock_utc is not None and isinstance(output, dict) and "started_at_utc" in output and \
+            not str(output["started_at_utc"]).startswith(lab_clock_utc.rstrip("Z")):
+        failed.append("LAB_CLOCK_NOT_OBSERVED")
     for name, value in expect.items():
         try:
             ok = checks[name](value)
@@ -216,7 +242,7 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
         for trial in criteria["trials"]:
             try:
                 facts = run_trial(trial, criteria["subject"], workdir)
-                failed = evaluate(trial["expect"], facts)
+                failed = evaluate(trial["expect"], facts, criteria.get("lab_clock_utc"))
                 results.append({"id": trial["id"], "category": trial["category"], "passed": not failed,
                                 "failed_predicates": failed, "status": facts["outcome"]["status"],
                                 "code": facts["outcome"]["code"], "facts_sha256": _digest(facts)})
@@ -233,13 +259,15 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
     spec = sentinel_spec(criteria["subject"])
     return {
         "evidence_schema": EVIDENCE_SCHEMA, "criteria_revision": revision, "criteria_sha256": criteria_sha256,
-        "lab_clock_utc": LAB_CLOCK.strftime("%Y-%m-%dT%H:%M:%SZ"), "scope": criteria["scope"],
+        "criteria_status": "CURRENT" if revision == CURRENT else "SUPERSEDED",
+        "lab_clock_utc": criteria.get("lab_clock_utc"), "scope": criteria["scope"],
         "subject": {"agent_id": spec["agent_id"], "agent_spec_id": spec["agent_spec_id"],
                     "spec_artifact_hash": a1.spec_artifact_hash(spec)},
         "environment": {"python": platform.python_version(), "platform": platform.platform(),
                         "sandbox": sandbox},
         "rounds": rounds, "deterministic_across_fresh_labs": deterministic,
-        "proposed_state": "PROPOSED_QUALIFIED_SIMULATED" if passed and deterministic else "FAILED",
+        "proposed_state": "PROPOSED_QUALIFIED_SIMULATED" if passed and deterministic and revision == CURRENT
+        else "FAILED",
         "not_claimed": criteria["evaluation"]["not_claimed"],
     }
 
