@@ -208,6 +208,43 @@ def test_cpu_budget_counts_live_processes(sandboxed):
     assert (result["status"], result["code"]) == ("BUDGET_EXHAUSTED", "CPU")
 
 
+def _forge_pyc(source: Path, text: str) -> Path:
+    """A .pyc of other code, stamped with the source's mtime and size, where CPython would look for it."""
+    import importlib.util
+    from importlib import _bootstrap_external
+
+    stat = source.stat()
+    target = Path(importlib.util.cache_from_source(str(source)))
+    target.parent.mkdir(exist_ok=True)
+    code = compile(text, str(source), "exec")
+    target.write_bytes(_bootstrap_external._code_to_timestamp_pyc(code, int(stat.st_mtime), stat.st_size))
+    return target
+
+
+def test_sandbox_runs_sources_never_cached_bytecode(sandboxed):
+    """A forged .pyc stamped like the source runs under plain Python, never inside the sandbox."""
+    supervisor, record = sandboxed()
+    source = ROOT / "tests" / "colony_lab" / "bytecode_probe.py"
+    forged = _forge_pyc(source, 'VALUE = "forged"\n')
+    try:
+        outside = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); "
+                                  "from tests.colony_lab import bytecode_probe as b; print(b.VALUE)", str(ROOT)],
+                                 capture_output=True, text=True, timeout=60, check=True)
+        assert outside.stdout.strip() == "forged"  # the forgery is real
+        result = supervisor.run(record["agent_id"], task("t-bytecode", "bytecode"))
+        assert result["status"] == "COMPLETED" and result["output"] == {"value": "source"}
+    finally:
+        forged.unlink()
+
+
+def test_repository_comes_after_the_standard_library_on_the_path(sandboxed):
+    supervisor, record = sandboxed()
+    result = supervisor.run(record["agent_id"], task("t-path", "sys_path"))
+    path = result["output"]["path"]
+    assert path[-1] == str(ROOT) and path.count(str(ROOT)) == 1
+    assert str(ROOT / "colony_lab") not in path  # -I: the launcher's own directory is not on the path
+
+
 def test_process_count_is_bounded(sandboxed):
     supervisor, record = sandboxed()
     result = supervisor.run(record["agent_id"], task("t-fork-bomb", "fork_bomb"))

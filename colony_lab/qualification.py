@@ -39,8 +39,9 @@ CRITERIA = {
     "r2": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R2.json", "6985211aebb6c33d8fc9119611ee36f31a54d47b3476082565a2501aded0f1b6"),
     "r3": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R3.json", "674c3226ba22e006345dc7c65821a33eeb7797d0116176e7c6edd862668bb1d8"),
     "r4": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R4.json", "7127887574e5624f107ee46aeeac9cda1de0258c71737ae338feb92512ae270f"),
+    "r5": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R5.json", "3c5114365e9639f98f0bc1248df1cb4a131a971bfc7595f0515d6cb1a8d57103"),
 }
-CURRENT = "r4"
+CURRENT = "r5"
 EVIDENCE_SCHEMA = "colony-lab.qualification-evidence/0"
 MISSION = "fixture-sentinel-qualification"
 BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "output_bytes": 1 << 20,
@@ -52,8 +53,10 @@ SUBJECT_CODE = (sup.REPO / "governance_tower", sup.REPO / "colony_lab" / "__init
                 sup.REPO / "colony_lab" / "workers" / "__init__.py", sup.REPO / "colony_lab" / "workers" / "sentinel.py",
                 *(sup.REPO / "observability" / name for name in ("__init__.py", "event_center_contract.py",
                                                                  "runtime_service_contract.py", "storage_contract.py")))
-# The lab and the evaluator: every colony_lab file outside the subject (supervisor, init, child, this module).
-EVALUATOR_CODE = sup.REPO / "colony_lab"
+# The lab and the evaluator: every colony_lab file outside the subject (supervisor, init, child, this module)
+# and sentinel_activity (the journal, canonical bytes and output redaction they import).
+EVALUATOR_CODE = (sup.REPO / "colony_lab", sup.REPO / "sentinel_activity")
+_IMPORTABLE = {".py", ".pyc", ".pyo", ".so", ".pyd", ".pth"}
 _RUN_ID = re.compile(r"run-[0-9a-f]{16}")
 FIXTURES = sup.REPO / "governance_tower" / "fixtures"
 OUTPUT_KEYS = frozenset({"agent_id", "answer", "capability", "cost", "evidence", "finished_at_utc", "intent", "mode",
@@ -87,12 +90,34 @@ def subject_code_sha256() -> str:
     return _hash_files(_code_files(SUBJECT_CODE))
 
 
+def evaluator_code_files() -> list[Path]:
+    subject = set(_code_files(SUBJECT_CODE))
+    return [p for p in _code_files(EVALUATOR_CODE) if p not in subject]
+
+
 def evaluator_code_sha256() -> str:
     """Hash of the lab and the evaluator (colony_lab outside the subject), named in the evidence and the
     record: a weakened evaluator changes the evidence. (The golden file cannot name it: this module pins
     the criteria that pin the golden file.)"""
-    subject = set(_code_files(SUBJECT_CODE))
-    return _hash_files([p for p in _code_files((EVALUATOR_CODE,)) if p not in subject])
+    return _hash_files(evaluator_code_files())
+
+
+def tree_state(repo: Path = sup.REPO) -> dict:
+    """The checkout the campaign ran from: HEAD, whether tracked files match it, and every untracked or
+    ignored importable file outside __pycache__ (the sandbox never reads bytecode from there). Hashes
+    cover tracked paths only, so a dirty tree or a stray module makes the campaign FAILED."""
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=60)
+
+    head = git("rev-parse", "HEAD")
+    dirty = git("status", "--porcelain", "--untracked-files=no")
+    others = git("ls-files", "--others", "--exclude-standard", "-z")
+    ignored = git("ls-files", "--others", "--ignored", "--exclude-standard", "-z")
+    if any(r.returncode != 0 for r in (head, dirty, others, ignored)):
+        return {"git_head": None, "tracked_clean": False, "stray_code": None}
+    stray = sorted({name for name in (others.stdout + ignored.stdout).split("\0") if name
+                    and Path(name).suffix in _IMPORTABLE and "__pycache__" not in Path(name).parts})
+    return {"git_head": head.stdout.strip(), "tracked_clean": dirty.stdout == "", "stray_code": stray}
 
 
 def _golden_form(output: Any) -> bytes:
@@ -396,22 +421,25 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
     code_sha256 = subject_code_sha256()
     golden = criteria.get("_golden")
     code_matches = golden is None or golden.get("subject_code_sha256") == code_sha256
+    tree = tree_state()
+    tree_ok = tree["git_head"] is not None and tree["tracked_clean"] and tree["stray_code"] == []
     return {
         "evidence_schema": EVIDENCE_SCHEMA, "criteria_revision": revision, "criteria_sha256": criteria_sha256,
         "criteria_status": "CURRENT" if revision == CURRENT else "SUPERSEDED",
         "lab_clock_utc": criteria.get("lab_clock_utc"), "scope": criteria["scope"],
         "subject": {"agent_id": spec["agent_id"], "agent_spec_id": spec["agent_spec_id"],
                     "spec_artifact_hash": a1.spec_artifact_hash(spec), "subject_code_sha256": code_sha256},
-        "evaluator_code_sha256": evaluator_code_sha256(),
+        "evaluator_code_sha256": evaluator_code_sha256(), "checkout": tree,
         "golden_subject_code_matches": code_matches,
         "environment": {"python": platform.python_version(), "platform": platform.platform(),
                         "sandbox": sandbox},
         "rounds": rounds, "deterministic_across_fresh_labs": deterministic,
         "proposed_state": "PROPOSED_QUALIFIED_SIMULATED"
-        if passed and deterministic and code_matches and revision == CURRENT else "FAILED",
+        if passed and deterministic and code_matches and tree_ok and revision == CURRENT else "FAILED",
         "failure_reasons": [reason for reason, bad in (
             ("CRITERIA_SUPERSEDED", revision != CURRENT), ("TRIALS_FAILED", not passed),
-            ("NOT_DETERMINISTIC", not deterministic), ("SUBJECT_CODE_CHANGED", not code_matches)) if bad],
+            ("NOT_DETERMINISTIC", not deterministic), ("SUBJECT_CODE_CHANGED", not code_matches),
+            ("TREE_NOT_CLEAN", not tree_ok)) if bad],
         "not_claimed": criteria["evaluation"]["not_claimed"],
     }
 

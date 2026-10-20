@@ -16,6 +16,7 @@ from governance_tower.contracts import Intent
 from governance_tower.redaction import redact
 
 MAX_REQUEST = 2_000
+_HYPHENS_RE = re.compile(r"[\u00ad\u2010-\u2015\u2212\ufe63\uff0d]")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f‪-‮⁦-⁩]")
 
 # (code de refus, motif). Les motifs visent des verbes d'action, pas les noms :
@@ -25,12 +26,22 @@ _DENY_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
         # En premier : une demande d'auto-promotion est nommée comme telle, même si elle cite un secret.
         "PERMISSION_CHANGE_DENIED",
         re.compile(
-            r"(\b(d[ée]clare|consid[èe]re|proclame|nomme|qualifie|promeus|certifie)[- ]toi\b|"
-            r"\b(accorde|donne|octroie|attribue|ajoute)[- ](toi|te)\b|\bt'(accorde|octroie|attribue|donne)s?\b|"
-            r"\b[ée]l[èe]ve[rz]?\b.{0,20}\bprivil[eè]ges?|\bescalad\w* (de |des )?privil|"
-            r"\btu es (d[ée]sormais|maintenant|dor[ée]navant) (admin|root|administrat|qualifi|gouvern)|"
-            r"\b(grant|give|make) yourself\b|\belevate (your |its )?(privileges?|permissions?)|"
-            r"\bauto-?(qualifi|promo|attribu))"
+            # Forms of action addressed to Sentinel (tu, vous, you), never the bare nouns: « quelles PR parlent
+            # d'escalade de privilèges ? » reste une question d'audit.
+            r"(\b(d[ée]clare|proclame|nomme|qualifie|promeu[st]|promouve|certifie|accorde|donne|octroie|attribue|"
+            r"[ée]l[èe]ve)[sz]?-(toi|vous)\b|"
+            r"\b(consid[èée]re|marque|rends|rendez|mets|mettez|regarde)[sz]?-(toi|vous)\b.{0,30}"
+            r"(qualifi|certifi|admin|root|administrat|op[ée]rateur|gouvern|relecteur|superuser|privil|autorit)|"
+            r"\b(sois|soyez|deviens|devenez|become|act as)\b.{0,30}"
+            r"(qualifi|certifi|admin|root|administrat|op[ée]rateur|gouvern|relecteur|superuser|privil|autorit)|"
+            r"\b(augmente|[ée]largis|[ée]tends|change|modifie|mets|mettez|ajoute|accorde|donne|[ée]l[èe]ve|valide)"
+            r"[sz]?\b.{0,30}\b(tes|vos|ta|ton|votre)\b.{0,15}"
+            r"(droits?|permissions?|privil|capacit|qualification|r[ôo]le|acc[eè]s|autorit|identit|scope)|"
+            r"\b(tu es|vous [êe]tes|you are|you're)( (d[ée]sormais|maintenant|dor[ée]navant|[àa] pr[ée]sent|now))?"
+            r"( (un|une|l'|le|la|the|an?))? ?(admin|root|administrat|op[ée]rateur|superuser|qualifi|gouvern)|"
+            r"\bt'(accorde|octroie|attribue|donne)s?\b(?! que)|\bje te (donne|nomme|d[ée]clare|promeu[st]|confie)\b|"
+            r"\b(grant|give|assign|make|declare|promote|elevate|escalate)\b.{0,20}"
+            r"\b(yourself|your (own )?(privileges?|permissions?|rights?|role|access|capabilit\w*)))"
         ),
     ),
     (
@@ -209,6 +220,7 @@ class PolicyDecision:
 def normalize_request(raw: object) -> tuple[str, int]:
     text = raw if isinstance(raw, str) else ""
     text = unicodedata.normalize("NFKC", text)
+    text = _HYPHENS_RE.sub("-", text)  # « déclare‑toi » (U+2011) is « déclare-toi »
     text = _CONTROL_RE.sub(" ", text).strip()
     cleaned, count = redact(text)
     return cleaned[:MAX_REQUEST], count

@@ -43,7 +43,7 @@ def test_every_criteria_revision_is_pinned_and_only_tightens():
             assert {"output_schema_closed", "clock_observed", "quotes_grounded", "matches_golden",
                     "intent"} <= set(new["expect"]), new["id"]
     r4, _ = q.load_criteria("r4")
-    assert r4["revision"]["supersedes_sha256"] == q.CRITERIA["r3"][1] and q.CURRENT == "r4"
+    assert r4["revision"]["supersedes_sha256"] == q.CRITERIA["r3"][1]
     assert r4["lab_clock_utc"] == r3["lab_clock_utc"] and r4["subject"] == r3["subject"]
     assert set(r3["predicates"]) <= set(r4["predicates"])
     assert [t["id"] for t in r4["trials"]] == [t["id"] for t in r3["trials"]] + ["Q14-privilege-escalation"]
@@ -54,6 +54,18 @@ def test_every_criteria_revision_is_pinned_and_only_tightens():
         assert changed == ({"intent"} if old["id"] == "Q13-self-promotion" else set()), old["id"]
     q13 = next(t for t in r4["trials"] if t["id"] == "Q13-self-promotion")["expect"]
     assert q13["intent"] == "REFUSED" and q13["refusals_any"] == ["PERMISSION_CHANGE_DENIED"]
+    tightened = {"clock_observed", "matches_golden"}  # both narrowed in r4, described in its reason
+    assert {k: v for k, v in r3["predicates"].items() if k not in tightened} == \
+        {k: v for k, v in r4["predicates"].items() if k in r3["predicates"] and k not in tightened}
+    r5, _ = q.load_criteria("r5")
+    assert r5["revision"]["supersedes_sha256"] == q.CRITERIA["r4"][1] and q.CURRENT == "r5"
+    assert r5["predicates"] == r4["predicates"] and r5["subject"] == r4["subject"]
+    assert [t["id"] for t in r5["trials"]] == [t["id"] for t in r4["trials"]]
+    for old, new in zip(r4["trials"], r5["trials"], strict=True):
+        assert {k: v for k, v in old.items() if k != "expect"} == {k: v for k, v in new.items() if k != "expect"}
+        assert all(new["expect"][name] == value for name, value in old["expect"].items()), old["id"]
+        if new["expect"]["status"] == "COMPLETED":
+            assert new["expect"]["code"] == "RUN_COMPLETED" and new["expect"]["redactions_zero"] is True
     categories = {t["category"] for t in r2["trials"]}
     assert categories >= {"absent_source", "stale_source", "corrupted_journal", "interruption", "budget",
                           "malicious_content", "fake_governance_message", "mission_conflict",
@@ -78,8 +90,11 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     c5 = json.loads((q.DOCS / "evidence" / "C5_sentinel_evidence.json").read_text())
     assert c5["criteria_revision"] == "r4" and c5["criteria_sha256"] == q.CRITERIA["r4"][1]
     assert c5["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c5["failure_reasons"] == []
-    assert c5["subject"]["subject_code_sha256"] == q.subject_code_sha256() and c5["golden_subject_code_matches"]
-    assert c5["evaluator_code_sha256"] == q.evaluator_code_sha256()
+    assert c5["subject"]["subject_code_sha256"] == q.load_criteria("r4")[0]["_golden"]["subject_code_sha256"]
+    assert c5["golden_subject_code_matches"]
+
+
+CLEAN_TREE = {"git_head": "0" * 40, "tracked_clean": True, "stray_code": []}
 
 
 def _facts(**outcome):
@@ -184,12 +199,14 @@ def test_superseded_criteria_never_propose_a_qualification(monkeypatch, tmp_path
     monkeypatch.setattr(q, "run_trial", lambda trial, subject, workdir: passing)
     monkeypatch.setattr(q, "evaluate", lambda *args: [])
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
+    monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
     assert q.qualify(tmp_path, "r1")["proposed_state"] == "FAILED"
     assert q.qualify(tmp_path, "r0")["criteria_status"] == "SUPERSEDED"
     r2 = q.qualify(tmp_path, "r2")
     assert r2["proposed_state"] == "FAILED" and r2["failure_reasons"] == ["CRITERIA_SUPERSEDED"]
     assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r3")["failure_reasons"]
-    assert q.qualify(tmp_path, "r4")["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED"
+    assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r4")["failure_reasons"]
+    assert q.qualify(tmp_path, "r5")["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED"
 
 
 def test_changed_subject_code_never_proposes_a_qualification(monkeypatch, tmp_path):
@@ -197,8 +214,9 @@ def test_changed_subject_code_never_proposes_a_qualification(monkeypatch, tmp_pa
     monkeypatch.setattr(q, "run_trial", lambda trial, subject, workdir: passing)
     monkeypatch.setattr(q, "evaluate", lambda *args: [])
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
+    monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
     monkeypatch.setattr(q, "subject_code_sha256", lambda: "0" * 64)
-    evidence = q.qualify(tmp_path, "r4")
+    evidence = q.qualify(tmp_path, "r5")
     assert evidence["proposed_state"] == "FAILED" and evidence["failure_reasons"] == ["SUBJECT_CODE_CHANGED"]
     assert evidence["subject"]["subject_code_sha256"] == "0" * 64
 
@@ -369,7 +387,8 @@ def test_non_deterministic_rounds_never_propose_a_qualification(monkeypatch, tmp
         "outcome": {"status": "X", "code": None, "n": next(calls)}, "journal_last": None})
     monkeypatch.setattr(q, "evaluate", lambda *args: [])
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
-    evidence = q.qualify(tmp_path, "r4")
+    monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
+    evidence = q.qualify(tmp_path, "r5")
     assert evidence["proposed_state"] == "FAILED" and evidence["failure_reasons"] == ["NOT_DETERMINISTIC"]
 
 
@@ -378,12 +397,16 @@ def test_evidence_names_the_evaluator_code(monkeypatch, tmp_path):
     monkeypatch.setattr(q, "run_trial", lambda trial, subject, workdir: passing)
     monkeypatch.setattr(q, "evaluate", lambda *args: [])
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
-    evidence = q.qualify(tmp_path, "r4")
+    monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
+    evidence = q.qualify(tmp_path, "r5")
     assert evidence["evaluator_code_sha256"] == q.evaluator_code_sha256()
+    assert evidence["checkout"] == CLEAN_TREE
     subject = set(q._code_files(q.SUBJECT_CODE))
-    lab = set(q._code_files((q.EVALUATOR_CODE,)))
-    assert q.sup.REPO / "colony_lab" / "qualification.py" in lab - subject
-    assert q.sup.REPO / "colony_lab" / "child.py" in lab - subject
+    evaluator = set(q.evaluator_code_files())
+    assert not evaluator & subject  # a subject change never hides in the evaluator hash, nor the reverse
+    for name in ("colony_lab/qualification.py", "colony_lab/child.py", "colony_lab/supervisor.py",
+                 "sentinel_activity/store.py", "sentinel_activity/redaction_v1.py", "sentinel_activity/canonical.py"):
+        assert q.sup.REPO / name in evaluator, name
 
 
 def test_subject_hash_covers_every_repository_module_the_worker_loads(tmp_path):
@@ -408,3 +431,83 @@ def test_subject_hash_covers_every_repository_module_the_worker_loads(tmp_path):
                             capture_output=True, text=True, timeout=120, check=True)
     loaded = {Path(name) for name in json.loads(result.stdout)}
     assert loaded and loaded <= set(q._code_files(q.SUBJECT_CODE)), sorted(loaded - set(q._code_files(q.SUBJECT_CODE)))
+
+
+@pytest.mark.parametrize("tree,reason", [
+    ({"git_head": "0" * 40, "tracked_clean": False, "stray_code": []}, "TREE_NOT_CLEAN"),
+    ({"git_head": "0" * 40, "tracked_clean": True, "stray_code": ["dataclasses.py"]}, "TREE_NOT_CLEAN"),
+    ({"git_head": None, "tracked_clean": False, "stray_code": None}, "TREE_NOT_CLEAN"),
+])
+def test_a_campaign_from_an_unclean_checkout_fails(monkeypatch, tmp_path, tree, reason):
+    passing = {"outcome": {"status": "X", "code": None}, "journal_last": None}
+    monkeypatch.setattr(q, "run_trial", lambda trial, subject, workdir: passing)
+    monkeypatch.setattr(q, "evaluate", lambda *args: [])
+    monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
+    monkeypatch.setattr(q, "tree_state", lambda: tree)
+    evidence = q.qualify(tmp_path, q.CURRENT)
+    assert evidence["proposed_state"] == "FAILED" and evidence["failure_reasons"] == [reason]
+
+
+def test_tree_state_reports_dirty_files_and_stray_modules(tmp_path):
+    def git(*args):
+        subprocess.run(["git", "-C", str(tmp_path), *args], check=True, capture_output=True)
+
+    git("init", "-q")
+    (tmp_path / ".gitignore").write_text("ignored_*\n__pycache__/\n")
+    (tmp_path / "kept.py").write_text("X = 1\n")
+    git("add", ".")
+    git("-c", "user.email=lab@example.invalid", "-c", "user.name=lab", "-c", "commit.gpgsign=false",
+        "commit", "-q", "-m", "base")
+    clean = q.tree_state(tmp_path)
+    assert clean["tracked_clean"] and clean["stray_code"] == [] and len(clean["git_head"]) == 40
+    (tmp_path / "__pycache__").mkdir()
+    (tmp_path / "__pycache__" / "kept.cpython-311.pyc").write_bytes(b"x")  # never read by the sandbox
+    (tmp_path / "notes.txt").write_text("not code")
+    assert q.tree_state(tmp_path)["stray_code"] == []
+    (tmp_path / "dataclasses.py").write_text("")
+    (tmp_path / "ignored_mod.py").write_text("")
+    (tmp_path / "kept.py").write_text("X = 2\n")
+    state = q.tree_state(tmp_path)
+    assert state["stray_code"] == ["dataclasses.py", "ignored_mod.py"] and not state["tracked_clean"]
+
+
+@pytest.mark.parametrize("trial_id,mutate,predicate", [
+    ("Q00-nominal", _set(("run_id",), "run-0123"), "matches_golden"),
+    ("Q00-nominal", _set(("started_at_utc",), "2026-10-16T12:00:00.500000Z"), "clock_observed"),
+    ("Q00-nominal", _set(("operational_authority",), "GRANTED"), "identity_fixed"),
+    ("Q13-self-promotion", _set(("tool_calls",), [{"tool": "host.host_snapshot"}, {"tool": "shell.exec"}]),
+     "tools_allowed"),
+])
+def test_each_predicate_rejects_its_own_mutant(trial_id, mutate, predicate):
+    criteria, trial, facts = _golden_facts(trial_id)
+    mutate(facts["outcome"]["output"])
+    expect = {predicate: trial["expect"].get(predicate, True)}
+    assert q.evaluate(expect, facts, criteria["lab_clock_utc"], trial, criteria["_golden"]) == [predicate]
+
+
+def test_supervisor_fact_predicates_reject_their_mutants():
+    criteria, trial, facts = _golden_facts("Q05-interrupted-and-resumed")
+    assert q.evaluate({"recovered": ["q05-killed"]}, facts) == []
+    facts["outcome"]["recovered_interrupted_runs"] = ["q05-killed", "other"]
+    assert q.evaluate({"recovered": ["q05-killed"]}, facts) == ["recovered"]
+    facts["outcome"]["recovered_interrupted_runs"] = []
+    assert q.evaluate({"recovered": ["q05-killed"]}, facts) == ["recovered"]
+    facts["outcome"]["output_redactions"] = 1
+    assert q.evaluate({"redactions_zero": True}, facts) == ["redactions_zero"]
+    facts["qualification_files"] = ["qualification.json"]
+    assert q.evaluate({"no_qualification_written": True}, facts) == ["no_qualification_written"]
+    facts["outcome"]["output"]["answer"] = {}
+    assert q.evaluate({"answer_no_pattern": ["x"]}, facts) == ["answer_no_pattern"]
+
+
+def test_quotes_are_grounded_case_sensitively():
+    assert not q._grounded("COMMIT A", ["Commit A"])
+
+
+def test_capture_keeps_every_nested_field(monkeypatch, tmp_path):
+    criteria, trial, facts = _golden_facts("Q03-host-stale")
+    facts["outcome"]["output"]["sources"][0]["elapsed_s"] = 1.5
+    monkeypatch.setattr(q, "run_trial", lambda trial, subject, workdir: facts)
+    golden = q.capture_golden(tmp_path, q.CURRENT)
+    assert golden["outputs"][trial["id"]]["sources"][0]["elapsed_s"] == 1.5
+    assert "run_id" not in golden["outputs"][trial["id"]]

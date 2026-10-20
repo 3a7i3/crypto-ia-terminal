@@ -56,6 +56,9 @@ from sentinel_activity.store import ActivityStore, Limits
 
 REPO = Path(__file__).resolve().parents[1]
 CHILD = REPO / "colony_lab" / "child.py"
+# Bytecode is never read from the repository's __pycache__: Python looks for it only under this prefix,
+# which does not exist in the sandbox root, so every module runs from its (hashed) source.
+NO_BYTECODE = ("-X", "pycache_prefix=/colony-no-bytecode")
 LAB_PREFIX = "colony-lab-"
 TASK_SCHEMA = "colony-lab.task/0"
 RESULT_SCHEMA = "colony-lab.result/0"
@@ -521,8 +524,9 @@ class Supervisor:
         lifeline_r, lifeline_w = os.pipe2(os.O_CLOEXEC)
         report_r, report_w = os.pipe2(os.O_CLOEXEC)
         child = [tools["setpriv"], "--no-new-privs", "--inh-caps=-all", "--ambient-caps=-all",
-                 "--bounding-set=-all", tools["env"], "-i", self.python, "-I", "-B", str(CHILD), task_type.module]
-        init = [self.python, "-I", "-S", "-B", str(INIT), str(lifeline_r), str(report_w),
+                 "--bounding-set=-all", tools["env"], "-i", self.python, "-I", "-B", *NO_BYTECODE, str(CHILD),
+                 task_type.module]
+        init = [self.python, "-I", "-S", "-B", *NO_BYTECODE, str(INIT), str(lifeline_r), str(report_w),
                 str(budget["cpu_seconds"]), str(budget["memory_bytes"]), str(MAX_PROCESSES), "--", *child]
         argv = [tools["unshare"], "--user", "--map-root-user", "--net", "--mount", "--pid", "--fork",
                 "--kill-child=SIGKILL", "--propagation", "private", "/bin/sh", "-c", _SANDBOX_SCRIPT,

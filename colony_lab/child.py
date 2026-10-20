@@ -18,7 +18,7 @@ EXIT_USAGE, EXIT_TASK, EXIT_MEMORY = 64, 65, 70
 def main() -> int:
     if len(sys.argv) != 2 or not sys.argv[1].startswith(WORKER_PREFIXES):
         return EXIT_USAGE
-    sys.path.insert(0, str(ROOT))
+    sys.path.append(str(ROOT))  # last: a repository file cannot shadow a standard-library module
     raw = sys.stdin.buffer.read(MAX_TASK_BYTES + 1)
     if len(raw) > MAX_TASK_BYTES:
         return EXIT_TASK

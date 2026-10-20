@@ -91,6 +91,12 @@ def run(payload):
                     time.sleep(60)
         while True:
             time.sleep(60)
+    if mode == "bytecode":
+        from tests.colony_lab import bytecode_probe
+
+        return {"value": bytecode_probe.VALUE}
+    if mode == "sys_path":
+        return {"path": list(sys.path)}
     if mode == "fork_bomb":
         forked = 0
         for _ in range(64):
