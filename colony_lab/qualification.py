@@ -26,10 +26,18 @@ from typing import Any
 from colony_lab import a1_identity as a1
 from colony_lab import lineage
 from colony_lab import supervisor as sup
+from colony_lab.workers.sentinel import LAB_CLOCK
 from sentinel_activity.store import ActivityStore
 
-CRITERIA = sup.REPO / "docs" / "colony_lab" / "SENTINEL_QUALIFICATION_CRITERIA.json"
-CRITERIA_SHA256 = "e2cf1f9b354c6da5eb2e8d5b6f1a4033fb1c6ba94bee1817b54ca0dcdec7b862"
+DOCS = sup.REPO / "docs" / "colony_lab"
+# Every criteria revision is pinned; a revision never edits an earlier file.
+CRITERIA = {
+    "r0": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA.json",
+           "e2cf1f9b354c6da5eb2e8d5b6f1a4033fb1c6ba94bee1817b54ca0dcdec7b862"),
+    "r1": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R1.json",
+           "e342e2145350e6e3d089ceb0073320b739537bc50c88a72a48194f5445f1e165"),
+}
+CURRENT = "r1"
 EVIDENCE_SCHEMA = "colony-lab.qualification-evidence/0"
 MISSION = "fixture-sentinel-qualification"
 BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "output_bytes": 1 << 20,
@@ -37,11 +45,16 @@ BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "outpu
 _VOLATILE = {"run_id", "elapsed_s", "result_sha256"}
 
 
-def load_criteria() -> dict:
-    raw = CRITERIA.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != CRITERIA_SHA256:
+def load_criteria(revision: str = CURRENT) -> tuple[dict, str]:
+    path, pinned = CRITERIA[revision]
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != pinned:
         raise SystemExit("criteria changed after they were frozen; refusing to evaluate")
-    return json.loads(raw)
+    criteria = json.loads(raw)
+    clock = criteria.get("lab_clock_utc")
+    if clock is not None and LAB_CLOCK.strftime("%Y-%m-%dT%H:%M:%SZ") != clock:
+        raise SystemExit("the worker's lab clock is not the one the criteria pin")
+    return criteria, pinned
 
 
 def sentinel_spec(subject: dict) -> dict:
@@ -195,8 +208,8 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(_stable(value), ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 
-def qualify(workdir: Path) -> dict:
-    criteria = load_criteria()
+def qualify(workdir: Path, revision: str = CURRENT) -> dict:
+    criteria, criteria_sha256 = load_criteria(revision)
     rounds = []
     for _ in range(2):
         results = []
@@ -219,7 +232,8 @@ def qualify(workdir: Path) -> dict:
     shutil.rmtree(probe_root)
     spec = sentinel_spec(criteria["subject"])
     return {
-        "evidence_schema": EVIDENCE_SCHEMA, "criteria_sha256": CRITERIA_SHA256, "scope": criteria["scope"],
+        "evidence_schema": EVIDENCE_SCHEMA, "criteria_revision": revision, "criteria_sha256": criteria_sha256,
+        "lab_clock_utc": LAB_CLOCK.strftime("%Y-%m-%dT%H:%M:%SZ"), "scope": criteria["scope"],
         "subject": {"agent_id": spec["agent_id"], "agent_spec_id": spec["agent_spec_id"],
                     "spec_artifact_hash": a1.spec_artifact_hash(spec)},
         "environment": {"python": platform.python_version(), "platform": platform.platform(),
@@ -233,9 +247,10 @@ def qualify(workdir: Path) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Sentinel lab trials (simulated, deterministic)")
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--criteria", choices=sorted(CRITERIA), default=CURRENT)
     args = parser.parse_args(argv)
     with tempfile.TemporaryDirectory(prefix="colony-qualification-") as workdir:
-        evidence = qualify(Path(workdir))
+        evidence = qualify(Path(workdir), args.criteria)
     body = (json.dumps(evidence, ensure_ascii=False, sort_keys=True, indent=1) + "\n").encode()
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "sentinel_evidence.json").write_bytes(body)

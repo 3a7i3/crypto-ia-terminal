@@ -2,7 +2,8 @@
 
 from datetime import datetime, timezone
 
-LAB_CLOCK = datetime(2026, 10, 20, 8, 0, tzinfo=timezone.utc)
+# Pinned by criteria r1: the fixtures were collected at this instant (r0 left it unpinned).
+LAB_CLOCK = datetime(2026, 10, 16, 12, 0, tzinfo=timezone.utc)
 PAYLOAD_FIELDS = {"question", "shortcut", "scenario"}
 
 
