@@ -243,6 +243,15 @@ only proposes a state from a clean checkout.
   - m17: `tree_state` runs `git` from the inherited `PATH` and environment (`GIT_CONFIG_*` are
     honoured, observed by the review); a controlled environment can misreport `checkout` without
     changing `git_head`. Same out-of-scope limit; not fixed in this revision.
+- m19 (review 9, after the record): the frozen r8 text carries the same over-strong m13 wording
+  twice ("started in any way other than launch_command … it refuses" in `revision.reason`, "started
+  otherwise it refuses" in `evaluation.checkout`); the m15 count of 6/26 is over all refusal codes
+  (one of the six is a DEPLOYMENT refusal, not `PERMISSION_CHANGE_DENIED`), and the form "… de
+  sentinel …" also stays in `_SELF_CHANGE_ORDER`; the lists in `test_gt_sentinel` measure nothing
+  independent (m12); the near-equivalent survivors N4, N5, N11, N18, N19 remain, N11 being that
+  `tree_state` accepts a `.pyc` at any depth of a cache although its docstring says "directly in it"
+  (Python never reads such a file); m14 is only "read it before running it". None changes a
+  verdict or an expectation.
 - Tests added after the review, without touching hashed code: N12 (`tree_state` fails closed when any
   listing fails), N14 (`--capture` through `main`), N17 (top-level FIFO is irregular), N1 (the
   refusal is asserted directly; `SOURCE_RUNTIME` carries `flags`), m18 (the `walk_code` test works on
