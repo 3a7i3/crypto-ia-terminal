@@ -40,6 +40,10 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     assert c1["proposed_state"] == "FAILED" and c1["criteria_sha256"] == q.CRITERIA["r0"][1]
     assert c2["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c2["criteria_revision"] == "r1"
     assert c2["scope"] == "SIMULATED_DETERMINISTIC" and c2["environment"]["sandbox"] == "VERIFIED"
+    c3 = json.loads((q.DOCS / "evidence" / "C3_sentinel_evidence.json").read_text())
+    assert c3["criteria_revision"] == "r2" and c3["criteria_sha256"] == q.CRITERIA["r2"][1]
+    assert c3["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c3["deterministic_across_fresh_labs"]
+    assert c3["environment"]["sandbox"] == "VERIFIED" and c3["criteria_status"] == "CURRENT"
 
 
 def _facts(**outcome):
