@@ -6,7 +6,6 @@ import json
 import sqlite3
 from unittest.mock import patch
 
-import pytest
 
 from governance_tower import redaction
 from sentinel_activity.canonical import LedgerError
@@ -91,23 +90,78 @@ def test_intervening_commit_retries_with_a_fresh_verified_snapshot(tmp_path):
     ]
 
 
-def test_sustained_commit_races_are_bounded_and_do_not_append_stale_work(tmp_path):
+def test_sustained_commit_races_end_with_a_locked_final_attempt(tmp_path):
+    # Seven optimistic attempts lose a race; the eighth verifies under the
+    # writer lock, so the competing writer is the one refused (BUSY) and the
+    # original event is appended on the current, verified state.
     store = create(tmp_path)
     verify = store._verified
-    calls = []
+    calls, competing = [], []
 
     def race(conn):
         result = verify(conn)
         calls.append(True)
-        ActivityStore(store.root, clock=store.clock).append(
-            candidate(f"fixture-competing-{len(calls)}"), producer_id="fixture-producer"
-        )
+        try:
+            ActivityStore(store.root, clock=store.clock).append(
+                candidate(f"fixture-competing-{len(calls)}"), producer_id="fixture-producer"
+            )
+            competing.append("COMMITTED")
+        except LedgerError as exc:
+            competing.append(exc.code)
         return result
 
     with patch.object(store, "_verified", side_effect=race):
-        with pytest.raises(LedgerError, match="BUSY"):
-            store.append(candidate("fixture-original"), producer_id="fixture-producer")
+        receipt = store.append(candidate("fixture-original"), producer_id="fixture-producer")
     assert len(calls) == 8
+    assert competing == ["COMMITTED"] * 7 + ["BUSY"]
     events = store.snapshot()[1]
-    assert len(events) == 8
-    assert not any(event["event_id"] == "fixture-original" for event in events)
+    assert [e["event_id"] for e in events] == [f"fixture-competing-{i}" for i in range(1, 8)] + [
+        "fixture-original"
+    ]
+    assert receipt["sequence"] == 8
+
+
+class _ConnectionProxy:
+    """Delegates to a real sqlite3 connection; runs a hook before one SQL text."""
+
+    def __init__(self, conn, hook):
+        self._conn, self._hook = conn, hook
+
+    def execute(self, sql, *args):
+        self._hook(sql)
+        return self._conn.execute(sql, *args)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def test_commit_between_read_rollback_and_writer_lock_is_detected(tmp_path):
+    from sentinel_activity import store as store_module
+
+    store = create(tmp_path)
+    real_connect = sqlite3.connect
+    state = {"armed": True, "begin_immediate": 0}
+
+    def hook(sql):
+        if sql == "BEGIN IMMEDIATE" and state["armed"]:
+            state["armed"] = False
+            state["begin_immediate"] += 1
+            ActivityStore(store.root, clock=store.clock).append(
+                candidate("fixture-window"), producer_id="fixture-producer")
+
+    def connect(*args, **kwargs):
+        conn = real_connect(*args, **kwargs)
+        return _ConnectionProxy(conn, hook) if state["armed"] else conn
+
+    with patch.object(store_module.sqlite3, "connect", side_effect=connect):
+        receipt = store.append(candidate("fixture-original"), producer_id="fixture-producer")
+    assert state["begin_immediate"] == 1
+    assert receipt["sequence"] == 2
+    assert [e["event_id"] for e in store.snapshot()[1]] == ["fixture-window", "fixture-original"]
+
+
+def test_tower_admission_patterns_still_match_frozen_profile():
+    # Divergence must force an explicit decision about an admission profile v2,
+    # never a silent mismatch between display and admission rules.
+    tower = [(p.pattern, p.flags) for p in redaction._SECRET_PATTERNS]
+    assert tower == [(p.pattern, p.flags) for p in _SECRET_PATTERNS]
