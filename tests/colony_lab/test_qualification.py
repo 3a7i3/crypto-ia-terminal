@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import os
 import shlex
 import shutil
 import subprocess
@@ -140,9 +141,29 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     assert c9["evaluator_code_sha256"] == q.evaluator_code_sha256()
 
 
+def test_the_r8_record_names_the_reviewed_c9_evidence_and_this_code():
+    """The record follows review 8 (favourable, EXTERNAL_REVIEW_PROCESS); a changed subject or
+    evaluator invalidates it here, before any descendant could cite it."""
+    raw = (q.DOCS / "evidence" / "C9_sentinel_evidence.json").read_bytes()
+    c9 = json.loads(raw)
+    record = json.loads((q.DOCS / "SENTINEL_QUALIFICATION_RECORD_R8.json").read_text())
+    assert record["evidence_sha256"] == hashlib.sha256(raw).hexdigest()
+    assert record["criteria_sha256"] == c9["criteria_sha256"] == q.CRITERIA["r8"][1]
+    assert record["subject_code_sha256"] == q.subject_code_sha256()
+    assert record["evaluator_code_sha256"] == q.evaluator_code_sha256()
+    assert (record["agent_id"], record["agent_spec_id"]) == (c9["subject"]["agent_id"], c9["subject"]["agent_spec_id"])
+    criteria, _ = q.load_criteria("r8")
+    spec = q.sentinel_spec(criteria["subject"])
+    founder = q.lineage.make_founder(spec, lab_permissions=list(criteria["subject"]["lab_permissions"]),
+                                     budget=dict(q.BUDGET))
+    q.lineage.check_qualification(record, founder)
+
+
 CLEAN_TREE = {"git_head": "0" * 40, "tracked_clean": True, "stray_code": []}
 CLEAN_VIEW = {"files": 1, "sha256": "0" * 64, "matches_subject": True}
-SOURCE_RUNTIME = {"executable": "/x/python", "prefix": "/x", "base_prefix": "/x", "source_only": True}
+SOURCE_RUNTIME = {"executable": "/x/python", "prefix": "/x", "base_prefix": "/x", "path": ["/x/lib"],
+                  "flags": {"isolated": True, "no_site": True, "dont_write_bytecode": True,
+                            "pycache_prefix": "/colony-no-bytecode"}, "source_only": True}
 
 
 def _facts(**outcome):
@@ -641,29 +662,72 @@ def test_the_interrupted_supervisor_runs_isolated(monkeypatch, tmp_path):
     assert argv[1 + len(q.EVALUATOR_FLAGS)] == "-c" and argv[2 + len(q.EVALUATOR_FLAGS)].startswith(q._BOOTSTRAP)
 
 
-def test_walk_code_flags_top_level_links_and_stray_cache_entries():
-    link = q.sup.REPO / "colony-planted-link"
-    cache = q.sup.REPO / "governance_tower" / "__pycache__"
-    created = not cache.exists()
-    cache.mkdir(exist_ok=True)
-    planted = [cache / "colony-planted.py", cache / "colony-planted.cpython-311.pyc.bak",
-               cache / "colony-planted.cpython-311.pyc"]
-    try:
-        link.symlink_to("governance_tower")
-        for path in planted:
-            path.write_text("")
-        regular, irregular = q.sup.walk_code(("colony-planted-link", "governance_tower"))
-        assert "colony-planted-link" in irregular and not any(n.startswith("colony-planted-link/") for n in regular)
-        assert {"governance_tower/__pycache__/colony-planted.py",
-                "governance_tower/__pycache__/colony-planted.cpython-311.pyc.bak"} <= set(irregular)
-        assert "governance_tower/__pycache__/colony-planted.cpython-311.pyc" not in irregular  # inert bytecode
-        assert not any("__pycache__" in name for name in regular)
-    finally:
-        link.unlink()
-        for path in planted:
-            path.unlink()
-        if created:
-            cache.rmdir()
+def test_walk_code_flags_top_level_links_and_stray_cache_entries(monkeypatch, tmp_path):
+    """Works on a copy-free temporary tree (review 8, m18): planting in the real checkout could skew a
+    campaign started from it at the same time."""
+    monkeypatch.setattr(q.sup, "REPO", tmp_path)
+    cache = tmp_path / "governance_tower" / "__pycache__"
+    cache.mkdir(parents=True)
+    (tmp_path / "governance_tower" / "kept.py").write_text("")
+    (tmp_path / "colony-planted-link").symlink_to("governance_tower")
+    for name in ("colony-planted.py", "colony-planted.cpython-311.pyc.bak", "colony-planted.cpython-311.pyc"):
+        (cache / name).write_text("")
+    regular, irregular = q.sup.walk_code(("colony-planted-link", "governance_tower"))
+    assert regular == ["governance_tower/kept.py"]
+    assert irregular == ["colony-planted-link", "governance_tower/__pycache__/colony-planted.cpython-311.pyc.bak",
+                         "governance_tower/__pycache__/colony-planted.py"]  # a direct *.pyc is inert bytecode
+
+
+def test_walk_code_flags_a_top_level_fifo(monkeypatch, tmp_path):
+    """Review 8, N17: a non-regular top-level entry is irregular, never read as code."""
+    monkeypatch.setattr(q.sup, "REPO", tmp_path)
+    os.mkfifo(tmp_path / "policy.py")
+    assert q.sup.walk_code(("policy.py",)) == ([], ["policy.py"])
+
+
+@pytest.mark.parametrize("failing", [("ls-files", "--others", "--exclude-standard", "-z"),
+                                     ("ls-files", "--others", "--ignored", "--exclude-standard", "-z"),
+                                     ("ls-files", "-v", "-z")])
+def test_tree_state_fails_closed_when_any_listing_fails(monkeypatch, tmp_path, failing):
+    """Review 8, N12: an unlisted checkout is not a clean one."""
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(tmp_path), "-c", "user.email=lab@example.invalid", "-c", "user.name=lab",
+                    "-c", "commit.gpgsign=false", "commit", "-q", "--allow-empty", "-m", "base"],
+                   check=True, capture_output=True)
+    assert q.tree_state(tmp_path)["tracked_clean"]
+    real = subprocess.run
+
+    def run(cmd, **kwargs):
+        if tuple(cmd[3:]) == failing:
+            return subprocess.CompletedProcess(cmd, 128, "", "fatal")
+        return real(cmd, **kwargs)
+    monkeypatch.setattr(q.subprocess, "run", run)
+    assert q.tree_state(tmp_path) == {"git_head": None, "tracked_clean": False, "stray_code": None}
+
+
+def test_main_refuses_before_any_trial_unless_isolated(monkeypatch, tmp_path, capsys):
+    """Review 8, N1: the refusal itself is asserted, not reached through a missing fixture key."""
+    monkeypatch.setattr(q, "evaluator_runtime", lambda: {**SOURCE_RUNTIME, "source_only": False})
+    monkeypatch.setattr(q, "qualify", lambda *args: pytest.fail("a trial ran"))
+    monkeypatch.setattr(q, "capture_golden", lambda *args: pytest.fail("a capture ran"))
+    for argv in (["--out", str(tmp_path)], ["--out", str(tmp_path), "--capture"]):
+        assert q.main(argv) == q.NOT_ISOLATED_EXIT
+        assert "refusing to run" in capsys.readouterr().err
+    assert not (tmp_path / "sentinel_evidence.json").exists()
+
+
+def test_main_capture_writes_the_golden_answers(monkeypatch, tmp_path, capsys):
+    """Review 8, N14: the --capture path through main."""
+    monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    seen = []
+    monkeypatch.setattr(q, "capture_golden", lambda workdir, revision, trials: seen.append((revision, trials)) or
+                        {"outputs": {"Q01": {"a": 1}}})
+    monkeypatch.setattr(q, "qualify", lambda *args: pytest.fail("a campaign ran"))
+    assert q.main(["--out", str(tmp_path), "--capture", "--criteria", "r8"]) == 0
+    body = (tmp_path / "sentinel_golden_answers.json").read_bytes()
+    assert json.loads(body) == {"outputs": {"Q01": {"a": 1}}} and seen == [("r8", None)]
+    assert json.loads(capsys.readouterr().out) == {"golden_sha256": hashlib.sha256(body).hexdigest(),
+                                                   "trials": ["Q01"]}
 
 
 def test_sandbox_view_matches_only_the_exact_list(monkeypatch, tmp_path):
