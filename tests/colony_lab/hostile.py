@@ -97,6 +97,16 @@ def run(payload):
         return {"value": bytecode_probe.VALUE}
     if mode == "sys_path":
         return {"path": list(sys.path)}
+    if mode == "find_modules":
+        import importlib.util
+
+        found = {}
+        for name in payload["names"]:
+            try:
+                found[name] = importlib.util.find_spec(name) is not None
+            except (ImportError, ValueError):
+                found[name] = False
+        return found
     if mode == "fork_bomb":
         forked = 0
         for _ in range(64):

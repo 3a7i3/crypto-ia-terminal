@@ -10,6 +10,7 @@ import json
 import os
 import signal
 import socket
+import shutil
 import subprocess
 import sys
 import threading
@@ -25,8 +26,10 @@ from tests.colony_lab.builders import BUDGET, archivist_spec, founder, lab_root,
 
 ROOT = Path(__file__).resolve().parents[2]
 MISSION = "fixture-colony-mission"
+HOSTILE_VIEW = ("tests/__init__.py", "tests/colony_lab/__init__.py", "tests/colony_lab/hostile.py")
 TASKS = {**sup.TASKS, "HOSTILE": sup.TaskType("DIAGNOSTIC_PRODUCE", "tests.colony_lab.hostile"),
-         "ARCHIVE": sup.TaskType("GOVERNED_ARTIFACT_READ", "tests.colony_lab.hostile")}
+         "ARCHIVE": sup.TaskType("GOVERNED_ARTIFACT_READ", "tests.colony_lab.hostile"),
+         "VIEWED": sup.TaskType("DIAGNOSTIC_PRODUCE", "tests.colony_lab.hostile", HOSTILE_VIEW)}
 
 
 def task(task_id, mode=None, task_type="HOSTILE", mission=MISSION, **payload):
@@ -243,6 +246,37 @@ def test_repository_comes_after_the_standard_library_on_the_path(sandboxed):
     path = result["output"]["path"]
     assert path[-1] == str(ROOT) and path.count(str(ROOT)) == 1
     assert str(ROOT / "colony_lab") not in path  # -I: the launcher's own directory is not on the path
+    assert not any("site-packages" in entry or "dist-packages" in entry for entry in path)  # -S: no .pth runs
+
+
+def test_viewed_child_sees_only_its_view_of_the_repository(sandboxed, tmp_path):
+    """A planted top-level package (org/, as copy.py probes org.python.core) is outside every view: it
+    can be neither imported nor read, tracked or not, nested repository or not."""
+    supervisor, record = sandboxed()
+    planted = ROOT / "org-colony-planted"
+    planted.mkdir()
+    try:
+        (planted / "__init__.py").write_text("raise SystemExit(3)\n")
+        names = ["org-colony-planted", "sentinel_activity", "colony_lab.supervisor", "tests.colony_lab.hostile",
+                 "governance_tower"]
+        found = supervisor.run(record["agent_id"], task("t-find", "find_modules", task_type="VIEWED", names=names))
+        assert found["status"] == "COMPLETED"
+        assert found["output"] == {"org-colony-planted": False, "sentinel_activity": False,
+                                   "colony_lab.supervisor": False, "tests.colony_lab.hostile": True,
+                                   "governance_tower": False}
+        read = supervisor.run(record["agent_id"], task("t-read-view", "read", task_type="VIEWED",
+                                                       targets=[str(ROOT), str(planted / "__init__.py")]))
+        assert read["output"] == {str(ROOT): ["colony_lab", "tests"], str(planted / "__init__.py"): "DENIED"}
+    finally:
+        shutil.rmtree(planted)
+
+
+def test_sentinel_view_observed_in_the_sandbox_is_exactly_the_subject(sandboxed):
+    supervisor, _ = sandboxed()
+    observed = supervisor.observe_view("SENTINEL_ASK")
+    assert observed == sup.view_files(sup.SENTINEL_VIEW)
+    assert {name.split("/")[0] for name in observed} == {"colony_lab", "governance_tower", "observability"}
+    assert "colony_lab/supervisor.py" not in observed and "colony_lab/qualification.py" not in observed
 
 
 def test_process_count_is_bounded(sandboxed):

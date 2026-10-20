@@ -12,6 +12,7 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 import platform
 import re
 import shutil
@@ -40,19 +41,17 @@ CRITERIA = {
     "r3": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R3.json", "674c3226ba22e006345dc7c65821a33eeb7797d0116176e7c6edd862668bb1d8"),
     "r4": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R4.json", "7127887574e5624f107ee46aeeac9cda1de0258c71737ae338feb92512ae270f"),
     "r5": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R5.json", "3c5114365e9639f98f0bc1248df1cb4a131a971bfc7595f0515d6cb1a8d57103"),
+    "r6": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R6.json", "a0e9076bcbfbc6b8e418ad9602a3b9bd72ada1006ac48773fd5168786629222e"),
 }
-CURRENT = "r5"
+CURRENT = "r6"
 EVIDENCE_SCHEMA = "colony-lab.qualification-evidence/0"
 MISSION = "fixture-sentinel-qualification"
 BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "output_bytes": 1 << 20,
           "runs": 10, "journal_events": 100}
 _VOLATILE = {"run_id", "elapsed_s", "result_sha256"}
 GOLDEN_SCHEMA = "colony-lab.sentinel-golden-answers/0"
-# Every repository file the Sentinel worker loads (test-checked against the modules it actually imports).
-SUBJECT_CODE = (sup.REPO / "governance_tower", sup.REPO / "colony_lab" / "__init__.py",
-                sup.REPO / "colony_lab" / "workers" / "__init__.py", sup.REPO / "colony_lab" / "workers" / "sentinel.py",
-                *(sup.REPO / "observability" / name for name in ("__init__.py", "event_center_contract.py",
-                                                                 "runtime_service_contract.py", "storage_contract.py")))
+# The subject is exactly the sandbox view of the Sentinel task: what is hashed is what the child can load.
+SUBJECT_CODE = tuple(sup.REPO / name for name in sup.SENTINEL_VIEW)
 # The lab and the evaluator: every colony_lab file outside the subject (supervisor, init, child, this module)
 # and sentinel_activity (the journal, canonical bytes and output redaction they import).
 EVALUATOR_CODE = (sup.REPO / "colony_lab", sup.REPO / "sentinel_activity")
@@ -103,9 +102,11 @@ def evaluator_code_sha256() -> str:
 
 
 def tree_state(repo: Path = sup.REPO) -> dict:
-    """The checkout the campaign ran from: HEAD, whether tracked files match it, and every untracked or
-    ignored importable file outside __pycache__ (the sandbox never reads bytecode from there). Hashes
-    cover tracked paths only, so a dirty tree or a stray module makes the campaign FAILED."""
+    """The checkout the campaign ran from: HEAD, whether tracked files (staged or not) match it, and
+    every untracked or ignored importable file or directory (a nested repository is listed as one)
+    outside __pycache__. The subject hash covers every file of its view, tracked or not; this check is
+    for the evaluator, which runs from the checkout outside the sandbox. A dirty tree or a stray module
+    makes the campaign FAILED."""
     def git(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=60)
 
@@ -116,8 +117,31 @@ def tree_state(repo: Path = sup.REPO) -> dict:
     if any(r.returncode != 0 for r in (head, dirty, others, ignored)):
         return {"git_head": None, "tracked_clean": False, "stray_code": None}
     stray = sorted({name for name in (others.stdout + ignored.stdout).split("\0") if name
-                    and Path(name).suffix in _IMPORTABLE and "__pycache__" not in Path(name).parts})
+                    and (name.endswith("/") or Path(name).suffix in _IMPORTABLE)
+                    and "__pycache__" not in Path(name).parts})
     return {"git_head": head.stdout.strip(), "tracked_clean": dirty.stdout == "", "stray_code": stray}
+
+
+def evaluator_runtime() -> dict:
+    """The interpreter the evaluator runs on, and whether it can load repository bytecode. A campaign
+    is valid only from sources (``-B -X pycache_prefix=...``, which ``main`` re-executes itself with):
+    a forged ``__pycache__`` file of the evaluator would otherwise run unhashed."""
+    return {"executable": sys.executable, "prefix": sys.prefix, "base_prefix": sys.base_prefix,
+            "source_only": bool(sys.dont_write_bytecode and sys.pycache_prefix
+                                and not Path(sys.pycache_prefix).exists())}
+
+
+def sandbox_view(workdir: Path) -> dict:
+    """The repository files the Sentinel child can see, listed from inside the sandbox; the campaign
+    is valid only when that list is exactly the hashed subject (plus the lab's launcher and init)."""
+    root = Path(tempfile.mkdtemp(prefix="colony-lab-", dir=workdir))
+    try:
+        observed = sup.Supervisor(root, missions=frozenset()).observe_view("SENTINEL_ASK")
+    finally:
+        shutil.rmtree(root)
+    return {"files": None if observed is None else len(observed),
+            "sha256": None if observed is None else _digest(observed),
+            "matches_subject": observed == sup.view_files(sup.SENTINEL_VIEW)}
 
 
 def _golden_form(output: Any) -> bytes:
@@ -423,23 +447,28 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
     code_matches = golden is None or golden.get("subject_code_sha256") == code_sha256
     tree = tree_state()
     tree_ok = tree["git_head"] is not None and tree["tracked_clean"] and tree["stray_code"] == []
+    view = sandbox_view(workdir)
+    runtime = evaluator_runtime()
     return {
         "evidence_schema": EVIDENCE_SCHEMA, "criteria_revision": revision, "criteria_sha256": criteria_sha256,
         "criteria_status": "CURRENT" if revision == CURRENT else "SUPERSEDED",
         "lab_clock_utc": criteria.get("lab_clock_utc"), "scope": criteria["scope"],
         "subject": {"agent_id": spec["agent_id"], "agent_spec_id": spec["agent_spec_id"],
                     "spec_artifact_hash": a1.spec_artifact_hash(spec), "subject_code_sha256": code_sha256},
-        "evaluator_code_sha256": evaluator_code_sha256(), "checkout": tree,
+        "evaluator_code_sha256": evaluator_code_sha256(), "checkout": tree, "sandbox_view": view,
+        "evaluator_runtime": runtime,
         "golden_subject_code_matches": code_matches,
         "environment": {"python": platform.python_version(), "platform": platform.platform(),
                         "sandbox": sandbox},
         "rounds": rounds, "deterministic_across_fresh_labs": deterministic,
         "proposed_state": "PROPOSED_QUALIFIED_SIMULATED"
-        if passed and deterministic and code_matches and tree_ok and revision == CURRENT else "FAILED",
+        if passed and deterministic and code_matches and tree_ok and view["matches_subject"]
+        and runtime["source_only"] and revision == CURRENT else "FAILED",
         "failure_reasons": [reason for reason, bad in (
             ("CRITERIA_SUPERSEDED", revision != CURRENT), ("TRIALS_FAILED", not passed),
             ("NOT_DETERMINISTIC", not deterministic), ("SUBJECT_CODE_CHANGED", not code_matches),
-            ("TREE_NOT_CLEAN", not tree_ok)) if bad],
+            ("TREE_NOT_CLEAN", not tree_ok), ("SANDBOX_VIEW_MISMATCH", not view["matches_subject"]),
+            ("EVALUATOR_MAY_LOAD_BYTECODE", not runtime["source_only"])) if bad],
         "not_claimed": criteria["evaluation"]["not_claimed"],
     }
 
@@ -493,4 +522,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    if sys.pycache_prefix is None or not sys.dont_write_bytecode:  # imported modules may be bytecode: run again
+        os.execv(sys.executable, [sys.executable, "-B", *sup.NO_BYTECODE, "-m", "colony_lab.qualification",
+                                  *sys.argv[1:]])
     sys.exit(main())

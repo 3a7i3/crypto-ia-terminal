@@ -19,31 +19,79 @@ MAX_REQUEST = 2_000
 _HYPHENS_RE = re.compile(r"[\u00ad\u2010-\u2015\u2212\ufe63\uff0d]")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f‪-‮⁦-⁩]")
 
+# Ce que Sentinel ne peut s'attribuer : qualification, rôle d'autorité, droits.
+_AUTHORITY = (r"(qualifi|certifi|admin|root\b|administrat|op[ée]rat|gouvern|govern|relecteur|reviewer|superuser|"
+              r"sudo|privil|autorit|authorit|granted|write|[ée]criture|droits?\b|rights?\b|permissions?\b)")
+_ATTRIBUTE = (r"(droits?|permissions?|privil\w*|capacit\w*|capabilit\w*|qualification|r[ôo]le|role|acc[eè]s|access|"
+              r"autorit\w*|authorit\w*|identit\w*|scope|port[ée]e|statut|status|niveau)")
+_QUESTION_RE = re.compile(
+    r"^(est-ce|y a-t-il|existe-t-il|peut-on|qui\b|que\b|qu'|quel|pourquoi|comment|combien|o[uù]\b|"
+    r"is\b|are\b|do\b|does\b|can\b|could\b|would\b|what|why|how|which|who|where|when|"
+    r"\w+-(tu|il|elle|on|t-il|t-elle|t-on)\b|"
+    r"(pouvez|voulez|savez|[êe]tes|avez|devez|pourriez|voudriez|sauriez)-vous\b)"
+)
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?;:])\s+|\n+")
+# Formes refusées partout, questions comprises : une attribution explicite à soi-même.
+_SELF_GRANT_ANYWHERE = re.compile(
+    r"\b(d[ée]clare|proclame|autoproclame|nomme|qualifie|promeu[st]|promouve|certifie|accorde|donne|octroie|"
+    r"attribue|[ée]l[èe]ve)[sz]?-(toi|vous)\b|"
+    r"\b(te|vous) (d[ée]clarer|proclamer|nommer|qualifier|certifier|promouvoir|accorder|octroyer|attribuer|"
+    r"donner)\b.{0,30}" + _AUTHORITY + r"|"
+    r"\bt'(accorde|octroie|attribue|donne)s?\b(?! que)|\bje (te|vous) (donne|accorde|octroie|attribue|nomme|"
+    r"d[ée]clare|promeu[st]|confie)\b(?! que)|"
+    r"\b(grant|give|assign|make|declare|promote|elevate|escalate)\b.{0,20}"
+    r"\b(yourself|your (own )?(privileges?|permissions?|rights?|role|access|capabilit\w*))|"
+    r"\bself-?(certif|qualif|promot|assign|grant|approv|elevat)"
+)
+# Formes refusées hors des questions : un ordre ou une affirmation d'état sur Sentinel.
+_SELF_CHANGE_ORDER = re.compile(
+    r"\b\w+[sz]?-(toi|vous)\b.{0,40}" + _AUTHORITY + r"|"
+    r"\b\w+ yourself\b.{0,30}" + _AUTHORITY + r"|"
+    r"\bauto-?(qualifi|promo|attribu|proclam|certifi|[ée]valu|valid)|"
+    r"\b[ée]l[èe]ve[rz]?\b.{0,20}\bprivil[eè]ges?|\bescalad\w* (de |des )?privil|"
+    r"\b(sois|soyez|deviens|devenez|become|be|act as|agis en|agissez en|fais comme si tu [ée]tais|"
+    r"faites comme si vous [ée]tiez|pretend (to be|you are))\s+((d[ée]sormais|maintenant|now|dor[ée]navant)\s+)?"
+    r"((un|une|le|la|l'|the|a|an|ton|ta|votre|propre|own|your)\s*)*" + _AUTHORITY + r"|"
+    r"\b(tu es|vous [êe]tes|you are|you're|you have|tu as|vous avez|"
+    r"(ton|ta|votre|your) " + _ATTRIBUTE + r" (est|is))\s+"
+    r"((d[ée]sormais|maintenant|now|dor[ée]navant|[àa] pr[ée]sent)\s+)?((un|une|le|la|l'|les|the|an?|des)\s*)?"
+    + _AUTHORITY + r"|"
+    r"\b(augmente|[ée]largis|[ée]tends|change|modifie|ajoute|accorde|[ée]l[èe]ve|valide|raise|increase|extend|"
+    r"upgrade|elevate|escalate|modify|change|update)[sz]?\b.{0,30}\b(tes|vos|ta|ton|votre|your|de sentinel)\b.{0,15}"
+    + _ATTRIBUTE + r"|"
+    r"\b(mets|mettez|passe|passez|bascule|basculez|set|switch)\s+(tes|vos|ta|ton|votre|your)\s+[^.]{0,20}?"
+    + _ATTRIBUTE + r"\w*\s+(.{0,15}\s)?(à|a|au|en|to)\b|"
+    r"\b(prends|prenez|assume|assumez|endosse|endossez|take)\s+((le|la|les|the|over)\s+)?"
+    r"(r[ôo]le|role|contr[ôo]le|control|droits|rights)\b"
+)
+
+
+class _SelfChangeRule:
+    """Une demande de changer l'identité, les droits ou la qualification de Sentinel.
+
+    Lexical, donc borné aux formes ci-dessus : une attribution explicite à soi-même (« déclare-toi »,
+    « t'accorde », « grant yourself ») est refusée partout ; un ordre ou une affirmation d'état
+    (« deviens root », « tu es admin », « ton statut est QUALIFIED ») seulement hors d'une phrase
+    interrogative, pour que « est-ce que tu es qualifié ? » reste une question d'audit.
+    """
+
+    def search(self, text: str) -> bool:
+        if _SELF_GRANT_ANYWHERE.search(text):
+            return True
+        for sentence in _SENTENCE_SPLIT_RE.split(text):
+            sentence = sentence.strip()
+            if sentence.endswith("?") or _QUESTION_RE.match(sentence):
+                continue
+            if _SELF_CHANGE_ORDER.search(sentence):
+                return True
+        return False
+
+
 # (code de refus, motif). Les motifs visent des verbes d'action, pas les noms :
 # « commits non déployés » est une question légitime, « déploie main » ne l'est pas.
-_DENY_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
-    (
-        # En premier : une demande d'auto-promotion est nommée comme telle, même si elle cite un secret.
-        "PERMISSION_CHANGE_DENIED",
-        re.compile(
-            # Forms of action addressed to Sentinel (tu, vous, you), never the bare nouns: « quelles PR parlent
-            # d'escalade de privilèges ? » reste une question d'audit.
-            r"(\b(d[ée]clare|proclame|nomme|qualifie|promeu[st]|promouve|certifie|accorde|donne|octroie|attribue|"
-            r"[ée]l[èe]ve)[sz]?-(toi|vous)\b|"
-            r"\b(consid[èée]re|marque|rends|rendez|mets|mettez|regarde)[sz]?-(toi|vous)\b.{0,30}"
-            r"(qualifi|certifi|admin|root|administrat|op[ée]rateur|gouvern|relecteur|superuser|privil|autorit)|"
-            r"\b(sois|soyez|deviens|devenez|become|act as)\b.{0,30}"
-            r"(qualifi|certifi|admin|root|administrat|op[ée]rateur|gouvern|relecteur|superuser|privil|autorit)|"
-            r"\b(augmente|[ée]largis|[ée]tends|change|modifie|mets|mettez|ajoute|accorde|donne|[ée]l[èe]ve|valide)"
-            r"[sz]?\b.{0,30}\b(tes|vos|ta|ton|votre)\b.{0,15}"
-            r"(droits?|permissions?|privil|capacit|qualification|r[ôo]le|acc[eè]s|autorit|identit|scope)|"
-            r"\b(tu es|vous [êe]tes|you are|you're)( (d[ée]sormais|maintenant|dor[ée]navant|[àa] pr[ée]sent|now))?"
-            r"( (un|une|l'|le|la|the|an?))? ?(admin|root|administrat|op[ée]rateur|superuser|qualifi|gouvern)|"
-            r"\bt'(accorde|octroie|attribue|donne)s?\b(?! que)|\bje te (donne|nomme|d[ée]clare|promeu[st]|confie)\b|"
-            r"\b(grant|give|assign|make|declare|promote|elevate|escalate)\b.{0,20}"
-            r"\b(yourself|your (own )?(privileges?|permissions?|rights?|role|access|capabilit\w*)))"
-        ),
-    ),
+_DENY_RULES: tuple[tuple[str, Any], ...] = (
+    # En premier : une demande d'auto-promotion est nommée comme telle, même si elle cite un secret.
+    ("PERMISSION_CHANGE_DENIED", _SelfChangeRule()),
     (
         "SECRET_ACCESS_DENIED",
         re.compile(
