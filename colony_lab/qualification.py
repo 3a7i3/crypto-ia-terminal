@@ -42,8 +42,9 @@ CRITERIA = {
     "r4": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R4.json", "7127887574e5624f107ee46aeeac9cda1de0258c71737ae338feb92512ae270f"),
     "r5": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R5.json", "3c5114365e9639f98f0bc1248df1cb4a131a971bfc7595f0515d6cb1a8d57103"),
     "r6": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R6.json", "a0e9076bcbfbc6b8e418ad9602a3b9bd72ada1006ac48773fd5168786629222e"),
+    "r7": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R7.json", "c260b57b5e992b23a26a6717e939fb7a22b481ff0a8eaeb75270ed89c38ac486"),
 }
-CURRENT = "r6"
+CURRENT = "r7"
 EVIDENCE_SCHEMA = "colony-lab.qualification-evidence/0"
 MISSION = "fixture-sentinel-qualification"
 BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "output_bytes": 1 << 20,
@@ -67,11 +68,14 @@ _REDACTED = "[REDACTED]"
 
 
 def _code_files(bases: tuple[Path, ...]) -> list[Path]:
-    files = []
-    for base in bases:
-        files += [base] if base.is_file() else [p for p in base.rglob("*") if p.is_file()
-                                                and "__pycache__" not in p.parts]
-    return sorted(files)
+    """The regular files under the bases, links never followed (see ``code_irregular``)."""
+    return sorted(sup.REPO / name for name in sup.walk_code(tuple(str(b.relative_to(sup.REPO)) for b in bases))[0])
+
+
+def code_irregular() -> list[str]:
+    """Links, non-regular files and stray bytecode-cache entries in the subject or the evaluator: a
+    link could make Python load code the hashes never read, so any of them gives FAILED."""
+    return sup.walk_code(tuple(str(b.relative_to(sup.REPO)) for b in (*SUBJECT_CODE, *EVALUATOR_CODE)))[1]
 
 
 def _hash_files(files: list[Path]) -> str:
@@ -102,11 +106,11 @@ def evaluator_code_sha256() -> str:
 
 
 def tree_state(repo: Path = sup.REPO) -> dict:
-    """The checkout the campaign ran from: HEAD, whether tracked files (staged or not) match it, and
-    every untracked or ignored importable file or directory (a nested repository is listed as one)
-    outside __pycache__. The subject hash covers every file of its view, tracked or not; this check is
-    for the evaluator, which runs from the checkout outside the sandbox. A dirty tree or a stray module
-    makes the campaign FAILED."""
+    """The checkout the campaign ran from: HEAD; whether tracked files (staged or not, with no
+    skip-worktree or assume-unchanged flag) match it; and every untracked or ignored entry that could
+    be loaded: an importable file, a directory (a nested repository is listed as one), a link, or
+    anything in a ``__pycache__`` other than a ``*.pyc`` directly in it. The evaluator runs from the
+    checkout outside the sandbox. A dirty tree or a stray entry makes the campaign FAILED."""
     def git(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=60)
 
@@ -114,21 +118,50 @@ def tree_state(repo: Path = sup.REPO) -> dict:
     dirty = git("status", "--porcelain", "--untracked-files=no")
     others = git("ls-files", "--others", "--exclude-standard", "-z")
     ignored = git("ls-files", "--others", "--ignored", "--exclude-standard", "-z")
-    if any(r.returncode != 0 for r in (head, dirty, others, ignored)):
+    flags = git("ls-files", "-v", "-z")
+    if any(r.returncode != 0 for r in (head, dirty, others, ignored, flags)):
         return {"git_head": None, "tracked_clean": False, "stray_code": None}
-    stray = sorted({name for name in (others.stdout + ignored.stdout).split("\0") if name
-                    and (name.endswith("/") or Path(name).suffix in _IMPORTABLE)
-                    and "__pycache__" not in Path(name).parts})
-    return {"git_head": head.stdout.strip(), "tracked_clean": dirty.stdout == "", "stray_code": stray}
+    hidden = any(entry[:1].islower() or entry[:1] == "S" for entry in flags.stdout.split("\0") if entry)
+
+    def stray(name: str) -> bool:
+        parts = Path(name).parts
+        if name.endswith("/") or (repo / name).is_symlink():
+            return True
+        if "__pycache__" in parts:
+            return parts[-2:-1] != ("__pycache__",) or not name.endswith(".pyc")
+        return Path(name).suffix in _IMPORTABLE
+
+    names = sorted({name for name in (others.stdout + ignored.stdout).split("\0") if name and stray(name)})
+    return {"git_head": head.stdout.strip() or None, "tracked_clean": dirty.stdout == "" and not hidden,
+            "stray_code": names}
+
+
+# How the evaluator and every Python process it starts run: isolated (no PYTHON* variable, no user
+# site, no current directory), without site (no .pth, no sitecustomize) and from sources only.
+EVALUATOR_FLAGS = ("-I", "-S", "-B", *sup.NO_BYTECODE)
+_BOOTSTRAP = "import sys; sys.path.append(sys.argv[1]); del sys.argv[1]\n"
 
 
 def evaluator_runtime() -> dict:
-    """The interpreter the evaluator runs on, and whether it can load repository bytecode. A campaign
-    is valid only from sources (``-B -X pycache_prefix=...``, which ``main`` re-executes itself with):
-    a forged ``__pycache__`` file of the evaluator would otherwise run unhashed."""
+    """The interpreter the evaluator runs on and its flags. A campaign is valid only from an isolated
+    interpreter without site that cannot load repository bytecode (``EVALUATOR_FLAGS``, which the
+    module re-executes itself with): a ``PYTHONPATH``, a ``.pth`` or a forged ``__pycache__`` file
+    would otherwise run unhashed code in the evaluator."""
+    flags = {"isolated": bool(sys.flags.isolated), "no_site": bool(sys.flags.no_site),
+             "dont_write_bytecode": bool(sys.dont_write_bytecode), "pycache_prefix": sys.pycache_prefix}
     return {"executable": sys.executable, "prefix": sys.prefix, "base_prefix": sys.base_prefix,
-            "source_only": bool(sys.dont_write_bytecode and sys.pycache_prefix
-                                and not Path(sys.pycache_prefix).exists())}
+            "flags": flags, "path": list(sys.path),
+            "source_only": bool(flags["isolated"] and flags["no_site"] and flags["dont_write_bytecode"]
+                                and sys.pycache_prefix and not Path(sys.pycache_prefix).exists())}
+
+
+def reexec_argv(argv: list[str]) -> list[str] | None:
+    """The command that runs the evaluator again from sources and isolated, or None when it already is."""
+    if evaluator_runtime()["source_only"]:
+        return None
+    return [sys.executable, *EVALUATOR_FLAGS, "-c",
+            _BOOTSTRAP + "from colony_lab.qualification import main\nsys.exit(main(sys.argv[1:]))",
+            str(sup.REPO), *argv]
 
 
 def sandbox_view(workdir: Path) -> dict:
@@ -250,8 +283,8 @@ def _kill_mid_run(root: Path, agent_id: str, trial: dict) -> None:
     code = ("import json,sys\nfrom pathlib import Path\nfrom colony_lab import supervisor as sup\n"
             "s = sup.Supervisor(Path(sys.argv[1]), missions=frozenset({sys.argv[3]}))\n"
             "s.run(sys.argv[2], json.loads(sys.argv[4]))\n")
-    proc = subprocess.Popen([sys.executable, "-c", code, str(root), agent_id, MISSION,
-                             json.dumps(_task("q05-killed", trial))], cwd=sup.REPO)
+    proc = subprocess.Popen([sys.executable, *EVALUATOR_FLAGS, "-c", _BOOTSTRAP + code, str(sup.REPO), str(root),
+                             agent_id, MISSION, json.dumps(_task("q05-killed", trial))], cwd=sup.REPO)
     inflight = root / "individuals" / agent_id / "inflight.json"
     deadline = time.monotonic() + 30
     while not inflight.exists() and proc.poll() is None and time.monotonic() < deadline:
@@ -449,6 +482,7 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
     tree_ok = tree["git_head"] is not None and tree["tracked_clean"] and tree["stray_code"] == []
     view = sandbox_view(workdir)
     runtime = evaluator_runtime()
+    irregular = code_irregular()
     return {
         "evidence_schema": EVIDENCE_SCHEMA, "criteria_revision": revision, "criteria_sha256": criteria_sha256,
         "criteria_status": "CURRENT" if revision == CURRENT else "SUPERSEDED",
@@ -456,19 +490,19 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
         "subject": {"agent_id": spec["agent_id"], "agent_spec_id": spec["agent_spec_id"],
                     "spec_artifact_hash": a1.spec_artifact_hash(spec), "subject_code_sha256": code_sha256},
         "evaluator_code_sha256": evaluator_code_sha256(), "checkout": tree, "sandbox_view": view,
-        "evaluator_runtime": runtime,
+        "evaluator_runtime": runtime, "code_irregular": irregular,
         "golden_subject_code_matches": code_matches,
         "environment": {"python": platform.python_version(), "platform": platform.platform(),
                         "sandbox": sandbox},
         "rounds": rounds, "deterministic_across_fresh_labs": deterministic,
         "proposed_state": "PROPOSED_QUALIFIED_SIMULATED"
         if passed and deterministic and code_matches and tree_ok and view["matches_subject"]
-        and runtime["source_only"] and revision == CURRENT else "FAILED",
+        and runtime["source_only"] and irregular == [] and revision == CURRENT else "FAILED",
         "failure_reasons": [reason for reason, bad in (
             ("CRITERIA_SUPERSEDED", revision != CURRENT), ("TRIALS_FAILED", not passed),
             ("NOT_DETERMINISTIC", not deterministic), ("SUBJECT_CODE_CHANGED", not code_matches),
             ("TREE_NOT_CLEAN", not tree_ok), ("SANDBOX_VIEW_MISMATCH", not view["matches_subject"]),
-            ("EVALUATOR_MAY_LOAD_BYTECODE", not runtime["source_only"])) if bad],
+            ("EVALUATOR_NOT_ISOLATED", not runtime["source_only"]), ("CODE_NOT_REGULAR", irregular != [])) if bad],
         "not_claimed": criteria["evaluation"]["not_claimed"],
     }
 
@@ -522,7 +556,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    if sys.pycache_prefix is None or not sys.dont_write_bytecode:  # imported modules may be bytecode: run again
-        os.execv(sys.executable, [sys.executable, "-B", *sup.NO_BYTECODE, "-m", "colony_lab.qualification",
-                                  *sys.argv[1:]])
+    command = reexec_argv(sys.argv[1:])  # what ran so far may be bytecode or site code: run again from sources
+    if command is not None:
+        os.execv(sys.executable, command)
     sys.exit(main())

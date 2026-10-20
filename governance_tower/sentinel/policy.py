@@ -20,7 +20,8 @@ _HYPHENS_RE = re.compile(r"[\u00ad\u2010-\u2015\u2212\ufe63\uff0d]")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f‪-‮⁦-⁩]")
 
 # Ce que Sentinel ne peut s'attribuer : qualification, rôle d'autorité, droits.
-_AUTHORITY = (r"(qualifi|certifi|admin|root\b|administrat|op[ée]rat|gouvern|govern|relecteur|reviewer|superuser|"
+_AUTHORITY = (r"(qualifi|certifi|admin|root\b|administrat|op[ée]rat|gouvern|govern|relecteur externe|"
+              r"external reviewer|propre relecteur|own reviewer|superuser|"
               r"sudo|privil|autorit|authorit|granted|write|[ée]criture|droits?\b|rights?\b|permissions?\b)")
 _ATTRIBUTE = (r"(droits?|permissions?|privil\w*|capacit\w*|capabilit\w*|qualification|r[ôo]le|role|acc[eè]s|access|"
               r"autorit\w*|authorit\w*|identit\w*|scope|port[ée]e|statut|status|niveau)")
@@ -47,8 +48,6 @@ _SELF_GRANT_ANYWHERE = re.compile(
 _SELF_CHANGE_ORDER = re.compile(
     r"\b\w+[sz]?-(toi|vous)\b.{0,40}" + _AUTHORITY + r"|"
     r"\b\w+ yourself\b.{0,30}" + _AUTHORITY + r"|"
-    r"\bauto-?(qualifi|promo|attribu|proclam|certifi|[ée]valu|valid)|"
-    r"\b[ée]l[èe]ve[rz]?\b.{0,20}\bprivil[eè]ges?|\bescalad\w* (de |des )?privil|"
     r"\b(sois|soyez|deviens|devenez|become|be|act as|agis en|agissez en|fais comme si tu [ée]tais|"
     r"faites comme si vous [ée]tiez|pretend (to be|you are))\s+((d[ée]sormais|maintenant|now|dor[ée]navant)\s+)?"
     r"((un|une|le|la|l'|the|a|an|ton|ta|votre|propre|own|your)\s*)*" + _AUTHORITY + r"|"
@@ -62,7 +61,7 @@ _SELF_CHANGE_ORDER = re.compile(
     r"\b(mets|mettez|passe|passez|bascule|basculez|set|switch)\s+(tes|vos|ta|ton|votre|your)\s+[^.]{0,20}?"
     + _ATTRIBUTE + r"\w*\s+(.{0,15}\s)?(à|a|au|en|to)\b|"
     r"\b(prends|prenez|assume|assumez|endosse|endossez|take)\s+((le|la|les|the|over)\s+)?"
-    r"(r[ôo]le|role|contr[ôo]le|control|droits|rights)\b"
+    r"(r[ôo]le|role|droits|rights)\b"
 )
 
 

@@ -10,9 +10,10 @@ Sandbox (Linux, unprivileged), all of it required or the run is refused:
 * a new read-only root (``pivot_root``) holding only an allowlist bound
   read-only: ``/usr``, the interpreter's prefixes and the host
   ``bin``/``lib``/``sbin`` links, plus ``/dev/{null,zero,random,urandom}`` and a
-  fresh ``/proc``. Of the repository, only the task type's ``repo_view`` (for
-  Sentinel: exactly the subject's code) and the lab's child and init are
-  bound, so no other repository file is importable or readable; a task type
+  fresh ``/proc``. Of the repository, only the regular files of the task
+  type's ``repo_view`` (for Sentinel: the files the subject hash covers) and
+  the lab's child and init are bound, one file each, so no link, bytecode
+  cache or other repository file is importable or readable; a task type
   without a view (lab tests only) sees the repository with ``.git``, ``.env*``
   and ``docs/colony_lab`` (criteria, golden answers, evidence) hidden under
   empty mounts. The old root is detached, so the lab root, ``/tmp``, the home
@@ -125,7 +126,8 @@ class TaskType:
 # The lab's own files every child needs: its launcher and the namespace init.
 LAB_FILES = ("colony_lab/child.py", "colony_lab/sandbox_init.py")
 # Sentinel's code: every repository file its worker loads (test-checked against its imports). The
-# qualification hashes exactly this view, and the sandbox binds exactly it.
+# qualification hashes the regular files of this view and the sandbox binds exactly those; a link or
+# a stray entry in a bytecode cache makes the campaign FAILED (CODE_NOT_REGULAR).
 SENTINEL_VIEW = ("colony_lab/__init__.py", "colony_lab/workers/__init__.py", "colony_lab/workers/sentinel.py",
                  "governance_tower", "observability/__init__.py", "observability/event_center_contract.py",
                  "observability/runtime_service_contract.py", "observability/storage_contract.py")
@@ -153,17 +155,47 @@ def _lab_root(path: Any) -> Path:
     return root
 
 
+_CACHED_BYTECODE = re.compile(r"[^/]+\.pyc")
+
+
+def walk_code(paths: tuple[str, ...]) -> tuple[list[str], list[str]]:
+    """(regular files, irregular entries) under repository paths, relative and sorted, never following
+    a link. Irregular: any symbolic link or non-regular file, and anything in a ``__pycache__`` other
+    than a regular ``*.pyc`` directly in it (bytecode the sandbox never reads and never binds)."""
+    regular, irregular = set(), set()
+    for name in paths:
+        top = REPO / name
+        if top.is_symlink() or (top.exists() and not (top.is_dir() or top.is_file())):
+            irregular.add(name)
+            continue
+        if top.is_file():
+            regular.add(name)
+            continue
+        for directory, subdirs, files in os.walk(top, followlinks=False):
+            rel = Path(directory).relative_to(REPO)
+            in_cache = "__pycache__" in rel.parts
+            for sub in subdirs:
+                if (Path(directory) / sub).is_symlink() or in_cache:
+                    irregular.add(str(rel / sub))
+            for file in files:
+                path = Path(directory) / file
+                if path.is_symlink() or not path.is_file():
+                    irregular.add(str(rel / file))
+                elif in_cache:
+                    if rel.name != "__pycache__" or not _CACHED_BYTECODE.fullmatch(file):
+                        irregular.add(str(rel / file))
+                else:
+                    regular.add(str(rel / file))
+            subdirs[:] = [sub for sub in subdirs if not (Path(directory) / sub).is_symlink()]
+    return sorted(regular), sorted(irregular)
+
+
 def view_files(view: tuple[str, ...] | None) -> list[str]:
-    """Repository files (relative, sorted) a view exposes: every file of a listed directory, bytecode
-    caches excluded (the child never reads them)."""
+    """Repository files (relative, sorted) a view exposes: the regular files of its paths and the lab's
+    launcher and init. Only these are bound, one by one; links and bytecode caches never are."""
     if view is None:
         return []
-    names = set(LAB_FILES)
-    for name in view:
-        path = REPO / name
-        names.update([name] if not path.is_dir() else
-                     (str(p.relative_to(REPO)) for p in path.rglob("*") if p.is_file() and "__pycache__" not in p.parts))
-    return sorted(names)
+    return sorted(set(walk_code((*LAB_FILES, *view))[0]))
 
 
 def _write_new(path: Path, data: bytes) -> None:
@@ -346,7 +378,8 @@ class Supervisor:
         """Root directives: what the child sees (read-only binds and links) and what is hidden in it."""
         sources = {Path("/usr"), *(Path(p).resolve() for p in {sys.prefix, sys.base_prefix,
                                                                       sys.exec_prefix, sys.base_exec_prefix})}
-        sources.add(Path(os.path.realpath(self.python)).parent)
+        # The interpreter as invoked (a venv's bin under -S, whose prefixes are then the base's) and as resolved.
+        sources |= {Path(os.path.abspath(self.python)).parent, Path(os.path.realpath(self.python)).parent}
         layout: list[str] = []
         for name in ("bin", "sbin", "lib", "lib32", "lib64", "libx32"):
             host = Path("/") / name
@@ -361,11 +394,9 @@ class Supervisor:
             if path.is_dir() and path != Path("/") and not any(path.is_relative_to(b) for b in binds):
                 binds.append(path)
         layout += ["b:" + str(path) for path in binds]
-        if view is not None:
-            for name in dict.fromkeys((*LAB_FILES, *view)):
-                path = REPO / name
-                if not any(path.is_relative_to(b) for b in binds):
-                    layout.append(("b:" if path.is_dir() else "F:") + str(path))
+        if view is not None:  # regular files only, one bind each: no link or directory can bring more
+            layout += ["F:" + str(REPO / name) for name in view_files(view)
+                       if not any((REPO / name).is_relative_to(b) for b in binds)]
         # The qualification criteria, golden answers and evidence are the evaluator's, never the individual's.
         hidden = [] if view is not None else [REPO / ".git", *sorted(REPO.glob(".env*")), REPO / "docs" / "colony_lab"]
         if any(self.root.is_relative_to(b) for b in binds):

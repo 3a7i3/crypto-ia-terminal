@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -67,7 +68,7 @@ def test_every_criteria_revision_is_pinned_and_only_tightens():
         if new["expect"]["status"] == "COMPLETED":
             assert new["expect"]["code"] == "RUN_COMPLETED" and new["expect"]["redactions_zero"] is True
     r6, _ = q.load_criteria("r6")
-    assert r6["revision"]["supersedes_sha256"] == q.CRITERIA["r5"][1] and q.CURRENT == "r6"
+    assert r6["revision"]["supersedes_sha256"] == q.CRITERIA["r5"][1]
     assert r6["predicates"] == r5["predicates"] and r6["subject"] == r5["subject"]
     for old, new in zip(r5["trials"], r6["trials"], strict=True):
         assert {k: v for k, v in old.items() if k != "expect"} == {k: v for k, v in new.items() if k != "expect"}
@@ -77,6 +78,9 @@ def test_every_criteria_revision_is_pinned_and_only_tightens():
     added = {(t["id"], name) for old, t in zip(r5["trials"], r6["trials"]) for name in t["expect"]
              if name not in old["expect"]}
     assert {name for _, name in added} == {"journal_last"}  # the one disclosed addition
+    r7, _ = q.load_criteria("r7")
+    assert r7["revision"]["supersedes_sha256"] == q.CRITERIA["r6"][1] and q.CURRENT == "r7"
+    assert r7["predicates"] == r6["predicates"] and r7["subject"] == r6["subject"] and r7["trials"] == r6["trials"]
     categories = {t["category"] for t in r2["trials"]}
     assert categories >= {"absent_source", "stale_source", "corrupted_journal", "interruption", "budget",
                           "malicious_content", "fake_governance_message", "mission_conflict",
@@ -113,10 +117,7 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     assert c7["criteria_revision"] == "r6" and c7["criteria_sha256"] == q.CRITERIA["r6"][1]
     assert c7["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c7["failure_reasons"] == []
     assert c7["sandbox_view"]["matches_subject"] and c7["evaluator_runtime"]["source_only"]
-    # Tripwires: the latest accepted evidence names the code at this commit; a changed subject or
-    # evaluator needs a new campaign (and a new review) before any record.
-    assert c7["subject"]["subject_code_sha256"] == q.subject_code_sha256()
-    assert c7["evaluator_code_sha256"] == q.evaluator_code_sha256()
+    assert c7["subject"]["subject_code_sha256"] == q.load_criteria("r6")[0]["_golden"]["subject_code_sha256"]
 
 
 CLEAN_TREE = {"git_head": "0" * 40, "tracked_clean": True, "stray_code": []}
@@ -228,6 +229,7 @@ def test_superseded_criteria_never_propose_a_qualification(monkeypatch, tmp_path
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
     monkeypatch.setattr(q, "sandbox_view", lambda workdir: CLEAN_VIEW)
     monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    monkeypatch.setattr(q, "code_irregular", lambda: [])
     monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
     assert q.qualify(tmp_path, "r1")["proposed_state"] == "FAILED"
     assert q.qualify(tmp_path, "r0")["criteria_status"] == "SUPERSEDED"
@@ -236,7 +238,8 @@ def test_superseded_criteria_never_propose_a_qualification(monkeypatch, tmp_path
     assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r3")["failure_reasons"]
     assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r4")["failure_reasons"]
     assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r5")["failure_reasons"]
-    assert q.qualify(tmp_path, "r6")["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED"
+    assert "CRITERIA_SUPERSEDED" in q.qualify(tmp_path, "r6")["failure_reasons"]
+    assert q.qualify(tmp_path, "r7")["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED"
 
 
 def test_changed_subject_code_never_proposes_a_qualification(monkeypatch, tmp_path):
@@ -246,6 +249,7 @@ def test_changed_subject_code_never_proposes_a_qualification(monkeypatch, tmp_pa
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
     monkeypatch.setattr(q, "sandbox_view", lambda workdir: CLEAN_VIEW)
     monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    monkeypatch.setattr(q, "code_irregular", lambda: [])
     monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
     monkeypatch.setattr(q, "subject_code_sha256", lambda: "0" * 64)
     evidence = q.qualify(tmp_path, q.CURRENT)
@@ -421,6 +425,7 @@ def test_non_deterministic_rounds_never_propose_a_qualification(monkeypatch, tmp
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
     monkeypatch.setattr(q, "sandbox_view", lambda workdir: CLEAN_VIEW)
     monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    monkeypatch.setattr(q, "code_irregular", lambda: [])
     monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
     evidence = q.qualify(tmp_path, q.CURRENT)
     assert evidence["proposed_state"] == "FAILED" and evidence["failure_reasons"] == ["NOT_DETERMINISTIC"]
@@ -433,6 +438,7 @@ def test_evidence_names_the_evaluator_code(monkeypatch, tmp_path):
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
     monkeypatch.setattr(q, "sandbox_view", lambda workdir: CLEAN_VIEW)
     monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    monkeypatch.setattr(q, "code_irregular", lambda: [])
     monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
     evidence = q.qualify(tmp_path, q.CURRENT)
     assert evidence["evaluator_code_sha256"] == q.evaluator_code_sha256()
@@ -470,10 +476,17 @@ def test_subject_hash_covers_every_repository_module_the_worker_loads(tmp_path):
     assert loaded and loaded <= set(q._code_files(q.SUBJECT_CODE)), sorted(loaded - set(q._code_files(q.SUBJECT_CODE)))
 
 
+def _layout_of(view):
+    supervisor = object.__new__(q.sup.Supervisor)
+    supervisor.python, supervisor.root = sys.executable, Path("/nonexistent-colony-root")
+    return supervisor._layout(view)
+
+
 @pytest.mark.parametrize("tree,reason", [
     ({"git_head": "0" * 40, "tracked_clean": False, "stray_code": []}, "TREE_NOT_CLEAN"),
     ({"git_head": "0" * 40, "tracked_clean": True, "stray_code": ["dataclasses.py"]}, "TREE_NOT_CLEAN"),
     ({"git_head": None, "tracked_clean": False, "stray_code": None}, "TREE_NOT_CLEAN"),
+    ({"git_head": None, "tracked_clean": True, "stray_code": []}, "TREE_NOT_CLEAN"),
 ])
 def test_a_campaign_from_an_unclean_checkout_fails(monkeypatch, tmp_path, tree, reason):
     passing = {"outcome": {"status": "X", "code": None}, "journal_last": None}
@@ -482,6 +495,7 @@ def test_a_campaign_from_an_unclean_checkout_fails(monkeypatch, tmp_path, tree, 
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
     monkeypatch.setattr(q, "sandbox_view", lambda workdir: CLEAN_VIEW)
     monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    monkeypatch.setattr(q, "code_irregular", lambda: [])
     monkeypatch.setattr(q, "tree_state", lambda: tree)
     evidence = q.qualify(tmp_path, q.CURRENT)
     assert evidence["proposed_state"] == "FAILED" and evidence["failure_reasons"] == [reason]
@@ -515,7 +529,8 @@ def test_tree_state_reports_dirty_files_and_stray_modules(tmp_path):
      "SANDBOX_VIEW_MISMATCH"),
     (("sandbox_view", lambda workdir: {"files": None, "sha256": None, "matches_subject": False}),
      "SANDBOX_VIEW_MISMATCH"),
-    (("evaluator_runtime", lambda: {**SOURCE_RUNTIME, "source_only": False}), "EVALUATOR_MAY_LOAD_BYTECODE"),
+    (("evaluator_runtime", lambda: {**SOURCE_RUNTIME, "source_only": False}), "EVALUATOR_NOT_ISOLATED"),
+    (("code_irregular", lambda: ["governance_tower/sentinel/policy"]), "CODE_NOT_REGULAR"),
 ])
 def test_a_campaign_outside_the_observed_view_or_from_bytecode_fails(monkeypatch, tmp_path, patch, reason):
     passing = {"outcome": {"status": "X", "code": None}, "journal_last": None}
@@ -524,6 +539,7 @@ def test_a_campaign_outside_the_observed_view_or_from_bytecode_fails(monkeypatch
     monkeypatch.setattr(q.sup.Supervisor, "verify_sandbox", lambda self: "VERIFIED")
     monkeypatch.setattr(q, "sandbox_view", lambda workdir: CLEAN_VIEW)
     monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    monkeypatch.setattr(q, "code_irregular", lambda: [])
     monkeypatch.setattr(q, "tree_state", lambda: CLEAN_TREE)
     monkeypatch.setattr(q, *patch)
     evidence = q.qualify(tmp_path, q.CURRENT)
@@ -539,16 +555,61 @@ def test_main_exits_non_zero_on_a_failed_campaign(monkeypatch, tmp_path):
     assert q.main(["--out", str(tmp_path)]) == 0
 
 
-def test_evaluator_runtime_is_source_only_only_without_bytecode(tmp_path):
+def test_evaluator_runtime_is_source_only_only_isolated_without_site_or_bytecode(tmp_path):
     def runtime(*flags):
-        out = subprocess.run([sys.executable, "-I", *flags, "-c", "import sys, json; sys.path.append(sys.argv[1]); "
+        out = subprocess.run([sys.executable, *flags, "-c", "import sys, json; sys.path.append(sys.argv[1]); "
                               "from colony_lab import qualification as q; print(json.dumps(q.evaluator_runtime()))",
                               str(q.sup.REPO)], capture_output=True, text=True, timeout=120, check=True)
         return json.loads(out.stdout)
-    assert runtime("-B", *q.sup.NO_BYTECODE)["source_only"] is True
-    assert runtime()["source_only"] is False
-    assert runtime("-B")["source_only"] is False
-    assert runtime("-B", "-X", f"pycache_prefix={tmp_path}")["source_only"] is False  # an existing cache dir
+    clean = runtime(*q.EVALUATOR_FLAGS)
+    assert clean["source_only"] is True and clean["flags"]["isolated"] and clean["flags"]["no_site"]
+    assert str(q.sup.REPO) == clean["path"][-1]
+    assert runtime("-I", "-B", *q.sup.NO_BYTECODE)["source_only"] is False  # site runs .pth files
+    assert runtime("-S", "-B", *q.sup.NO_BYTECODE)["source_only"] is False  # PYTHONPATH and user site honoured
+    assert runtime("-I", "-S")["source_only"] is False
+    assert runtime("-I", "-S", "-B")["source_only"] is False
+    assert runtime("-I", "-S", "-B", "-X", f"pycache_prefix={tmp_path}")["source_only"] is False  # existing cache
+
+
+def test_the_evaluator_reexecutes_itself_isolated_and_still_runs():
+    command = q.reexec_argv(["--help"])
+    assert command is not None and command[1:1 + len(q.EVALUATOR_FLAGS)] == list(q.EVALUATOR_FLAGS)
+    out = subprocess.run(command, capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0 and "Sentinel lab trials" in out.stdout
+
+
+def test_sandbox_view_matches_only_the_exact_list(monkeypatch, tmp_path):
+    expected = q.sup.view_files(q.sup.SENTINEL_VIEW)
+    for observed, matches in ((expected, True), (None, False), ([], False), (expected[:-1] + ["x.py"], False),
+                              (list(reversed(expected)), False), (expected + ["colony_lab/workers/probe.py"], False)):
+        monkeypatch.setattr(q.sup.Supervisor, "observe_view", lambda self, name, observed=observed: observed)
+        view = q.sandbox_view(tmp_path)
+        assert view["matches_subject"] is matches, observed
+        assert view["files"] == (None if observed is None else len(observed))
+
+
+def test_links_and_stray_cache_entries_in_the_code_are_irregular_and_never_bound():
+    """Review 6, C1/C2: a link to a package under __pycache__ shadowed a module with every hash unchanged."""
+    shadow = q.sup.REPO / "governance_tower" / "__pycache__" / "colony-shadow"
+    link = q.sup.REPO / "governance_tower" / "sentinel" / "colony-shadow-link"
+    evaluator_link = q.sup.REPO / "sentinel_activity" / "colony-shadow-link"
+    shadow.mkdir(parents=True)
+    try:
+        (shadow / "__init__.py").write_text("raise SystemExit(3)\n")
+        link.symlink_to("../__pycache__/colony-shadow")
+        evaluator_link.symlink_to("../governance_tower/__pycache__/colony-shadow")
+        irregular = q.code_irregular()
+        assert {"governance_tower/__pycache__/colony-shadow", "governance_tower/sentinel/colony-shadow-link",
+                "sentinel_activity/colony-shadow-link"} <= set(irregular)
+        files = q.sup.view_files(q.sup.SENTINEL_VIEW)
+        assert not any("colony-shadow" in name for name in files)
+        assert all(item.startswith(("b:", "l:")) or (item.startswith("F:") and "colony-shadow" not in item)
+                   for item in _layout_of(q.sup.SENTINEL_VIEW))
+    finally:
+        link.unlink()
+        evaluator_link.unlink()
+        shutil.rmtree(shadow)
+    assert q.code_irregular() == []
 
 
 def test_tree_state_sees_nested_repositories_subdirectories_native_and_staged_changes(tmp_path):
@@ -567,11 +628,27 @@ def test_tree_state_sees_nested_repositories_subdirectories_native_and_staged_ch
     (nested / "python" / "core").mkdir(parents=True)
     (nested / "python" / "core" / "__init__.py").write_text("")
     git("init", "-q", cwd=nested)
+    (tmp_path / "__pycache__" / "shadow").mkdir(parents=True)
+    (tmp_path / "__pycache__" / "shadow" / "__init__.py").write_text("")
+    (tmp_path / "__pycache__" / "kept.cpython-311.pyc").write_bytes(b"")  # inert: never read
+    (tmp_path / "policy").symlink_to("__pycache__/shadow")
     state = q.tree_state(tmp_path)
-    assert state["stray_code"] == ["native.so", "org/", "pkg/sub/mod.py"] and state["tracked_clean"]
+    assert state["stray_code"] == ["__pycache__/shadow/__init__.py", "native.so", "org/", "pkg/sub/mod.py",
+                                   "policy"] and state["tracked_clean"]
+    git("update-index", "--skip-worktree", "kept.py")
+    (tmp_path / "kept.py").write_text("X = 3\n")
+    assert not q.tree_state(tmp_path)["tracked_clean"]  # a hidden modification is still a modification
+    git("update-index", "--no-skip-worktree", "kept.py")
+    git("checkout", "--", "kept.py")
+    assert q.tree_state(tmp_path)["tracked_clean"]
     (tmp_path / "kept.py").write_text("X = 2\n")
     git("add", "kept.py")  # staged only: the working tree matches the index, not HEAD
     assert not q.tree_state(tmp_path)["tracked_clean"]
+
+
+def test_tree_state_outside_a_repository_has_no_head(tmp_path):
+    state = q.tree_state(tmp_path)
+    assert state["git_head"] is None and not state["tracked_clean"]
 
 
 @pytest.mark.parametrize("trial_id,mutate,predicate", [

@@ -277,6 +277,43 @@ def test_sentinel_view_observed_in_the_sandbox_is_exactly_the_subject(sandboxed)
     assert observed == sup.view_files(sup.SENTINEL_VIEW)
     assert {name.split("/")[0] for name in observed} == {"colony_lab", "governance_tower", "observability"}
     assert "colony_lab/supervisor.py" not in observed and "colony_lab/qualification.py" not in observed
+    assert "colony_lab/workers/probe.py" not in observed and "colony_lab/child.py" in observed
+    assert "governance_tower/sentinel/policy.py" in observed
+
+
+def test_observe_view_really_lists_from_inside_the_sandbox(sandboxed):
+    """A view-less task sees the repository with its hidden parts empty: the list comes from the probe,
+    not from the supervisor's own idea of the view."""
+    supervisor, _ = sandboxed()
+    observed = supervisor.observe_view("HOSTILE")
+    assert "colony_lab/supervisor.py" in observed and "tests/colony_lab/hostile.py" in observed
+    assert not any(name.startswith((".git/", "docs/colony_lab/")) for name in observed)
+    assert len(observed) > len(sup.view_files(sup.SENTINEL_VIEW))
+
+
+def _probe_output(**changes):
+    output = {name: True for name in ("network_denied", "unix_sockets_denied", "writes_denied",
+                                      "existing_files_read_only", "hidden_empty", "capabilities_dropped",
+                                      "environment_empty")}
+    output.update(root_entries=["dev", "proc"], repo_files=sup.view_files(sup._PROBE.repo_view))
+    output.update(changes)
+    return {key: value for key, value in output.items() if value is not None}
+
+
+@pytest.mark.parametrize("changes,verdict", [
+    ({}, "VERIFIED"),
+    ({"repo_files": None}, "UNAVAILABLE"),
+    ({"repo_files": sup.view_files(sup._PROBE.repo_view) + ["colony_lab/supervisor.py"]}, "UNAVAILABLE"),
+    ({"repo_files": []}, "UNAVAILABLE"),
+    ({"writes_denied": False}, "UNAVAILABLE"),
+])
+def test_verify_sandbox_requires_the_probe_to_see_exactly_its_view(lab, monkeypatch, changes, verdict):
+    supervisor, _ = lab()
+    if supervisor._tools is None:
+        pytest.skip("sandbox tools absent: the supervisor fails closed before the probe")
+    monkeypatch.setattr(sup.Supervisor, "_spawn", lambda self, task_type, task, budget: (
+        "EXITED_0", _probe_output(**changes), 0.0))
+    assert supervisor.verify_sandbox() == verdict
 
 
 def test_process_count_is_bounded(sandboxed):
