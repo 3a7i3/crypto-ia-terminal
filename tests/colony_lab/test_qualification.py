@@ -92,6 +92,11 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     assert c5["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c5["failure_reasons"] == []
     assert c5["subject"]["subject_code_sha256"] == q.load_criteria("r4")[0]["_golden"]["subject_code_sha256"]
     assert c5["golden_subject_code_matches"]
+    c6 = json.loads((q.DOCS / "evidence" / "C6_sentinel_evidence.json").read_text())
+    assert c6["criteria_revision"] == "r5" and c6["criteria_sha256"] == q.CRITERIA["r5"][1]
+    assert c6["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c6["failure_reasons"] == []
+    assert c6["subject"]["subject_code_sha256"] == q.subject_code_sha256() and c6["golden_subject_code_matches"]
+    assert c6["checkout"]["tracked_clean"] and c6["checkout"]["stray_code"] == []
 
 
 CLEAN_TREE = {"git_head": "0" * 40, "tracked_clean": True, "stray_code": []}

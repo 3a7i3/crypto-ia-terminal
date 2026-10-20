@@ -99,6 +99,10 @@ capability.
     to r4, subject hash changed.
 18. Criteria r5 (`SENTINEL_QUALIFICATION_CRITERIA_R5.json`) keep every r4 expectation and add
     `code: RUN_COMPLETED` and `redactions_zero` to every completed trial. Committed and pushed before C6.
+19. Campaign C6 against r5 (2026-10-20T16:21Z, clean checkout `21c25589`): 15 of 15 trials passed in two
+    fresh labs, deterministic, sandbox VERIFIED, subject code `7dcc920e…` matches the golden,
+    evaluator code `3cc31d96…`. Proposed state **PROPOSED_QUALIFIED_SIMULATED**
+    (`evidence/C6_sentinel_evidence.json`, sha256 `26bf6a1e…092f8`).
 
 Revisions r1 to r5 were all made after seeing a result. They are disclosed here so the independent
 review can judge them; they do not by themselves make the qualification acceptable.
