@@ -31,18 +31,23 @@ Nothing is created: a missing journal returns `UNAVAILABLE` (HTTP 503).
 | Request | target ≤ 2 KiB, no body, closed query fields, no duplicates |
 | Page | `limit` 1..100 (default 25); cursor pinned to watermark/head and filters |
 | Response | ≤ 4 MiB, else `RESPONSE_TOO_LARGE` |
-| Concurrency | 2 requests in flight; others `BUSY` (503); 10 s socket timeout |
+| Concurrency | 2 journal reads in flight; others `BUSY` (503); 10 s timeout per socket operation, no deadline per request and no cap on open connections |
 | Browser | Host must be 127.0.0.1/localhost:port; foreign Origin or cross-site fetch → 403; CSP `default-src 'none'`, no CORS, no-store |
 | Content | all event text HTML-escaped; references displayed as inert text, never links |
-| Errors | `UNAVAILABLE`, `BUSY` → 503; `CURSOR_INVALID` → 400; `CORRUPTED`, `UNKNOWN_VERSION`, `PATH_DENIED` → 500. A failure is never an empty feed |
+| Errors | `UNAVAILABLE`, `BUSY` → 503; `CURSOR_INVALID`, `QUERY_INVALID` → 400; `CORRUPTED`, `UNKNOWN_VERSION`, `PATH_DENIED` → 500; malformed requests rejected by `http.server` itself, and HTTP/0.9 request lines (which would get no status line or headers), → JSON `REQUEST_MALFORMED` with the same security headers. A failure is never an empty feed |
 | Logs | no request target, filter or cursor is logged |
 
 Loopback is not authentication: any local process of any account can read the
 pages. Do not run it on a shared multi-user host or against non-synthetic data.
 Each request re-verifies the whole journal (≈5 s per page at 10,000 events on
 the measured machine, see J02_CAPACITY_REPORT.md). A thread per connection is
-used; slow clients are bounded only by the socket timeout.
+used and connections are not capped: a client sending one byte just under every
+10 s keeps its connection (and a thread) open indefinitely. This is an accepted
+limit for a loopback LAB viewer, not a service level.
 
 ## Rollback
 
-Stop the process. No state, file or journal is created or changed by the viewer.
+Stop the process. The viewer writes no journal data and no file of its own.
+Reading a journal in WAL mode lets SQLite create or update its `-wal`/`-shm`
+coordination files next to `activity.sqlite3` (for example on a copy made
+without them); the database content is not changed.

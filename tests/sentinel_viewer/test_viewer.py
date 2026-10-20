@@ -94,7 +94,7 @@ def test_mutating_and_other_methods_are_refused_without_effect(running, tmp_path
 
 
 @pytest.mark.parametrize("target,code", [
-    ("/api/ledger/0?limit=0", 400), ("/api/ledger/0?limit=101", 200), ("/api/ledger/0?limit=1000", 400),
+    ("/api/ledger/0?limit=100", 200), ("/api/ledger/0?limit=0", 400), ("/api/ledger/0?limit=101", 400), ("/api/ledger/0?limit=1000", 400),
     ("/api/ledger/0?limit=5&limit=6", 400), ("/api/ledger/0?root=/etc", 400), ("/api/ledger/0?x", 400),
     ("/api/ledger/1", 404), ("/api/ledger/00", 404), ("/../etc/passwd", 404), ("/api/ledger/0/", 404),
     ("/api/ledger/0?quest_id=../../x", 400), ("/api/ledger/0?cursor=zz", 400),
@@ -105,10 +105,9 @@ def test_query_and_route_bounds(running, tmp_path, target, code):
     store.append(candidate(), producer_id="fixture-producer")
     srv = running(store.root)
     status, _, body = request(srv, target=target)
+    assert status == code
     if target.endswith("limit=101"):
-        assert json.loads(body)["status"] == "CURSOR_INVALID" and status == 400
-    else:
-        assert status == code
+        assert json.loads(body)["status"] == "QUERY_INVALID"
 
 
 @pytest.mark.parametrize("headers", [
@@ -253,3 +252,24 @@ def test_cli_refuses_non_lab_root_and_privileged_port():
         result = subprocess.run([sys.executable, "-m", "sentinel_viewer", *args], cwd=ROOT, text=True,
                                 capture_output=True, timeout=30)
         assert result.returncode == 2
+
+
+@pytest.mark.parametrize("raw", [b"GET / HTTP/1.1<script>\r\n\r\n", b"GET /api/ledger/0 HTTP/9.9\r\n\r\n",
+                                 b"GET /" + b"a" * 70_000 + b" HTTP/1.0\r\n\r\n",
+                                 b"GET / HTTP/1.1\r\n" + b"X-A: b\r\n" * 101 + b"\r\n",
+                                 b"GET /ledger/0\r\n\r\n", b"GET /api/ledger/0\r\nHost: localhost\r\n\r\n"])
+def test_errors_raised_by_http_server_keep_the_security_headers(running, tmp_path, raw):
+    import socket as socket_module
+
+    store = create(tmp_path)
+    srv = running(store.root)
+    with socket_module.create_connection(("127.0.0.1", srv.server_address[1]), timeout=10) as sock:
+        sock.sendall(raw)
+        reply = b""
+        while chunk := sock.recv(65_536):
+            reply += chunk
+    head, _, body = reply.partition(b"\r\n\r\n")
+    assert head.split(b" ")[1] in {b"400", b"414", b"431", b"505"}
+    assert b"Content-Security-Policy: default-src 'none'" in head and b"X-Content-Type-Options: nosniff" in head
+    assert json.loads(body) == {"items": None, "status": "REQUEST_MALFORMED"}
+    assert b"<script>" not in reply
