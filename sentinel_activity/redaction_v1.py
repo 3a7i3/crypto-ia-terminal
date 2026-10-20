@@ -38,3 +38,9 @@ def redact(text: str) -> tuple[str, int]:
         text, replacements = pattern.subn(REDACTED, text)
         count += replacements
     return text, count
+
+
+def contains_secret(text: str) -> bool:
+    """Same verdict as ``redact(text)[1] > 0``: no pattern matches the empty
+    string, and the first matching pattern sees the unchanged input."""
+    return any(pattern.search(text) is not None for pattern in _SECRET_PATTERNS)
