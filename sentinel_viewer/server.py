@@ -1,8 +1,8 @@
 """Loopback GET-only viewer of verified J01 feed pages.
 
 Limits are fixed in code: request target <=2 KiB, no request body, query
-fields from a closed set, page <=100 events, response <=4 MiB, two requests
-in flight (others get BUSY), 10 s timeout per socket operation (no deadline
+fields from a closed set, page <=100 events, response <=4 MiB, two journal
+reads in flight (others get BUSY), HTTP/1.x only, 10 s timeout per socket operation (no deadline
 for a whole request and no cap on open connections). Every request re-verifies
 the whole stored journal through sentinel_activity; nothing is cached.
 
@@ -191,6 +191,15 @@ class ViewerHandler(BaseHTTPRequestHandler):
             self._send(code, body, "application/json; charset=utf-8")
         except OSError:
             pass
+
+    def parse_request(self) -> bool:
+        """A two-word request line is HTTP/0.9, answered without status line or headers: refused."""
+        if not super().parse_request():
+            return False
+        if self.request_version == "HTTP/0.9":
+            self.send_error(400)
+            return False
+        return True
 
     def _refuse_method(self) -> None:
         self._refusal("METHOD_DENIED")

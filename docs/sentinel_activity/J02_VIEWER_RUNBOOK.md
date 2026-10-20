@@ -34,7 +34,7 @@ Nothing is created: a missing journal returns `UNAVAILABLE` (HTTP 503).
 | Concurrency | 2 journal reads in flight; others `BUSY` (503); 10 s timeout per socket operation, no deadline per request and no cap on open connections |
 | Browser | Host must be 127.0.0.1/localhost:port; foreign Origin or cross-site fetch → 403; CSP `default-src 'none'`, no CORS, no-store |
 | Content | all event text HTML-escaped; references displayed as inert text, never links |
-| Errors | `UNAVAILABLE`, `BUSY` → 503; `CURSOR_INVALID`, `QUERY_INVALID` → 400; `CORRUPTED`, `UNKNOWN_VERSION`, `PATH_DENIED` → 500; malformed requests rejected by `http.server` itself → JSON `REQUEST_MALFORMED` with the same security headers. A failure is never an empty feed |
+| Errors | `UNAVAILABLE`, `BUSY` → 503; `CURSOR_INVALID`, `QUERY_INVALID` → 400; `CORRUPTED`, `UNKNOWN_VERSION`, `PATH_DENIED` → 500; malformed requests rejected by `http.server` itself, and HTTP/0.9 request lines (which would get no status line or headers), → JSON `REQUEST_MALFORMED` with the same security headers. A failure is never an empty feed |
 | Logs | no request target, filter or cursor is logged |
 
 Loopback is not authentication: any local process of any account can read the
