@@ -595,7 +595,7 @@ def test_the_evaluator_refuses_to_run_unless_started_isolated(tmp_path):
     plain = subprocess.run([sys.executable, "-m", "colony_lab.qualification", "--out", str(tmp_path / "out")],
                            capture_output=True, text=True, timeout=120, cwd=q.sup.REPO, env=env)
     assert plain.returncode == q.NOT_ISOLATED_EXIT and "refusing to run" in plain.stderr
-    printed = shlex.split(plain.stderr.splitlines()[-1])  # the printed command is the one to paste
+    printed = shlex.split(plain.stderr.split("\n", 1)[1])  # the printed command is the one to paste
     assert printed == q.launch_command(["--out", str(tmp_path / "out")])
     assert marker.exists() and not (tmp_path / "out").exists()  # the planted code ran there, and nothing else did
     marker.unlink()
