@@ -6,18 +6,25 @@ value, and nothing here is an A1 registration.
 Sandbox (Linux, unprivileged), all of it required or the run is refused:
 
 * user, network, mount and pid namespaces (``unshare``): no network interface,
-  no visible outside process, killed with its parent (``--kill-child``);
-* the whole filesystem remounted read-only; the lab root, ``/mnt``, ``/run``,
-  ``/dev/shm``, the repository's ``.git`` and ``.env*`` and the home dotfiles
-  hidden under empty read-only mounts;
+  no visible outside process;
+* a new read-only root (``pivot_root``) holding only an allowlist bound
+  read-only: ``/usr``, the interpreter's prefixes, the repository and the host
+  ``bin``/``lib``/``sbin`` links, plus ``/dev/{null,zero,random,urandom}`` and a
+  fresh ``/proc``; the repository's ``.git`` and ``.env*`` hidden under empty
+  mounts. The old root is detached, so the lab root, ``/tmp``, the home
+  directory and every UNIX socket outside the allowlist are absent;
 * every capability dropped and ``no_new_privs`` set (``setpriv``), so the
   child cannot undo those mounts; empty environment;
-* rlimits on CPU, address space, file size (0) and descriptors; a new
-  session killed as a group on wall timeout, output overflow or stop.
+* ``colony_lab/sandbox_init.py`` as namespace init: per-process rlimits
+  (address space, file size 0, descriptors, at most ``MAX_PROCESSES``
+  processes), a CPU budget summed over the whole namespace, and a lifeline
+  pipe whose EOF (stop, timeout, supervisor death) kills every process;
+* outcome classification from the init's own status pipe, never from an exit
+  code the child could choose.
 
-Not proven by this module: reads of files outside the hidden list remain
-possible, and the child runs under the operator's UNIX account. Those need a
-distinct account and an allowlisted root, which is a separate gate.
+Not proven by this module: files inside the allowlist (repository, interpreter)
+stay readable; the child runs under the operator's UNIX account; memory is
+bounded per process (``MAX_PROCESSES`` x address space), not by a cgroup.
 """
 
 from __future__ import annotations
@@ -28,11 +35,12 @@ import hashlib
 import json
 import os
 import re
-import resource
 import shutil
 import signal
+import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from contextlib import contextmanager
@@ -55,31 +63,43 @@ JOURNAL_DIR = "j01-lab-memory"
 MAX_TASK_BYTES = 16_384
 MAX_FILE_BYTES = 65_536
 MAX_LINEAGE_DEPTH = 8
+MAX_PROCESSES = 8  # per sandbox, init included (RLIMIT_NPROC of the user namespace)
 POLL_S = 0.02
 SANDBOX_EXIT = 97
 _SYSTEM_PATH = "/usr/sbin:/usr/bin:/sbin:/bin"
+INIT = REPO / "colony_lab" / "sandbox_init.py"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _TASK_ID = re.compile(r"[a-z0-9][a-z0-9_.-]{0,63}")
 _MISSION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}")
-_HOME_SECRETS = (".ssh", ".aws", ".azure", ".config", ".gnupg", ".docker", ".kube", ".netrc",
-                 ".git-credentials", ".pypirc", ".npmrc", ".ccr")
-# Runs as the namespace's init (which the child cannot signal), drops every capability for
-# the child and reports its exit status (128 + signal when it was killed).
+# Runs as the namespace's first process: builds the allowlisted read-only root, then execs the
+# init. Directives: b:PATH bind read-only, l:PATH:TARGET symlink, d:PATH / f:PATH hide.
 _SANDBOX_SCRIPT = r"""
 set -u
-mount_bin=$1; setpriv_bin=$2; env_bin=$3; py=$4; child=$5; module=$6; shift 6
-for target in "$@"; do
-  case "$target" in
-    d:*) "$mount_bin" -t tmpfs -o ro,size=4k,nosuid,nodev,noexec colony-hidden "${target#d:}" || exit 97 ;;
-    f:*) "$mount_bin" --bind -o ro /dev/null "${target#f:}" || exit 97 ;;
+R=$1; shift
+mount -t tmpfs -o size=1m,mode=0755,nosuid,nodev colony-root "$R" || exit 97
+mkdir "$R/dev" "$R/proc" "$R/.old" || exit 97
+for device in null zero random urandom; do
+  : > "$R/dev/$device" && mount --bind "/dev/$device" "$R/dev/$device" || exit 97
+done
+while [ $# -gt 0 ]; do
+  item=$1; shift
+  case "$item" in
+    --) break ;;
+    b:*) path=${item#b:}
+         mkdir -p "$R$path" && mount --bind "$path" "$R$path" &&
+           mount -o remount,bind,ro,nosuid,nodev "$R$path" || exit 97 ;;
+    l:*) rest=${item#l:}; ln -s "${rest#*:}" "$R${rest%%:*}" || exit 97 ;;
+    d:*) mount -t tmpfs -o ro,size=4k,nosuid,nodev,noexec colony-hidden "$R${item#d:}" || exit 97 ;;
+    f:*) mount --bind -o ro /dev/null "$R${item#f:}" || exit 97 ;;
     *) exit 97 ;;
   esac
 done
-"$mount_bin" -o remount,bind,ro / || exit 97
-cd / || exit 97
-"$setpriv_bin" --no-new-privs --inh-caps=-all --ambient-caps=-all --bounding-set=-all \
-  "$env_bin" -i "$py" -I -B "$child" "$module"
-exit $?
+mount -t proc -o nosuid,nodev,noexec proc "$R/proc" || exit 97
+cd "$R" && pivot_root . .old || exit 97
+umount -l /.old && rmdir /.old || exit 97
+mount -o remount,bind,ro / || exit 97
+cd / && exec "$@"
+exit 97
 """
 
 
@@ -200,9 +220,10 @@ class Supervisor:
         self.tasks = dict(tasks)
         self.python = python
         self._stopped = threading.Event()
-        self._groups: set[int] = set()
+        self._groups: dict[int, int] = {}  # process group -> lifeline write end
         self._groups_lock = threading.Lock()
-        tools = {name: shutil.which(name, path=_SYSTEM_PATH) for name in ("unshare", "mount", "setpriv", "env")}
+        tools = {name: shutil.which(name, path=_SYSTEM_PATH)
+                 for name in ("unshare", "mount", "umount", "pivot_root", "setpriv", "env")}
         self._tools = tools if all(tools.values()) else None
         self.sandbox = "UNVERIFIED"
 
@@ -228,8 +249,11 @@ class Supervisor:
         self._stopped.clear()
         return True
 
-    @staticmethod
-    def _kill(group: int) -> None:
+    def _kill(self, group: int) -> None:
+        """Closing the lifeline makes the sandbox init kill its namespace; the group kill is a backstop."""
+        lifeline = self._groups.pop(group, None)
+        if lifeline is not None:
+            os.close(lifeline)
         try:
             os.killpg(group, signal.SIGKILL)
         except (ProcessLookupError, PermissionError):
@@ -237,36 +261,66 @@ class Supervisor:
 
     # ── Sandbox self-test ──────────────────────────────────────────────────
     def verify_sandbox(self) -> str:
-        """Runs the probe child; any reachable network, writable path or visible hidden path fails closed."""
+        """Runs the probe child; any reachable network or socket, writable path, visible hidden path
+        or top-level entry outside the allowlist fails closed."""
         if self._tools is None:
             self.sandbox = "UNAVAILABLE"
             return self.sandbox
-        hidden = [target[2:] for target in self._hidden()]
-        budget = {"cpu_seconds": 10, "wall_seconds": 30, "memory_bytes": 512 << 20, "output_bytes": 4096}
-        payload = {"hidden": hidden, "write_targets": ["/", "/tmp", str(REPO), str(Path.home()),
-                                                       str(self.root.parent)]}
-        status, output, _ = self._spawn(_PROBE, {"task_id": "probe", "payload": payload}, budget)
-        expected = {"network_denied": True, "writes_denied": True, "hidden_empty": True,
-                    "capabilities_dropped": True, "environment_empty": True}
-        self.sandbox = "VERIFIED" if status == "EXITED_0" and output == expected else "UNAVAILABLE"
+        layout = self._layout()
+        budget = {"cpu_seconds": 10, "wall_seconds": 30, "memory_bytes": 512 << 20, "output_bytes": 16_384}
+        with tempfile.TemporaryDirectory(prefix="colony-probe-") as outside, \
+                socket.socket(socket.AF_UNIX) as named, socket.socket(socket.AF_UNIX) as abstract:
+            named.bind(os.path.join(outside, "probe.sock"))
+            named.listen(1)
+            abstract_name = "colony-probe-" + os.urandom(8).hex()
+            abstract.bind("\0" + abstract_name)
+            abstract.listen(1)
+            payload = {
+                "hidden": [item[2:] for item in layout if item[:2] in ("d:", "f:")],
+                "write_targets": sorted({"/", "/dev", "/tmp", str(REPO), str(Path.home()), str(self.root),
+                                         str(self.root.parent), sys.prefix, outside}),
+                "existing_files": [str(CHILD), str(INIT)],
+                "unix_sockets": [os.path.join(outside, "probe.sock"), "@" + abstract_name],
+            }
+            status, output, _ = self._spawn(_PROBE, {"task_id": "probe", "payload": payload}, budget)
+        allowed = {"dev", "proc"} | {Path(item[2:].split(":")[0]).parts[1] for item in layout
+                                     if item[:2] in ("b:", "l:")}
+        checks = ("network_denied", "unix_sockets_denied", "writes_denied", "existing_files_read_only",
+                  "hidden_empty", "capabilities_dropped", "environment_empty")
+        verified = status == "EXITED_0" and type(output) is dict and set(output) == {*checks, "root_entries"} \
+            and all(output[name] is True for name in checks) \
+            and type(output["root_entries"]) is list and set(output["root_entries"]) <= allowed
+        self.sandbox = "VERIFIED" if verified else "UNAVAILABLE"
         return self.sandbox
 
-    def _hidden(self) -> list[str]:
-        targets = ["d:" + str(self.root)]
-        for path in (Path("/mnt"), Path("/run"), Path("/dev/shm"), Path("/media"), REPO / ".git"):
-            if path.is_dir() and not path.is_symlink():
-                targets.append("d:" + str(path))
-            elif path.is_file():
-                targets.append("f:" + str(path))
-        candidates = sorted(REPO.glob(".env*")) + [Path.home() / name for name in _HOME_SECRETS]
-        for path in candidates:
+    def _layout(self) -> list[str]:
+        """Root directives: what the child sees (read-only binds and links) and what is hidden in it."""
+        sources = {Path("/usr"), REPO, *(Path(p).resolve() for p in {sys.prefix, sys.base_prefix,
+                                                                      sys.exec_prefix, sys.base_exec_prefix})}
+        sources.add(Path(os.path.realpath(self.python)).parent)
+        layout: list[str] = []
+        for name in ("bin", "sbin", "lib", "lib32", "lib64", "libx32"):
+            host = Path("/") / name
+            if host.is_symlink():
+                layout.append(f"l:{host}:{os.readlink(host)}")
+            elif host.is_dir():
+                sources.add(host)
+        binds: list[Path] = []
+        for path in sorted(sources, key=lambda p: (len(p.parts), str(p))):
+            if path.is_dir() and path != Path("/") and not any(path.is_relative_to(b) for b in binds):
+                binds.append(path)
+        layout += ["b:" + str(path) for path in binds]
+        hidden = [REPO / ".git", *sorted(REPO.glob(".env*"))]
+        if any(self.root.is_relative_to(b) for b in binds):
+            hidden.append(self.root)
+        for path in hidden:
             if path.is_symlink():
                 continue
             if path.is_dir():
-                targets.append("d:" + str(path))
+                layout.append("d:" + str(path))
             elif path.is_file():
-                targets.append("f:" + str(path))
-        return targets
+                layout.append("f:" + str(path))
+        return layout
 
     # ── Admission (lab only, never the A1 registry) ────────────────────────
     def _home(self, agent_id: str) -> Path:
@@ -287,19 +341,26 @@ class Supervisor:
                 parent_id = record.get("lineage", {}).get("parent_agent_id")
                 parent, parent_spec = self.load(parent_id, _depth + 1)
                 verify_record(record, spec, parent, parent_spec)
+                check_qualification(_read_json(home / "birth_qualification.json"), parent,
+                                    also_excluded=frozenset({record["agent_id"]}))
             else:
                 verify_record(record, spec)
-        except (LineageError, AttributeError) as exc:
+        except (LineageError, AttributeError, KeyError, TypeError) as exc:
             raise LabError(getattr(exc, "code", "INDIVIDUAL_INVALID")) from None
         if record["agent_id"] != agent_id:
             raise LabError("INDIVIDUAL_INVALID")
         return record, spec
 
     def admit(self, record: dict, spec: dict, *, parent_qualification: Any = None) -> dict:
+        """Founders are admitted on a valid record alone (no gate: the operator chooses them);
+        descendants need their parent's qualification."""
+        if type(record) is not dict or type(record.get("lineage")) is not dict:
+            raise LabError("RECORD_SCHEMA_VIOLATION")
         if record.get("role") == "DESCENDANT":
             parent, parent_spec = self.load(record["lineage"]["parent_agent_id"])
             try:
-                check_qualification(parent_qualification, parent)
+                check_qualification(parent_qualification, parent,
+                                    also_excluded=frozenset({record.get("agent_id")}))
                 verify_record(record, spec, parent, parent_spec)
             except LineageError as exc:
                 raise LabError(exc.code) from None
@@ -392,16 +453,17 @@ class Supervisor:
         if task_type.capability not in record["lab_permissions"]:
             return finish(recorder.deny(task_id, mission, "REFUSED", "CAPABILITY_NOT_GRANTED"))
         budget = record["budget"]
-        usage = _read_json(home / "usage.json")
+        usage = _usage(home)
         if usage["runs"] >= budget["runs"]:
             return finish(recorder.exhausted(task_id, mission, "RUNS"))
         if len(journal.snapshot()[1]) + 2 > budget["journal_events"]:
             return finish(recorder.exhausted(task_id, mission, "JOURNAL_EVENTS"))
         if self.sandbox != "VERIFIED" and self.verify_sandbox() != "VERIFIED":
             return finish(recorder.deny(task_id, mission, "SANDBOX_UNAVAILABLE", "SANDBOX_UNAVAILABLE"))
-        # The run is charged before it starts; a crash never refunds it.
+        # The run is claimed, then charged, before it starts; a crash at any point never refunds it.
+        _write_new(home / "inflight.json", _dump({"task_id": task_id, "mission_id": mission,
+                                                  "runs_after": usage["runs"] + 1}))
         _replace(home / "usage.json", _dump({"runs": usage["runs"] + 1}))
-        _write_new(home / "inflight.json", _dump({"task_id": task_id, "mission_id": mission}))
         status, output, elapsed = self._spawn(task_type, task, budget)
         result = self._settle(home, recorder, task_id, mission, status, output, elapsed)
         (home / "inflight.json").unlink()
@@ -414,6 +476,12 @@ class Supervisor:
             return []
         claim = _read_json(inflight)
         task_id, mission = claim["task_id"], claim["mission_id"]
+        usage = _usage(home)
+        runs_after = claim.get("runs_after")
+        if type(runs_after) is not int:
+            runs_after = usage["runs"] + 1  # unreadable claim: charge again rather than ever refund
+        if usage["runs"] < runs_after:  # crashed between the claim and the charge
+            _replace(home / "usage.json", _dump({"runs": runs_after}))
         recorder.record("interrupted-" + task_id, "RUN_INTERRUPTED", mission, "SUPERVISOR_CRASH",
                         f"Lab run {task_id} was interrupted before its outcome was recorded")
         marker = home / "tasks" / (task_id + ".json")
@@ -449,29 +517,33 @@ class Supervisor:
         if self._tools is None:
             return "SANDBOX_FAILED", None, 0.0
         tools = self._tools
+        lifeline_r, lifeline_w = os.pipe2(os.O_CLOEXEC)
+        report_r, report_w = os.pipe2(os.O_CLOEXEC)
+        child = [tools["setpriv"], "--no-new-privs", "--inh-caps=-all", "--ambient-caps=-all",
+                 "--bounding-set=-all", tools["env"], "-i", self.python, "-I", "-B", str(CHILD), task_type.module]
+        init = [self.python, "-I", "-S", "-B", str(INIT), str(lifeline_r), str(report_w),
+                str(budget["cpu_seconds"]), str(budget["memory_bytes"]), str(MAX_PROCESSES), "--", *child]
         argv = [tools["unshare"], "--user", "--map-root-user", "--net", "--mount", "--pid", "--fork",
-                "--kill-child=SIGKILL", "--propagation", "private", "--mount-proc", "/bin/sh", "-c",
-                _SANDBOX_SCRIPT, "colony-sandbox", tools["mount"], tools["setpriv"], tools["env"],
-                self.python, str(CHILD), task_type.module, *self._hidden()]
-        cpu, memory = budget["cpu_seconds"], budget["memory_bytes"]
+                "--kill-child=SIGKILL", "--propagation", "private", "/bin/sh", "-c", _SANDBOX_SCRIPT,
+                "colony-sandbox", str(self.root), *self._layout(), "--", *init]
 
-        def limits() -> None:
-            # The sandbox dies with the supervisor (PR_SET_PDEATHSIG), even after a SIGKILL of it.
+        def die_with_supervisor() -> None:
+            # Second layer behind the lifeline: the sandbox also dies with the supervisor process.
             if ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGKILL, 0, 0, 0) != 0:
                 os._exit(SANDBOX_EXIT)
-            resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu + 1))
-            resource.setrlimit(resource.RLIMIT_AS, (memory, memory))
-            resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
-            resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
-            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 
         payload = canonical_bytes({"task_id": task["task_id"], "payload": task["payload"]}, MAX_TASK_BYTES)
         started = time.monotonic()
-        proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                env={"PATH": _SYSTEM_PATH}, cwd="/", start_new_session=True,
-                                preexec_fn=limits, close_fds=True)
+        try:
+            proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    env={"PATH": _SYSTEM_PATH}, cwd="/", start_new_session=True,
+                                    preexec_fn=die_with_supervisor, close_fds=True,
+                                    pass_fds=(lifeline_r, report_w))
+        finally:
+            os.close(lifeline_r)
+            os.close(report_w)
         with self._groups_lock:
-            self._groups.add(proc.pid)
+            self._groups[proc.pid] = lifeline_w
         limit = budget["output_bytes"]
         chunks: list[bytes] = []
         overflow = threading.Event()
@@ -513,9 +585,13 @@ class Supervisor:
                 self._kill(proc.pid)
                 break
             time.sleep(POLL_S)
-        code = proc.wait()
+        proc.wait()
         with self._groups_lock:
-            self._groups.discard(proc.pid)
+            lifeline = self._groups.pop(proc.pid, None)
+        if lifeline is not None:
+            os.close(lifeline)
+        with os.fdopen(report_r, "rb") as handle:
+            report = handle.read(4096)
         for reader in readers:
             reader.join(5)
         elapsed = time.monotonic() - started
@@ -523,22 +599,43 @@ class Supervisor:
             verdict = "OUTPUT_EXCEEDED"
         if verdict:
             return verdict, None, elapsed
-        if code in (128 + signal.SIGXCPU, 128 + signal.SIGKILL):
-            return "CPU_EXCEEDED", None, elapsed
-        if code == 70:
-            return "MEMORY_EXCEEDED", None, elapsed
-        if code == SANDBOX_EXIT:
-            return "SANDBOX_FAILED", None, elapsed
-        if code != 0:
-            return "EXITED_NONZERO", None, elapsed
-        try:
-            result = _strict_json(b"".join(chunks), "RESULT_INVALID")
-        except LabError:
-            return "RESULT_INVALID", None, elapsed
-        if type(result) is not dict or set(result) != {"result_schema", "task_id", "output"} or \
-                result["result_schema"] != RESULT_SCHEMA or result["task_id"] != task["task_id"]:
-            return "RESULT_INVALID", None, elapsed
-        return "EXITED_0", result["output"], elapsed
+        return _classify(report, chunks, task["task_id"], budget["cpu_seconds"]) + (elapsed,)
+
+
+def _classify(report: bytes, chunks: list[bytes], task_id: str, cpu_budget: int) -> tuple[str, Any]:
+    """Outcome from the init's status line; the child's own exit code only distinguishes 0, 70 and other."""
+    try:
+        status = _strict_json(report, "SANDBOX_FAILED")
+    except LabError:
+        return "SANDBOX_FAILED", None  # the root or the init never came up
+    if type(status) is not dict or status.get("setup_failed") is not False:
+        return "SANDBOX_FAILED", None
+    cpu = status.get("cpu_s")
+    if status.get("reason") == "CPU_EXCEEDED" or (
+            status.get("signal") == signal.SIGXCPU and type(cpu) in (int, float) and cpu >= cpu_budget):
+        return "CPU_EXCEEDED", None
+    if status.get("reason") is not None or status.get("signal") is not None:
+        return "EXITED_NONZERO", None
+    if status.get("exit_code") == 70:
+        return "MEMORY_EXCEEDED", None  # reported by the child launcher on MemoryError: a self-claim
+    if status.get("exit_code") != 0:
+        return "EXITED_NONZERO", None
+    try:
+        result = _strict_json(b"".join(chunks), "RESULT_INVALID")
+    except LabError:
+        return "RESULT_INVALID", None
+    if type(result) is not dict or set(result) != {"result_schema", "task_id", "output"} or \
+            result["result_schema"] != RESULT_SCHEMA or result["task_id"] != task_id:
+        return "RESULT_INVALID", None
+    return "EXITED_0", result["output"]
+
+
+def _usage(home: Path) -> dict:
+    """Run counter; not tamper-proof (whoever writes the lab root can reset it), but never misread."""
+    usage = _read_json(home / "usage.json")
+    if type(usage) is not dict or set(usage) != {"runs"} or type(usage["runs"]) is not int or usage["runs"] < 0:
+        raise LabError("INDIVIDUAL_INVALID")
+    return usage
 
 
 def _task_failure(task: Any) -> str | None:

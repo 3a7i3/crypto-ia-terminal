@@ -4,6 +4,7 @@ import copy
 
 import pytest
 
+from colony_lab import a1_identity as a1
 from colony_lab import lineage
 from tests.colony_lab.builders import BUDGET, archivist_spec, founder, qualification, seal, spec
 
@@ -63,11 +64,17 @@ def test_no_descendant_before_the_parent_is_qualified(state):
     assert err.value.code == "PARENT_NOT_QUALIFIED"
 
 
-@pytest.mark.parametrize("reviewer,kind", [("self", "EXTERNAL_REVIEW_PROCESS"), ("", "EXTERNAL_HUMAN"),
-                                           ("someone", "PEER_AGENT"), ("someone", "SELF")])
+@pytest.mark.parametrize("reviewer,kind", [
+    ("self", "EXTERNAL_REVIEW_PROCESS"), ("", "EXTERNAL_HUMAN"), ("someone", "PEER_AGENT"), ("someone", "SELF"),
+    ("SELF", "EXTERNAL_REVIEW_PROCESS"), ("prefix", "EXTERNAL_HUMAN"), ("child", "EXTERNAL_REVIEW_PROCESS"),
+    ("Fixture Reviewer", "EXTERNAL_HUMAN"),
+])
 def test_self_or_agent_qualification_is_refused(reviewer, kind):
     body, parent = founder()
-    reviewer = parent["agent_id"] if reviewer == "self" else reviewer
+    child_id = a1.agent_id("forest", "archivist_01", "DATA_STEWARD")
+    reviewer = {"self": parent["agent_id"], "SELF": parent["agent_id"].upper(),
+                "prefix": "fixture-ind-" + parent["agent_id"][:16], "child": "reviewer-" + child_id[:16]}.get(
+        reviewer, reviewer)
     with pytest.raises(lineage.LineageError, match="SELF_QUALIFICATION_DENIED"):
         child(parent, body, parent_qualification=qualification(parent, reviewer=reviewer, kind=kind))
 

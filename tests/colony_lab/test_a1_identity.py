@@ -1,12 +1,14 @@
 """A1 identities recomputed by the lab equal the A1 golden vectors; refusals use A1 codes."""
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
 from colony_lab import a1_identity as a1
+from colony_lab import a1_ref
 from tests.colony_lab.builders import seal, spec
 
 HERE = Path(__file__).parent
@@ -61,8 +63,12 @@ def test_capability_tokens_are_refused_in_contract_order(token, code):
     (lambda s: s["authority_policy"].update(human_decision=True), "AUTHORITY_POLICY_VIOLATION"),
     (lambda s: s["execution_binding"].update(credential_mode="API_KEY"), "BINDING_NOT_UNBOUND"),
     (lambda s: s["independence_policy"].update(own_work_review_forbidden=False), "INDEPENDENCE_POLICY_VIOLATION"),
-    (lambda s: s["scope_policy"].update(artifact_domains=[]), "SCOPE_CAPABILITY_INCOHERENT"),
-    (lambda s: s["scope_policy"].update(repository_write_paths_future=["docs/"]), "SCOPE_CAPABILITY_INCOHERENT"),
+    (lambda s: s["scope_policy"].update(artifact_domains=[]), "SPEC_SCHEMA_VIOLATION"),
+    (lambda s: s["scope_policy"].update(repository_write_paths_future=["docs/"]), "SPEC_SCHEMA_VIOLATION"),
+    (lambda s: s["capabilities"].remove("GITHUB_METADATA_READ")
+     or s["scope_policy"].update(github_surfaces=["ISSUES"]), "SCOPE_CAPABILITY_INCOHERENT"),  # AS-13
+    (lambda s: s.update(spec_revision=2), "SUPERSESSION_BREAK"),
+    (lambda s: s.update(spec_revision=True), "SPEC_NUMERIC_AMBIGUITY"),
     (lambda s: s.update(capabilities=list(reversed(s["capabilities"]))), "SPEC_ARRAY_NOT_CANONICAL"),
     (lambda s: s.update(purpose=" padded purpose that is long enough "), "SPEC_TEXT_NOT_CANONICAL"),
 ])
@@ -91,9 +97,15 @@ def test_identity_is_recomputed_never_trusted():
 def test_secret_and_float_values_are_refused():
     body = spec()
     body["purpose"] = "Synthetic lab individual holding ghp_" + "a" * 36
-    with pytest.raises(a1.IdentityError, match="SPEC_TEXT_NOT_CANONICAL"):
-        a1.check_spec(body)
+    with pytest.raises(a1.IdentityError, match="LAB_SECRET_TEXT_REJECTED"):
+        a1.check_spec(seal(body))  # lab rule, applied after A1 accepted the spec
     body = spec()
     body["spec_revision"] = 1.0
     with pytest.raises(a1.IdentityError, match="SPEC_NUMERIC_AMBIGUITY"):
         a1.check_spec(body)
+
+
+def test_a1_rules_are_the_unchanged_pr374_code():
+    root = Path(a1_ref.__file__).parent
+    for name, pin in a1_ref.PROVENANCE["files"].items():
+        assert hashlib.sha256((root / name).read_bytes()).hexdigest() == pin["sha256"], name

@@ -5,9 +5,11 @@ reason when the host refuses unprivileged namespaces; the fail-closed test
 does not skip.
 """
 
+import errno
 import json
 import os
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -16,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from colony_lab import lineage
 from colony_lab import supervisor as sup
 from sentinel_activity.store import ActivityStore
 from tests.colony_lab.builders import BUDGET, archivist_spec, founder, lab_root, qualification
@@ -153,12 +156,15 @@ def test_hostile_child_is_contained(sandboxed):
     outside = supervisor.root.parent
     net = supervisor.run(aid, task("t-net", "network"))
     assert net["status"] == "COMPLETED" and net["output"]["connected"] is False
-    writes = supervisor.run(aid, task("t-write", "write", targets=[str(outside), str(home), str(ROOT), "/tmp"]))
-    assert all(v.startswith("DENIED") for v in writes["output"].values())
+    writes = supervisor.run(aid, task("t-write", "write", targets=[str(outside), str(home), str(ROOT), "/tmp", "/",
+                                                                   str(ROOT / "colony_lab"), "/dev"]))
+    refused = {f"DENIED:{code}" for code in (errno.EROFS, errno.EACCES, errno.EPERM, errno.ENOENT)}
+    assert set(writes["output"].values()) <= refused  # refused at creation, never EFBIG after it
+    assert writes["output"][str(ROOT)] == f"DENIED:{errno.EROFS}"
     assert not any(p.name == "hostile-was-here" for p in outside.rglob("hostile-was-here"))
     reads = supervisor.run(aid, task("t-read", "read", targets=[str(supervisor.root), str(home / "record.json"),
                                                                str(ROOT / ".env.example")]))
-    assert reads["output"][str(supervisor.root)] == []
+    assert reads["output"][str(supervisor.root)] == "DENIED"  # not in the sandbox root at all
     assert reads["output"][str(home / "record.json")] == "DENIED"
     assert reads["output"][str(ROOT / ".env.example")] in (0, "DENIED")
     killed = supervisor.run(aid, task("t-signal", "signal", pid=os.getpid()))
@@ -166,6 +172,66 @@ def test_hostile_child_is_contained(sandboxed):
     target = str(supervisor.root)
     unmount = supervisor.run(aid, task("t-umount", "unmount", target=target))
     assert unmount["output"]["status"] != 0
+
+
+def test_unix_sockets_outside_the_allowlist_are_unreachable(sandboxed, tmp_path):
+    supervisor, record = sandboxed()
+    with socket.socket(socket.AF_UNIX) as named, socket.socket(socket.AF_UNIX) as abstract:
+        named.bind(str(tmp_path / "host.sock"))
+        named.listen(1)
+        abstract.bind("\0colony-test-" + record["agent_id"][:16])
+        abstract.listen(1)
+        targets = [str(tmp_path / "host.sock"), "@colony-test-" + record["agent_id"][:16]]
+        result = supervisor.run(record["agent_id"], task("t-unix", "unix", targets=targets))
+    assert result["status"] == "COMPLETED"
+    assert all(value.startswith("DENIED") for value in result["output"].values())
+
+
+def test_cpu_budget_counts_every_process(sandboxed):
+    """Four children each under the per-process limit, together above the budget."""
+    budget = {**BUDGET, "cpu_seconds": 2, "wall_seconds": 30}
+    supervisor, record = sandboxed(budget=budget)
+    result = supervisor.run(record["agent_id"], task("t-fork-spin", "fork_spin", processes=4, each_cpu_ms=1500))
+    assert (result["status"], result["code"]) == ("BUDGET_EXHAUSTED", "CPU")
+
+
+def test_process_count_is_bounded(sandboxed):
+    supervisor, record = sandboxed()
+    result = supervisor.run(record["agent_id"], task("t-fork-bomb", "fork_bomb"))
+    assert result["status"] == "COMPLETED"
+    assert result["output"]["forked"] <= sup.MAX_PROCESSES - 2  # init and the child itself count
+
+
+@pytest.mark.parametrize("mode,payload", [
+    ("exit_code", {"code": sup.SANDBOX_EXIT}), ("self_signal", {"signal": int(signal.SIGKILL)}),
+    ("self_signal", {"signal": int(signal.SIGXCPU)}),
+])
+def test_child_cannot_choose_its_classification(sandboxed, mode, payload):
+    supervisor, record = sandboxed()
+    result = supervisor.run(record["agent_id"], task("t-forge", mode, **payload))
+    assert (result["status"], result["code"]) == ("INTERRUPTED", "CHILD_FAILED")
+    assert supervisor.sandbox == "VERIFIED"
+
+
+def test_tampered_descendant_is_refused_even_when_rehashed(lab):
+    supervisor, parent = lab()
+    parent_spec = supervisor.load(parent["agent_id"])[1]
+    child_spec = archivist_spec()
+    record = lineage.make_descendant(parent, parent_spec, child_spec, parent_qualification=qualification(parent),
+                                     lab_permissions=["GOVERNED_ARTIFACT_READ"], budget=dict(BUDGET),
+                                     declared_diff=lineage.spec_diff(parent_spec, child_spec))
+    supervisor.admit(record, child_spec, parent_qualification=qualification(parent))
+    home = supervisor.root / "individuals" / record["agent_id"]
+    forged = {**record, "lab_permissions": sorted(["DIAGNOSTIC_PRODUCE", "GOVERNED_ARTIFACT_READ"])}
+    forged["record_hash"] = lineage._record_hash(forged)
+    (home / "record.json").write_text(json.dumps(forged))
+    with pytest.raises(sup.LabError):
+        supervisor.load(record["agent_id"])
+    (home / "record.json").write_text(json.dumps(record))
+    assert supervisor.load(record["agent_id"])[0] == record
+    (home / "birth_qualification.json").write_text(json.dumps(qualification(parent, reviewer=parent["agent_id"])))
+    with pytest.raises(sup.LabError, match="SELF_QUALIFICATION_DENIED"):
+        supervisor.load(record["agent_id"])
 
 
 def test_untrusted_claims_change_nothing(sandboxed):
@@ -279,3 +345,24 @@ def test_supervisor_imports_nothing_from_runtime_or_exchange():
                      else [node.module or ""] if isinstance(node, ast.ImportFrom) else [])
             for name in names:
                 assert name.split(".")[0] not in banned, (path.name, name)
+
+
+def test_sandbox_init_kills_its_namespace_when_the_lifeline_closes():
+    """The lifeline alone, without the supervisor, PR_SET_PDEATHSIG or a group kill."""
+    if not HOST_NAMESPACES:
+        pytest.skip("host refuses unprivileged user/net/mount/pid namespaces; supervisor fails closed")
+    lifeline_r, lifeline_w = os.pipe()
+    report_r, report_w = os.pipe()
+    argv = ["unshare", "--user", "--map-root-user", "--mount", "--pid", "--fork", "--mount-proc",
+            sys.executable, "-I", "-S", "-B", str(sup.INIT), str(lifeline_r), str(report_w), "10",
+            str(512 << 20), str(sup.MAX_PROCESSES), "--", "/bin/sh", "-c", "sleep 1000 & sleep 1000"]
+    proc = subprocess.Popen(argv, pass_fds=(lifeline_r, report_w))
+    os.close(lifeline_r)
+    os.close(report_w)
+    time.sleep(0.5)
+    assert proc.poll() is None
+    os.close(lifeline_w)
+    assert proc.wait(10) == 0
+    with os.fdopen(report_r, "rb") as handle:
+        status = json.loads(handle.read())
+    assert status["reason"] == "LIFELINE_CLOSED" and status["signal"] == signal.SIGKILL
