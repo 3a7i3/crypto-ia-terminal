@@ -35,6 +35,7 @@ LAB_GRANTABLE = F2
 RECORD_FIELDS = frozenset({"individual_schema", "agent_id", "agent_spec_id", "spec_artifact_hash", "role",
                            "lineage", "genotype", "lab_permissions", "budget", "memory", "credentials",
                            "registry", "operational_authority", "record_hash"})
+_REVIEWER_ID = re.compile(r"[a-z][a-z0-9_.:-]{2,127}")
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 # Fields whose change is a consequence of being another individual, not a mutation.
 _DERIVED = frozenset({"agent_id", "canonical_name", "display_name", "spec_revision", "supersedes_spec_id"})
@@ -109,8 +110,15 @@ def make_founder(spec: dict, *, lab_permissions: Any, budget: Any) -> dict:
     })
 
 
-def check_qualification(qualification: Any, record: dict) -> None:
-    """A descendant may only be born from a parent qualified by someone else."""
+def check_qualification(qualification: Any, record: dict, *, also_excluded: frozenset[str] = frozenset()) -> None:
+    """A descendant may only be born from a parent qualified by someone else.
+
+    The reviewer id must be a plain lowercase name that does not contain (even
+    as a 16-character prefix) the id of the individual, its founder, its parent
+    or ``also_excluded`` (the child being born). This record is not
+    authenticated: whoever can write the lab root can write one, so it is a
+    declaration checked for shape and self-reference, not a proof of review.
+    """
     fields = {"qualification_schema", "agent_id", "agent_spec_id", "state", "scope", "criteria_sha256",
               "evidence_sha256", "reviewer_kind", "reviewer_id"}
     if type(qualification) is not dict or set(qualification) != fields or \
@@ -126,16 +134,20 @@ def check_qualification(qualification: Any, record: dict) -> None:
         if type(qualification[name]) is not str or not _HEX64.fullmatch(qualification[name]):
             raise LineageError("QUALIFICATION_INVALID")
     reviewer = qualification["reviewer_id"]
-    if qualification["reviewer_kind"] not in REVIEWER_KINDS or type(reviewer) is not str or not reviewer or \
-            reviewer in {record["agent_id"], record["lineage"]["founder_agent_id"]}:
+    if qualification["reviewer_kind"] not in REVIEWER_KINDS or type(reviewer) is not str or \
+            not _REVIEWER_ID.fullmatch(reviewer):
+        raise LineageError("SELF_QUALIFICATION_DENIED")
+    lineage = record["lineage"]
+    excluded = {record["agent_id"], lineage["founder_agent_id"], lineage["parent_agent_id"], *also_excluded}
+    if any(type(agent) is str and agent[:16] in reviewer for agent in excluded):
         raise LineageError("SELF_QUALIFICATION_DENIED")
 
 
 def make_descendant(parent: dict, parent_spec: dict, child_spec: dict, *, parent_qualification: Any,
                     lab_permissions: Any, budget: Any, declared_diff: Any) -> dict:
     verify_record(parent, parent_spec)
-    check_qualification(parent_qualification, parent)
     ids = _spec(child_spec)
+    check_qualification(parent_qualification, parent, also_excluded=frozenset({ids["agent_id"]}))
     if ids["agent_id"] == parent["agent_id"]:
         raise LineageError("SAME_IDENTITY_AS_PARENT")
     if declared_diff != spec_diff(parent_spec, child_spec):

@@ -82,12 +82,12 @@ verified historical prefix; it never receives global completeness authority.
 The snapshot API is diagnostic and bounded to 10,000 events. Projections have a
 separate 4 MiB bound. Recorded events <=32 KiB, candidate <=24 KiB, payload <=16 KiB.
 A fixture producer may append <=5,000 events (configurable downward). There is no
-producer timer/rate service. SQLite waits at most 2 s per lock acquisition on contention. Append preparation
-uses a read transaction and is retried at most eight times if another connection
-commits before the write phase; no total wall-time bound is implied. Full replay
-still costs O(N) per operation. See J02_PLAN.md for the unqualified performance
-boundary. File-size
-admission uses a conservative reserve against <=128 MiB total DB/sidecars; this
+producer timer/rate service. SQLite waits at most 2 s per lock acquisition on
+contention. Append preparation uses a read transaction and is retried if another
+connection commits before the write phase; the eighth and last attempt verifies
+under the writer lock, so a writer cannot be starved by optimistic retries. No
+total wall-time bound is implied. Full replay still costs O(N) per operation;
+measured latencies are in J02_CAPACITY_REPORT.md. File-size admission uses a conservative reserve against <=128 MiB total DB/sidecars; this
 is not an OS hard quota or protection from another process growing the files.
 At quota or I/O error, refuse admission; do not delete historical data.
 
