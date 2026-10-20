@@ -70,6 +70,16 @@ def _unix_refused(address: str) -> bool:
     return False
 
 
+def _repo_files(repo: str) -> list[str]:
+    """Every file of the repository visible here, relative and sorted; bytecode caches are skipped
+    (the child never reads them)."""
+    names = []
+    for directory, subdirs, files in os.walk(repo):
+        subdirs[:] = [name for name in subdirs if name != "__pycache__"]
+        names += [os.path.relpath(os.path.join(directory, name), repo) for name in files]
+    return sorted(names)
+
+
 def run(payload: dict) -> dict:
     def network_refused() -> bool:
         try:
@@ -89,4 +99,5 @@ def run(payload: dict) -> dict:
         "capabilities_dropped": all(int(value, 16) == 0 for value in caps.values()) and len(caps) == 5,
         "environment_empty": set(os.environ) <= {"LC_CTYPE"},  # PEP 538 coercion only
         "root_entries": sorted(os.listdir("/")),
+        "repo_files": _repo_files(payload["repo"]),
     }

@@ -8,10 +8,15 @@ Sandbox (Linux, unprivileged), all of it required or the run is refused:
 * user, network, mount and pid namespaces (``unshare``): no network interface,
   no visible outside process;
 * a new read-only root (``pivot_root``) holding only an allowlist bound
-  read-only: ``/usr``, the interpreter's prefixes, the repository and the host
+  read-only: ``/usr``, the interpreter's prefixes and the host
   ``bin``/``lib``/``sbin`` links, plus ``/dev/{null,zero,random,urandom}`` and a
-  fresh ``/proc``; the repository's ``.git`` and ``.env*`` hidden under empty
-  mounts. The old root is detached, so the lab root, ``/tmp``, the home
+  fresh ``/proc``. Of the repository, only the regular files of the task
+  type's ``repo_view`` (for Sentinel: the files the subject hash covers) and
+  the lab's child and init are bound, one file each, so no link, bytecode
+  cache or other repository file is importable or readable; a task type
+  without a view (lab tests only) sees the repository with ``.git``, ``.env*``
+  and ``docs/colony_lab`` (criteria, golden answers, evidence) hidden under
+  empty mounts. The old root is detached, so the lab root, ``/tmp``, the home
   directory and every UNIX socket outside the allowlist are absent;
 * every capability dropped and ``no_new_privs`` set (``setpriv``), so the
   child cannot undo those mounts; empty environment;
@@ -22,8 +27,8 @@ Sandbox (Linux, unprivileged), all of it required or the run is refused:
 * outcome classification from the init's own status pipe, never from an exit
   code the child could choose.
 
-Not proven by this module: files inside the allowlist (repository, interpreter)
-stay readable; the child runs under the operator's UNIX account; memory is
+Not proven by this module: files inside the allowlist (the view, the interpreter
+and its standard library) stay readable; the child runs under the operator's UNIX account; memory is
 bounded per process (``MAX_PROCESSES`` x address space), not by a cgroup.
 """
 
@@ -56,6 +61,9 @@ from sentinel_activity.store import ActivityStore, Limits
 
 REPO = Path(__file__).resolve().parents[1]
 CHILD = REPO / "colony_lab" / "child.py"
+# Bytecode is never read from the repository's __pycache__: Python looks for it only under this prefix,
+# which does not exist in the sandbox root, so every module runs from its (hashed) source.
+NO_BYTECODE = ("-X", "pycache_prefix=/colony-no-bytecode")
 LAB_PREFIX = "colony-lab-"
 TASK_SCHEMA = "colony-lab.task/0"
 RESULT_SCHEMA = "colony-lab.result/0"
@@ -72,7 +80,8 @@ _HEX64 = re.compile(r"[0-9a-f]{64}")
 _TASK_ID = re.compile(r"[a-z0-9][a-z0-9_.-]{0,63}")
 _MISSION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}")
 # Runs as the namespace's first process: builds the allowlisted read-only root, then execs the
-# init. Directives: b:PATH bind read-only, l:PATH:TARGET symlink, d:PATH / f:PATH hide.
+# init. Directives: b:PATH bind a directory read-only, F:PATH bind a file read-only, l:PATH:TARGET
+# symlink, d:PATH / f:PATH hide.
 _SANDBOX_SCRIPT = r"""
 set -u
 R=$1; shift
@@ -87,6 +96,9 @@ while [ $# -gt 0 ]; do
     --) break ;;
     b:*) path=${item#b:}
          mkdir -p "$R$path" && mount --bind "$path" "$R$path" &&
+           mount -o remount,bind,ro,nosuid,nodev "$R$path" || exit 97 ;;
+    F:*) path=${item#F:}
+         mkdir -p "$R${path%/*}" && : > "$R$path" && mount --bind "$path" "$R$path" &&
            mount -o remount,bind,ro,nosuid,nodev "$R$path" || exit 97 ;;
     l:*) rest=${item#l:}; ln -s "${rest#*:}" "$R${rest%%:*}" || exit 97 ;;
     d:*) mount -t tmpfs -o ro,size=4k,nosuid,nodev,noexec colony-hidden "$R${item#d:}" || exit 97 ;;
@@ -107,10 +119,21 @@ exit 97
 class TaskType:
     capability: str
     module: str
+    # Repository paths (relative) the child may see; None = the whole repository (lab tests only).
+    repo_view: tuple[str, ...] | None = None
 
 
-TASKS = {"SENTINEL_ASK": TaskType("DIAGNOSTIC_PRODUCE", "colony_lab.workers.sentinel")}
-_PROBE = TaskType("NONE", "colony_lab.workers.probe")
+# The lab's own files every child needs: its launcher and the namespace init.
+LAB_FILES = ("colony_lab/child.py", "colony_lab/sandbox_init.py")
+# Sentinel's code: every repository file its worker loads (test-checked against its imports). The
+# qualification hashes the regular files of this view and the sandbox binds exactly those; a link or
+# a stray entry in a bytecode cache makes the campaign FAILED (CODE_NOT_REGULAR).
+SENTINEL_VIEW = ("colony_lab/__init__.py", "colony_lab/workers/__init__.py", "colony_lab/workers/sentinel.py",
+                 "governance_tower", "observability/__init__.py", "observability/event_center_contract.py",
+                 "observability/runtime_service_contract.py", "observability/storage_contract.py")
+TASKS = {"SENTINEL_ASK": TaskType("DIAGNOSTIC_PRODUCE", "colony_lab.workers.sentinel", SENTINEL_VIEW)}
+_PROBE_FILES = ("colony_lab/__init__.py", "colony_lab/workers/__init__.py", "colony_lab/workers/probe.py")
+_PROBE = TaskType("NONE", "colony_lab.workers.probe", _PROBE_FILES)
 
 
 class LabError(ValueError):
@@ -130,6 +153,49 @@ def _lab_root(path: Any) -> Path:
     if not os.path.isdir(root) or os.path.islink(root) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
         raise LabError("LAB_ROOT_DENIED")
     return root
+
+
+_CACHED_BYTECODE = re.compile(r"[^/]+\.pyc")
+
+
+def walk_code(paths: tuple[str, ...]) -> tuple[list[str], list[str]]:
+    """(regular files, irregular entries) under repository paths, relative and sorted, never following
+    a link. Irregular: any symbolic link or non-regular file, and anything in a ``__pycache__`` other
+    than a regular ``*.pyc`` directly in it (bytecode the sandbox never reads and never binds)."""
+    regular, irregular = set(), set()
+    for name in paths:
+        top = REPO / name
+        if top.is_symlink() or (top.exists() and not (top.is_dir() or top.is_file())):
+            irregular.add(name)
+            continue
+        if top.is_file():
+            regular.add(name)
+            continue
+        for directory, subdirs, files in os.walk(top, followlinks=False):
+            rel = Path(directory).relative_to(REPO)
+            in_cache = "__pycache__" in rel.parts
+            for sub in subdirs:
+                if (Path(directory) / sub).is_symlink() or in_cache:
+                    irregular.add(str(rel / sub))
+            for file in files:
+                path = Path(directory) / file
+                if path.is_symlink() or not path.is_file():
+                    irregular.add(str(rel / file))
+                elif in_cache:
+                    if rel.name != "__pycache__" or not _CACHED_BYTECODE.fullmatch(file):
+                        irregular.add(str(rel / file))
+                else:
+                    regular.add(str(rel / file))
+            subdirs[:] = [sub for sub in subdirs if not (Path(directory) / sub).is_symlink()]
+    return sorted(regular), sorted(irregular)
+
+
+def view_files(view: tuple[str, ...] | None) -> list[str]:
+    """Repository files (relative, sorted) a view exposes: the regular files of its paths and the lab's
+    launcher and init. Only these are bound, one by one; links and bytecode caches never are."""
+    if view is None:
+        return []
+    return sorted(set(walk_code((*LAB_FILES, *view))[0]))
 
 
 def _write_new(path: Path, data: bytes) -> None:
@@ -266,7 +332,7 @@ class Supervisor:
         if self._tools is None:
             self.sandbox = "UNAVAILABLE"
             return self.sandbox
-        layout = self._layout()
+        layout = self._layout(_PROBE.repo_view)
         budget = {"cpu_seconds": 10, "wall_seconds": 30, "memory_bytes": 512 << 20, "output_bytes": 16_384}
         with tempfile.TemporaryDirectory(prefix="colony-probe-") as outside, \
                 socket.socket(socket.AF_UNIX) as named, socket.socket(socket.AF_UNIX) as abstract:
@@ -281,23 +347,39 @@ class Supervisor:
                                          str(self.root.parent), sys.prefix, outside}),
                 "existing_files": [str(CHILD), str(INIT)],
                 "unix_sockets": [os.path.join(outside, "probe.sock"), "@" + abstract_name],
+                "repo": str(REPO),
             }
             status, output, _ = self._spawn(_PROBE, {"task_id": "probe", "payload": payload}, budget)
         allowed = {"dev", "proc"} | {Path(item[2:].split(":")[0]).parts[1] for item in layout
-                                     if item[:2] in ("b:", "l:")}
+                                     if item[:2] in ("b:", "F:", "l:")}
         checks = ("network_denied", "unix_sockets_denied", "writes_denied", "existing_files_read_only",
                   "hidden_empty", "capabilities_dropped", "environment_empty")
-        verified = status == "EXITED_0" and type(output) is dict and set(output) == {*checks, "root_entries"} \
+        verified = status == "EXITED_0" and type(output) is dict \
+            and set(output) == {*checks, "root_entries", "repo_files"} \
             and all(output[name] is True for name in checks) \
-            and type(output["root_entries"]) is list and set(output["root_entries"]) <= allowed
+            and type(output["root_entries"]) is list and set(output["root_entries"]) <= allowed \
+            and output["repo_files"] == view_files(_PROBE.repo_view)
         self.sandbox = "VERIFIED" if verified else "UNAVAILABLE"
         return self.sandbox
 
-    def _layout(self) -> list[str]:
+    def observe_view(self, task_name: str) -> list[str] | None:
+        """Every repository file a child of this task type can see, listed from inside the sandbox by
+        the probe (bound beside the view); None when the sandbox could not run."""
+        view = self.tasks[task_name].repo_view
+        probe = TaskType("NONE", _PROBE.module, None if view is None else tuple(dict.fromkeys(view + _PROBE_FILES)))
+        budget = {"cpu_seconds": 10, "wall_seconds": 30, "memory_bytes": 512 << 20, "output_bytes": 1 << 20}
+        payload = {"hidden": [], "write_targets": [], "existing_files": [], "unix_sockets": [], "repo": str(REPO)}
+        status, output, _ = self._spawn(probe, {"task_id": "probe", "payload": payload}, budget)
+        if status != "EXITED_0" or type(output) is not dict or type(output.get("repo_files")) is not list:
+            return None
+        return [name for name in output["repo_files"] if name not in _PROBE_FILES or name in (view or ())]
+
+    def _layout(self, view: tuple[str, ...] | None) -> list[str]:
         """Root directives: what the child sees (read-only binds and links) and what is hidden in it."""
-        sources = {Path("/usr"), REPO, *(Path(p).resolve() for p in {sys.prefix, sys.base_prefix,
+        sources = {Path("/usr"), *(Path(p).resolve() for p in {sys.prefix, sys.base_prefix,
                                                                       sys.exec_prefix, sys.base_exec_prefix})}
-        sources.add(Path(os.path.realpath(self.python)).parent)
+        # The interpreter as invoked (a venv's bin under -S, whose prefixes are then the base's) and as resolved.
+        sources |= {Path(os.path.abspath(self.python)).parent, Path(os.path.realpath(self.python)).parent}
         layout: list[str] = []
         for name in ("bin", "sbin", "lib", "lib32", "lib64", "libx32"):
             host = Path("/") / name
@@ -305,12 +387,18 @@ class Supervisor:
                 layout.append(f"l:{host}:{os.readlink(host)}")
             elif host.is_dir():
                 sources.add(host)
+        if view is None:
+            sources.add(REPO)
         binds: list[Path] = []
         for path in sorted(sources, key=lambda p: (len(p.parts), str(p))):
             if path.is_dir() and path != Path("/") and not any(path.is_relative_to(b) for b in binds):
                 binds.append(path)
         layout += ["b:" + str(path) for path in binds]
-        hidden = [REPO / ".git", *sorted(REPO.glob(".env*"))]
+        if view is not None:  # regular files only, one bind each: no link or directory can bring more
+            layout += ["F:" + str(REPO / name) for name in view_files(view)
+                       if not any((REPO / name).is_relative_to(b) for b in binds)]
+        # The qualification criteria, golden answers and evidence are the evaluator's, never the individual's.
+        hidden = [] if view is not None else [REPO / ".git", *sorted(REPO.glob(".env*")), REPO / "docs" / "colony_lab"]
         if any(self.root.is_relative_to(b) for b in binds):
             hidden.append(self.root)
         for path in hidden:
@@ -520,12 +608,13 @@ class Supervisor:
         lifeline_r, lifeline_w = os.pipe2(os.O_CLOEXEC)
         report_r, report_w = os.pipe2(os.O_CLOEXEC)
         child = [tools["setpriv"], "--no-new-privs", "--inh-caps=-all", "--ambient-caps=-all",
-                 "--bounding-set=-all", tools["env"], "-i", self.python, "-I", "-B", str(CHILD), task_type.module]
-        init = [self.python, "-I", "-S", "-B", str(INIT), str(lifeline_r), str(report_w),
+                 "--bounding-set=-all", tools["env"], "-i", self.python, "-I", "-S", "-B", *NO_BYTECODE, str(CHILD),
+                 task_type.module]
+        init = [self.python, "-I", "-S", "-B", *NO_BYTECODE, str(INIT), str(lifeline_r), str(report_w),
                 str(budget["cpu_seconds"]), str(budget["memory_bytes"]), str(MAX_PROCESSES), "--", *child]
         argv = [tools["unshare"], "--user", "--map-root-user", "--net", "--mount", "--pid", "--fork",
                 "--kill-child=SIGKILL", "--propagation", "private", "/bin/sh", "-c", _SANDBOX_SCRIPT,
-                "colony-sandbox", str(self.root), *self._layout(), "--", *init]
+                "colony-sandbox", str(self.root), *self._layout(task_type.repo_view), "--", *init]
 
         def die_with_supervisor() -> None:
             # Second layer behind the lifeline: the sandbox also dies with the supervisor process.

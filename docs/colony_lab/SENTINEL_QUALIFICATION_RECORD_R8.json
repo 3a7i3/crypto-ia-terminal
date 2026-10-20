@@ -1,0 +1,13 @@
+{
+ "agent_id": "4279e165b2706c088840d1cdc4ebe3efa76c2ea220bc948a8336c4343eb23173",
+ "agent_spec_id": "b74ab69619acdb3747edd64affbc6d5ae3c99f32249c49bf4288e5786836d4ed",
+ "criteria_sha256": "22528f1629db5d565f54137e11e99f670c68152eb3127cbafabe5f1072ca990a",
+ "evaluator_code_sha256": "41b78971184809652dd1190dded49ab27d58c35c8a995351a47bf0f85756faa4",
+ "evidence_sha256": "bc2f37df6bf7ab8138d326862906431154c07b298fb4b482db4fc6a0910f71cf",
+ "qualification_schema": "colony-lab.qualification/0",
+ "reviewer_id": "colony-review-481-r8",
+ "reviewer_kind": "EXTERNAL_REVIEW_PROCESS",
+ "scope": "SIMULATED_DETERMINISTIC",
+ "state": "QUALIFIED_SIMULATED",
+ "subject_code_sha256": "2c926421416731dc629915067bcea472729e6785ec8dcb6e28f15ae7b41e4ec8"
+}

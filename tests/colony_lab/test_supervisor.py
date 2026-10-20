@@ -10,6 +10,7 @@ import json
 import os
 import signal
 import socket
+import shutil
 import subprocess
 import sys
 import threading
@@ -25,8 +26,10 @@ from tests.colony_lab.builders import BUDGET, archivist_spec, founder, lab_root,
 
 ROOT = Path(__file__).resolve().parents[2]
 MISSION = "fixture-colony-mission"
+HOSTILE_VIEW = ("tests/__init__.py", "tests/colony_lab/__init__.py", "tests/colony_lab/hostile.py")
 TASKS = {**sup.TASKS, "HOSTILE": sup.TaskType("DIAGNOSTIC_PRODUCE", "tests.colony_lab.hostile"),
-         "ARCHIVE": sup.TaskType("GOVERNED_ARTIFACT_READ", "tests.colony_lab.hostile")}
+         "ARCHIVE": sup.TaskType("GOVERNED_ARTIFACT_READ", "tests.colony_lab.hostile"),
+         "VIEWED": sup.TaskType("DIAGNOSTIC_PRODUCE", "tests.colony_lab.hostile", HOSTILE_VIEW)}
 
 
 def task(task_id, mode=None, task_type="HOSTILE", mission=MISSION, **payload):
@@ -163,10 +166,15 @@ def test_hostile_child_is_contained(sandboxed):
     assert writes["output"][str(ROOT)] == f"DENIED:{errno.EROFS}"
     assert not any(p.name == "hostile-was-here" for p in outside.rglob("hostile-was-here"))
     reads = supervisor.run(aid, task("t-read", "read", targets=[str(supervisor.root), str(home / "record.json"),
-                                                               str(ROOT / ".env.example")]))
+                                                               str(ROOT / ".env.example"),
+                                                               str(ROOT / "docs" / "colony_lab"),
+                                                               str(ROOT / "docs" / "colony_lab" /
+                                                                   "SENTINEL_GOLDEN_ANSWERS_R4.json")]))
     assert reads["output"][str(supervisor.root)] == "DENIED"  # not in the sandbox root at all
     assert reads["output"][str(home / "record.json")] == "DENIED"
     assert reads["output"][str(ROOT / ".env.example")] in (0, "DENIED")
+    assert reads["output"][str(ROOT / "docs" / "colony_lab")] == []  # criteria and golden answers hidden
+    assert reads["output"][str(ROOT / "docs" / "colony_lab" / "SENTINEL_GOLDEN_ANSWERS_R4.json")] == "DENIED"
     killed = supervisor.run(aid, task("t-signal", "signal", pid=os.getpid()))
     assert killed["output"]["killed"] is False
     target = str(supervisor.root)
@@ -193,6 +201,119 @@ def test_cpu_budget_counts_every_process(sandboxed):
     supervisor, record = sandboxed(budget=budget)
     result = supervisor.run(record["agent_id"], task("t-fork-spin", "fork_spin", processes=4, each_cpu_ms=1500))
     assert (result["status"], result["code"]) == ("BUDGET_EXHAUSTED", "CPU")
+
+
+def test_cpu_budget_counts_live_processes(sandboxed):
+    """Nothing is reaped: the CPU is only visible in /proc, and the budget still applies."""
+    budget = {**BUDGET, "cpu_seconds": 2, "wall_seconds": 30}
+    supervisor, record = sandboxed(budget=budget)
+    result = supervisor.run(record["agent_id"], task("t-hold-spin", "hold_spin", processes=4, each_cpu_ms=1500))
+    assert (result["status"], result["code"]) == ("BUDGET_EXHAUSTED", "CPU")
+
+
+def _forge_pyc(source: Path, text: str) -> Path:
+    """A .pyc of other code, stamped with the source's mtime and size, where CPython would look for it."""
+    import importlib.util
+    from importlib import _bootstrap_external
+
+    stat = source.stat()
+    target = Path(importlib.util.cache_from_source(str(source)))
+    target.parent.mkdir(exist_ok=True)
+    code = compile(text, str(source), "exec")
+    target.write_bytes(_bootstrap_external._code_to_timestamp_pyc(code, int(stat.st_mtime), stat.st_size))
+    return target
+
+
+def test_sandbox_runs_sources_never_cached_bytecode(sandboxed):
+    """A forged .pyc stamped like the source runs under plain Python, never inside the sandbox."""
+    supervisor, record = sandboxed()
+    source = ROOT / "tests" / "colony_lab" / "bytecode_probe.py"
+    forged = _forge_pyc(source, 'VALUE = "forged"\n')
+    try:
+        outside = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); "
+                                  "from tests.colony_lab import bytecode_probe as b; print(b.VALUE)", str(ROOT)],
+                                 capture_output=True, text=True, timeout=60, check=True)
+        assert outside.stdout.strip() == "forged"  # the forgery is real
+        result = supervisor.run(record["agent_id"], task("t-bytecode", "bytecode"))
+        assert result["status"] == "COMPLETED" and result["output"] == {"value": "source"}
+    finally:
+        forged.unlink()
+
+
+def test_repository_comes_after_the_standard_library_on_the_path(sandboxed):
+    supervisor, record = sandboxed()
+    result = supervisor.run(record["agent_id"], task("t-path", "sys_path"))
+    path = result["output"]["path"]
+    assert path[-1] == str(ROOT) and path.count(str(ROOT)) == 1
+    assert str(ROOT / "colony_lab") not in path  # -I: the launcher's own directory is not on the path
+    assert not any("site-packages" in entry or "dist-packages" in entry for entry in path)  # -S: no .pth runs
+
+
+def test_viewed_child_sees_only_its_view_of_the_repository(sandboxed, tmp_path):
+    """A planted top-level package (org/, as copy.py probes org.python.core) is outside every view: it
+    can be neither imported nor read, tracked or not, nested repository or not."""
+    supervisor, record = sandboxed()
+    planted = ROOT / "org-colony-planted"
+    planted.mkdir()
+    try:
+        (planted / "__init__.py").write_text("raise SystemExit(3)\n")
+        names = ["org-colony-planted", "sentinel_activity", "colony_lab.supervisor", "tests.colony_lab.hostile",
+                 "governance_tower"]
+        found = supervisor.run(record["agent_id"], task("t-find", "find_modules", task_type="VIEWED", names=names))
+        assert found["status"] == "COMPLETED"
+        assert found["output"] == {"org-colony-planted": False, "sentinel_activity": False,
+                                   "colony_lab.supervisor": False, "tests.colony_lab.hostile": True,
+                                   "governance_tower": False}
+        read = supervisor.run(record["agent_id"], task("t-read-view", "read", task_type="VIEWED",
+                                                       targets=[str(ROOT), str(planted / "__init__.py")]))
+        assert read["output"] == {str(ROOT): ["colony_lab", "tests"], str(planted / "__init__.py"): "DENIED"}
+    finally:
+        shutil.rmtree(planted)
+
+
+def test_sentinel_view_observed_in_the_sandbox_is_exactly_the_subject(sandboxed):
+    supervisor, _ = sandboxed()
+    observed = supervisor.observe_view("SENTINEL_ASK")
+    assert observed == sup.view_files(sup.SENTINEL_VIEW)
+    assert {name.split("/")[0] for name in observed} == {"colony_lab", "governance_tower", "observability"}
+    assert "colony_lab/supervisor.py" not in observed and "colony_lab/qualification.py" not in observed
+    assert "colony_lab/workers/probe.py" not in observed and "colony_lab/child.py" in observed
+    assert "governance_tower/sentinel/policy.py" in observed
+
+
+def test_observe_view_really_lists_from_inside_the_sandbox(sandboxed):
+    """A view-less task sees the repository with its hidden parts empty: the list comes from the probe,
+    not from the supervisor's own idea of the view."""
+    supervisor, _ = sandboxed()
+    observed = supervisor.observe_view("HOSTILE")
+    assert "colony_lab/supervisor.py" in observed and "tests/colony_lab/hostile.py" in observed
+    assert not any(name.startswith((".git/", "docs/colony_lab/")) for name in observed)
+    assert len(observed) > len(sup.view_files(sup.SENTINEL_VIEW))
+
+
+def _probe_output(**changes):
+    output = {name: True for name in ("network_denied", "unix_sockets_denied", "writes_denied",
+                                      "existing_files_read_only", "hidden_empty", "capabilities_dropped",
+                                      "environment_empty")}
+    output.update(root_entries=["dev", "proc"], repo_files=sup.view_files(sup._PROBE.repo_view))
+    output.update(changes)
+    return {key: value for key, value in output.items() if value is not None}
+
+
+@pytest.mark.parametrize("changes,verdict", [
+    ({}, "VERIFIED"),
+    ({"repo_files": None}, "UNAVAILABLE"),
+    ({"repo_files": sup.view_files(sup._PROBE.repo_view) + ["colony_lab/supervisor.py"]}, "UNAVAILABLE"),
+    ({"repo_files": []}, "UNAVAILABLE"),
+    ({"writes_denied": False}, "UNAVAILABLE"),
+])
+def test_verify_sandbox_requires_the_probe_to_see_exactly_its_view(lab, monkeypatch, changes, verdict):
+    supervisor, _ = lab()
+    if supervisor._tools is None:
+        pytest.skip("sandbox tools absent: the supervisor fails closed before the probe")
+    monkeypatch.setattr(sup.Supervisor, "_spawn", lambda self, task_type, task, budget: (
+        "EXITED_0", _probe_output(**changes), 0.0))
+    assert supervisor.verify_sandbox() == verdict
 
 
 def test_process_count_is_bounded(sandboxed):

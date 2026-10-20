@@ -81,6 +81,32 @@ def run(payload):
                 os.wait()
             except ChildProcessError:
                 return {"done": True}
+    if mode == "hold_spin":  # same, but every process stays alive: only the live /proc sum sees the CPU
+        for _ in range(payload["processes"]):
+            if os.fork() == 0:
+                deadline = time.process_time() + payload["each_cpu_ms"] / 1000
+                while time.process_time() < deadline:
+                    pass
+                while True:
+                    time.sleep(60)
+        while True:
+            time.sleep(60)
+    if mode == "bytecode":
+        from tests.colony_lab import bytecode_probe
+
+        return {"value": bytecode_probe.VALUE}
+    if mode == "sys_path":
+        return {"path": list(sys.path)}
+    if mode == "find_modules":
+        import importlib.util
+
+        found = {}
+        for name in payload["names"]:
+            try:
+                found[name] = importlib.util.find_spec(name) is not None
+            except (ImportError, ValueError):
+                found[name] = False
+        return found
     if mode == "fork_bomb":
         forked = 0
         for _ in range(64):

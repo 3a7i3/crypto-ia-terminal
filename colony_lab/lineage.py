@@ -118,9 +118,11 @@ def check_qualification(qualification: Any, record: dict, *, also_excluded: froz
     or ``also_excluded`` (the child being born). This record is not
     authenticated: whoever can write the lab root can write one, so it is a
     declaration checked for shape and self-reference, not a proof of review.
+    Its code and evidence hashes are checked for shape only: they are not
+    recomputed against the current code or the evidence when a child is born.
     """
     fields = {"qualification_schema", "agent_id", "agent_spec_id", "state", "scope", "criteria_sha256",
-              "evidence_sha256", "reviewer_kind", "reviewer_id"}
+              "evidence_sha256", "subject_code_sha256", "evaluator_code_sha256", "reviewer_kind", "reviewer_id"}
     if type(qualification) is not dict or set(qualification) != fields or \
             qualification["qualification_schema"] != QUALIFICATION_SCHEMA:
         raise LineageError("QUALIFICATION_INVALID")
@@ -130,7 +132,7 @@ def check_qualification(qualification: Any, record: dict, *, also_excluded: froz
     if qualification["state"] not in QUALIFICATION_STATES or qualification["state"] != "QUALIFIED_SIMULATED" \
             or qualification["scope"] != "SIMULATED_DETERMINISTIC":
         raise LineageError("PARENT_NOT_QUALIFIED")
-    for name in ("criteria_sha256", "evidence_sha256"):
+    for name in ("criteria_sha256", "evidence_sha256", "subject_code_sha256", "evaluator_code_sha256"):
         if type(qualification[name]) is not str or not _HEX64.fullmatch(qualification[name]):
             raise LineageError("QUALIFICATION_INVALID")
     reviewer = qualification["reviewer_id"]

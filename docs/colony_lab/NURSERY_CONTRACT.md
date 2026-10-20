@@ -60,7 +60,9 @@ the run claimed (`inflight.json`) then charged (a crash at any point never refun
   unreachable (they belong to the host network namespace);
 - a **new root** (`pivot_root`) holding only an allowlist bound read-only: `/usr`, the interpreter's
   prefixes, the repository, the host `bin`/`lib`/`sbin` links, `/dev/{null,zero,random,urandom}` and a
-  fresh `/proc`; the repository's `.git` and `.env*` hidden under empty mounts. The old root is
+  fresh `/proc`; the repository's `.git`, `.env*` and `docs/colony_lab` (criteria, golden answers,
+  evidence) hidden under empty mounts. Child and init run every module from source (`-X
+  pycache_prefix` outside the root) with the repository last on `sys.path`. The old root is
   detached, so the lab root, `/tmp`, the home directory and every UNIX socket path outside the
   allowlist are absent; the new root itself is read-only (creation fails with `EROFS`);
 - all capabilities dropped, `no_new_privs`, empty environment, so the child cannot undo the mounts;
@@ -71,7 +73,8 @@ the run claimed (`inflight.json`) then charged (a crash at any point never refun
   supervisor death) makes the init kill every process. `PR_SET_PDEATHSIG` and `--kill-child` stay as
   second layers;
 - the outcome is classified from the init's own status pipe (CPU total, signal, setup failure). The
-  child cannot write it, signal the init or trace it, so it cannot claim `CPU_EXCEEDED` or a sandbox
+  child cannot write it or trace the init, and a signal it sends to the init has no effect (the
+  kernel ignores signals without a handler sent to a namespace init from inside), so it cannot claim `CPU_EXCEEDED` or a sandbox
   failure by choosing an exit code or a signal (`CHILD_FAILED` then). Its only self-reported outcome
   is `MEMORY_EXCEEDED` (exit 70 on `MemoryError`), which can only cost the individual itself.
 
