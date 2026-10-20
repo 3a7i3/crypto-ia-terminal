@@ -57,7 +57,8 @@ def qualification(record, state="QUALIFIED_SIMULATED", reviewer="fixture-indepen
                   kind="EXTERNAL_REVIEW_PROCESS"):
     return {"qualification_schema": lineage.QUALIFICATION_SCHEMA, "agent_id": record["agent_id"],
             "agent_spec_id": record["agent_spec_id"], "state": state, "scope": "SIMULATED_DETERMINISTIC",
-            "criteria_sha256": "1" * 64, "evidence_sha256": "2" * 64, "subject_code_sha256": "3" * 64, "reviewer_kind": kind,
+            "criteria_sha256": "1" * 64, "evidence_sha256": "2" * 64, "subject_code_sha256": "3" * 64,
+            "evaluator_code_sha256": "4" * 64, "reviewer_kind": kind,
             "reviewer_id": reviewer}
 
 

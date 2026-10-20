@@ -10,8 +10,8 @@ Sandbox (Linux, unprivileged), all of it required or the run is refused:
 * a new read-only root (``pivot_root``) holding only an allowlist bound
   read-only: ``/usr``, the interpreter's prefixes, the repository and the host
   ``bin``/``lib``/``sbin`` links, plus ``/dev/{null,zero,random,urandom}`` and a
-  fresh ``/proc``; the repository's ``.git`` and ``.env*`` hidden under empty
-  mounts. The old root is detached, so the lab root, ``/tmp``, the home
+  fresh ``/proc``; the repository's ``.git``, ``.env*`` and ``docs/colony_lab``
+  (criteria, golden answers, evidence) hidden under empty mounts. The old root is detached, so the lab root, ``/tmp``, the home
   directory and every UNIX socket outside the allowlist are absent;
 * every capability dropped and ``no_new_privs`` set (``setpriv``), so the
   child cannot undo those mounts; empty environment;
@@ -310,7 +310,8 @@ class Supervisor:
             if path.is_dir() and path != Path("/") and not any(path.is_relative_to(b) for b in binds):
                 binds.append(path)
         layout += ["b:" + str(path) for path in binds]
-        hidden = [REPO / ".git", *sorted(REPO.glob(".env*"))]
+        # The qualification criteria, golden answers and evidence are the evaluator's, never the individual's.
+        hidden = [REPO / ".git", *sorted(REPO.glob(".env*")), REPO / "docs" / "colony_lab"]
         if any(self.root.is_relative_to(b) for b in binds):
             hidden.append(self.root)
         for path in hidden:

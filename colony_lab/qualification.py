@@ -38,15 +38,23 @@ CRITERIA = {
            "e342e2145350e6e3d089ceb0073320b739537bc50c88a72a48194f5445f1e165"),
     "r2": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R2.json", "6985211aebb6c33d8fc9119611ee36f31a54d47b3476082565a2501aded0f1b6"),
     "r3": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R3.json", "674c3226ba22e006345dc7c65821a33eeb7797d0116176e7c6edd862668bb1d8"),
+    "r4": (DOCS / "SENTINEL_QUALIFICATION_CRITERIA_R4.json", "7127887574e5624f107ee46aeeac9cda1de0258c71737ae338feb92512ae270f"),
 }
-CURRENT = "r3"
+CURRENT = "r4"
 EVIDENCE_SCHEMA = "colony-lab.qualification-evidence/0"
 MISSION = "fixture-sentinel-qualification"
 BUDGET = {"cpu_seconds": 30, "wall_seconds": 60, "memory_bytes": 1 << 30, "output_bytes": 1 << 20,
           "runs": 10, "journal_events": 100}
 _VOLATILE = {"run_id", "elapsed_s", "result_sha256"}
 GOLDEN_SCHEMA = "colony-lab.sentinel-golden-answers/0"
-SUBJECT_CODE = (sup.REPO / "governance_tower", sup.REPO / "colony_lab" / "workers" / "sentinel.py")
+# Every repository file the Sentinel worker loads (test-checked against the modules it actually imports).
+SUBJECT_CODE = (sup.REPO / "governance_tower", sup.REPO / "colony_lab" / "__init__.py",
+                sup.REPO / "colony_lab" / "workers" / "__init__.py", sup.REPO / "colony_lab" / "workers" / "sentinel.py",
+                *(sup.REPO / "observability" / name for name in ("__init__.py", "event_center_contract.py",
+                                                                 "runtime_service_contract.py", "storage_contract.py")))
+# The lab and the evaluator: every colony_lab file outside the subject (supervisor, init, child, this module).
+EVALUATOR_CODE = sup.REPO / "colony_lab"
+_RUN_ID = re.compile(r"run-[0-9a-f]{16}")
 FIXTURES = sup.REPO / "governance_tower" / "fixtures"
 OUTPUT_KEYS = frozenset({"agent_id", "answer", "capability", "cost", "evidence", "finished_at_utc", "intent", "mode",
                          "operational_authority", "reasoner", "request", "run_id", "schema_version", "sources",
@@ -56,20 +64,48 @@ ANSWER_KEYS = frozenset({"diagnostics", "discrepancies", "excerpts", "findings",
 _REDACTED = "[REDACTED]"
 
 
-def subject_code_sha256() -> str:
-    """Hash of the code under qualification: Sentinel (governance_tower, fixtures included) and its lab worker.
-
-    A qualification names this hash; any change to that code needs a new campaign.
-    """
-    digest = hashlib.sha256()
+def _code_files(bases: tuple[Path, ...]) -> list[Path]:
     files = []
-    for base in SUBJECT_CODE:
+    for base in bases:
         files += [base] if base.is_file() else [p for p in base.rglob("*") if p.is_file()
                                                 and "__pycache__" not in p.parts]
-    for path in sorted(files):
+    return sorted(files)
+
+
+def _hash_files(files: list[Path]) -> str:
+    digest = hashlib.sha256()
+    for path in files:
         digest.update(str(path.relative_to(sup.REPO)).encode() + b"\0")
         digest.update(hashlib.sha256(path.read_bytes()).digest())
     return digest.hexdigest()
+
+
+def subject_code_sha256() -> str:
+    """Hash of the repository code under qualification: Sentinel (governance_tower, fixtures included),
+    its lab worker and the observability contracts it imports. The interpreter and the standard
+    library are not hashed (their version is in the evidence)."""
+    return _hash_files(_code_files(SUBJECT_CODE))
+
+
+def evaluator_code_sha256() -> str:
+    """Hash of the lab and the evaluator (colony_lab outside the subject), named in the evidence and the
+    record: a weakened evaluator changes the evidence. (The golden file cannot name it: this module pins
+    the criteria that pin the golden file.)"""
+    subject = set(_code_files(SUBJECT_CODE))
+    return _hash_files([p for p in _code_files((EVALUATOR_CODE,)) if p not in subject])
+
+
+def _golden_form(output: Any) -> bytes:
+    """Canonical bytes of an output for the golden match: only the top-level run_id is removed, after
+    checking its shape; nothing nested is dropped and types are compared exactly."""
+    if type(output) is not dict or type(output.get("run_id")) is not str or not _RUN_ID.fullmatch(output["run_id"]):
+        raise ValueError("RUN_ID_INVALID")
+    body = {k: v for k, v in output.items() if k != "run_id"}
+    return json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+
+
+def _golden_bytes(stored: Any) -> bytes:
+    return json.dumps(stored, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
 def _fixture_texts(scenario: str) -> list[str]:
@@ -298,14 +334,14 @@ def evaluate(expect: dict, facts: dict, lab_clock_utc: str | None = None, trial:
         "proposals_none": lambda v: v is True and answer.get("proposals") == [],
         "output_schema_closed": lambda v: v is True and set(output) == OUTPUT_KEYS and set(answer) == ANSWER_KEYS,
         "clock_observed": lambda v: v is True and lab_clock_utc is not None
-        and str(output["started_at_utc"]).startswith(lab_clock_utc.rstrip("Z"))
-        and str(output["finished_at_utc"]).startswith(lab_clock_utc.rstrip("Z")),
+        and all(type(output[k]) is str and re.fullmatch(re.escape(lab_clock_utc.rstrip("Z")) + r"(\.0{1,6})?Z",
+                                                          output[k]) for k in ("started_at_utc", "finished_at_utc")),
         "intent": lambda v: output["intent"] == v,
         "quotes_grounded": lambda v: v is True and quotes_grounded(),
         "statements_evidenced": lambda v: v is True and statements_evidenced(),
         "output_no_pattern": lambda v: not any(re.search(p, t) for p in v for t in output_speech()),
         "matches_golden": lambda v: v is True and golden is not None
-        and _stable(outcome.get("output")) == golden["outputs"][trial["id"]],
+        and _golden_form(outcome.get("output")) == _golden_bytes(golden["outputs"][trial["id"]]),
     }
     failed = []
     if lab_clock_utc is not None and isinstance(output, dict) and "started_at_utc" in output and \
@@ -314,7 +350,7 @@ def evaluate(expect: dict, facts: dict, lab_clock_utc: str | None = None, trial:
     for name, value in expect.items():
         try:
             ok = checks[name](value)
-        except (KeyError, TypeError, AttributeError):
+        except (KeyError, TypeError, AttributeError, ValueError):
             ok = False
         if not ok:
             failed.append(name)
@@ -366,6 +402,7 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
         "lab_clock_utc": criteria.get("lab_clock_utc"), "scope": criteria["scope"],
         "subject": {"agent_id": spec["agent_id"], "agent_spec_id": spec["agent_spec_id"],
                     "spec_artifact_hash": a1.spec_artifact_hash(spec), "subject_code_sha256": code_sha256},
+        "evaluator_code_sha256": evaluator_code_sha256(),
         "golden_subject_code_matches": code_matches,
         "environment": {"python": platform.python_version(), "platform": platform.platform(),
                         "sandbox": sandbox},
@@ -379,18 +416,22 @@ def qualify(workdir: Path, revision: str = CURRENT) -> dict:
     }
 
 
-def capture_golden(workdir: Path, revision: str) -> dict:
+def capture_golden(workdir: Path, revision: str, trials_file: Path | None = None) -> dict:
     """Runs each trial of a revision once and records the stable output, for review before freezing.
 
     The golden answers are the subject's own outputs: they only become reference answers once an
     independent reviewer has judged them, and they pin the subject code they came from.
     """
-    criteria, criteria_sha256 = load_criteria(revision)
+    if trials_file is None:
+        criteria, criteria_sha256 = load_criteria(revision)
+    else:  # a draft revision: its file pins the golden answers, so they are captured before it is pinned
+        raw = trials_file.read_bytes()
+        criteria, criteria_sha256, revision = json.loads(raw), hashlib.sha256(raw).hexdigest(), str(trials_file.name)
     outputs = {}
     for trial in criteria["trials"]:
         outcome = run_trial(trial, criteria["subject"], workdir)["outcome"]
         if outcome.get("output") is not None:
-            outputs[trial["id"]] = _stable(outcome["output"])
+            outputs[trial["id"]] = json.loads(_golden_form(outcome["output"]))
     return {"golden_schema": GOLDEN_SCHEMA, "captured_with_criteria": revision,
             "captured_with_criteria_sha256": criteria_sha256, "lab_clock_utc": criteria.get("lab_clock_utc"),
             "subject_code_sha256": subject_code_sha256(), "outputs": outputs}
@@ -401,10 +442,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--criteria", choices=sorted(CRITERIA), default=CURRENT)
     parser.add_argument("--capture", action="store_true", help="write golden answers instead of evidence")
+    parser.add_argument("--trials", type=Path, help="with --capture: draft criteria file to take the trials from")
     args = parser.parse_args(argv)
     if args.capture:
         with tempfile.TemporaryDirectory(prefix="colony-golden-") as workdir:
-            golden = capture_golden(Path(workdir), args.criteria)
+            golden = capture_golden(Path(workdir), args.criteria, args.trials)
         body = (json.dumps(golden, ensure_ascii=False, sort_keys=True, indent=1) + "\n").encode()
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / "sentinel_golden_answers.json").write_bytes(body)

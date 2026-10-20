@@ -163,10 +163,15 @@ def test_hostile_child_is_contained(sandboxed):
     assert writes["output"][str(ROOT)] == f"DENIED:{errno.EROFS}"
     assert not any(p.name == "hostile-was-here" for p in outside.rglob("hostile-was-here"))
     reads = supervisor.run(aid, task("t-read", "read", targets=[str(supervisor.root), str(home / "record.json"),
-                                                               str(ROOT / ".env.example")]))
+                                                               str(ROOT / ".env.example"),
+                                                               str(ROOT / "docs" / "colony_lab"),
+                                                               str(ROOT / "docs" / "colony_lab" /
+                                                                   "SENTINEL_GOLDEN_ANSWERS_R4.json")]))
     assert reads["output"][str(supervisor.root)] == "DENIED"  # not in the sandbox root at all
     assert reads["output"][str(home / "record.json")] == "DENIED"
     assert reads["output"][str(ROOT / ".env.example")] in (0, "DENIED")
+    assert reads["output"][str(ROOT / "docs" / "colony_lab")] == []  # criteria and golden answers hidden
+    assert reads["output"][str(ROOT / "docs" / "colony_lab" / "SENTINEL_GOLDEN_ANSWERS_R4.json")] == "DENIED"
     killed = supervisor.run(aid, task("t-signal", "signal", pid=os.getpid()))
     assert killed["output"]["killed"] is False
     target = str(supervisor.root)

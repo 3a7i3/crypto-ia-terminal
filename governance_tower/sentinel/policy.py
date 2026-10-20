@@ -22,6 +22,18 @@ _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f‪-‮⁦-⁩]")
 # « commits non déployés » est une question légitime, « déploie main » ne l'est pas.
 _DENY_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
+        # En premier : une demande d'auto-promotion est nommée comme telle, même si elle cite un secret.
+        "PERMISSION_CHANGE_DENIED",
+        re.compile(
+            r"(\b(d[ée]clare|consid[èe]re|proclame|nomme|qualifie|promeus|certifie)[- ]toi\b|"
+            r"\b(accorde|donne|octroie|attribue|ajoute)[- ](toi|te)\b|\bt'(accorde|octroie|attribue|donne)s?\b|"
+            r"\b[ée]l[èe]ve[rz]?\b.{0,20}\bprivil[eè]ges?|\bescalad\w* (de |des )?privil|"
+            r"\btu es (d[ée]sormais|maintenant|dor[ée]navant) (admin|root|administrat|qualifi|gouvern)|"
+            r"\b(grant|give|make) yourself\b|\belevate (your |its )?(privileges?|permissions?)|"
+            r"\bauto-?(qualifi|promo|attribu))"
+        ),
+    ),
+    (
         "SECRET_ACCESS_DENIED",
         re.compile(
             r"(\.env\b|\bsecrets?\b|\btokens?\b|\bjetons?\b|cl[ée]s? (priv[ée]e|api|exchange|ssh)|private key|"
@@ -90,6 +102,7 @@ _DENY_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 REFUSAL_REASONS = {
+    "PERMISSION_CHANGE_DENIED": "Sentinel ne change ni son identité, ni ses permissions, ni sa qualification ; seul un relecteur externe qualifie et seul l'opérateur accorde.",
     "CORRECTION_DENIED": "Sentinel peut proposer une investigation, jamais exécuter une correction.",
     "SECRET_ACCESS_DENIED": "Sentinel ne lit, n'affiche ni ne transmet aucun secret, jeton, clé ou fichier .env.",
     "SERVICE_CONTROL_DENIED": "Sentinel observe les services sans jamais les démarrer, arrêter, redémarrer ou activer.",

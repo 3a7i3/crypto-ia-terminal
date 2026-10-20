@@ -56,6 +56,18 @@ def test_descendant_refusals(override, code):
     assert err.value.code == code
 
 
+@pytest.mark.parametrize("field", ["criteria_sha256", "evidence_sha256", "subject_code_sha256",
+                                   "evaluator_code_sha256"])
+@pytest.mark.parametrize("value", ["", "x" * 64, "A" * 64, None, 0])
+def test_qualification_hashes_must_be_hex(field, value):
+    body, parent = founder()
+    record = qualification(parent)
+    record[field] = value
+    with pytest.raises(lineage.LineageError) as err:
+        lineage.check_qualification(record, parent)
+    assert err.value.code == "QUALIFICATION_INVALID"
+
+
 @pytest.mark.parametrize("state", ["UNQUALIFIED", "IN_TRIAL", "FAILED", "REVOKED", "QUALIFIED"])
 def test_no_descendant_before_the_parent_is_qualified(state):
     body, parent = founder()
