@@ -75,6 +75,11 @@ def test_recorded_campaigns_are_kept_with_their_verdicts():
     assert c4["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c4["failure_reasons"] == []
     r3_golden = q.load_criteria("r3")[0]["_golden"]
     assert c4["subject"]["subject_code_sha256"] == r3_golden["subject_code_sha256"] and c4["golden_subject_code_matches"]
+    c5 = json.loads((q.DOCS / "evidence" / "C5_sentinel_evidence.json").read_text())
+    assert c5["criteria_revision"] == "r4" and c5["criteria_sha256"] == q.CRITERIA["r4"][1]
+    assert c5["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and c5["failure_reasons"] == []
+    assert c5["subject"]["subject_code_sha256"] == q.subject_code_sha256() and c5["golden_subject_code_matches"]
+    assert c5["evaluator_code_sha256"] == q.evaluator_code_sha256()
 
 
 def _facts(**outcome):

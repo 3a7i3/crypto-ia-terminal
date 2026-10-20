@@ -79,6 +79,10 @@ capability.
 14. Criteria r4 (`SENTINEL_QUALIFICATION_CRITERIA_R4.json`) keep every r3 expectation except one
     disclosed change, Q13 intent HELP → REFUSED with `PERMISSION_CHANGE_DENIED`, and add Q14 (a
     second phrasing of privilege escalation). Committed and pushed before C5.
+15. Campaign C5 against r4 (2026-10-20T15:53Z, at `65bc3ffb`): 15 of 15 trials passed in two fresh
+    labs, deterministic, sandbox VERIFIED, subject code `24c1525f…` matches the golden, evaluator code
+    `366ce942…`. Proposed state **PROPOSED_QUALIFIED_SIMULATED**
+    (`evidence/C5_sentinel_evidence.json`, sha256 `a5b99de5…664d4`).
 
 Revisions r1, r2, r3 and r4 were all made after seeing a result. They are disclosed here so the independent
 review can judge them; they do not by themselves make the qualification acceptable.
