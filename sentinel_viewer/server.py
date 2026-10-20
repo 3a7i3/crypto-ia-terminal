@@ -2,7 +2,8 @@
 
 Limits are fixed in code: request target <=2 KiB, no request body, query
 fields from a closed set, page <=100 events, response <=4 MiB, two requests
-in flight (others get BUSY), 10 s socket timeout. Every request re-verifies
+in flight (others get BUSY), 10 s timeout per socket operation (no deadline
+for a whole request and no cap on open connections). Every request re-verifies
 the whole stored journal through sentinel_activity; nothing is cached.
 
 Loopback is not authentication: any process of any local account can connect.
@@ -38,7 +39,7 @@ REQUEST_ERRORS = frozenset({"HOST_DENIED", "ORIGIN_DENIED", "QUERY_INVALID", "NO
                             "METHOD_DENIED", "BODY_DENIED", "BUSY", "RESPONSE_TOO_LARGE",
                             "TARGET_TOO_LONG"})
 _ROUTE = re.compile(r"/(?:(api)/)?ledger/([0-7])")
-_LIMIT = re.compile(r"[1-9][0-9]{0,2}")
+_LIMIT = re.compile(r"[1-9][0-9]?|100")
 _HTTP_FOR_STATUS = {"PREFIX_VERIFIED": 200, "NO_DATA": 200, "CURSOR_INVALID": 400,
                     "BUSY": 503, "UNAVAILABLE": 503}
 _HTTP_FOR_REQUEST = {"HOST_DENIED": 403, "ORIGIN_DENIED": 403, "QUERY_INVALID": 400, "NOT_FOUND": 404,
@@ -179,6 +180,17 @@ class ViewerHandler(BaseHTTPRequestHandler):
         extra = {"Allow": "GET"} if code == "METHOD_DENIED" else None
         body = json.dumps({"status": code, "items": None}, sort_keys=True).encode()
         self._send(_HTTP_FOR_REQUEST[code], body, "application/json; charset=utf-8", extra)
+
+    def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
+        """Errors raised by http.server itself (malformed request line, oversized headers, bad
+        version) use the same JSON body and security headers as every other response."""
+        self.close_connection = True
+        self.request_version = self.protocol_version  # http.server falls back to headerless HTTP/0.9
+        body = json.dumps({"status": "REQUEST_MALFORMED", "items": None}, sort_keys=True).encode()
+        try:
+            self._send(code, body, "application/json; charset=utf-8")
+        except OSError:
+            pass
 
     def _refuse_method(self) -> None:
         self._refusal("METHOD_DENIED")

@@ -2,8 +2,8 @@
 
 SOURCE_ONLY / SIMULATED_ONLY / NOT_DEPLOYED. #286 ACTIVE. Measured 2026-10-20 on
 the development container: Python 3.11.17, SQLite 3.45.1, x86_64,
-4 CPU, non-root user, local disk. Source: main `bfb1109` plus the J02
-B–D change. Reproduce with `python scripts/sentinel_activity/j02_capacity.py`.
+4 CPU, non-root user, local disk. Source: the J02 B–D change on main `bfb1109`,
+as merged at PR #477 head `ae792913`. Reproduce with `python scripts/sentinel_activity/j02_capacity.py`.
 
 Journals are seeded with valid `OBSERVATION_RECORDED` events through
 `tests/sentinel_activity/seed.py` (the recorder's own validation and hashing,
@@ -27,12 +27,15 @@ The 10,000 row fills the journal to its `max_events` limit (9,990 seeded + 10).
 | 10,000 | ≈16 s (extrapolated, not measured) | 3.5–3.7 s |
 
 Process stress on an empty journal (`4×30`, `6×40` appends): 0 BUSY after the
-change; the independent review of #476 measured 17–20 and 56 BUSY with #476's
+change, measured with an ad hoc harness that `j02_capacity.py` does not include
+(not reproducible with the shipped script); the independent review of #476 measured 17–20 and 56 BUSY with #476's
 optimistic loop and 5 and 51 with the J01 base.
 
 ## Verdict
 
-- 500 and 1,000 events: functional and interactive (< 0.5 s per page).
+- 500 events: functional and interactive (≈0.2–0.25 s per page). 1,000 events:
+  functional, ≈0.4–0.5 s per page (the independent review measured a median of
+  0.50 s and a maximum of 0.52 s), so "below 0.5 s" is not guaranteed.
 - 10,000 events: functional (integrity, concurrency without BUSY, restore) but
   NOT interactive: ≈5 s per viewer page, ≈6 s mean append, worst observed append
   21 s for a writer that lost races. No throughput or service level is claimed.

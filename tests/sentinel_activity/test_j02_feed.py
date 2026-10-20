@@ -184,3 +184,13 @@ def test_rejected_text_is_never_memoized():
     assert secret not in canonical._ACCEPTED_TEXT
     canonical.canonical_bytes("x" * 300)
     assert "x" * 300 not in canonical._ACCEPTED_TEXT  # long text is not retained either
+
+
+def test_accepted_text_memo_stays_bounded_and_never_keeps_rejected_text():
+    canonical._ACCEPTED_TEXT.clear()
+    for index in range(8192 * 2 + 7):
+        assert canonical._short_text_failure(f"accepted text {index}") is None
+        assert len(canonical._ACCEPTED_TEXT) <= 8192
+    rejected = "token ghp_" + "a" * 36
+    assert canonical._short_text_failure(rejected) is not None
+    assert rejected not in canonical._ACCEPTED_TEXT
