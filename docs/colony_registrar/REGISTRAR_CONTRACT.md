@@ -20,11 +20,11 @@ stale, so the gate lives in a new package, `colony_registrar/`, which uses the l
 | Prior qualification, criteria fixed before trials | the parent's qualification passes the lab rules (`check_qualification`, state `QUALIFIED_SIMULATED`, scope `SIMULATED_DETERMINISTIC`, external reviewer) and names a criteria hash listed in the frozen policy; its reviewer id contains no prefix of the child, of any ancestor or of any admitted individual | lab codes, `CRITERIA_NOT_ADMISSIBLE` |
 | Admission outside the agent | an admission decision `colony-registrar.admission/0` by an `EXTERNAL_HUMAN` or `EXTERNAL_REVIEW_PROCESS`, naming this child, this parent, the policy hash, the SHA-256 of the parent's qualification and exactly the budget, lab permissions and declared diff granted; its admitter id contains no prefix of the child, of any ancestor or of any admitted individual | `ADMISSION_INVALID`, `ADMISSION_NOT_FOR_THIS_BIRTH`, `SELF_ADMISSION_DENIED` |
 | Distinct identity | the child's A1 `agent_id` differs from every ancestor and from every admitted individual | `CYCLE_DENIED`, `ALREADY_ADMITTED` |
-| Verifiable lineage without cycle | the parent is loaded and re-verified from the founder down; every descendant ancestor has its own registrar admission record, bound to it; the child's lineage, genotype and declared diff are recomputed | lab codes, `ANCESTOR_NOT_ADMITTED`, `UNDECLARED_MUTATION` |
+| Verifiable lineage without cycle | the parent is loaded and re-verified from the founder down; every descendant ancestor has its own registrar admission record, re-verified as a birth would be today (made under this same policy pin, bound to the ancestor's record and to the qualification stored with it, that qualification under admissible criteria, admitter and reviewer outside the whole colony); the child's lineage, genotype and declared diff are recomputed | lab codes, `ANCESTOR_NOT_ADMITTED`, `UNDECLARED_MUTATION` |
 | Depth | child generation ≤ `max_generation` | `GENERATION_LIMIT` |
 | Population | admitted individuals after the birth ≤ `max_population` | `POPULATION_LIMIT` |
 | Children per parent | ≤ `max_children_per_parent` | `CHILDREN_LIMIT` |
-| Concurrency | one admission at a time (exclusive lock); runs through the registrar limited to `max_concurrent_runs` slots | `REGISTRAR_BUSY`, `CONCURRENCY_LIMIT` |
+| Concurrency | one admission at a time (an advisory `flock` on `registrar.lock`, released by the kernel if the process dies, never deleted); runs through the registrar limited to `max_concurrent_runs` slots, each a `flock` on a slot file | `REGISTRAR_BUSY`, `CONCURRENCY_LIMIT` |
 | Costs | each budget field of the child ≤ its parent's; the sum of every admitted individual's budget plus the child's ≤ `colony_budget` | `BUDGET_ESCALATION`, `COLONY_BUDGET_EXCEEDED` |
 | No transmission of credentials, no added permission | lab permissions declared explicitly, ⊆ the child's spec and ⊆ the parent's; credentials `NONE`, authority `DENIED` (lab record rules) | `PERMISSIONS_NOT_DECLARED`, `PERMISSION_ESCALATION`, … |
 | No autonomous reproduction | the registrar is called by the operator only: no task type, worker or lab module imports it; an individual cannot see the lab root; no birth while the operator's `STOP` is set | (AST test), `LAB_STOPPED` |
@@ -47,7 +47,12 @@ Before admitting the child, the registrar writes the admission decision to
 child through `Supervisor.admit`, which re-checks the parent's qualification and the child record. A
 crash between the two leaves an admission without a child, never a child without an admission; a
 retry with the identical admission proceeds, any other admission for that child is refused
-(`ADMISSION_CONFLICT`). Nothing else is written on refusal except the lock, which is removed.
+(`ADMISSION_CONFLICT`). An orphan admission (a crash, or a refusal by the lab after it was written)
+blocks only that child: the operator resumes the birth with the identical decision, or removes the
+orphan file after checking that no home exists for that child. The operator's `STOP` is read again
+just before the admission is written. `registrar-admissions/` must be a real directory, not a link
+(`LAB_IO_ERROR` otherwise). Bindings compare canonical encodings, so `true` or `1.0` never stand for
+`1`. Nothing else is written on refusal; the lock and slot files stay in place, unlocked.
 
 ## 4. Limits (NOT PROVEN)
 
@@ -55,8 +60,8 @@ retry with the identical admission proceeds, any other admission for that child 
   a property of the lab, until the lab is changed and Sentinel requalified under a separate gate.
 - Qualification and admission records are not authenticated here (see `colony_trust`).
 - Population, children and budgets are counted from the lab root, which the operator account can
-  write; a crash while holding the lock leaves `REGISTRAR_BUSY` until the operator removes it (fail
-  closed).
+  write. Locks are advisory: a writer of the lab root who deletes `registrar.lock` during a birth lets
+  a second birth run concurrently. The lab-root writer is the operator account, already trusted.
 - Run slots only bound runs started through the registrar.
 - The pin protects the frozen policy g0 only. A caller-supplied policy is pinned by the caller itself,
   so its criteria and limits (within the hard ceilings) are the caller's own decision; each admission
@@ -74,3 +79,9 @@ retry with the identical admission proceeds, any other admission for that child 
   diff; reviewers and admitters excluded from the whole colony; `LAB_STOPPED`; coded refusals for
   malformed inputs; policy copied at construction. The admission schema keeps its name
   `colony-registrar.admission/0`: it was never released outside this pull request.
+- Amendment 2, pushed alone before its code, after the independent review of `d0f94f83` found that an
+  orphan admission let a child admitted directly by the lab, with inadmissible criteria and a sibling
+  as reviewer, become a parent: ancestors' admissions re-verified in full under the same pin, with the
+  stored qualification and colony-wide exclusion; `flock` locks that are never deleted; `STOP` re-read;
+  admissions directory not a link; canonical comparison of bindings; coded refusals for identity
+  errors; orphan admission procedure.
