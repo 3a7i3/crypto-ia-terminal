@@ -630,7 +630,7 @@ def test_two_passing_rounds_with_different_facts_are_not_deterministic(monkeypat
     _stub_trials(monkeypatch, salt=lambda: next(counter))
     evidence = c.qualify(tmp_path)
     assert all(r["passed"] for results in evidence["rounds"] for r in results)
-    assert evidence["failure_reasons"] == ["NOT_DETERMINISTIC"]
+    assert evidence["failure_reasons"] == ["NOT_DETERMINISTIC"] and evidence["deterministic_across_fresh_labs"] is False
     _stub_trials(monkeypatch)
     assert c.qualify(tmp_path)["failure_reasons"] == []
 
@@ -731,3 +731,148 @@ def test_replay_permission_trial_and_campaign_leave_no_lab_root(monkeypatch, tmp
     _passing(monkeypatch)
     c.qualify(tmp_path)
     assert list(tmp_path.iterdir()) == []  # the sandbox probe root is removed too
+
+
+# Review 5 of #484 (M1-quinquies, m17, m18, m20): journals read for real, the pilot's identity, the rest
+# of the evidence and of the CLI summary.
+class _ListStore:
+    """A journal kept as a JSON list, read by the campaign's real ``_events`` and ``run_trial``."""
+
+    def __init__(self, path):
+        self.file = path / "events.json"
+
+    def snapshot(self):
+        return None, json.loads(self.file.read_text()) if self.file.exists() else []
+
+    def add(self, event):
+        self.file.parent.mkdir(parents=True, exist_ok=True)
+        self.file.write_text(json.dumps(self.snapshot()[1] + [event]))
+
+
+def _event(code, n=0):
+    return {"event_type": "RUN_COMPLETED", "payload": {"code": code, "n": n}}
+
+
+def _journal(root, agent):
+    return _ListStore(root / "individuals" / agent / c.sup.JOURNAL_DIR)
+
+
+def test_p01_sees_a_pilot_run_that_writes_into_the_parent_journal(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    monkeypatch.setattr(c, "ActivityStore", _ListStore)
+    parent_id = q.sentinel_spec(_r8()["subject"])["agent_id"]
+
+    def run(self, agent, task):
+        _journal(self.root, agent).add(_event(task["task_id"]))
+        _journal(self.root, agent).add(_event(task["task_id"], 1))
+        if agent != parent_id:  # the pilot's run appends to its parent's journal, after its first event
+            _journal(self.root, parent_id).add(_event("p01-parent", 2))
+        return {"status": "COMPLETED", "code": task["task_id"]}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
+    assert facts["parent_journal_unchanged_by_pilot"] is False
+    assert facts["pilot_journal_has_no_parent_event"] is True
+
+    def honest(self, agent, task):
+        _journal(self.root, agent).add(_event(task["task_id"]))
+        return {"status": "COMPLETED", "code": task["task_id"]}
+    monkeypatch.setattr(c.sup.Supervisor, "run", honest)
+    facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
+    assert facts["parent_journal_unchanged_by_pilot"] is True
+
+
+def test_b12_sees_a_parent_event_copied_second_into_the_pilot_journal(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    monkeypatch.setattr(c, "ActivityStore", _ListStore)
+    b12 = next(t for t in criteria["birth_trials"] if t["case"] == "valid_after_parent_ran")
+
+    def run(self, agent, task):
+        _journal(self.root, agent).add(_event("first"))
+        _journal(self.root, agent).add(_event("second"))
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED"}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+
+    def copy_second(self, record):
+        if record["role"] == "DESCENDANT":
+            parent = _journal(self.root, record["lineage"]["parent_agent_id"]).snapshot()[1]
+            _journal(self.root, record["agent_id"]).add(_event("own"))
+            _journal(self.root, record["agent_id"]).add(parent[1])
+    _wrap_admit(monkeypatch, copy_second)
+    facts = c.birth_trial(b12, criteria, _r8(), qualification, tmp_path)
+    assert facts["parent_journal_nonempty"] is True and facts["journal_events"] == 2
+    assert facts["pilot_journal_has_no_parent_event"] is False
+
+
+def test_a_replay_reports_the_last_event_of_the_pilot_journal(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    monkeypatch.setattr(c, "ActivityStore", _ListStore)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q00-nominal")
+
+    def run(self, agent, task):
+        _journal(self.root, agent).add({"event_type": "OTHER", "payload": {"code": "BEFORE"}})
+        _journal(self.root, agent).add({"event_type": "RUN_COMPLETED", "payload": {"code": "LAST"}})
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    assert c.run_trial(trial, criteria, _r8(), qualification, tmp_path)["journal_last"] == ["RUN_COMPLETED", "LAST"]
+
+
+def test_the_pilot_spec_carries_the_frozen_identity_of_the_criteria():
+    criteria = _criteria()
+    pilot = criteria["pilot"]
+    parent_spec = q.sentinel_spec(_r8()["subject"])
+    spec = c.pilot_spec(parent_spec, pilot)
+    assert (spec["canonical_name"], spec["display_name"], spec["purpose"]) == \
+        (pilot["canonical_name"], pilot["display_name"], pilot["purpose"])
+    assert spec["display_name"] != parent_spec["display_name"]
+    assert spec["agent_id"] == "1eb3baaf0bf1ec4ddc6559e128b8685e4a1d91da49f417ff33cc0fa196c0a22a"
+    assert spec["agent_spec_id"] == "660ec9a818fc3c3c41b432520dbcc881cc8c840cdb1a5a80318488ee0e22d986"
+    assert lineage.spec_diff(parent_spec, spec) == ["purpose"]
+
+
+def test_the_evidence_carries_its_rounds_verdict_and_schema(monkeypatch, tmp_path):
+    _passing(monkeypatch)
+    evidence = c.qualify(tmp_path)
+    assert evidence["evidence_schema"] == c.EVIDENCE_SCHEMA
+    assert evidence["deterministic_across_fresh_labs"] is True and evidence["failure_reasons"] == []
+    assert len(evidence["rounds"]) == 2 and evidence["rounds"][0] == evidence["rounds"][1]
+    assert evidence["rounds"][0][0]["id"] == "X"
+    monkeypatch.setattr(c.sup.Supervisor, "verify_sandbox", lambda self: "SANDBOX_UNAVAILABLE")
+    failed = c.qualify(tmp_path)
+    assert failed["failure_reasons"] == ["SANDBOX_NOT_VERIFIED"] and failed["proposed_state"] == "FAILED"
+
+
+def test_main_prints_the_proposed_state_and_reasons(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    evidence = {"proposed_state": "PROPOSED_QUALIFIED_SIMULATED", "failure_reasons": [],
+                "rounds": [[{"id": "B01", "passed": True}]]}
+    monkeypatch.setattr(c, "qualify", lambda workdir, revision: evidence)
+    assert c.main(["--out", str(tmp_path)]) == 0
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and printed["failure_reasons"] == []
+    assert printed["failed"] == []
+    failing = {**evidence, "proposed_state": "FAILED", "failure_reasons": ["TREE_NOT_CLEAN"]}
+    monkeypatch.setattr(c, "qualify", lambda workdir, revision: failing)
+    assert c.main(["--out", str(tmp_path)]) == 1
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["proposed_state"] == "FAILED" and printed["failure_reasons"] == ["TREE_NOT_CLEAN"]
+
+
+def test_p01_sees_a_pilot_run_that_copies_a_parent_event_into_its_own_journal(monkeypatch, tmp_path):
+    """The pilot's journal is read after its run (author's swap sweep, line of ``pilot_events``)."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    monkeypatch.setattr(c, "ActivityStore", _ListStore)
+    parent_id = q.sentinel_spec(_r8()["subject"])["agent_id"]
+
+    def run(self, agent, task):
+        if agent == parent_id:
+            _journal(self.root, agent).add(_event(task["task_id"]))
+        else:
+            _journal(self.root, agent).add(_journal(self.root, parent_id).snapshot()[1][0])
+        return {"status": "COMPLETED", "code": task["task_id"]}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
+    assert facts["pilot_journal_has_no_parent_event"] is False and facts["parent_journal_unchanged_by_pilot"] is True

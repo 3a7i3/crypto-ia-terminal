@@ -98,7 +98,7 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   above). Tests added since, with no change to `colony_pilot/`: a round runs exactly the criteria's
   12 births, 15 replays and 1 permission trial with their kind, judged with r8's clock and golden
   answers; two passing rounds with different facts are `NOT_DETERMINISTIC`; a write into the parent's
-  `journal/` during a birth or a replay is seen; every evidence field written by `qualify` is checked;
+  `journal/` during a birth or a replay is seen; the pilot, parent, hash, scope and `not_claimed` fields of the evidence are checked;
   `SUBJECT_CODE_CHANGED` is provoked; Q05's replay is asked of a new supervisor. The author replayed the
   review's 14 named mutants: all killed without the tripwire.
 - Statement-deletion sweep by the author: each one-line statement inside a function replaced by `pass`
@@ -111,6 +111,30 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   `UNREADABLE` branch is never reached by r8 (a corrupted journal is still readable); the
   `__main__` entry is not used by `launch_command`. Constants and arguments were not swept
   systematically; review 4 swept them by hand.
+- Review of those tests (`7933e869`): PC2 still valid, 1244 tests passed with no skip, the author's
+  deletion sweep reproduced (156 mutants, the same 12 survivors, classified correctly),
+  **unfavourable** without a blocking defect: P01's `parent_journal_unchanged_by_pilot` could be made
+  always true (parent events read after the pilot's run, or only the first event kept), because the
+  test of that fact stubbed `_events` with values independent of the runs; minor ones on the pilot's
+  identity, the rest of the evidence and of the CLI summary, `journal_last`, and the report's wording
+  (corrected here). Tests added since, with no change to `colony_pilot/`, read journals through the
+  campaign's real `_events` and `run_trial` over a list-backed store: a pilot run appending to its
+  parent's journal after its first event is seen by P01, a parent event copied second into the
+  pilot's journal is seen by B12, a replay reports the journal's last event; the pilot spec carries
+  the frozen identity of p1 (`agent_id` `1eb3baaf…`, `agent_spec_id` `660ec9a8…`); the evidence's
+  schema, rounds, determinism and reasons and the CLI's state and reasons are checked. The review's 12
+  named mutants are killed without the tripwire (one, the determinism flag, after a further assertion).
+- Some tests call the real `parent_qualification` and `sentinel_spec`, so they fail whenever
+  `colony_lab`'s code or Sentinel's r8 record changes: this is a tripwire on purpose (the pilot's
+  evidence names them), not a fault of the pilot evaluator.
+- Adjacent-swap and index sweep by the author, as review 5 recommended: each pair of adjacent
+  one-line statements at the same depth swapped, and each `[0]`, `[1]` and `[-1]` index changed (93
+  mutants). Every index mutant is killed. 42 swaps survived; one was a real weakness (P01 reading the
+  pilot's journal before its run, which made `pilot_journal_has_no_parent_event` vacuous), now killed
+  by a test of a pilot run copying a parent event into its own journal. The 41 others swap
+  independent statements (two reads, two assignments, a path and an admission) and are equivalent;
+  the closest, Q05's new supervisor built before the kill rather than after, is equivalent because the
+  supervisor recovers at each run.
 
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
