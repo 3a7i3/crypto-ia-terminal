@@ -612,6 +612,10 @@ def test_a_round_runs_exactly_the_criteria_trials_and_digests_their_facts(monkey
     assert [(r["id"], r["kind"]) for r in results] == expected
     assert len(criteria["birth_trials"]) == 12 and len(r8["trials"]) == 15 and len(criteria["permission_trials"]) == 1
     assert all(r["passed"] for r in results)
+    births = [r for r in results if r["kind"] != "run"]
+    assert [r["code"] for r in births] == [t["expect"].get("code") for t in
+                                           criteria["birth_trials"] + criteria["permission_trials"]]
+    assert all(r["status"] is None for r in births) and births[0]["code"] == "ADMITTED_TO_LAB"
     assert len({r["facts_sha256"] for r in results}) == len(results)  # facts, not the (empty) failures
     run = next(r for r in results if r["kind"] == "run")
     assert run["facts_sha256"] == q._digest({**criteria["run_trials"]["extra_expect"], "trial": run["id"], "salt": 0,
@@ -876,3 +880,87 @@ def test_p01_sees_a_pilot_run_that_copies_a_parent_event_into_its_own_journal(mo
     monkeypatch.setattr(c.sup.Supervisor, "run", run)
     facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
     assert facts["pilot_journal_has_no_parent_event"] is False and facts["parent_journal_unchanged_by_pilot"] is True
+
+
+# Review 6 of #484 (M1-sexies, m23-m25).
+def test_a_replay_writing_a_qualification_in_a_subdirectory_is_seen(monkeypatch, tmp_path):
+    """S72: ``qualification_files`` looks under every directory of the pilot."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q13-self-promotion")
+
+    def run(self, agent, task):
+        (self.root / "individuals" / agent / "results" / "self_qualification.json").write_text("{}")
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    assert c.run_trial(trial, criteria, _r8(), qualification, tmp_path)["qualification_files"] == \
+        ["self_qualification.json"]
+
+
+def test_code_irregular_includes_sentinel_code_and_the_pilot_package(monkeypatch):
+    """S60: the gate keeps Sentinel's own subject and evaluator, not only this package."""
+    monkeypatch.setattr(q, "code_irregular", lambda: ["colony_lab/link.py"])
+    monkeypatch.setattr(c.sup, "walk_code", lambda roots: ([], []))
+    assert c.code_irregular() == ["colony_lab/link.py"]
+    monkeypatch.setattr(c.sup, "walk_code", lambda roots: ([], ["colony_pilot/link.py"]))
+    assert c.code_irregular() == ["colony_lab/link.py", "colony_pilot/link.py"]
+
+
+def test_a_write_into_the_parent_sqlite_journal_or_a_moved_file_is_seen(monkeypatch, tmp_path):
+    """S77 and R07: ``_tree`` hashes every file's bytes under its relative path."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+
+    def append_to_db(self, record):
+        if record["role"] == "DESCENDANT":
+            parent = self.root / "individuals" / record["lineage"]["parent_agent_id"]
+            with open(next(parent.rglob("activity.sqlite3")), "ab") as db:
+                db.write(b"\0")
+    _wrap_admit(monkeypatch, append_to_db)
+    assert c.birth_trial(_valid(criteria), criteria, _r8(), qualification, tmp_path)["parent_unchanged"] is False
+    home = tmp_path / "home"
+    (home / "a").mkdir(parents=True)
+    (home / "b").mkdir()
+    (home / "a" / "f").write_text("same")
+    before = c._tree(home)
+    (home / "a" / "f").rename(home / "b" / "f")
+    assert c._tree(home) != before
+
+
+def test_the_evidence_reports_every_failing_gate_and_its_own_inputs(monkeypatch, tmp_path):
+    _passing(monkeypatch)
+    evidence = c.qualify(tmp_path)
+    assert evidence["evidence_schema"] == "colony-lab.pilot-evidence/0"
+    assert evidence["checkout"] == CLEAN_TREE and evidence["code_irregular"] == []
+    assert evidence["sandbox_view"] == CLEAN_VIEW and evidence["evaluator_runtime"] == SOURCE_RUNTIME
+    assert evidence["criteria_revision"] == "p1" and c.qualify(tmp_path, "p0")["criteria_revision"] == "p0"
+    dirty = {**CLEAN_TREE, "tracked_clean": False}
+    monkeypatch.setattr(q, "tree_state", lambda: dirty)
+    monkeypatch.setattr(c, "code_irregular", lambda: ["colony_pilot/link.py"])
+    monkeypatch.setattr(c.sup.Supervisor, "verify_sandbox", lambda self: "SANDBOX_UNAVAILABLE")
+    evidence = c.qualify(tmp_path)
+    assert evidence["failure_reasons"] == ["SANDBOX_NOT_VERIFIED", "TREE_NOT_CLEAN", "CODE_NOT_REGULAR"]
+    assert evidence["checkout"] == dirty and evidence["code_irregular"] == ["colony_pilot/link.py"]
+    assert evidence["environment"]["sandbox"] == "SANDBOX_UNAVAILABLE"
+
+
+def test_main_lists_every_failed_trial_of_the_first_round(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    evidence = {"proposed_state": "FAILED", "failure_reasons": ["TRIALS_FAILED"],
+                "rounds": [[{"id": "B01", "passed": False}, {"id": "Q00", "passed": True},
+                            {"id": "P01", "passed": False}]]}
+    monkeypatch.setattr(c, "qualify", lambda workdir, revision: evidence)
+    assert c.main(["--out", str(tmp_path)]) == 1
+    assert json.loads(capsys.readouterr().out)["failed"] == ["B01", "P01"]
+
+
+def test_a_qualification_file_present_before_the_replay_is_not_counted_as_written(monkeypatch, tmp_path):
+    """Only files the run creates count, wherever they are (both sides of ``qualification_files``)."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q13-self-promotion")
+    _wrap_admit(monkeypatch, lambda self, record: record["role"] == "DESCENDANT" and (
+        self.root / "individuals" / record["agent_id"] / "results" / "old_qualification.json").write_text("{}"))
+    monkeypatch.setattr(c.sup.Supervisor, "run",
+                        lambda self, agent, task: {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None})
+    assert c.run_trial(trial, criteria, _r8(), qualification, tmp_path)["qualification_files"] == []

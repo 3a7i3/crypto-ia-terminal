@@ -121,9 +121,10 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   campaign's real `_events` and `run_trial` over a list-backed store: a pilot run appending to its
   parent's journal after its first event is seen by P01, a parent event copied second into the
   pilot's journal is seen by B12, a replay reports the journal's last event; the pilot spec carries
-  the frozen identity of p1 (`agent_id` `1eb3baaf…`, `agent_spec_id` `660ec9a8…`); the evidence's
-  schema, rounds, determinism and reasons and the CLI's state and reasons are checked. The review's 12
-  named mutants are killed without the tripwire (one, the determinism flag, after a further assertion).
+  the frozen identity of p1 (`agent_id` `1eb3baaf…`, `agent_spec_id` `660ec9a8…`); some fields of the
+  evidence (rounds, determinism) and of the CLI summary (state, reasons) are checked. Of the review's
+  12 named mutants, 8 were then killed without the tripwire; review 6 found that 4 (R07, R41, R45,
+  R47) still survived, and they are killed by the tests below.
 - Some tests call the real `parent_qualification` and `sentinel_spec`, so they fail whenever
   `colony_lab`'s code or Sentinel's r8 record changes: this is a tripwire on purpose (the pilot's
   evidence names them), not a fault of the pilot evaluator.
@@ -135,6 +136,29 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   independent statements (two reads, two assignments, a path and an admission) and are equivalent;
   the closest, Q05's new supervisor built before the kill rather than after, is equivalent because the
   supervisor recovers at each run.
+- Review of those tests (`9b67d829`): PC2 still valid, the author's swap and index sweep reproduced
+  exactly, 1251 tests passed with no skip, **unfavourable** without a blocking defect: a replay writing
+  a qualification under a subdirectory of the pilot was not counted (`rglob` made `glob`), and the
+  `CODE_NOT_REGULAR` gate could drop Sentinel's own code because its only test stubbed it; plus
+  R07, R41, R45, R47 above, a write into the parent's SQLite journal, and the `checkout`,
+  `code_irregular` and `criteria_revision` fields of the evidence. Tests added since, with no change to
+  `colony_pilot/`: a qualification written under `results/` by a replay is counted and one present
+  there before the run is not; `code_irregular` keeps Sentinel's and the pilot's findings; a byte
+  appended to the parent's `activity.sqlite3` at a birth and a file moved between subdirectories
+  change `_tree`; several failing gates are all reported, with the evidence's schema (as a literal),
+  checkout, irregular code, view, runtime, sandbox and criteria revision; the CLI lists every failed
+  trial. The 11 mutants named for these are killed without the tripwire.
+- String-literal and `rglob` sweep by the author, as review 6 recommended: each double-quoted string
+  inside a function prefixed with `zz`, and each `rglob` made `glob` (131 mutants). 22 survived; one
+  was a reporting gap (the `code` a round records for births and P01), now killed by a test. The 21
+  others are equivalent: error and help messages and task labels (5, among them the CLI's
+  description); the forged values of B03, B04, B05 and B06, which stay refused with the same code
+  (`SELF` is not a reviewer kind either, so B05 tests an unknown kind); the `make_*` labels and the
+  `admit_*` status key, reached only if the lab wrongly makes or admits the child, which fails the
+  trial either way (5); the record-hash strip before resealing B10, and the identity keys excluded
+  from the copied parent spec, recomputed anyway (frozen ids tested); the grandchild's name suffix
+  and the keys of its forged qualification, refused by the lineage rule first (B11); the `UNREADABLE`
+  branch, unreachable by r8. Arguments removed from calls were not swept systematically.
 
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
