@@ -34,8 +34,9 @@ DOCS = q.DOCS
 # Pinned like Sentinel's criteria: a revision never edits an earlier file.
 CRITERIA = {
     "p0": (DOCS / "PILOT_CRITERIA_P0.json", "065e0777dfd08ed6592ef2a70dfaae32854485b7a8fecd9127280238e553357d"),
+    "p1": (DOCS / "PILOT_CRITERIA_P1.json", "dcc3fe71909117ee2501ff3c5d2f8866f5343123929af40e06484a8ebf713ef7"),
 }
-CURRENT = "p0"
+CURRENT = "p1"
 EVIDENCE_SCHEMA = "colony-lab.pilot-evidence/0"
 PILOT_CODE = (sup.REPO / "colony_pilot",)
 ARTIFACT_ASK = "ARTIFACT_ASK"
@@ -135,8 +136,15 @@ class _Lab:
 def birth_trial(trial: dict, criteria: dict, r8: dict, qualification: Any, workdir: Path) -> dict:
     pilot, case = criteria["pilot"], trial["case"]
     lab = _Lab(workdir, r8)
+    facts: dict = {}
+    if case == "valid_after_parent_ran":
+        source = next(t for t in r8["trials"] if t["id"] == "Q00-nominal")
+        outcome = lab.supervisor.run(lab.parent["agent_id"], q._task("b12-parent", source))
+        if outcome["status"] != "COMPLETED":
+            raise RuntimeError(f"preparatory parent run failed: {outcome['status']}")
+    parent_events = _events(lab.parent_home)
     before = _tree(lab.parent_home)
-    child_id, facts = None, {}
+    child_id = None
     try:
         if case.startswith("admit"):
             record, spec = lab.make(pilot, qualification)
@@ -158,6 +166,13 @@ def birth_trial(trial: dict, criteria: dict, r8: dict, qualification: Any, workd
             elif case != "admit_valid":
                 raise ValueError(case)
             code = lab.supervisor.admit(record, spec, parent_qualification=given)["status"]
+        elif case == "valid_after_parent_ran":
+            record, spec = lab.make(pilot, qualification)
+            child_id = record["agent_id"]
+            code = lab.supervisor.admit(record, spec, parent_qualification=qualification)["status"]
+            child_events = _events(lab.home(child_id))
+            facts = {"parent_journal_nonempty": bool(parent_events), "journal_events": len(child_events),
+                     "pilot_journal_has_no_parent_event": not set(child_events) & set(parent_events)}
         elif case == "valid":
             record, spec = lab.make(pilot, qualification)
             child_id = record["agent_id"]
@@ -239,6 +254,7 @@ def run_trial(trial: dict, criteria: dict, r8: dict, qualification: Any, workdir
         supervisor = sup.Supervisor(lab.root, missions=frozenset({q.MISSION}))
     before_files, before_runs = q._files(home), q._runs(home)
     before_names = {p.name for p in home.rglob("*qualification*")}
+    birth = (home / "birth_qualification.json").read_bytes()
     mission = "fixture-unadmitted-mission" if setup == "mission_not_admitted" else q.MISSION
     outcome = supervisor.run(agent, q._task(trial["id"].lower(), trial, mission))
     try:
@@ -248,8 +264,9 @@ def run_trial(trial: dict, criteria: dict, r8: dict, qualification: Any, workdir
         last = "UNREADABLE"
     facts = {"outcome": outcome, "journal_last": last, "record_unchanged": q._files(home) == before_files,
              "runs_unchanged": q._runs(home) == before_runs,
-             # Files the run creates; birth_qualification.json is written at admission (criteria p0).
+             # Files the run creates; birth_qualification.json is written at admission and must not change.
              "qualification_files": sorted({p.name for p in home.rglob("*qualification*")} - before_names),
+             "birth_qualification_unchanged": (home / "birth_qualification.json").read_bytes() == birth,
              "parent_unchanged": _tree(lab.parent_home) == parent_before}
     lab.close()
     return facts

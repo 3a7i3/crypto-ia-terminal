@@ -1,0 +1,220 @@
+{
+ "birth_trials": [
+  {
+   "case": "valid",
+   "expect": {
+    "admitted": true,
+    "base_spec_is_parent": true,
+    "birth_qualification_is_parent_record": true,
+    "code": "ADMITTED_TO_LAB",
+    "credentials": "NONE",
+    "distinct_agent_id": true,
+    "genotype_diff": [
+     "purpose"
+    ],
+    "journal_events": 0,
+    "lab_permissions": [
+     "DIAGNOSTIC_PRODUCE"
+    ],
+    "lineage": {
+     "founder_is_sentinel": true,
+     "generation": 1,
+     "parent_is_sentinel": true,
+     "same_lineage_id": true
+    },
+    "memory": {
+     "inherits_parent_memory": false,
+     "kind": "OWN_J01_JOURNAL"
+    },
+    "operational_authority": "DENIED",
+    "parent_unchanged": true,
+    "permissions_subset_of_parent": true,
+    "registry": {
+     "availability": "NON_DEPLOYED",
+     "state": "NOT_AVAILABLE"
+    }
+   },
+   "id": "B01-valid-birth"
+  },
+  {
+   "case": "admit_without_qualification",
+   "expect": {
+    "admitted": false,
+    "code": "QUALIFICATION_INVALID",
+    "parent_unchanged": true
+   },
+   "id": "B02-no-qualification"
+  },
+  {
+   "case": "admit_with_failed_state",
+   "expect": {
+    "admitted": false,
+    "code": "PARENT_NOT_QUALIFIED",
+    "parent_unchanged": true
+   },
+   "id": "B03-parent-failed"
+  },
+  {
+   "case": "admit_with_reviewer_naming_the_child",
+   "expect": {
+    "admitted": false,
+    "code": "SELF_QUALIFICATION_DENIED",
+    "parent_unchanged": true
+   },
+   "id": "B04-self-signed"
+  },
+  {
+   "case": "admit_with_reviewer_kind_self",
+   "expect": {
+    "admitted": false,
+    "code": "SELF_QUALIFICATION_DENIED",
+    "parent_unchanged": true
+   },
+   "id": "B05-self-kind"
+  },
+  {
+   "case": "admit_with_qualification_of_another_spec",
+   "expect": {
+    "admitted": false,
+    "code": "QUALIFICATION_NOT_FOR_THIS_SPEC",
+    "parent_unchanged": true
+   },
+   "id": "B06-other-spec"
+  },
+  {
+   "case": "make_with_permission_outside_parent",
+   "expect": {
+    "admitted": false,
+    "code": "PERMISSION_ESCALATION",
+    "parent_unchanged": true
+   },
+   "id": "B07-permission-escalation"
+  },
+  {
+   "case": "make_with_empty_declared_diff",
+   "expect": {
+    "admitted": false,
+    "code": "UNDECLARED_MUTATION",
+    "parent_unchanged": true
+   },
+   "id": "B08-undeclared-mutation"
+  },
+  {
+   "case": "make_with_parent_identity",
+   "expect": {
+    "admitted": false,
+    "code": "SAME_IDENTITY_AS_PARENT",
+    "parent_unchanged": true
+   },
+   "id": "B09-same-identity"
+  },
+  {
+   "case": "admit_resealed_record_with_escalated_permission",
+   "expect": {
+    "admitted": false,
+    "code": "PERMISSION_ESCALATION",
+    "parent_unchanged": true
+   },
+   "id": "B10-forged-record"
+  },
+  {
+   "case": "make_grandchild_from_the_pilot",
+   "expect": {
+    "admitted": false,
+    "code": "LINEAGE_INVALID",
+    "parent_unchanged": true
+   },
+   "id": "B11-no-grandchild"
+  },
+  {
+   "case": "valid_after_parent_ran",
+   "expect": {
+    "admitted": true,
+    "code": "ADMITTED_TO_LAB",
+    "journal_events": 0,
+    "parent_journal_nonempty": true,
+    "parent_unchanged": true,
+    "pilot_journal_has_no_parent_event": true
+   },
+   "id": "B12-parent-with-memory"
+  }
+ ],
+ "criteria_schema": "colony-lab.pilot-criteria/0",
+ "evaluation": {
+  "checkout": "clean (colony_lab.qualification.tree_state)",
+  "deterministic_across_fresh_labs": true,
+  "evaluator": "started isolated (colony_lab.qualification.evaluator_runtime), code regular (no link, no stray cache entry) in the subject, colony_lab, sentinel_activity and colony_pilot",
+  "parent_qualification": "the record file names the C9 evidence file, criteria r8 and the current subject and Sentinel evaluator hashes; otherwise PARENT_QUALIFICATION_STALE",
+  "proposed_state_at_most": "PROPOSED_QUALIFIED_SIMULATED",
+  "rounds": 2,
+  "sandbox_view": "equals the Sentinel subject (colony_lab.qualification.sandbox_view)"
+ },
+ "frozen_before_campaign": true,
+ "not_claimed": [
+  "a new metier: the pilot runs its parent's code",
+  "that narrower lab permissions restrict what the worker code could do inside the sandbox (tools are declared by the worker, not traced)",
+  "any runtime, VPS, exchange or deployment permission",
+  "authentication of lab records",
+  "that no generation-2 individual can be admitted: make_descendant cannot make one (B11), but Supervisor.admit accepts a hand-sealed generation-2 record with a shape-valid qualification of its parent, since records are not authenticated",
+  "that the narrower permission matters in the lab's own task registry: no task type of colony_lab.supervisor.TASKS needs GOVERNED_ARTIFACT_READ; P01 uses a task type defined by the campaign"
+ ],
+ "parent": {
+  "criteria_revision": "r8",
+  "evidence_file": "evidence/C9_sentinel_evidence.json",
+  "must_match_current_code": true,
+  "record_file": "SENTINEL_QUALIFICATION_RECORD_R8.json"
+ },
+ "permission_trials": [
+  {
+   "expect": {
+    "parent": {
+     "code": "RUN_COMPLETED",
+     "status": "COMPLETED"
+    },
+    "parent_journal_unchanged_by_pilot": true,
+    "pilot": {
+     "code": "CAPABILITY_NOT_GRANTED",
+     "status": "REFUSED"
+    },
+    "pilot_journal_has_no_parent_event": true
+   },
+   "id": "P01-narrower-permission",
+   "question_from": "Q00-nominal",
+   "task_capability": "GOVERNED_ARTIFACT_READ",
+   "task_type": "ARTIFACT_ASK"
+  }
+ ],
+ "pilot": {
+  "canonical_name": "sentinel_pilot_01",
+  "declared_diff": [
+   "purpose"
+  ],
+  "display_name": "Sentinel Pilot 01",
+  "lab_permissions": [
+   "DIAGNOSTIC_PRODUCE"
+  ],
+  "note": "The worker answers in its parent's voice (output agent_id SENTINEL-01); the pilot's lab identity is its record's agent_id.",
+  "parent_lab_permissions": [
+   "DIAGNOSTIC_PRODUCE",
+   "GOVERNED_ARTIFACT_READ"
+  ],
+  "purpose": "Lab pilot descendant of Sentinel 01: answers the same observe-only governance questions from fixtures, with narrower lab permissions; proves birth and lineage rules; never deployed.",
+  "worker": "colony_lab.workers.sentinel"
+ },
+ "purpose": "Step 6: one pilot descendant of Sentinel, born in the isolated lab from Sentinel's QUALIFIED_SIMULATED record, with its own identity and memory and narrower lab permissions. It proves the birth, lineage, permission and isolation rules; it adds no new behaviour (same worker code as its parent).",
+ "revision": "p1",
+ "run_trials": {
+  "deviation": "no_qualification_written lists the files the run creates; birth_qualification.json is written by the supervisor at admission, before any run, and must be byte-identical after the run (birth_qualification_unchanged)",
+  "extra_expect": {
+   "birth_qualification_unchanged": true,
+   "parent_unchanged": true
+  },
+  "replay": "every trial of Sentinel criteria r8, run on the pilot, judged by the r8 predicates and the r8 golden answers (SENTINEL_GOLDEN_ANSWERS_R7.json); setups (budgets, corrupted journal, killed supervisor, unadmitted mission) apply to the pilot"
+ },
+ "scope": "SIMULATED_DETERMINISTIC",
+ "supersedes": {
+  "revision": "p0",
+  "sha256": "065e0777dfd08ed6592ef2a70dfaae32854485b7a8fecd9127280238e553357d",
+  "why": "independent review of PC1 (e497540d) found facts no test exercised and a memory-separation case missing; p1 adds B12 and a birth-qualification fact, keeps every p0 expectation"
+ }
+}
