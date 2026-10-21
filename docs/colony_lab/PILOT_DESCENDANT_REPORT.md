@@ -35,7 +35,7 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
 2. The evaluator is `colony_pilot/campaign.py`, outside `colony_lab`, so Sentinel's record still names
    the evaluator code that produced its evidence (`41b78971…`). It reuses Sentinel's reviewed gates
    (`tree_state`, `sandbox_view`, `evaluator_runtime`, `code_irregular`, the r8 predicates and golden
-   answers) and adds its own hash (`pilot_code_sha256` `b6ca2b49…`).
+   answers) and adds its own hash (`pilot_code_sha256`: `b6ca2b49…` at PC1, `97fb6b04…` at PC2).
 3. The parent qualification is the real record `SENTINEL_QUALIFICATION_RECORD_R8.json`. The lab
    checks only its shape; the campaign also checks that it names the C9 evidence file, criteria r8 and
    the current subject and Sentinel evaluator hashes (`PARENT_QUALIFICATION_STALE` otherwise).
