@@ -1222,7 +1222,7 @@ def test_matrix_superseded_criteria(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize("key", ["state", "scope", "evidence_sha256", "criteria_sha256", "subject_code_sha256",
-                                 "evaluator_code_sha256", "UNREADABLE"])
+                                 "evaluator_code_sha256", "UNREADABLE", "MISSING_KEY", "NOT_A_DICT", "CORRUPT"])
 def test_matrix_stale_parent_record_by_each_key(monkeypatch, tmp_path, key):
     """V19: a mismatch on any key, or an unreadable record, makes the parent qualification stale."""
     _matrix(monkeypatch)
@@ -1231,12 +1231,21 @@ def test_matrix_stale_parent_record_by_each_key(monkeypatch, tmp_path, key):
     record = json.loads((c.DOCS / criteria["parent"]["record_file"]).read_text())
     forged = tmp_path / "forged" / "record.json"
     forged.parent.mkdir()
-    if key != "UNREADABLE":
+    keys = ["criteria_sha256", "evaluator_code_sha256", "evidence_sha256", "scope", "state", "subject_code_sha256"]
+    expected = {"UNREADABLE": ["UNREADABLE"], "CORRUPT": ["UNREADABLE"], "NOT_A_DICT": keys,
+                "MISSING_KEY": ["scope"]}.get(key, [key])
+    if key == "CORRUPT":
+        forged.write_text("{not json")
+    elif key == "NOT_A_DICT":
+        forged.write_text(json.dumps([record]))
+    elif key == "MISSING_KEY":
+        forged.write_text(json.dumps({k: v for k, v in record.items() if k != "scope"}))
+    elif key != "UNREADABLE":
         forged.write_text(json.dumps({**record, key: "FORGED"}))
     other = {**criteria, "parent": {**criteria["parent"], "record_file": str(forged)}}
     monkeypatch.setattr(c, "load_criteria", lambda revision=c.CURRENT: (other, sha))
     evidence = _only(tmp_path / "forged", "PARENT_QUALIFICATION_STALE")
-    assert evidence["parent"]["mismatched"] == [key] and evidence["parent"]["matches_current_code"] is False
+    assert evidence["parent"]["mismatched"] == expected and evidence["parent"]["matches_current_code"] is False
 
 
 def test_matrix_real_parent_record_passes(monkeypatch, tmp_path):
@@ -1263,7 +1272,7 @@ def test_matrix_code_not_regular_from_each_code_base(monkeypatch, tmp_path, sour
 
 @pytest.mark.parametrize("patch,reason", [
     ("tree_head", "TREE_NOT_CLEAN"), ("tree_tracked", "TREE_NOT_CLEAN"), ("tree_stray", "TREE_NOT_CLEAN"),
-    ("sandbox", "SANDBOX_NOT_VERIFIED"), ("view", "SANDBOX_VIEW_MISMATCH"), ("runtime", "EVALUATOR_NOT_ISOLATED"),
+    ("sandbox", "SANDBOX_NOT_VERIFIED"), ("sandbox_unverified", "SANDBOX_NOT_VERIFIED"), ("view", "SANDBOX_VIEW_MISMATCH"), ("runtime", "EVALUATOR_NOT_ISOLATED"),
     ("golden", "SUBJECT_CODE_CHANGED")])
 def test_matrix_environment_gates(monkeypatch, tmp_path, patch, reason):
     _matrix(monkeypatch)
@@ -1271,7 +1280,8 @@ def test_matrix_environment_gates(monkeypatch, tmp_path, patch, reason):
         "tree_head": (q, "tree_state", lambda: {**CLEAN_TREE, "git_head": None}),
         "tree_tracked": (q, "tree_state", lambda: {**CLEAN_TREE, "tracked_clean": False}),
         "tree_stray": (q, "tree_state", lambda: {**CLEAN_TREE, "stray_code": ["x.py"]}),
-        "sandbox": (c.sup.Supervisor, "verify_sandbox", lambda self: "SANDBOX_UNAVAILABLE"),
+        "sandbox": (c.sup.Supervisor, "verify_sandbox", lambda self: "UNAVAILABLE"),
+        "sandbox_unverified": (c.sup.Supervisor, "verify_sandbox", lambda self: "UNVERIFIED"),
         "view": (q, "sandbox_view", lambda workdir: {**CLEAN_VIEW, "matches_subject": False}),
         "runtime": (q, "evaluator_runtime", lambda: {**SOURCE_RUNTIME, "source_only": False}),
     }
@@ -1322,3 +1332,21 @@ def test_p01_sees_one_parent_event_among_the_pilot_own(monkeypatch, tmp_path):
     monkeypatch.setattr(c.sup.Supervisor, "run", run)
     facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
     assert facts["pilot_journal_has_no_parent_event"] is False
+
+
+def _replay_predicates():
+    return [(t["id"], key) for t in _r8()["trials"] for key in t["expect"]]
+
+
+@pytest.mark.parametrize("trial_id,predicate", _replay_predicates())
+def test_matrix_each_failed_r8_predicate_of_each_replay_fails_the_campaign(monkeypatch, tmp_path, trial_id,
+                                                                            predicate):
+    """W40-W42: whatever r8's judgement returns for a replay, setup or not, reaches the verdict whole."""
+    _matrix(monkeypatch)
+    monkeypatch.setattr(q, "evaluate", lambda expect, facts, clock, trial, golden:
+                        [predicate] if trial["id"] == trial_id else [])
+    evidence = c.qualify(tmp_path)
+    assert evidence["failure_reasons"] == ["TRIALS_FAILED"] and evidence["proposed_state"] == "FAILED"
+    for results in evidence["rounds"]:
+        failed = [r for r in results if not r["passed"]]
+        assert [(r["id"], r["failed_predicates"]) for r in failed] == [(trial_id, [predicate])]

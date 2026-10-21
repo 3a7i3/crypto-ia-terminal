@@ -204,7 +204,8 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   killed by the matrix below. Survivors that fail closed (no evidence, or `FAILED`) are not counted as weaknesses.
 - Comprehension sweep by the author, as review 8 recommended: each comprehension's iterable cut to
   its first element or emptied, or a false guard added, for generators inside a function on lines that are not `for` statements
-  (51 mutants; review 9 counted 63 over every generator of the file). Only an always-false guard was
+  (51 mutants by the author's script; review 10 counted 60 with this rule as stated and 63 over every
+  generator of the file). Only an always-false guard was
   added, not selective guards: the matrix below covers that class instead. 4 survive, all equivalent: the
   pilot code, r8's trials as searched for Q00 by B12 and P01, and the permission trials each have one
   element or Q00 first, so the first element is the whole answer.
@@ -213,20 +214,35 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   blocking defect. U90 still survived; a selective guard dropping the replays from the verdict (V05),
   `matches_current_code` narrowed to the code hashes (V19, V19b), the Sentinel part subtracted from
   `CODE_NOT_REGULAR` (V15), determinism compared on the first trial only (V43) and P01 comparing the
-  journals by equality instead of overlap (V35) survived too. The reviewer judged V05 and V19
-  plausible regressions, the others artificial, and proposed a stopping rule: a gate x input matrix,
+  journals by equality instead of overlap (V35) survived too. The reviewer judged V05, V19, V19b
+  and V35 plausible regressions, V15 between the two and U90 and V43 artificial, and proposed a stopping rule: a gate x input matrix,
   then one review of 25 or more undisclosed mutants with no plausible-regression survivor letting a
   failing campaign pass; artificial survivors left are declared limits.
 - Gate x input matrix, added with no change to `colony_pilot/`: through the real round (stub trials),
-  every failure reason of `qualify` is provoked from each input that feeds it, one at a time, and
+  every failure reason of `qualify` is provoked from the inputs listed here, one at a time, and
   must be the only reason where it can be: a failing trial of each kind in each round; facts differing
   only on the last trial; superseded criteria; each key of the parent record forged, and the record
   unreadable, through the real `parent_qualification`; `CODE_NOT_REGULAR` from Sentinel's code and from
   the pilot's through the real `code_irregular`; the checkout's head, tracked files and stray code; the
   sandbox, the view, the runtime and the r8 golden. Each expected fact of B01–B12 and P01 is inverted
   alone (55 cases) and must be the only failed predicate. P01 sees one parent event among the pilot's
-  own. V05, V19, V19b, U90, V15, V43 and V35 are killed. Tests outside the matrix still call the real
-  `parent_qualification` where the parent check itself is the subject.
+  own. V05, V19, V19b, U90, V15, V43 and V35 are killed. The 55 cases test the round's judgement of
+  facts, not how `birth_trial` and `permission_trial` compute them (the tests of those functions do).
+  Tests outside the matrix that go through `_passing` still read the real parent record and the
+  repository's hashes: they double as a tripwire on Sentinel's record and `colony_lab`.
+- Review of the matrix (`0df337b8`), again read-only in memory (no full suite, no real campaign):
+  PC2 still valid, the seven named mutants of review 9 killed, **unfavourable** under both rules
+  without a blocking defect. Under the original rule and under review 9's stopping rule, three
+  survivors filtering r8's judgement of the replays (for replays with a setup, `journal_last`, the
+  record and run facts) let a failing campaign pass, because the matrix stubbed `q.evaluate` to `[]`;
+  minor ones: an unreal sandbox value, a parent record with a missing key, not a dict or corrupt, and
+  the report's wording (corrected above). Tests added since, with no change to `colony_pilot/`: for
+  each of the 15 replays and each predicate of its r8 expectation (one at a time), r8's judgement
+  returning that predicate fails the campaign with that trial and predicate alone, in both rounds;
+  the sandbox gate uses the lab's real values `UNAVAILABLE` and `UNVERIFIED`; a parent record missing
+  a key, not a dict, or corrupt makes it stale. W40, W41, W42, W14 and W12 are killed. The r8
+  predicates themselves are Sentinel's reviewed code (`colony_lab/qualification.py`), outside this
+  PR; the campaign is what runs them for real.
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
 
