@@ -108,7 +108,9 @@ Unknown, invalid and unauthenticated inputs are refused explicitly; nothing defa
    authenticity, authorization and completeness; nothing is consumed on a refusal, and no public
    function consumes an envelope that was not verified. The ledger is read strictly (one canonical
    JSON object per line, exact fields, no duplicate keys); an unreadable, truncated or foreign line →
-   `LEDGER_CORRUPT` (fail closed). Durable attestations (qualification, individual) are re-verified on
+   `LEDGER_CORRUPT` (fail closed). The ledger must be a regular file with a single link, opened without
+   following a final link; any other ledger path or file (directory, device, FIFO, hard link, a path
+   the system refuses) → `LEDGER_CORRUPT`. A refused bundle creates no ledger file. Durable attestations (qualification, individual) are re-verified on
    every load by design; using them in another context is refused by the bindings of step 5.
 7. **Completeness** (bundle): `BUNDLE_INVALID` (malformed bundle or required list, or a required
    (kind, subject) pair listed twice), `ATTESTATION_MISSING`, `ATTESTATION_DUPLICATED`,
@@ -150,7 +152,10 @@ not proof that the old record was authentic when it was written.
   retired key can backdate. Only `REVOKED` stops a compromised key.
 - The consumption ledger lives in the lab root: a writer of the lab root can truncate it and replay a
   birth admission. A replay is still bounded by the other gates (identity uniqueness: a second birth of
-  the same child is `ALREADY_ADMITTED`).
+  the same child is `ALREADY_ADMITTED`). The same writer can also poison it: an entry inserted ahead of
+  a legitimate admission makes it `ENVELOPE_REPLAYED` or `ENVELOPE_ID_REUSED` (denial of service,
+  fail closed). `O_NOFOLLOW` covers the last path component only: directories above the ledger are
+  the caller's to choose.
 - `colony_lab.Supervisor` does not call this verifier: wiring it in changes Sentinel's evaluator code
   hash, so it needs Sentinel's requalification under a separate gate. Until then authentication is an
   extra gate callers use, not a property of the lab.
@@ -158,6 +163,10 @@ not proof that the old record was authentic when it was written.
   the tests by construction.
 
 ## 8. Amendment history
+
+- Amendment 3, pushed alone before its code, after the independent review of `954ae099` (favourable
+  with conditions, tests to add): the ledger must be a regular single-link file and is not created by
+  a refused bundle; poisoning and the parent-directory limit are declared.
 
 - Amendment 2, pushed alone before its code, after the independent review of the first implementation
   (8f8b0912) found weak keys accepted and replay left outside the verdict: weak and small-order keys
