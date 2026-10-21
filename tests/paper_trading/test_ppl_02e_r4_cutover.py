@@ -370,6 +370,13 @@ def test_r4_close_retry_is_idempotent(tmp_path):
 
 
 class _FailBeforeDurable:
+    """Fails before anything reaches the store: no durable OPEN is visible."""
+
+    def consistent_view(self):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(projection=SimpleNamespace(open_positions={}))
+
     def commit_open(self, **_kwargs):
         raise OSError("fsync failed")
 
@@ -551,6 +558,68 @@ def test_r4_partial_authority_config_is_not_treated_as_safe_rollback(tmp_path):
         configured_rollback_disposition(
             {"PPL_AUTHORITY_STORE_ROOT": str(tmp_path / "ppl")}
         )
+
+
+def _fsync_failing(monkeypatch, failures):
+    import paper_trading.durable_event_store as durable_store
+
+    real_fsync = durable_store.os.fsync
+    calls = {"n": 0}
+
+    def flaky(fd):
+        calls["n"] += 1
+        if calls["n"] <= failures:
+            raise OSError(5, "EIO injected")
+        return real_fsync(fd)
+
+    monkeypatch.setattr(durable_store.os, "fsync", flaky)
+
+
+def _ppl_sim(tmp_path):
+    rt = runtime(tmp_path)
+    sim = MexcSimulator(
+        lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY,
+        authority_runtime=rt,
+    )
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+    return rt, sim
+
+
+def _order(order_id="ORDER1"):
+    return MexcOrder(
+        order_id=order_id,
+        symbol="BTCUSDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        qty_usd=10.0,
+        decision_id="dp-order",
+    )
+
+
+def test_r4_open_visible_after_fsync_failure_is_reconfirmed_and_mirrored(tmp_path, monkeypatch):
+    rt, sim = _ppl_sim(tmp_path)
+    _fsync_failing(monkeypatch, failures=1)
+    order = sim._fill_market(_order(), 100.0)
+    view = rt.consistent_view()
+    assert order.status is OrderStatus.FILLED
+    assert [e.event_type for e in view.events].count("POSITION_OPENED") == 1
+    assert sim._positions["BTCUSDT"].pos_id == "ORDER1"
+    assert sim._capital == pytest.approx(view.projection.available_cash)
+
+
+def test_r4_open_whose_durability_keeps_failing_propagates_and_blocks_the_symbol(tmp_path, monkeypatch):
+    rt, sim = _ppl_sim(tmp_path)
+    _fsync_failing(monkeypatch, failures=2)
+    with pytest.raises(OSError, match="EIO injected"):
+        sim._fill_market(_order(), 100.0)
+    assert sim._positions == {}
+    assert "ORDER1" in rt.consistent_view().projection.open_positions
+    monkeypatch.undo()
+    second = sim._fill_market(_order("ORDER2"), 100.0)
+    assert second.status is OrderStatus.REJECTED  # no second OPEN on the same symbol
+    opened = [e for e in rt.consistent_view().events if e.event_type == "POSITION_OPENED"]
+    assert [e.trade_id for e in opened] == ["ORDER1"]
 
 
 def test_r4_close_retry_after_post_write_fsync_failure_converges(tmp_path, monkeypatch):
