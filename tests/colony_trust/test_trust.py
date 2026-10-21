@@ -3,6 +3,9 @@
 import ast
 import copy
 import json
+import multiprocessing
+import os
+import time
 from pathlib import Path
 
 import pytest
@@ -480,12 +483,21 @@ def _encode(point):
     return (y | (x & 1) << 255).to_bytes(32, "little")
 
 
-def test_a_key_with_a_small_order_component_is_refused():
-    """A valid key plus a point of order 8 is on the curve but outside the prime-order subgroup."""
+@pytest.mark.parametrize("torsion", [_ORDER_2, _ORDER_4, _SMALL_8])
+def test_a_key_with_a_small_order_component_is_refused(torsion):
+    """A valid key plus a point of order 2, 4 or 8 is on the curve but outside the prime-order subgroup."""
     good = bytes.fromhex(trust.public_key_hex(lab_key("reviewer-1")))
-    mixed = _encode(trust._add(_decode(good), _decode(_SMALL_8)))
+    mixed = _encode(trust._add(_decode(good), _decode(torsion)))
     assert trust.prime_order_key(good) and _encode(_decode(good)) == good
-    assert not trust.prime_order_key(mixed)
+    assert mixed != good and not trust.prime_order_key(mixed)
+
+
+def test_the_public_key_helpers_refuse_anything_but_raw_keys():
+    for value in ("zz" * 32, "00" * 31, 1, None, b"\x00" * 32):
+        with pytest.raises(trust.TrustError, match="KEY_INVALID"):
+            trust.key_id(value)
+    for value in ("00" * 32, None, 1, bytearray(32), b"\x01" * 31):
+        assert trust.prime_order_key(value) is False
 
 
 def test_every_lab_test_key_is_of_prime_order():
@@ -565,7 +577,8 @@ def test_trust_is_not_wired_into_the_lab_and_imports_no_runtime():
     for package in ("colony_lab", "colony_pilot"):
         for path in (ROOT / package).rglob("*.py"):
             assert not any(name.startswith("colony_trust") for name in _imports(path)), path
-    allowed = ("__future__", "contextlib", "fcntl", "hashlib", "json", "os", "re", "pathlib", "typing", "cryptography",
+    allowed = ("__future__", "contextlib", "fcntl", "hashlib", "json", "os", "re", "stat", "pathlib", "typing",
+               "cryptography",
                "colony_lab.a1_identity")
     for path in (ROOT / "colony_trust").rglob("*.py"):
         assert all(name.startswith(allowed) for name in _imports(path)), path
@@ -587,6 +600,124 @@ def test_a_record_of_another_kind_under_the_same_subject_is_refused():
     verdict = _verify(envelope, individual, subject=_subject(individual))
     assert {"RECORD_KIND_MISMATCH", "AUTHOR_NOT_ISSUER"} <= set(verdict["failures"])
     assert verdict["integrity"] == "PASS" and verdict["authenticity"] == "PASS"
+
+
+# ── Second review: guards for every property the operator requires ──────
+def test_two_envelopes_with_the_same_issuer_and_id_in_one_bundle_are_refused_and_spend_nothing(tmp_path):
+    ledger = tmp_path / "consumed.jsonl"
+    one, two = _admission(), _admission(builders.founder(name="other_01")[1])
+    first = _sign(one, ADM, ADMITTER, "admitter-1", label="same")
+    second = _sign(two, ADM, ADMITTER, "admitter-1", label="same")
+    bundle = trust.verify_bundle([(first, one), (second, two)], [(ADM, _subject(one, ADM)), (ADM, _subject(two, ADM))],
+                                 root(), pin_sha256=pin(root()), minimum_version=1, lab_id=LAB, ledger=ledger)
+    assert not bundle["accepted"] and bundle["failures"] == ["ENVELOPE_ID_REUSED"]
+    assert not ledger.exists()
+
+
+def _accept_once(ledger, queue):
+    queue.put(_admission_bundle(Path(ledger))["accepted"])
+
+
+def test_concurrent_bundles_accept_a_single_use_envelope_once(tmp_path, monkeypatch):
+    ledger = tmp_path / "consumed.jsonl"
+    read = trust._read
+
+    def slow_read(fd):  # widen the window between reading the ledger and writing it
+        spent = read(fd)
+        time.sleep(0.05)
+        return spent
+    monkeypatch.setattr(trust, "_read", slow_read)
+    context = multiprocessing.get_context("fork")
+    queue = context.Queue()
+    workers = [context.Process(target=_accept_once, args=(str(ledger), queue)) for _ in range(12)]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join(30)
+    results = [queue.get(timeout=5) for _ in workers]
+    assert results.count(True) == 1 and len(ledger.read_bytes().splitlines()) == 1
+
+
+def test_the_ledger_is_private_and_only_a_regular_single_link_file(tmp_path):
+    ledger = tmp_path / "consumed.jsonl"
+    assert _admission_bundle(ledger)["accepted"]
+    assert ledger.stat().st_mode & 0o777 == 0o600
+    linked = tmp_path / "linked.jsonl"
+    os.link(ledger, linked)
+    assert _admission_bundle(linked, _admission(_individual()))["failures"] == ["LEDGER_CORRUPT"]
+    directory = tmp_path / "a-directory"
+    directory.mkdir()
+    for bad in (directory, tmp_path / "nul\x00name", tmp_path / "missing" / "consumed.jsonl"):
+        assert _admission_bundle(bad)["failures"] == ["LEDGER_CORRUPT"], bad
+
+
+def test_a_refused_bundle_creates_no_ledger(tmp_path):
+    ledger = tmp_path / "consumed.jsonl"
+    admission = _admission()
+    forged = _resign(_sign(admission, ADM, ADMITTER, "admitter-1"), key="reviewer-1")
+    assert not _admission_bundle(ledger, admission, forged)["accepted"]
+    assert not ledger.exists()
+
+
+def test_an_unsynced_ledger_write_is_not_accepted(tmp_path, monkeypatch):
+    def fail(fd):
+        raise OSError("fsync failed")
+    monkeypatch.setattr(trust.os, "fsync", fail)
+    bundle = _admission_bundle(tmp_path / "consumed.jsonl")
+    assert not bundle["accepted"] and bundle["failures"] == ["LEDGER_CORRUPT"]
+
+
+def test_a_malformed_envelope_leaves_the_other_properties_not_evaluated():
+    record = _qualification()
+    for envelope in ("x", {}, {**_sign(record), "purpose": "\ud800"},
+                     {**_sign(record), "subject": {"agent_id": "X" * 64, "agent_spec_id": "a" * 64}}):
+        verdict = _verify(envelope, record)
+        assert verdict["integrity"] == "FAIL" and not verdict["attested"]
+        assert (verdict["authenticity"], verdict["authorization"]) in {("NOT_EVALUATED", "NOT_EVALUATED")}, verdict
+        assert verdict["failures"][0] in {"ENVELOPE_INVALID", "UNKNOWN_ENVELOPE_SCHEMA"}
+
+
+def test_an_empty_bundle_evaluates_nothing():
+    bundle = _bundle([], [])
+    assert (bundle["integrity"], bundle["authenticity"], bundle["authorization"]) == ("NOT_EVALUATED",) * 3
+    assert not bundle["accepted"]
+    bundle = _bundle(None, None)
+    assert bundle["failures"] == ["BUNDLE_INVALID"] and not bundle["accepted"]
+
+
+def test_issuers_and_keys_are_unique_across_the_root():
+    issuers = root()["issuers"]
+    twice = root(issuers=[*issuers, {**copy.deepcopy(issuers[0]), "keys": [key_entry("admitter-2")]}])
+    shared = copy.deepcopy(issuers)
+    shared[1]["keys"] = copy.deepcopy(shared[0]["keys"])
+    for bad in (twice, root(issuers=shared)):
+        with pytest.raises(trust.TrustError, match="TRUST_ROOT_INVALID"):
+            trust.check_root(bad, pin_sha256=pin(bad), minimum_version=1, lab_id=LAB)
+
+
+def test_a_non_canonical_root_gets_a_coded_refusal():
+    bad = {**root(), "root_version": 1.0}
+    with pytest.raises(trust.TrustError, match="TRUST_ROOT_INVALID"):
+        trust.check_root(bad, pin_sha256="0" * 64, minimum_version=1, lab_id=LAB)
+    record = _qualification()
+    verdict = trust.verify_envelope(_sign(record), record, bad, pin_sha256="0" * 64, minimum_version=1, lab_id=LAB,
+                                    record_kind=QUAL, subject=_subject(record))
+    assert verdict["failures"] == ["TRUST_ROOT_INVALID"] and verdict["authenticity"] == "FAIL"
+
+
+def test_the_root_version_bound_is_inclusive():
+    top = root(version=trust.MAX_VERSION)
+    trust.check_root(top, pin_sha256=pin(top), minimum_version=trust.MAX_VERSION, lab_id=LAB)
+    above = root(version=trust.MAX_VERSION + 1)
+    with pytest.raises(trust.TrustError, match="TRUST_ROOT_INVALID"):
+        trust.check_root(above, pin_sha256=pin(above), minimum_version=1, lab_id=LAB)
+    with pytest.raises(trust.TrustError, match="TRUST_ROOT_ROLLBACK"):
+        trust.check_root(top, pin_sha256=pin(top), minimum_version=trust.MAX_VERSION + 1, lab_id=LAB)
+
+
+def test_a_lab_id_of_another_type_is_another_lab():
+    with pytest.raises(trust.TrustError, match="TRUST_ROOT_OTHER_LAB"):
+        trust.check_root(root(), pin_sha256=pin(root()), minimum_version=1, lab_id=1)
 
 
 def test_a_property_not_evaluated_is_never_attested():

@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -156,6 +157,9 @@ def prime_order_key(raw: bytes) -> bool:
 
 
 def key_id(public_key: str) -> str:
+    """SHA-256 of a raw public key given in hex; KEY_INVALID for anything else."""
+    if type(public_key) is not str or not _HEX64.fullmatch(public_key):
+        raise TrustError("KEY_INVALID")
     return hashlib.sha256(bytes.fromhex(public_key)).hexdigest()
 
 
@@ -224,7 +228,7 @@ def check_root(root: Any, *, pin_sha256: str, minimum_version: int, lab_id: str)
         digest = _sha(root)
     except IdentityError:
         raise TrustError("TRUST_ROOT_INVALID") from None
-    if type(pin_sha256) is not str or digest != pin_sha256 or type(lab_id) is not str:
+    if type(pin_sha256) is not str or digest != pin_sha256:
         raise TrustError("TRUST_ROOT_PIN_MISMATCH")
     issuers = _root_shape(root)
     if root["environment"] != ENVIRONMENT:
@@ -428,8 +432,8 @@ def verify_bundle(items: Any, required: Any, root: Any, *, pin_sha256: str, mini
                 replay = _spend(ledger, single, commit=accept)
             except TrustError as exc:
                 replay = [exc.code]
-            except (OSError, TypeError):
-                replay = ["LEDGER_CORRUPT"]  # unreadable or not a regular file: fail closed
+            except (OSError, TypeError, ValueError):
+                replay = ["LEDGER_CORRUPT"]  # unreadable, refused path or not a regular file: fail closed
     if replay:
         summary["authorization"] = "FAIL"
     return {"verdict_schema": VERDICT_SCHEMA, **summary,
@@ -440,9 +444,20 @@ def verify_bundle(items: Any, required: Any, root: Any, *, pin_sha256: str, mini
 
 # ── Single-use envelopes ──────────────────────────────────────────────────
 @contextmanager
-def _locked(ledger: Path):
-    fd = os.open(ledger, os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
+def _locked(ledger: Path, *, create: bool):
+    """The ledger, locked; None when it does not exist and nothing will be written."""
+    flags = os.O_RDWR | os.O_APPEND | os.O_NOFOLLOW | (os.O_CREAT if create else 0)
     try:
+        fd = os.open(ledger, flags, 0o600)
+    except FileNotFoundError:
+        if create:
+            raise
+        yield None
+        return
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise TrustError("LEDGER_CORRUPT")
         fcntl.flock(fd, fcntl.LOCK_EX)
         yield fd
     finally:
@@ -485,14 +500,16 @@ def _write(fd: int, data: bytes) -> None:
 
 def _spend(ledger: Path, envelopes: list, *, commit: bool) -> list:
     """Replay codes for single-use envelopes; with ``commit`` and none, append them (one locked section)."""
-    with _locked(ledger) as fd:
-        spent, codes, lines = _read(fd), [], []
+    keys = [(envelope["issuer_id"], envelope["envelope_id"]) for envelope in envelopes]
+    if len(set(keys)) != len(keys):  # the same key twice in one bundle: refused before the ledger is touched
+        return ["ENVELOPE_ID_REUSED"]
+    with _locked(ledger, create=commit) as fd:
+        spent, codes, lines = ({} if fd is None else _read(fd)), [], []
         for envelope in envelopes:
             key, digest = (envelope["issuer_id"], envelope["envelope_id"]), _sha(envelope)
             if key in spent:
                 codes.append("ENVELOPE_REPLAYED" if spent[key] == digest else "ENVELOPE_ID_REUSED")
                 continue
-            spent[key] = digest
             lines.append(_canonical({"ledger_schema": LEDGER_SCHEMA, "issuer_id": key[0], "envelope_id": key[1],
                                      "envelope_sha256": digest}) + b"\n")
         if commit and not codes:
