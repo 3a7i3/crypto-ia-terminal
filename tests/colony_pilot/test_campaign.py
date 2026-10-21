@@ -293,6 +293,7 @@ def test_an_erroring_trial_fails_and_is_never_skipped(monkeypatch, tmp_path):
     monkeypatch.setattr(c, "birth_trial", boom)
     [result] = c._round(criteria, r8, {}, tmp_path)
     assert result["passed"] is False and result["failed_predicates"] == ["TRIAL_ERROR"]
+    assert result["error"] == "RuntimeError" and result["facts_sha256"] is None
 
 
 def test_main_refuses_before_any_trial_unless_isolated(monkeypatch, tmp_path, capsys):
@@ -964,3 +965,78 @@ def test_a_qualification_file_present_before_the_replay_is_not_counted_as_writte
     monkeypatch.setattr(c.sup.Supervisor, "run",
                         lambda self, agent, task: {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None})
     assert c.run_trial(trial, criteria, _r8(), qualification, tmp_path)["qualification_files"] == []
+
+
+# Review 7 of #484 (M1-septies, m28, m30).
+def test_the_pilot_code_is_the_whole_package(monkeypatch):
+    """T37: the hash and CODE_NOT_REGULAR cover every file of ``colony_pilot``, ``__init__.py`` included."""
+    assert tuple(str(b.relative_to(c.sup.REPO)) for b in c.PILOT_CODE) == ("colony_pilot",)
+    files = [str(p.relative_to(c.sup.REPO)) for p in q._code_files(c.PILOT_CODE)]
+    assert files == ["colony_pilot/__init__.py", "colony_pilot/campaign.py"]
+    assert c.pilot_code_sha256() == q._hash_files([c.sup.REPO / f for f in files])
+    seen, real = [], c.sup.walk_code
+
+    def walk(roots):
+        seen.append(roots)
+        return real(roots)
+    monkeypatch.setattr(c.sup, "walk_code", walk)
+    c.code_irregular()
+    assert ("colony_pilot",) in seen  # CODE_NOT_REGULAR walks the same package as the hash
+
+
+def test_the_task_types_add_only_the_artifact_ask():
+    assert set(c.TASKS) - set(c.sup.TASKS) == {c.ARTIFACT_ASK}
+    assert all(c.TASKS[name] == c.sup.TASKS[name] for name in c.sup.TASKS)
+    ask = c.TASKS[c.ARTIFACT_ASK]
+    assert (ask.capability, ask.module, ask.repo_view) == ("GOVERNED_ARTIFACT_READ", "colony_lab.workers.sentinel",
+                                                           c.sup.SENTINEL_VIEW)
+    assert all(t.capability != "GOVERNED_ARTIFACT_READ" for t in c.sup.TASKS.values())
+
+
+def test_a_round_reports_the_code_the_trial_saw_not_the_expected_one(monkeypatch, tmp_path):
+    """T18: the recorded code of a birth or P01 comes from its facts."""
+    criteria = {**_criteria(), "birth_trials": [_criteria()["birth_trials"][1]], "permission_trials": []}
+    monkeypatch.setattr(c, "birth_trial", lambda trial, *args: {**trial["expect"], "code": "SEEN"})
+    [result] = c._round(criteria, {**_r8(), "trials": []}, {}, tmp_path)
+    assert result["code"] == "SEEN" and result["passed"] is False and result["failed_predicates"] == ["code"]
+
+
+def test_the_evidence_names_the_parent_individual(monkeypatch, tmp_path):
+    """T49."""
+    _passing(monkeypatch)
+    parent_spec = q.sentinel_spec(_r8()["subject"])
+    parent = c.qualify(tmp_path)["parent"]
+    assert (parent["agent_id"], parent["agent_spec_id"]) == (parent_spec["agent_id"], parent_spec["agent_spec_id"])
+    assert parent["agent_id"].startswith("4279e165") and parent["agent_id"] != parent["agent_spec_id"]
+
+
+def test_an_honest_replay_leaves_every_watched_fact_true(monkeypatch, tmp_path):
+    """m30: the positive side of ``record_unchanged``, ``runs_unchanged`` and the parent facts."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q00-nominal")
+    monkeypatch.setattr(c.sup.Supervisor, "run",
+                        lambda self, agent, task: {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None})
+    facts = c.run_trial(trial, criteria, _r8(), qualification, tmp_path)
+    assert facts["record_unchanged"] is True and facts["runs_unchanged"] is True
+    assert facts["parent_unchanged"] is True and facts["birth_qualification_unchanged"] is True
+    assert facts["qualification_files"] == [] and facts["outcome"]["status"] == "COMPLETED"
+
+
+def test_main_evaluates_the_current_criteria_unless_told_and_refuses_unknown_ones(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    asked = []
+
+    def qualify(workdir, revision):
+        asked.append(revision)
+        return {"proposed_state": "FAILED", "failure_reasons": [], "rounds": [[]]}
+    monkeypatch.setattr(c, "qualify", qualify)
+    c.main(["--out", str(tmp_path)])
+    c.main(["--out", str(tmp_path), "--criteria", "p0"])
+    assert asked == [c.CURRENT, "p0"] and c.CURRENT == "p1"
+    with pytest.raises(SystemExit) as refused:
+        c.main(["--out", str(tmp_path), "--criteria", "p9"])
+    assert refused.value.code == 2 and asked == [c.CURRENT, "p0"]
+    with pytest.raises(SystemExit):
+        c.main([])  # --out is required
+    capsys.readouterr()

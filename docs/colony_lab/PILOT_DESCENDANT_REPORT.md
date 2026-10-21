@@ -123,8 +123,9 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   pilot's journal is seen by B12, a replay reports the journal's last event; the pilot spec carries
   the frozen identity of p1 (`agent_id` `1eb3baaf…`, `agent_spec_id` `660ec9a8…`); some fields of the
   evidence (rounds, determinism) and of the CLI summary (state, reasons) are checked. Of the review's
-  12 named mutants, 8 were then killed without the tripwire; review 6 found that 4 (R07, R41, R45,
-  R47) still survived, and they are killed by the tests below.
+  12 named mutants, 8 were then killed without the PC2 tripwire, one of them (R44) only by a test that
+  calls the real `parent_qualification`; review 6 found that 4 (R07, R41, R45, R47) still survived,
+  and they are killed by the tests below.
 - Some tests call the real `parent_qualification` and `sentinel_spec`, so they fail whenever
   `colony_lab`'s code or Sentinel's r8 record changes: this is a tripwire on purpose (the pilot's
   evidence names them), not a fault of the pilot evaluator.
@@ -147,9 +148,13 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   appended to the parent's `activity.sqlite3` at a birth and a file moved between subdirectories
   change `_tree`; several failing gates are all reported, with the evidence's schema (as a literal),
   checkout, irregular code, view, runtime, sandbox and criteria revision; the CLI lists every failed
-  trial. The 11 mutants named for these are killed without the tripwire.
+  trial. The 11 mutants named for these are killed without the PC2 tripwire; R41, R45 and the three
+  evidence-field mutants only by tests that call the real `parent_qualification` (see the point
+  on those tests above).
 - String-literal and `rglob` sweep by the author, as review 6 recommended: each double-quoted string
-  inside a function prefixed with `zz`, and each `rglob` made `glob` (131 mutants). 22 survived; one
+  prefixed with `zz`, and each `rglob` made `glob`, on the same lines as the deletion sweep (one-line
+  statements inside a function, not headers of `if`, `for`, `def` or `return` continuations), so not
+  every string of the file (131 mutants). 22 survived; one
   was a reporting gap (the `code` a round records for births and P01), now killed by a test. The 21
   others are equivalent: error and help messages and task labels (5, among them the CLI's
   description); the forged values of B03, B04, B05 and B06, which stay refused with the same code
@@ -159,6 +164,28 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   from the copied parent spec, recomputed anyway (frozen ids tested); the grandchild's name suffix
   and the keys of its forged qualification, refused by the lineage rule first (B11); the `UNREADABLE`
   branch, unreachable by r8. Arguments removed from calls were not swept systematically.
+- Review of those tests (`59942845`): PC2 still valid (a control campaign in a copy proposes
+  `PROPOSED_QUALIFIED_SIMULATED`, 28 trials twice), every earlier named mutant killed, 1257 tests
+  passed with no skip, **unfavourable** without a blocking defect: `PILOT_CODE` could be narrowed to
+  `campaign.py` (the hash and `CODE_NOT_REGULAR` would then miss `__init__.py` and links elsewhere in
+  the package) because the tests of `code_irregular` stubbed what they walked; minor ones on the
+  recorded code and error of a trial, the parent's identity in the evidence, a positive test of the
+  replay facts, and the report's counts (corrected above). Tests added since, with no change to
+  `colony_pilot/`: the pilot code is exactly `colony_pilot/__init__.py` and `campaign.py`, hashed as
+  such and walked by `CODE_NOT_REGULAR`; the campaign's task types add only `ARTIFACT_ASK` (the one
+  type needing `GOVERNED_ARTIFACT_READ`); a round records the code the trial saw and the error type;
+  the evidence names Sentinel's identity; an honest replay leaves every watched fact true. The
+  author's mutants for these (`PILOT_CODE`, two of `TASKS`, the recorded code, the error, the
+  parent's id) are killed.
+- Keyword-argument removal sweep by the author, as review 7 recommended: each keyword argument of
+  a call inside a function removed (42 mutants). 10 survived; three were the CLI's `--criteria`
+  choices and default and `--out` being required, now killed by a test of `main`. The 7 others are
+  equivalent: `sort_keys` when the same store is read twice; where the lab roots and the work
+  directory are created and their prefixes (3: they are removed either way, and the sandbox view is
+  measured on the checkout); B09's empty declared diff, refused first as the parent's identity;
+  `tasks=sup.TASKS` for the replays, which the campaign's own registry only extends (as A30); the
+  CLI's description. Positional arguments, numbers and dictionary keys were swept by hand by the
+  reviews only.
 
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
