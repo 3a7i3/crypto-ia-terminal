@@ -9,8 +9,9 @@ from colony_lab import a1_identity as a1
 from colony_lab import lineage
 from colony_lab import qualification as q
 from colony_pilot import campaign as c
+from tests.colony_lab.test_supervisor import HOST_NAMESPACES
 
-EVIDENCE = c.DOCS / "evidence" / "PC1_pilot_evidence.json"
+EVIDENCE = c.DOCS / "evidence" / "PC2_pilot_evidence.json"
 CLEAN_TREE = {"git_head": "0" * 40, "tracked_clean": True, "stray_code": []}
 CLEAN_VIEW = {"files": 1, "sha256": "0" * 64, "matches_subject": True}
 SOURCE_RUNTIME = {"executable": "/x/python", "prefix": "/x", "base_prefix": "/x", "path": ["/x/lib"],
@@ -28,13 +29,23 @@ def _r8():
 
 def test_the_criteria_are_pinned_and_frozen_before_the_campaign(monkeypatch, tmp_path):
     criteria, pinned = c.load_criteria()
-    assert pinned == hashlib.sha256(c.CRITERIA["p0"][0].read_bytes()).hexdigest()
+    assert c.CURRENT == "p1" and pinned == hashlib.sha256(c.CRITERIA["p1"][0].read_bytes()).hexdigest()
     assert criteria["frozen_before_campaign"] is True and criteria["scope"] == "SIMULATED_DETERMINISTIC"
-    edited = tmp_path / "p0.json"
-    edited.write_bytes(c.CRITERIA["p0"][0].read_bytes().replace(b"PERMISSION_ESCALATION", b"ADMITTED_TO_LAB"))
-    monkeypatch.setitem(c.CRITERIA, "p0", (edited, pinned))
+    edited = tmp_path / "p1.json"
+    edited.write_bytes(c.CRITERIA["p1"][0].read_bytes().replace(b"PERMISSION_ESCALATION", b"ADMITTED_TO_LAB"))
+    monkeypatch.setitem(c.CRITERIA, "p1", (edited, pinned))
     with pytest.raises(SystemExit):
         c.load_criteria()
+
+
+def test_p1_keeps_every_p0_expectation():
+    p0, p1 = c.load_criteria("p0")[0], c.load_criteria("p1")[0]
+    assert p1["supersedes"]["sha256"] == c.CRITERIA["p0"][1]
+    old = {t["id"]: t for t in p0["birth_trials"]}
+    assert all({**t, "expect": {**t["expect"]}} == next(n for n in p1["birth_trials"] if n["id"] == i)
+               for i, t in old.items())
+    assert p0["permission_trials"] == p1["permission_trials"] and p0["pilot"] == p1["pilot"]
+    assert p0["run_trials"]["extra_expect"].items() <= p1["run_trials"]["extra_expect"].items()
 
 
 def test_the_pilot_is_another_a1_individual_with_only_its_purpose_changed():
@@ -46,10 +57,10 @@ def test_the_pilot_is_another_a1_individual_with_only_its_purpose_changed():
     assert set(criteria["pilot"]["lab_permissions"]) < set(_r8()["subject"]["lab_permissions"])
 
 
-def test_the_pc1_evidence_names_this_code_and_passed_every_trial_twice():
+def test_the_pc2_evidence_names_this_code_and_passed_every_trial_twice():
     evidence = json.loads(EVIDENCE.read_text())
     criteria = _criteria()
-    assert evidence["criteria_sha256"] == c.CRITERIA["p0"][1] and evidence["criteria_revision"] == c.CURRENT
+    assert evidence["criteria_sha256"] == c.CRITERIA["p1"][1] and evidence["criteria_revision"] == c.CURRENT
     assert evidence["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED" and evidence["failure_reasons"] == []
     assert evidence["deterministic_across_fresh_labs"] and evidence["environment"]["sandbox"] == "VERIFIED"
     expected_ids = [t["id"] for t in criteria["birth_trials"]] + [t["id"] for t in _r8()["trials"]] + \
@@ -81,15 +92,139 @@ def test_the_parent_record_must_name_the_current_code(monkeypatch):
                                                    "mismatched": ["UNREADABLE"]})
 
 
-@pytest.mark.parametrize("trial_id", [t["id"] for t in json.loads(c.CRITERIA["p0"][0].read_text())["birth_trials"]])
+@pytest.mark.parametrize("trial_id", [t["id"] for t in json.loads(c.CRITERIA["p1"][0].read_text())["birth_trials"]])
 def test_each_birth_gives_its_frozen_outcome(tmp_path, trial_id):
-    """Births need no sandbox: they are the lab's own gate (supervisor and lineage), run here again."""
+    """Births are the lab's own gate (supervisor and lineage), run here again; only B12 needs the
+    sandbox (its parent runs once first). Compared without ``_check``."""
     criteria = _criteria()
     trial = next(t for t in criteria["birth_trials"] if t["id"] == trial_id)
+    if trial["case"] == "valid_after_parent_ran" and not HOST_NAMESPACES:
+        pytest.skip("host refuses unprivileged namespaces; the parent cannot run")
     qualification, _ = c.parent_qualification(criteria)
     facts = c.birth_trial(trial, criteria, _r8(), qualification, tmp_path)
-    assert c._check(trial["expect"], facts) == []
+    assert {name: facts[name] for name in trial["expect"]} == trial["expect"]
     assert list(tmp_path.iterdir()) == []  # the lab root is removed
+
+
+def test_check_names_every_wrong_or_missing_fact():
+    assert c._check({"a": 1, "b": [1], "c": True}, {"a": 1, "b": [1], "c": True}) == []
+    assert c._check({"a": 1, "b": [1], "c": True}, {"a": 2, "b": [1]}) == ["a", "c"]
+    assert c._check({"x": False}, {}) == ["x"]
+
+
+def _valid(criteria):
+    return next(t for t in criteria["birth_trials"] if t["case"] == "valid")
+
+
+def _wrap_admit(monkeypatch, after):
+    original = c.sup.Supervisor.admit
+
+    def admit(self, record, spec, **kwargs):
+        result = original(self, record, spec, **kwargs)
+        after(self, record)
+        return result
+    monkeypatch.setattr(c.sup.Supervisor, "admit", admit)
+
+
+def test_a_birth_that_writes_into_the_parent_is_seen(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+
+    def touch_parent(self, record):
+        if record["role"] == "DESCENDANT":
+            parent = self.root / "individuals" / record["lineage"]["parent_agent_id"]
+            (parent / "usage.json").write_text('{"runs": 7}')
+    _wrap_admit(monkeypatch, touch_parent)
+    assert c.birth_trial(_valid(criteria), criteria, _r8(), qualification, tmp_path)["parent_unchanged"] is False
+
+
+def test_a_rewritten_birth_qualification_is_seen(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+
+    def rewrite(self, record):  # still a shape-valid qualification, so load() accepts it
+        if record["role"] == "DESCENDANT":
+            other = {**qualification, "reviewer_id": "another-review-process"}
+            (self.root / "individuals" / record["agent_id"] / "birth_qualification.json").write_text(json.dumps(other))
+    _wrap_admit(monkeypatch, rewrite)
+    facts = c.birth_trial(_valid(criteria), criteria, _r8(), qualification, tmp_path)
+    assert facts["birth_qualification_is_parent_record"] is False
+
+
+def test_an_inherited_journal_is_counted(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    monkeypatch.setattr(c, "_events", lambda home: ["inherited"] if "individuals" in str(home) else [])
+    facts = c.birth_trial(_valid(criteria), criteria, _r8(), qualification, tmp_path)
+    assert facts["journal_events"] == 1
+    b12 = next(t for t in criteria["birth_trials"] if t["case"] == "valid_after_parent_ran")
+    monkeypatch.setattr(c.sup.Supervisor, "run", lambda self, agent, task: {"status": "COMPLETED"})
+    facts = c.birth_trial(b12, criteria, _r8(), qualification, tmp_path)
+    assert facts["journal_events"] == 1 and facts["pilot_journal_has_no_parent_event"] is False
+    assert facts["parent_journal_nonempty"] is True
+
+
+def test_equal_permissions_are_not_a_narrower_subset(tmp_path):
+    criteria = _criteria()
+    same = {**criteria, "pilot": {**criteria["pilot"], "lab_permissions": criteria["pilot"]["parent_lab_permissions"]}}
+    qualification, _ = c.parent_qualification(criteria)
+    facts = c.birth_trial(_valid(same), same, _r8(), qualification, tmp_path)
+    assert facts["code"] == "ADMITTED_TO_LAB" and facts["permissions_subset_of_parent"] is False
+
+
+def test_the_permission_trial_sees_shared_or_changed_journals(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = criteria["permission_trials"][0]
+    monkeypatch.setattr(c.sup.Supervisor, "run", lambda self, agent, task: {"status": "S", "code": task["task_id"]})
+    calls = iter([["shared"], ["shared"], ["shared", "new"]])
+    monkeypatch.setattr(c, "_events", lambda home: next(calls))
+    facts = c.permission_trial(trial, criteria, _r8(), qualification, tmp_path)
+    assert facts["parent"] == {"status": "S", "code": "p01-parent"} and facts["pilot"]["code"] == "p01-pilot"
+    assert facts["pilot_journal_has_no_parent_event"] is False and facts["parent_journal_unchanged_by_pilot"] is False
+
+
+def test_a_replayed_run_that_writes_a_qualification_or_touches_the_birth_record_is_seen(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q13-self-promotion")
+
+    def run(self, agent, task):
+        home = self.root / "individuals" / agent
+        (home / "self_qualification.json").write_text("{}")
+        (home / "birth_qualification.json").write_text("{}")
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    facts = c.run_trial(trial, criteria, _r8(), qualification, tmp_path)
+    assert facts["qualification_files"] == ["self_qualification.json"]
+    assert facts["birth_qualification_unchanged"] is False and facts["parent_unchanged"] is True
+
+
+def test_the_replay_applies_the_extra_expectations(monkeypatch, tmp_path):
+    criteria = {**_criteria(), "birth_trials": [], "permission_trials": []}
+    r8 = {**_r8(), "trials": [_r8()["trials"][0]]}
+    monkeypatch.setattr(c, "run_trial", lambda *args: {"outcome": {"status": "COMPLETED", "code": "RUN_COMPLETED"},
+                                                       "parent_unchanged": False, "birth_qualification_unchanged": True})
+    monkeypatch.setattr(q, "evaluate", lambda *args: [])
+    [result] = c._round(criteria, r8, {}, tmp_path)
+    assert result["passed"] is False and result["failed_predicates"] == ["parent_unchanged"]
+
+
+def test_a_resealed_generation_two_record_with_a_wrong_lineage_is_refused(tmp_path):
+    """Review of PC1, L12: verify_record checks a descendant's lineage and genotype against its parent."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    lab = c._Lab(tmp_path, _r8())
+    record, spec = lab.make(criteria["pilot"], qualification)
+    for field, value in (("lineage", {**record["lineage"], "generation": 2}),
+                         ("lineage", {**record["lineage"], "founder_agent_id": record["agent_id"]}),
+                         ("genotype", {**record["genotype"], "declared_diff": []}),
+                         ("genotype", {**record["genotype"], "base_agent_spec_id": "0" * 64})):
+        forged = lineage._seal({**{k: v for k, v in record.items() if k != "record_hash"}, field: value})
+        with pytest.raises(c.sup.LabError) as refused:
+            lab.supervisor.admit(forged, spec, parent_qualification=qualification)
+        assert refused.value.code == "LINEAGE_INVALID"
+    lab.close()
 
 
 def test_a_birth_from_an_unqualified_parent_is_refused_even_by_the_campaign(tmp_path):
@@ -144,7 +279,9 @@ def test_failed_or_unstable_trials_fail_the_campaign(monkeypatch, tmp_path):
     assert c.qualify(tmp_path)["failure_reasons"] == ["NOT_DETERMINISTIC"]
     monkeypatch.setattr(c, "_round", lambda *args: [{"id": "X", "passed": False, "facts_sha256": "1" * 64}])
     assert c.qualify(tmp_path)["failure_reasons"] == ["TRIALS_FAILED"]
-    assert c.qualify(tmp_path, "p0")["criteria_status"] == "CURRENT"
+    assert c.qualify(tmp_path, "p1")["criteria_status"] == "CURRENT"
+    superseded = c.qualify(tmp_path, "p0")
+    assert superseded["criteria_status"] == "SUPERSEDED" and "CRITERIA_SUPERSEDED" in superseded["failure_reasons"]
 
 
 def test_an_erroring_trial_fails_and_is_never_skipped(monkeypatch, tmp_path):
