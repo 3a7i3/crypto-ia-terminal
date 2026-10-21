@@ -74,22 +74,43 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   `criteria_sha256`, the `tracked_clean` gate removed), 8 replay mutants killed by the campaign only
   (m10), and four pre-existing lab rules not exercised in refusal (m11). Tests added since, again with
   no change to `colony_pilot/`, provoke each key of the parent check through a forged record file,
-  `tracked_clean` false, a replayed run writing the pilot's record and runs, each replay setup applied
-  to the pilot (budget spent, output budget, corrupted journal, supervisor killed, unadmitted mission,
-  and the golden answers and lab clock passed), a failed preparatory run, the CLI's output, and the
+  `tracked_clean` false, a replayed run writing the pilot's `spec.json` and `usage.json`, each replay
+  setup applied to the pilot (budget spent, output budget, corrupted journal, supervisor killed,
+  unadmitted mission), a failed preparatory run, the CLI's output, and the
   rules of m11: a resealed record with a credential (L20), a qualification of another scope (L25), a
   descendant carrying its parent's `agent_id` (L23) and a birth qualification rewritten to name the
   pilot after admission (S17).
 - Systematic sweep by the author, as review 3 recommended: every comparison, boolean and `not`
   operator of `campaign.py` mutated in turn, the whole `tests/colony_pilot` run without the hash
   tripwire. First pass: 95 mutants, 21 survivors. After the tests above, the 21 were mutated again:
-  11 survive, none of them a verdict path. Seven are in the docstring, a comment or the refusal message
-  text (lines 4, 5, 9, 263, 376). Line 166 (`admit_valid`) is equivalent: the branch it selects then
+  11 survive, none of them a verdict path. Seven mutants are in the docstring, a comment or the refusal
+  message text (one on line 4, three on line 5, one each on lines 9, 263 and 376). Line 166 (`admit_valid`) is equivalent: the branch it selects then
   does the same thing. Lines 141 and 279 are near-equivalent: they pick another r8 question for B12's
   preparatory run and for P01, which still completes for the parent, so the trial keeps its meaning
   with another question. Line 380 (`--out` not required) only changes how a run without `--out`
   fails. The operators mutated are `==`, `!=`, `<`, `<=`, `not`, `and`, `or`, `is not`, `-`, `True`
-  and `False`; other mutations (constants, deleted statements) were not swept by the author.
+  and `False`; constants and arguments were not swept by the author at this stage.
+- Review of those tests (`3af9c2dd`): PC2 reproduced and still valid, 1234 tests passed with no skip,
+  **unfavourable** again without a blocking defect: 5 survivors among mutants the author had not swept
+  (P01 dropped from a round, a single r8 replay, determinism compared on failures instead of facts,
+  `_tree` not recursive, the evidence naming Sentinel's evaluator hash as the pilot's), plus minor
+  ones (evidence fields, `SUBJECT_CODE_CHANGED`, the Q05 restart, the report's wording, corrected
+  above). Tests added since, with no change to `colony_pilot/`: a round runs exactly the criteria's
+  12 births, 15 replays and 1 permission trial with their kind, judged with r8's clock and golden
+  answers; two passing rounds with different facts are `NOT_DETERMINISTIC`; a write into the parent's
+  `journal/` during a birth or a replay is seen; every evidence field written by `qualify` is checked;
+  `SUBJECT_CODE_CHANGED` is provoked; Q05's replay is asked of a new supervisor. The author replayed the
+  review's 14 named mutants: all killed without the tripwire.
+- Statement-deletion sweep by the author: each one-line statement inside a function replaced by `pass`
+  (156 mutants). 20 survived; tests then added (a failed parent run before B12, an unknown birth case,
+  no lab root left by a replay, P01 or the sandbox probe, `journal_last` of an empty journal, the hash
+  being a sha256) leave 12, none on a verdict path: in the `make_*` cases, `child_id` and
+  `code = "MADE"` matter only if the lab wrongly made the child, which fails the trial either way
+  (8); the record-hash strip before resealing B10 is equivalent (`_seal` overwrites it); admitting the
+  pilot before B11 is near-equivalent (`make_descendant` refuses the grandchild either way); the
+  `UNREADABLE` branch is never reached by r8 (a corrupted journal is still readable); the
+  `__main__` entry is not used by `launch_command`. Constants and arguments were not swept
+  systematically; review 4 swept them by hand.
 
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.

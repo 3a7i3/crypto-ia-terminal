@@ -467,9 +467,11 @@ def test_each_replay_applies_its_setup_to_the_pilot(monkeypatch, tmp_path, trial
     criteria = _criteria()
     qualification, _ = c.parent_qualification(criteria)
     trial = next(t for t in _r8()["trials"] if t["id"] == trial_id)
-    seen = {"tasks": [], "corrupted": [], "killed": []}
+    seen = {"tasks": [], "corrupted": [], "killed": [], "supervisors": [], "admitted_by": []}
+    _wrap_admit(monkeypatch, lambda self, record: seen["admitted_by"].append(self))
 
     def run(self, agent, task):
+        seen["supervisors"].append(self)
         record = json.loads((self.root / "individuals" / agent / "record.json").read_text())
         seen["tasks"].append((task["task_id"], task["mission_id"], record["role"], record["budget"]))
         return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
@@ -489,8 +491,10 @@ def test_each_replay_applies_its_setup_to_the_pilot(monkeypatch, tmp_path, trial
     assert seen["killed"] == ([pilot_id] if setup == "kill_supervisor_mid_run" else [])
     assert budget["runs"] == (1 if setup == "runs_budget_spent" else q.BUDGET["runs"])
     assert budget["output_bytes"] == (512 if setup == "output_budget_512" else q.BUDGET["output_bytes"])
-    assert missions == ({"fixture-unadmitted-mission"} if setup == "mission_not_admitted" else {q.MISSION}) or \
-        setup in {"corrupt_journal", "runs_budget_spent"}
+    assert seen["tasks"][-1][1] == ("fixture-unadmitted-mission" if setup == "mission_not_admitted" else q.MISSION)
+    assert missions <= {q.MISSION, "fixture-unadmitted-mission"}
+    # Q05: the replayed run is asked of a new supervisor, as after a restart (review 4, N25).
+    assert (seen["supervisors"][-1] is not seen["admitted_by"][0]) == (setup == "kill_supervisor_mid_run")
 
 
 def test_a_failed_preparatory_run_is_a_trial_error(monkeypatch, tmp_path):
@@ -571,3 +575,159 @@ def test_a_birth_qualification_rewritten_to_name_the_child_is_refused_on_load(tm
         lab.supervisor.load(record["agent_id"])
     assert refused.value.code == "SELF_QUALIFICATION_DENIED"
     lab.close()
+
+
+# Review 4 of #484 (M1-quater, m12–m15): what a round runs, what determinism compares, the parent's
+# subdirectories, the evidence's own fields, SUBJECT_CODE_CHANGED.
+_REAL_ROUND = c._round  # _passing replaces it; the test of determinism needs the real one
+
+
+def _stub_trials(monkeypatch, salt=lambda: 0):
+    """Trial functions that pass with facts unique to each trial; returns the calls to q.evaluate."""
+    extra = _criteria()["run_trials"]["extra_expect"]
+    calls = []
+
+    def birth(trial, *args):
+        return {**trial["expect"], "trial": trial["id"], "salt": salt()}
+
+    def run(trial, *args):
+        return {**extra, "outcome": {"status": "COMPLETED", "code": trial["id"]}, "trial": trial["id"], "salt": salt()}
+
+    def evaluate(expect, facts, clock, trial, golden):
+        calls.append((trial["id"], clock, golden))
+        return []
+    monkeypatch.setattr(c, "birth_trial", birth)
+    monkeypatch.setattr(c, "run_trial", run)
+    monkeypatch.setattr(c, "permission_trial", birth)
+    monkeypatch.setattr(q, "evaluate", evaluate)
+    return calls
+
+
+def test_a_round_runs_exactly_the_criteria_trials_and_digests_their_facts(monkeypatch, tmp_path):
+    criteria, r8 = _criteria(), _r8()
+    calls = _stub_trials(monkeypatch)
+    results = c._round(criteria, r8, {}, tmp_path)
+    expected = [(t["id"], "birth") for t in criteria["birth_trials"]] + [(t["id"], "run") for t in r8["trials"]] + \
+        [(t["id"], "permission") for t in criteria["permission_trials"]]
+    assert [(r["id"], r["kind"]) for r in results] == expected
+    assert len(criteria["birth_trials"]) == 12 and len(r8["trials"]) == 15 and len(criteria["permission_trials"]) == 1
+    assert all(r["passed"] for r in results)
+    assert len({r["facts_sha256"] for r in results}) == len(results)  # facts, not the (empty) failures
+    run = next(r for r in results if r["kind"] == "run")
+    assert run["facts_sha256"] == q._digest({**criteria["run_trials"]["extra_expect"], "trial": run["id"], "salt": 0,
+                                              "outcome": {"status": "COMPLETED", "code": run["id"]}})
+    assert run["status"] == "COMPLETED" and run["code"] == run["id"]
+    # Each replay is judged with r8's own lab clock and golden answers.
+    assert [i for i, _, _ in calls] == [t["id"] for t in r8["trials"]]
+    assert all(clock == r8["lab_clock_utc"] and golden == r8["_golden"] for _, clock, golden in calls)
+    assert r8["lab_clock_utc"] is not None and r8["_golden"]
+
+
+def test_two_passing_rounds_with_different_facts_are_not_deterministic(monkeypatch, tmp_path):
+    _passing(monkeypatch)
+    counter = iter(range(10**6))
+    monkeypatch.setattr(c, "_round", _REAL_ROUND)
+    _stub_trials(monkeypatch, salt=lambda: next(counter))
+    evidence = c.qualify(tmp_path)
+    assert all(r["passed"] for results in evidence["rounds"] for r in results)
+    assert evidence["failure_reasons"] == ["NOT_DETERMINISTIC"]
+    _stub_trials(monkeypatch)
+    assert c.qualify(tmp_path)["failure_reasons"] == []
+
+
+def _write_parent_journal(root, agent):
+    for home in (root / "individuals").iterdir():
+        if home.name != agent:
+            nested = home / c.sup.JOURNAL_DIR / "injected"
+            nested.parent.mkdir(parents=True, exist_ok=True)
+            nested.write_text("x")
+
+
+def test_a_write_into_a_parent_subdirectory_is_seen_by_births_and_replays(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q00-nominal")
+
+    def run(self, agent, task):
+        _write_parent_journal(self.root, agent)
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    assert c.run_trial(trial, criteria, _r8(), qualification, tmp_path)["parent_unchanged"] is False
+    monkeypatch.undo()
+    _wrap_admit(monkeypatch, lambda self, record: record["role"] == "DESCENDANT" and
+                _write_parent_journal(self.root, record["agent_id"]))
+    assert c.birth_trial(_valid(criteria), criteria, _r8(), qualification, tmp_path)["parent_unchanged"] is False
+
+
+def test_the_evidence_names_the_pilot_evaluator_the_parent_record_and_the_criteria(monkeypatch, tmp_path):
+    _passing(monkeypatch)
+    criteria, criteria_sha256 = c.load_criteria(c.CURRENT)
+    evidence = c.qualify(tmp_path)
+    assert evidence["pilot_code_sha256"] == c.pilot_code_sha256() != q.evaluator_code_sha256()
+    assert evidence["sentinel_evaluator_code_sha256"] == q.evaluator_code_sha256()
+    assert evidence["subject_code_sha256"] == q.subject_code_sha256()
+    assert evidence["criteria_sha256"] == criteria_sha256 == c.CRITERIA[c.CURRENT][1]
+    assert evidence["scope"] == criteria["scope"] == "SIMULATED_DETERMINISTIC"
+    assert evidence["not_claimed"] == criteria["not_claimed"] and evidence["not_claimed"]
+    record_file = c.DOCS / criteria["parent"]["record_file"]
+    parent = evidence["parent"]
+    assert parent["record_sha256"] == hashlib.sha256(record_file.read_bytes()).hexdigest()
+    assert parent["qualification"] == json.loads(record_file.read_text())
+    assert parent["matches_current_code"] is True and parent["mismatched"] == []
+    pilot = evidence["pilot"]
+    spec = c.pilot_spec(q.sentinel_spec(_r8()["subject"]), criteria["pilot"])
+    assert pilot == {"agent_id": spec["agent_id"], "agent_spec_id": spec["agent_spec_id"],
+                     "spec_artifact_hash": a1.spec_artifact_hash(spec), "declared_diff": ["purpose"],
+                     "lab_permissions": ["DIAGNOSTIC_PRODUCE"], "generation": 1}
+
+
+def test_a_subject_other_than_the_r8_golden_fails_the_campaign(monkeypatch, tmp_path):
+    """A22/N49: SUBJECT_CODE_CHANGED, provoked through the r8 golden the campaign compares with."""
+    _passing(monkeypatch)
+    real = q.load_criteria
+
+    def load(revision):
+        criteria, sha = real(revision)
+        return {**criteria, "_golden": {**criteria["_golden"], "subject_code_sha256": "e" * 64}}, sha
+    monkeypatch.setattr(q, "load_criteria", load)
+    evidence = c.qualify(tmp_path)
+    assert evidence["proposed_state"] == "FAILED" and "SUBJECT_CODE_CHANGED" in evidence["failure_reasons"]
+
+
+# The author's statement-deletion sweep after review 4.
+def test_the_pilot_code_hash_is_a_sha256():
+    assert len(c.pilot_code_sha256()) == 64 and int(c.pilot_code_sha256(), 16) >= 0
+
+
+def test_a_failed_parent_run_before_b12_is_a_trial_error(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    b12 = next(t for t in criteria["birth_trials"] if t["case"] == "valid_after_parent_ran")
+    monkeypatch.setattr(c.sup.Supervisor, "run", lambda self, agent, task: {"status": "REFUSED", "code": "X"})
+    with pytest.raises(RuntimeError, match="preparatory parent run failed"):
+        c.birth_trial(b12, criteria, _r8(), qualification, tmp_path)
+
+
+@pytest.mark.parametrize("case", ["admit_unknown", "unknown"])
+def test_an_unknown_birth_case_is_an_error_not_a_birth(tmp_path, case):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    with pytest.raises(ValueError):
+        c.birth_trial({"id": "X", "case": case, "expect": {}}, criteria, _r8(), qualification, tmp_path)
+
+
+def test_replay_permission_trial_and_campaign_leave_no_lab_root(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q00-nominal")
+    monkeypatch.setattr(c.sup.Supervisor, "run",
+                        lambda self, agent, task: {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None})
+    facts = c.run_trial(trial, criteria, _r8(), qualification, tmp_path)
+    assert facts["journal_last"] is None  # nothing journaled by the stub: readable, and empty
+    assert list(tmp_path.iterdir()) == []
+    c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
+    assert list(tmp_path.iterdir()) == []
+    monkeypatch.undo()
+    _passing(monkeypatch)
+    c.qualify(tmp_path)
+    assert list(tmp_path.iterdir()) == []  # the sandbox probe root is removed too
