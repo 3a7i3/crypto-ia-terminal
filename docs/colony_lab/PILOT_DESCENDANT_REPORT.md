@@ -259,6 +259,17 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
 - A control campaign at `5b59edeb` (not a new evidence file) reproduced PC2: `PROPOSED_QUALIFIED_SIMULATED`,
   28 trials twice, sandbox `VERIFIED`, pilot evaluator `97fb6b04…`, and the same facts digests as PC2
   for every trial of round 0.
+- Review of those tests (`9684bc1b`), read-only in memory: W40′, W41′, W42′ and three undisclosed
+  variants killed; PC2 still valid; **unfavourable** under both rules without a blocking defect, on one
+  class: an error raised by a replay or by P01 was only tested by calling the trial directly, never
+  through the real round, so skipping an erroring replay (R07b, a plausible regression) or marking an
+  erroring trial passed by kind (R07, R07c) let a failing campaign pass. Of its 59 undisclosed
+  mutants 47 are killed; the other survivors are equivalent, fail closed, or touch reported fields only
+  (R03, R30, R34, R07e, R20, R35, R36, R41). Tests changed since, with no change to `colony_pilot/`:
+  for each kind (birth, replay, P01) and for round 0, round 1 or both, one trial raising through the
+  real round fails the campaign, appears in its round with `TRIAL_ERROR` and its error type, every
+  round keeps its 28 results, and an error in both rounds gives `TRIALS_FAILED` alone. R07, R07b,
+  R07c and R07d are killed.
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
 

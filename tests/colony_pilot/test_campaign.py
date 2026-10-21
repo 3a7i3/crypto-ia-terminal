@@ -1157,8 +1157,9 @@ _REAL_PARENT_QUALIFICATION = c.parent_qualification
 _REAL_CODE_IRREGULAR = c.code_irregular
 
 
-def _matrix(monkeypatch, fail_kind=None, fail_round=None, differ_last=False):
-    """``_passing`` with the real round over stub trials; one trial of ``fail_kind`` fails in ``fail_round``."""
+def _matrix(monkeypatch, fail_kind=None, fail_round=None, differ_last=False, raise_kind=None, raise_rounds=()):
+    """``_passing`` with the real round over stub trials; one trial of ``fail_kind`` fails in ``fail_round``,
+    and the first trial of ``raise_kind`` raises in each of ``raise_rounds``."""
     _passing(monkeypatch)
     monkeypatch.setattr(c, "_round", _REAL_ROUND)
     monkeypatch.setattr(c, "parent_qualification", lambda criteria: _PASSING_PARENT)
@@ -1166,6 +1167,8 @@ def _matrix(monkeypatch, fail_kind=None, fail_round=None, differ_last=False):
     extra = _criteria()["run_trials"]["extra_expect"]
     criteria = _criteria()
     per_round = len(criteria["birth_trials"]) + len(_r8()["trials"]) + len(criteria["permission_trials"])
+    raise_id = {"birth": criteria["birth_trials"][0]["id"], "run": "Q06-runs-exhausted",
+                "permission": criteria["permission_trials"][0]["id"]}
 
     def which():
         calls["n"] += 1
@@ -1173,6 +1176,8 @@ def _matrix(monkeypatch, fail_kind=None, fail_round=None, differ_last=False):
 
     def facts(kind, trial, expect):
         rnd, pos = which()
+        if kind == raise_kind and rnd in raise_rounds and trial["id"] == raise_id[kind]:
+            raise RuntimeError("preparatory run failed: REFUSED")
         out = {**expect, "trial": trial["id"]}
         if differ_last and rnd == 1 and pos == per_round - 1:
             out["salt"] = 1
@@ -1209,6 +1214,27 @@ def test_matrix_trials_failed_by_each_kind_in_each_round(monkeypatch, tmp_path, 
     assert "TRIALS_FAILED" in evidence["failure_reasons"] and evidence["proposed_state"] == "FAILED"
     failed = [r for r in evidence["rounds"][rnd] if not r["passed"]]
     assert {r["kind"] for r in failed} == {kind}
+
+
+@pytest.mark.parametrize("kind", ["birth", "run", "permission"])
+@pytest.mark.parametrize("rounds", [(0,), (1,), (0, 1)])
+def test_matrix_an_erroring_trial_of_each_kind_fails_and_is_never_skipped(monkeypatch, tmp_path, kind, rounds):
+    """M1-duodecies: an error in a replay or in P01, not only in a birth, fails through the real round."""
+    _matrix(monkeypatch, raise_kind=kind, raise_rounds=rounds)
+    evidence = c.qualify(tmp_path)
+    assert evidence["proposed_state"] == "FAILED" and "TRIALS_FAILED" in evidence["failure_reasons"]
+    if rounds == (0, 1):
+        assert evidence["failure_reasons"] == ["TRIALS_FAILED"]
+    target = {"birth": _criteria()["birth_trials"][0]["id"], "run": "Q06-runs-exhausted",
+              "permission": _criteria()["permission_trials"][0]["id"]}[kind]
+    assert [len(r) for r in evidence["rounds"]] == [28, 28]
+    for rnd, results in enumerate(evidence["rounds"]):
+        failed = [r for r in results if not r["passed"]]
+        if rnd in rounds:
+            assert [(r["id"], r["kind"], r["failed_predicates"], r["error"]) for r in failed] == [
+                (target, kind, ["TRIAL_ERROR"], "RuntimeError")]
+        else:
+            assert failed == []
 
 
 def test_matrix_not_deterministic_on_the_last_trial_only(monkeypatch, tmp_path):
