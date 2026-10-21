@@ -240,9 +240,25 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   each of the 15 replays and each predicate of its r8 expectation (one at a time), r8's judgement
   returning that predicate fails the campaign with that trial and predicate alone, in both rounds;
   the sandbox gate uses the lab's real values `UNAVAILABLE` and `UNVERIFIED`; a parent record missing
-  a key, not a dict, or corrupt makes it stale. W40, W41, W42, W14 and W12 are killed. The r8
-  predicates themselves are Sentinel's reviewed code (`colony_lab/qualification.py`), outside this
-  PR; the campaign is what runs them for real.
+  a key, not a dict, or corrupt makes it stale. W40, W41, W42 (in the form that filters r8's
+  answer), W14 and W12 are killed. The r8 predicates themselves are Sentinel's reviewed code
+  (`colony_lab/qualification.py`), outside this PR; the campaign runs them on the pilot's real trials,
+  which pass, so only the tests show they would fail it.
+- Review of those tests (`5b59edeb`), read-only in memory: PC2 still valid, **unfavourable** under
+  both rules without a blocking defect, on one class: r8's expectation narrowed before it reaches
+  `q.evaluate` (W40′ for replays with a setup, W41′ without `journal_last`, W42′ without the record
+  and run facts), which the parametrized test could not see because its stub ignored what it was
+  given. Of its 49 new undisclosed mutants none was a plausible regression letting a failing campaign
+  pass; the survivors are equivalent, fail closed, or touch reported fields only (X06, X12, X13, X18,
+  X30, X37, Y03, Y06). Minor ones it also listed: an unreadable Sentinel evidence file not tested, a
+  hard-coded round size and an unreal sandbox value left in two older tests. Tests changed since,
+  with no change to `colony_pilot/`: the parametrized test now also requires every replay, in both
+  rounds and in r8's order, to be judged on its whole r8 expectation and trial; an unreadable
+  evidence file makes the parent stale; the round size is derived from the criteria; the older tests
+  use the lab's real `UNAVAILABLE`. W40′, W41′ and W42′ are killed.
+- A control campaign at `5b59edeb` (not a new evidence file) reproduced PC2: `PROPOSED_QUALIFIED_SIMULATED`,
+  28 trials twice, sandbox `VERIFIED`, pilot evaluator `97fb6b04…`, and the same facts digests as PC2
+  for every trial of round 0.
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
 

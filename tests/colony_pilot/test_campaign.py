@@ -256,7 +256,7 @@ def test_a_clean_campaign_proposes_at_most_a_simulated_qualification(monkeypatch
     (c, "parent_qualification", lambda criteria: ({}, {"record_sha256": None, "matches_current_code": False,
                                                        "mismatched": ["subject_code_sha256"]}),
      "PARENT_QUALIFICATION_STALE"),
-    (c.sup.Supervisor, "verify_sandbox", lambda self: "SANDBOX_UNAVAILABLE", "SANDBOX_NOT_VERIFIED"),
+    (c.sup.Supervisor, "verify_sandbox", lambda self: "UNAVAILABLE", "SANDBOX_NOT_VERIFIED"),
     (q, "tree_state", lambda: {**CLEAN_TREE, "stray_code": ["org/"]}, "TREE_NOT_CLEAN"),
     (q, "tree_state", lambda: {**CLEAN_TREE, "git_head": None}, "TREE_NOT_CLEAN"),
     (q, "sandbox_view", lambda workdir: {**CLEAN_VIEW, "matches_subject": False}, "SANDBOX_VIEW_MISMATCH"),
@@ -845,7 +845,7 @@ def test_the_evidence_carries_its_rounds_verdict_and_schema(monkeypatch, tmp_pat
     assert evidence["deterministic_across_fresh_labs"] is True and evidence["failure_reasons"] == []
     assert len(evidence["rounds"]) == 2 and evidence["rounds"][0] == evidence["rounds"][1]
     assert evidence["rounds"][0][0]["id"] == "X"
-    monkeypatch.setattr(c.sup.Supervisor, "verify_sandbox", lambda self: "SANDBOX_UNAVAILABLE")
+    monkeypatch.setattr(c.sup.Supervisor, "verify_sandbox", lambda self: "UNAVAILABLE")
     failed = c.qualify(tmp_path)
     assert failed["failure_reasons"] == ["SANDBOX_NOT_VERIFIED"] and failed["proposed_state"] == "FAILED"
 
@@ -939,11 +939,11 @@ def test_the_evidence_reports_every_failing_gate_and_its_own_inputs(monkeypatch,
     dirty = {**CLEAN_TREE, "tracked_clean": False}
     monkeypatch.setattr(q, "tree_state", lambda: dirty)
     monkeypatch.setattr(c, "code_irregular", lambda: ["colony_pilot/link.py"])
-    monkeypatch.setattr(c.sup.Supervisor, "verify_sandbox", lambda self: "SANDBOX_UNAVAILABLE")
+    monkeypatch.setattr(c.sup.Supervisor, "verify_sandbox", lambda self: "UNAVAILABLE")
     evidence = c.qualify(tmp_path)
     assert evidence["failure_reasons"] == ["SANDBOX_NOT_VERIFIED", "TREE_NOT_CLEAN", "CODE_NOT_REGULAR"]
     assert evidence["checkout"] == dirty and evidence["code_irregular"] == ["colony_pilot/link.py"]
-    assert evidence["environment"]["sandbox"] == "SANDBOX_UNAVAILABLE"
+    assert evidence["environment"]["sandbox"] == "UNAVAILABLE"
 
 
 def test_main_lists_every_failed_trial_of_the_first_round(monkeypatch, tmp_path, capsys):
@@ -1164,7 +1164,8 @@ def _matrix(monkeypatch, fail_kind=None, fail_round=None, differ_last=False):
     monkeypatch.setattr(c, "parent_qualification", lambda criteria: _PASSING_PARENT)
     calls = {"n": 0}
     extra = _criteria()["run_trials"]["extra_expect"]
-    per_round = 12 + 15 + 1
+    criteria = _criteria()
+    per_round = len(criteria["birth_trials"]) + len(_r8()["trials"]) + len(criteria["permission_trials"])
 
     def which():
         calls["n"] += 1
@@ -1343,10 +1344,29 @@ def test_matrix_each_failed_r8_predicate_of_each_replay_fails_the_campaign(monke
                                                                             predicate):
     """W40-W42: whatever r8's judgement returns for a replay, setup or not, reaches the verdict whole."""
     _matrix(monkeypatch)
-    monkeypatch.setattr(q, "evaluate", lambda expect, facts, clock, trial, golden:
-                        [predicate] if trial["id"] == trial_id else [])
+    seen = []
+
+    def evaluate(expect, facts, clock, trial, golden):
+        seen.append((trial["id"], expect, trial))
+        return [predicate] if trial["id"] == trial_id else []
+    monkeypatch.setattr(q, "evaluate", evaluate)
     evidence = c.qualify(tmp_path)
+    # W40'-W42': each replay is judged on its r8 expectation whole, every predicate passed in.
+    by_id = {t["id"]: t for t in _r8()["trials"]}
+    assert [i for i, _, _ in seen] == [t["id"] for t in _r8()["trials"]] * 2
+    assert all(expect == by_id[i]["expect"] and trial == by_id[i] for i, expect, trial in seen)
     assert evidence["failure_reasons"] == ["TRIALS_FAILED"] and evidence["proposed_state"] == "FAILED"
     for results in evidence["rounds"]:
         failed = [r for r in results if not r["passed"]]
         assert [(r["id"], r["failed_predicates"]) for r in failed] == [(trial_id, [predicate])]
+
+
+def test_matrix_unreadable_sentinel_evidence_makes_the_parent_stale(monkeypatch, tmp_path):
+    """m52: the evidence file the record names must be readable."""
+    _matrix(monkeypatch)
+    monkeypatch.setattr(c, "parent_qualification", _REAL_PARENT_QUALIFICATION)
+    criteria, sha = c.load_criteria(c.CURRENT)
+    other = {**criteria, "parent": {**criteria["parent"], "evidence_file": str(tmp_path / "missing.json")}}
+    monkeypatch.setattr(c, "load_criteria", lambda revision=c.CURRENT: (other, sha))
+    evidence = _only(tmp_path, "PARENT_QUALIFICATION_STALE")
+    assert evidence["parent"]["mismatched"] == ["UNREADABLE"]
