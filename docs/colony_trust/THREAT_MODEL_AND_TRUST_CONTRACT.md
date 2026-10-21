@@ -35,11 +35,11 @@ code itself; a compromise of the host; the strength of Ed25519 and SHA-256.
 A verdict reports each property separately; **only all four PASS is acceptance**, and a property that
 could not be evaluated is `NOT_EVALUATED`, never PASS.
 
-| Property | Question | Established by | A valid signature alone proves it? |
+| Property | Question | Established by | Does a valid signature alone prove it? |
 |---|---|---|---|
 | **Integrity** | Is this exactly the record the envelope names? | canonical encoding + `record_sha256` equal to the SHA-256 of the canonical record; envelope fields canonical | No: a signature over another hash is still a valid signature. |
 | **Authenticity** | Did a key the pinned trust root lists, valid at the declared root version and not revoked, sign this envelope? | Ed25519 over a domain-separated message; trust root pinned by hash and minimum version | Only this one, and only relative to the pinned root. |
-| **Authorization** | Is this issuer allowed to make *this* statement, for *this* lab and subject? | issuer scope covers the record kind; `lab_id`, record kind, subject and purpose equal to what the caller is deciding; a qualification's `reviewer_kind`/`reviewer_id` equal to the issuer's | No: a key for one scope signs any bytes. |
+| **Authorization** | Is this issuer allowed to make *this* statement, for *this* lab and subject? | issuer scope covers the record kind; `lab_id`, record kind, subject and purpose equal to what the caller is deciding; the record's declared author equal to the issuer | No: a key for one scope signs any bytes. |
 | **Completeness** | Is every attestation the decision needs present, once, and nothing unexpected? | the caller's list of required (kind, subject) pairs | No: a valid single envelope says nothing about the ones that are missing. |
 
 ## 3. Objects
@@ -59,8 +59,9 @@ revoked_envelopes: [envelope_id…]
 - `public_key` is a raw Ed25519 key (64 hex); `key_id` = SHA-256 of the raw key, recomputed.
 - `status` ∈ `ACTIVE`, `RETIRED`, `REVOKED`; `retired_in_root` is set exactly for `RETIRED` and `REVOKED`
   and is > `introduced_in_root`; both are ≤ `root_version`.
-- Scopes may only name known record kinds; `colony-lab.individual/0` and `colony-registrar.admission/0`
-  only for `LAB_OPERATOR`; `colony-lab.qualification/0` only for the two external kinds.
+- Scopes may only name known record kinds: `colony-lab.individual/0` only for `LAB_OPERATOR`;
+  `colony-lab.qualification/0` and `colony-registrar.admission/0` only for the two external kinds
+  (a qualification and a birth admission come from outside the lab).
 - Any other environment than `LAB_TEST` is refused (`TRUST_ROOT_NOT_LAB_TEST`): this code cannot be used
   with a production key until a separate, explicitly authorized gate.
 
@@ -73,7 +74,8 @@ record_kind, record_sha256, subject: {agent_id, agent_spec_id}, purpose, signatu
 
 Signed message: `b"colony-trust.envelope/0\x00" + canonical(envelope without "signature")`, canonical
 being the lab's J01 canonical encoding. `purpose` ∈ `QUALIFICATION_ATTESTED`, `INDIVIDUAL_ADMITTED`,
-`BIRTH_ADMITTED`, bound to its record kind.
+`BIRTH_ADMITTED`, bound to its record kind. The subject is read from the record (`agent_id`,
+`agent_spec_id`; for an admission `child_agent_id`, `child_agent_spec_id`).
 
 ## 4. Verification order and refusal codes
 
@@ -90,7 +92,8 @@ Unknown, invalid and unauthenticated inputs are refused explicitly; nothing defa
    `KEY_REVOKED` (always, whatever the declared version), `SIGNATURE_INVALID`, `ENVELOPE_REVOKED`.
 5. **Authorization**: `AUDIENCE_MISMATCH` (lab_id ≠ the caller's lab), `RECORD_KIND_MISMATCH` (≠ the
    kind the caller decides on), `PURPOSE_MISMATCH`, `SCOPE_NOT_GRANTED`, `SUBJECT_MISMATCH` (envelope
-   subject ≠ record subject ≠ caller's subject), `REVIEWER_NOT_ISSUER` (qualification).
+   subject ≠ record subject ≠ caller's subject), `AUTHOR_NOT_ISSUER` (the record's declared author,
+   `reviewer_kind`/`reviewer_id` or `admitter_kind`/`admitter_id`, is not the issuer).
 6. **Replay of single-use envelopes** (authorization): `BIRTH_ADMITTED` envelopes are consumed in an
    append-only ledger; the same envelope again → `ENVELOPE_REPLAYED`; the same `envelope_id` with other
    content → `ENVELOPE_ID_REUSED`. Durable attestations (qualification, individual) are re-verified on
@@ -99,6 +102,8 @@ Unknown, invalid and unauthenticated inputs are refused explicitly; nothing defa
 
 Each failure fails its property; the other properties are still evaluated where their inputs are
 valid, so a verdict shows, for instance, a record that is intact and authentic but not authorized.
+A single envelope can at most be **attested** (integrity, authenticity and authorization PASS); only a
+bundle verification, which also evaluates completeness, can **accept** a decision.
 
 ## 5. Replay, substitution, versions, revocation, rotation
 
