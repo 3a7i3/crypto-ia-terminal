@@ -1054,12 +1054,12 @@ def test_a_failed_p01_or_an_erroring_trial_fails_the_campaign(monkeypatch, tmp_p
     p01 = [r for r in evidence["rounds"][0] if r["kind"] == "permission"]
     assert [r["passed"] for r in p01] == [False] and evidence["failure_reasons"] == ["TRIALS_FAILED"]
     _stub_trials(monkeypatch)
-    real_birth = c.birth_trial
+    stub_birth = c.birth_trial  # the passing stub installed just above
 
     def boom(trial, *args):
         if trial["case"] == "valid_after_parent_ran":
             raise RuntimeError("preparatory parent run failed")
-        return real_birth(trial, *args)
+        return stub_birth(trial, *args)
     monkeypatch.setattr(c, "birth_trial", boom)
     evidence = c.qualify(tmp_path)
     errors = [r for r in evidence["rounds"][1] if r.get("error")]
@@ -1147,3 +1147,178 @@ def test_p01_sees_a_parent_event_whose_type_alone_changed(monkeypatch, tmp_path)
     monkeypatch.setattr(c.sup.Supervisor, "run", run)
     facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
     assert facts["parent_journal_unchanged_by_pilot"] is False
+
+
+# Review 9 of #484: the gate x input matrix. Every failure reason of ``qualify`` is provoked from each
+# input that feeds it, through the real round, the real ``code_irregular`` and the real parent check,
+# one input at a time, and must be the only reason.
+_PASSING_PARENT = ({}, {"record_sha256": "0" * 64, "matches_current_code": True, "mismatched": []})
+_REAL_PARENT_QUALIFICATION = c.parent_qualification
+_REAL_CODE_IRREGULAR = c.code_irregular
+
+
+def _matrix(monkeypatch, fail_kind=None, fail_round=None, differ_last=False):
+    """``_passing`` with the real round over stub trials; one trial of ``fail_kind`` fails in ``fail_round``."""
+    _passing(monkeypatch)
+    monkeypatch.setattr(c, "_round", _REAL_ROUND)
+    monkeypatch.setattr(c, "parent_qualification", lambda criteria: _PASSING_PARENT)
+    calls = {"n": 0}
+    extra = _criteria()["run_trials"]["extra_expect"]
+    per_round = 12 + 15 + 1
+
+    def which():
+        calls["n"] += 1
+        return (calls["n"] - 1) // per_round, (calls["n"] - 1) % per_round
+
+    def facts(kind, trial, expect):
+        rnd, pos = which()
+        out = {**expect, "trial": trial["id"]}
+        if differ_last and rnd == 1 and pos == per_round - 1:
+            out["salt"] = 1
+        if kind == fail_kind and rnd == fail_round:
+            key = next(iter(expect))
+            out[key] = "WRONG"
+        return out
+
+    monkeypatch.setattr(c, "birth_trial", lambda trial, *a: facts("birth", trial, trial["expect"]))
+    monkeypatch.setattr(c, "permission_trial", lambda trial, *a: facts("permission", trial, trial["expect"]))
+    monkeypatch.setattr(c, "run_trial", lambda trial, *a: facts("run", trial, {
+        **extra, "outcome": {"status": "COMPLETED", "code": "X"}}))
+    monkeypatch.setattr(q, "evaluate", lambda expect, f, clock, trial, golden: [])
+
+
+def _only(tmp_path, reason, revision=None):
+    evidence = c.qualify(tmp_path) if revision is None else c.qualify(tmp_path, revision)
+    assert evidence["failure_reasons"] == [reason] and evidence["proposed_state"] == "FAILED"
+    return evidence
+
+
+def test_the_matrix_baseline_passes(monkeypatch, tmp_path):
+    _matrix(monkeypatch)
+    evidence = c.qualify(tmp_path)
+    assert evidence["failure_reasons"] == [] and evidence["proposed_state"] == "PROPOSED_QUALIFIED_SIMULATED"
+    assert [len(r) for r in evidence["rounds"]] == [28, 28]
+
+
+@pytest.mark.parametrize("kind", ["birth", "run", "permission"])
+@pytest.mark.parametrize("rnd", [0, 1])
+def test_matrix_trials_failed_by_each_kind_in_each_round(monkeypatch, tmp_path, kind, rnd):
+    _matrix(monkeypatch, fail_kind=kind, fail_round=rnd)
+    evidence = c.qualify(tmp_path)
+    assert "TRIALS_FAILED" in evidence["failure_reasons"] and evidence["proposed_state"] == "FAILED"
+    failed = [r for r in evidence["rounds"][rnd] if not r["passed"]]
+    assert {r["kind"] for r in failed} == {kind}
+
+
+def test_matrix_not_deterministic_on_the_last_trial_only(monkeypatch, tmp_path):
+    """V43: every trial's facts are compared, not only the first."""
+    _matrix(monkeypatch, differ_last=True)
+    _only(tmp_path, "NOT_DETERMINISTIC")
+
+
+def test_matrix_superseded_criteria(monkeypatch, tmp_path):
+    _matrix(monkeypatch)
+    _only(tmp_path, "CRITERIA_SUPERSEDED", "p0")
+
+
+@pytest.mark.parametrize("key", ["state", "scope", "evidence_sha256", "criteria_sha256", "subject_code_sha256",
+                                 "evaluator_code_sha256", "UNREADABLE"])
+def test_matrix_stale_parent_record_by_each_key(monkeypatch, tmp_path, key):
+    """V19: a mismatch on any key, or an unreadable record, makes the parent qualification stale."""
+    _matrix(monkeypatch)
+    monkeypatch.setattr(c, "parent_qualification", _REAL_PARENT_QUALIFICATION)
+    criteria, sha = c.load_criteria(c.CURRENT)
+    record = json.loads((c.DOCS / criteria["parent"]["record_file"]).read_text())
+    forged = tmp_path / "forged" / "record.json"
+    forged.parent.mkdir()
+    if key != "UNREADABLE":
+        forged.write_text(json.dumps({**record, key: "FORGED"}))
+    other = {**criteria, "parent": {**criteria["parent"], "record_file": str(forged)}}
+    monkeypatch.setattr(c, "load_criteria", lambda revision=c.CURRENT: (other, sha))
+    evidence = _only(tmp_path / "forged", "PARENT_QUALIFICATION_STALE")
+    assert evidence["parent"]["mismatched"] == [key] and evidence["parent"]["matches_current_code"] is False
+
+
+def test_matrix_real_parent_record_passes(monkeypatch, tmp_path):
+    _matrix(monkeypatch)
+    monkeypatch.setattr(c, "parent_qualification", _REAL_PARENT_QUALIFICATION)
+    assert c.qualify(tmp_path)["failure_reasons"] == []
+
+
+@pytest.mark.parametrize("source,entry", [("sentinel", "colony_lab/link.py"), ("pilot", "colony_pilot/link.py")])
+def test_matrix_code_not_regular_from_each_code_base(monkeypatch, tmp_path, source, entry):
+    """U90, V15: the real ``code_irregular`` feeds the gate from Sentinel's code and from the pilot's."""
+    _matrix(monkeypatch)
+    monkeypatch.setattr(c, "code_irregular", _REAL_CODE_IRREGULAR)
+    real_walk = c.sup.walk_code
+    if source == "sentinel":
+        monkeypatch.setattr(q, "code_irregular", lambda: [entry])
+        monkeypatch.setattr(c.sup, "walk_code", lambda roots: (real_walk(roots)[0], []))
+    else:
+        monkeypatch.setattr(q, "code_irregular", lambda: [])
+        monkeypatch.setattr(c.sup, "walk_code", lambda roots: (real_walk(roots)[0], [entry]))
+    evidence = _only(tmp_path, "CODE_NOT_REGULAR")
+    assert evidence["code_irregular"] == [entry]
+
+
+@pytest.mark.parametrize("patch,reason", [
+    ("tree_head", "TREE_NOT_CLEAN"), ("tree_tracked", "TREE_NOT_CLEAN"), ("tree_stray", "TREE_NOT_CLEAN"),
+    ("sandbox", "SANDBOX_NOT_VERIFIED"), ("view", "SANDBOX_VIEW_MISMATCH"), ("runtime", "EVALUATOR_NOT_ISOLATED"),
+    ("golden", "SUBJECT_CODE_CHANGED")])
+def test_matrix_environment_gates(monkeypatch, tmp_path, patch, reason):
+    _matrix(monkeypatch)
+    patches = {
+        "tree_head": (q, "tree_state", lambda: {**CLEAN_TREE, "git_head": None}),
+        "tree_tracked": (q, "tree_state", lambda: {**CLEAN_TREE, "tracked_clean": False}),
+        "tree_stray": (q, "tree_state", lambda: {**CLEAN_TREE, "stray_code": ["x.py"]}),
+        "sandbox": (c.sup.Supervisor, "verify_sandbox", lambda self: "SANDBOX_UNAVAILABLE"),
+        "view": (q, "sandbox_view", lambda workdir: {**CLEAN_VIEW, "matches_subject": False}),
+        "runtime": (q, "evaluator_runtime", lambda: {**SOURCE_RUNTIME, "source_only": False}),
+    }
+    if patch == "golden":
+        real = q.load_criteria
+        monkeypatch.setattr(q, "load_criteria", lambda revision: (
+            {**real(revision)[0], "_golden": {**real(revision)[0]["_golden"], "subject_code_sha256": "e" * 64}},
+            real(revision)[1]))
+    else:
+        monkeypatch.setattr(*patches[patch])
+    _only(tmp_path, reason)
+
+
+def _expect_keys(trials):
+    return [(t["id"], key) for t in trials for key in t["expect"]]
+
+
+@pytest.mark.parametrize("trial_id,key", _expect_keys(_criteria()["birth_trials"] + _criteria()["permission_trials"]))
+def test_matrix_each_expected_fact_of_births_and_p01_inverted_alone(monkeypatch, tmp_path, trial_id, key):
+    criteria = _criteria()
+    trial = next(t for t in criteria["birth_trials"] + criteria["permission_trials"] if t["id"] == trial_id)
+    one = {**criteria, "birth_trials": [t for t in criteria["birth_trials"] if t["id"] == trial_id],
+           "permission_trials": [t for t in criteria["permission_trials"] if t["id"] == trial_id]}
+    value = trial["expect"][key]
+    wrong = (not value) if isinstance(value, bool) else ("WRONG" if not isinstance(value, (int, float)) else value + 1)
+    facts = {**trial["expect"], key: wrong}
+    monkeypatch.setattr(c, "birth_trial", lambda t, *a: dict(facts))
+    monkeypatch.setattr(c, "permission_trial", lambda t, *a: dict(facts))
+    [result] = c._round(one, {**_r8(), "trials": []}, {}, tmp_path)
+    assert result["passed"] is False and result["failed_predicates"] == [key]
+
+
+def test_p01_sees_one_parent_event_among_the_pilot_own(monkeypatch, tmp_path):
+    """V35: overlap, not equality, of the two journals."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    monkeypatch.setattr(c, "ActivityStore", _ListStore)
+    parent_id = q.sentinel_spec(_r8()["subject"])["agent_id"]
+
+    def run(self, agent, task):
+        if agent == parent_id:
+            _journal(self.root, agent).add(_event("parent-1"))
+            _journal(self.root, agent).add(_event("parent-2"))
+        else:
+            _journal(self.root, agent).add(_event("own"))
+            _journal(self.root, agent).add(_journal(self.root, parent_id).snapshot()[1][1])
+        return {"status": "COMPLETED", "code": task["task_id"]}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
+    assert facts["pilot_journal_has_no_parent_event"] is False

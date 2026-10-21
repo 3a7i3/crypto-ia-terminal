@@ -196,15 +196,37 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   since, with no change to `colony_pilot/`: a failed P01 and a B12 trial error each make the campaign
   `FAILED` through the real round; a trial failing only in the second round fails it; each key of
   `extra_expect` is judged on all 15 replays; the replays are judged on the facts they produced; the
-  real r8 predicates fail a replay whose record, runs or journal changed; a `colony_lab/` entry
+  real r8 predicates fail a replay whose record, runs or journal changed; a `colony_lab/` entry returned by a
+  stubbed `code_irregular`
   triggers `CODE_NOT_REGULAR`; the evidence's declared diff is measured; P01 sees a parent event whose
-  type alone changed. The review's mutants for these (U10, U61, U62, U60, U07, U90, T22, T23, T47) are
-  killed. Survivors that fail closed (no evidence, or `FAILED`) are not counted as weaknesses.
+  type alone changed. The review's mutants for these (U10, U61, U62, U60, U07, T22, T23, T47) are
+  killed; U90 was not (review 9: the new case stubbed the very function the mutant changes), and is
+  killed by the matrix below. Survivors that fail closed (no evidence, or `FAILED`) are not counted as weaknesses.
 - Comprehension sweep by the author, as review 8 recommended: each comprehension's iterable cut to
-  its first element or emptied, or a false guard added (51 mutants). 4 survive, all equivalent: the
+  its first element or emptied, or a false guard added, for generators inside a function on lines that are not `for` statements
+  (51 mutants; review 9 counted 63 over every generator of the file). Only an always-false guard was
+  added, not selective guards: the matrix below covers that class instead. 4 survive, all equivalent: the
   pilot code, r8's trials as searched for Q00 by B12 and P01, and the permission trials each have one
   element or Q00 first, so the first element is the whole answer.
-
+- Review of those tests (`4e40e45a`), run read-only in memory (no copy, no full suite, no real
+  campaign could be written; declared by the reviewer): PC2 still valid, **unfavourable** without a
+  blocking defect. U90 still survived; a selective guard dropping the replays from the verdict (V05),
+  `matches_current_code` narrowed to the code hashes (V19, V19b), the Sentinel part subtracted from
+  `CODE_NOT_REGULAR` (V15), determinism compared on the first trial only (V43) and P01 comparing the
+  journals by equality instead of overlap (V35) survived too. The reviewer judged V05 and V19
+  plausible regressions, the others artificial, and proposed a stopping rule: a gate x input matrix,
+  then one review of 25 or more undisclosed mutants with no plausible-regression survivor letting a
+  failing campaign pass; artificial survivors left are declared limits.
+- Gate x input matrix, added with no change to `colony_pilot/`: through the real round (stub trials),
+  every failure reason of `qualify` is provoked from each input that feeds it, one at a time, and
+  must be the only reason where it can be: a failing trial of each kind in each round; facts differing
+  only on the last trial; superseded criteria; each key of the parent record forged, and the record
+  unreadable, through the real `parent_qualification`; `CODE_NOT_REGULAR` from Sentinel's code and from
+  the pilot's through the real `code_irregular`; the checkout's head, tracked files and stray code; the
+  sandbox, the view, the runtime and the r8 golden. Each expected fact of B01–B12 and P01 is inverted
+  alone (55 cases) and must be the only failed predicate. P01 sees one parent event among the pilot's
+  own. V05, V19, V19b, U90, V15, V43 and V35 are killed. Tests outside the matrix still call the real
+  `parent_qualification` where the parent check itself is the subject.
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
 
