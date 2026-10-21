@@ -5,8 +5,9 @@ envelope names), authenticity (a key of the pinned trust root signed it),
 authorization (that issuer may say this, for this lab and subject) and
 completeness (every attestation a decision needs is there, once). A single
 envelope is at most "attested" (the first three); only verify_bundle()
-evaluates completeness and can accept. A property that could not be
-evaluated is NOT_EVALUATED, never PASS.
+evaluates completeness and can accept; it also judges the replay of
+single-use envelopes against a ledger and spends them only on acceptance. A
+property that could not be evaluated is NOT_EVALUATED, never PASS.
 
 The trust root is supplied by the caller and pinned by its SHA-256 and a
 minimum version; it is never read from the lab root. Only LAB_TEST roots are
@@ -20,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +43,7 @@ DOMAIN = ENVELOPE_SCHEMA.encode() + b"\x00"
 EXTERNAL = frozenset({"EXTERNAL_HUMAN", "EXTERNAL_REVIEW_PROCESS"})
 ISSUER_KINDS = EXTERNAL | {"LAB_OPERATOR"}
 KEY_STATUSES = frozenset({"ACTIVE", "RETIRED", "REVOKED"})
+MAX_VERSION = 2**31 - 1
 
 
 class Kind:
@@ -62,6 +65,7 @@ KINDS = {
 ROOT_FIELDS = frozenset({"root_schema", "environment", "lab_id", "root_version", "issuers", "revoked_envelopes"})
 ISSUER_FIELDS = frozenset({"issuer_id", "issuer_kind", "scopes", "keys"})
 KEY_FIELDS = frozenset({"key_id", "public_key", "status", "introduced_in_root", "retired_in_root"})
+LEDGER_FIELDS = frozenset({"ledger_schema", "issuer_id", "envelope_id", "envelope_sha256"})
 ENVELOPE_FIELDS = frozenset({"envelope_schema", "envelope_id", "lab_id", "root_version", "issuer_id", "key_id",
                              "record_kind", "record_sha256", "subject", "purpose", "signature"})
 _NAME = re.compile(r"[a-z][a-z0-9_.:-]{2,127}")
@@ -76,7 +80,7 @@ class TrustError(ValueError):
 
 
 def _int(value: Any) -> bool:
-    return type(value) is int and value >= 1
+    return type(value) is int and 1 <= value <= MAX_VERSION
 
 
 def _sha(value: Any) -> str:
@@ -91,6 +95,66 @@ def sha256_of(value: Any) -> str:
         raise TrustError("NOT_CANONICAL") from None
 
 
+def loads(raw: bytes) -> Any:
+    """Parse bytes that are exactly the lab's canonical encoding of a value; NOT_CANONICAL otherwise.
+
+    Duplicate keys, NaN, whitespace or any other spelling of the same value are refused, so every
+    reader of a stored record or envelope sees the value whose hash is verified."""
+    try:
+        value = json.loads(raw.decode("utf-8"))
+        if _canonical(value) == raw:
+            return value
+    except (AttributeError, ValueError, TypeError, RecursionError, IdentityError):
+        pass
+    raise TrustError("NOT_CANONICAL")
+
+
+# ── Ed25519 public keys (RFC 8032 §5.1.3) ─────────────────────────────────
+_P = 2**255 - 19
+_L = 2**252 + 27742317777372353535851937790883648493
+_D = -121665 * pow(121666, _P - 2, _P) % _P
+_SQRT_M1 = pow(2, (_P - 1) // 4, _P)
+
+
+def _add(a: tuple, b: tuple) -> tuple:
+    x1, y1, z1, t1 = a
+    x2, y2, z2, t2 = b
+    e, f = (y1 - x1) * (y2 - x2) % _P, (y1 + x1) * (y2 + x2) % _P
+    g, h = 2 * _D * t1 * t2 % _P, 2 * z1 * z2 % _P
+    e, f, g, h = f - e, h - g, h + g, f + e
+    return e * f % _P, g * h % _P, f * g % _P, e * h % _P
+
+
+def _is_identity(point: tuple) -> bool:
+    x, y, z, _ = point
+    return x % _P == 0 and (y - z) % _P == 0
+
+
+def prime_order_key(raw: bytes) -> bool:
+    """True only for a canonical encoding of a point of the prime-order subgroup other than the identity.
+
+    The library accepts any 32 bytes; a small-order key such as the identity verifies forged signatures."""
+    if type(raw) is not bytes or len(raw) != 32:
+        return False
+    y, sign = int.from_bytes(raw, "little") & ((1 << 255) - 1), raw[31] >> 7
+    if y >= _P:
+        return False
+    x2 = (y * y - 1) * pow(_D * y * y + 1, _P - 2, _P) % _P
+    x = pow(x2, (_P + 3) // 8, _P)
+    if (x * x - x2) % _P:
+        x = x * _SQRT_M1 % _P
+    if (x * x - x2) % _P or (x == 0 and sign):
+        return False
+    if x & 1 != sign:
+        x = _P - x
+    point, result = (x, y, 1, x * y % _P), (0, 1, 1, 0)
+    for bit in bin(_L)[2:]:
+        result = _add(result, result)
+        if bit == "1":
+            result = _add(result, point)
+    return not _is_identity(point) and _is_identity(result)
+
+
 def key_id(public_key: str) -> str:
     return hashlib.sha256(bytes.fromhex(public_key)).hexdigest()
 
@@ -101,7 +165,16 @@ def public_key_hex(private_key: Ed25519PrivateKey) -> str:
 
 # ── Trust root ────────────────────────────────────────────────────────────
 def _root_shape(root: Any) -> dict:
-    """Index issuers and keys of a well-formed root; TRUST_ROOT_INVALID otherwise."""
+    """Index issuers and keys of a well-formed root; TRUST_ROOT_INVALID otherwise, never another error."""
+    try:
+        return _root_index(root)
+    except (TypeError, ValueError, KeyError, RecursionError) as exc:
+        if isinstance(exc, TrustError):
+            raise
+        raise TrustError("TRUST_ROOT_INVALID") from None
+
+
+def _root_index(root: Any) -> dict:
     bad = TrustError("TRUST_ROOT_INVALID")
     if type(root) is not dict or set(root) != ROOT_FIELDS or root["root_schema"] != ROOT_SCHEMA:
         raise bad
@@ -138,10 +211,8 @@ def _root_shape(root: Any) -> dict:
                     raise bad
             elif not _int(retired) or not key["introduced_in_root"] < retired <= root["root_version"]:
                 raise bad
-            try:
-                Ed25519PublicKey.from_public_bytes(bytes.fromhex(key["public_key"]))
-            except ValueError:
-                raise bad from None
+            if not prime_order_key(bytes.fromhex(key["public_key"])):
+                raise bad
             keys.add(key["key_id"])
         issuers[issuer["issuer_id"]] = issuer
     return issuers
@@ -153,7 +224,7 @@ def check_root(root: Any, *, pin_sha256: str, minimum_version: int, lab_id: str)
         digest = _sha(root)
     except IdentityError:
         raise TrustError("TRUST_ROOT_INVALID") from None
-    if type(pin_sha256) is not str or digest != pin_sha256:
+    if type(pin_sha256) is not str or digest != pin_sha256 or type(lab_id) is not str:
         raise TrustError("TRUST_ROOT_PIN_MISMATCH")
     issuers = _root_shape(root)
     if root["environment"] != ENVIRONMENT:
@@ -232,7 +303,7 @@ def verify_envelope(envelope: Any, record: Any, root: Any, *, pin_sha256: str, m
     try:
         if type(record) is not dict:
             raise IdentityError("LAB_RECORD_NOT_CANONICAL")
-        if _sha(record) != envelope["record_sha256"]:
+        if _sha(record) != envelope["record_sha256"]:  # _canonical bounds depth and size
             integrity.append("RECORD_HASH_MISMATCH")
     except IdentityError:
         integrity.append("RECORD_NOT_CANONICAL")
@@ -297,10 +368,30 @@ def _verdict(envelope, integrity, authenticity, authorization, integrity_done, a
             "envelope_id": envelope.get("envelope_id") if type(envelope) is dict else None}
 
 
-def verify_bundle(items: list, required: list, root: Any, *, pin_sha256: str, minimum_version: int,
-                  lab_id: str) -> dict:
-    """Accept a decision only if each required (record_kind, subject) has exactly one attested envelope
-    and no envelope is unexpected. ``items`` are (envelope, record) pairs."""
+def _bundle_shape(items: Any, required: Any) -> bool:
+    if type(items) is not list or type(required) is not list:
+        return False
+    if any(type(item) not in {list, tuple} or len(item) != 2 for item in items):
+        return False
+    pairs = []
+    for need in required:
+        if type(need) not in {list, tuple} or len(need) != 2 or type(need[0]) is not str or \
+                type(need[1]) is not dict or set(need[1]) != {"agent_id", "agent_spec_id"} or \
+                any(type(v) is not str for v in need[1].values()):
+            return False
+        pairs.append((need[0], need[1]["agent_id"], need[1]["agent_spec_id"]))
+    return len(pairs) == len(set(pairs))
+
+
+def verify_bundle(items: Any, required: Any, root: Any, *, pin_sha256: str, minimum_version: int, lab_id: str,
+                  ledger: Path | None = None) -> dict:
+    """Accept a decision only if each required (record_kind, subject) has exactly one attested envelope,
+    no envelope is unexpected and no single-use envelope was spent before. ``items`` are (envelope, record)
+    pairs. Single-use envelopes need ``ledger``; they are spent there only when the bundle is accepted."""
+    if not _bundle_shape(items, required):
+        return {"verdict_schema": VERDICT_SCHEMA, "integrity": "NOT_EVALUATED", "authenticity": "NOT_EVALUATED",
+                "authorization": "NOT_EVALUATED", "completeness": "FAIL", "accepted": False,
+                "failures": ["BUNDLE_INVALID"], "envelopes": []}
     completeness, verdicts = [], []
     matched = set()
     for record_kind, subject in required:
@@ -326,35 +417,84 @@ def verify_bundle(items: list, required: list, root: Any, *, pin_sha256: str, mi
                       "PASS" if verdicts and all(v[name] == "PASS" for v in verdicts) else "NOT_EVALUATED")
                for name in ("integrity", "authenticity", "authorization")}
     summary["completeness"] = "FAIL" if completeness else "PASS"
+    single = [items[i][0] for i in sorted(matched) if KINDS[items[i][0]["record_kind"]].single_use]
+    replay = []
+    if single:
+        if ledger is None:
+            replay.append("LEDGER_REQUIRED")
+        else:
+            accept = all(value == "PASS" for value in summary.values())
+            try:
+                replay = _spend(ledger, single, commit=accept)
+            except TrustError as exc:
+                replay = [exc.code]
+            except (OSError, TypeError):
+                replay = ["LEDGER_CORRUPT"]  # unreadable or not a regular file: fail closed
+    if replay:
+        summary["authorization"] = "FAIL"
     return {"verdict_schema": VERDICT_SCHEMA, **summary,
             "accepted": all(value == "PASS" for value in summary.values()),
-            "failures": [*completeness, *(code for v in verdicts for code in v["failures"])],
+            "failures": [*completeness, *(code for v in verdicts for code in v["failures"]), *replay],
             "envelopes": verdicts}
 
 
 # ── Single-use envelopes ──────────────────────────────────────────────────
-def consume(ledger: Path, envelope: dict) -> None:
-    """Record a single-use envelope as spent (append-only, fsynced); refuse a replay or a reused id."""
-    if _envelope_shape(envelope) is not None or not KINDS[envelope["record_kind"]].single_use:
-        raise TrustError("NOT_SINGLE_USE")
-    digest = _sha(envelope)
-    fd = os.open(ledger, os.O_RDWR | os.O_CREAT | os.O_APPEND, 0o600)
+@contextmanager
+def _locked(ledger: Path):
+    fd = os.open(ledger, os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
-        with open(ledger, "rb") as handle:
-            lines = handle.read().splitlines()
-        for line in lines:
-            try:
-                entry = json.loads(line)
-            except ValueError:
-                raise TrustError("LEDGER_CORRUPT") from None
-            if type(entry) is not dict or entry.get("ledger_schema") != LEDGER_SCHEMA:
-                raise TrustError("LEDGER_CORRUPT")
-            if entry.get("envelope_id") == envelope["envelope_id"]:
-                raise TrustError("ENVELOPE_REPLAYED" if entry.get("envelope_sha256") == digest
-                                 else "ENVELOPE_ID_REUSED")
-        entry = {"ledger_schema": LEDGER_SCHEMA, "envelope_id": envelope["envelope_id"], "envelope_sha256": digest}
-        os.write(fd, json.dumps(entry, sort_keys=True).encode() + b"\n")
-        os.fsync(fd)
+        yield fd
     finally:
         os.close(fd)
+
+
+def _read(fd: int) -> dict:
+    """Spent envelopes by (issuer_id, envelope_id); LEDGER_CORRUPT unless every line is a canonical entry."""
+    chunks = []
+    os.lseek(fd, 0, os.SEEK_SET)
+    while chunk := os.read(fd, 65_536):
+        chunks.append(chunk)
+    raw = b"".join(chunks)
+    if raw and not raw.endswith(b"\n"):
+        raise TrustError("LEDGER_CORRUPT")
+    spent = {}
+    for line in raw.split(b"\n")[:-1]:
+        try:
+            entry = loads(line)
+        except TrustError:
+            raise TrustError("LEDGER_CORRUPT") from None
+        if type(entry) is not dict or set(entry) != LEDGER_FIELDS or entry["ledger_schema"] != LEDGER_SCHEMA or \
+                any(type(entry[n]) is not str for n in LEDGER_FIELDS) or \
+                not _NAME.fullmatch(entry["issuer_id"]) or \
+                not all(_HEX64.fullmatch(entry[n]) for n in ("envelope_id", "envelope_sha256")):
+            raise TrustError("LEDGER_CORRUPT")
+        key = (entry["issuer_id"], entry["envelope_id"])
+        if key in spent:
+            raise TrustError("LEDGER_CORRUPT")
+        spent[key] = entry["envelope_sha256"]
+    return spent
+
+
+def _write(fd: int, data: bytes) -> None:
+    view = memoryview(data)
+    while view:
+        view = view[os.write(fd, view):]
+    os.fsync(fd)
+
+
+def _spend(ledger: Path, envelopes: list, *, commit: bool) -> list:
+    """Replay codes for single-use envelopes; with ``commit`` and none, append them (one locked section)."""
+    with _locked(ledger) as fd:
+        spent, codes, lines = _read(fd), [], []
+        for envelope in envelopes:
+            key, digest = (envelope["issuer_id"], envelope["envelope_id"]), _sha(envelope)
+            if key in spent:
+                codes.append("ENVELOPE_REPLAYED" if spent[key] == digest else "ENVELOPE_ID_REUSED")
+                continue
+            spent[key] = digest
+            lines.append(_canonical({"ledger_schema": LEDGER_SCHEMA, "issuer_id": key[0], "envelope_id": key[1],
+                                     "envelope_sha256": digest}) + b"\n")
+        if commit and not codes:
+            _write(fd, b"".join(lines))
+        return codes

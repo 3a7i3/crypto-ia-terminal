@@ -80,12 +80,15 @@ def _props(verdict):
     (IND, _individual(), OPERATOR, "operator-1"),
     (ADM, _admission(), ADMITTER, "admitter-1"),
 ])
-def test_an_authorized_envelope_is_attested_and_its_bundle_accepted(kind, record, issuer, key):
+def test_an_authorized_envelope_is_attested_and_its_bundle_accepted(kind, record, issuer, key, tmp_path):
     envelope = _sign(record, kind, issuer, key)
     verdict = _verify(envelope, record, kind=kind)
     assert _props(verdict) == ("PASS", "PASS", "PASS") and verdict["attested"] and verdict["failures"] == []
     assert "accepted" not in verdict  # a single envelope never accepts a decision
-    bundle = _bundle([(envelope, record)], [(kind, _subject(record, kind))])
+    the_root = root()
+    bundle = trust.verify_bundle([(envelope, record)], [(kind, _subject(record, kind))], the_root,
+                                 pin_sha256=pin(the_root), minimum_version=1, lab_id=LAB,
+                                 ledger=tmp_path / "consumed.jsonl")
     assert bundle["accepted"] and bundle["completeness"] == "PASS" and bundle["failures"] == []
 
 
@@ -323,27 +326,232 @@ def test_a_bundle_reports_the_failure_of_each_envelope():
     assert bundle["failures"] == ["AUDIENCE_MISMATCH"]
 
 
-# ── Single use ────────────────────────────────────────────────────────────
-def test_a_birth_admission_is_consumed_once(tmp_path):
+# ── Single use, judged inside the bundle ──────────────────────────────────
+def _admission_bundle(ledger, admission=None, envelope=None, the_root=None):
+    admission = admission or _admission()
+    envelope = envelope or _sign(admission, ADM, ADMITTER, "admitter-1")
+    the_root = the_root or root()
+    return trust.verify_bundle([(envelope, admission)], [(ADM, _subject(admission, ADM))], the_root,
+                               pin_sha256=pin(the_root), minimum_version=1, lab_id=LAB, ledger=ledger)
+
+
+def test_a_birth_admission_is_accepted_once_and_its_replay_is_refused(tmp_path):
     ledger = tmp_path / "consumed.jsonl"
     admission = _admission()
     envelope = _sign(admission, ADM, ADMITTER, "admitter-1")
-    trust.consume(ledger, envelope)
-    with pytest.raises(trust.TrustError, match="ENVELOPE_REPLAYED"):
-        trust.consume(ledger, envelope)
-    other = _sign({**admission, "policy_sha256": "c" * 64}, ADM, ADMITTER, "admitter-1")  # same envelope id
-    with pytest.raises(trust.TrustError, match="ENVELOPE_ID_REUSED"):
-        trust.consume(ledger, other)
-    assert len(ledger.read_text().splitlines()) == 1
+    first = _admission_bundle(ledger, admission, envelope)
+    assert first["accepted"] and first["failures"] == []
+    again = _admission_bundle(ledger, admission, envelope)
+    assert not again["accepted"] and again["failures"] == ["ENVELOPE_REPLAYED"]
+    assert again["authorization"] == "FAIL" and again["integrity"] == "PASS" and again["authenticity"] == "PASS"
+    other = {**admission, "policy_sha256": "c" * 64}
+    reused = _admission_bundle(ledger, other, _sign(other, ADM, ADMITTER, "admitter-1"))  # same envelope id
+    assert not reused["accepted"] and reused["failures"] == ["ENVELOPE_ID_REUSED"]
+    assert len(ledger.read_bytes().splitlines()) == 1
 
 
-def test_durable_attestations_are_not_single_use_and_a_corrupt_ledger_refuses(tmp_path):
-    with pytest.raises(trust.TrustError, match="NOT_SINGLE_USE"):
-        trust.consume(tmp_path / "consumed.jsonl", _sign(_qualification()))
-    ledger = tmp_path / "corrupt.jsonl"
-    ledger.write_text("{not json\n")
-    with pytest.raises(trust.TrustError, match="LEDGER_CORRUPT"):
-        trust.consume(ledger, _sign(_admission(), ADM, ADMITTER, "admitter-1"))
+def test_a_single_use_envelope_without_ledger_is_never_accepted():
+    bundle = _admission_bundle(None)
+    assert not bundle["accepted"] and bundle["failures"] == ["LEDGER_REQUIRED"]
+    assert bundle["authorization"] == "FAIL"
+
+
+def test_a_refused_bundle_spends_nothing(tmp_path):
+    ledger = tmp_path / "consumed.jsonl"
+    admission = _admission()
+    forged = _resign(_sign(admission, ADM, ADMITTER, "admitter-1"), key="reviewer-1")
+    assert _admission_bundle(ledger, admission, forged)["failures"] == ["SIGNATURE_INVALID"]
+    assert _admission_bundle(ledger, admission)["accepted"]  # the genuine one is still unspent
+
+
+def test_the_ledger_is_keyed_by_issuer_and_envelope_id(tmp_path):
+    ledger = tmp_path / "consumed.jsonl"
+    second = {"issuer_id": "fixture-second-admitter", "issuer_kind": "EXTERNAL_HUMAN",
+              "scopes": [ADM], "keys": [key_entry("admitter-2")]}
+    the_root = root(issuers=[*root()["issuers"], second])
+    one = _admission()
+    assert _admission_bundle(ledger, one, the_root=the_root)["accepted"]
+    two = _admission(admitter="fixture-second-admitter")
+    envelope = _sign(two, ADM, "fixture-second-admitter", "admitter-2")  # same envelope id, other issuer
+    assert _admission_bundle(ledger, two, envelope, the_root)["accepted"]
+
+
+@pytest.mark.parametrize("content", [
+    b"{not json\n",
+    b'{"envelope_id":"' + b"a" * 64 + b'"}\n',  # foreign fields
+    b'{"envelope_id": "x"}\n',  # not canonical
+    b"",  # empty is fine: see below
+])
+def test_a_corrupt_or_truncated_ledger_refuses_and_is_not_extended(tmp_path, content):
+    ledger = tmp_path / "consumed.jsonl"
+    ledger.write_bytes(content)
+    bundle = _admission_bundle(ledger)
+    if content == b"":
+        assert bundle["accepted"]
+        return
+    assert not bundle["accepted"] and bundle["failures"] == ["LEDGER_CORRUPT"]
+    assert ledger.read_bytes() == content
+
+
+def test_a_ledger_with_a_truncated_or_duplicated_entry_refuses(tmp_path):
+    ledger = tmp_path / "consumed.jsonl"
+    assert _admission_bundle(ledger)["accepted"]
+    line = ledger.read_bytes()
+    ledger.write_bytes(line[:-1])  # crash before the newline
+    assert _admission_bundle(ledger, _admission(_individual()))["failures"] == ["LEDGER_CORRUPT"]
+    ledger.write_bytes(line + line)
+    assert _admission_bundle(ledger)["failures"] == ["LEDGER_CORRUPT"]
+    duplicate = line[:-2] + b',"envelope_id":"' + b"0" * 64 + b'"}\n'
+    ledger.write_bytes(duplicate)
+    assert _admission_bundle(ledger)["failures"] == ["LEDGER_CORRUPT"]
+
+
+def test_a_symlinked_ledger_is_refused(tmp_path):
+    target = tmp_path / "elsewhere.jsonl"
+    target.write_bytes(b"")
+    ledger = tmp_path / "consumed.jsonl"
+    ledger.symlink_to(target)
+    assert _admission_bundle(ledger)["failures"] == ["LEDGER_CORRUPT"]
+    assert target.read_bytes() == b""
+
+
+def test_durable_attestations_need_no_ledger_and_spend_nothing(tmp_path):
+    record = _qualification()
+    ledger = tmp_path / "consumed.jsonl"
+    bundle = trust.verify_bundle([(_sign(record), record)], [(QUAL, _subject(record))], root(),
+                                 pin_sha256=pin(root()), minimum_version=1, lab_id=LAB, ledger=ledger)
+    assert bundle["accepted"] and not ledger.exists()
+    assert not hasattr(trust, "consume")  # no public way to spend an envelope that was not verified
+
+
+# ── Weak keys ─────────────────────────────────────────────────────────────
+_IDENTITY = (1).to_bytes(32, "little")
+_ORDER_2 = (trust._P - 1).to_bytes(32, "little")  # (0, -1)
+_ORDER_4 = (0).to_bytes(32, "little")  # (±sqrt(-1), 0)
+_SMALL_8 = bytes.fromhex("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05")  # order 8
+
+
+@pytest.mark.parametrize("raw", [
+    _IDENTITY,
+    bytes([*_IDENTITY[:31], 0x80]),  # x = 0 with sign bit set
+    _ORDER_2, _ORDER_4, _SMALL_8,
+    (trust._P + 1).to_bytes(32, "little"),  # y ≥ p: a non-canonical identity
+    (2).to_bytes(32, "little"),  # y = 2 is not on the curve
+])
+def test_small_order_non_canonical_and_off_curve_keys_are_refused(raw):
+    assert not trust.prime_order_key(raw)
+    entry = {"key_id": trust.key_id(raw.hex()), "public_key": raw.hex(), "status": "ACTIVE",
+             "introduced_in_root": 1, "retired_in_root": None}
+    bad = root(issuers=[{"issuer_id": REVIEWER, "issuer_kind": "EXTERNAL_REVIEW_PROCESS", "scopes": [QUAL],
+                         "keys": [entry]}])
+    with pytest.raises(trust.TrustError, match="TRUST_ROOT_INVALID"):
+        trust.check_root(bad, pin_sha256=pin(bad), minimum_version=1, lab_id=LAB)
+
+
+def test_the_identity_key_would_verify_a_forged_signature_and_is_refused_first():
+    """R = identity, S = 0 is a valid signature of any message under the identity key."""
+    record = _qualification()
+    entry = {"key_id": trust.key_id(_IDENTITY.hex()), "public_key": _IDENTITY.hex(), "status": "ACTIVE",
+             "introduced_in_root": 1, "retired_in_root": None}
+    bad = root(issuers=[{"issuer_id": REVIEWER, "issuer_kind": "EXTERNAL_REVIEW_PROCESS", "scopes": [QUAL],
+                         "keys": [entry]}])
+    envelope = {**_sign(record), "key_id": entry["key_id"]}
+    envelope["signature"] = (_IDENTITY + bytes(32)).hex()
+    verdict = _verify(envelope, record, bad)
+    assert verdict["failures"] == ["TRUST_ROOT_INVALID"] and not verdict["attested"]
+
+
+def _decode(raw):
+    p = trust._P
+    y, sign = int.from_bytes(raw, "little") & ((1 << 255) - 1), raw[31] >> 7
+    x2 = (y * y - 1) * pow(trust._D * y * y + 1, p - 2, p) % p
+    x = pow(x2, (p + 3) // 8, p)
+    if (x * x - x2) % p:
+        x = x * trust._SQRT_M1 % p
+    if x & 1 != sign:
+        x = p - x
+    return x, y, 1, x * y % p
+
+
+def _encode(point):
+    p = trust._P
+    inverse = pow(point[2], p - 2, p)
+    x, y = point[0] * inverse % p, point[1] * inverse % p
+    return (y | (x & 1) << 255).to_bytes(32, "little")
+
+
+def test_a_key_with_a_small_order_component_is_refused():
+    """A valid key plus a point of order 8 is on the curve but outside the prime-order subgroup."""
+    good = bytes.fromhex(trust.public_key_hex(lab_key("reviewer-1")))
+    mixed = _encode(trust._add(_decode(good), _decode(_SMALL_8)))
+    assert trust.prime_order_key(good) and _encode(_decode(good)) == good
+    assert not trust.prime_order_key(mixed)
+
+
+def test_every_lab_test_key_is_of_prime_order():
+    for label in ("admitter-1", "admitter-2", "reviewer-1", "operator-1"):
+        assert trust.prime_order_key(bytes.fromhex(trust.public_key_hex(lab_key(label))))
+
+
+# ── Malformed inputs get coded refusals ───────────────────────────────────
+@pytest.mark.parametrize("change", [
+    lambda r: r.update(root_version=2**31),
+    lambda r: r.update(root_version=True),
+    lambda r: r.update(revoked_envelopes=[["x"]]),
+    lambda r: r.update(revoked_envelopes=[1, "a"]),
+    lambda r: r.update(environment={"a": 1}),
+    lambda r: r["issuers"][0].update(scopes=[["x"]]),
+    lambda r: r["issuers"][0].update(issuer_kind=["EXTERNAL_HUMAN"]),
+    lambda r: r["issuers"][0]["keys"][0].update(status={"x": 1}),
+    lambda r: r["issuers"][0]["keys"][0].update(public_key="zz" * 32),
+    lambda r: r["issuers"].append("not an issuer"),
+])
+def test_a_malformed_root_is_refused_with_a_code(change):
+    bad = root()
+    change(bad)
+    with pytest.raises(trust.TrustError, match="TRUST_ROOT_INVALID|TRUST_ROOT_PIN_MISMATCH"):
+        trust.check_root(bad, pin_sha256=pin(bad) if _canonical_ok(bad) else "0" * 64, minimum_version=1,
+                         lab_id=LAB)
+    record = _qualification()
+    assert not _verify(_sign(record), record, bad)["attested"]
+
+
+def _canonical_ok(value):
+    try:
+        trust.sha256_of(value)
+        return True
+    except trust.TrustError:
+        return False
+
+
+@pytest.mark.parametrize("items,required", [
+    ("not a list", []),
+    ([("only one",)], []),
+    ([], "not a list"),
+    ([], [("kind",)]),
+    ([], [(QUAL, {"agent_id": ["x"]})]),
+    ([], [(QUAL, {"agent_id": "a", "agent_spec_id": "b"}), (QUAL, {"agent_id": "a", "agent_spec_id": "b"})]),
+])
+def test_a_malformed_bundle_or_a_duplicated_requirement_is_refused_with_a_code(items, required):
+    bundle = _bundle(items, required)
+    assert not bundle["accepted"] and bundle["failures"] == ["BUNDLE_INVALID"]
+    assert bundle["completeness"] == "FAIL" and bundle["integrity"] == "NOT_EVALUATED"
+
+
+def test_a_duplicated_requirement_is_refused_even_with_its_envelope():
+    record = _qualification()
+    need = (QUAL, _subject(record))
+    assert _bundle([(_sign(record), record)], [need, need])["failures"] == ["BUNDLE_INVALID"]
+
+
+def test_strict_loads_refuses_every_other_spelling_of_a_record():
+    record = _qualification()
+    raw = trust._canonical(record)
+    assert trust.loads(raw) == record
+    for other in (raw + b" ", raw.replace(b'{"', b'{ "', 1), b'{"a":1,"a":2}', b'{"a":NaN}', b"[" * 20 + b"]" * 20,
+                  "text", None):
+        with pytest.raises(trust.TrustError, match="NOT_CANONICAL"):
+            trust.loads(other)
 
 
 # ── Separation ────────────────────────────────────────────────────────────
@@ -357,7 +565,7 @@ def test_trust_is_not_wired_into_the_lab_and_imports_no_runtime():
     for package in ("colony_lab", "colony_pilot"):
         for path in (ROOT / package).rglob("*.py"):
             assert not any(name.startswith("colony_trust") for name in _imports(path)), path
-    allowed = ("__future__", "fcntl", "hashlib", "json", "os", "re", "pathlib", "typing", "cryptography",
+    allowed = ("__future__", "contextlib", "fcntl", "hashlib", "json", "os", "re", "pathlib", "typing", "cryptography",
                "colony_lab.a1_identity")
     for path in (ROOT / "colony_trust").rglob("*.py"):
         assert all(name.startswith(allowed) for name in _imports(path)), path
