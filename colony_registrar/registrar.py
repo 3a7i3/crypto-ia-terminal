@@ -11,9 +11,11 @@ have. Records are re-verified from the founder down through the lab.
 from __future__ import annotations
 
 import copy
+import fcntl
 import hashlib
 import json
 import os
+import stat
 from contextlib import contextmanager
 from typing import Any
 
@@ -98,6 +100,28 @@ def _excluded_in(name: str, agents: set) -> bool:
     return any(type(agent) is str and agent[:16] in name for agent in agents)
 
 
+def _same(a: Any, b: Any) -> bool:
+    """Equal canonical encodings: true or 1.0 never stand for 1."""
+    try:
+        return _canonical(a) == _canonical(b)
+    except IdentityError:
+        return False
+
+
+@contextmanager
+def _flock(path, busy: str):
+    """An advisory lock on a file that is never deleted; the kernel releases it if the process dies."""
+    fd = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise RegistrarError(busy) from None
+        yield
+    finally:
+        os.close(fd)
+
+
 class Registrar:
     """The operator's gate for births; it holds no handle an individual can reach."""
 
@@ -118,27 +142,37 @@ class Registrar:
         for home in sorted(individuals.iterdir()):
             try:
                 records.append(self.lab.load(home.name)[0])
-            except sup.LabError:
+            except (sup.LabError, IdentityError, TypeError, KeyError, AttributeError):
                 raise RegistrarError("POPULATION_UNVERIFIABLE") from None
         return records
 
-    def _admission_path(self, agent_id: str):
-        return self.lab.root / ADMISSIONS / f"{agent_id}.json"
-
-    def _check_admitted(self, record: dict) -> None:
-        """A descendant ancestor has the registrar admission that was written before it was born."""
+    def _admissions(self):
+        """The admissions directory, which must be a real directory of the lab root, never a link."""
+        path = self.lab.root / ADMISSIONS
         try:
-            admission = sup._read_json(self._admission_path(record["agent_id"]))
-        except sup.LabError:
-            raise RegistrarError("ANCESTOR_NOT_ADMITTED") from None
-        source = record["lineage"]
-        if type(admission) is not dict or set(admission) != ADMISSION_FIELDS or \
-                admission["admission_schema"] != ADMISSION_SCHEMA or \
-                admission["child_agent_id"] != record["agent_id"] or \
-                admission["child_agent_spec_id"] != record["agent_spec_id"] or \
-                admission["parent_agent_id"] != source["parent_agent_id"] or \
-                admission["budget"] != record["budget"] or admission["lab_permissions"] != record["lab_permissions"] \
-                or admission["declared_diff"] != record["genotype"]["declared_diff"]:
+            os.mkdir(path, 0o700)
+        except FileExistsError:
+            pass
+        if not stat.S_ISDIR(os.lstat(path).st_mode):
+            raise RegistrarError("LAB_IO_ERROR")
+        return path
+
+    def _check_admitted(self, record: dict, parent: dict, colony: frozenset) -> None:
+        """A descendant ancestor passes today the admission checks its own birth needed."""
+        try:
+            admission = sup._read_json(self._admissions() / f"{record['agent_id']}.json")
+            qualification = sup._read_json(self.lab._home(record["agent_id"]) / "birth_qualification.json")
+            ids = {"agent_id": record["agent_id"], "agent_spec_id": record["agent_spec_id"]}
+            self._check_admission(admission, ids, parent, colony)
+            lineage.check_qualification(qualification, parent, also_excluded=colony)
+            bound = qualification["criteria_sha256"] in self.policy["admissible_parent_criteria_sha256"] and \
+                _same(admission["parent_qualification_sha256"], _sha(qualification)) and \
+                _same(admission["budget"], record["budget"]) and \
+                _same(admission["lab_permissions"], record["lab_permissions"]) and \
+                _same(admission["declared_diff"], record["genotype"]["declared_diff"])
+        except (RegistrarError, sup.LabError, lineage.LineageError, IdentityError, TypeError, KeyError):
+            bound = False
+        if not bound:
             raise RegistrarError("ANCESTOR_NOT_ADMITTED")
 
     def _ancestry(self, record: dict) -> list[dict]:
@@ -148,34 +182,21 @@ class Registrar:
             chain.append(self.lab.load(chain[-1]["lineage"]["parent_agent_id"])[0])
         return chain
 
-    @contextmanager
-    def _lock(self):
-        path = self.lab.root / LOCK
-        try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
-        except FileExistsError:
-            raise RegistrarError("REGISTRAR_BUSY") from None
-        os.close(fd)
-        try:
-            yield
-        finally:
-            path.unlink(missing_ok=True)
-
     # ── Births ─────────────────────────────────────────────────────────────
     def birth(self, parent_agent_id: str, child_spec: dict, *, parent_qualification: Any, admission: Any,
               lab_permissions: Any, budget: Any, declared_diff: Any) -> dict:
         if self.lab.stopped:
             raise RegistrarError("LAB_STOPPED")
-        with self._lock():
-            try:
+        try:
+            with _flock(self.lab.root / LOCK, "REGISTRAR_BUSY"):
                 return self._birth(parent_agent_id, child_spec, parent_qualification, admission,
                                    lab_permissions, budget, declared_diff)
-            except (sup.LabError, lineage.LineageError) as exc:
-                raise RegistrarError(exc.code) from None
-            except (TypeError, KeyError, AttributeError):
-                raise RegistrarError("BIRTH_INPUT_INVALID") from None
-            except OSError:
-                raise RegistrarError("LAB_IO_ERROR") from None
+        except (sup.LabError, lineage.LineageError) as exc:
+            raise RegistrarError(exc.code) from None
+        except (TypeError, KeyError, AttributeError, IdentityError):
+            raise RegistrarError("BIRTH_INPUT_INVALID") from None
+        except OSError:
+            raise RegistrarError("LAB_IO_ERROR") from None
 
     def _birth(self, parent_agent_id, child_spec, qualification, admission, permissions, budget, declared_diff):
         policy = self.policy
@@ -186,14 +207,13 @@ class Registrar:
         ancestors = {agent["agent_id"] for agent in ancestry}
         if child_id in ancestors:
             raise RegistrarError("CYCLE_DENIED")
-        for agent in ancestry:
-            if agent["role"] == "DESCENDANT":
-                self._check_admitted(agent)
         population = self._population()
         admitted = {agent["agent_id"] for agent in population}
         if child_id in admitted:
             raise RegistrarError("ALREADY_ADMITTED")
         excluded = frozenset({child_id, *ancestors, *admitted})
+        for agent, its_parent in zip(ancestry, ancestry[1:]):  # every descendant ancestor, parent first
+            self._check_admitted(agent, its_parent, excluded)
         if parent["lineage"]["generation"] + 1 > policy["max_generation"]:
             raise RegistrarError("GENERATION_LIMIT")
         if len(population) + 1 > policy["max_population"]:
@@ -219,8 +239,9 @@ class Registrar:
         if not set(granted) <= set(parent["lab_permissions"]):
             raise RegistrarError("PERMISSION_ESCALATION")
         # The admission decided exactly this birth: this qualification, budget, permissions and diff.
-        if admission["parent_qualification_sha256"] != _sha(qualification) or admission["budget"] != child_budget \
-                or admission["lab_permissions"] != granted or admission["declared_diff"] != declared_diff:
+        if not (_same(admission["parent_qualification_sha256"], _sha(qualification)) and
+                _same(admission["budget"], child_budget) and _same(admission["lab_permissions"], granted) and
+                _same(admission["declared_diff"], declared_diff)):
             raise RegistrarError("ADMISSION_NOT_FOR_THIS_BIRTH")
         source = parent["lineage"]
         record = lineage._seal({
@@ -233,19 +254,20 @@ class Registrar:
             "credentials": "NONE", "registry": dict(lineage.REGISTRY), "operational_authority": "DENIED",
         })
         lineage.verify_record(record, child_spec, parent, parent_spec)
+        if self.lab.stopped:  # read again: STOP may have been set while the checks ran
+            raise RegistrarError("LAB_STOPPED")
         self._record_admission(child_id, admission)  # before the child: never a child without its admission
         result = self.lab.admit(record, child_spec, parent_qualification=qualification)
         return {**result, "generation": record["lineage"]["generation"], "record": record}
 
     def _record_admission(self, child_id: str, admission: dict) -> None:
-        path, data = self._admission_path(child_id), sup._dump(admission)
-        path.parent.mkdir(mode=0o700, exist_ok=True)
+        path, data = self._admissions() / f"{child_id}.json", sup._dump(admission)
         try:
             sup._write_new(path, data)
         except FileExistsError:
             # Left by a birth that stopped before admitting the child: only the same decision may resume it.
             try:
-                same = sup._read_json(path) == admission
+                same = _same(sup._read_json(path), admission)
             except sup.LabError:
                 same = False
             if not same:
@@ -255,10 +277,10 @@ class Registrar:
         if type(admission) is not dict or set(admission) != ADMISSION_FIELDS or \
                 admission["admission_schema"] != ADMISSION_SCHEMA:
             raise RegistrarError("ADMISSION_INVALID")
-        if admission["child_agent_id"] != ids["agent_id"] or \
-                admission["child_agent_spec_id"] != ids["agent_spec_id"] or \
-                admission["parent_agent_id"] != parent["agent_id"] or \
-                admission["policy_sha256"] != self.policy_sha256:
+        if not (_same(admission["child_agent_id"], ids["agent_id"]) and
+                _same(admission["child_agent_spec_id"], ids["agent_spec_id"]) and
+                _same(admission["parent_agent_id"], parent["agent_id"]) and
+                _same(admission["policy_sha256"], self.policy_sha256)):
             raise RegistrarError("ADMISSION_NOT_FOR_THIS_BIRTH")
         admitter = admission["admitter_id"]
         if admission["admitter_kind"] not in self.policy["admitter_kinds"] or type(admitter) is not str or \
@@ -270,15 +292,13 @@ class Registrar:
     def run(self, agent_id: str, task: Any) -> dict:
         slots = self.lab.root / SLOTS
         slots.mkdir(mode=0o700, exist_ok=True)
+        if not stat.S_ISDIR(os.lstat(slots).st_mode):
+            raise RegistrarError("LAB_IO_ERROR")
         for index in range(self.policy["max_concurrent_runs"]):
-            slot = slots / f"slot-{index}"
             try:
-                fd = os.open(slot, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
-            except FileExistsError:
-                continue
-            os.close(fd)
-            try:
-                return self.lab.run(agent_id, task)
-            finally:
-                slot.unlink()
+                with _flock(slots / f"slot-{index}", "SLOT_BUSY"):
+                    return self.lab.run(agent_id, task)
+            except RegistrarError as exc:
+                if exc.code != "SLOT_BUSY":
+                    raise
         raise RegistrarError("CONCURRENCY_LIMIT")
