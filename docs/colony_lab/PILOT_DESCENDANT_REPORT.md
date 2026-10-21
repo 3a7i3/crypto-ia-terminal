@@ -178,7 +178,8 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   author's mutants for these (`PILOT_CODE`, two of `TASKS`, the recorded code, the error, the
   parent's id) are killed.
 - Keyword-argument removal sweep by the author, as review 7 recommended: each keyword argument of
-  a call inside a function removed (42 mutants). 10 survived; three were the CLI's `--criteria`
+  a call removed, on lines inside a function that are not comments or docstring openings, by two
+  patterns (`, name=` and `(name=`) (42 mutants; review 8 counted 50 with a broader rule). 10 survived; three were the CLI's `--criteria`
   choices and default and `--out` being required, now killed by a test of `main`. The 7 others are
   equivalent: `sort_keys` when the same store is read twice; where the lab roots and the work
   directory are created and their prefixes (3: they are removed either way, and the sandbox view is
@@ -186,6 +187,23 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   `tasks=sup.TASKS` for the replays, which the campaign's own registry only extends (as A30); the
   CLI's description. Positional arguments, numbers and dictionary keys were swept by hand by the
   reviews only.
+- Review of those tests (`b31b07fd`): PC2 still valid, every earlier medium mutant killed, 1263 tests
+  passed with no skip, also without `-B` as in CI, **unfavourable** without a blocking defect, on
+  mutants that add code: a failed P01 or a trial error could be left out of the verdict (an added
+  `or` or guard), one key of `extra_expect` dropped, the replays' facts overwritten by their
+  expectations before judgement, and `CODE_NOT_REGULAR` ignoring entries from Sentinel's code; plus
+  T22, T23 and T47, which the previous paragraph had not reported as still surviving. Tests added
+  since, with no change to `colony_pilot/`: a failed P01 and a B12 trial error each make the campaign
+  `FAILED` through the real round; a trial failing only in the second round fails it; each key of
+  `extra_expect` is judged on all 15 replays; the replays are judged on the facts they produced; the
+  real r8 predicates fail a replay whose record, runs or journal changed; a `colony_lab/` entry
+  triggers `CODE_NOT_REGULAR`; the evidence's declared diff is measured; P01 sees a parent event whose
+  type alone changed. The review's mutants for these (U10, U61, U62, U60, U07, U90, T22, T23, T47) are
+  killed. Survivors that fail closed (no evidence, or `FAILED`) are not counted as weaknesses.
+- Comprehension sweep by the author, as review 8 recommended: each comprehension's iterable cut to
+  its first element or emptied, or a false guard added (51 mutants). 4 survive, all equivalent: the
+  pilot code, r8's trials as searched for Q00 by B12 and P01, and the permission trials each have one
+  element or Q00 first, so the first element is the whole answer.
 
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.

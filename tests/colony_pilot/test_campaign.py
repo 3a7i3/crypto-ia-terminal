@@ -262,6 +262,7 @@ def test_a_clean_campaign_proposes_at_most_a_simulated_qualification(monkeypatch
     (q, "sandbox_view", lambda workdir: {**CLEAN_VIEW, "matches_subject": False}, "SANDBOX_VIEW_MISMATCH"),
     (q, "evaluator_runtime", lambda: {**SOURCE_RUNTIME, "source_only": False}, "EVALUATOR_NOT_ISOLATED"),
     (c, "code_irregular", lambda: ["colony_pilot/link"], "CODE_NOT_REGULAR"),
+    (c, "code_irregular", lambda: ["colony_lab/link.py"], "CODE_NOT_REGULAR"),
     (q, "subject_code_sha256", lambda: "f" * 64, "PARENT_QUALIFICATION_STALE"),
 ])
 def test_each_gate_fails_the_campaign(monkeypatch, tmp_path, target, name, value, reason):
@@ -1040,3 +1041,109 @@ def test_main_evaluates_the_current_criteria_unless_told_and_refuses_unknown_one
     with pytest.raises(SystemExit):
         c.main([])  # --out is required
     capsys.readouterr()
+
+
+# Review 8 of #484 (M1-octies, M2-octies, M3-octies, m32).
+def test_a_failed_p01_or_an_erroring_trial_fails_the_campaign(monkeypatch, tmp_path):
+    """The verdict counts every kind of trial, P01 and trial errors included, in both rounds."""
+    _passing(monkeypatch)
+    monkeypatch.setattr(c, "_round", _REAL_ROUND)
+    _stub_trials(monkeypatch)
+    monkeypatch.setattr(c, "permission_trial", lambda trial, *args: {**trial["expect"], "pilot": {"status": "COMPLETED"}})
+    evidence = c.qualify(tmp_path)
+    p01 = [r for r in evidence["rounds"][0] if r["kind"] == "permission"]
+    assert [r["passed"] for r in p01] == [False] and evidence["failure_reasons"] == ["TRIALS_FAILED"]
+    _stub_trials(monkeypatch)
+    real_birth = c.birth_trial
+
+    def boom(trial, *args):
+        if trial["case"] == "valid_after_parent_ran":
+            raise RuntimeError("preparatory parent run failed")
+        return real_birth(trial, *args)
+    monkeypatch.setattr(c, "birth_trial", boom)
+    evidence = c.qualify(tmp_path)
+    errors = [r for r in evidence["rounds"][1] if r.get("error")]
+    assert [r["failed_predicates"] for r in errors] == [["TRIAL_ERROR"]]
+    assert evidence["failure_reasons"] == ["TRIALS_FAILED"] and evidence["proposed_state"] == "FAILED"
+
+
+def test_trials_failing_only_in_the_second_round_fail_the_campaign(monkeypatch, tmp_path):
+    """T22: both rounds count, not only the first."""
+    _passing(monkeypatch)
+    rounds = iter([[{"id": "X", "passed": True, "facts_sha256": "1" * 64}],
+                   [{"id": "X", "passed": False, "facts_sha256": "1" * 64}]])
+    monkeypatch.setattr(c, "_round", lambda *args: next(rounds))
+    assert c.qualify(tmp_path)["failure_reasons"] == ["TRIALS_FAILED"]
+
+
+@pytest.mark.parametrize("key", sorted(_criteria()["run_trials"]["extra_expect"]))
+def test_each_extra_replay_expectation_is_judged(monkeypatch, tmp_path, key):
+    """U60: every key of ``extra_expect`` is checked on every replay."""
+    criteria, r8 = _criteria(), _r8()
+    extra = criteria["run_trials"]["extra_expect"]
+    assert set(extra) == {"parent_unchanged", "birth_qualification_unchanged"}
+    _stub_trials(monkeypatch)
+    monkeypatch.setattr(c, "run_trial", lambda trial, *args: {**extra, key: not extra[key],
+                                                              "outcome": {"status": "COMPLETED", "code": "X"}})
+    runs = [r for r in c._round(criteria, r8, {}, tmp_path) if r["kind"] == "run"]
+    assert len(runs) == 15 and all(r["failed_predicates"] == [key] for r in runs)
+
+
+def test_replays_are_judged_on_the_facts_the_trial_produced(monkeypatch, tmp_path):
+    """U07: r8's predicates see the run's own facts, never the expectations."""
+    criteria, r8 = _criteria(), _r8()
+    extra = criteria["run_trials"]["extra_expect"]
+    produced, judged = {}, {}
+    monkeypatch.setattr(c, "birth_trial", lambda trial, *args: dict(trial["expect"]))
+    monkeypatch.setattr(c, "permission_trial", lambda trial, *args: dict(trial["expect"]))
+
+    def run(trial, *args):
+        produced[trial["id"]] = {**extra, "outcome": {"status": "S", "code": "C"}, "record_unchanged": False,
+                                 "runs_unchanged": False, "journal_last": ["X", trial["id"]]}
+        return produced[trial["id"]]
+
+    def evaluate(expect, facts, clock, trial, golden):
+        judged[trial["id"]] = dict(facts)
+        return []
+    monkeypatch.setattr(c, "run_trial", run)
+    monkeypatch.setattr(q, "evaluate", evaluate)
+    c._round(criteria, r8, {}, tmp_path)
+    assert judged == produced and len(judged) == 15
+
+
+def test_the_real_r8_predicates_fail_a_replay_whose_record_runs_or_journal_changed():
+    """The r8 judgement used by the replays sees each of these facts false."""
+    r8 = _r8()
+    for name in ("record_unchanged", "runs_unchanged"):
+        trial = next(t for t in r8["trials"] if t["expect"].get(name) is True)
+        facts = {"outcome": {"status": None, "code": None}, name: False}
+        assert name in q.evaluate(trial["expect"], facts, r8["lab_clock_utc"], trial, r8["_golden"])
+    trial = next(t for t in r8["trials"] if "journal_last" in t["expect"])
+    facts = {"outcome": {"status": None, "code": None}, "journal_last": ["NOT", "IT"]}
+    assert "journal_last" in q.evaluate(trial["expect"], facts, r8["lab_clock_utc"], trial, r8["_golden"])
+
+
+def test_the_evidence_declared_diff_is_measured_on_the_specs(monkeypatch, tmp_path):
+    """T23: measured with ``spec_diff``, not copied from the criteria."""
+    _passing(monkeypatch)
+    monkeypatch.setattr(c.lineage, "spec_diff", lambda parent, child: ["measured"])
+    assert c.qualify(tmp_path)["pilot"]["declared_diff"] == ["measured"]
+
+
+def test_p01_sees_a_parent_event_whose_type_alone_changed(monkeypatch, tmp_path):
+    """T47: events are compared whole, type included."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    monkeypatch.setattr(c, "ActivityStore", _ListStore)
+    parent_id = q.sentinel_spec(_r8()["subject"])["agent_id"]
+
+    def run(self, agent, task):
+        if agent == parent_id:
+            _journal(self.root, agent).add({"event_type": "A", "payload": {"code": "same"}})
+        else:
+            store = _journal(self.root, parent_id)
+            store.file.write_text(json.dumps([{"event_type": "B", "payload": {"code": "same"}}]))
+        return {"status": "COMPLETED", "code": task["task_id"]}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    facts = c.permission_trial(criteria["permission_trials"][0], criteria, _r8(), qualification, tmp_path)
+    assert facts["parent_journal_unchanged_by_pilot"] is False
