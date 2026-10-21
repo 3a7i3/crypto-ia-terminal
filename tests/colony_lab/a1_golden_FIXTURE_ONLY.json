@@ -1,0 +1,165 @@
+{
+ "expected_identities": {
+  "a1": {
+   "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+   "agent_spec_id": "4d2f47ee602513bc246cc7f03302a71423d181a1784cd3080d08c9ac92195087",
+   "spec_artifact_hash": "23558e1a3561081aaea731bc045093689eaf0d078fab88c1ee9c28651dbdc363"
+  },
+  "a2": {
+   "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+   "agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+   "spec_artifact_hash": "03f4688bd836152d4ec1a0ea76f15ae7093082c7de3d66a805c627476fb2e7dd"
+  },
+  "b1": {
+   "agent_id": "9c39643f8aa26c66e517d25d13d619f93706b337f587af4c0e688fdba7c6fdc1",
+   "agent_spec_id": "a1ca88c7706ca3039967fb4519b7520fcc83fd0f01090a6cd2ee45e1d4fb4a51",
+   "spec_artifact_hash": "0c75e8cfc257fe40b0d943a3689659b57262b71533fc142ab55f99a127645828"
+  }
+ },
+ "source": "PR #374 head c21e1a83, tests/agent_economy/fixtures/golden_vectors_FIXTURE_ONLY.json (subset: specs and expected_identities)",
+ "specs": {
+  "a1": {
+   "agent_class": "SENSOR",
+   "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+   "agent_schema": "AGENT_SPEC_V1",
+   "agent_spec_id": "4d2f47ee602513bc246cc7f03302a71423d181a1784cd3080d08c9ac92195087",
+   "authority_policy": {
+    "authority_ceiling": "NO_RUNTIME_AUTHORITY",
+    "consensus_grants_authority": false,
+    "economic_status_grants_authority": false,
+    "human_decision": false,
+    "reputation_grants_authority": false
+   },
+   "canonical_name": "fixture_sensor_alpha",
+   "capabilities": [
+    "CI_READ",
+    "REPOSITORY_READ"
+   ],
+   "constitution_version": "AGENT_ECON_A0_FOREST_V1",
+   "created_at_utc": "2026-10-04T00:00:00Z",
+   "created_from_ref": "0123456789abcdef0123456789abcdef01234567",
+   "display_name": "Fixture Sensor Alpha",
+   "execution_binding": {
+    "credential_mode": "NONE",
+    "model": null,
+    "provider": null,
+    "status": "UNBOUND"
+   },
+   "independence_policy": {
+    "independent_review_required": true,
+    "own_work_review_forbidden": true
+   },
+   "maintenance_level": "F0",
+   "namespace": "forest",
+   "purpose": "Synthetic fixture agent used only by tests, never registered.",
+   "scope_policy": {
+    "artifact_domains": [],
+    "github_surfaces": [
+     "CHECK_RUNS",
+     "WORKFLOW_RUNS"
+    ],
+    "repository_read_paths": [
+     "docs/"
+    ],
+    "repository_write_paths_future": []
+   },
+   "spec_revision": 1,
+   "supersedes_spec_id": null
+  },
+  "a2": {
+   "agent_class": "SENSOR",
+   "agent_id": "62d1f51a69890872b3b373024dd3a02a1916f916477f6d30910afeff772fa8f8",
+   "agent_schema": "AGENT_SPEC_V1",
+   "agent_spec_id": "fe1a1bdb20a77591e762ce04011b3a4cb0d0bbace4c6646f0198c88512fa0180",
+   "authority_policy": {
+    "authority_ceiling": "NO_RUNTIME_AUTHORITY",
+    "consensus_grants_authority": false,
+    "economic_status_grants_authority": false,
+    "human_decision": false,
+    "reputation_grants_authority": false
+   },
+   "canonical_name": "fixture_sensor_alpha",
+   "capabilities": [
+    "CI_READ",
+    "GITHUB_METADATA_READ",
+    "REPOSITORY_READ"
+   ],
+   "constitution_version": "AGENT_ECON_A0_FOREST_V1",
+   "created_at_utc": "2026-10-04T00:00:30Z",
+   "created_from_ref": "0123456789abcdef0123456789abcdef01234567",
+   "display_name": "Fixture Sensor Alpha",
+   "execution_binding": {
+    "credential_mode": "NONE",
+    "model": null,
+    "provider": null,
+    "status": "UNBOUND"
+   },
+   "independence_policy": {
+    "independent_review_required": true,
+    "own_work_review_forbidden": true
+   },
+   "maintenance_level": "F0",
+   "namespace": "forest",
+   "purpose": "Synthetic fixture agent used only by tests, never registered.",
+   "scope_policy": {
+    "artifact_domains": [],
+    "github_surfaces": [
+     "CHECK_RUNS",
+     "ISSUES",
+     "WORKFLOW_RUNS"
+    ],
+    "repository_read_paths": [
+     "docs/"
+    ],
+    "repository_write_paths_future": []
+   },
+   "spec_revision": 2,
+   "supersedes_spec_id": "4d2f47ee602513bc246cc7f03302a71423d181a1784cd3080d08c9ac92195087"
+  },
+  "b1": {
+   "agent_class": "SCOUT",
+   "agent_id": "9c39643f8aa26c66e517d25d13d619f93706b337f587af4c0e688fdba7c6fdc1",
+   "agent_schema": "AGENT_SPEC_V1",
+   "agent_spec_id": "a1ca88c7706ca3039967fb4519b7520fcc83fd0f01090a6cd2ee45e1d4fb4a51",
+   "authority_policy": {
+    "authority_ceiling": "NO_RUNTIME_AUTHORITY",
+    "consensus_grants_authority": false,
+    "economic_status_grants_authority": false,
+    "human_decision": false,
+    "reputation_grants_authority": false
+   },
+   "canonical_name": "fixture_scout_beta",
+   "capabilities": [
+    "CANDIDATE_PROBLEM_PROPOSE",
+    "REPOSITORY_SEARCH"
+   ],
+   "constitution_version": "AGENT_ECON_A0_FOREST_V1",
+   "created_at_utc": "2026-10-04T00:00:00Z",
+   "created_from_ref": "0123456789abcdef0123456789abcdef01234567",
+   "display_name": "Fixture Scout Beta",
+   "execution_binding": {
+    "credential_mode": "NONE",
+    "model": null,
+    "provider": null,
+    "status": "UNBOUND"
+   },
+   "independence_policy": {
+    "independent_review_required": true,
+    "own_work_review_forbidden": true
+   },
+   "maintenance_level": "F1",
+   "namespace": "forest",
+   "purpose": "Synthetic fixture agent used only by tests, never registered.",
+   "scope_policy": {
+    "artifact_domains": [],
+    "github_surfaces": [],
+    "repository_read_paths": [
+     "tests/"
+    ],
+    "repository_write_paths_future": []
+   },
+   "spec_revision": 1,
+   "supersedes_spec_id": null
+  }
+ }
+}

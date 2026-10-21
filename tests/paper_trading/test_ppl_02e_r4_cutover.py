@@ -620,3 +620,53 @@ def test_r4_open_whose_durability_keeps_failing_propagates_and_blocks_the_symbol
     assert second.status is OrderStatus.REJECTED  # no second OPEN on the same symbol
     opened = [e for e in rt.consistent_view().events if e.event_type == "POSITION_OPENED"]
     assert [e.trade_id for e in opened] == ["ORDER1"]
+
+
+def test_r4_close_retry_after_post_write_fsync_failure_converges(tmp_path, monkeypatch):
+    """A CLOSE visible in the store whose fsync failed must be retried as the
+    exact durable fact (store idempotence), not as a new, conflicting CLOSE."""
+    import paper_trading.durable_event_store as durable_store
+
+    rt = runtime(tmp_path)
+    sim = MexcSimulator(
+        lifecycle_authority=PaperLifecycleAuthority.PPL_AUTHORITY,
+        authority_runtime=rt,
+    )
+    sim._capital = 100.0
+    sim._initial_capital = 100.0
+    order = MexcOrder(
+        order_id="ORDER1",
+        symbol="BTCUSDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        qty_usd=10.0,
+        decision_id="dp-order",
+    )
+    sim._fill_market(order, 100.0)
+
+    real_fsync = durable_store.os.fsync
+    calls = {"n": 0}
+
+    def fail_once(fd):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError(5, "EIO injected")
+        return real_fsync(fd)
+
+    monkeypatch.setattr(durable_store.os, "fsync", fail_once)
+    with pytest.raises(OSError, match="EIO injected"):
+        sim._close_position("BTCUSDT", 110.0, "TP")
+    closes = [e for e in rt.consistent_view().events if e.event_type == "POSITION_CLOSED"]
+    assert len(closes) == 1  # visible after the failed durability boundary
+    assert "BTCUSDT" in sim._positions  # memory untouched by the failed attempt
+
+    sim._close_position("BTCUSDT", 120.0, "TP")  # later tick, different price
+    view = rt.consistent_view()
+    closes = [e for e in view.events if e.event_type == "POSITION_CLOSED"]
+    assert len(closes) == 1 and len(view.events) == 3
+    assert sim._positions == {}
+    closed = sim._closed[-1]
+    assert closed.exit_price == closes[0].payload["exit_price"]
+    assert closed.closed_ts == closes[0].timestamp
+    assert closes[0].decision_id == "dp-order"
+    assert sim._capital == pytest.approx(view.projection.available_cash)

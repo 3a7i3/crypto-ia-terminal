@@ -1348,6 +1348,18 @@ class MexcSimulator:
                 with self._lock:
                     self._orders.pop(order.order_id, None)
 
+    def _durable_close(self, trade_id: str):
+        """POSITION_CLOSED already persisted for trade_id in the authority, if any."""
+        events = self._authority_runtime.consistent_view().events
+        return next(
+            (
+                ev
+                for ev in reversed(events)
+                if ev.event_type == "POSITION_CLOSED" and ev.trade_id == trade_id
+            ),
+            None,
+        )
+
     def _close_position_ppl_authority(
         self, symbol: str, exit_price: float, reason: str
     ) -> None:
@@ -1356,16 +1368,27 @@ class MexcSimulator:
             pos = self._positions.get(symbol)
             if pos is None:
                 return
-            slip = exit_price * _SLIPPAGE
-            fill = exit_price - slip if pos.side == OrderSide.BUY else exit_price + slip
-            fee = pos.qty_usd * _TAKER_FEE
-            closed_at = time.time()
+            durable = self._durable_close(pos.pos_id)
+            if durable is None:
+                slip = exit_price * _SLIPPAGE
+                fill = exit_price - slip if pos.side == OrderSide.BUY else exit_price + slip
+                fee = pos.qty_usd * _TAKER_FEE
+                closed_at = time.time()
+                decision_id = pos.decision_id
+            else:
+                # An earlier attempt persisted this CLOSE, then failed (e.g.
+                # fsync). Retry the exact durable fact so the store's
+                # idempotence re-confirms it; never mint a different CLOSE.
+                fill = float(durable.payload["exit_price"])
+                fee = float(durable.payload["exit_fee"])
+                closed_at = float(durable.timestamp)
+                decision_id = durable.decision_id
             self._authority_runtime.commit_close(
                 trade_id=pos.pos_id,
                 exit_price=fill,
                 exit_fee=fee,
                 closed_at=closed_at,
-                decision_id=pos.decision_id,
+                decision_id=decision_id,
             )
             authority_state = self._authority_runtime.consistent_view().projection
             if pos.side == OrderSide.BUY:

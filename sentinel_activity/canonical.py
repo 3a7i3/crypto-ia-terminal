@@ -12,7 +12,7 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any
 
-from sentinel_activity.redaction_v1 import redact
+from sentinel_activity.redaction_v1 import contains_secret
 
 ERROR_CODES = frozenset({
     "INVALID_JSON", "DUPLICATE_KEY", "SCHEMA_VIOLATION", "NUMERIC_AMBIGUITY",
@@ -23,6 +23,9 @@ ERROR_CODES = frozenset({
     "EVIDENCE_INVALID", "CORRUPTED", "UNAVAILABLE", "BUSY", "PATH_DENIED",
     "ALREADY_EXISTS", "CURSOR_INVALID", "CLOCK_REGRESSION",
 })
+
+
+_FORBIDDEN_CATEGORIES = frozenset({"Cc", "Cs", "Cf"})
 
 
 class LedgerError(ValueError):
@@ -44,6 +47,37 @@ def pure_int(value: Any, minimum: int = 0, maximum: int = 2**63 - 1) -> bool:
     return type(value) is int and minimum <= value <= maximum
 
 
+def _text_failure(value: str) -> str | None:
+    """First failing text rule, in the original order; a pure function."""
+    if not unicodedata.is_normalized("NFC", value):
+        return "TEXT_NOT_CANONICAL"
+    # str.isprintable() is False for every Cc/Cs/Cf code point, so the
+    # per-character scan only runs on text that may contain one.
+    if not value.isprintable() and any(unicodedata.category(c) in _FORBIDDEN_CATEGORIES for c in value):
+        return "TEXT_NOT_CANONICAL"
+    if contains_secret(value):
+        return "SECRET_REJECTED"
+    return None
+
+
+# Memo of accepted short strings under immutable rules (frozen v1 profile,
+# fixed Unicode tables of this interpreter). It holds no journal state, so it
+# cannot carry a verification result from one read to another. Rejected text
+# (possibly a secret) is never retained. Bounded: <=256 chars, <=8192 entries.
+_ACCEPTED_TEXT: set[str] = set()
+
+
+def _short_text_failure(value: str) -> str | None:
+    if value in _ACCEPTED_TEXT:
+        return None
+    code = _text_failure(value)
+    if code is None:
+        if len(_ACCEPTED_TEXT) >= 8192:
+            _ACCEPTED_TEXT.clear()
+        _ACCEPTED_TEXT.add(value)
+    return code
+
+
 def _walk(value: Any, depth: int = 0) -> None:
     require(depth <= 8, "BUDGET_EXCEEDED")
     if value is None or type(value) is bool:
@@ -53,10 +87,9 @@ def _walk(value: Any, depth: int = 0) -> None:
         return
     if type(value) is str:
         require(len(value) <= 16_384, "BUDGET_EXCEEDED")
-        require(unicodedata.is_normalized("NFC", value), "TEXT_NOT_CANONICAL")
-        require(not any(unicodedata.category(c) in {"Cc", "Cs", "Cf"} for c in value),
-                "TEXT_NOT_CANONICAL")
-        require(redact(value)[1] == 0, "SECRET_REJECTED")
+        code = _short_text_failure(value) if len(value) <= 256 else _text_failure(value)
+        if code is not None:
+            raise LedgerError(code)
         return
     if type(value) is list:
         require(len(value) <= 100, "BUDGET_EXCEEDED")
