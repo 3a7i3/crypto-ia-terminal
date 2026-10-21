@@ -19,7 +19,8 @@ epoch code is imported or changed.
 | Code | `colony_lab/workers/sentinel.py` | the same worker, unchanged |
 
 The pilot adds **no new behaviour**: it runs its parent's code. It exists to prove, in the real
-sandbox, that a descendant can be born only from a qualified parent, has its own identity, memory
+sandbox, that a descendant can be born only from a parent whose qualification record has the
+required shape (the lab does not authenticate it; the campaign checks what Sentinel's names), has its own identity, memory
 and narrower permissions, and leaves its parent untouched. The worker answers in its parent's voice
 (output `agent_id` `SENTINEL-01`); the pilot's lab identity is its record's `agent_id`.
 
@@ -45,7 +46,7 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
 ## Campaigns
 
 - **PC1** (p0, `c4216ed4`): 27/27 in both rounds, `PROPOSED_QUALIFIED_SIMULATED`, evidence
-  `evidence/PC1_pilot_evidence.json` (`36f4e30d…`). Reproduced bit for bit by the independent review,
+  `evidence/PC1_pilot_evidence.json` (`36f4e30d…`). Reproduced by the independent review (identical once `git_head` and the checkout path are put back),
   whose verdict was **unfavourable**: 9 evaluator mutants survived outside the hash tripwire (the fact
   comparator `_check` and several facts made constant were caught by no test), no birth from a parent
   with a non-empty journal, an inexact grandchild limit, and the lineage/genotype check of a
@@ -56,7 +57,13 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   `PROPOSED_QUALIFIED_SIMULATED`. Evidence `evidence/PC2_pilot_evidence.json`, sha256
   `d706928e843275d58cab330426f6745db864194a86ef389fbed1dd93a7bc6b4d`, pilot evaluator
   `97fb6b04…`.
-- Tests added after PC2 (no evaluator change) kill the review's survivors C1, C3, C5 and C12–C17
+- Review of PC2 (`024ae5b4`): every earlier condition met, PC2 reproduced, but **unfavourable** again
+  on tests: 8 of its new mutants survived outside the tripwire (the r8 judgement of the replays
+  removable, five B01 facts and B12's parent-journal guard made constant, the replays'
+  `parent_unchanged`). Tests now forge the stored record field by field after `load()`, run a replay
+  through the real r8 predicates, write into the parent during a replay, run P01 for real (N10/S5),
+  and refuse a record claiming inherited memory (L17); none changes `colony_pilot/`, so PC2 stands.
+- Tests added after PC2 (no evaluator change) kill the first review's survivors C1, C3, C5 and C12–C17
   and L12 without the hash tripwire: each fact is provoked false (a write into the parent, a rewritten
   birth qualification, an inherited journal, equal permissions, shared journals, a qualification file
   written by a run, an extra expectation failing, resealed generation-2 lineages).
@@ -101,7 +108,9 @@ because `birth_qualification.json` is written by the supervisor at admission, be
 - Lab records, including the r8 record and a future pilot record, are not authenticated: whoever
   writes the lab root or the checkout is the authority. An attacker who writes the checkout is out of
   scope, as for Sentinel (see `SENTINEL_QUALIFICATION_REPORT.md`, reviews 8 and 9).
-- Sandbox tests may skip on GitHub runners (AppArmor); the sandbox evidence is from local runs.
+- Sandbox tests may skip on GitHub runners (AppArmor); the sandbox evidence is from local runs. The
+  unit tests of B12 and P01 need the sandbox too: on such a host, memory separation at birth and the
+  pilot's own refusal are proven by the campaign only.
 - A simulated, deterministic trial is not a full qualification and grants no runtime permission.
 
 ## Before any pilot record

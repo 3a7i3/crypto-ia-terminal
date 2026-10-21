@@ -327,3 +327,99 @@ def test_code_irregular_covers_the_pilot_package(monkeypatch, tmp_path):
 def test_the_pilot_evaluator_is_outside_the_hash_sentinel_was_qualified_with():
     assert all("colony_pilot" not in str(p) for p in q.evaluator_code_files())
     assert all(str(p.relative_to(c.sup.REPO)).startswith("colony_pilot/") for p in q._code_files(c.PILOT_CODE))
+
+
+# Review of PC2 (M1-bis): every B01/B12 fact and the replay judgement provoked false, generically.
+_B01_FORGERIES = [
+    ("lineage", lambda r, p: {**r, "lineage": {**r["lineage"], "generation": 2}}),
+    ("lineage", lambda r, p: {**r, "lineage": {**r["lineage"], "parent_agent_id": "0" * 64}}),
+    ("lineage", lambda r, p: {**r, "lineage": {**r["lineage"], "parent_agent_spec_id": "0" * 64}}),
+    ("lineage", lambda r, p: {**r, "lineage": {**r["lineage"], "founder_agent_id": "0" * 64}}),
+    ("lineage", lambda r, p: {**r, "lineage": {**r["lineage"], "lineage_id": "0" * 64}}),
+    ("genotype_diff", lambda r, p: {**r, "genotype": {**r["genotype"], "declared_diff": []}}),
+    ("base_spec_is_parent", lambda r, p: {**r, "genotype": {**r["genotype"], "base_agent_spec_id": "0" * 64}}),
+    ("lab_permissions", lambda r, p: {**r, "lab_permissions": ["CI_READ"]}),
+    ("permissions_subset_of_parent", lambda r, p: {**r, "lab_permissions": list(p["lab_permissions"])}),
+    ("credentials", lambda r, p: {**r, "credentials": "TOKEN"}),
+    ("operational_authority", lambda r, p: {**r, "operational_authority": "GRANTED"}),
+    ("memory", lambda r, p: {**r, "memory": {**r["memory"], "inherits_parent_memory": True}}),
+    ("registry", lambda r, p: {**r, "registry": {**r["registry"], "state": "REGISTERED"}}),
+    ("distinct_agent_id", lambda r, p: {**r, "agent_id": p["agent_id"]}),
+]
+
+
+@pytest.mark.parametrize("fact,forge", _B01_FORGERIES)
+def test_each_b01_fact_reads_the_stored_record(monkeypatch, tmp_path, fact, forge):
+    """The stored record is replaced after load(): each B01 fact must then fail its expectation."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    original = c.sup.Supervisor.load
+
+    def load(self, agent_id, _depth=0):
+        record, spec = original(self, agent_id, _depth)
+        if record["role"] != "DESCENDANT":
+            return record, spec
+        parent, _ = original(self, record["lineage"]["parent_agent_id"])
+        return forge(record, parent), spec
+    monkeypatch.setattr(c.sup.Supervisor, "load", load)
+    valid = _valid(criteria)
+    facts = c.birth_trial(valid, criteria, _r8(), qualification, tmp_path)
+    assert fact in c._check(valid["expect"], facts)
+
+
+def test_b12_sees_a_parent_that_never_ran(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    b12 = next(t for t in criteria["birth_trials"] if t["case"] == "valid_after_parent_ran")
+    monkeypatch.setattr(c.sup.Supervisor, "run", lambda self, agent, task: {"status": "COMPLETED"})
+    facts = c.birth_trial(b12, criteria, _r8(), qualification, tmp_path)
+    assert facts["parent_journal_nonempty"] is False and "parent_journal_nonempty" in c._check(b12["expect"], facts)
+
+
+def test_the_replay_is_judged_by_the_real_r8_predicates(monkeypatch, tmp_path):
+    criteria = {**_criteria(), "birth_trials": [], "permission_trials": []}
+    r8 = {**_r8(), "trials": [t for t in _r8()["trials"] if t["id"] == "Q00-nominal"]}
+    monkeypatch.setattr(c, "run_trial", lambda *args: {
+        "outcome": {"status": "REFUSED", "code": "X", "output": None}, "journal_last": None,
+        "record_unchanged": True, "runs_unchanged": True, "qualification_files": [],
+        "parent_unchanged": True, "birth_qualification_unchanged": True})
+    [result] = c._round(criteria, r8, {}, tmp_path)
+    assert result["passed"] is False and {"status", "code", "matches_golden"} <= set(result["failed_predicates"])
+
+
+def test_a_replayed_run_that_writes_into_the_parent_is_seen(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q00-nominal")
+
+    def run(self, agent, task):
+        record = json.loads((self.root / "individuals" / agent / "record.json").read_text())
+        (self.root / "individuals" / record["lineage"]["parent_agent_id"] / "usage.json").write_text('{"runs": 9}')
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    assert c.run_trial(trial, criteria, _r8(), qualification, tmp_path)["parent_unchanged"] is False
+
+
+def test_the_permission_trial_asks_the_pilot_itself(tmp_path):
+    """Review of PC2, N10/S5: the pilot (not the parent) is refused, on its own record's permissions."""
+    if not HOST_NAMESPACES:
+        pytest.skip("host refuses unprivileged namespaces; the parent cannot run")
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = criteria["permission_trials"][0]
+    facts = c.permission_trial(trial, criteria, _r8(), qualification, tmp_path)
+    assert {name: facts[name] for name in trial["expect"]} == trial["expect"]
+
+
+def test_a_resealed_record_with_another_memory_is_refused(tmp_path):
+    """Review of PC2, L17: a record claiming inherited memory is not a lab record."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    lab = c._Lab(tmp_path, _r8())
+    record, spec = lab.make(criteria["pilot"], qualification)
+    forged = lineage._seal({**{k: v for k, v in record.items() if k != "record_hash"},
+                            "memory": {**record["memory"], "inherits_parent_memory": True}})
+    with pytest.raises(c.sup.LabError) as refused:
+        lab.supervisor.admit(forged, spec, parent_qualification=qualification)
+    assert refused.value.code == "RECORD_SCHEMA_VIOLATION"
+    lab.close()
