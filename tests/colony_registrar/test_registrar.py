@@ -40,20 +40,34 @@ class Colony:
     def spec_of(self, agent_id):
         return self.lab.load(agent_id)[1]
 
-    def admission(self, child_spec, parent_id, **changes):
+    def admission(self, child_spec, parent_id, *, qualification=None, budget=None,
+                  permissions=("DIAGNOSTIC_PRODUCE",), declared_diff=None, **changes):
+        """The external decision for exactly this birth (same defaults as birth())."""
+        parent, parent_spec = self.lab.load(parent_id)
+        qualification = builders.qualification(parent) if qualification is None else qualification
         return {"admission_schema": reg.ADMISSION_SCHEMA, "child_agent_id": child_spec["agent_id"],
                 "child_agent_spec_id": child_spec["agent_spec_id"], "parent_agent_id": parent_id,
                 "admitter_kind": "EXTERNAL_HUMAN", "admitter_id": ADMITTER,
-                "policy_sha256": self.registrar.policy_sha256, **changes}
+                "policy_sha256": self.registrar.policy_sha256,
+                "parent_qualification_sha256": reg._sha(qualification),
+                "budget": dict(budget or builders.BUDGET),
+                "lab_permissions": None if permissions is None else list(permissions),
+                "declared_diff": lineage.spec_diff(parent_spec, child_spec) if declared_diff is None else declared_diff,
+                **changes}
 
     def birth(self, parent_id, name, *, qualification=None, admission=None, permissions=("DIAGNOSTIC_PRODUCE",),
               budget=None, declared_diff=None, child_spec=None):
         child_spec = child_spec or _spec(name)
         parent, parent_spec = self.lab.load(parent_id)
+        qualification = builders.qualification(parent) if qualification is None else qualification
+        if admission is None:
+            try:
+                admission = self.admission(child_spec, parent_id, qualification=qualification, budget=budget,
+                                           permissions=permissions, declared_diff=declared_diff)
+            except (TypeError, KeyError):
+                admission = {}
         return self.registrar.birth(
-            parent_id, child_spec,
-            parent_qualification=builders.qualification(parent) if qualification is None else qualification,
-            admission=self.admission(child_spec, parent_id) if admission is None else admission,
+            parent_id, child_spec, parent_qualification=qualification, admission=admission,
             lab_permissions=None if permissions is None else list(permissions),
             budget=dict(budget or builders.BUDGET),
             declared_diff=lineage.spec_diff(parent_spec, child_spec) if declared_diff is None else declared_diff)
@@ -94,8 +108,8 @@ def test_a_qualified_descendant_becomes_a_parent_and_its_lineage_verifies(colony
     assert (record["credentials"], record["operational_authority"]) == ("NONE", "DENIED")
     assert record["memory"] == lineage.MEMORY and record["registry"] == lineage.REGISTRY
     home = c.lab.root / "individuals" / grandchild["agent_id"]
-    assert json.loads((home / "admission.json").read_text()) == c.admission(c.spec_of(grandchild["agent_id"]),
-                                                                           child["agent_id"])
+    admission = c.lab.root / reg.ADMISSIONS / f"{grandchild['agent_id']}.json"
+    assert json.loads(admission.read_text()) == c.admission(c.spec_of(grandchild["agent_id"]), child["agent_id"])
     assert json.loads((home / "birth_qualification.json").read_text()) == builders.qualification(
         c.lab.load(child["agent_id"])[0])
     assert not (c.lab.root / reg.LOCK).exists()
@@ -130,6 +144,32 @@ def test_population_and_children_are_capped(colony):
     child = c.birth(c.founder["agent_id"], "child_01")
     _refused("CHILDREN_LIMIT", lambda: c.birth(c.founder["agent_id"], "child_02"))
     assert c.birth(child["agent_id"], "grandchild_01")["generation"] == 2  # the limit is per parent
+
+
+def test_children_are_capped_for_a_parent_of_any_generation(colony):
+    c = colony(max_children_per_parent=1)
+    child = c.birth(c.founder["agent_id"], "child_01")
+    c.birth(child["agent_id"], "grandchild_01")
+    _refused("CHILDREN_LIMIT", lambda: c.birth(child["agent_id"], "grandchild_02"))
+
+
+@pytest.mark.parametrize("field", sorted(builders.BUDGET))
+def test_each_budget_field_is_bounded_by_the_parent(colony, field):
+    c = colony()
+    half = {name: value // 2 for name, value in builders.BUDGET.items()}
+    child = c.birth(c.founder["agent_id"], "child_01", budget=half)
+    _refused("BUDGET_ESCALATION", lambda: c.birth(child["agent_id"], "grandchild_01",
+                                                  budget={**half, field: half[field] + 1}))
+    assert c.birth(child["agent_id"], "grandchild_01", budget=half)["generation"] == 2
+
+
+@pytest.mark.parametrize("field", sorted(builders.BUDGET))
+def test_each_budget_field_is_bounded_by_the_colony(colony, field):
+    budget = {**reg.load_policy()[0]["colony_budget"], field: 2 * builders.BUDGET[field]}
+    c = colony(colony_budget=budget)
+    c.birth(c.founder["agent_id"], "child_01")  # founder + child = exactly the cap on this field
+    _refused("COLONY_BUDGET_EXCEEDED", lambda: c.birth(c.founder["agent_id"], "child_02",
+                                                       budget={**builders.BUDGET, field: 1}))
 
 
 def test_costs_are_bounded_by_the_parent_and_by_the_colony(colony):
@@ -207,6 +247,10 @@ def test_no_ancestor_qualifies_or_admits_its_own_line(colony):
     ({"admitter_kind": "AGENT"}, "SELF_ADMISSION_DENIED"),
     ({"admitter_kind": "LAB_OPERATOR"}, "SELF_ADMISSION_DENIED"),
     ({"admitter_id": "X"}, "SELF_ADMISSION_DENIED"),
+    ({"parent_qualification_sha256": "a" * 64}, "ADMISSION_NOT_FOR_THIS_BIRTH"),
+    ({"budget": {**builders.BUDGET, "runs": 19}}, "ADMISSION_NOT_FOR_THIS_BIRTH"),
+    ({"lab_permissions": ["DIAGNOSTIC_PRODUCE", "GOVERNED_ARTIFACT_READ"]}, "ADMISSION_NOT_FOR_THIS_BIRTH"),
+    ({"declared_diff": ["purpose"]}, "ADMISSION_NOT_FOR_THIS_BIRTH"),
 ])
 def test_a_birth_needs_its_own_external_admission(colony, change, code):
     c = colony()
@@ -214,6 +258,102 @@ def test_a_birth_needs_its_own_external_admission(colony, change, code):
     admission = c.admission(spec, c.founder["agent_id"], **change)
     _refused(code, lambda: c.birth(c.founder["agent_id"], "child_01", admission=admission))
     assert c.homes() == [c.founder["agent_id"]]
+
+
+def test_nobody_admitted_in_the_colony_qualifies_or_admits_a_birth(colony):
+    """Not only the line: a sibling or any other admitted individual is excluded too."""
+    c = colony()
+    child = c.birth(c.founder["agent_id"], "child_01")
+    sibling = c.birth(c.founder["agent_id"], "child_02")
+    parent = c.lab.load(child["agent_id"])[0]
+    reviewer = "fixture-" + sibling["agent_id"][:16]
+    spec = _spec("grandchild_01")
+    _refused("SELF_QUALIFICATION_DENIED", lambda: c.birth(
+        child["agent_id"], "grandchild_01", qualification=builders.qualification(parent, reviewer=reviewer)))
+    _refused("SELF_ADMISSION_DENIED", lambda: c.birth(
+        child["agent_id"], "grandchild_01", admission=c.admission(spec, child["agent_id"], admitter_id=reviewer)))
+
+
+def test_a_parent_admitted_outside_the_registrar_cannot_have_children_through_it(colony):
+    c = colony()
+    spec = _spec("child_01")
+    parent = c.founder
+    record = lineage.make_descendant(parent, c.founder_spec, spec, parent_qualification=builders.qualification(parent),
+                                     lab_permissions=["DIAGNOSTIC_PRODUCE"], budget=dict(builders.BUDGET),
+                                     declared_diff=lineage.spec_diff(c.founder_spec, spec))
+    c.lab.admit(record, spec, parent_qualification=builders.qualification(parent))  # the lab alone, no admission
+    _refused("ANCESTOR_NOT_ADMITTED", lambda: c.birth(record["agent_id"], "grandchild_01"))
+
+
+def test_an_ancestor_whose_admission_was_altered_is_refused(colony):
+    c = colony()
+    child = c.birth(c.founder["agent_id"], "child_01")
+    path = c.lab.root / reg.ADMISSIONS / f"{child['agent_id']}.json"
+    admission = json.loads(path.read_text())
+    path.write_text(json.dumps({**admission, "budget": {**admission["budget"], "runs": 1}}))
+    _refused("ANCESTOR_NOT_ADMITTED", lambda: c.birth(child["agent_id"], "grandchild_01"))
+    path.write_text("{")
+    _refused("ANCESTOR_NOT_ADMITTED", lambda: c.birth(child["agent_id"], "grandchild_01"))
+    path.write_text(json.dumps({**admission, "admission_schema": "colony-registrar.admission/1"}))
+    _refused("ANCESTOR_NOT_ADMITTED", lambda: c.birth(child["agent_id"], "grandchild_01"))
+    sibling = c.birth(c.founder["agent_id"], "child_02")
+    path.write_bytes((c.lab.root / reg.ADMISSIONS / f"{sibling['agent_id']}.json").read_bytes())
+    _refused("ANCESTOR_NOT_ADMITTED", lambda: c.birth(child["agent_id"], "grandchild_01"))
+    path.write_text(json.dumps(admission))
+    assert c.birth(child["agent_id"], "grandchild_01")["generation"] == 2
+
+
+def test_the_admission_is_recorded_before_the_child_and_only_the_same_one_resumes(colony, monkeypatch):
+    c = colony()
+    spec = _spec("child_01")
+    admit = c.lab.admit
+
+    def crash(*args, **kwargs):
+        raise OSError("disk full")
+    monkeypatch.setattr(c.lab, "admit", crash)
+    _refused("LAB_IO_ERROR", lambda: c.birth(c.founder["agent_id"], "child_01"))
+    assert c.homes() == [c.founder["agent_id"]]
+    assert (c.lab.root / reg.ADMISSIONS / f"{spec['agent_id']}.json").exists()
+    monkeypatch.setattr(c.lab, "admit", admit)
+    other = c.admission(spec, c.founder["agent_id"], admitter_id="fixture-other-admitter")
+    _refused("ADMISSION_CONFLICT", lambda: c.birth(c.founder["agent_id"], "child_01", admission=other))
+    assert c.birth(c.founder["agent_id"], "child_01")["generation"] == 1  # the same decision resumes
+
+
+def test_no_birth_while_the_operator_stop_is_set(colony):
+    c = colony()
+    c.lab.stop_file.write_text("")
+    _refused("LAB_STOPPED", lambda: c.birth(c.founder["agent_id"], "child_01"))
+    assert c.homes() == [c.founder["agent_id"]] and not (c.lab.root / reg.LOCK).exists()
+
+
+@pytest.mark.parametrize("call", [
+    lambda c: c.birth(c.founder["agent_id"], "child_01", permissions=[{}]),
+    lambda c: c.birth(c.founder["agent_id"], "child_01",
+                      qualification={**builders.qualification(c.founder), "state": [1]}),
+    lambda c: c.birth(c.founder["agent_id"], "child_01",
+                      qualification={**builders.qualification(c.founder), "reviewer_kind": {}}),
+    lambda c: c.birth(c.founder["agent_id"], "child_01", admission={**c.admission(_spec("child_01"),
+                                                                    c.founder["agent_id"]), "admitter_kind": []}),
+    lambda c: c.registrar.birth(c.founder["agent_id"], _spec("child_01"), parent_qualification=None,
+                                admission=None, lab_permissions=None, budget=None, declared_diff=None),
+])
+def test_malformed_inputs_get_a_coded_refusal(colony, call):
+    c = colony()
+    with pytest.raises(reg.RegistrarError):
+        call(c)
+    assert c.homes() == [c.founder["agent_id"]] and not (c.lab.root / reg.LOCK).exists()
+
+
+def test_a_lock_removed_during_a_birth_does_not_hide_its_success(colony, monkeypatch):
+    c = colony()
+    admit = c.lab.admit
+
+    def admit_and_drop_lock(*args, **kwargs):
+        (c.lab.root / reg.LOCK).unlink()
+        return admit(*args, **kwargs)
+    monkeypatch.setattr(c.lab, "admit", admit_and_drop_lock)
+    assert c.birth(c.founder["agent_id"], "child_01")["generation"] == 1
 
 
 def test_a_missing_admission_is_refused(colony):
@@ -275,12 +415,23 @@ def test_the_frozen_policy_g0_is_pinned_and_admits_only_the_reviewed_criteria():
     {"max_children_per_parent": 9}, {"max_concurrent_runs": 5}, {"max_concurrent_runs": True},
     {"admitter_kinds": ["AGENT"]}, {"admitter_kinds": []}, {"admissible_parent_criteria_sha256": []},
     {"admissible_parent_criteria_sha256": ["X" * 64]}, {"policy_schema": "colony-registrar.policy/1"},
-    {"colony_budget": {"runs": 1}}, {"extra": 1},
+    {"colony_budget": {"runs": 1}}, {"extra": 1}, {"admissible_parent_criteria_sha256": [[1]]},
+    {"admitter_kinds": [{}]},
 ])
 def test_a_policy_looser_than_the_ceilings_or_malformed_is_refused(tmp_path, change):
     policy = {**reg.load_policy()[0], **change}
     lab = sup.Supervisor(builders.lab_root(tmp_path), missions=frozenset({MISSION}))
     _refused("POLICY_INVALID", lambda: reg.Registrar(lab, policy=policy, policy_sha256=reg._sha(policy)))
+
+
+@pytest.mark.parametrize("field", sorted(lineage.BUDGET_MAX))
+def test_the_colony_budget_ceiling_is_64_individuals_at_their_maximum(tmp_path, field):
+    lab = sup.Supervisor(builders.lab_root(tmp_path), missions=frozenset({MISSION}))
+    budget = reg.load_policy()[0]["colony_budget"]
+    at_ceiling, _ = _policy(colony_budget={**budget, field: 64 * lineage.BUDGET_MAX[field]})
+    reg.Registrar(lab, policy=at_ceiling, policy_sha256=reg._sha(at_ceiling))
+    above, _ = _policy(colony_budget={**budget, field: 64 * lineage.BUDGET_MAX[field] + 1})
+    _refused("POLICY_INVALID", lambda: reg.Registrar(lab, policy=above, policy_sha256=reg._sha(above)))
 
 
 def test_a_policy_is_only_used_with_its_own_pin(tmp_path):
@@ -290,6 +441,15 @@ def test_a_policy_is_only_used_with_its_own_pin(tmp_path):
     changed = copy.deepcopy(policy)
     changed["max_population"] = 7
     _refused("POLICY_PIN_MISMATCH", lambda: reg.Registrar(lab, policy=changed, policy_sha256=pin))
+
+
+def test_a_policy_changed_after_the_registrar_is_built_has_no_effect(colony):
+    policy, pin = _policy(max_population=2)
+    c = colony()
+    c.registrar = reg.Registrar(c.lab, policy=policy, policy_sha256=pin)
+    policy["max_population"] = 64
+    c.birth(c.founder["agent_id"], "child_01")
+    _refused("POPULATION_LIMIT", lambda: c.birth(c.founder["agent_id"], "child_02"))
 
 
 def test_the_default_registrar_uses_the_frozen_policy(tmp_path):
@@ -306,13 +466,17 @@ def _imports(path):
 
 
 def test_no_lab_module_or_worker_can_reach_the_registrar():
-    for package in ("colony_lab", "colony_pilot", "colony_trust"):
-        for path in (ROOT / package).rglob("*.py"):
+    packages = [name for name in ("colony_lab", "colony_pilot", "colony_trust") if (ROOT / name).is_dir()]
+    assert {"colony_lab", "colony_pilot"} <= set(packages)  # colony_trust is checked once it is merged
+    for package in packages:
+        paths = list((ROOT / package).rglob("*.py"))
+        assert paths, package
+        for path in paths:
             assert not any(name.startswith("colony_registrar") for name in _imports(path)), path
     assert all(not t.module.startswith("colony_registrar") for t in sup.TASKS.values())
-    allowed = ("__future__", "hashlib", "json", "os", "contextlib", "pathlib", "typing", "colony_lab")
+    allowed = {"__future__", "copy", "hashlib", "json", "os", "contextlib", "pathlib", "typing", "colony_lab"}
     for path in (ROOT / "colony_registrar").rglob("*.py"):
-        assert all(name.startswith(allowed) for name in _imports(path)), path
+        assert all(name in allowed or name.startswith("colony_lab.") for name in _imports(path)), path
 
 
 def test_an_admitted_identity_is_refused_before_any_limit_is_counted(colony):
