@@ -57,6 +57,12 @@ revoked_envelopes: [envelope_id…]
 - `issuer_kind` ∈ `EXTERNAL_HUMAN`, `EXTERNAL_REVIEW_PROCESS`, `LAB_OPERATOR`; `issuer_id` follows the
   lab reviewer-id grammar. Issuer ids and key ids are unique across the root.
 - `public_key` is a raw Ed25519 key (64 hex); `key_id` = SHA-256 of the raw key, recomputed.
+- `public_key` must decode, per RFC 8032, to a canonical point of the prime-order subgroup: an
+  encoding with y ≥ p, a non-square x², x = 0 with sign bit 1, a point of small order (8·P = O, such as
+  the identity) or a point outside the prime-order subgroup (L·P ≠ O) is refused (`TRUST_ROOT_INVALID`).
+  A weak key such as the identity verifies forged signatures; refusing it is part of authenticity.
+- `root_version` ≤ 2^31 − 1; any malformed root (wrong types, nesting, unhashable values) is refused
+  with the coded `TRUST_ROOT_INVALID`, never an uncaught exception.
 - `status` ∈ `ACTIVE`, `RETIRED`, `REVOKED`; `retired_in_root` is set exactly for `RETIRED` and `REVOKED`
   and is > `introduced_in_root`; both are ≤ `root_version`.
 - Scopes may only name known record kinds: `colony-lab.individual/0` only for `LAB_OPERATOR`;
@@ -94,11 +100,19 @@ Unknown, invalid and unauthenticated inputs are refused explicitly; nothing defa
    kind the caller decides on), `PURPOSE_MISMATCH`, `SCOPE_NOT_GRANTED`, `SUBJECT_MISMATCH` (envelope
    subject ≠ record subject ≠ caller's subject), `AUTHOR_NOT_ISSUER` (the record's declared author,
    `reviewer_kind`/`reviewer_id` or `admitter_kind`/`admitter_id`, is not the issuer).
-6. **Replay of single-use envelopes** (authorization): `BIRTH_ADMITTED` envelopes are consumed in an
-   append-only ledger; the same envelope again → `ENVELOPE_REPLAYED`; the same `envelope_id` with other
-   content → `ENVELOPE_ID_REUSED`. Durable attestations (qualification, individual) are re-verified on
+6. **Replay of single-use envelopes** (authorization), evaluated **inside the bundle verification**:
+   `BIRTH_ADMITTED` envelopes are consumed in an append-only ledger the caller passes to the bundle;
+   without a ledger a single-use envelope is refused (`LEDGER_REQUIRED`). The ledger key is
+   (`issuer_id`, `envelope_id`); the same envelope again → `ENVELOPE_REPLAYED`; the same key with other
+   content → `ENVELOPE_ID_REUSED`. An envelope is consumed only when the whole bundle passes integrity,
+   authenticity, authorization and completeness; nothing is consumed on a refusal, and no public
+   function consumes an envelope that was not verified. The ledger is read strictly (one canonical
+   JSON object per line, exact fields, no duplicate keys); an unreadable, truncated or foreign line →
+   `LEDGER_CORRUPT` (fail closed). Durable attestations (qualification, individual) are re-verified on
    every load by design; using them in another context is refused by the bindings of step 5.
-7. **Completeness** (bundle): `ATTESTATION_MISSING`, `ATTESTATION_DUPLICATED`, `ATTESTATION_UNEXPECTED`.
+7. **Completeness** (bundle): `BUNDLE_INVALID` (malformed bundle or required list, or a required
+   (kind, subject) pair listed twice), `ATTESTATION_MISSING`, `ATTESTATION_DUPLICATED`,
+   `ATTESTATION_UNEXPECTED`.
 
 Each failure fails its property; the other properties are still evaluated where their inputs are
 valid, so a verdict shows, for instance, a record that is intact and authentic but not authorized.
@@ -110,7 +124,8 @@ bundle verification, which also evaluates completeness, can **accept** a decisio
 - **Substitution** of the record: the signature covers `record_sha256`, its kind and its subject.
 - **Substitution** of the envelope onto another record, lab or agent: refused by the bindings.
 - **Cross-scope use** of a key (A3): scope check; a reviewer key cannot admit an individual.
-- **Replay** in another lab: `lab_id`; of a birth admission: the consumption ledger.
+- **Replay** in another lab: `lab_id`; of a birth admission: the consumption ledger, consulted by
+  the bundle verdict itself, so a replayed admission is never accepted.
 - **Versions**: unknown schema versions are refused; the trust root carries a monotonic `root_version`;
   the caller pins its hash and a minimum version, so an older root cannot be substituted.
 - **Rotation**: a new root version adds the new key `ACTIVE` and marks the old one `RETIRED` with
@@ -141,3 +156,12 @@ not proof that the old record was authentic when it was written.
   extra gate callers use, not a property of the lab.
 - Test keys are derived from public labels in `tests/colony_trust`: they authenticate nothing outside
   the tests by construction.
+
+## 8. Amendment history
+
+- Amendment 2, pushed alone before its code, after the independent review of the first implementation
+  (8f8b0912) found weak keys accepted and replay left outside the verdict: weak and small-order keys
+  refused; replay evaluated in the bundle with a required ledger keyed by (issuer, envelope id), read
+  strictly; coded refusals for malformed roots, bundles and ledgers; duplicate required pairs refused.
+- Amendment 1 (5daa21b2) was pushed together with the first code push, not before it: that order was
+  not respected for it.
