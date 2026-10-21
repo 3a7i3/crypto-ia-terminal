@@ -423,3 +423,151 @@ def test_a_resealed_record_with_another_memory_is_refused(tmp_path):
         lab.supervisor.admit(forged, spec, parent_qualification=qualification)
     assert refused.value.code == "RECORD_SCHEMA_VIOLATION"
     lab.close()
+
+
+# Review 3 of #484 (M1-ter): the replay's record and run facts, each key of the parent check, tracked_clean.
+@pytest.mark.parametrize("target,fact", [("spec.json", "record_unchanged"), ("usage.json", "runs_unchanged")])
+def test_a_replayed_run_that_changes_the_pilot_record_or_its_runs_is_seen(monkeypatch, tmp_path, target, fact):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q00-nominal")
+
+    def run(self, agent, task):
+        path = self.root / "individuals" / agent / target
+        body = json.loads(path.read_text())
+        path.write_text(json.dumps({**body, "runs": 99} if target == "usage.json" else {**body, "purpose": "x"}))
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    facts = c.run_trial(trial, criteria, _r8(), qualification, tmp_path)
+    assert facts[fact] is False
+
+
+@pytest.mark.parametrize("key", ["state", "scope", "evidence_sha256", "criteria_sha256", "subject_code_sha256",
+                                 "evaluator_code_sha256"])
+def test_each_key_of_the_parent_record_is_checked(tmp_path, key):
+    criteria = _criteria()
+    record, check = c.parent_qualification(criteria)
+    assert check["mismatched"] == []
+    forged = tmp_path / "record.json"
+    forged.write_text(json.dumps({**record, key: "FORGED"}))
+    other = {**criteria, "parent": {**criteria["parent"], "record_file": str(forged)}}
+    assert c.parent_qualification(other)[1]["mismatched"] == [key]
+
+
+def test_a_dirty_tracked_tree_fails_the_campaign(monkeypatch, tmp_path):
+    _passing(monkeypatch)
+    monkeypatch.setattr(q, "tree_state", lambda: {**CLEAN_TREE, "tracked_clean": False})
+    assert c.qualify(tmp_path)["failure_reasons"] == ["TREE_NOT_CLEAN"]
+
+
+# Author's own operator-mutation sweep of campaign.py: the replays' setups, outside the sandbox.
+@pytest.mark.parametrize("trial_id", ["Q04-corrupted-journal", "Q05-interrupted-and-resumed", "Q06-runs-exhausted",
+                                      "Q07-output-exhausted", "Q11-unadmitted-mission", "Q00-nominal"])
+def test_each_replay_applies_its_setup_to_the_pilot(monkeypatch, tmp_path, trial_id):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == trial_id)
+    seen = {"tasks": [], "corrupted": [], "killed": []}
+
+    def run(self, agent, task):
+        record = json.loads((self.root / "individuals" / agent / "record.json").read_text())
+        seen["tasks"].append((task["task_id"], task["mission_id"], record["role"], record["budget"]))
+        return {"status": "COMPLETED", "code": "RUN_COMPLETED", "output": None}
+    monkeypatch.setattr(c.sup.Supervisor, "run", run)
+    monkeypatch.setattr(q, "_corrupt", lambda root: seen["corrupted"].append(root.parent.name))
+    monkeypatch.setattr(q, "_kill_mid_run", lambda root, agent, trial: seen["killed"].append(agent))
+    c.run_trial(trial, criteria, _r8(), qualification, tmp_path)
+    pilot_id = c.pilot_spec(q.sentinel_spec(_r8()["subject"]), criteria["pilot"])["agent_id"]
+    roles = {role for _, _, role, _ in seen["tasks"]}
+    assert roles == {"DESCENDANT"}
+    ids = [task_id for task_id, _, _, _ in seen["tasks"]]
+    budget = seen["tasks"][-1][3]
+    missions = {mission for _, mission, _, _ in seen["tasks"]}
+    setup = trial.get("setup")
+    assert ids == (["prep", trial_id.lower()] if setup in {"corrupt_journal", "runs_budget_spent"} else [trial_id.lower()])
+    assert seen["corrupted"] == ([pilot_id] if setup == "corrupt_journal" else [])
+    assert seen["killed"] == ([pilot_id] if setup == "kill_supervisor_mid_run" else [])
+    assert budget["runs"] == (1 if setup == "runs_budget_spent" else q.BUDGET["runs"])
+    assert budget["output_bytes"] == (512 if setup == "output_budget_512" else q.BUDGET["output_bytes"])
+    assert missions == ({"fixture-unadmitted-mission"} if setup == "mission_not_admitted" else {q.MISSION}) or \
+        setup in {"corrupt_journal", "runs_budget_spent"}
+
+
+def test_a_failed_preparatory_run_is_a_trial_error(monkeypatch, tmp_path):
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    trial = next(t for t in _r8()["trials"] if t["id"] == "Q06-runs-exhausted")
+    monkeypatch.setattr(c.sup.Supervisor, "run", lambda self, agent, task: {"status": "REFUSED", "code": "X"})
+    with pytest.raises(RuntimeError):
+        c.run_trial(trial, criteria, _r8(), qualification, tmp_path)
+
+
+def test_main_prints_the_failed_trials_and_writes_canonical_evidence(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(q, "evaluator_runtime", lambda: SOURCE_RUNTIME)
+    evidence = {"proposed_state": "FAILED", "failure_reasons": ["TRIALS_FAILED"], "é": 1,
+                "rounds": [[{"id": "B01", "passed": False}, {"id": "B02", "passed": True}]]}
+    monkeypatch.setattr(c, "qualify", lambda workdir, revision: evidence)
+    assert c.main(["--out", str(tmp_path / "new" / "dir")]) == 1
+    body = (tmp_path / "new" / "dir" / "pilot_evidence.json").read_bytes()
+    assert body == (json.dumps(evidence, ensure_ascii=False, sort_keys=True, indent=1) + "\n").encode()
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["failed"] == ["B01"] and printed["evidence_sha256"] == hashlib.sha256(body).hexdigest()
+
+
+# Review 3 of #484 (m11): pre-existing lab rules not exercised in refusal by the pilot's trials.
+def test_a_resealed_record_with_credentials_is_refused(tmp_path):
+    """L20: a lab record never carries a credential."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    lab = c._Lab(tmp_path, _r8())
+    record, spec = lab.make(criteria["pilot"], qualification)
+    forged = lineage._seal({**{k: v for k, v in record.items() if k != "record_hash"}, "credentials": "API_KEY"})
+    with pytest.raises(c.sup.LabError) as refused:
+        lab.supervisor.admit(forged, spec, parent_qualification=qualification)
+    assert refused.value.code == "RECORD_SCHEMA_VIOLATION"
+    lab.close()
+
+
+def test_a_parent_qualification_with_another_scope_is_refused(tmp_path):
+    """L25: only a SIMULATED_DETERMINISTIC qualification lets a parent have a child."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    lab = c._Lab(tmp_path, _r8())
+    record, spec = lab.make(criteria["pilot"], qualification)
+    with pytest.raises(c.sup.LabError) as refused:
+        lab.supervisor.admit(record, spec, parent_qualification={**qualification, "scope": "RUNTIME"})
+    assert refused.value.code == "PARENT_NOT_QUALIFIED"
+    with pytest.raises(lineage.LineageError) as refused:
+        lineage.check_qualification({**qualification, "scope": "RUNTIME"}, lab.parent)
+    assert refused.value.code == "PARENT_NOT_QUALIFIED"
+    lab.close()
+
+
+def test_a_descendant_record_with_its_parent_identity_is_refused(tmp_path):
+    """L23 (defence in depth behind B09): verify_record refuses a child carrying its parent's agent_id."""
+    lab = c._Lab(tmp_path, _r8())
+    parent = lab.parent
+    same = lineage._seal({**{k: v for k, v in parent.items() if k != "record_hash"}, "role": "DESCENDANT",
+                          "lineage": {**parent["lineage"], "parent_agent_id": parent["agent_id"],
+                                      "parent_agent_spec_id": parent["agent_spec_id"], "generation": 1},
+                          "genotype": {"base_agent_spec_id": parent["agent_spec_id"], "declared_diff": []}})
+    with pytest.raises(lineage.LineageError) as refused:
+        lineage.verify_record(same, lab.parent_spec, parent, lab.parent_spec)
+    assert refused.value.code == "LINEAGE_INVALID"
+    lab.close()
+
+
+def test_a_birth_qualification_rewritten_to_name_the_child_is_refused_on_load(tmp_path):
+    """S17 (defence on reload): after admission, a reviewer id naming the pilot makes it unloadable."""
+    criteria = _criteria()
+    qualification, _ = c.parent_qualification(criteria)
+    lab = c._Lab(tmp_path, _r8())
+    record, spec = lab.make(criteria["pilot"], qualification)
+    lab.supervisor.admit(record, spec, parent_qualification=qualification)
+    assert lab.supervisor.load(record["agent_id"])[0] == record
+    named = {**qualification, "reviewer_id": "review-" + record["agent_id"][:16]}
+    (lab.home(record["agent_id"]) / "birth_qualification.json").write_text(json.dumps(named))
+    with pytest.raises(c.sup.LabError) as refused:
+        lab.supervisor.load(record["agent_id"])
+    assert refused.value.code == "SELF_QUALIFICATION_DENIED"
+    lab.close()

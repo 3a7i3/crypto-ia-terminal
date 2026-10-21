@@ -68,6 +68,29 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   birth qualification, an inherited journal, equal permissions, shared journals, a qualification file
   written by a run, an extra expectation failing, resealed generation-2 lineages).
 
+- Review of the tests (`a44e16e2`): every condition of review 2 met, PC2 not in question, but
+  **unfavourable** again: 5 survivors outside the tripwire and the campaign (the replays'
+  `record_unchanged` and `runs_unchanged` made constant, the parent check without `evidence_sha256` or
+  `criteria_sha256`, the `tracked_clean` gate removed), 8 replay mutants killed by the campaign only
+  (m10), and four pre-existing lab rules not exercised in refusal (m11). Tests added since, again with
+  no change to `colony_pilot/`, provoke each key of the parent check through a forged record file,
+  `tracked_clean` false, a replayed run writing the pilot's record and runs, each replay setup applied
+  to the pilot (budget spent, output budget, corrupted journal, supervisor killed, unadmitted mission,
+  and the golden answers and lab clock passed), a failed preparatory run, the CLI's output, and the
+  rules of m11: a resealed record with a credential (L20), a qualification of another scope (L25), a
+  descendant carrying its parent's `agent_id` (L23) and a birth qualification rewritten to name the
+  pilot after admission (S17).
+- Systematic sweep by the author, as review 3 recommended: every comparison, boolean and `not`
+  operator of `campaign.py` mutated in turn, the whole `tests/colony_pilot` run without the hash
+  tripwire. First pass: 95 mutants, 21 survivors. After the tests above, the 21 were mutated again:
+  11 survive, none of them a verdict path. Seven are in the docstring, a comment or the refusal message
+  text (lines 4, 5, 9, 263, 376). Line 166 (`admit_valid`) is equivalent: the branch it selects then
+  does the same thing. Lines 141 and 279 are near-equivalent: they pick another r8 question for B12's
+  preparatory run and for P01, which still completes for the parent, so the trial keeps its meaning
+  with another question. Line 380 (`--out` not required) only changes how a run without `--out`
+  fails. The operators mutated are `==`, `!=`, `<`, `<=`, `not`, `and`, `or`, `is not`, `-`, `True`
+  and `False`; other mutations (constants, deleted statements) were not swept by the author.
+
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
 
@@ -110,7 +133,11 @@ because `birth_qualification.json` is written by the supervisor at admission, be
   scope, as for Sentinel (see `SENTINEL_QUALIFICATION_REPORT.md`, reviews 8 and 9).
 - Sandbox tests may skip on GitHub runners (AppArmor); the sandbox evidence is from local runs. The
   unit tests of B12 and P01 need the sandbox too: on such a host, memory separation at birth and the
-  pilot's own refusal are proven by the campaign only.
+  pilot's own refusal are proven by the campaign only, and so are the replays run for real (the
+  setup tests stub the run).
+- L23 and S17 are defences in depth: B09 refuses a child with its parent's identity before any
+  record exists, and `admit` already refuses a reviewer naming the child (B04). Their tests prove
+  the second line holds, not that it is ever reached by the lab's own paths.
 - A simulated, deterministic trial is not a full qualification and grants no runtime permission.
 
 ## Before any pilot record
