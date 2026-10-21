@@ -269,7 +269,15 @@ and narrower permissions, and leaves its parent untouched. The worker answers in
   for each kind (birth, replay, P01) and for round 0, round 1 or both, one trial raising through the
   real round fails the campaign, appears in its round with `TRIAL_ERROR` and its error type, every
   round keeps its 28 results, and an error in both rounds gives `TRIALS_FAILED` alone. R07, R07b,
-  R07c and R07d are killed.
+  R07c and R07d (every erroring trial skipped, a variant run by the author) are killed.
+- Review of that test (`3121d3d8`), read-only in memory: **favourable** under both rules, no blocking
+  or medium defect; R07, R07b and R07c killed, and the test fails when its target never raises. Of 49
+  new undisclosed mutants 46 are killed; no survivor lets a failing campaign pass. Declared limits:
+  determinism compared on sets of digests (S06, pathological only); determinism ignoring erroring
+  trials' empty digests (S51: `NOT_DETERMINISTIC` is not reported for a trial erroring in one round
+  only, `TRIALS_FAILED` still fails the campaign); the console summary printing another round's
+  failures (S55, the evidence and exit code are unchanged). Its 65 real-lab cases and those of earlier
+  in-memory reviews were judged by reading, not run, by the reviewers.
 A first launch at the same commit ran but could not write its evidence (output directory not
 writable by the lab account); its result was never seen. PC1 is the next launch, unchanged.
 
