@@ -725,3 +725,52 @@ def test_every_ancestor_is_excluded_from_qualifying_a_deep_birth(colony):
         line[-1], "great_great_01", budget=small,
         qualification=builders.qualification(parent, reviewer=reviewer)))
     assert c.birth(line[-1], "great_great_01", budget=small)["generation"] == 4
+
+
+# ── Third review: guards for the remaining contract rules ───────────────
+def test_a_run_in_progress_holds_its_slot(colony, monkeypatch):
+    c = colony()
+    started, release, calls = threading.Event(), threading.Event(), []
+    run = c.lab.run
+
+    def slow_first(agent_id, task):
+        calls.append(agent_id)
+        if len(calls) == 1:
+            started.set()
+            release.wait(10)
+        return run(agent_id, task)
+    monkeypatch.setattr(c.lab, "run", slow_first)
+    outcome = {}
+    worker = threading.Thread(target=lambda: outcome.update(c.registrar.run(c.founder["agent_id"], {})))
+    worker.start()
+    try:
+        assert started.wait(10)
+        _refused("CONCURRENCY_LIMIT", lambda: c.registrar.run(c.founder["agent_id"], {}))
+    finally:
+        release.set()
+        worker.join(10)
+    assert outcome["agent_id"] == c.founder["agent_id"] and len(calls) == 1
+    assert c.registrar.run(c.founder["agent_id"], {})["agent_id"] == c.founder["agent_id"]
+
+
+def test_an_ancestor_admitted_by_a_sibling_is_refused(colony):
+    """The admitter of an ancestor is outside the whole colony, not only outside that ancestor's line."""
+    c = colony()
+    child = c.birth(c.founder["agent_id"], "child_01")
+    sibling = c.birth(c.founder["agent_id"], "child_02")
+    path = c.lab.root / reg.ADMISSIONS / f"{child['agent_id']}.json"
+    admission = json.loads(path.read_text())
+    path.write_text(json.dumps({**admission, "admitter_id": "fixture-" + sibling["agent_id"][:16]}))
+    _refused("ANCESTOR_NOT_ADMITTED", lambda: c.birth(child["agent_id"], "grandchild_01"))
+
+
+def test_an_altered_policy_file_does_not_load_under_the_g0_pin(tmp_path, monkeypatch):
+    altered = json.loads(reg.POLICY_FILE.read_text())
+    altered["max_population"] = 64
+    altered["admissible_parent_criteria_sha256"] = sorted([*altered["admissible_parent_criteria_sha256"], "1" * 64])
+    copy_of_g0 = tmp_path / "POLICY_G0.json"
+    copy_of_g0.write_text(json.dumps(altered))
+    monkeypatch.setattr(reg, "POLICY_FILE", copy_of_g0)
+    _refused("POLICY_PIN_MISMATCH", reg.load_policy)
+    lab = sup.Supervisor(builders.lab_root(tmp_path), missions=frozenset({MISSION}))
+    _refused("POLICY_PIN_MISMATCH", lambda: reg.Registrar(lab))
