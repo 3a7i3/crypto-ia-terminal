@@ -1,0 +1,21 @@
+{
+  "admissible_parent_criteria_sha256": [
+    "22528f1629db5d565f54137e11e99f670c68152eb3127cbafabe5f1072ca990a",
+    "dcc3fe71909117ee2501ff3c5d2f8866f5343123929af40e06484a8ebf713ef7"
+  ],
+  "admitter_kinds": ["EXTERNAL_HUMAN", "EXTERNAL_REVIEW_PROCESS"],
+  "colony_budget": {
+    "cpu_seconds": 240,
+    "journal_events": 20000,
+    "memory_bytes": 4294967296,
+    "output_bytes": 4194304,
+    "runs": 4000,
+    "wall_seconds": 480
+  },
+  "max_children_per_parent": 2,
+  "max_concurrent_runs": 1,
+  "max_generation": 2,
+  "max_population": 6,
+  "policy_schema": "colony-registrar.policy/0",
+  "revision": "g0"
+}
