@@ -517,6 +517,16 @@ def test_every_lab_test_key_is_of_prime_order():
     lambda r: r["issuers"][0]["keys"][0].update(status={"x": 1}),
     lambda r: r["issuers"][0]["keys"][0].update(public_key="zz" * 32),
     lambda r: r["issuers"].append("not an issuer"),
+    lambda r: r.update(extra=1),
+    lambda r: r["issuers"][0].update(extra=1),
+    lambda r: r["issuers"][0]["keys"][0].update(extra=1),
+    lambda r: r["issuers"][0].update(issuer_id="X!"),
+    lambda r: r.update(lab_id="X"),
+    lambda r: r.update(revoked_envelopes=["b" * 64, "a" * 64]),
+    lambda r: r.update(revoked_envelopes=["a" * 64, "a" * 64]),
+    lambda r: r["issuers"][0].update(scopes=[]),
+    lambda r: r["issuers"][0]["keys"][0].update(introduced_in_root=0),
+    lambda r: (r.update(root_version=2), r["issuers"][0]["keys"][0].update(status="WHATEVER", retired_in_root=2)),
 ])
 def test_a_malformed_root_is_refused_with_a_code(change):
     bad = root()
@@ -543,6 +553,12 @@ def _canonical_ok(value):
     ([], [("kind",)]),
     ([], [(QUAL, {"agent_id": ["x"]})]),
     ([], [(QUAL, {"agent_id": "a", "agent_spec_id": "b"}), (QUAL, {"agent_id": "a", "agent_spec_id": "b"})]),
+    (None, [(QUAL, {"agent_id": "a", "agent_spec_id": "b"})]),
+    ([({}, {})], None),
+    ([], [(["kind"], {"agent_id": "a", "agent_spec_id": "b"})]),
+    ([], [(QUAL, ["agent_id", "agent_spec_id"])]),
+    ([], [(QUAL, {"agent_id": "a"})]),
+    ([], [(QUAL, {"agent_id": "a", "agent_spec_id": ["b"]})]),
 ])
 def test_a_malformed_bundle_or_a_duplicated_requirement_is_refused_with_a_code(items, required):
     bundle = _bundle(items, required)
@@ -669,8 +685,12 @@ def test_an_unsynced_ledger_write_is_not_accepted(tmp_path, monkeypatch):
 
 def test_a_malformed_envelope_leaves_the_other_properties_not_evaluated():
     record = _qualification()
-    for envelope in ("x", {}, {**_sign(record), "purpose": "\ud800"},
-                     {**_sign(record), "subject": {"agent_id": "X" * 64, "agent_spec_id": "a" * 64}}):
+    signed = _sign(record)
+    for envelope in ("x", {}, {**signed, "purpose": "\ud800"},
+                     {**signed, "subject": {"agent_id": "X" * 64, "agent_spec_id": "a" * 64}},
+                     ["envelope_schema"], list(signed), {**signed, "key_id": 1}, {**signed, "envelope_id": 1},
+                     {**signed, "signature": 1}, {**signed, "subject": ["agent_id", "agent_spec_id"]},
+                     {**signed, "subject": {"agent_id": 1, "agent_spec_id": "a" * 64}}):
         verdict = _verify(envelope, record)
         assert verdict["integrity"] == "FAIL" and not verdict["attested"]
         assert (verdict["authenticity"], verdict["authorization"]) in {("NOT_EVALUATED", "NOT_EVALUATED")}, verdict
@@ -723,3 +743,86 @@ def test_a_lab_id_of_another_type_is_another_lab():
 def test_a_property_not_evaluated_is_never_attested():
     assert trust._verdict({}, [], [], [], True, True, False)["attested"] is False
     assert trust._verdict({}, [], [], [], True, False, True)["attested"] is False
+
+
+# ── Third review: guards for the remaining central properties ───────────
+def test_a_key_of_unknown_status_is_refused_even_with_a_retirement_root():
+    issuers = root()["issuers"]
+    issuers[0]["keys"] = [key_entry("admitter-1", status="WHATEVER", retired=2)]
+    bad = root(version=2, issuers=issuers)
+    with pytest.raises(trust.TrustError, match="TRUST_ROOT_INVALID"):
+        trust.check_root(bad, pin_sha256=pin(bad), minimum_version=1, lab_id=LAB)
+    assert not _admission_bundle(None, the_root=bad)["accepted"]
+
+
+def test_a_refused_bundle_spends_none_of_its_fresh_envelopes(tmp_path):
+    ledger = tmp_path / "consumed.jsonl"
+    spent, fresh = _admission(), _admission(builders.founder(name="other_01")[1])
+    spent_envelope = _sign(spent, ADM, ADMITTER, "admitter-1", label="spent")
+    fresh_envelope = _sign(fresh, ADM, ADMITTER, "admitter-1", label="fresh")
+    assert _admission_bundle(ledger, spent, spent_envelope)["accepted"]
+    both = trust.verify_bundle([(spent_envelope, spent), (fresh_envelope, fresh)],
+                               [(ADM, _subject(spent, ADM)), (ADM, _subject(fresh, ADM))], root(),
+                               pin_sha256=pin(root()), minimum_version=1, lab_id=LAB, ledger=ledger)
+    assert not both["accepted"] and both["failures"] == ["ENVELOPE_REPLAYED"]
+    assert len(ledger.read_bytes().splitlines()) == 1
+    assert _admission_bundle(ledger, fresh, fresh_envelope)["accepted"]
+
+
+def test_a_device_ledger_is_refused_before_it_is_read(monkeypatch):
+    assert _admission_bundle(Path("/dev/null"))["failures"] == ["LEDGER_CORRUPT"]
+
+    def never(fd):
+        raise AssertionError("a device must be refused before it is read")
+    monkeypatch.setattr(trust, "_read", never)
+    assert _admission_bundle(Path("/dev/zero"))["failures"] == ["LEDGER_CORRUPT"]
+
+
+@pytest.mark.parametrize("change", [
+    {"ledger_schema": "colony-trust.consumed/9"},
+    {"issuer_id": "X!"},
+    {"envelope_id": "A" * 64},
+    {"envelope_sha256": "A" * 64},
+])
+def test_a_ledger_line_outside_the_grammar_is_corrupt(tmp_path, change):
+    ledger = tmp_path / "consumed.jsonl"
+    entry = {"ledger_schema": trust.LEDGER_SCHEMA, "issuer_id": ADMITTER, "envelope_id": eid("other"),
+             "envelope_sha256": "a" * 64, **change}
+    ledger.write_bytes(trust._canonical(entry) + b"\n")
+    ledger.chmod(0o600)
+    bundle = _admission_bundle(ledger)
+    assert not bundle["accepted"] and bundle["failures"] == ["LEDGER_CORRUPT"]
+    assert len(ledger.read_bytes().splitlines()) == 1
+
+
+def test_a_ledger_of_another_type_is_corrupt():
+    assert _admission_bundle(5)["failures"] == ["LEDGER_CORRUPT"]
+
+
+def test_strict_parsing_codes_every_malformed_input():
+    for raw in (b"garbage", b"\xff", b"[" * 100_000):
+        with pytest.raises(trust.TrustError, match="NOT_CANONICAL"):
+            trust.loads(raw)
+    with pytest.raises(trust.TrustError, match="NOT_CANONICAL"):
+        trust.sha256_of(1.0)
+
+
+def test_a_root_needs_an_integer_minimum_version():
+    for minimum in (0, None, True, 1.0):
+        with pytest.raises(trust.TrustError, match="TRUST_ROOT_ROLLBACK"):
+            trust.check_root(root(), pin_sha256=pin(root()), minimum_version=minimum, lab_id=LAB)
+
+
+def test_an_unauthenticated_envelope_leaves_the_bundle_authorization_not_evaluated():
+    record = _qualification()
+    bundle = _bundle([(_sign(record, issuer="fixture-unknown-issuer"), record)], [(QUAL, _subject(record))])
+    assert (bundle["authenticity"], bundle["authorization"]) == ("FAIL", "NOT_EVALUATED")
+    assert not bundle["accepted"]
+
+
+def test_malformed_envelopes_beside_a_requirement_are_unexpected_not_errors():
+    record = _qualification()
+    for envelope in (None, {}, "x", ["record_kind"]):
+        bundle = _bundle([(envelope, record)], [(QUAL, _subject(record))])
+        assert not bundle["accepted"] and bundle["envelopes"] == []
+        assert bundle["failures"] == ["ATTESTATION_MISSING", "ATTESTATION_UNEXPECTED"]
