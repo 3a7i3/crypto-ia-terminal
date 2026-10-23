@@ -701,7 +701,7 @@ def test_no_lab_module_or_worker_can_reach_the_registrar():
         for path in paths:
             assert not any(name.startswith("colony_registrar") for name in _imports(path)), path
     assert all(not t.module.startswith("colony_registrar") for t in sup.TASKS.values())
-    allowed = {"__future__", "copy", "fcntl", "hashlib", "stat", "json", "os", "contextlib", "pathlib", "typing", "colony_lab"}
+    allowed = {"__future__", "copy", "threading", "fcntl", "hashlib", "stat", "json", "os", "contextlib", "pathlib", "typing", "colony_lab"}
     for path in (ROOT / "colony_registrar").rglob("*.py"):
         assert all(name in allowed or name.startswith("colony_lab.") for name in _imports(path)), path
 

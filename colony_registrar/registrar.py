@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import stat
+import threading
 from contextlib import contextmanager
 from typing import Any
 
@@ -46,6 +47,26 @@ class RegistrarError(ValueError):
     def __init__(self, code: str) -> None:
         self.code = code
         super().__init__(code)
+
+
+class BirthPlan:
+    """Canonical immutable bytes; data returns a detached snapshot, never writable plan state."""
+    __slots__ = ("_bytes", "_sha256")
+
+    def __init__(self, data: dict) -> None:
+        object.__setattr__(self, "_bytes", _canonical(data))
+        object.__setattr__(self, "_sha256", hashlib.sha256(self._bytes).hexdigest())
+
+    def __setattr__(self, name, value):
+        raise AttributeError("BirthPlan is immutable")
+
+    @property
+    def sha256(self):
+        return self._sha256
+
+    @property
+    def data(self):
+        return json.loads(self._bytes)
 
 
 def _sha(value: Any) -> str:
@@ -108,6 +129,29 @@ def _same(a: Any, b: Any) -> bool:
         return False
 
 
+def _read_admission(path):
+    """Bounded regular-file read; never block on a FIFO supplied in the lab root."""
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise sup.LabError("INDIVIDUAL_INVALID")
+            raw = bytearray()
+            while len(raw) <= sup.MAX_FILE_BYTES:
+                chunk = os.read(fd, min(65536, sup.MAX_FILE_BYTES + 1 - len(raw)))
+                if not chunk:
+                    break
+                raw.extend(chunk)
+        finally:
+            os.close(fd)
+        if len(raw) > sup.MAX_FILE_BYTES:
+            raise sup.LabError("INDIVIDUAL_INVALID")
+        return sup._strict_json(bytes(raw), "INDIVIDUAL_INVALID")
+    except OSError:
+        raise sup.LabError("INDIVIDUAL_INVALID") from None
+
+
 @contextmanager
 def _flock(path, busy: str):
     """An advisory lock on a file that is never deleted; the kernel releases it if the process dies."""
@@ -131,36 +175,44 @@ class Registrar:
         else:
             self.policy, self.policy_sha256 = check_policy(policy, policy_sha256), policy_sha256
         self.lab = supervisor
+        self._owner = None
+        self._depth = 0
 
     # ── Population and admissions, read through the lab ────────────────────
-    def _population(self) -> list[dict]:
+    def _population(self, exclude=None) -> list[dict]:
         """Every admitted individual, each re-verified; an unreadable one refuses the birth."""
         individuals = self.lab.root / "individuals"
         if not individuals.is_dir():
             return []
         records = []
         for home in sorted(individuals.iterdir()):
+            if home.name == exclude:
+                continue
             try:
                 records.append(self.lab.load(home.name)[0])
             except (sup.LabError, IdentityError, TypeError, KeyError, AttributeError):
                 raise RegistrarError("POPULATION_UNVERIFIABLE") from None
         return records
 
-    def _admissions(self):
+    def _admissions(self, *, create=True):
         """The admissions directory, which must be a real directory of the lab root, never a link."""
         path = self.lab.root / ADMISSIONS
-        try:
-            os.mkdir(path, 0o700)
-        except FileExistsError:
-            pass
-        if not stat.S_ISDIR(os.lstat(path).st_mode):
+        if create:
+            try:
+                os.mkdir(path, 0o700)
+            except FileExistsError:
+                pass
+        if not path.exists() and not path.is_symlink() and not create:
+            return path
+        info = os.lstat(path)
+        if not stat.S_ISDIR(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o700:
             raise RegistrarError("LAB_IO_ERROR")
         return path
 
     def _check_admitted(self, record: dict, parent: dict, colony: frozenset) -> None:
         """A descendant ancestor passes today the admission checks its own birth needed."""
         try:
-            admission = sup._read_json(self._admissions() / f"{record['agent_id']}.json")
+            admission = _read_admission(self._admissions(create=False) / f"{record['agent_id']}.json")
             qualification = sup._read_json(self.lab._home(record["agent_id"]) / "birth_qualification.json")
             ids = {"agent_id": record["agent_id"], "agent_spec_id": record["agent_spec_id"]}
             self._check_admission(admission, ids, parent, colony)
@@ -188,9 +240,12 @@ class Registrar:
         if self.lab.stopped:
             raise RegistrarError("LAB_STOPPED")
         try:
-            with _flock(self.lab.root / LOCK, "REGISTRAR_BUSY"):
-                return self._birth(parent_agent_id, child_spec, parent_qualification, admission,
-                                   lab_permissions, budget, declared_diff)
+            with self.exclusive():
+                plan = self.prepare(parent_agent_id, child_spec, parent_qualification=parent_qualification,
+                                    admission=admission, lab_permissions=lab_permissions,
+                                    budget=budget, declared_diff=declared_diff)
+                self.commit(plan, step="ADMISSION")
+                return self.commit(plan, step="HOME")
         except (sup.LabError, lineage.LineageError) as exc:
             raise RegistrarError(exc.code) from None
         except (TypeError, KeyError, AttributeError, IdentityError):
@@ -198,8 +253,42 @@ class Registrar:
         except OSError:
             raise RegistrarError("LAB_IO_ERROR") from None
 
-    def _birth(self, parent_agent_id, child_spec, qualification, admission, permissions, budget, declared_diff):
-        policy = self.policy
+    @contextmanager
+    def exclusive(self):
+        """L1, reentrant only on this instance and the same owning thread."""
+        owner = (os.getpid(), threading.get_ident())
+        if self._owner == owner:
+            self._depth += 1
+            try:
+                yield self
+            finally:
+                self._depth -= 1
+            return
+        with _flock(self.lab.root / LOCK, "REGISTRAR_BUSY"):
+            self._owner, self._depth = owner, 1
+            try:
+                yield self
+            finally:
+                self._owner, self._depth = None, 0
+
+    def prepare(self, parent_agent_id, child_spec, *, parent_qualification, admission,
+                lab_permissions, budget, declared_diff):
+        """No locks, directories or records created. Caller holds L1 across a transaction."""
+        try:
+            return self._prepare(parent_agent_id, child_spec, parent_qualification, admission,
+                                 lab_permissions, budget, declared_diff)
+        except (sup.LabError, lineage.LineageError) as exc:
+            raise RegistrarError(exc.code) from None
+        except (TypeError, KeyError, AttributeError, IdentityError):
+            raise RegistrarError("BIRTH_INPUT_INVALID") from None
+        except OSError:
+            raise RegistrarError("LAB_IO_ERROR") from None
+
+    def _prepare(self, parent_agent_id, child_spec, qualification, admission, permissions, budget,
+                 declared_diff, *, own_child=None):
+        if self.lab.stopped:
+            raise RegistrarError("LAB_STOPPED")
+        policy = check_policy(self.policy, self.policy_sha256)
         parent, parent_spec = self.lab.load(parent_agent_id)
         ancestry = self._ancestry(parent)
         ids = lineage._spec(child_spec)
@@ -207,7 +296,7 @@ class Registrar:
         ancestors = {agent["agent_id"] for agent in ancestry}
         if child_id in ancestors:
             raise RegistrarError("CYCLE_DENIED")
-        population = self._population()
+        population = self._population(exclude=own_child)
         admitted = {agent["agent_id"] for agent in population}
         if child_id in admitted:
             raise RegistrarError("ALREADY_ADMITTED")
@@ -256,22 +345,118 @@ class Registrar:
         lineage.verify_record(record, child_spec, parent, parent_spec)
         if self.lab.stopped:  # read again: STOP may have been set while the checks ran
             raise RegistrarError("LAB_STOPPED")
-        self._record_admission(child_id, admission)  # before the child: never a child without its admission
-        result = self.lab.admit(record, child_spec, parent_qualification=qualification)
+        existing = self._admissions(create=False) / f"{child_id}.json"
+        if existing.exists() or existing.is_symlink():
+            try:
+                same = _same(_read_admission(existing), admission)
+            except sup.LabError:
+                same = False
+            if not same:
+                raise RegistrarError("ADMISSION_CONFLICT")
+        return BirthPlan({"plan_schema": "colony-registrar.birth-plan/0", "policy_sha256": self.policy_sha256,
+                          "parent": parent, "child_spec": child_spec, "record": record,
+                          "qualification": qualification, "admission": admission,
+                          "population": sorted([_sha(a) for a in population]),
+                          "population_count": len(population), "children_count": len(children),
+                          "budget_totals": {n: sum(a["budget"][n] for a in population) for n in child_budget}})
+
+    def commit(self, plan, *, step):
+        """D2 or D3 under L1. RegistrarError = pre-write refusal; write/Supervisor errors stay distinct."""
+        if self._owner != (os.getpid(), threading.get_ident()):
+            raise RegistrarError("LOCK_REQUIRED")
+        if type(plan) is not BirthPlan or step not in {"ADMISSION", "HOME"}:
+            raise RegistrarError("PLAN_INVALID")
+        try:
+            data = plan.data
+            if _sha(data) != plan.sha256:
+                raise RegistrarError("PLAN_INVALID")
+            record = data["record"]
+            # Validate the frozen material against current facts, without replacing it.
+            checked = self._prepare(data["parent"]["agent_id"], data["child_spec"], data["qualification"],
+                                    data["admission"], record["lab_permissions"], record["budget"],
+                                    record["genotype"]["declared_diff"], own_child=record["agent_id"])
+            if checked.sha256 != plan.sha256:
+                raise RegistrarError("POPULATION_CHANGED")
+            if self.lab.stopped:
+                raise RegistrarError("LAB_STOPPED")
+            if step == "HOME":
+                admission_path = self._admissions(create=False) / f"{record['agent_id']}.json"
+                if not admission_path.is_file() or not _same(_read_admission(admission_path), data["admission"]):
+                    raise RegistrarError("ADMISSION_REQUIRED")
+                home = self.lab._home(record["agent_id"])
+                if home.exists() or home.is_symlink():
+                    self._check_own_home(home, data)
+                    return self._result(record)
+        except (sup.LabError, lineage.LineageError) as exc:
+            raise RegistrarError(exc.code) from None
+        except (KeyError, TypeError, AttributeError, IdentityError, ValueError) as exc:
+            if isinstance(exc, RegistrarError):
+                raise
+            raise RegistrarError("PLAN_INVALID") from None
+        # Everything below is an effect: never map a failure to a pre-write refusal.
+        if step == "ADMISSION":
+            try:
+                self._record_admission(record["agent_id"], data["admission"])
+            except RegistrarError as exc:
+                raise OSError("admission write boundary: " + exc.code) from exc
+            return {"status": "ADMISSION_RECORDED", "agent_id": record["agent_id"]}
+        result = self.lab.admit(record, data["child_spec"], parent_qualification=data["qualification"])
         return {**result, "generation": record["lineage"]["generation"], "record": record}
+
+    @staticmethod
+    def _result(record):
+        return {"status": "ADMITTED_TO_LAB", "agent_id": record["agent_id"], "registry": record["registry"],
+                "generation": record["lineage"]["generation"], "record": record}
+
+    def _check_own_home(self, home, data):
+        if home.is_symlink() or not home.is_dir():
+            raise RegistrarError("HOME_CONFLICT")
+        for name, expected in (("spec.json", data["child_spec"]), ("record.json", data["record"]),
+                               ("birth_qualification.json", data["qualification"])):
+            path = home / name
+            if path.is_symlink() or not path.is_file() or not _same(sup._read_json(path), expected):
+                raise RegistrarError("HOME_CONFLICT")
+        for name in ("tasks", "results", sup.JOURNAL_DIR):
+            path = home / name
+            if path.is_symlink() or not path.is_dir():
+                raise RegistrarError("HOME_CONFLICT")
+        usage_path = home / "usage.json"
+        if usage_path.is_symlink() or not usage_path.is_file():
+            raise RegistrarError("HOME_CONFLICT")
+        usage = sup._read_json(usage_path)
+        if type(usage) is not dict or set(usage) != {"runs"} or type(usage["runs"]) is not int or usage["runs"] < 0:
+            raise RegistrarError("HOME_CONFLICT")
+        store = home / sup.JOURNAL_DIR / "activity.sqlite3"
+        if store.is_symlink() or not store.is_file() or store.stat().st_size == 0:
+            raise RegistrarError("HOME_CONFLICT")
+        # Runtime files may have changed after DONE D3. The controller alone decides cold recovery.
+        self.lab.load(data["record"]["agent_id"])
 
     def _record_admission(self, child_id: str, admission: dict) -> None:
         path, data = self._admissions() / f"{child_id}.json", sup._dump(admission)
         try:
-            sup._write_new(path, data)
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         except FileExistsError:
-            # Left by a birth that stopped before admitting the child: only the same decision may resume it.
+            # Prechecked under L1; a bypass racing us is an I/O uncertainty, not a pre-write refusal.
+            if _same(_read_admission(path), admission):
+                return
+            raise OSError("admission changed during commit") from None
+        try:
+            view = memoryview(data)
+            while view:
+                count = os.write(fd, view)
+                if count <= 0:
+                    raise OSError("admission write made no progress")
+                view = view[count:]
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        for directory in (path.parent, self.lab.root):
+            fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
             try:
-                same = _same(sup._read_json(path), admission)
-            except sup.LabError:
-                same = False
-            if not same:
-                raise RegistrarError("ADMISSION_CONFLICT") from None
+                os.fsync(fd)
+            finally:
+                os.close(fd)
 
     def _check_admission(self, admission: Any, ids: dict, parent: dict, excluded: frozenset) -> None:
         if type(admission) is not dict or set(admission) != ADMISSION_FIELDS or \
@@ -290,6 +475,12 @@ class Registrar:
 
     # ── Runs, within the colony's concurrency ──────────────────────────────
     def run(self, agent_id: str, task: Any) -> dict:
+        try:
+            return self._run(agent_id, task)
+        except OSError:
+            raise RegistrarError("LAB_IO_ERROR") from None
+
+    def _run(self, agent_id: str, task: Any) -> dict:
         slots = self.lab.root / SLOTS
         slots.mkdir(mode=0o700, exist_ok=True)
         if not stat.S_ISDIR(os.lstat(slots).st_mode):
