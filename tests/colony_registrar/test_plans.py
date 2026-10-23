@@ -263,3 +263,13 @@ def test_zero_progress_write_and_legacy_error_mapping(tmp_path, monkeypatch):
     # birth() retains the legacy mapping even though commit() exposes durable uncertainty.
     with pytest.raises(reg.RegistrarError, match="LAB_IO_ERROR"):
         c.birth(parent, "another_01")
+
+
+@pytest.mark.parametrize("step", [[], {}, None, 1, "unknown"])
+def test_unknown_stage_is_a_coded_prewrite_refusal(tmp_path, step):
+    c = Colony(tmp_path)
+    parent, spec, kwargs = inputs(c)
+    plan = c.registrar.prepare(parent, spec, **kwargs)
+    with c.registrar.exclusive(), pytest.raises(reg.RegistrarError, match="PLAN_INVALID"):
+        c.registrar.commit(plan, step=step)
+    assert not (c.lab.root / reg.ADMISSIONS).exists()

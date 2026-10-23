@@ -364,7 +364,7 @@ class Registrar:
         """D2 or D3 under L1. RegistrarError = pre-write refusal; write/Supervisor errors stay distinct."""
         if self._owner != (os.getpid(), threading.get_ident()):
             raise RegistrarError("LOCK_REQUIRED")
-        if type(plan) is not BirthPlan or step not in {"ADMISSION", "HOME"}:
+        if type(plan) is not BirthPlan or type(step) is not str or step not in {"ADMISSION", "HOME"}:
             raise RegistrarError("PLAN_INVALID")
         try:
             data = plan.data
