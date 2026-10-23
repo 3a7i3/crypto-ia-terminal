@@ -355,8 +355,10 @@ The registrar reads STOP again inside `commit`, just before its first write (`re
 `_record_admission`), so a refusal can come after `BEGIN Dk` is written. P3 guarantees that every
 `RegistrarError` raised by `commit` for a step is raised before any write of that step (§12); an error
 during a write is never reported as a `RegistrarError` refusal (today `Registrar.birth` maps `OSError` to
-`LAB_IO_ERROR`, `registrar.py`; P3 keeps that mapping out of `commit`). `ALREADY_ADMITTED` at D3 is
-excluded: it follows the home comparison above, never `BEGIN_CANCELLED`. The controller then
+`LAB_IO_ERROR`, `registrar.py`; P3 keeps that mapping out of `commit`). At D3, `BEGIN_CANCELLED` applies only to
+the registrar's own refusals (STOP and its own checks in `commit`); any error that comes from
+`Supervisor.admit`, even one raised before its first write, follows the D3 limits paragraph below
+(`DURABILITY_UNKNOWN`, or the home comparison for `ALREADY_ADMITTED`), never `BEGIN_CANCELLED`. The controller then
 appends `BEGIN_CANCELLED Dk` with the code: the step did not happen and the operation is back at its last
 `DONE` line, non-terminal. A crash before that line leaves `BEGIN Dk` open (`INTERRUPTED`), which `recover`
 classifies `ABSENT` in the same boot (§7.4). Any other error of the step stays `DURABILITY_UNKNOWN`.
@@ -529,7 +531,9 @@ the same operation.
 
 `set_aside_terminal_home(operation_sha256)` runs only for an operation ended `FAILED_CONSUMED` (or
 `TERMINATED_EXTERNALLY`, §7.3) after `BEGIN D3`, whether D3 completed, was interrupted or faulted, and
-whether or not a cold read was made: it grants no trust and only moves the home out of the population. Such
+whether or not a cold read was made: it grants no trust and only moves the home out of the population. It
+is refused while a fault is recorded on `individuals/`, on the home or on `admission-quarantine/`, the
+directories it would `fsync` (§7.1); that home then stays `UNAUTHENTICATED` until the restore gate (§13). Such
 a home may have been run before it ended or since (§13), so its run artefacts are not compared. Each of
 `spec.json`, `record.json` and `birth_qualification.json` must be absent, or a prefix (possibly empty) of
 its expected bytes, or equal to them: a short or missing write cannot be a different identity, while any
@@ -628,12 +632,15 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
   usable again: backup and restore are a separate gate and must never move them backwards.
 - Execution bans after a revocation need the lab (T7).
 - An `OPERATION_LOG_CORRUPT` log blocks every birth (§6.3) and, since it cannot be read strictly, also
-  `terminate` for that operation; like `LEDGER_CORRUPT`, only a manual operator procedure outside this
+  `terminate` for that operation, except a log already recorded as faulty, which is terminated externally
+  (§7.3) whatever it reads like; like `LEDGER_CORRUPT`, only a manual operator procedure outside this
   contract can end it. The same holds for a child whose reserve is exhausted by a third torn tail.
 - A kill inside `_write_new` between opening and writing, in D2 or D3, leaves an empty or short file;
   a run during an interrupted D3 changes `usage.json`. `recover` classifies these as divergent
-  (`RECOVERY_REFUSED`) and the quarantine needs equal files, so the only exit is `terminate` then
-  `set_aside_terminal_home`, which spends a legitimate birth.
+  (`RECOVERY_REFUSED`) and the quarantine needs equal files, so the only exit is `terminate` (then, for D3,
+  `set_aside_terminal_home`), which spends a legitimate birth; after D2 the admission record stays.
+- A home whose D3 faulted on `individuals/`, the home or `admission-quarantine/` cannot be set aside
+  without the restore gate (§8.2), and blocks every birth until then.
 - A run between `DONE D3` and `COMMITTED` is not prevented. The resume then compares only the identity
   files (§3.2, `OWN_OPERATION`), so the birth can still be committed; the run's artefacts stay in the home
   as evidence. That individual has run before being authenticated.
@@ -663,4 +670,5 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
   Last textual corrections after the review of `5c552f63` (favourable with minor conditions): P3 guarantee
   in §12, `ALREADY_ADMITTED` outside `BEGIN_CANCELLED`, externally terminated logs out of the scan, faults
   during quarantine and set-aside, journal and result file names, declared limits for corrupt logs and
-  empty or short files.
+  empty or short files; then set-aside refused on a faulty directory, Supervisor errors outside
+  `BEGIN_CANCELLED`, faulty logs terminated externally whatever they read like.
