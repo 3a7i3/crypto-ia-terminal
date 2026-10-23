@@ -118,3 +118,56 @@ def test_unrecognized_pointer_never_overwritten(configured, tmp_path):
     with pytest.raises(bridge.BridgeError, match="INVALID_CURRENT_POINTER"):
         bridge.publish(**configured)
     assert os.readlink(output / "current") == str(tmp_path)
+
+
+def test_explicit_p12_is_filtered_and_supervision_invalid_is_not_empty(configured):
+    alerts = configured["source_root"] / "alerts.jsonl"
+    alerts.write_text(
+        json.dumps(
+            {
+                "rule": "MEMORY",
+                "severity": "WARNING",
+                "ts": NOW,
+                "message": "PRIVATE_TEST_CONTENT",
+                "value": 90,
+                "threshold": 80,
+            }
+        )
+        + "\n"
+    )
+    supervision = configured["source_root"] / "supervision.jsonl"
+    supervision.write_text('{"unexpected":"PRIVATE_TEST_CONTENT"}\n')
+    before = source_bytes(configured)
+    manifest = bridge.publish(
+        **configured, p12_alerts=alerts, supervision_alerts=supervision
+    )
+    raw = (configured["output_root"] / "current/event_center_snapshot.json").read_text()
+    doc = json.loads(raw)
+    assert "PRIVATE_TEST_CONTENT" not in raw
+    assert doc["sources"][0]["status"] == "PRESENT"
+    assert doc["sources"][0]["published_count"] == 1
+    assert doc["sources"][1]["status"] == "INVALID"
+    assert doc["sources"][1]["published_count"] is None
+    assert manifest["alerts"]["p12_alerts"]["status"] == "PRESENT"
+    assert before == source_bytes(configured)
+
+
+def test_missing_alert_is_explicit_and_ppl_remains_present(configured):
+    bridge.publish(**configured, p12_alerts=configured["source_root"] / "missing.jsonl")
+    doc = json.loads(
+        (configured["output_root"] / "current/event_center_snapshot.json").read_text()
+    )
+    assert doc["sources"][0]["status"] == "MISSING"
+    assert doc["sources"][0]["events_observed"] is None
+    assert doc["sources"][2]["status"] == "PRESENT"
+
+
+def test_external_or_symlink_alert_refused_before_output_write(configured, tmp_path):
+    outside = tmp_path / "outside.jsonl"
+    outside.write_text("{}\n")
+    for path in [outside, configured["source_root"] / "linked.jsonl"]:
+        if path != outside:
+            path.symlink_to(outside)
+        with pytest.raises(bridge.BridgeError):
+            bridge.publish(**configured, p12_alerts=path)
+        assert not configured["output_root"].exists()
