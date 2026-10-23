@@ -291,7 +291,9 @@ L1 is never taken while L2 is held. Run slots are independent of births.
 
 **At most one non-terminal operation per lab.** Under L1, before anything else, the controller reads every
 `admission-ops/*.log`; if one operation is neither `COMMITTED`, `REFUSED`, `ABANDONED` nor
-`FAILED_CONSUMED` and is not the one being resumed, the call is refused `OPERATION_PENDING`. The
+`FAILED_CONSUMED` and is not the one being resumed, the call is refused `OPERATION_PENDING`. A log named by a `TERMINATED_EXTERNALLY`
+entry of the fault log (§7.3) is terminal and is not read by this scan: its torn tail, inconsistency or
+corruption blocks only its own child id (`OPERATION_LOG_FAULTY`). The
 population and the ceilings therefore cannot change between the calls of an open operation through the
 controller. The directory holds at most 256 logs (`OPERATION_LOGS_FULL` refuses a new child beyond that,
 a declared capacity limit), so this scan reads at most 256 × 64 lines. Direct calls to `Registrar.birth` or `Supervisor.admit` bypass this rule until the lab enforces
@@ -351,7 +353,10 @@ written only after every write and `fsync` of the step reported success.
 
 The registrar reads STOP again inside `commit`, just before its first write (`registrar.py`, before
 `_record_admission`), so a refusal can come after `BEGIN Dk` is written. P3 guarantees that every
-`RegistrarError` raised by `commit` for a step is raised before any write of that step. The controller then
+`RegistrarError` raised by `commit` for a step is raised before any write of that step (§12); an error
+during a write is never reported as a `RegistrarError` refusal (today `Registrar.birth` maps `OSError` to
+`LAB_IO_ERROR`, `registrar.py`; P3 keeps that mapping out of `commit`). `ALREADY_ADMITTED` at D3 is
+excluded: it follows the home comparison above, never `BEGIN_CANCELLED`. The controller then
 appends `BEGIN_CANCELLED Dk` with the code: the step did not happen and the operation is back at its last
 `DONE` line, non-terminal. A crash before that line leaves `BEGIN Dk` open (`INTERRUPTED`), which `recover`
 classifies `ABSENT` in the same boot (§7.4). Any other error of the step stays `DURABILITY_UNKNOWN`.
@@ -398,7 +403,7 @@ Outcome classes, reported distinctly; "no effect" is claimed only for the first:
 | `REFUSED_BEFORE_DURABLE_EFFECT` | refused before `PREPARED` | nothing of this operation; only infrastructure that may already exist or be created empty (`registrar.lock`, `registrar-admissions/`, `admission-ops/`, `admission-envelopes/`) |
 | `REFUSED_AFTER_PREPARE` | refused after `PREPARED`, before `BEGIN D1` | the `PREPARED` and `REFUSED` lines; nothing spent; a new attempt is allowed |
 | `INTERRUPTED` | an open `BEGIN Dk`, or a torn tail | what the interrupted step wrote (a ledger line, admission files, a partial home); blocked until the operator acts (§7, §6.3); while open it also blocks every other birth (§6.1) |
-| `FAILED_CONSUMED` | a terminal code after `DONE D1`, or `TERMINATED` | the ledger line (authorization spent); after D2 the admission record and stored files (the child identity is spent: `ADMISSION_CONFLICT` for any other admission); after D3 the child's **complete home**, counted as `UNAUTHENTICATED`, so every later birth is refused until the operator sets it aside (§8.2) |
+| `FAILED_CONSUMED` | a terminal code after `DONE D1`, or `TERMINATED` | the ledger line (authorization spent); after D2 the admission record and stored files (the child identity is spent: `ADMISSION_CONFLICT` for any other admission); after `BEGIN D3` the child's home, complete or partial, counted as `UNAUTHENTICATED`, so every later birth is refused until the operator sets it aside (§8.2) |
 | `COMMITTED` | `COMMITTED` written | the birth; a later identical call returns the established result without running anything again |
 
 ### 6.6 Terminal and non-terminal codes
@@ -495,13 +500,15 @@ blocked by any unexpected entry, link or divergent byte (`QUARANTINE_REFUSED`, n
 delete anything. Homes moved this way leave `individuals/`, so they are no longer loaded or counted; they
 stay for audit. A `QUARANTINE_BEGIN` or `SET_ASIDE_BEGIN` without its `DONE` line is resolved by calling the
 same action again: the home must be in exactly one of its source and destination (otherwise refused); the
-rename is done if still needed, both directories are `fsync`ed and the `DONE` line written.
+rename is done if still needed, both directories are `fsync`ed and the `DONE` line written. An `fsync` or
+`rename` error during either action follows §7.1: fault recorded, nothing retried on the faulty directory,
+`DURABILITY_UNKNOWN`, and the action is refused while the fault is recorded (restore gate, §13).
 
 The journal is checked only by `quarantine_partial_home` (§8.1); `set_aside_terminal_home` moves it
 without checking its content (§8.2). The journal directory cannot be compared byte for byte (its bytes are
 not reproducible) and opening it with SQLite could replay or create WAL files. It is checked on a byte copy
 made outside the lab root; the originals are never opened by SQLite. Its entries must be only the store
-file and its `-wal`/`-shm` companions. A kill during `ActivityStore.create` (`sentinel_activity/store.py`)
+file `activity.sqlite3` and its `-wal`, `-shm` and `-journal` companions. A kill during `ActivityStore.create` (`sentinel_activity/store.py`)
 can leave the store file empty, or a WAL whose transaction never committed, so the copy is accepted in
 exactly three states: no store file; a store file of zero bytes (companions, if any, of zero bytes); or a
 copy whose committed content, as SQLite reads it on the copy, is either empty of any table (the creating
@@ -527,8 +534,9 @@ a home may have been run before it ended or since (§13), so its run artefacts a
 `spec.json`, `record.json` and `birth_qualification.json` must be absent, or a prefix (possibly empty) of
 its expected bytes, or equal to them: a short or missing write cannot be a different identity, while any
 other content can. Every other entry must be a name `Supervisor.admit` or `Supervisor.run` creates
-(`tasks/`, `tasks/*.json`, `tasks/*.json.tmp`, `results/`, `usage.json`, `usage.json.tmp`,
-`inflight.json`, `j01-lab-memory/` and the journal files), with no link anywhere in the tree; the run
+(`tasks/`, `tasks/*.json`, `tasks/*.json.tmp`, `results/`, `results/*.json`, `usage.json`,
+`usage.json.tmp`, `inflight.json`, `j01-lab-memory/` and the journal files `activity.sqlite3` with its
+`-wal`, `-shm` and `-journal` companions), with no link anywhere in the tree; the run
 artefacts and the journal are moved intact, as evidence. Any unknown name, link or divergent identity file is `QUARANTINE_REFUSED`, nothing
 moved. It writes `SET_ASIDE_BEGIN`, renames the home to
 `admission-quarantine/<operation_sha256>/terminal`, `fsync`s both directories and writes `SET_ASIDE_DONE`.
@@ -589,7 +597,8 @@ R8 and the pilot's PC2 stale.
 - **P3, `colony_registrar` amendment 3**: `prepare(…) → BirthPlan` (no write, frozen, hashed);
   `commit(plan)` under an L1 held by the caller, idempotent per step and excluding its own operation's
   artefacts (§6.7); `prepare` refuses `ADMISSION_CONFLICT` when an admission record already exists for the
-  child and differs from the one presented, so that conflict is seen before any consumption; its own
+  child and differs from the one presented, so that conflict is seen before any consumption; every `RegistrarError` of
+  `commit` raised before any write of its step, and write errors raised distinctly (§6.4); its own
   writer for the admission record (whole write, `fsync`, directory `fsync`);
   `exclusive()`; `birth()` = `exclusive` + `prepare` + `commit`, behaviour unchanged.
 - **P4–P6, `colony_admission`**: `required_attestations`, `Controller.admit_authenticated`,
@@ -618,6 +627,13 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
 - Restoring an older ledger, operation log or trust history would make spent admissions or revoked keys
   usable again: backup and restore are a separate gate and must never move them backwards.
 - Execution bans after a revocation need the lab (T7).
+- An `OPERATION_LOG_CORRUPT` log blocks every birth (§6.3) and, since it cannot be read strictly, also
+  `terminate` for that operation; like `LEDGER_CORRUPT`, only a manual operator procedure outside this
+  contract can end it. The same holds for a child whose reserve is exhausted by a third torn tail.
+- A kill inside `_write_new` between opening and writing, in D2 or D3, leaves an empty or short file;
+  a run during an interrupted D3 changes `usage.json`. `recover` classifies these as divergent
+  (`RECOVERY_REFUSED`) and the quarantine needs equal files, so the only exit is `terminate` then
+  `set_aside_terminal_home`, which spends a legitimate birth.
 - A run between `DONE D3` and `COMMITTED` is not prevented. The resume then compares only the identity
   files (§3.2, `OWN_OPERATION`), so the birth can still be committed; the run's artefacts stay in the home
   as evidence. That individual has run before being authenticated.
@@ -644,3 +660,7 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
   leaves; set-aside of a partial or faulted terminal home; reserved lines for set-aside; one revocation code
   before D1; `BEGIN_CANCELLED` for a registrar refusal after `BEGIN`; ledger-fault scope and lifting;
   corrupt log blocks every birth; no retroactive retirement; temporary run files; run before `COMMITTED`.
+  Last textual corrections after the review of `5c552f63` (favourable with minor conditions): P3 guarantee
+  in §12, `ALREADY_ADMITTED` outside `BEGIN_CANCELLED`, externally terminated logs out of the scan, faults
+  during quarantine and set-aside, journal and result file names, declared limits for corrupt logs and
+  empty or short files.

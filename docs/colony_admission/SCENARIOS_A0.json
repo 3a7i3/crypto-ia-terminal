@@ -930,6 +930,30 @@
    "slice": "P5",
    "then": "OWN_OPERATION from the identity files only; COMMITTED written; run artefacts kept",
    "when": "identical resume"
+  },
+  {
+   "contract": "§6.4",
+   "given": "a resume at D3 where Supervisor.admit raises ALREADY_ADMITTED before any write",
+   "id": "HOME-02",
+   "slice": "P5",
+   "then": "no BEGIN_CANCELLED line; the home is compared with the expected bytes (own home or HOME_CONFLICT, as HOME-01); the second resume writes no new BEGIN/BEGIN_CANCELLED pair",
+   "when": "identical resume, twice"
+  },
+  {
+   "contract": "§6.1,§7.3",
+   "given": "a log named by TERMINATED_EXTERNALLY that ends in a torn fragment",
+   "id": "DUR-12",
+   "slice": "P5",
+   "then": "the scan skips that log; the birth proceeds; that child id stays OPERATION_LOG_FAULTY",
+   "when": "a birth of another child"
+  },
+  {
+   "contract": "§8,§7.1",
+   "given": "an fsync or rename error during quarantine_partial_home or set_aside_terminal_home",
+   "id": "QUAR-09",
+   "slice": "P5",
+   "then": "the fault recorded in the fault log, DURABILITY_UNKNOWN, no fsync retried on that directory; the second call refused while the fault is recorded",
+   "when": "the action; then the action again"
   }
  ],
  "scenarios_schema": "colony-admission.scenarios/0"
