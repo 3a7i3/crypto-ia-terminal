@@ -1,0 +1,984 @@
+{
+ "baseline_main": "7b4b2ef6fcdaab0ba9d3db81e2a2b28481a7a2ef",
+ "contract": "docs/colony_admission/ADMISSION_CONTRACT.md",
+ "rule": "Each 'then' is a property observed on disk or in the verdict (code, state, trust_failures), not a code path. After the pin, a revision is a new file.",
+ "scenarios": [
+  {
+   "contract": "§3,§4,§6",
+   "given": "synthetic LAB_TEST lab: founder AUTHENTICATED (stored individual envelope), presented qualification + statement + envelopes, fresh child admission, current trust installed",
+   "id": "AUTH-01",
+   "slice": "P4",
+   "then": "state COMMITTED; exactly one ledger line, bound to operation_sha256; home loads; child status AWAITING_INDIVIDUAL_ATTESTATION",
+   "when": "admit_authenticated for a generation-1 child"
+  },
+  {
+   "contract": "§3.2,§3.3",
+   "given": "AUTH-01 COMMITTED, child individual envelope stored with store_individual_attestation, child qualification + statement presented",
+   "id": "AUTH-02",
+   "slice": "P4",
+   "then": "COMMITTED; the parent's admission verified as spent by its COMMITTED operation, not spent again; the ledger gains exactly one line",
+   "when": "admit_authenticated for a generation-2 child"
+  },
+  {
+   "contract": "§2,§4",
+   "given": "AUTH-01 inputs with a signature altered by one bit",
+   "id": "AUTH-03",
+   "slice": "P2,P4",
+   "then": "code TRUST_REFUSED with trust_failures containing SIGNATURE_INVALID; outcome REFUSED_BEFORE_DURABLE_EFFECT; no operation-log line; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§2,§4",
+   "given": "AUTH-01 inputs with an issuer absent from the current root",
+   "id": "AUTH-04",
+   "slice": "P2,P4",
+   "then": "code TRUST_REFUSED with trust_failures containing UNKNOWN_ISSUER; outcome REFUSED_BEFORE_DURABLE_EFFECT; no operation-log line; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§2,§4",
+   "given": "AUTH-01 inputs with a LAB_OPERATOR key signing the admission",
+   "id": "AUTH-05",
+   "slice": "P2,P4",
+   "then": "code TRUST_REFUSED with trust_failures containing SCOPE_NOT_GRANTED; outcome REFUSED_BEFORE_DURABLE_EFFECT; no operation-log line; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§2,§4",
+   "given": "AUTH-01 inputs with an envelope for another lab_id",
+   "id": "AUTH-06",
+   "slice": "P2,P4",
+   "then": "code TRUST_REFUSED with trust_failures containing AUDIENCE_MISMATCH; outcome REFUSED_BEFORE_DURABLE_EFFECT; no operation-log line; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§2,§4",
+   "given": "AUTH-01 inputs with an envelope declaring a root_version above the current root",
+   "id": "AUTH-07",
+   "slice": "P2,P4",
+   "then": "code TRUST_REFUSED with trust_failures containing ENVELOPE_FROM_FUTURE_ROOT; outcome REFUSED_BEFORE_DURABLE_EFFECT; no operation-log line; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§5.2",
+   "given": "AUTH-01 inputs, the admitter key REVOKED, or the admission envelope id in revoked_envelopes, in the current root",
+   "id": "AUTH-08",
+   "slice": "P4",
+   "then": "code TRUST_REVOKED_BEFORE_CONSUMPTION with trust_failures KEY_REVOKED or ENVELOPE_REVOKED; no operation-log line; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§3.1,§3.5",
+   "given": "Sentinel's R8 record presented as is, without envelope or statement",
+   "id": "AUTH-09",
+   "slice": "P4",
+   "then": "code ATTESTATION_MISSING; R8 file unchanged; no automatic adoption",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§3.5",
+   "given": "the present-scope qualification and statement, one defect at a time: reviewer_id differs from issuer_id; statement names another record or hash; historical_signature_claimed not literally false; PRESENT scope with campaign_replayed true or campaign_evidence set or historical fields null; FRESH scope with historical fields set or campaign_replayed false",
+   "id": "AUTH-10",
+   "slice": "P4",
+   "then": "code STATEMENT_INVALID before PREPARED; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§3.1",
+   "given": "statement envelope missing for a stored or presented qualification",
+   "id": "AUTH-11",
+   "slice": "P4",
+   "then": "code ATTESTATION_MISSING",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§3.1",
+   "given": "for each item of the derived list in turn",
+   "id": "COMP-01",
+   "slice": "P4",
+   "then": "code ATTESTATION_MISSING; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "that one envelope (presented or stored) is absent"
+  },
+  {
+   "contract": "§3.1",
+   "given": "AUTH-01 inputs",
+   "id": "COMP-02",
+   "slice": "P4",
+   "then": "code ATTESTATION_UNEXPECTED, then ATTESTATION_DUPLICATED; ledger, admission records, stored files, operation logs and homes byte-for-byte unchanged",
+   "when": "an extra valid presented envelope; then one presented envelope duplicated"
+  },
+  {
+   "contract": "§3.1",
+   "given": "a caller attempting to pass a required list or population envelopes",
+   "id": "COMP-03",
+   "slice": "P4",
+   "then": "the argument does not exist or is refused; the list frozen in PREPARED equals the one derived from the lab",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§3.1",
+   "given": "two children of one parent born under the same, then under different qualification records",
+   "id": "COMP-04",
+   "slice": "P2,P4",
+   "then": "both attested as distinct items keyed by (kind, subject, record_sha256); identical records counted once",
+   "when": "a birth whose population holds both"
+  },
+  {
+   "contract": "§4",
+   "given": "substitutions one at a time: another record under the same envelope, another child's envelope, a qualification of another parent, a sibling's admission, the same admission presented for another child",
+   "id": "COMP-05",
+   "slice": "P2,P4",
+   "then": "refused by bindings (trust_failures RECORD_HASH_MISMATCH or SUBJECT_MISMATCH, or ADMISSION_NOT_FOR_THIS_BIRTH) before PREPARED; ledger unchanged",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§3.2",
+   "given": "a population descendant whose admission is spent by another operation, by an operation ended FAILED_CONSUMED whose home was not set aside, by a /0 line, or not spent",
+   "id": "COMP-06",
+   "slice": "P2,P4",
+   "then": "code POPULATION_UNAUTHENTICATED; ledger line count unchanged",
+   "when": "any birth (no operation open)"
+  },
+  {
+   "contract": "§3.2",
+   "given": "a founder without stored individual envelope",
+   "id": "COMP-07",
+   "slice": "P4",
+   "then": "code POPULATION_UNAUTHENTICATED",
+   "when": "any birth"
+  },
+  {
+   "contract": "§3.2",
+   "given": "a COMMITTED child without individual envelope",
+   "id": "COMP-08",
+   "slice": "P4",
+   "then": "FILIATION_NOT_ATTESTED for the first; the second proceeds and counts the child",
+   "when": "a birth from it; a birth from its parent within ceilings"
+  },
+  {
+   "contract": "§3.4",
+   "given": "a derived list longer than 4*max_population-4, or an envelope file over 16 KiB",
+   "id": "COMP-09",
+   "slice": "P4",
+   "then": "code BUNDLE_TOO_LARGE before any signature check",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§3.4",
+   "given": "g0 population of 5, one founder, every attestation present",
+   "id": "COMP-10",
+   "slice": "P4",
+   "then": "length <= 20 and equal to 4P-3F+3 minus identical records and missing individual envelopes of AWAITING children",
+   "when": "derive the list"
+  },
+  {
+   "contract": "§6.5",
+   "given": "AUTH-01 COMMITTED",
+   "id": "COMP-11",
+   "slice": "P4",
+   "then": "the first returns the established result, nothing written; the second ALREADY_ADMITTED",
+   "when": "the identical call again; then the same child with a new admission"
+  },
+  {
+   "contract": "§3.3",
+   "given": "a stored envelope or statement replaced by a link, a non-regular file, or different bytes",
+   "id": "STORE-01",
+   "slice": "P4",
+   "then": "code STORED_FILE_DIVERGENT; nothing written",
+   "when": "a call needing it"
+  },
+  {
+   "contract": "§3.3",
+   "given": "store_individual_attestation with an envelope that does not verify, or for an existing file",
+   "id": "STORE-02",
+   "slice": "P4",
+   "then": "refused; nothing written",
+   "when": "store_individual_attestation"
+  },
+  {
+   "contract": "§6.7",
+   "given": "each operation interrupted after DONE D1",
+   "id": "TX-01",
+   "slice": "P5",
+   "then": "the child admission reported CONSUMED_BY_THIS_OPERATION, never counted as an acceptance; every other frozen item verified again against current trust",
+   "when": "resume with identical inputs"
+  },
+  {
+   "contract": "§6.2",
+   "given": "an open operation",
+   "id": "TX-02",
+   "slice": "P5",
+   "then": "code OPERATION_DIVERGENT; nothing written; the open operation unchanged",
+   "when": "resume changing one presented input at a time (child spec, permissions, budget, diff, presented record, presented envelope, attempt)"
+  },
+  {
+   "contract": "§6.5",
+   "given": "PREPARED, no ledger line",
+   "id": "TX-03",
+   "slice": "P4",
+   "then": "ABANDONED written; envelope unspent; the new attempt can commit",
+   "when": "abandon; then a new attempt"
+  },
+  {
+   "contract": "§6.5",
+   "given": "DONE D1",
+   "id": "TX-04",
+   "slice": "P4",
+   "then": "refused; the ledger line remains",
+   "when": "abandon"
+  },
+  {
+   "contract": "§6.6",
+   "given": "DONE D1, then a direct Supervisor.admit of another child in a test (bypass)",
+   "id": "TX-05",
+   "slice": "P4",
+   "then": "resume: POPULATION_UNAUTHENTICATED, non-terminal, nothing written; terminate: TERMINATED and FAILED_CONSUMED written, authorization stays spent",
+   "when": "resume; then terminate"
+  },
+  {
+   "contract": "§6.5,§12",
+   "given": "FAILED_CONSUMED after DONE D2",
+   "id": "TX-06",
+   "slice": "P3,P4",
+   "then": "code ADMISSION_CONFLICT before PREPARED; the new admission envelope is not spent; ledger unchanged",
+   "when": "a new birth of the same child with a new admission"
+  },
+  {
+   "contract": "§6.5",
+   "given": "a log contradicted by a durable fact (DONE D1 without ledger line, ledger line without PREPARED, home without DONE D2)",
+   "id": "TX-07",
+   "slice": "P4",
+   "then": "code OPERATION_STATE_INCONSISTENT; blocked; nothing written",
+   "when": "any call"
+  },
+  {
+   "contract": "§6.7",
+   "given": "Sentinel with one COMMITTED child; the second child's operation interrupted after DONE D3",
+   "id": "TX-08",
+   "slice": "P5",
+   "then": "COMMITTED; no ALREADY_ADMITTED, no CHILDREN_LIMIT: the operation's own home and admission are excluded from the counts",
+   "when": "resume with identical inputs"
+  },
+  {
+   "contract": "§6.6",
+   "given": "DONE D2",
+   "id": "TX-09",
+   "slice": "P4",
+   "then": "TERMINATED then FAILED_CONSUMED written; the ledger line and admission record remain",
+   "when": "terminate"
+  },
+  {
+   "contract": "§6.5",
+   "given": "INTERRUPTED_RECOVERED D1 ABSENT",
+   "id": "TX-10",
+   "slice": "P5",
+   "then": "ABANDONED written; envelope unspent",
+   "when": "abandon"
+  },
+  {
+   "contract": "§6.6",
+   "given": "after DONE D1: trust policy unavailable, STOP set, L1 busy, an I/O error",
+   "id": "TX-11",
+   "slice": "P4",
+   "then": "the matching non-terminal code; nothing written; a later identical resume can still commit",
+   "when": "resume"
+  },
+  {
+   "contract": "§6.5",
+   "given": "refusal at each check before PREPARED",
+   "id": "OUT-01",
+   "slice": "P4",
+   "then": "outcome REFUSED_BEFORE_DURABLE_EFFECT; no record, line or envelope of the operation",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§6.5",
+   "given": "refusal after PREPARED, before BEGIN D1 (trust refusal)",
+   "id": "OUT-02",
+   "slice": "P4",
+   "then": "outcome REFUSED_AFTER_PREPARE; PREPARED and REFUSED lines; envelope unspent",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§6.3",
+   "given": "an operation log with 60 lines",
+   "id": "LOG-01",
+   "slice": "P4",
+   "then": "OPERATION_LOG_FULL, nothing written; terminate still writes TERMINATED and FAILED_CONSUMED in the reserved lines",
+   "when": "a call that would append a non-terminal line; then terminate"
+  },
+  {
+   "contract": "§6.1",
+   "given": "256 operation logs",
+   "id": "LOG-02",
+   "slice": "P4",
+   "then": "OPERATION_LOGS_FULL; nothing written",
+   "when": "admit_authenticated for a new child"
+  },
+  {
+   "contract": "§6.3",
+   "given": "a torn tail acknowledged, then further lines",
+   "id": "LOG-03",
+   "slice": "P4",
+   "then": "the acknowledged fragment counts as a transition that did not happen; the following lines are read normally; a second non-canonical line without its own acknowledgement is OPERATION_LOG_CORRUPT",
+   "when": "read the log"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed during the dry run, before PREPARED (SIGKILL in a subprocess)",
+   "id": "CRASH-D0",
+   "slice": "P5",
+   "then": "no log line or a torn tail; with a torn tail, acknowledge_torn_tail then the same attempt can run; nothing spent",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed while writing PREPARED (torn tail) (SIGKILL in a subprocess)",
+   "id": "CRASH-D0T",
+   "slice": "P5",
+   "then": "TORN_TAIL blocks the child; after acknowledge_torn_tail the fragment is a transition that did not happen; nothing spent",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after PREPARED (SIGKILL in a subprocess)",
+   "id": "CRASH-D0+",
+   "slice": "P5",
+   "then": "PREPARED; an identical resume continues to BEGIN D1; nothing spent",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after BEGIN D1, before the ledger append (SIGKILL in a subprocess)",
+   "id": "CRASH-D1-",
+   "slice": "P5",
+   "then": "INTERRUPTED at D1; recover gives ABSENT in the same boot; then BEGIN D1 again; one ledger line in the end",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after the ledger append, before DONE D1 (SIGKILL in a subprocess)",
+   "id": "CRASH-D1",
+   "slice": "P5",
+   "then": "INTERRUPTED at D1; recover refuses PRESENT in the same boot (COLD_READ_REQUIRED); after a reboot, PRESENT; then BEGIN D2; never a second ledger line",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after DONE D1 (SIGKILL in a subprocess)",
+   "id": "CRASH-D1+",
+   "slice": "P5",
+   "then": "DONE D1; an identical resume continues to BEGIN D2",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after BEGIN D2, nothing written (SIGKILL in a subprocess)",
+   "id": "CRASH-D2-",
+   "slice": "P5",
+   "then": "INTERRUPTED at D2; recover ABSENT; BEGIN D2 again",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after the admission record, before the stored envelopes (SIGKILL in a subprocess)",
+   "id": "CRASH-D2",
+   "slice": "P5",
+   "then": "INTERRUPTED at D2; recover PARTIAL after a cold read; BEGIN D2 writes only the missing files",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after DONE D2 (SIGKILL in a subprocess)",
+   "id": "CRASH-D2+",
+   "slice": "P5",
+   "then": "DONE D2; an identical resume continues to BEGIN D3",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after BEGIN D3, before mkdir of the home (SIGKILL in a subprocess)",
+   "id": "CRASH-D3-",
+   "slice": "P5",
+   "then": "INTERRUPTED at D3; recover ABSENT; BEGIN D3 again",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after mkdir of the home (SIGKILL in a subprocess)",
+   "id": "CRASH-D3a",
+   "slice": "P5",
+   "then": "INTERRUPTED at D3; PARTIAL after a cold read; quarantine_partial_home; BEGIN D3 again",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after mkdir of tasks/ (and again after results/, after j01-lab-memory/) (SIGKILL in a subprocess)",
+   "id": "CRASH-D3b",
+   "slice": "P5",
+   "then": "as D3a",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after spec.json (SIGKILL in a subprocess)",
+   "id": "CRASH-D3c",
+   "slice": "P5",
+   "then": "as D3a",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after record.json (SIGKILL in a subprocess)",
+   "id": "CRASH-D3d",
+   "slice": "P5",
+   "then": "as D3a",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after birth_qualification.json (SIGKILL in a subprocess)",
+   "id": "CRASH-D3e",
+   "slice": "P5",
+   "then": "as D3a",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after usage.json, during ActivityStore.create (SIGKILL in a subprocess)",
+   "id": "CRASH-D3f",
+   "slice": "P5",
+   "then": "as D3a; the journal checked on a copy outside the lab root, where an empty store file or a WAL whose creating transaction never committed is accepted (§8)",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after admit returned, before the directory fsyncs and byte comparison (SIGKILL in a subprocess)",
+   "id": "CRASH-D3g",
+   "slice": "P5",
+   "then": "INTERRUPTED at D3; PRESENT only after a cold read and a complete equal home; then COMMITTED",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after DONE D3 (SIGKILL in a subprocess)",
+   "id": "CRASH-D3+",
+   "slice": "P5",
+   "then": "DONE D3; an identical resume writes COMMITTED",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed after COMMITTED (SIGKILL in a subprocess)",
+   "id": "CRASH-D4",
+   "slice": "P5",
+   "then": "COMMITTED; an identical call returns the result, nothing written",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed between QUARANTINE_BEGIN and QUARANTINE_DONE (SIGKILL in a subprocess)",
+   "id": "CRASH-Q",
+   "slice": "P5",
+   "then": "the rename either happened or not; calling quarantine_partial_home again finds the home in exactly one of source and destination, completes the rename if needed and writes QUARANTINE_DONE (refused if in both or neither); nothing deleted",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed during install_trust (after the history line, before the rename) (SIGKILL in a subprocess)",
+   "id": "CRASH-T",
+   "slice": "P5",
+   "then": "the policy file does not match the last history entry: TRUST_CURRENT_UNAVAILABLE until install_trust is called again with exactly that root, which completes the rename; no birth continues meanwhile",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed during the ledger append (torn ledger line) (SIGKILL in a subprocess)",
+   "id": "CRASH-L",
+   "slice": "P5",
+   "then": "LEDGER_CORRUPT; every birth refused; manual operator procedure only",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed between SET_ASIDE_BEGIN and SET_ASIDE_DONE (SIGKILL in a subprocess)",
+   "id": "CRASH-S",
+   "slice": "P5",
+   "then": "as CRASH-Q, with set_aside_terminal_home",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§6.3-§8",
+   "given": "an authenticated birth or operator action killed during recover, abandon, terminate, acknowledge_torn_tail or store_individual_attestation (SIGKILL in a subprocess)",
+   "id": "CRASH-R",
+   "slice": "P5",
+   "then": "at most a torn tail; acknowledge_torn_tail; the action can be repeated; no state goes back before D1",
+   "when": "next call with identical inputs, or the operator action named"
+  },
+  {
+   "contract": "§7.1",
+   "given": "short write or fsync error injected (test only) on the operation log, the admission record, a stored envelope, a home file, and an error raised by Supervisor.admit",
+   "id": "DUR-01",
+   "slice": "P2,P5",
+   "then": "DURABILITY_UNKNOWN; no second fsync of that file; fault in the external fault log; DURABILITY_FAULT in the operation log unless it is the faulty file; BLOCKED_DURABILITY on every later call",
+   "when": "the step"
+  },
+  {
+   "contract": "§7.2",
+   "given": "fsync error injected on the ledger",
+   "id": "DUR-02",
+   "slice": "P2,P5",
+   "then": "LEDGER_DURABILITY_UNKNOWN for both: every birth is refused while the ledger fault is recorded",
+   "when": "the step; then a birth of another child"
+  },
+  {
+   "contract": "§7.3",
+   "given": "BLOCKED_DURABILITY with the artefact bytes present",
+   "id": "DUR-03",
+   "slice": "P5",
+   "then": "both refused; no continuation on the presence of bytes",
+   "when": "resume; recover"
+  },
+  {
+   "contract": "§7.4",
+   "given": "INTERRUPTED without fault; artefact absent, equal, partial or divergent; same boot and new boot",
+   "id": "DUR-04",
+   "slice": "P5",
+   "then": "same boot: ABSENT accepted, PRESENT and PARTIAL refused COLD_READ_REQUIRED; new boot: PRESENT or PARTIAL recorded; divergent refused RECOVERY_REFUSED",
+   "when": "recover"
+  },
+  {
+   "contract": "§7.6",
+   "given": "torn last ledger line; foreign line; duplicate key; link, FIFO or hard link as ledger",
+   "id": "DUR-05",
+   "slice": "P2",
+   "then": "LEDGER_CORRUPT; every birth refused; nothing repaired",
+   "when": "any birth"
+  },
+  {
+   "contract": "§6.3",
+   "given": "a non-canonical line that is not the final fragment; an acknowledgement naming other bytes",
+   "id": "DUR-06",
+   "slice": "P4",
+   "then": "OPERATION_LOG_CORRUPT; nothing repaired",
+   "when": "any call for that child"
+  },
+  {
+   "contract": "§5.2",
+   "given": "admitter key revoked in a root installed after PREPARED, before BEGIN D1",
+   "id": "REV-01",
+   "slice": "P4",
+   "then": "code TRUST_REVOKED_BEFORE_CONSUMPTION; REFUSED line; ledger unchanged",
+   "when": "resume"
+  },
+  {
+   "contract": "§5.2",
+   "given": "revocation installed after DONE D1, then after DONE D2, then after DONE D3",
+   "id": "REV-02",
+   "slice": "P4",
+   "then": "FAILED_CONSUMED (TRUST_REVOKED_AFTER_CONSUMPTION); no further step; the ledger line kept; never OPERATION_DIVERGENT",
+   "when": "resume with identical inputs"
+  },
+  {
+   "contract": "§3.2,§5.2",
+   "given": "revocation of a COMMITTED individual's envelope (genuine signature)",
+   "id": "REV-03",
+   "slice": "P4",
+   "then": "status SUSPENDED, record kept; the first refused TRUST_REVOKED_BEFORE_CONSUMPTION with detail FILIATION_SUSPENDED, nothing spent; the second proceeds and counts it",
+   "when": "a birth needing it as parent or ancestor; a birth in another branch"
+  },
+  {
+   "contract": "§5.2",
+   "given": "trust policy missing, unreadable, not regular, pin mismatch, version below the floor, not matching the last history entry, not LAB_TEST",
+   "id": "REV-04",
+   "slice": "P4",
+   "then": "TRUST_CURRENT_UNAVAILABLE; non-terminal; nothing written",
+   "when": "any call or resume"
+  },
+  {
+   "contract": "§5.3",
+   "given": "a birth holding L1",
+   "id": "REV-05",
+   "slice": "P4",
+   "then": "REGISTRAR_BUSY; never interleaved inside the call",
+   "when": "install_trust from another process"
+  },
+  {
+   "contract": "§5.3",
+   "given": "install_trust with: an equal or lower version; a lower minimum_version; a removed issuer or key; a REVOKED key set ACTIVE; a RETIRED key set ACTIVE; a shrunk revoked_envelopes; a version not above one recorded in an operation log; a changed public_key, introduced_in_root, retired_in_root, issuer_kind or scopes",
+   "id": "REV-06",
+   "slice": "P4",
+   "then": "TRUST_UPDATE_REFUSED; policy file and history unchanged",
+   "when": "install_trust"
+  },
+  {
+   "contract": "§5.3",
+   "given": "a valid monotonic root",
+   "id": "REV-07",
+   "slice": "P4",
+   "then": "history line appended; policy file replaced; the next call uses it",
+   "when": "install_trust"
+  },
+  {
+   "contract": "§5.1",
+   "given": "DONE D1, then a benign rotation installed (old admitter key RETIRED after the envelope's version, new key ACTIVE)",
+   "id": "REV-08",
+   "slice": "P5",
+   "then": "the operation continues to COMMITTED",
+   "when": "resume with identical inputs"
+  },
+  {
+   "contract": "§5.2",
+   "given": "DONE D1; a revocation installed touching only an individual of another branch",
+   "id": "REV-11",
+   "slice": "P5",
+   "then": "the operation continues to COMMITTED; that individual SUSPENDED and counted",
+   "when": "resume with identical inputs"
+  },
+  {
+   "contract": "§5.2",
+   "given": "an individual of another branch SUSPENDED before the call",
+   "id": "REV-12",
+   "slice": "P4",
+   "then": "PREPARED and COMMITTED; the suspended individual counted for ceilings",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§5.3",
+   "given": "a torn or foreign line in trust-history.log",
+   "id": "REV-13",
+   "slice": "P4",
+   "then": "TRUST_CURRENT_UNAVAILABLE; nothing written",
+   "when": "any call"
+  },
+  {
+   "contract": "§5.2,§12",
+   "given": "a SUSPENDED individual",
+   "id": "REV-09",
+   "slice": "P4",
+   "then": "EXECUTION_SUSPENDED reported; nothing enforced on runs (declared limit)",
+   "when": "population status report"
+  },
+  {
+   "contract": "§5.3",
+   "given": "trust directory inside the lab root, inside the repository, a link, or mode not 0600",
+   "id": "REV-10",
+   "slice": "P4",
+   "then": "refused",
+   "when": "Controller construction or install_trust"
+  },
+  {
+   "contract": "§6.1",
+   "given": "two processes, the same child",
+   "id": "CONC-01",
+   "slice": "P4",
+   "then": "one proceeds; the other REGISTRAR_BUSY; one ledger line",
+   "when": "admit_authenticated concurrently"
+  },
+  {
+   "contract": "§6.1",
+   "given": "two processes, two children, one place left",
+   "id": "CONC-02",
+   "slice": "P4",
+   "then": "one COMMITTED; the other REGISTRAR_BUSY or its ceiling",
+   "when": "concurrently"
+  },
+  {
+   "contract": "§6.1",
+   "given": "an open operation for child A (PREPARED, DONE D1, INTERRUPTED or BLOCKED)",
+   "id": "CONC-03",
+   "slice": "P4",
+   "then": "code OPERATION_PENDING; nothing written for B; A resumes unaffected",
+   "when": "admit_authenticated for child B in a later call"
+  },
+  {
+   "contract": "§9",
+   "given": "STOP set at each read point (start, after PREPARED, before BEGIN D1, before BEGIN D3)",
+   "id": "STOP-01",
+   "slice": "P5",
+   "then": "stops before the next write with LAB_STOPPED; when raised by the registrar inside commit after BEGIN Dk, a BEGIN_CANCELLED Dk line closes it and nothing of step k is written; never terminal; the operation stays at its last DONE line and continues after resume()",
+   "when": "admit_authenticated"
+  },
+  {
+   "contract": "§8.1",
+   "given": "INTERRUPTED_RECOVERED D3 PARTIAL, every present file equal",
+   "id": "QUAR-01",
+   "slice": "P5",
+   "then": "QUARANTINE_BEGIN and QUARANTINE_DONE; home moved under admission-quarantine/<operation>/<attempt>; nothing deleted; D3 runs again",
+   "when": "quarantine_partial_home"
+  },
+  {
+   "contract": "§8",
+   "given": "an unexpected file, a link, a divergent byte, or a journal whose copy is in none of the three accepted states",
+   "id": "QUAR-02",
+   "slice": "P5",
+   "then": "QUARANTINE_REFUSED; nothing moved, deleted or repaired",
+   "when": "quarantine_partial_home"
+  },
+  {
+   "contract": "§8.1",
+   "given": "quarantine requested for another operation, without PARTIAL recovery, or with a recorded fault",
+   "id": "QUAR-03",
+   "slice": "P5",
+   "then": "refused",
+   "when": "quarantine_partial_home"
+  },
+  {
+   "contract": "§8",
+   "given": "a partial home with a journal",
+   "id": "QUAR-04",
+   "slice": "P5",
+   "then": "the original journal files are byte-for-byte unchanged and never opened by SQLite; the check ran on a copy outside the lab root",
+   "when": "quarantine_partial_home"
+  },
+  {
+   "contract": "§8.2",
+   "given": "FAILED_CONSUMED after DONE D3",
+   "id": "QUAR-05",
+   "slice": "P5",
+   "then": "POPULATION_UNAUTHENTICATED; SET_ASIDE_BEGIN and SET_ASIDE_DONE, home moved, nothing deleted; the birth proceeds",
+   "when": "another birth; then set_aside_terminal_home; then the birth again"
+  },
+  {
+   "contract": "§6.8",
+   "given": "admission-ops/, admission-envelopes/, admission-quarantine/ or registrar-admissions/ replaced by a link, or with a mode other than 0700",
+   "id": "DIR-01",
+   "slice": "P4",
+   "then": "LAB_IO_ERROR; nothing written",
+   "when": "any call"
+  },
+  {
+   "contract": "§6.4",
+   "given": "before D3, a home for the child already exists: equal to the expected bytes, then different",
+   "id": "HOME-01",
+   "slice": "P4",
+   "then": "equal: treated as the operation's own home under the recovery rules; different: HOME_CONFLICT, blocked, non-terminal, nothing written",
+   "when": "the D3 step"
+  },
+  {
+   "contract": "§6.7",
+   "given": "DONE D2, then another individual's home removed in a test (bypass)",
+   "id": "TX-12",
+   "slice": "P4",
+   "then": "POPULATION_CHANGED; non-terminal; nothing written",
+   "when": "resume"
+  },
+  {
+   "contract": "§7.3",
+   "given": "DURABILITY_FAULT recorded for an operation after DONE D1",
+   "id": "DUR-07",
+   "slice": "P5",
+   "then": "TERMINATED and FAILED_CONSUMED written; the ledger line stays; OPERATION_PENDING released",
+   "when": "terminate"
+  },
+  {
+   "contract": "§7.3",
+   "given": "the operation log itself faulty at PREPARED, no ledger line",
+   "id": "DUR-08",
+   "slice": "P5",
+   "then": "TERMINATED_EXTERNALLY in the fault log with outcome ABANDONED, nothing written to the faulty log; the envelope unspent; OPERATION_PENDING released for other children",
+   "when": "terminate"
+  },
+  {
+   "contract": "§8.2",
+   "given": "FAILED_CONSUMED home that was run (usage.json, tasks/, results/, inflight.json, journal events)",
+   "id": "QUAR-06",
+   "slice": "P5",
+   "then": "moved intact under admission-quarantine/<operation>/terminal; identity files checked; run artefacts, temporary files (usage.json.tmp, tasks/*.json.tmp) and the journal moved without checking their content; a link or unknown name refuses",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§2",
+   "given": "any module of colony_lab, colony_pilot, colony_trust, colony_registrar, any worker or task type",
+   "id": "ISO-01",
+   "slice": "P4",
+   "then": "no import of colony_admission",
+   "when": "AST import scan"
+  },
+  {
+   "contract": "§2",
+   "given": "every task type and sandbox view",
+   "id": "ISO-03",
+   "slice": "P4",
+   "then": "no file of colony_admission and no admission-* or registrar-* path is visible to an individual",
+   "when": "inspect the views and run the sandbox probe"
+  },
+  {
+   "contract": "§7.4",
+   "given": "the operator entry points",
+   "id": "ISO-04",
+   "slice": "P4",
+   "then": "no parameter supplies a boot id; the test seam is unreachable from them",
+   "when": "static inspection"
+  },
+  {
+   "contract": "Status,§13",
+   "given": "every test of the slices",
+   "id": "ISO-02",
+   "slice": "P2-P6",
+   "then": "no network, no secret, no runtime import, only LAB_TEST keys derived from public labels",
+   "when": "run"
+  },
+  {
+   "contract": "§10",
+   "given": "policy g0, Sentinel with two children",
+   "id": "CEIL-01",
+   "slice": "P4",
+   "then": "CHILDREN_LIMIT; no way to raise a ceiling",
+   "when": "a third direct child of Sentinel"
+  },
+  {
+   "contract": "§10",
+   "given": "policy g0, a generation-2 parent",
+   "id": "CEIL-02",
+   "slice": "P4",
+   "then": "GENERATION_LIMIT",
+   "when": "a birth"
+  },
+  {
+   "contract": "§10",
+   "given": "policy g0, colony budget nearly spent",
+   "id": "CEIL-03",
+   "slice": "P4",
+   "then": "COLONY_BUDGET_EXCEEDED",
+   "when": "a birth whose budget exceeds the rest"
+  },
+  {
+   "contract": "§11",
+   "given": "each slice HEAD",
+   "id": "QUAL-01",
+   "slice": "P2-P6",
+   "then": "2c926421..., 41b78971..., 97fb6b04... unchanged (existing tripwire tests green)",
+   "when": "recompute Sentinel subject, Sentinel evaluator and pilot evaluator hashes"
+  },
+  {
+   "contract": "§11",
+   "given": "admission_code_sha256 over the AST closure",
+   "id": "QUAL-02",
+   "slice": "P6",
+   "then": "the controller's qualification reported stale",
+   "when": "change one byte of any file of the closure, including a sentinel_activity module"
+  },
+  {
+   "contract": "§8.2",
+   "given": "FAILED_CONSUMED after BEGIN D3 without DONE D3: identity files missing or a prefix of their expected bytes, no cold read made; and the same after TERMINATED_EXTERNALLY",
+   "id": "QUAR-07",
+   "slice": "P5",
+   "then": "moved under admission-quarantine/<operation>/terminal (journaled in the fault log when the operation log is faulty); later births no longer see it",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§8.2",
+   "given": "FAILED_CONSUMED after BEGIN D3 with an identity file whose content is neither a prefix of nor equal to its expected bytes",
+   "id": "QUAR-08",
+   "slice": "P5",
+   "then": "QUARANTINE_REFUSED; nothing moved",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§6.3",
+   "given": "an operation log at 56 lines",
+   "id": "LOG-04",
+   "slice": "P4",
+   "then": "the BEGIN refused OPERATION_LOG_FULL; TERMINATED, FAILED_CONSUMED, SET_ASIDE_BEGIN and SET_ASIDE_DONE all accepted in the reserve",
+   "when": "a further BEGIN; then terminate and set_aside_terminal_home"
+  },
+  {
+   "contract": "§5.3",
+   "given": "a root that retires a key with retired_in_root lower than its own root_version",
+   "id": "REV-14",
+   "slice": "P4",
+   "then": "TRUST_UPDATE_REFUSED; nothing written",
+   "when": "install_trust"
+  },
+  {
+   "contract": "§6.4",
+   "given": "a registrar refusal (other than STOP) raised inside commit after BEGIN D2",
+   "id": "STOP-02",
+   "slice": "P5",
+   "then": "BEGIN_CANCELLED D2 with the code, nothing of D2 written, operation at DONE D1; after the crash, INTERRUPTED and recover ABSENT in the same boot",
+   "when": "admit_authenticated; then a crash before BEGIN_CANCELLED"
+  },
+  {
+   "contract": "§7.2",
+   "given": "a recorded ledger fault",
+   "id": "DUR-09",
+   "slice": "P5",
+   "then": "the first four refused LEDGER_DURABILITY_UNKNOWN; the others allowed; no call clears the fault",
+   "when": "admit_authenticated, recover, abandon, quarantine_partial_home; then terminate, set_aside_terminal_home, install_trust"
+  },
+  {
+   "contract": "§7.3",
+   "given": "an operation TERMINATED_EXTERNALLY because its log is faulty",
+   "id": "DUR-10",
+   "slice": "P5",
+   "then": "the first refused OPERATION_LOG_FAULTY; the second proceeds",
+   "when": "a new admit_authenticated for the same child agent_id; one for another child id"
+  },
+  {
+   "contract": "§6.3,§6.1",
+   "given": "an OPERATION_LOG_CORRUPT log of one child",
+   "id": "DUR-11",
+   "slice": "P4",
+   "then": "refused OPERATION_LOG_CORRUPT; nothing written",
+   "when": "a birth of another child"
+  },
+  {
+   "contract": "§3.2,§13",
+   "given": "DONE D3, then the child run once (usage.json changed), before COMMITTED",
+   "id": "OWN-01",
+   "slice": "P5",
+   "then": "OWN_OPERATION from the identity files only; COMMITTED written; run artefacts kept",
+   "when": "identical resume"
+  },
+  {
+   "contract": "§6.4",
+   "given": "a resume at D3 where Supervisor.admit raises ALREADY_ADMITTED before any write",
+   "id": "HOME-02",
+   "slice": "P5",
+   "then": "no BEGIN_CANCELLED line; the home is compared with the expected bytes (own home or HOME_CONFLICT, as HOME-01); the second resume writes no new BEGIN/BEGIN_CANCELLED pair",
+   "when": "identical resume, twice"
+  },
+  {
+   "contract": "§6.1,§7.3",
+   "given": "a log named by TERMINATED_EXTERNALLY that ends in a torn fragment",
+   "id": "DUR-12",
+   "slice": "P5",
+   "then": "the scan skips that log; the birth proceeds; that child id stays OPERATION_LOG_FAULTY",
+   "when": "a birth of another child"
+  },
+  {
+   "contract": "§8,§7.1",
+   "given": "an fsync or rename error during quarantine_partial_home or set_aside_terminal_home",
+   "id": "QUAR-09",
+   "slice": "P5",
+   "then": "the fault recorded in the fault log, DURABILITY_UNKNOWN, no fsync retried on that directory; the second call refused while the fault is recorded",
+   "when": "the action; then the action again"
+  },
+  {
+   "contract": "§8.2,§7.1",
+   "given": "FAILED_CONSUMED after a failed fsync by the controller on the home's directory; and, separately, after an error raised inside Supervisor.admit",
+   "id": "QUAR-10",
+   "slice": "P5",
+   "then": "the first refused while the fault is recorded (home stays UNAUTHENTICATED, every birth refused); the second proceeds",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§8.2,§7.3",
+   "given": "TERMINATED_EXTERNALLY with a corrupt or torn operation log, fault log entry naming D3",
+   "id": "QUAR-11",
+   "slice": "P5",
+   "then": "the faulty log is not read; the step is taken from the fault log entry; the home is moved",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§6.4",
+   "given": "Supervisor.admit raises an error other than ALREADY_ADMITTED before its first write (e.g. a read error loading the parent)",
+   "id": "HOME-03",
+   "slice": "P5",
+   "then": "DURABILITY_UNKNOWN, no BEGIN_CANCELLED; only terminate ends it",
+   "when": "admit_authenticated at D3"
+  }
+ ],
+ "scenarios_schema": "colony-admission.scenarios/0"
+}
