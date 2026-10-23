@@ -954,6 +954,30 @@
    "slice": "P5",
    "then": "the fault recorded in the fault log, DURABILITY_UNKNOWN, no fsync retried on that directory; the second call refused while the fault is recorded",
    "when": "the action; then the action again"
+  },
+  {
+   "contract": "§8.2,§7.1",
+   "given": "FAILED_CONSUMED after a failed fsync by the controller on the home's directory; and, separately, after an error raised inside Supervisor.admit",
+   "id": "QUAR-10",
+   "slice": "P5",
+   "then": "the first refused while the fault is recorded (home stays UNAUTHENTICATED, every birth refused); the second proceeds",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§8.2,§7.3",
+   "given": "TERMINATED_EXTERNALLY with a corrupt or torn operation log, fault log entry naming D3",
+   "id": "QUAR-11",
+   "slice": "P5",
+   "then": "the faulty log is not read; the step is taken from the fault log entry; the home is moved",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§6.4",
+   "given": "Supervisor.admit raises an error other than ALREADY_ADMITTED before its first write (e.g. a read error loading the parent)",
+   "id": "HOME-03",
+   "slice": "P5",
+   "then": "DURABILITY_UNKNOWN, no BEGIN_CANCELLED; only terminate ends it",
+   "when": "admit_authenticated at D3"
   }
  ],
  "scenarios_schema": "colony-admission.scenarios/0"

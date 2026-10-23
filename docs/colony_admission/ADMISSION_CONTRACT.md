@@ -325,7 +325,7 @@ version used, the boot id, and a code. At most 64 lines per child and 256 KiB pe
 reserved for the lines that end an operation or clear it away: `TERMINATED`, `FAILED_CONSUMED` or
 `ABANDONED`, `SET_ASIDE_BEGIN`, `SET_ASIDE_DONE` (each at most once in the reserve) and
 `TORN_TAIL_ACKNOWLEDGED` (at most twice). Any other line beyond 56 is refused `OPERATION_LOG_FULL`, so an
-operation can always be ended and its home set aside.
+operation can always be ended, and its home set aside unless a directory fault blocks it (§8.2).
 
 Strict reading, one rule: every line must be canonical and newline-terminated, with one exception. A final
 unterminated fragment (a torn tail) is reported as `TORN_TAIL` and blocks the child until the operator's
@@ -355,13 +355,13 @@ The registrar reads STOP again inside `commit`, just before its first write (`re
 `_record_admission`), so a refusal can come after `BEGIN Dk` is written. P3 guarantees that every
 `RegistrarError` raised by `commit` for a step is raised before any write of that step (§12); an error
 during a write is never reported as a `RegistrarError` refusal (today `Registrar.birth` maps `OSError` to
-`LAB_IO_ERROR`, `registrar.py`; P3 keeps that mapping out of `commit`). At D3, `BEGIN_CANCELLED` applies only to
-the registrar's own refusals (STOP and its own checks in `commit`); any error that comes from
-`Supervisor.admit`, even one raised before its first write, follows the D3 limits paragraph below
-(`DURABILITY_UNKNOWN`, or the home comparison for `ALREADY_ADMITTED`), never `BEGIN_CANCELLED`. The controller then
-appends `BEGIN_CANCELLED Dk` with the code: the step did not happen and the operation is back at its last
-`DONE` line, non-terminal. A crash before that line leaves `BEGIN Dk` open (`INTERRUPTED`), which `recover`
-classifies `ABSENT` in the same boot (§7.4). Any other error of the step stays `DURABILITY_UNKNOWN`.
+`LAB_IO_ERROR`, `registrar.py`; P3 keeps that mapping out of `commit`). For such a refusal the controller appends
+`BEGIN_CANCELLED Dk` with the code: the step did not happen and the operation is back at its last `DONE`
+line, non-terminal. A crash before that line leaves `BEGIN Dk` open (`INTERRUPTED`), which `recover`
+classifies `ABSENT` in the same boot (§7.4). Any other error of the step stays `DURABILITY_UNKNOWN`. In
+particular, at D3 `BEGIN_CANCELLED` covers only the registrar's own refusals (STOP and its own checks in
+`commit`): any error that comes from `Supervisor.admit`, even one raised before its first write, follows
+the D3 limits paragraph below (`DURABILITY_UNKNOWN`, or the home comparison for `ALREADY_ADMITTED`).
 
 D3 limits, declared (§13): `Supervisor._write_new` makes a single `os.write` and `fsync`s the file but not
 its directory; the controller's byte comparison detects a short write but reads the page cache, and its
@@ -454,7 +454,9 @@ their durability. Rules:
 
 1. On an `fsync`, short-write or `Supervisor.admit` error during a step, the controller writes nothing more
    to the faulty file, does not call `fsync` again on it, records the fault in the operator's fault log
-   (outside the lab root, preferably another filesystem) and, only if the operation log is not the faulty
+   (outside the lab root, preferably another filesystem; each entry names the operation, the step and,
+   for a failed `fsync`, `rename` or write of the controller, the file or directory; for an error raised
+   inside `Supervisor.admit`, the step only) and, only if the operation log is not the faulty
    file, appends `DURABILITY_FAULT` to it. It returns `DURABILITY_UNKNOWN`.
 2. A fault on the **ledger** (shared by the colony) blocks every birth, not only this operation: every call
    reads the fault log and refuses while a ledger fault is recorded (`LEDGER_DURABILITY_UNKNOWN`). Refused:
@@ -532,8 +534,12 @@ the same operation.
 `set_aside_terminal_home(operation_sha256)` runs only for an operation ended `FAILED_CONSUMED` (or
 `TERMINATED_EXTERNALLY`, §7.3) after `BEGIN D3`, whether D3 completed, was interrupted or faulted, and
 whether or not a cold read was made: it grants no trust and only moves the home out of the population. It
-is refused while a fault is recorded on `individuals/`, on the home or on `admission-quarantine/`, the
-directories it would `fsync` (§7.1); that home then stays `UNAUTHENTICATED` until the restore gate (§13). Such
+is refused while the fault log records a failed `fsync` or `rename` made by the controller itself on one of
+the directories it would `fsync`: `individuals/`, that home's directory, or `admission-quarantine/` (the
+last one blocks every set-aside of the colony). An error raised inside `Supervisor.admit` is recorded
+against the step, not against a directory, and does not refuse it. A refused home stays `UNAUTHENTICATED`
+until the restore gate (§13). After `TERMINATED_EXTERNALLY`, the faulty log is not read: "after
+`BEGIN D3`" is taken from the step named in the fault log entry of §7.1, written when the fault occurred. Such
 a home may have been run before it ended or since (§13), so its run artefacts are not compared. Each of
 `spec.json`, `record.json` and `birth_qualification.json` must be absent, or a prefix (possibly empty) of
 its expected bytes, or equal to them: a short or missing write cannot be a different identity, while any
@@ -639,8 +645,13 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
   a run during an interrupted D3 changes `usage.json`. `recover` classifies these as divergent
   (`RECOVERY_REFUSED`) and the quarantine needs equal files, so the only exit is `terminate` (then, for D3,
   `set_aside_terminal_home`), which spends a legitimate birth; after D2 the admission record stays.
-- A home whose D3 faulted on `individuals/`, the home or `admission-quarantine/` cannot be set aside
-  without the restore gate (§8.2), and blocks every birth until then.
+- A home cannot be set aside while the controller's own `fsync` or `rename` failed on `individuals/`, on
+  that home's directory or on `admission-quarantine/` (any operation's), and then blocks every birth until
+  the restore gate (§8.2).
+- Any error of `Supervisor.admit` during D3, including a transient read error before its first write (for
+  example while loading the parent), is `DURABILITY_UNKNOWN`: the only exit is `terminate`, which spends a
+  legitimate birth although nothing was written. This is the cost of not telling such errors apart without
+  a `colony_lab` amendment.
 - A run between `DONE D3` and `COMMITTED` is not prevented. The resume then compares only the identity
   files (§3.2, `OWN_OPERATION`), so the birth can still be committed; the run's artefacts stay in the home
   as evidence. That individual has run before being authenticated.
@@ -671,4 +682,5 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
   in §12, `ALREADY_ADMITTED` outside `BEGIN_CANCELLED`, externally terminated logs out of the scan, faults
   during quarantine and set-aside, journal and result file names, declared limits for corrupt logs and
   empty or short files; then set-aside refused on a faulty directory, Supervisor errors outside
-  `BEGIN_CANCELLED`, faulty logs terminated externally whatever they read like.
+  `BEGIN_CANCELLED`, faulty logs terminated externally whatever they read like; then directory faults defined, fault-log
+  entries naming the step, set-aside after external termination, cost of `Supervisor.admit` errors.
