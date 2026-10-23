@@ -622,6 +622,7 @@ def consume(items: Any, required: Any, root: Any, *, pin_sha256: str, minimum_ve
     # An invalid path is rejected before attempting an open (including embedded NUL).
     if not isinstance(ledger, Path):
         return _refuse(verdict, "LEDGER_CORRUPT")
+    may_have_spent = False
     try:
         with _locked(ledger, create=True, private=True) as fd:
             verdict = {**evaluate(), "consumption": "NOT_CONSUMED"}
@@ -646,8 +647,10 @@ def consume(items: Any, required: Any, root: Any, *, pin_sha256: str, minimum_ve
             if own:
                 if lines:
                     return _refuse(verdict, "OPERATION_STATE_INCONSISTENT")
+                may_have_spent = True
                 return {**verdict, "accepted": False, "consumption": "CONSUMED_BY_THIS_OPERATION"}
             try:
+                may_have_spent = True
                 _write(fd, b"".join(lines))
                 _sync_parent(ledger)
             except OSError:
@@ -655,8 +658,12 @@ def consume(items: Any, required: Any, root: Any, *, pin_sha256: str, minimum_ve
                         "consumption": "DURABILITY_UNKNOWN"}
             return {**verdict, "consumption": "CONSUMED"}
     except TrustError as exc:
+        if may_have_spent:
+            return {**_refuse(verdict, "LEDGER_DURABILITY_UNKNOWN"), "consumption": "DURABILITY_UNKNOWN"}
         return _refuse(verdict, exc.code)
     except (OSError, ValueError, TypeError):
+        if may_have_spent:
+            return {**_refuse(verdict, "LEDGER_DURABILITY_UNKNOWN"), "consumption": "DURABILITY_UNKNOWN"}
         return _refuse(verdict, "LEDGER_CORRUPT")
 
 

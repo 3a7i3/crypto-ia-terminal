@@ -3,6 +3,7 @@
 import copy
 import multiprocessing
 import os
+import stat
 
 import pytest
 
@@ -194,6 +195,28 @@ def test_partial_write_then_error_reports_unknown_never_unspent(tmp_path, monkey
     assert not result["accepted"] and result["consumption"] == "DURABILITY_UNKNOWN"
     assert result["failures"] == ["LEDGER_DURABILITY_UNKNOWN"]
     assert len(ledger.read_bytes()) == 17 and len(calls) == 2
+
+
+@pytest.mark.parametrize("resume", [False, True])
+def test_ledger_close_error_cannot_report_a_spent_authorization_unspent(tmp_path, monkeypatch, resume):
+    ledger = tmp_path / "ledger"
+    if resume:
+        assert consume(ledger)["accepted"]
+    real, failures = trust.os.close, []
+
+    def close(fd):
+        regular = stat.S_ISREG(os.fstat(fd).st_mode)
+        real(fd)
+        if regular:
+            failures.append(fd)
+            raise OSError("injected ledger close error after effects")
+    with monkeypatch.context() as patch:
+        patch.setattr(trust.os, "close", close)
+        result = consume(ledger)
+    assert not result["accepted"] and result["consumption"] == "DURABILITY_UNKNOWN"
+    assert result["failures"] == ["LEDGER_DURABILITY_UNKNOWN"] and len(failures) == 1
+    assert len(ledger.read_bytes().splitlines()) == 1
+    assert trust.verify_consumed(bundle()[0][0][0], ledger, OP)["consumed"]
 
 
 def test_fifo_link_permissions_and_corruption_are_refused(tmp_path):

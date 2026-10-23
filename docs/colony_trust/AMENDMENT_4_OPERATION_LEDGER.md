@@ -15,6 +15,10 @@ Scenarios A0 sha256 4e518bfec6faaa582c2c42633d80e989b8204708b554f74b0eb1bbee6eaa
   never completed silently. Changed operation is ENVELOPE_REPLAYED; changed bytes under
   the same issuer/id are ENVELOPE_ID_REUSED. Own-spent envelopes still undergo current
   root verification; a revocation is not bypassed.
+  NOT_CONSUMED means this call made no new consumption, not that an envelope has
+  never been spent. An error after an attempted write (including closing the
+  ledger), or while returning own-spent evidence, reports DURABILITY_UNKNOWN;
+  no caller may infer an unspent authorization from that result.
 - verify_consumed(envelope, ledger, operation_sha256): read-only evidence of exact
   /1 consumption, not authenticity, authorization or proof of controller COMMITTED.
   The controller must establish those independently.
