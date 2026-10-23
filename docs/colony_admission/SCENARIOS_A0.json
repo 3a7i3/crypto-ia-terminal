@@ -448,7 +448,7 @@
    "given": "an authenticated birth or operator action killed after usage.json, during ActivityStore.create (SIGKILL in a subprocess)",
    "id": "CRASH-D3f",
    "slice": "P5",
-   "then": "as D3a; the journal checked on a copy outside the lab root",
+   "then": "as D3a; the journal checked on a copy outside the lab root, where an empty store file or a WAL whose creating transaction never committed is accepted (§8)",
    "when": "next call with identical inputs, or the operator action named"
   },
   {
@@ -584,7 +584,7 @@
    "given": "revocation of a COMMITTED individual's envelope (genuine signature)",
    "id": "REV-03",
    "slice": "P4",
-   "then": "status SUSPENDED, record kept; FILIATION_SUSPENDED for the first; the second proceeds and counts it",
+   "then": "status SUSPENDED, record kept; the first refused TRUST_REVOKED_BEFORE_CONSUMPTION with detail FILIATION_SUSPENDED, nothing spent; the second proceeds and counts it",
    "when": "a birth needing it as parent or ancestor; a birth in another branch"
   },
   {
@@ -696,7 +696,7 @@
    "given": "STOP set at each read point (start, after PREPARED, before BEGIN D1, before BEGIN D3)",
    "id": "STOP-01",
    "slice": "P5",
-   "then": "stops before the next write with LAB_STOPPED, also when raised by the registrar at commit; never terminal; the operation stays at its last DONE line and continues after resume()",
+   "then": "stops before the next write with LAB_STOPPED; when raised by the registrar inside commit after BEGIN Dk, a BEGIN_CANCELLED Dk line closes it and nothing of step k is written; never terminal; the operation stays at its last DONE line and continues after resume()",
    "when": "admit_authenticated"
   },
   {
@@ -709,11 +709,11 @@
   },
   {
    "contract": "§8",
-   "given": "an unexpected file, a link, a divergent byte, or a journal whose copy does not verify as empty",
+   "given": "an unexpected file, a link, a divergent byte, or a journal whose copy is in none of the three accepted states",
    "id": "QUAR-02",
    "slice": "P5",
    "then": "QUARANTINE_REFUSED; nothing moved, deleted or repaired",
-   "when": "quarantine_partial_home or set_aside_terminal_home"
+   "when": "quarantine_partial_home"
   },
   {
    "contract": "§8.1",
@@ -784,7 +784,7 @@
    "given": "FAILED_CONSUMED home that was run (usage.json, tasks/, results/, inflight.json, journal events)",
    "id": "QUAR-06",
    "slice": "P5",
-   "then": "moved intact under admission-quarantine/<operation>/terminal; identity files checked; run artefacts not compared; a link or unknown name refuses",
+   "then": "moved intact under admission-quarantine/<operation>/terminal; identity files checked; run artefacts, temporary files (usage.json.tmp, tasks/*.json.tmp) and the journal moved without checking their content; a link or unknown name refuses",
    "when": "set_aside_terminal_home"
   },
   {
@@ -858,6 +858,78 @@
    "slice": "P6",
    "then": "the controller's qualification reported stale",
    "when": "change one byte of any file of the closure, including a sentinel_activity module"
+  },
+  {
+   "contract": "§8.2",
+   "given": "FAILED_CONSUMED after BEGIN D3 without DONE D3: identity files missing or a prefix of their expected bytes, no cold read made; and the same after TERMINATED_EXTERNALLY",
+   "id": "QUAR-07",
+   "slice": "P5",
+   "then": "moved under admission-quarantine/<operation>/terminal (journaled in the fault log when the operation log is faulty); later births no longer see it",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§8.2",
+   "given": "FAILED_CONSUMED after BEGIN D3 with an identity file whose content is neither a prefix of nor equal to its expected bytes",
+   "id": "QUAR-08",
+   "slice": "P5",
+   "then": "QUARANTINE_REFUSED; nothing moved",
+   "when": "set_aside_terminal_home"
+  },
+  {
+   "contract": "§6.3",
+   "given": "an operation log at 56 lines",
+   "id": "LOG-04",
+   "slice": "P4",
+   "then": "the BEGIN refused OPERATION_LOG_FULL; TERMINATED, FAILED_CONSUMED, SET_ASIDE_BEGIN and SET_ASIDE_DONE all accepted in the reserve",
+   "when": "a further BEGIN; then terminate and set_aside_terminal_home"
+  },
+  {
+   "contract": "§5.3",
+   "given": "a root that retires a key with retired_in_root lower than its own root_version",
+   "id": "REV-14",
+   "slice": "P4",
+   "then": "TRUST_UPDATE_REFUSED; nothing written",
+   "when": "install_trust"
+  },
+  {
+   "contract": "§6.4",
+   "given": "a registrar refusal (other than STOP) raised inside commit after BEGIN D2",
+   "id": "STOP-02",
+   "slice": "P5",
+   "then": "BEGIN_CANCELLED D2 with the code, nothing of D2 written, operation at DONE D1; after the crash, INTERRUPTED and recover ABSENT in the same boot",
+   "when": "admit_authenticated; then a crash before BEGIN_CANCELLED"
+  },
+  {
+   "contract": "§7.2",
+   "given": "a recorded ledger fault",
+   "id": "DUR-09",
+   "slice": "P5",
+   "then": "the first four refused LEDGER_DURABILITY_UNKNOWN; the others allowed; no call clears the fault",
+   "when": "admit_authenticated, recover, abandon, quarantine_partial_home; then terminate, set_aside_terminal_home, install_trust"
+  },
+  {
+   "contract": "§7.3",
+   "given": "an operation TERMINATED_EXTERNALLY because its log is faulty",
+   "id": "DUR-10",
+   "slice": "P5",
+   "then": "the first refused OPERATION_LOG_FAULTY; the second proceeds",
+   "when": "a new admit_authenticated for the same child agent_id; one for another child id"
+  },
+  {
+   "contract": "§6.3,§6.1",
+   "given": "an OPERATION_LOG_CORRUPT log of one child",
+   "id": "DUR-11",
+   "slice": "P4",
+   "then": "refused OPERATION_LOG_CORRUPT; nothing written",
+   "when": "a birth of another child"
+  },
+  {
+   "contract": "§3.2,§13",
+   "given": "DONE D3, then the child run once (usage.json changed), before COMMITTED",
+   "id": "OWN-01",
+   "slice": "P5",
+   "then": "OWN_OPERATION from the identity files only; COMMITTED written; run artefacts kept",
+   "when": "identical resume"
   }
  ],
  "scenarios_schema": "colony-admission.scenarios/0"

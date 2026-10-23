@@ -115,7 +115,7 @@ Every home under `individuals/` is classified before any birth, from durable fac
 | `AUTHENTICATED` | stored individual envelope verifies under the current root | an operation log `COMMITTED` for it, whose record SHA-256 equals its `record.json`, whose ledger line binds its admission to that operation (`/1`), plus its birth qualification and statement verifying | yes | yes, if also its individual envelope verifies |
 | `AWAITING_INDIVIDUAL_ATTESTATION` | — | as above, individual envelope not yet stored | yes | no (`FILIATION_NOT_ATTESTED`) |
 | `SUSPENDED` | its individual envelope fails **only** with `KEY_REVOKED` and/or `ENVELOPE_REVOKED` (integrity and authorization PASS, signature valid under the revoked key) | same, for any of its envelopes | yes | no (`FILIATION_SUSPENDED`) |
-| `OWN_OPERATION` | — | the home of the open operation being resumed, after `BEGIN D3`, checked against its expected bytes (§6.7) | no (the frozen plan already counts it) | no |
+| `OWN_OPERATION` | — | the home of the open operation being resumed, after `BEGIN D3`, checked against its expected bytes (§6.7; after `DONE D3`, only `spec.json`, `record.json` and `birth_qualification.json`, since a run may already have changed `usage.json`, §13) | no (the frozen plan already counts it) | no |
 | `UNAUTHENTICATED` | anything else | anything else, including a home with no `COMMITTED` operation other than `OWN_OPERATION`, a home left by `FAILED_CONSUMED` (§8.2), a ledger line `/0` (bound to no operation) | — | — |
 
 Any `UNAUTHENTICATED` home refuses every birth (`POPULATION_UNAUTHENTICATED`): such a home could be forged,
@@ -231,9 +231,9 @@ applicable: that individual becomes `SUSPENDED` and stays counted, and the opera
 
 | When the applicable revocation is seen | Effect |
 |---|---|
-| Before D1 (nothing spent) | Refused without consumption, `TRUST_REVOKED_BEFORE_CONSUMPTION` (no line before `PREPARED`; `REFUSED` line after it) |
+| Before D1 (nothing spent) | Refused without consumption, `TRUST_REVOKED_BEFORE_CONSUMPTION` (no line before `PREPARED`; `REFUSED` line after it). When the failing item is an attestation of the parent or of an ancestor, the code is the same and the verdict adds the detail `FILIATION_SUSPENDED` (the status of that individual, §3.2); there is no second code |
 | After `DONE D1`, before `COMMITTED` | Terminal `FAILED_CONSUMED`, `TRUST_REVOKED_AFTER_CONSUMPTION`; the authorization stays spent; no further step |
-| After `COMMITTED` | The birth stays a historical fact and is never erased. **Suspension** is a status (`SUSPENDED`, §3.2): the individual stays counted. It carries two separate bans: **filiation ban**, enforced by the controller (it cannot be a parent or an ancestor, `FILIATION_SUSPENDED`); **execution ban**, which needs the lab itself (T7, separate gate) and is only reported before that (`EXECUTION_SUSPENDED` in the verdict and status; the operator can `STOP` the lab) |
+| After this operation's `COMMITTED` line (installed after it) | The birth stays a historical fact and is never erased. **Suspension** is a status (`SUSPENDED`, §3.2): the individual stays counted. It carries two separate bans: **filiation ban**, enforced by the controller (it cannot be a parent or an ancestor of a later birth, which is then refused as in the first row, with the detail `FILIATION_SUSPENDED`); **execution ban**, which needs the lab itself (T7, separate gate) and is only reported before that (`EXECUTION_SUSPENDED` in the verdict and status; the operator can `STOP` the lab) |
 
 If the current policy cannot be established (file missing, unreadable, not regular, pin mismatch, version
 below the floor, history inconsistent, not `LAB_TEST`), nothing continues: `TRUST_CURRENT_UNAVAILABLE`,
@@ -249,7 +249,9 @@ and refuses (`TRUST_UPDATE_REFUSED`, nothing written) unless, against the last i
 - no issuer and no key disappears; an issuer keeps its `issuer_kind` and its `scopes`; a key keeps its
   `public_key` and `introduced_in_root`; a key `REVOKED` stays `REVOKED`; a key `RETIRED` never becomes
   `ACTIVE` and keeps its `retired_in_root`; the only status changes are `ACTIVE → RETIRED` (setting
-  `retired_in_root` once) and `ACTIVE`/`RETIRED → REVOKED`; `revoked_envelopes` only grows;
+  `retired_in_root` once, equal to the new root's `root_version`, never lower: a retroactive retirement would
+  make earlier envelopes fail `KEY_RETIRED`, `trust.py`, `verify_envelope`, which is a revocation in effect and must be
+  installed as one) and `ACTIVE`/`RETIRED → REVOKED`; `revoked_envelopes` only grows;
 - the version is above every root version recorded in any operation log.
 
 It then appends `{root_version, root_sha256, pin, minimum_version}` to the append-only
@@ -315,11 +317,13 @@ recomputes the item list, the plan or the historical root. Any difference is `OP
 `admission-ops/<child agent_id>.log` in the lab root: append-only, one canonical JSON object per line, each
 written whole then `fsync`ed (directory `fsync`ed when the file is created). Lines: `PREPARED`, `BEGIN Dk`,
 `DONE Dk`, `REFUSED`, `INTERRUPTED_RECOVERED Dk`, `TORN_TAIL_ACKNOWLEDGED`, `ABANDONED`, `TERMINATED`,
-`FAILED_CONSUMED`, `QUARANTINE_BEGIN`, `QUARANTINE_DONE`, `SET_ASIDE_BEGIN`, `SET_ASIDE_DONE`,
+`FAILED_CONSUMED`, `BEGIN_CANCELLED Dk`, `QUARANTINE_BEGIN`, `QUARANTINE_DONE`, `SET_ASIDE_BEGIN`, `SET_ASIDE_DONE`,
 `DURABILITY_FAULT`, `COMMITTED`; each carries `operation_sha256`, attempt, the current-root SHA-256 and
-version used, the boot id, and a code. At most 64 lines per child and 256 KiB per line; lines 61 to 64 are
-reserved for terminal and acknowledgement lines (`TORN_TAIL_ACKNOWLEDGED`, `TERMINATED`,
-`FAILED_CONSUMED`, `ABANDONED`), and any other line beyond 60 is refused `OPERATION_LOG_FULL`.
+version used, the boot id, and a code. At most 64 lines per child and 256 KiB per line; lines 57 to 64 are
+reserved for the lines that end an operation or clear it away: `TERMINATED`, `FAILED_CONSUMED` or
+`ABANDONED`, `SET_ASIDE_BEGIN`, `SET_ASIDE_DONE` (each at most once in the reserve) and
+`TORN_TAIL_ACKNOWLEDGED` (at most twice). Any other line beyond 56 is refused `OPERATION_LOG_FULL`, so an
+operation can always be ended and its home set aside.
 
 Strict reading, one rule: every line must be canonical and newline-terminated, with one exception. A final
 unterminated fragment (a torn tail) is reported as `TORN_TAIL` and blocks the child until the operator's
@@ -329,7 +333,8 @@ line is a `TORN_TAIL_ACKNOWLEDGED` naming its exact bytes; it counts as a transi
 Nothing is truncated or deleted. The reason is not that the fragment can never reach the disk, but that a
 fragment means the write of that line never completed, so no `fsync` of it ever succeeded and the
 controller never acted on it. Any other non-canonical line, or an acknowledgement naming other bytes, is
-`OPERATION_LOG_CORRUPT` (blocked, no procedure in this contract).
+`OPERATION_LOG_CORRUPT` (blocked, no procedure in this contract). Since the state of that operation is
+unknown, it may be open: a corrupt log found by the scan of §6.1 refuses every birth, not only its child's.
 
 ### 6.4 Durable steps
 
@@ -343,6 +348,13 @@ written only after every write and `fsync` of the step reported success.
 | D2 `ADMISSION_RECORDED` | `registrar-admissions/<child>.json` (P3 writer: whole write, `fsync`, directory `fsync`) and the stored envelopes and statement of §3.3 | current trust |
 | D3 `HOME_WRITTEN` | the child's home through `Supervisor.admit`, then, by the controller: `fsync` of `individuals/`, the home and its subdirectories, and a byte comparison of `spec.json`, `record.json`, `birth_qualification.json`, `usage.json` against the expected bytes | current trust, STOP |
 | D4 `COMMITTED` | the `COMMITTED` line, with the SHA-256 of the child record | current trust |
+
+The registrar reads STOP again inside `commit`, just before its first write (`registrar.py`, before
+`_record_admission`), so a refusal can come after `BEGIN Dk` is written. P3 guarantees that every
+`RegistrarError` raised by `commit` for a step is raised before any write of that step. The controller then
+appends `BEGIN_CANCELLED Dk` with the code: the step did not happen and the operation is back at its last
+`DONE` line, non-terminal. A crash before that line leaves `BEGIN Dk` open (`INTERRUPTED`), which `recover`
+classifies `ABSENT` in the same boot (§7.4). Any other error of the step stays `DURABILITY_UNKNOWN`.
 
 D3 limits, declared (§13): `Supervisor._write_new` makes a single `os.write` and `fsync`s the file but not
 its directory; the controller's byte comparison detects a short write but reads the page cache, and its
@@ -373,6 +385,7 @@ Transitions (operator actions in italics):
   `FAILED_CONSUMED`.
 - `BLOCKED_DURABILITY` → *`terminate`*: `FAILED_CONSUMED` or `ABANDONED` by the ledger finding, written in
   the log or, when the log is the faulty file, recorded externally (§7.3).
+- `BEGIN Dk` → `BEGIN_CANCELLED Dk` (registrar refusal before any write, §6.4) → back to the last `DONE`.
 - `DONE D3` → `COMMITTED`.
 - `PREPARED` after `INTERRUPTED_RECOVERED D1 ABSENT` may still be *`ABANDONED`*.
 
@@ -395,12 +408,13 @@ After `DONE D1`, exactly two codes end the operation (the controller writes `FAI
 operator's explicit `terminate(operation_sha256)`, which writes `TERMINATED` then `FAILED_CONSUMED`, or
 records the termination externally when the log is faulty, §7.3).
 
-Every other refusal leaves the operation where it is and writes nothing for it: `TRUST_CURRENT_UNAVAILABLE`,
+Every other refusal leaves the operation where it is and writes nothing for it, except the
+`BEGIN_CANCELLED Dk` line when it is raised by the registrar inside `commit` after `BEGIN Dk` (§6.4): `TRUST_CURRENT_UNAVAILABLE`,
 `LAB_STOPPED` (wherever it is raised, including by the registrar at `commit`), `REGISTRAR_BUSY`,
 `OPERATION_DIVERGENT` (the divergent call is refused, the open operation is untouched), `OPERATION_PENDING`,
 `POPULATION_UNAUTHENTICATED`, `POPULATION_CHANGED`, `HOME_CONFLICT`, any other registrar refusal at
 `commit`, `LAB_IO_ERROR`, `RECOVERY_REFUSED`, `COLD_READ_REQUIRED`, `STORED_FILE_DIVERGENT`,
-`OPERATION_LOG_FULL`, and the blocked states `DURABILITY_UNKNOWN`, `LEDGER_DURABILITY_UNKNOWN`, `TORN_TAIL`,
+`OPERATION_LOG_FULL`, `OPERATION_LOG_FAULTY`, and the blocked states `DURABILITY_UNKNOWN`, `LEDGER_DURABILITY_UNKNOWN`, `TORN_TAIL`,
 `OPERATION_STATE_INCONSISTENT`, `OPERATION_LOG_CORRUPT`, `LEDGER_CORRUPT`. Those that only a bypass of the
 controller can cause leave the decision to the operator (`terminate`, or removing the cause). An
 unavailable trust policy or a STOP never burns a legitimate birth.
@@ -436,7 +450,11 @@ their durability. Rules:
    (outside the lab root, preferably another filesystem) and, only if the operation log is not the faulty
    file, appends `DURABILITY_FAULT` to it. It returns `DURABILITY_UNKNOWN`.
 2. A fault on the **ledger** (shared by the colony) blocks every birth, not only this operation: every call
-   reads the fault log and refuses while a ledger fault is recorded (`LEDGER_DURABILITY_UNKNOWN`).
+   reads the fault log and refuses while a ledger fault is recorded (`LEDGER_DURABILITY_UNKNOWN`). Refused:
+   `admit_authenticated`, `recover`, `abandon`, `quarantine_partial_home`. Still allowed, because they
+   only read the ledger or do not touch it: `terminate`, `set_aside_terminal_home`, `acknowledge_torn_tail`,
+   `install_trust`, `store_individual_attestation`, the status report. The block is lifted only by the
+   restore gate (§13), which this contract does not define; no call of this contract clears it.
 3. An operation with a recorded fault is `BLOCKED_DURABILITY`. It is never resumed on the presence of its
    bytes. Its exits are an operator restore of verified copies (backup and restore are a separate gate) or
    the operator's `terminate(operation_sha256)`, which ends it without resuming it:
@@ -445,7 +463,9 @@ their durability. Rules:
    - if the operation log itself is the faulty file, the termination is recorded in the operator's fault
      log (`TERMINATED_EXTERNALLY`, with the operation and the ledger finding), never in the faulty file;
      the controller reads the fault log on every call and treats that operation as terminal, which
-     releases `OPERATION_PENDING` (§6.1).
+     releases `OPERATION_PENDING` (§6.1). Its later set-aside (§8.2) is journaled in the fault log too.
+     That child `agent_id` cannot be attempted again (`OPERATION_LOG_FAULTY`) until the restore gate; a
+     new birth uses another child id.
    The ledger finding needs no cold read: a line absent from the page cache is absent from the disk, so
    "no ledger line" safely leaves the envelope unspent; a line present makes it `FAILED_CONSUMED` whether
    or not it is durable, so a spent authorization never becomes available again. If the fault log itself
@@ -477,10 +497,16 @@ stay for audit. A `QUARANTINE_BEGIN` or `SET_ASIDE_BEGIN` without its `DONE` lin
 same action again: the home must be in exactly one of its source and destination (otherwise refused); the
 rename is done if still needed, both directories are `fsync`ed and the `DONE` line written.
 
-The journal directory cannot be compared byte for byte (its bytes are not reproducible) and opening it with
-SQLite could replay or create WAL files. It is checked on a byte copy made outside the lab root: the copy
-must verify as an empty journal of this individual with this budget; the originals are never opened by
-SQLite. Its entries must be only the store file and its `-wal`/`-shm` companions.
+The journal is checked only by `quarantine_partial_home` (§8.1); `set_aside_terminal_home` moves it
+without checking its content (§8.2). The journal directory cannot be compared byte for byte (its bytes are
+not reproducible) and opening it with SQLite could replay or create WAL files. It is checked on a byte copy
+made outside the lab root; the originals are never opened by SQLite. Its entries must be only the store
+file and its `-wal`/`-shm` companions. A kill during `ActivityStore.create` (`sentinel_activity/store.py`)
+can leave the store file empty, or a WAL whose transaction never committed, so the copy is accepted in
+exactly three states: no store file; a store file of zero bytes (companions, if any, of zero bytes); or a
+copy whose committed content, as SQLite reads it on the copy, is either empty of any table (the creating
+transaction never committed) or verifies as an empty journal of this individual with this budget. Anything
+else is `QUARANTINE_REFUSED`.
 
 ### 8.1 Partial home of an open operation
 
@@ -494,12 +520,16 @@ the same operation.
 
 ### 8.2 Home of a terminal operation
 
-`set_aside_terminal_home(operation_sha256)` runs only for an operation ended `FAILED_CONSUMED` after D3. Such
-a home may have been run before it ended or since (§13), so its run artefacts are not compared: `spec.json`,
-`record.json` and `birth_qualification.json` must equal the expected bytes; every other entry must be a
-name `Supervisor.admit` or `Supervisor.run` creates (`tasks/`, `results/`, `usage.json`, `inflight.json`,
-`j01-lab-memory/` and the journal files), with no link anywhere in the tree; the run artefacts are moved
-intact, as evidence. Any unknown name, link or divergent identity file is `QUARANTINE_REFUSED`, nothing
+`set_aside_terminal_home(operation_sha256)` runs only for an operation ended `FAILED_CONSUMED` (or
+`TERMINATED_EXTERNALLY`, §7.3) after `BEGIN D3`, whether D3 completed, was interrupted or faulted, and
+whether or not a cold read was made: it grants no trust and only moves the home out of the population. Such
+a home may have been run before it ended or since (§13), so its run artefacts are not compared. Each of
+`spec.json`, `record.json` and `birth_qualification.json` must be absent, or a prefix (possibly empty) of
+its expected bytes, or equal to them: a short or missing write cannot be a different identity, while any
+other content can. Every other entry must be a name `Supervisor.admit` or `Supervisor.run` creates
+(`tasks/`, `tasks/*.json`, `tasks/*.json.tmp`, `results/`, `usage.json`, `usage.json.tmp`,
+`inflight.json`, `j01-lab-memory/` and the journal files), with no link anywhere in the tree; the run
+artefacts and the journal are moved intact, as evidence. Any unknown name, link or divergent identity file is `QUARANTINE_REFUSED`, nothing
 moved. It writes `SET_ASIDE_BEGIN`, renames the home to
 `admission-quarantine/<operation_sha256>/terminal`, `fsync`s both directories and writes `SET_ASIDE_DONE`.
 Until then that home is counted `UNAUTHENTICATED` and refuses every birth. Between `DONE D3` and
@@ -509,7 +539,8 @@ Until then that home is counted `UNAUTHENTICATED` and refuses every birth. Betwe
 ## 9. STOP, concurrency, resources
 
 - The operator's `STOP` is read at the start of a call, after `PREPARED`, before `BEGIN D1` and before
-  `BEGIN D3`. STOP leaves the operation at its last `DONE` line (non-terminal); it continues after the
+  `BEGIN D3`. The registrar reads it once more inside `commit`; raised there, after `BEGIN Dk`, it is
+  closed by `BEGIN_CANCELLED Dk` (§6.4). STOP leaves the operation at its last `DONE` line (non-terminal); it continues after the
   operator's `resume()`. STOP undoes nothing.
 - One commit at a time under L1; one open operation per lab (§6.1).
 - Bounds: §3.4 and §6.3.
@@ -587,6 +618,9 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
 - Restoring an older ledger, operation log or trust history would make spent admissions or revoked keys
   usable again: backup and restore are a separate gate and must never move them backwards.
 - Execution bans after a revocation need the lab (T7).
+- A run between `DONE D3` and `COMMITTED` is not prevented. The resume then compares only the identity
+  files (§3.2, `OWN_OPERATION`), so the birth can still be committed; the run's artefacts stay in the home
+  as evidence. That individual has run before being authenticated.
 - `LAB_TEST` only; a non-test root needs a code change under a separate gate. Test keys are derived from
   public labels and authenticate nothing outside the tests.
 
@@ -605,4 +639,8 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
   plan, external termination after a fault on the operation log, setting aside of a run terminal home,
   terminal codes reduced to two, torn-tail format, install monotonicity on every key field, read bounds,
   reserved log lines, `ADMISSION_CONFLICT` before consumption, boot id seam, declared differences with #487
-  and the registrar contract.
+  and the registrar contract. Revised again, before any pin, after the independent review of `32c16311`
+  (favourable with conditions): journal checked only for quarantine, and in the states a killed creation
+  leaves; set-aside of a partial or faulted terminal home; reserved lines for set-aside; one revocation code
+  before D1; `BEGIN_CANCELLED` for a registrar refusal after `BEGIN`; ledger-fault scope and lifting;
+  corrupt log blocks every birth; no retroactive retirement; temporary run files; run before `COMMITTED`.
