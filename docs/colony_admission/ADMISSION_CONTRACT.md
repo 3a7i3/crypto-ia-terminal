@@ -43,6 +43,13 @@ installation, revocation against current trust, quarantine and setting aside, th
 the qualification scope, the present-scope attestation of an existing qualification, and the interfaces
 the later slices must provide. #487 can be merged, closed or kept independently of this contract.
 
+Two deliberate differences, declared: #487's requirement 4 refuses any change of root on resume; here a
+resume is verified again against the current trust instead (§5.1), so a benign rotation lets it continue
+and a revocation ends it, while the presented inputs must stay identical (§6.2). And the registrar
+contract (§3) lets the operator remove an orphan admission after checking that no home exists; for an
+operation of this controller, an admission record written at D2 follows a spent authorization and is never
+removed (§6.5); the registrar's procedure keeps applying to direct registrar births only.
+
 ## 2. Owner, authorities, inputs and outputs
 
 The single owner of an authenticated birth is a new operator package, `colony_admission`
@@ -64,7 +71,9 @@ A new package is needed because the reviewed separation tests forbid `colony_reg
 Outputs: the operation log (§6.3), one ledger line bound to the operation (P2), the registrar admission
 record and the stored envelopes (D2), the child's home (D3), a verdict. A verdict carries one controller
 `code`, the operation `state`, and, when trust refused, the `trust_failures` returned by `colony_trust`
-(for instance `code = TRUST_REVOKED_BEFORE_CONSUMPTION` with `trust_failures = [KEY_REVOKED]`).
+(for instance `code = TRUST_REVOKED_BEFORE_CONSUMPTION` with `trust_failures = [KEY_REVOKED]`). A trust
+refusal that is not a revocation has `code = TRUST_REFUSED`; completeness refusals keep the trust codes
+`ATTESTATION_MISSING`, `ATTESTATION_DUPLICATED`, `ATTESTATION_UNEXPECTED` as their `code`.
 Consumers: the operator; a future read-only status projection (metadata only, no lab-root read by
 Governance Tower; separate gate); qualification campaigns.
 
@@ -77,9 +86,18 @@ trust model; resistance to its compromise is not claimed (§13).
 
 At `PREPARED`, `required_attestations(lab, parent_agent_id, child_ids)` walks the lab with `lab.load` and
 returns the exact list of items (record kind, subject, record SHA-256, stored envelope SHA-256) the decision
-needs; that list is frozen in the `PREPARED` line (§6.2) and never derived again for this operation. The
-caller presents only the new items (parent qualification, its statement, the child admission, their
-envelopes); every other envelope is read from `admission-envelopes/`. A presented envelope not in the list
+needs; that list is frozen in the `PREPARED` line (§6.2) and never derived again for this operation. It
+has two parts:
+
+- **decision items**: the child admission, the presented parent qualification and its statement, and,
+  for the parent and every ancestor, its individual attestation, its spent admission, its birth
+  qualification and statement. All four properties of §4 must PASS for each of them;
+- **population items**: the attestations of every other individual, used only to classify it (§3.2).
+
+The caller presents only the new items (parent qualification, its statement, the child admission, their
+envelopes), the parent qualification and statement being presented at every birth even when an identical
+copy is already stored (equal bytes are accepted at D2); every other envelope is read from
+`admission-envelopes/`. A presented envelope not in the list
 is `ATTESTATION_UNEXPECTED`; a required item without an envelope, including R8 presented as is, is
 `ATTESTATION_MISSING`.
 
@@ -96,13 +114,16 @@ Every home under `individuals/` is classified before any birth, from durable fac
 |---|---|---|---|---|
 | `AUTHENTICATED` | stored individual envelope verifies under the current root | an operation log `COMMITTED` for it, whose record SHA-256 equals its `record.json`, whose ledger line binds its admission to that operation (`/1`), plus its birth qualification and statement verifying | yes | yes, if also its individual envelope verifies |
 | `AWAITING_INDIVIDUAL_ATTESTATION` | — | as above, individual envelope not yet stored | yes | no (`FILIATION_NOT_ATTESTED`) |
-| `SUSPENDED` | individual envelope genuine (integrity and authorization PASS, signature valid) but its key or envelope revoked | same, for any of its envelopes | yes | no (`FILIATION_SUSPENDED`) |
-| `UNAUTHENTICATED` | anything else | anything else, including a home with no `COMMITTED` operation, a home left by `FAILED_CONSUMED` (§8.2), a ledger line `/0` (bound to no operation) | — | — |
+| `SUSPENDED` | its individual envelope fails **only** with `KEY_REVOKED` and/or `ENVELOPE_REVOKED` (integrity and authorization PASS, signature valid under the revoked key) | same, for any of its envelopes | yes | no (`FILIATION_SUSPENDED`) |
+| `OWN_OPERATION` | — | the home of the open operation being resumed, after `BEGIN D3`, checked against its expected bytes (§6.7) | no (the frozen plan already counts it) | no |
+| `UNAUTHENTICATED` | anything else | anything else, including a home with no `COMMITTED` operation other than `OWN_OPERATION`, a home left by `FAILED_CONSUMED` (§8.2), a ledger line `/0` (bound to no operation) | — | — |
 
 Any `UNAUTHENTICATED` home refuses every birth (`POPULATION_UNAUTHENTICATED`): such a home could be forged,
-so it is never counted or skipped. "Genuine but revoked" is decidable from the existing per-envelope
-verdict: `colony_trust` checks the signature even for a revoked key (`trust.py`, `verify_envelope`), so the
-failures are exactly `KEY_REVOKED` and/or `ENVELOPE_REVOKED`.
+so it is never counted or skipped. `SUSPENDED` is **not** an authentication: the trust contract (§5) says a
+revoked key verifies nothing, and a holder of the compromised key could have signed a forged record. The
+status is decided from the existing per-envelope verdict (`colony_trust` checks the signature even for a
+revoked key, `trust.py`, `verify_envelope`) and is used only in the conservative direction: the home is
+counted against the ceilings (a forgery can only use up capacity) and it never grants filiation.
 
 ### 3.3 Required items and storage
 
@@ -135,8 +156,9 @@ other branches and other founders add population attestations whatever the depth
 (`max_population = 6`) `N ≤ 20`; under the code's hard ceiling (`max_population ≤ 64`) `N ≤ 252`. A list
 longer than the bound, or an envelope file over 16 KiB, is refused (`BUNDLE_TOO_LARGE`) before any
 signature is checked. Reads per call are also bounded: `N` envelope files (≤ 16 KiB), `P` homes through
-`lab.load` (record, spec, birth qualification, each ≤ 64 KiB, `MAX_FILE_BYTES`), `P` operation logs
-(§6.3), one ledger read per locked section.
+`lab.load` (record, spec, birth qualification, each ≤ 64 KiB, `MAX_FILE_BYTES`), every operation log
+(≤ 256 logs × 64 lines × 256 KiB, §6.1, §6.3), `trust-history.log` (≤ 4096 lines), the fault log, and one
+ledger read per locked section.
 
 ### 3.5 Present-scope attestation of an existing qualification (operator decision of 2026-10-23)
 
@@ -181,7 +203,8 @@ trials.
 | Authorization | May this issuer state this, for this lab, subject, record kind and birth; was the admission not spent by another operation? | No |
 | Completeness | Is each frozen item present once, and nothing else? | No |
 
-Only all four PASS lets the operation continue; `NOT_EVALUATED` is never PASS. The registrar's checks
+Only all four PASS on every decision item lets the operation continue; `NOT_EVALUATED` is never PASS.
+Population items only need a status other than `UNAUTHENTICATED` (§3.2). The registrar's checks
 (admissible criteria, admission bound to this birth, distinct identity, lineage, depth, population,
 children, concurrency, costs, permissions, STOP) apply unchanged through P3 `prepare`.
 
@@ -201,6 +224,11 @@ children, concurrency, costs, permissions, STOP) apply unchanged through P3 `pre
 
 ### 5.2 Effect of a revocation
 
+A revocation is **applicable** to an operation when it makes a decision item (§3.1) fail: a key or an
+envelope of the child admission, of the presented qualification or statement, or of an attestation of
+the parent or of an ancestor. A revocation that touches only population items (another branch) is not
+applicable: that individual becomes `SUSPENDED` and stays counted, and the operation continues.
+
 | When the applicable revocation is seen | Effect |
 |---|---|
 | Before D1 (nothing spent) | Refused without consumption, `TRUST_REVOKED_BEFORE_CONSUMPTION` (no line before `PREPARED`; `REFUSED` line after it) |
@@ -218,8 +246,10 @@ The controller learns a revocation **only** from a root installed by the operato
 and refuses (`TRUST_UPDATE_REFUSED`, nothing written) unless, against the last installed root:
 
 - `root_version` is strictly greater and `minimum_version` is not lower;
-- no issuer and no key disappears; a key `REVOKED` stays `REVOKED`; a key `RETIRED` never becomes
-  `ACTIVE`; `revoked_envelopes` only grows;
+- no issuer and no key disappears; an issuer keeps its `issuer_kind` and its `scopes`; a key keeps its
+  `public_key` and `introduced_in_root`; a key `REVOKED` stays `REVOKED`; a key `RETIRED` never becomes
+  `ACTIVE` and keeps its `retired_in_root`; the only status changes are `ACTIVE → RETIRED` (setting
+  `retired_in_root` once) and `ACTIVE`/`RETIRED → REVOKED`; `revoked_envelopes` only grows;
 - the version is above every root version recorded in any operation log.
 
 It then appends `{root_version, root_sha256, pin, minimum_version}` to the append-only
@@ -227,7 +257,9 @@ It then appends `{root_version, root_sha256, pin, minimum_version}` to the appen
 directory), both in the operator's trust directory. That directory is given at construction, must be
 outside the lab root, outside the repository checkout and outside every sandbox view, and holds regular,
 single-link files in mode 0600 (refused otherwise). On every call the policy file must match the last
-history entry. An installation interrupted after its history line and before its rename is completed by
+history entry. `trust-history.log` is read strictly (canonical, terminated lines, at most 4096); any
+torn or foreign line makes the current trust unavailable until a manual operator procedure (never
+automated here). An installation interrupted after its history line and before its rename is completed by
 calling `install_trust` again with exactly the root of that last entry (the only case where an equal
 version is accepted); until then `TRUST_CURRENT_UNAVAILABLE` holds. The pin stored next to its root protects against a lab-root writer, not against the
 operator (§13).
@@ -259,7 +291,8 @@ L1 is never taken while L2 is held. Run slots are independent of births.
 `admission-ops/*.log`; if one operation is neither `COMMITTED`, `REFUSED`, `ABANDONED` nor
 `FAILED_CONSUMED` and is not the one being resumed, the call is refused `OPERATION_PENDING`. The
 population and the ceilings therefore cannot change between the calls of an open operation through the
-controller. Direct calls to `Registrar.birth` or `Supervisor.admit` bypass this rule until the lab enforces
+controller. The directory holds at most 256 logs (`OPERATION_LOGS_FULL` refuses a new child beyond that,
+a declared capacity limit), so this scan reads at most 256 × 64 lines. Direct calls to `Registrar.birth` or `Supervisor.admit` bypass this rule until the lab enforces
 it (T7); declared in §13.
 
 ### 6.2 Frozen operation identity
@@ -267,7 +300,9 @@ it (T7); declared in §13.
 The `PREPARED` line freezes: child `agent_id` and `agent_spec_id`, parent `agent_id`, policy pin, `lab_id`,
 historical root SHA-256 and version, the frozen item list of §3.1, the SHA-256 of the presented
 qualification, statement, admission and their envelopes, the budget, lab permissions, declared diff, the
-registrar `BirthPlan` SHA-256 (P3), the attempt number and the boot id. `operation_sha256` is the SHA-256 of
+**complete canonical registrar `BirthPlan`** (P3: the sealed child record, ids, parent, generation, policy
+pin, budget, permissions, diff, and the population, children and budget counts it was checked against),
+the attempt number and the boot id. `operation_sha256` is the SHA-256 of
 that frozen content, current trust excluded.
 
 A resuming call presents again the child spec, permissions, budget, diff, the presented records and
@@ -282,15 +317,18 @@ written whole then `fsync`ed (directory `fsync`ed when the file is created). Lin
 `DONE Dk`, `REFUSED`, `INTERRUPTED_RECOVERED Dk`, `TORN_TAIL_ACKNOWLEDGED`, `ABANDONED`, `TERMINATED`,
 `FAILED_CONSUMED`, `QUARANTINE_BEGIN`, `QUARANTINE_DONE`, `SET_ASIDE_BEGIN`, `SET_ASIDE_DONE`,
 `DURABILITY_FAULT`, `COMMITTED`; each carries `operation_sha256`, attempt, the current-root SHA-256 and
-version used, the boot id, and a code. At most 64 lines per child (`OPERATION_LOG_FULL` refuses a call that
-would exceed it) and 256 KiB per line.
+version used, the boot id, and a code. At most 64 lines per child and 256 KiB per line; lines 61 to 64 are
+reserved for terminal and acknowledgement lines (`TORN_TAIL_ACKNOWLEDGED`, `TERMINATED`,
+`FAILED_CONSUMED`, `ABANDONED`), and any other line beyond 60 is refused `OPERATION_LOG_FULL`.
 
-Strict reading, one rule: every line must be canonical and terminated, except that a final unterminated
-fragment (a torn tail) is reported as `TORN_TAIL` and blocks the child until the operator's
-`acknowledge_torn_tail(child)` appends `TORN_TAIL_ACKNOWLEDGED` naming the SHA-256 of exactly those bytes.
-The reader then treats the fragment as a transition that did not happen; nothing is truncated or deleted.
-The page cache always holds at least what is on disk, so a torn fragment seen now was never written whole.
-Any other non-canonical line, an acknowledgement naming other bytes, or a fragment anywhere but the end is
+Strict reading, one rule: every line must be canonical and newline-terminated, with one exception. A final
+unterminated fragment (a torn tail) is reported as `TORN_TAIL` and blocks the child until the operator's
+`acknowledge_torn_tail(child)` writes `"\n"` followed by a `TORN_TAIL_ACKNOWLEDGED` line naming the SHA-256
+of exactly the fragment's bytes. From then on, a non-canonical line is accepted only when the very next
+line is a `TORN_TAIL_ACKNOWLEDGED` naming its exact bytes; it counts as a transition that did not happen.
+Nothing is truncated or deleted. The reason is not that the fragment can never reach the disk, but that a
+fragment means the write of that line never completed, so no `fsync` of it ever succeeded and the
+controller never acted on it. Any other non-canonical line, or an acknowledgement naming other bytes, is
 `OPERATION_LOG_CORRUPT` (blocked, no procedure in this contract).
 
 ### 6.4 Durable steps
@@ -309,8 +347,13 @@ written only after every write and `fsync` of the step reported success.
 D3 limits, declared (§13): `Supervisor._write_new` makes a single `os.write` and `fsync`s the file but not
 its directory; the controller's byte comparison detects a short write but reads the page cache, and its
 directory `fsync` comes after `admit`; the journal is created by `sentinel_activity` (SQLite WAL,
-`synchronous=FULL`), whose `fsync` failures surface as a generic `UNAVAILABLE`. Therefore **any** error
-raised by `Supervisor.admit` during D3 is treated as `DURABILITY_UNKNOWN` (§7). Removing these limits needs
+`synchronous=FULL`), whose `fsync` failures surface as a generic `UNAVAILABLE`. Therefore any error
+raised by `Supervisor.admit` during D3 is treated as `DURABILITY_UNKNOWN` (§7), except `ALREADY_ADMITTED`
+raised before anything is written because a home already exists: the controller then compares that home
+with the expected bytes; equal, it is the operation's own home from an earlier attempt (recovery rules
+apply); different, it is `HOME_CONFLICT` (a bypass of the controller, blocked, non-terminal). A home
+created by a bypass with exactly the expected bytes cannot be told apart from the operation's own; it is
+the same individual (declared, §13). Removing these limits needs
 a `colony_lab` amendment, which makes Sentinel's R8 and the pilot's PC2 stale (§11, T7).
 
 ### 6.5 States, transitions and outcomes
@@ -328,6 +371,8 @@ Transitions (operator actions in italics):
   for D2 `BEGIN D2` again writing only the missing files, for D3 *quarantine* (§8.1) then `BEGIN D3`.
 - `DONE D1` or later → next `BEGIN` | `FAILED_CONSUMED` (terminal code, §6.6) | *`TERMINATED`* then
   `FAILED_CONSUMED`.
+- `BLOCKED_DURABILITY` → *`terminate`*: `FAILED_CONSUMED` or `ABANDONED` by the ledger finding, written in
+  the log or, when the log is the faulty file, recorded externally (§7.3).
 - `DONE D3` → `COMMITTED`.
 - `PREPARED` after `INTERRUPTED_RECOVERED D1 ABSENT` may still be *`ABANDONED`*.
 
@@ -345,16 +390,20 @@ Outcome classes, reported distinctly; "no effect" is claimed only for the first:
 
 ### 6.6 Terminal and non-terminal codes
 
-After `DONE D1`, a closed list of codes ends the operation (the controller writes `FAILED_CONSUMED`):
-`TRUST_REVOKED_AFTER_CONSUMPTION`; a registrar refusal of the frozen plan at `commit` (possible only
-through a direct bypass of the controller, §6.1); `OPERATOR_TERMINATED` (the operator's explicit
-`terminate(operation_sha256)`, which writes `TERMINATED` then `FAILED_CONSUMED`).
+After `DONE D1`, exactly two codes end the operation (the controller writes `FAILED_CONSUMED`):
+`TRUST_REVOKED_AFTER_CONSUMPTION` (an applicable revocation, §5.2) and `OPERATOR_TERMINATED` (the
+operator's explicit `terminate(operation_sha256)`, which writes `TERMINATED` then `FAILED_CONSUMED`, or
+records the termination externally when the log is faulty, §7.3).
 
 Every other refusal leaves the operation where it is and writes nothing for it: `TRUST_CURRENT_UNAVAILABLE`,
-`LAB_STOPPED`, `REGISTRAR_BUSY`, `OPERATION_DIVERGENT` (the divergent call is refused, the open operation is
-untouched), `OPERATION_PENDING`, `LAB_IO_ERROR`, `RECOVERY_REFUSED`, `STORED_FILE_DIVERGENT`,
-`OPERATION_LOG_FULL`, and the blocked states `DURABILITY_UNKNOWN`, `TORN_TAIL`, `OPERATION_STATE_INCONSISTENT`,
-`OPERATION_LOG_CORRUPT`, `LEDGER_CORRUPT`. An unavailable trust policy never burns a legitimate birth.
+`LAB_STOPPED` (wherever it is raised, including by the registrar at `commit`), `REGISTRAR_BUSY`,
+`OPERATION_DIVERGENT` (the divergent call is refused, the open operation is untouched), `OPERATION_PENDING`,
+`POPULATION_UNAUTHENTICATED`, `POPULATION_CHANGED`, `HOME_CONFLICT`, any other registrar refusal at
+`commit`, `LAB_IO_ERROR`, `RECOVERY_REFUSED`, `COLD_READ_REQUIRED`, `STORED_FILE_DIVERGENT`,
+`OPERATION_LOG_FULL`, and the blocked states `DURABILITY_UNKNOWN`, `LEDGER_DURABILITY_UNKNOWN`, `TORN_TAIL`,
+`OPERATION_STATE_INCONSISTENT`, `OPERATION_LOG_CORRUPT`, `LEDGER_CORRUPT`. Those that only a bypass of the
+controller can cause leave the decision to the operator (`terminate`, or removing the cause). An
+unavailable trust policy or a STOP never burns a legitimate birth.
 
 ### 6.7 Resume
 
@@ -363,10 +412,12 @@ A call for the child of the open operation compares its presented inputs with th
 - **identical**: every frozen item is verified again against the current trust; once D1 is done, the child
   admission is checked as `CONSUMED_BY_THIS_OPERATION`, which is never an acceptance and never a new
   authentication success. The call continues only from a `DONE` line (or an operator recovery result).
-  P3 `commit(plan)` is idempotent per step: at D2 an existing admission record equal to the frozen one is
-  accepted; at D3 an existing complete home equal to the expected bytes is accepted; the operation's own
-  child, admission and home are excluded from `ALREADY_ADMITTED` and from the ceiling counts, which are
-  checked against the frozen plan.
+  P3 `commit(plan)` takes the frozen plan from the `PREPARED` line and never calls `prepare` again. It
+  is idempotent per step: at D2 an existing admission record equal to the frozen one is accepted; at D3
+  an existing complete home equal to the expected bytes is accepted. The population is classified again
+  with the operation's own home as `OWN_OPERATION` (§3.2); its counts, own child excluded, must equal the
+  counts frozen in the plan, otherwise `POPULATION_CHANGED` (only a bypass can cause it; non-terminal).
+  The operation's own child, admission and home are excluded from `ALREADY_ADMITTED`.
 - **divergent**: `OPERATION_DIVERGENT`, nothing written.
 
 ### 6.8 Directories
@@ -387,8 +438,18 @@ their durability. Rules:
 2. A fault on the **ledger** (shared by the colony) blocks every birth, not only this operation: every call
    reads the fault log and refuses while a ledger fault is recorded (`LEDGER_DURABILITY_UNKNOWN`).
 3. An operation with a recorded fault is `BLOCKED_DURABILITY`. It is never resumed on the presence of its
-   bytes. Its exits are an operator restore of verified copies (backup and restore are a separate gate) or,
-   after D1, `terminate` → `FAILED_CONSUMED`.
+   bytes. Its exits are an operator restore of verified copies (backup and restore are a separate gate) or
+   the operator's `terminate(operation_sha256)`, which ends it without resuming it:
+   - if the operation log is writable (the fault was elsewhere), `TERMINATED` then `FAILED_CONSUMED` are
+     appended there when a ledger line bound to the operation exists, or `ABANDONED` when none exists;
+   - if the operation log itself is the faulty file, the termination is recorded in the operator's fault
+     log (`TERMINATED_EXTERNALLY`, with the operation and the ledger finding), never in the faulty file;
+     the controller reads the fault log on every call and treats that operation as terminal, which
+     releases `OPERATION_PENDING` (§6.1).
+   The ledger finding needs no cold read: a line absent from the page cache is absent from the disk, so
+   "no ledger line" safely leaves the envelope unspent; a line present makes it `FAILED_CONSUMED` whether
+   or not it is durable, so a spent authorization never becomes available again. If the fault log itself
+   cannot be written, every birth stays blocked until the restore gate (§13).
 4. An `INTERRUPTED` step without a recorded fault is not resumed automatically. The operator runs
    `recover(operation_sha256, k)` under L1. It refuses if a fault is recorded. It classifies each artefact
    of step k as absent, equal to what the operation expects, or divergent (any divergent → `RECOVERY_REFUSED`;
@@ -397,7 +458,9 @@ their durability. Rules:
      absent from it is absent from disk;
    - `PRESENT` and `PARTIAL` require a **cold read**: the current boot id must differ from the one recorded
      in the `BEGIN Dk` line (a reboot discarded the page cache, so the bytes read come from the device).
-     In the same boot they are refused (`COLD_READ_REQUIRED`).
+     In the same boot they are refused (`COLD_READ_REQUIRED`). The boot id is read from
+     `/proc/sys/kernel/random/boot_id`; the operator API has no parameter to supply it. Tests replace it
+     through a test-only seam that is absent from every operator entry point.
    It writes `INTERRUPTED_RECOVERED Dk` with the result.
 5. Declared NOT PROVEN (§13): a device or controller cache that acknowledges writes it has not persisted;
    a fault whose two records both failed (it then looks like a crash, and rule 4 still requires a cold read
@@ -431,8 +494,13 @@ the same operation.
 
 ### 8.2 Home of a terminal operation
 
-`set_aside_terminal_home(operation_sha256)` runs only for an operation ended `FAILED_CONSUMED` after D3,
-with the same checks (complete or partial), writes `SET_ASIDE_BEGIN`, renames the home to
+`set_aside_terminal_home(operation_sha256)` runs only for an operation ended `FAILED_CONSUMED` after D3. Such
+a home may have been run before it ended or since (§13), so its run artefacts are not compared: `spec.json`,
+`record.json` and `birth_qualification.json` must equal the expected bytes; every other entry must be a
+name `Supervisor.admit` or `Supervisor.run` creates (`tasks/`, `results/`, `usage.json`, `inflight.json`,
+`j01-lab-memory/` and the journal files), with no link anywhere in the tree; the run artefacts are moved
+intact, as evidence. Any unknown name, link or divergent identity file is `QUARANTINE_REFUSED`, nothing
+moved. It writes `SET_ASIDE_BEGIN`, renames the home to
 `admission-quarantine/<operation_sha256>/terminal`, `fsync`s both directories and writes `SET_ASIDE_DONE`.
 Until then that home is counted `UNAUTHENTICATED` and refuses every birth. Between `DONE D3` and
 `COMMITTED`, and after `FAILED_CONSUMED` until it is set aside, the home can still be run through
@@ -489,7 +557,9 @@ R8 and the pilot's PC2 stale.
   `LEDGER_DURABILITY_UNKNOWN` on `fsync` error with no retry. `verify_bundle` keeps its behaviour.
 - **P3, `colony_registrar` amendment 3**: `prepare(…) → BirthPlan` (no write, frozen, hashed);
   `commit(plan)` under an L1 held by the caller, idempotent per step and excluding its own operation's
-  artefacts (§6.7); its own writer for the admission record (whole write, `fsync`, directory `fsync`);
+  artefacts (§6.7); `prepare` refuses `ADMISSION_CONFLICT` when an admission record already exists for the
+  child and differs from the one presented, so that conflict is seen before any consumption; its own
+  writer for the admission record (whole write, `fsync`, directory `fsync`);
   `exclusive()`; `birth()` = `exclusive` + `prepare` + `commit`, behaviour unchanged.
 - **P4–P6, `colony_admission`**: `required_attestations`, `Controller.admit_authenticated`,
   `install_trust`, `store_individual_attestation`, `recover`, `acknowledge_torn_tail`, `abandon`,
@@ -511,7 +581,9 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
 - Locks are advisory; deleting `registrar.lock` lets a second birth run. Direct calls to
   `Registrar.birth`, `Supervisor.admit`, `Supervisor.run` or `Registrar.run` bypass the controller until T7.
 - D3 durability (§6.4): single `os.write`, late directory `fsync`, SQLite faults indistinguishable; device
-  caches; a fault whose two records failed (§7.5).
+  caches; a fault whose two records failed (§7.5); a fault log that cannot be written blocks every birth
+  until the restore gate (§7.3). A home created by a bypass with exactly the expected bytes is accepted as
+  the operation's own (§6.4).
 - Restoring an older ledger, operation log or trust history would make spent admissions or revoked keys
   usable again: backup and restore are a separate gate and must never move them backwards.
 - Execution bans after a revocation need the lab (T7).
@@ -527,4 +599,10 @@ None of P2–P6 changes `colony_lab/`, `sentinel_activity/` or `colony_pilot/`.
   home set aside, D2 partial recovery and full transitions, D3 durability limits, cold-read recovery,
   monotonic trust installation, terminal and non-terminal codes, transitive dependency closure, torn tail
   rule, flat statement fields, envelope storage and naming, journal checked on a copy, colony-wide ledger
-  faults, role order under g0, trust directory, scenarios made specific.
+  faults, role order under g0, trust directory, scenarios made specific. Revised again, before any pin,
+  after the independent review of `62d686a3` (favourable with conditions): applicable revocation defined
+  on decision items, `SUSPENDED` stated as non-authentication, `OWN_OPERATION` status, complete frozen
+  plan, external termination after a fault on the operation log, setting aside of a run terminal home,
+  terminal codes reduced to two, torn-tail format, install monotonicity on every key field, read bounds,
+  reserved log lines, `ADMISSION_CONFLICT` before consumption, boot id seam, declared differences with #487
+  and the registrar contract.
