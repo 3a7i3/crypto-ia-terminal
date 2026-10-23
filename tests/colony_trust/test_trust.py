@@ -424,7 +424,12 @@ def test_durable_attestations_need_no_ledger_and_spend_nothing(tmp_path):
     bundle = trust.verify_bundle([(_sign(record), record)], [(QUAL, _subject(record))], root(),
                                  pin_sha256=pin(root()), minimum_version=1, lab_id=LAB, ledger=ledger)
     assert bundle["accepted"] and not ledger.exists()
-    assert not hasattr(trust, "consume")  # no public way to spend an envelope that was not verified
+    # Amendment 4 adds a verifier-backed consume API; durable-only bundles still cannot spend.
+    verdict = trust.consume([(_sign(record), record)], [(QUAL, _subject(record), pin(record))], root(),
+                            pin_sha256=pin(root()), minimum_version=1, lab_id=LAB, ledger=ledger,
+                            operation_sha256="a" * 64)
+    assert not verdict["accepted"] and verdict["failures"] == ["ADMISSION_REQUIRED"]
+    assert not ledger.exists()
 
 
 # ── Weak keys ─────────────────────────────────────────────────────────────
