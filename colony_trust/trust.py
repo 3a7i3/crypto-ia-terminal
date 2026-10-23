@@ -651,7 +651,8 @@ def consume(items: Any, required: Any, root: Any, *, pin_sha256: str, minimum_ve
                 _write(fd, b"".join(lines))
                 _sync_parent(ledger)
             except OSError:
-                return _refuse(verdict, "LEDGER_DURABILITY_UNKNOWN")
+                return {**_refuse(verdict, "LEDGER_DURABILITY_UNKNOWN"),
+                        "consumption": "DURABILITY_UNKNOWN"}
             return {**verdict, "consumption": "CONSUMED"}
     except TrustError as exc:
         return _refuse(verdict, exc.code)

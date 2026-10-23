@@ -155,7 +155,9 @@ def test_short_writes_are_completed_and_zero_progress_is_uncertain(tmp_path, mon
     monkeypatch.setattr(trust.os, "write", lambda fd, data: real(fd, data[:7]))
     assert consume(tmp_path / "short")["accepted"]
     monkeypatch.setattr(trust.os, "write", lambda fd, data: 0)
-    assert consume(tmp_path / "zero")["failures"] == ["LEDGER_DURABILITY_UNKNOWN"]
+    result = consume(tmp_path / "zero")
+    assert result["failures"] == ["LEDGER_DURABILITY_UNKNOWN"]
+    assert result["consumption"] == "DURABILITY_UNKNOWN"
 
 
 @pytest.mark.parametrize("directory", [False, True])
@@ -168,8 +170,30 @@ def test_fsync_failure_is_distinct_and_never_retried(tmp_path, monkeypatch, dire
             raise OSError("injected sync failure")
         real(fd)
     monkeypatch.setattr(trust.os, "fsync", sync)
-    assert consume(tmp_path / "ledger")["failures"] == ["LEDGER_DURABILITY_UNKNOWN"]
+    ledger = tmp_path / "ledger"
+    result = consume(ledger)
+    assert result["failures"] == ["LEDGER_DURABILITY_UNKNOWN"]
+    assert result["consumption"] == "DURABILITY_UNKNOWN" and not result["accepted"]
+    # Readable bytes are not a durable success, nor proof that nothing was spent.
+    assert len(ledger.read_bytes().splitlines()) == 1
+    assert trust.verify_consumed(bundle()[0][0][0], ledger, OP)["consumed"]
     assert len(calls) == (2 if directory else 1)
+
+
+def test_partial_write_then_error_reports_unknown_never_unspent(tmp_path, monkeypatch):
+    real, calls = trust.os.write, []
+
+    def partial(fd, data):
+        calls.append(fd)
+        if len(calls) == 1:
+            return real(fd, data[:17])
+        raise OSError("injected write failure")
+    monkeypatch.setattr(trust.os, "write", partial)
+    ledger = tmp_path / "ledger"
+    result = consume(ledger)
+    assert not result["accepted"] and result["consumption"] == "DURABILITY_UNKNOWN"
+    assert result["failures"] == ["LEDGER_DURABILITY_UNKNOWN"]
+    assert len(ledger.read_bytes()) == 17 and len(calls) == 2
 
 
 def test_fifo_link_permissions_and_corruption_are_refused(tmp_path):
