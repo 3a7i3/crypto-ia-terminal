@@ -164,6 +164,11 @@ not proof that the old record was authentic when it was written.
 
 ## 8. Amendment history
 
+- Amendment 4 is specified in [AMENDMENT_4_OPERATION_LEDGER.md](AMENDMENT_4_OPERATION_LEDGER.md),
+  published alone before its implementation. It adds operation-bound consumption for the future
+  controller, not wiring or runtime authority. The original verify_bundle interface remains available;
+  the new operation APIs require private ledgers. Statement coherence is the controller's responsibility.
+
 - Amendment 3, pushed alone before its code, after the independent review of `954ae099` (favourable
   with conditions, tests to add): the ledger must be a regular single-link file and is not created by
   a refused bundle; poisoning and the parent-directory limit are declared.
