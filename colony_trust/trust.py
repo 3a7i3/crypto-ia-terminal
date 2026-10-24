@@ -40,6 +40,9 @@ ENVELOPE_SCHEMA = "colony-trust.envelope/0"
 VERDICT_SCHEMA = "colony-trust.verdict/0"
 LEDGER_SCHEMA = "colony-trust.consumed/0"
 OPERATION_LEDGER_SCHEMA = "colony-trust.consumed/1"
+INSPECTION_SCHEMA = "colony-trust.consumption-inspection/0"
+INSPECTION_MAX_BYTES = 16 * 1024 * 1024
+INSPECTION_MAX_ENTRIES = 16_384
 ENVIRONMENT = "LAB_TEST"
 DOMAIN = ENVELOPE_SCHEMA.encode() + b"\x00"
 EXTERNAL = frozenset({"EXTERNAL_HUMAN", "EXTERNAL_REVIEW_PROCESS"})
@@ -457,11 +460,14 @@ def _evaluate_bundle(items, required, root, *, pin_sha256, minimum_version, lab_
 
 # ── Single-use envelopes ──────────────────────────────────────────────────
 @contextmanager
-def _locked(ledger: Path, *, create: bool, private=False):
+def _locked(ledger: Path, *, create: bool, private=False, readonly=False):
     """The ledger, locked; None when it does not exist and nothing will be written."""
     if not isinstance(ledger, Path):
         raise TrustError("LEDGER_CORRUPT")
-    flags = os.O_RDWR | os.O_APPEND | os.O_NOFOLLOW | os.O_NONBLOCK | (os.O_CREAT if create else 0)
+    if readonly and create:
+        raise TrustError("LEDGER_CORRUPT")
+    access = os.O_RDONLY if readonly else os.O_RDWR | os.O_APPEND
+    flags = access | os.O_NOFOLLOW | os.O_NONBLOCK | (os.O_CREAT if create else 0)
     try:
         fd = os.open(ledger, flags, 0o600)
     except FileNotFoundError:
@@ -474,7 +480,12 @@ def _locked(ledger: Path, *, create: bool, private=False):
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or \
                 (private and stat.S_IMODE(info.st_mode) != 0o600):
             raise TrustError("LEDGER_CORRUPT")
-        fcntl.flock(fd, fcntl.LOCK_EX)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB if readonly else fcntl.LOCK_EX)
+        except BlockingIOError:
+            if readonly:
+                raise TrustError("LEDGER_BUSY") from None
+            raise
         yield fd
     finally:
         os.close(fd)
@@ -485,10 +496,16 @@ def _read(fd: int) -> dict:
     return {key: entry["envelope_sha256"] for key, entry in _read_entries(fd).items()}
 
 
-def _read_entries(fd: int) -> dict:
+def _read_entries(fd: int, *, max_bytes=None, max_entries=None) -> dict:
+    if max_bytes is not None and os.fstat(fd).st_size > max_bytes:
+        raise TrustError("LEDGER_TOO_LARGE")
     chunks = []
+    size = 0
     os.lseek(fd, 0, os.SEEK_SET)
     while chunk := os.read(fd, 65_536):
+        size += len(chunk)
+        if max_bytes is not None and size > max_bytes:
+            raise TrustError("LEDGER_TOO_LARGE")
         chunks.append(chunk)
     raw = b"".join(chunks)
     if raw and not raw.endswith(b"\n"):
@@ -503,7 +520,7 @@ def _read_entries(fd: int) -> dict:
             raise TrustError("LEDGER_CORRUPT")
         schema = entry.get("ledger_schema")
         fields = LEDGER_FIELDS | {"operation_sha256"} if schema == OPERATION_LEDGER_SCHEMA else LEDGER_FIELDS
-        if set(entry) != fields or schema not in {LEDGER_SCHEMA, OPERATION_LEDGER_SCHEMA} or \
+        if set(entry) != fields or type(schema) is not str or schema not in {LEDGER_SCHEMA, OPERATION_LEDGER_SCHEMA} or \
                 any(type(entry[n]) is not str for n in fields) or \
                 not _NAME.fullmatch(entry["issuer_id"]) or \
                 not all(_HEX64.fullmatch(entry[n]) for n in ("envelope_id", "envelope_sha256")) or \
@@ -513,6 +530,8 @@ def _read_entries(fd: int) -> dict:
         if key in spent:
             raise TrustError("LEDGER_CORRUPT")
         spent[key] = entry
+        if max_entries is not None and len(spent) > max_entries:
+            raise TrustError("LEDGER_TOO_LARGE")
     return spent
 
 
@@ -694,3 +713,62 @@ def classify_envelope(*args, **kwargs) -> dict:
                bool(verdict["failures"]) and
                set(verdict["failures"]) <= {"KEY_REVOKED", "ENVELOPE_REVOKED"})
     return {**verdict, "genuine_but_revoked": genuine}
+
+
+def inspect_consumption(envelope: Any, ledger: Path, operation_sha256: str) -> dict:
+    """One bounded read-only observation, never an authorization or a durable absence proof.
+
+    Missing ledger and verified absence in an existing valid ledger are distinct. Every entry
+    linked to the operation is counted, not only the expected issuer/envelope. Callers needing
+    transaction-wide consistency hold L1; this function only takes the ledger's shared L2.
+    """
+    result = {"inspection_schema": INSPECTION_SCHEMA, "status": "INVALID_INPUT",
+              "operation_sha256": None, "operation_entries": None, "failures": [],
+              "accepted": False, "authenticity": "NOT_EVALUATED", "authorization": "NOT_EVALUATED",
+              "completeness": "NOT_EVALUATED"}
+    try:
+        _operation(operation_sha256)
+        result["operation_sha256"] = operation_sha256
+        envelope = loads(_canonical(envelope))
+        if _envelope_shape(envelope) is not None or not KINDS[envelope["record_kind"]].single_use:
+            raise TrustError("ENVELOPE_INVALID")
+        # Freeze the expected envelope before any I/O; this still does not verify a signature.
+        expected_key = (envelope["issuer_id"], envelope["envelope_id"])
+        expected_digest = _sha(envelope)
+    except (TrustError, IdentityError) as exc:
+        return {**result, "failures": [exc.code if isinstance(exc, TrustError) else "ENVELOPE_INVALID"]}
+    if not isinstance(ledger, Path):
+        return {**result, "status": "LEDGER_UNAVAILABLE", "failures": ["LEDGER_UNAVAILABLE"]}
+    try:
+        with _locked(ledger, create=False, private=True, readonly=True) as fd:
+            if fd is None:
+                # ENOENT can also mean a missing parent; neither is verified absence of an entry.
+                if not stat.S_ISDIR(os.stat(ledger.parent, follow_symlinks=False).st_mode):
+                    raise OSError("ledger namespace unavailable")
+                return {**result, "status": "LEDGER_MISSING", "failures": ["LEDGER_MISSING"]}
+            entries = _read_entries(fd, max_bytes=INSPECTION_MAX_BYTES, max_entries=INSPECTION_MAX_ENTRIES)
+            related = [key for key, entry in entries.items() if entry.get("operation_sha256") == operation_sha256]
+            expected = entries.get(expected_key)
+            count = len(related)
+            code = None
+            if count > 1:
+                code = "OPERATION_MULTIPLE_ENTRIES"
+            elif count == 1 and related[0] != expected_key:
+                code = "OPERATION_FOREIGN_ENTRY"
+            elif expected is not None:
+                if expected["envelope_sha256"] != expected_digest:
+                    code = "ENVELOPE_ID_REUSED"
+                elif expected["ledger_schema"] == LEDGER_SCHEMA:
+                    code = "LEGACY_CONSUMPTION"
+                elif expected["operation_sha256"] != operation_sha256:
+                    code = "ENVELOPE_REPLAYED"
+            if code:
+                return {**result, "status": "CONFLICT", "operation_entries": count, "failures": [code]}
+            return {**result, "status": "CONSUMED_BY_OPERATION" if count == 1 else "ABSENT_IN_VALID_LEDGER",
+                    "operation_entries": count}
+    except TrustError as exc:
+        status = {"LEDGER_TOO_LARGE": "LEDGER_UNAVAILABLE", "LEDGER_BUSY": "LEDGER_BUSY"}.get(
+            exc.code, "LEDGER_CORRUPT")
+        return {**result, "status": status, "failures": [exc.code]}
+    except (OSError, ValueError, TypeError):
+        return {**result, "status": "LEDGER_UNAVAILABLE", "failures": ["LEDGER_UNAVAILABLE"]}
