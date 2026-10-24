@@ -73,6 +73,12 @@ just before the admission is written. `registrar-admissions/` must be a real dir
 
 ## 5. Amendment history
 
+- Amendment 3: [AMENDMENT_3_PREPARE_COMMIT.md](AMENDMENT_3_PREPARE_COMMIT.md), published alone before
+  code. Preparation writes nothing; the owning thread holds exclusive L1 across staged commits.
+  Registrar refusals and write/Supervisor errors remain distinct. Existing homes are checked for
+  structural completeness and exact identity, not certified journal durability: the future controller
+  must perform P1's cold-read recovery and journal checks. Direct Supervisor calls remain a bypass.
+
 - Amendment 1, pushed alone before its code, after the independent review of `0fca3f46` found the
   ceilings under-tested and the admission weakly bound: admission record written before the child and
   required for every descendant ancestor; admission bound to qualification, budget, permissions and
