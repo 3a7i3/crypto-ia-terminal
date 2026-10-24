@@ -77,9 +77,14 @@ Every entry has exactly:
 `schema`, `operation_sha256`, `attempt`, `current_root_sha256`, `current_root_version`,
 `boot_id`, `event`, `step`, `code`, `data`.
 
-The first entry must be PREPARED, with `data = {"operation": <frozen object>}`. Its digest,
-attempt, historical root and boot must match the entry. Subsequent entries retain operation
-identity and attempt; current-root metadata and boot may change. Root metadata is an
+The first state-bearing entry of each attempt must be PREPARED, with `data = {"operation": <frozen object>}`. Its digest,
+attempt, historical root and boot must match the entry. Subsequent entries within that attempt retain operation
+identity and attempt; current-root metadata and boot may change. The append-only file belongs to
+one child, not one operation: after REFUSED or ABANDONED, a new PREPARED may open a strictly
+increasing attempt for the same child, with a newly frozen operation and digest, only after
+the controller establishes no consumption for the prior operation and no blocking fault.
+No new attempt follows COMMITTED or FAILED_CONSUMED. A duplicate PREPARED within an open
+attempt is invalid. Capacity and reserve accounting apply to the whole file, not each attempt. Root metadata is an
 observation claim, not a root or signature proof. The controller independently checks the
 installed current policy and monotone history. Every entry has a nonempty coded reason.
 
@@ -95,11 +100,27 @@ installed current policy and monotone history. Every entry has a nonempty coded 
 | SET_ASIDE_BEGIN, SET_ASIDE_DONE | D3 | empty object |
 | COMMITTED | null | `record_sha256` (must equal frozen child record hash) |
 
+An initial torn PREPARED may leave an acknowledged-fragment preamble before any valid
+PREPARED (CRASH-D0T). Such acknowledgement entries still have the closed common fields,
+syntactically validated, but their operation/attempt/root/boot metadata are diagnostic claims,
+not frozen identity. Only their exact binding to the preceding non-canonical fragment is
+used. No transition, consumption, completed step or terminal result is inferred. Until a
+valid PREPARED follows, status is PREPARATION_INCOMPLETE with no established operation or
+attempt. A following PREPARED establishes the first actual operation; the discarded fragment
+and preamble cannot dictate its frozen plan or identity. Other events in this preamble are
+CORRUPT. These physical lines consume the same file-wide limits and reserve.
+
 The field list encodes line meaning only. The projector rejects PARTIAL D1, orphan DONE,
-step skips, duplicate PREPARED, mismatching operation ids and events after terminal states
-except the explicit set-aside pair after FAILED_CONSUMED. It keeps an independent
+step skips, duplicate PREPARED within an attempt, mismatching operation ids within an attempt,
+and events after terminal states except a guarded new attempt after REFUSED/ABANDONED or
+the explicit set-aside pair after FAILED_CONSUMED and its DURABILITY_FAULT exit. It keeps an independent
 `d3_started` flag; losing this history must never authorize setting aside another home.
 SET_ASIDE retains the terminal result. QUARANTINE retains the consumed authorization.
+DURABILITY_FAULT is also valid during QUARANTINING and SETTING_ASIDE (step D3); it
+preserves the previous terminal claim, if any, and d3_started, and yields BLOCKED_DURABILITY.
+It never creates a new termination requirement for an already FAILED_CONSUMED operation.
+No retry of that action is allowed while its fault is recorded; only the separate restore
+gate can lift it. If the log is faulty, the fault is external and no such line is written.
 
 Line positions 57–64 accept only P1's reserve events: TERMINATED, FAILED_CONSUMED, ABANDONED,
 SET_ASIDE_BEGIN, SET_ASIDE_DONE (each at most once in the reserve), and
@@ -116,9 +137,11 @@ Projection fields: `schema = colony-admission.log-projection/0`, `status`,
 `last_completed_step` (D0 through D3 or null), `pending_step` (D1–D3 or null),
 `d3_started`, `terminal_claim` (null, REFUSED, ABANDONED, FAILED_CONSUMED or COMMITTED),
 `physical_lines`, `code`, `accepted = false`, `external_facts = NOT_EVALUATED`.
-The result is immutable, detached from decoder-owned mutable data.
+The result describes the latest attempt and is immutable, detached from decoder-owned mutable
+data. All preceding attempts are validated and retained as diagnostic history; a prior
+corruption is not hidden by a later PREPARED. Every attempt must target the same child.
 
-`status` is EMPTY, OPEN, INTERRUPTED, RECOVERED, QUARANTINING, TERMINATING,
+`status` is EMPTY, PREPARATION_INCOMPLETE, OPEN, INTERRUPTED, RECOVERED, QUARANTINING, TERMINATING,
 BLOCKED_DURABILITY, TERMINAL_CLAIM, SETTING_ASIDE, TORN_TAIL or CORRUPT.
 A COMMITTED line yields TERMINAL_CLAIM, not an authenticated or durable admission.
 Fault-log overrides, ledger consistency, current trust, cold-read provenance and home bytes
@@ -195,8 +218,11 @@ current root can rotate. Root/history installation is never inferred from log me
 - Each legal table edge has a positive fixture, and each guard has an adverse case. Generated
   forbidden event/state pairs must be rejected; no fallback to a nearby state.
 - Full positive sequence and recovery variants; step skips, duplicate endings, wrong operation,
-  incorrect record hash, same-boot PRESENT/PARTIAL, PARTIAL D1, incomplete quarantine,
-  incomplete termination, log limits, reserved slots and torn-tail acknowledgements covered.
+  incorrect record hash, valid second attempt after refusal/abandonment, forbidden retry after
+  consumption or commit, reused attempt numbers, cross-child PREPARED, same-boot PRESENT/PARTIAL,
+  PARTIAL D1, incomplete quarantine, faults during quarantine/set-aside,
+  incomplete termination, log limits, reserved slots, initial torn PREPARED/acknowledgement
+  preamble and torn-tail acknowledgements covered.
 - Corruption after COMMITTED invalidates the whole log. Neither a torn tail nor a fault is
   silently repaired. An empty/missing observation is not a successful refusal or admission.
 - Pure modules have no filesystem/network/process/clock APIs and no trust/registrar/lab calls.
