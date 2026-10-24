@@ -377,9 +377,11 @@ def test_embedded_snapshots_and_all_public_output_are_detached():
     assert projected.policy_bytes != f.canonical(policy)
 
 
-def test_set_aside_fault_cannot_fabricate_a_started_action():
+def test_set_aside_fault_preserves_normal_context_but_checks_external_brackets():
     action_fault = fault(phase="SET_ASIDE", data={"origin": "CONTROLLER", "failure": "WRITE", "target": target()})
-    corrupt(raw(action_fault))
+    result = projection(raw(action_fault))
+    assert result.status == "STRUCTURAL_ONLY" and len(result.fault_claims) == 1
+    assert not result.pending_set_aside and not result.termination_claims
     corrupt(raw(fault(), terminate(), action_fault))
 
 
@@ -393,3 +395,27 @@ def test_faulty_child_cannot_be_rehabilitated_as_another_operation():
     new_op["data"]["target"]["relative_path"] = new_child + ".log"
     result = projection(raw(source, term, new_op))
     assert result.status == "STRUCTURAL_ONLY" and len(result.fault_claims) == 2
+
+
+
+def test_normal_set_aside_directory_fault_is_sticky_without_external_termination():
+    normal_fault = fault(phase="SET_ASIDE", data={"origin": "CONTROLLER", "failure": "FSYNC",
+                                               "target": target("HOME_DIRECTORY", "DIRECTORY", CHILD)})
+    result = projection(raw(normal_fault))
+    assert result.status == "STRUCTURAL_ONLY" and result.fault_claims[0].target.resource == "HOME_DIRECTORY"
+    assert result.fault_claims[0].phase == "SET_ASIDE" and not result.termination_claims
+    source, term = fault(), terminate()
+    corrupt(raw(normal_fault, source, term, aside(term)))
+
+
+def test_exact_external_limits_are_inclusive(monkeypatch):
+    source = raw(fault())
+    monkeypatch.setattr(e, "FAULT_MAX_LINES", 1)
+    monkeypatch.setattr(e, "FAULT_LINE_BYTES", len(source))
+    assert projection(source).status == "STRUCTURAL_ONLY"
+    policy, head = installed()
+    pbytes, hbytes = f.canonical(policy), raw(head)
+    monkeypatch.setattr(e, "POLICY_MAX_BYTES", len(pbytes))
+    monkeypatch.setattr(e, "HISTORY_MAX_LINES", 1)
+    monkeypatch.setattr(e, "HISTORY_LINE_BYTES", len(hbytes))
+    assert trust_projection(pbytes, hbytes).status == "STRUCTURAL_MATCH"

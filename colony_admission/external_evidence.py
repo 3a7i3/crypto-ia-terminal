@@ -306,8 +306,8 @@ def project_fault_log(raw: bytes, lab_id: str) -> FaultProjection:
                 bindings[op] = binding
             entry_hash = f.digest(entry)
             if event == "FAULT":
-                if entry["phase"] == "SET_ASIDE":
-                    f.require(op in term_by_op and actions.get(op) == "PENDING")
+                if entry["phase"] == "SET_ASIDE" and op in term_by_op:
+                    f.require(actions.get(op) == "PENDING")
                 f.closed(data, {"origin", "failure", "target"})
                 origin, failure = data["origin"], data["failure"]
                 if origin == "SUPERVISOR":
