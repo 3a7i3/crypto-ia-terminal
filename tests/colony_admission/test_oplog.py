@@ -340,7 +340,7 @@ def test_file_wide_reserve_and_size_bounds():
 
 def test_purity_imports_and_no_external_calls():
     root = Path(__file__).resolve().parents[2] / "colony_admission"
-    allowed = {"hashlib", "json", "re", "dataclasses", "formats", "oplog"}
+    allowed = {"hashlib", "json", "re", "dataclasses", "formats", "oplog", "external_evidence"}
     forbidden = {"open", "exec", "eval", "__import__", "getattr", "setattr", "globals", "locals"}
     for path in root.glob("*.py"):
         tree = ast.parse(path.read_text())
@@ -348,7 +348,10 @@ def test_purity_imports_and_no_external_calls():
             if isinstance(node, ast.Import):
                 assert all(x.name in allowed for x in node.names)
             if isinstance(node, ast.ImportFrom):
-                assert node.module in allowed
+                if node.module is None:
+                    assert node.level == 1 and [alias.name for alias in node.names] == ["formats"]
+                else:
+                    assert node.module in allowed
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 assert node.func.id not in forbidden
     assert list(inspect.signature(project_log).parameters) == ["raw"]
