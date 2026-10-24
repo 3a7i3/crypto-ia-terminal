@@ -9,3 +9,7 @@ SOURCE_ONLY. Refines P4_FORMATS_AND_STATE_MACHINE_V0.md without editing P1 pins.
 - Attempt history is retained as immutable summaries, with physical-line positions, operation identity and claimed outcome. No reference to caller-owned mutable objects is returned.
 - Integer length counts digits excluding an optional minus sign. Container depth counts the outer object as one. Bounds are checked before parsing; no implicit truncation.
 - No writer, filesystem observer, controller orchestration or recovery action is implemented by this slice. It does not complete P4, P5 or P6.
+
+## Projection precision for the later evidence join
+
+The immutable projection additionally exposes `recovery_step` and `recovery_result` (null or the latest outstanding explicit recovery classification), and `last_completed_source` (null, PREPARED, DONE or RECOVERY_PRESENT). ABSENT and PARTIAL must not collapse into an ambiguous RECOVERED status. BEGIN clears the outstanding recovery marker; QUARANTINE_DONE clears the D3 PARTIAL marker. A completed step's source is preserved across later BEGIN/cancellation until another completion. These fields are observations only; no controller guard or action is inferred from them.
