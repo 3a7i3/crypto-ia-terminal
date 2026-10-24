@@ -26,12 +26,27 @@ All fixtures use fixed values — no test depends on the wall clock.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
+
+import pytest
 from pathlib import Path
 
 from src.telegram.quant_observer.bot import render_quant_live_panel
-from visualization.api import system_snapshot_source
+from visualization.api import quant_live_api, system_snapshot_source
 from visualization.api.models import QuantLiveSnapshot
 from visualization.api.quant_live_api import load_quant_live_snapshot
+
+
+@pytest.fixture(autouse=True)
+def fixed_projection_clock(monkeypatch):
+    """Fixture age is deterministic; production time handling is unchanged."""
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            fixed = datetime(2026, 9, 2, 10, 1, tzinfo=timezone.utc)
+            return fixed.astimezone(tz) if tz is not None else fixed.replace(tzinfo=None)
+
+    monkeypatch.setattr(quant_live_api, "datetime", FixedDateTime)
 
 
 # ── Production-like fixture ────────────────────────────────────────────────────
@@ -249,13 +264,18 @@ def test_refusal_breakdown_computed(tmp_path, monkeypatch):
     assert "52" in panel
 
 
-def test_attrition_uses_current_cycle_only(tmp_path, monkeypatch):
-    """Session/lifetime counters must never leak into the current-cycle attrition."""
+@pytest.mark.parametrize("age", [60, 900, 90000, 4490031])
+def test_attrition_uses_current_cycle_only(tmp_path, monkeypatch, age):
+    """Session/lifetime counts cannot leak; unrelated ages may contain their digits."""
     snap = _load(tmp_path, monkeypatch)
+    assert snap.refusal_breakdown == {"gate": 45, "meta_strategy": 7}
     assert snap.total_refusals == 52  # session gate=900 / lifetime=90000 ignored
+    snap.snapshot_age_s = age
     panel = render_quant_live_panel(snap)
-    assert "900" not in panel
-    assert "90000" not in panel
+    attrition = panel.split("<b>ATTRITION — CURRENT CYCLE</b>", 1)[1].split("<b>", 1)[0]
+    assert "900" not in attrition
+    assert "90000" not in attrition
+    assert f"{age}s" in _age_row(panel)
 
 
 # ── Q1 §10. Dominant attrition correctly computed ─────────────────────────────
@@ -523,7 +543,7 @@ def test_valid_timestamp_yields_age(tmp_path, monkeypatch):
     snap = _load(tmp_path, monkeypatch)  # valid timestamp in base fixture
     assert snap.ts is not None
     assert snap.snapshot_age_s is not None
-    assert snap.snapshot_age_s >= 0
+    assert snap.snapshot_age_s == 60
     assert "UNAVAILABLE" not in render_quant_live_panel(snap)
 
 
