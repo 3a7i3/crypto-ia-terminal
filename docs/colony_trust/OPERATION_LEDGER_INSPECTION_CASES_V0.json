@@ -1,0 +1,168 @@
+{
+  "schema": "colony-trust.operation-inspection-cases/0",
+  "status": "CONTRACT_BEFORE_CODE_NOT_EXECUTED_TESTS",
+  "baseline_main": "c1b7f4925925f23ae510d1d72df6931b7fd280c5",
+  "p1_contract_sha256": "e8a125bd67964a01f8a06a5f2d3c50f34e9a154e521dce201cb4fb6d1a40bfcd",
+  "cases": [
+    {
+      "id": "OI01",
+      "given": "existing empty private ledger",
+      "expected": "NO_OPERATION_ENTRY;0 operation,0 legacy,0 total; SHA256(empty); entry null"
+    },
+    {
+      "id": "OI02",
+      "given": "only unrelated valid /1 entries",
+      "expected": "NO_OPERATION_ENTRY;0 operation; all unrelated entries validated"
+    },
+    {
+      "id": "OI03",
+      "given": "exactly one matching /1 entry",
+      "expected": "OPERATION_ENTRY_PRESENT;1 operation; detached complete matching entry"
+    },
+    {
+      "id": "OI04",
+      "given": "one matching /1 and unrelated /0 entries",
+      "expected": "OPERATION_ENTRY_PRESENT;1 operation; legacy count retained; no authenticity claim"
+    },
+    {
+      "id": "OI05",
+      "given": "zero matching /1 and any valid /0",
+      "expected": "LEGACY_AMBIGUITY;0 operation; no ABANDONED or unspent inference"
+    },
+    {
+      "id": "OI06",
+      "given": "two matching /1 with distinct keys, even equal envelope hashes",
+      "expected": "CONFLICT; exact multiplicity; entry null; no first/last wins"
+    },
+    {
+      "id": "OI07",
+      "given": "duplicate issuer/envelope key, any schema combination",
+      "expected": "LEDGER_CORRUPT; counts/hash/entry null"
+    },
+    {
+      "id": "OI08",
+      "given": "valid matching prefix followed by torn/noncanonical/unknown-schema line",
+      "expected": "LEDGER_CORRUPT; no usable prefix result"
+    },
+    {
+      "id": "OI09",
+      "given": "file absent in existing real parent",
+      "expected": "LEDGER_MISSING; no file created; counts/hash/entry null"
+    },
+    {
+      "id": "OI10",
+      "given": "missing or non-real parent namespace",
+      "expected": "LEDGER_UNAVAILABLE; never absence"
+    },
+    {
+      "id": "OI11",
+      "given": "invalid digest type/uppercase/length/value",
+      "expected": "INVALID_INPUT before any open; operation null"
+    },
+    {
+      "id": "OI12",
+      "given": "valid digest but invalid path type",
+      "expected": "LEDGER_UNAVAILABLE before open; valid operation retained"
+    },
+    {
+      "id": "OI13",
+      "given": "symlink/hardlink/FIFO/device/directory/mode violation",
+      "expected": "refusal; never NO_OPERATION_ENTRY; bounded nonblocking read"
+    },
+    {
+      "id": "OI14",
+      "given": "cooperating exclusive writer holds inode lock",
+      "expected": "LEDGER_BUSY without waiting/creating separate lockfile"
+    },
+    {
+      "id": "OI15",
+      "given": "read/permission/unlock/close failure after parsing",
+      "expected": "LEDGER_UNAVAILABLE; all provisional counts/hash/entry discarded"
+    },
+    {
+      "id": "OI16",
+      "given": "file size, streamed growth or entry count exceeds bound",
+      "expected": "LEDGER_UNAVAILABLE with LEDGER_TOO_LARGE; no partial count"
+    },
+    {
+      "id": "OI17",
+      "given": "inspection syscall observation",
+      "expected": "O_RDONLY/O_NOFOLLOW/O_NONBLOCK/LOCK_SH|LOCK_NB; no writable/create/write/fsync/repair"
+    },
+    {
+      "id": "OI18",
+      "given": "different ledger bytes with identical operation counts",
+      "expected": "different ledger_sha256; same descriptor snapshot parsed and hashed"
+    },
+    {
+      "id": "OI19",
+      "given": "mutate returned unique entry then inspect again",
+      "expected": "stored bytes and next result unchanged"
+    },
+    {
+      "id": "OI20",
+      "given": "observation on any status",
+      "expected": "closed fields; accepted false; five semantic/provenance/durability fields NOT_EVALUATED"
+    },
+    {
+      "id": "OI21",
+      "given": "unknown expected envelope consumed under a different operation",
+      "expected": "NO_OPERATION_ENTRY may still occur; no claim of envelope freshness; normal replay check still required"
+    },
+    {
+      "id": "OI22",
+      "given": "new observer output presented to existing envelope-aware resume check",
+      "expected": "not a substitute; existing APIs/semantics remain unchanged"
+    },
+    {
+      "id": "OI23",
+      "given": "fault-entry/0 supplied operation-only status or added field",
+      "expected": "reject mixed-version wire; do not relabel weaker evidence"
+    },
+    {
+      "id": "OI24",
+      "given": "fault-entry/1 termination with directly acquired same-op NO_OPERATION_ENTRY/0",
+      "expected": "ABANDONED claim only after external fault/identity/lock checks; no authorization refund"
+    },
+    {
+      "id": "OI25",
+      "given": "fault-entry/1 termination with directly acquired same-op OPERATION_ENTRY_PRESENT/1",
+      "expected": "conservative FAILED_CONSUMED only; no acceptance or repaired fault"
+    },
+    {
+      "id": "OI26",
+      "given": "termination finding has legacy/conflict/missing/busy/corrupt/unavailable status",
+      "expected": "blocked; no terminal record inferred"
+    },
+    {
+      "id": "OI27",
+      "given": "caller-supplied/cached/foreign-operation observation or mismatching full observation digest",
+      "expected": "not a current acquired finding; termination blocked"
+    },
+    {
+      "id": "OI28",
+      "given": "all existing check/consume/verify/envelope inspection APIs rerun",
+      "expected": "behavior unchanged; no new default parser/lock semantics"
+    },
+    {
+      "id": "OI29",
+      "given": "legacy ambiguity then attempted automatic migration/guessing by issuer/order",
+      "expected": "refused; no write or implicit provenance gate"
+    },
+    {
+      "id": "OI30",
+      "given": "external set-aside after terminal finding without expected identity source",
+      "expected": "still blocked; operation inspection does not supply home identity"
+    },
+    {
+      "id": "OI31",
+      "given": "valid external terminal entry embeds original full observation, then unrelated legitimate ledger append",
+      "expected": "historical override validates from acquired fault-log snapshot; no equality check to current ledger hash; no fresh authority"
+    },
+    {
+      "id": "OI32",
+      "given": "embedded observation missing/corrupt/hash differs/status-count mismatches or oversized terminal line",
+      "expected": "terminal write/override refused; no separate invisible observation store or truncation"
+    }
+  ]
+}
