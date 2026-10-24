@@ -41,6 +41,7 @@ VERDICT_SCHEMA = "colony-trust.verdict/0"
 LEDGER_SCHEMA = "colony-trust.consumed/0"
 OPERATION_LEDGER_SCHEMA = "colony-trust.consumed/1"
 INSPECTION_SCHEMA = "colony-trust.consumption-inspection/0"
+OPERATION_INSPECTION_SCHEMA = "colony-trust.operation-inspection/0"
 INSPECTION_MAX_BYTES = 16 * 1024 * 1024
 INSPECTION_MAX_ENTRIES = 16_384
 ENVIRONMENT = "LAB_TEST"
@@ -496,7 +497,8 @@ def _read(fd: int) -> dict:
     return {key: entry["envelope_sha256"] for key, entry in _read_entries(fd).items()}
 
 
-def _read_entries(fd: int, *, max_bytes=None, max_entries=None) -> dict:
+def _read_entries(fd: int, *, max_bytes=None, max_entries=None, with_digest=False) -> dict | tuple[dict, str]:
+    """Strict full snapshot; existing callers keep a dict, optional digest uses the same bytes."""
     if max_bytes is not None and os.fstat(fd).st_size > max_bytes:
         raise TrustError("LEDGER_TOO_LARGE")
     chunks = []
@@ -532,7 +534,7 @@ def _read_entries(fd: int, *, max_bytes=None, max_entries=None) -> dict:
         spent[key] = entry
         if max_entries is not None and len(spent) > max_entries:
             raise TrustError("LEDGER_TOO_LARGE")
-    return spent
+    return (spent, hashlib.sha256(raw).hexdigest()) if with_digest else spent
 
 
 def _write(fd: int, data: bytes) -> None:
@@ -766,6 +768,63 @@ def inspect_consumption(envelope: Any, ledger: Path, operation_sha256: str) -> d
                 return {**result, "status": "CONFLICT", "operation_entries": count, "failures": [code]}
             return {**result, "status": "CONSUMED_BY_OPERATION" if count == 1 else "ABSENT_IN_VALID_LEDGER",
                     "operation_entries": count}
+    except TrustError as exc:
+        status = {"LEDGER_TOO_LARGE": "LEDGER_UNAVAILABLE", "LEDGER_BUSY": "LEDGER_BUSY"}.get(
+            exc.code, "LEDGER_CORRUPT")
+        return {**result, "status": status, "failures": [exc.code]}
+    except (OSError, ValueError, TypeError):
+        return {**result, "status": "LEDGER_UNAVAILABLE", "failures": ["LEDGER_UNAVAILABLE"]}
+
+
+
+def inspect_operation_consumption(ledger: Path, operation_sha256: str) -> dict:
+    """Count operation-bound entries without an envelope, never grant authority.
+
+    The weaker statuses do not substitute for envelope-aware inspection. The
+    trusted caller supplies the bound path and obtains the digest independently.
+    Hash, counts and optional entry describe one whole locked read, not durability.
+    """
+    result = {"inspection_schema": OPERATION_INSPECTION_SCHEMA, "status": "INVALID_INPUT",
+              "operation_sha256": None, "operation_entries": None, "legacy_entries": None,
+              "ledger_entries": None, "ledger_sha256": None, "entry": None, "failures": [],
+              "accepted": False, "authenticity": "NOT_EVALUATED", "authorization": "NOT_EVALUATED",
+              "completeness": "NOT_EVALUATED", "provenance": "NOT_EVALUATED", "durability": "NOT_EVALUATED"}
+    try:
+        _operation(operation_sha256)
+    except TrustError as exc:
+        return {**result, "failures": [exc.code]}
+    result["operation_sha256"] = operation_sha256
+    if not isinstance(ledger, Path):
+        return {**result, "status": "LEDGER_UNAVAILABLE", "failures": ["LEDGER_UNAVAILABLE"]}
+    try:
+        # Check the bound final parent for both existing and missing ledgers.
+        # Ancestor replacement by the trusted operator is outside the contract.
+        if not stat.S_ISDIR(os.stat(ledger.parent, follow_symlinks=False).st_mode):
+            raise OSError("ledger namespace unavailable")
+        with _locked(ledger, create=False, private=True, readonly=True) as fd:
+            if fd is None:
+                if not stat.S_ISDIR(os.stat(ledger.parent, follow_symlinks=False).st_mode):
+                    raise OSError("ledger namespace unavailable")
+                return {**result, "status": "LEDGER_MISSING", "failures": ["LEDGER_MISSING"]}
+            entries, snapshot_digest = _read_entries(fd, max_bytes=INSPECTION_MAX_BYTES,
+                                                     max_entries=INSPECTION_MAX_ENTRIES, with_digest=True)
+            related = [entry for entry in entries.values()
+                       if entry.get("operation_sha256") == operation_sha256]
+            count = len(related)
+            legacy = sum(entry["ledger_schema"] == LEDGER_SCHEMA for entry in entries.values())
+            if count > 1:
+                status, failures = "CONFLICT", ["OPERATION_MULTIPLE_ENTRIES"]
+            elif count == 1:
+                status, failures = "OPERATION_ENTRY_PRESENT", []
+            elif legacy:
+                status, failures = "LEGACY_AMBIGUITY", ["LEGACY_OPERATION_UNBOUND"]
+            else:
+                status, failures = "NO_OPERATION_ENTRY", []
+            observed = {**result, "status": status, "operation_entries": count, "legacy_entries": legacy,
+                        "ledger_entries": len(entries), "ledger_sha256": snapshot_digest,
+                        "entry": dict(related[0]) if count == 1 else None, "failures": failures}
+        # A close error exits through the handler, discarding every provisional fact.
+        return observed
     except TrustError as exc:
         status = {"LEDGER_TOO_LARGE": "LEDGER_UNAVAILABLE", "LEDGER_BUSY": "LEDGER_BUSY"}.get(
             exc.code, "LEDGER_CORRUPT")
