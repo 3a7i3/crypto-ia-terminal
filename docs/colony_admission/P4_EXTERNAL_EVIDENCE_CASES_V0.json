@@ -1,0 +1,142 @@
+{
+  "schema": "colony-admission.external-evidence-cases/0",
+  "status": "CONTRACT_FOR_REVIEW_NOT_EXECUTABLE",
+  "p1_contract_sha256": "e8a125bd67964a01f8a06a5f2d3c50f34e9a154e521dce201cb4fb6d1a40bfcd",
+  "cases": [
+    {
+      "id": "EF01",
+      "given": "canonical own-lab FAULT entry, step-only Supervisor error",
+      "expected": "syntactic observation; no faulty path invented"
+    },
+    {
+      "id": "EF02",
+      "given": "unknown field, bool counter, foreign lab, unknown enum or version",
+      "expected": "refused; no partial healthy prefix"
+    },
+    {
+      "id": "EF03",
+      "given": "fault/history final fragment or invalid canonical line",
+      "expected": "blocked; no ACK or repair"
+    },
+    {
+      "id": "EF04",
+      "given": "limit exceeded in lines, bytes, depth or integer digits",
+      "expected": "bounded refusal; never valid prefix"
+    },
+    {
+      "id": "EF05",
+      "given": "missing fault file or unreadable namespace",
+      "expected": "unknown/blocked; never healthy empty log"
+    },
+    {
+      "id": "EF06",
+      "given": "properly provisioned existing empty fault file",
+      "expected": "empty observation only after source provenance"
+    },
+    {
+      "id": "EF07",
+      "given": "matching policy/full-root digest and last history tuple",
+      "expected": "structural match; semantic trust and durability separate"
+    },
+    {
+      "id": "EF08",
+      "given": "history appended, old policy remains",
+      "expected": "TRUST_CURRENT_UNAVAILABLE; no older-prefix fallback"
+    },
+    {
+      "id": "EF09",
+      "given": "equal version retry after interrupted installation",
+      "expected": "complete exact pending tuple; no duplicate history append"
+    },
+    {
+      "id": "EF10",
+      "given": "decreasing floor, duplicate version or reordered history",
+      "expected": "refused"
+    },
+    {
+      "id": "EF11",
+      "given": "benign metadata growth but revoked key restored in supplied roots",
+      "expected": "existing semantic root comparison refuses; parser never claims PASS"
+    },
+    {
+      "id": "EF12",
+      "given": "external termination refers to another child/attempt/op/fault",
+      "expected": "refused"
+    },
+    {
+      "id": "EF13",
+      "given": "external termination ledger MISSING/BUSY/CORRUPT/CONFLICT or >1 entries",
+      "expected": "refused; not absence"
+    },
+    {
+      "id": "EF14",
+      "given": "verified same-op valid-ledger absence after OP_LOG fault",
+      "expected": "external terminal claim ABANDONED; faulty child stays barred"
+    },
+    {
+      "id": "EF15",
+      "given": "verified same-op exact consumption after OP_LOG fault",
+      "expected": "external terminal claim FAILED_CONSUMED; no new acceptance"
+    },
+    {
+      "id": "EF16",
+      "given": "terminated faulty child and unrelated good operation",
+      "expected": "skip only faulty child log; independent global faults still block"
+    },
+    {
+      "id": "EF17",
+      "given": "external set-aside without D3 provenance, matching termination or BEGIN",
+      "expected": "refused"
+    },
+    {
+      "id": "EF18",
+      "given": "external set-aside move interrupted or durability fault",
+      "expected": "pending or blocked; no automatic move/clear/retry"
+    },
+    {
+      "id": "EF19",
+      "given": "ledger or individuals/quarantine-root fault followed by TERMINATED_EXTERNALLY",
+      "expected": "sticky resource restriction retained"
+    },
+    {
+      "id": "EF20",
+      "given": "target path is absolute, traversing, linked, alien owner or not mapped to opened resource",
+      "expected": "refused before action"
+    },
+    {
+      "id": "EF21",
+      "given": "operation DURABILITY_FAULT with missing/mismatched external digest",
+      "expected": "unknown/blocked; no invented fault record"
+    },
+    {
+      "id": "EF22",
+      "given": "duplicate termination or contradictory ledger finding",
+      "expected": "refused; no last-write-wins"
+    },
+    {
+      "id": "EF23",
+      "given": "first trust installation fails before any child exists",
+      "expected": "scope LAB with null birth fields; sticky trust-resource fault, no invented operation"
+    },
+    {
+      "id": "EF24",
+      "given": "parent fsync fails for op-log/admission/envelope/ledger/trust creation",
+      "expected": "exact directory resource and DIRECTORY kind; no mislabel as file"
+    },
+    {
+      "id": "EF25",
+      "given": "faulty PREPARED unreadable and no independently bound complete envelope",
+      "expected": "termination blocked until reviewed provenance source or operation-only inspection primitive; no caller assertion"
+    },
+    {
+      "id": "EF26",
+      "given": "scope OPERATION combined with phase TRUST_INSTALL",
+      "expected": "refused; TRUST_INSTALL requires LAB and null birth fields"
+    },
+    {
+      "id": "EF27",
+      "given": "external D3 termination but no independently bound frozen expected identity bytes",
+      "expected": "set-aside blocked; current partial home cannot define its own expected identity"
+    }
+  ]
+}
