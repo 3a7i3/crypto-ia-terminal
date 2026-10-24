@@ -336,3 +336,32 @@ def test_inplace_read_mutation_is_detected(machine, monkeypatch):
         return value
     monkeypatch.setattr(o.os, "read", read)
     assert observe(machine).status == "BLOCKED"
+
+
+def test_later_event_cannot_claim_future_root(machine):
+    config, op = machine
+    later = entry("BEGIN", "D1", op=op)
+    later.update(current_root_version=99, current_root_sha256="e" * 64)
+    write(log_path(config), raw(*prefix(op=op), later))
+    assert "OPERATION_ROOT_INCONSISTENT" in observe(machine).blockers
+
+
+@pytest.mark.parametrize("recovered_absent", [False, True])
+def test_consumption_without_pending_or_completed_d1_is_inconsistent(machine, recovered_absent):
+    config, op = machine
+    events = prefix(op=op)
+    if recovered_absent:
+        events += [entry("BEGIN", "D1", op=op),
+                   entry("INTERRUPTED_RECOVERED", "D1", op=op, data={"result": "ABSENT"})]
+    write(log_path(config), raw(*events))
+    spend(config, op)
+    assert "OPERATION_STATE_INCONSISTENT" in observe(machine).blockers
+
+
+def test_ack_preamble_metadata_is_not_frozen_root_identity(machine):
+    config, op = machine
+    fragment = b'{"broken":'
+    ack = fixture_entry("TORN_TAIL_ACKNOWLEDGED", current_root_version=99,
+                        data={"fragment_sha256": hashlib.sha256(fragment).hexdigest()})
+    write(log_path(config), fragment + b"\n" + raw(ack, *prefix(op=op)))
+    assert observe(machine).status == "OBSERVED"

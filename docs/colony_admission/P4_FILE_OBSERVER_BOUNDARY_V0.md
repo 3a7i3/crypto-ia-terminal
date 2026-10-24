@@ -24,6 +24,9 @@ admission-ops/<child hex64>.log with prior bounded readers' byte limits.
 The bound ledger is independently read with a 16MiB limit and its snapshot hash must
 match existing inspection's whole-ledger hash. Inspect each resource before/after;
 retain descriptor/path identity and size/mtime/ctime until final acquisition checks.
+This diagnostic therefore reads the ledger twice (at most32MiB), not P1's single
+ledger read per controller locked section. Reusing it as that controller requires
+a separately reviewed same-descriptor acquisition/inspection primitive first.
 Any missing, busy, nonprivate, linked, changed, oversized or unreadable source blocks.
 No permission modification, fsync, repair, truncation, directory creation or write open.
 Advisory locking coordinates cooperating controller/registrar writers only. Trusted
@@ -51,7 +54,7 @@ Frozen results carry only immutable summaries: observed source hashes/identities
 log projection, current-root validation status, ledger observation bytes and fixed blockers.
 accepted=false, authorization/completeness/durability=NOT_EVALUATED always.
 A successful status is OBSERVED, not PASS/QUALIFIED/COMMITTED/READY. D2/D3 disk contents,
-stored envelopes, ancestor attestations, ceilings, full lab scan, acquired boot identity,
+stored envelopes, ancestor attestations, exact fault-target namespace mappings, ceilings, full lab scan, acquired boot identity,
 external-set-aside expected identity and installer rotation remain NOT_EVALUATED.
 On acquisition failure return BLOCKED without a usable partial payload. Cross-check
 failures return BLOCKED with diagnostic claims explicitly marked untrusted.

@@ -189,12 +189,22 @@ def _join(config, child, fault_raw, policy_raw, history_raw, log_raw, ledger):
         return log, root_status, blockers
     # Only canonical prepared/event bytes already accepted by the pure projection
     # participate in the join. ACK fragments remain lexical, not identity sources.
-    events = []
+    events, prepared_seen = [], False
     for line in log_raw.splitlines():
         try:
             event = f.loads(line)
         except f.FormatError:
             continue
+        prepared_seen = prepared_seen or event["event"] == "PREPARED"
+        if prepared_seen and policy.status == "STRUCTURAL_MATCH":
+            if (event["current_root_version"] > policy.root_version
+                    or (event["current_root_version"] == policy.root_version
+                        and event["current_root_sha256"] != policy.root_sha256)):
+                blockers.append("OPERATION_ROOT_INCONSISTENT")
+        if event["event"] == "PREPARED":
+            old = event["data"]["operation"]
+            if old["lab_id"] != config.lab_id or old["child_agent_id"] != child:
+                blockers.append("OPERATION_BINDING_MISMATCH")
         if event.get("operation_sha256") == log.operation_sha256:
             events.append(event)
     prepared = next((e for e in events if e.get("event") == "PREPARED"), None)
@@ -231,6 +241,9 @@ def _join(config, child, fault_raw, policy_raw, history_raw, log_raw, ledger):
         if ledger["entry"]["envelope_sha256"] != operation["presented"]["admission"]["envelope_sha256"]:
             blockers.append("LEDGER_ENVELOPE_MISMATCH")
         if log.terminal_claim in ("ABANDONED", "REFUSED"):
+            blockers.append("OPERATION_STATE_INCONSISTENT")
+        if (log.last_completed_step == "D0" and log.pending_step != "D1"
+                and log.terminal_claim != "FAILED_CONSUMED"):
             blockers.append("OPERATION_STATE_INCONSISTENT")
     elif log.last_completed_step not in (None, "D0") or log.terminal_claim == "FAILED_CONSUMED":
         blockers.append("OPERATION_STATE_INCONSISTENT")
