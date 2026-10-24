@@ -164,6 +164,10 @@ not proof that the old record was authentic when it was written.
 
 ## 8. Amendment history
 
+- The P4 read-only inspection prerequisite is specified in
+  [LEDGER_INSPECTION_CONTRACT_V0.md](LEDGER_INSPECTION_CONTRACT_V0.md), published before code.
+  Its observation cannot authenticate, authorize, reserve, consume or prove COMMITTED.
+
 - Amendment 4 is specified in [AMENDMENT_4_OPERATION_LEDGER.md](AMENDMENT_4_OPERATION_LEDGER.md),
   published alone before its implementation. It adds operation-bound consumption for the future
   controller, not wiring or runtime authority. The original verify_bundle interface remains available;
