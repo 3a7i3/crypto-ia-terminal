@@ -377,7 +377,7 @@ def test_real_registrar_plan_is_carried_without_semantic_authority(tmp_path):
 
 def test_limits_are_not_acknowledgeable_noncanonical_fragments():
     for fragment in (b'[' * 33 + b']' * 33, b'{"x":' + b'1' * 129 + b'}'):
-        corrupt(raw(*prefix()) + fragment + b"\n" + raw(ack(fragment)))
+        assert corrupt(raw(*prefix()) + fragment + b"\n" + raw(ack(fragment))).code == "FORMAT_LIMIT_REACHED"
 
 
 def test_future_schema_is_not_acknowledgeable():
@@ -420,3 +420,35 @@ def test_no_reverse_imports_from_existing_components():
                     assert all(not x.name.startswith("colony_admission") for x in node.names)
                 if isinstance(node, ast.ImportFrom):
                     assert not (node.module or "").startswith("colony_admission")
+
+
+@pytest.mark.parametrize("step", ["D2", "D3"])
+def test_public_recovery_result_cannot_collapse_absent_and_partial(step):
+    k = int(step[1])
+    events = prefix(k - 1) + [entry("BEGIN", step)]
+    results = []
+    for classification in ("ABSENT", "PARTIAL"):
+        value = observed(raw(*events, entry("INTERRUPTED_RECOVERED", step, boot=COLD,
+                                            data={"result": classification})))
+        assert value.recovery_step == step and value.recovery_result == classification
+        assert value.last_completed_source == "DONE"
+        results.append(value)
+    assert results[0] != results[1]
+
+
+def test_completed_source_and_quarantine_marker_lifecycle():
+    events = prefix() + [entry("BEGIN", "D1"), entry("INTERRUPTED_RECOVERED", "D1", boot=COLD,
+                        data={"result": "PRESENT"})]
+    assert observed(raw(*events)).last_completed_source == "RECOVERY_PRESENT"
+    value = observed(raw(*events, entry("BEGIN", "D2")))
+    assert value.last_completed_source == "RECOVERY_PRESENT" and value.recovery_result is None
+    events = prefix(2) + [entry("BEGIN", "D3"), entry("INTERRUPTED_RECOVERED", "D3", boot=COLD,
+                         data={"result": "PARTIAL"}), entry("QUARANTINE_BEGIN", "D3")]
+    assert observed(raw(*events)).recovery_result == "PARTIAL"
+    assert observed(raw(*events, entry("QUARANTINE_DONE", "D3"))).recovery_result is None
+
+
+def test_visible_budget_binding_cannot_alias_boolean_to_integer():
+    op = operation()
+    op["birth_plan"]["record"]["budget"]["runs"] = True
+    corrupt(raw(entry("PREPARED", op=op)))

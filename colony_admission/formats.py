@@ -163,7 +163,7 @@ def validate_operation(op):
                                (plan["record"], "agent_spec_id", op["child_agent_spec_id"]),
                                (plan["record"], "budget", op["budget"]),
                                (plan["record"], "lab_permissions", op["permissions"])):
-        require(obj.get(key) == expected)
+        require(canonical(obj.get(key)) == canonical(expected))
     require(digest(plan["qualification"]) == op["presented"]["qualification"]["record_sha256"])
     require(digest(plan["admission"]) == op["presented"]["admission"]["record_sha256"])
 

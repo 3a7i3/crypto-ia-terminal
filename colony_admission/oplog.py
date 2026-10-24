@@ -31,6 +31,9 @@ class LogProjection:
     physical_lines: int = 0
     code: str = "LOG_OBSERVED"
     history: tuple[AttemptSummary, ...] = ()
+    recovery_step: str | None = None
+    recovery_result: str | None = None
+    last_completed_source: str | None = None
     schema: str = field(default="colony-admission.log-projection/0", init=False)
     accepted: bool = field(default=False, init=False)
     external_facts: str = field(default="NOT_EVALUATED", init=False)
@@ -51,6 +54,7 @@ class _Machine:
         self.last = 0
         self.last_code = "LOG_OBSERVED"
         self.operation_hash = None
+        self.recovery_step = self.recovery_result = self.completed_source = None
 
     def _summary(self):
         return AttemptSummary(self.operation_hash, self.op["attempt"], self.start, self.last, self.terminal)
@@ -75,6 +79,8 @@ class _Machine:
             self.operation_hash = e["operation_sha256"]
             self.mode, self.level, self.pending = "OPEN", 0, None
             self.terminal, self.d3, self.start = None, False, position
+            self.recovery_step = self.recovery_result = None
+            self.completed_source = "PREPARED"
         else:
             require(self.op is not None)
             require(e["operation_sha256"] == self.operation_hash and e["attempt"] == self.op["attempt"])
@@ -83,19 +89,23 @@ class _Machine:
                 require(self.mode in ("OPEN", "RECOVERED", "PARTIAL_D2") and k == self.level + 1)
                 self.mode, self.pending, self.begin_boot = "INTERRUPTED", k, e["boot_id"]
                 self.d3 = self.d3 or k == 3
+                self.recovery_step = self.recovery_result = None
             elif event in ("DONE", "BEGIN_CANCELLED", "INTERRUPTED_RECOVERED"):
                 require(self.mode == "INTERRUPTED" and k == self.pending)
                 if event == "DONE":
                     self.level, self.mode = k, "OPEN"
+                    self.completed_source = "DONE"
                 elif event == "BEGIN_CANCELLED":
                     require(k in (2, 3))  # D1 has no registrar commit to cancel.
                     self.mode = "OPEN"
                 else:
                     result = e["data"]["result"]
+                    self.recovery_step, self.recovery_result = step, result
                     if result != "ABSENT":
                         require(e["boot_id"] != self.begin_boot)
                     if result == "PRESENT":
                         self.level, self.mode = k, "RECOVERED"
+                        self.completed_source = "RECOVERY_PRESENT"
                     elif result == "ABSENT":
                         self.mode = "RECOVERED"
                     else:
@@ -135,6 +145,7 @@ class _Machine:
             elif event == "QUARANTINE_DONE":
                 require(self.mode == "QUARANTINING")
                 self.mode = "OPEN"
+                self.recovery_step = self.recovery_result = None
             elif event == "SET_ASIDE_BEGIN":
                 require(self.mode == "TERMINAL_CLAIM" and self.terminal == "FAILED_CONSUMED" and self.d3)
                 self.mode = "SETTING_ASIDE"
@@ -154,7 +165,8 @@ class _Machine:
                              None if self.op is None else f"D{self.level}",
                              None if self.pending is None else f"D{self.pending}", self.d3,
                              None if torn else self.terminal, count,
-                             "TORN_TAIL" if torn else self.last_code, history)
+                             "TORN_TAIL" if torn else self.last_code, history,
+                             self.recovery_step, self.recovery_result, self.completed_source)
 
 
 def _reserve(e, position, counts):
@@ -192,7 +204,8 @@ def project_log(raw: bytes) -> LogProjection:
             try:
                 value = loads(line)
             except FormatError as exc:
-                require(exc.code != "FORMAT_LIMIT_REACHED")
+                if exc.code == "FORMAT_LIMIT_REACHED":
+                    raise
                 # Only lexical noncanonical bytes may be acknowledged. A valid
                 # canonical but schema-invalid event is never erased this way.
                 require(index + 1 < count and not (torn and index + 1 == count - 1))
@@ -209,5 +222,7 @@ def project_log(raw: bytes) -> LogProjection:
             machine.apply(value, index + 1)
             index += 1
         return machine.projection(count)
-    except (FormatError, TypeError, KeyError, ValueError, UnicodeError, RecursionError, OverflowError):
+    except FormatError as exc:
+        return LogProjection("CORRUPT", physical_lines=count, code=exc.code)
+    except (TypeError, KeyError, ValueError, UnicodeError, RecursionError, OverflowError):
         return LogProjection("CORRUPT", physical_lines=count, code="OPERATION_LOG_CORRUPT")
