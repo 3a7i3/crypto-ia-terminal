@@ -1,0 +1,240 @@
+{
+  "schema": "colony-admission.transition-design/0",
+  "status": "DESIGN_FOR_REVIEW_NOT_EXECUTABLE_AUTHORIZATION",
+  "p1_contract_sha256": "e8a125bd67964a01f8a06a5f2d3c50f34e9a154e521dce201cb4fb6d1a40bfcd",
+  "scope": "controller transitions require external guards; pure log projection grants no authority",
+  "meta_states": {
+    "Dk": "D1,D2,D3; matching same step on event and source",
+    "PREVIOUS_COMPLETED": "D(k-1); no rollback of a ledger consumption",
+    "OPEN_D1_OR_LATER": "OPEN_D1,OPEN_D2,OPEN_D3",
+    "OPEN_OR_INTERRUPTED_OR_BLOCKED": "nonterminal state only; a fault during set-aside preserves FAILED_CONSUMED and must not re-terminate",
+    "REFUSED_OR_ABANDONED": "completed previous attempt only; never COMMITTED or FAILED_CONSUMED"
+  },
+  "default": "REFUSE_NO_TRANSITION",
+  "transitions": [
+    {
+      "id": "T01",
+      "from": "EMPTY",
+      "event": "PREPARED",
+      "to": "OPEN_D0",
+      "guard": "complete_dry_run_current_trust_stop_and_frozen_identity",
+      "p1_sections": "6.2,6.4"
+    },
+    {
+      "id": "T02",
+      "from": "OPEN_D0",
+      "event": "BEGIN D1",
+      "to": "PENDING_D1",
+      "guard": "current_trust_stop_and_no_bound_consumption",
+      "p1_sections": "6.4"
+    },
+    {
+      "id": "T03",
+      "from": "OPEN_D0",
+      "event": "REFUSED",
+      "to": "REFUSED",
+      "guard": "no_bound_consumption",
+      "p1_sections": "6.5"
+    },
+    {
+      "id": "T04",
+      "from": "OPEN_D0",
+      "event": "ABANDONED",
+      "to": "ABANDONED",
+      "guard": "operator_and_no_bound_consumption",
+      "p1_sections": "6.5"
+    },
+    {
+      "id": "T05",
+      "from": "PENDING_Dk",
+      "event": "DONE Dk",
+      "to": "OPEN_Dk",
+      "guard": "all_step_writes_and_syncs_succeeded",
+      "p1_sections": "6.4"
+    },
+    {
+      "id": "T06",
+      "from": "PENDING_Dk",
+      "event": "BEGIN_CANCELLED Dk",
+      "to": "PREVIOUS_COMPLETED",
+      "guard": "registrar_own_prewrite_refusal_only",
+      "p1_sections": "6.4"
+    },
+    {
+      "id": "T07",
+      "from": "PENDING_Dk",
+      "event": "DURABILITY_FAULT",
+      "to": "BLOCKED_DURABILITY",
+      "guard": "external_fault_recorded_oplog_not_faulty",
+      "p1_sections": "7.1"
+    },
+    {
+      "id": "T08",
+      "from": "PENDING_Dk",
+      "event": "INTERRUPTED_RECOVERED Dk ABSENT",
+      "to": "PREVIOUS_COMPLETED",
+      "guard": "explicit_operator_no_fault_all_artifacts_absent",
+      "p1_sections": "7.4"
+    },
+    {
+      "id": "T09",
+      "from": "PENDING_Dk",
+      "event": "INTERRUPTED_RECOVERED Dk PRESENT",
+      "to": "OPEN_Dk",
+      "guard": "explicit_operator_no_fault_cold_exact_artifacts",
+      "p1_sections": "7.4"
+    },
+    {
+      "id": "T10",
+      "from": "PENDING_D2",
+      "event": "INTERRUPTED_RECOVERED D2 PARTIAL",
+      "to": "RECOVERED_PARTIAL_D2",
+      "guard": "explicit_operator_no_fault_cold_exact_subset",
+      "p1_sections": "7.4"
+    },
+    {
+      "id": "T11",
+      "from": "PENDING_D3",
+      "event": "INTERRUPTED_RECOVERED D3 PARTIAL",
+      "to": "RECOVERED_PARTIAL_D3",
+      "guard": "explicit_operator_no_fault_cold_exact_subset",
+      "p1_sections": "7.4"
+    },
+    {
+      "id": "T12",
+      "from": "OPEN_D1",
+      "event": "BEGIN D2",
+      "to": "PENDING_D2",
+      "guard": "current_trust_frozen_plan_population_and_consumption",
+      "p1_sections": "6.4"
+    },
+    {
+      "id": "T13",
+      "from": "OPEN_D2",
+      "event": "BEGIN D3",
+      "to": "PENDING_D3",
+      "guard": "current_trust_stop_frozen_plan_population_and_consumption",
+      "p1_sections": "6.4"
+    },
+    {
+      "id": "T14",
+      "from": "OPEN_D3",
+      "event": "COMMITTED",
+      "to": "COMMITTED",
+      "guard": "current_trust_all_external_facts_match_record_hash",
+      "p1_sections": "6.4"
+    },
+    {
+      "id": "T15",
+      "from": "RECOVERED_PARTIAL_D2",
+      "event": "BEGIN D2",
+      "to": "PENDING_D2",
+      "guard": "current_trust_only_missing_files_may_be_written",
+      "p1_sections": "7.4"
+    },
+    {
+      "id": "T16",
+      "from": "RECOVERED_PARTIAL_D3",
+      "event": "QUARANTINE_BEGIN",
+      "to": "QUARANTINING",
+      "guard": "operator_exact_known_files_sqlite_copy_no_fault",
+      "p1_sections": "8.1"
+    },
+    {
+      "id": "T17",
+      "from": "QUARANTINING",
+      "event": "QUARANTINE_DONE",
+      "to": "OPEN_D2",
+      "guard": "same_action_retry_exactly_one_location_rename_and_directory_sync",
+      "p1_sections": "8"
+    },
+    {
+      "id": "T18",
+      "from": "OPEN_D1_OR_LATER",
+      "event": "FAILED_CONSUMED",
+      "to": "FAILED_CONSUMED",
+      "guard": "applicable_revocation_terminal_code_only",
+      "p1_sections": "6.6"
+    },
+    {
+      "id": "T19",
+      "from": "OPEN_OR_INTERRUPTED_OR_BLOCKED",
+      "event": "TERMINATED",
+      "to": "TERMINATING",
+      "guard": "explicit_operator_verified_ledger_finding_oplog_writable",
+      "p1_sections": "7.3"
+    },
+    {
+      "id": "T20",
+      "from": "TERMINATING",
+      "event": "FAILED_CONSUMED",
+      "to": "FAILED_CONSUMED",
+      "guard": "bound_ledger_line_operator_terminated_code",
+      "p1_sections": "7.3"
+    },
+    {
+      "id": "T21",
+      "from": "TERMINATING",
+      "event": "ABANDONED",
+      "to": "ABANDONED",
+      "guard": "verified_no_bound_ledger_line",
+      "p1_sections": "7.3"
+    },
+    {
+      "id": "T22",
+      "from": "FAILED_CONSUMED",
+      "event": "SET_ASIDE_BEGIN",
+      "to": "SETTING_ASIDE",
+      "guard": "operator_d3_started_known_names_identity_prefixes_no_links_no_directory_fault",
+      "p1_sections": "8.2"
+    },
+    {
+      "id": "T23",
+      "from": "SETTING_ASIDE",
+      "event": "SET_ASIDE_DONE",
+      "to": "FAILED_CONSUMED",
+      "guard": "same_action_retry_exactly_one_location_rename_and_directory_sync",
+      "p1_sections": "8"
+    },
+    {
+      "id": "T24",
+      "from": "REFUSED_OR_ABANDONED",
+      "event": "PREPARED",
+      "to": "OPEN_D0",
+      "guard": "same_child_strictly_increasing_attempt_new_frozen_operation_no_prior_consumption_no_blocking_fault_complete_dry_run",
+      "p1_sections": "6.2,6.5"
+    },
+    {
+      "id": "T25",
+      "from": "PREPARATION_INCOMPLETE",
+      "event": "PREPARED",
+      "to": "OPEN_D0",
+      "guard": "only_exact_acknowledged_initial_fragments_before_first_valid_prepared_complete_dry_run_no_consumption",
+      "p1_sections": "6.3,6.4"
+    },
+    {
+      "id": "T26",
+      "from": "QUARANTINING",
+      "event": "DURABILITY_FAULT",
+      "to": "BLOCKED_DURABILITY",
+      "guard": "external_fault_recorded_oplog_not_faulty_preserve_consumption_and_d3_history",
+      "p1_sections": "7.1,8"
+    },
+    {
+      "id": "T27",
+      "from": "SETTING_ASIDE",
+      "event": "DURABILITY_FAULT",
+      "to": "BLOCKED_DURABILITY",
+      "guard": "external_fault_recorded_oplog_not_faulty_preserve_failed_consumed_terminal_no_retry",
+      "p1_sections": "7.1,8"
+    }
+  ],
+  "overlays": [
+    "TORN_TAIL blocks; acknowledgement is explicit, byte-bound and never erases a valid complete event",
+    "CORRUPT blocks whole log including an earlier terminal prefix",
+    "recorded faults take precedence over readable bytes",
+    "TERMINATED_EXTERNALLY is evaluated only by external fault-log join, never pure log projection",
+    "nonterminal refusals write nothing except the P1 BEGIN_CANCELLED exception",
+    "initial acknowledged torn PREPARED is a preamble with no frozen operation; only PREPARED may establish one afterwards"
+  ]
+}
