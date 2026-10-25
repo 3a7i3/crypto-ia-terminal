@@ -1,0 +1,1159 @@
+{
+  "cases_schema": "colony-admission.physical-evidence-cases/0",
+  "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+  "baseline_main": "e566e51ecd67ec6444eca577202a9d18d1ad0b5d",
+  "contract": "P4_3A_PHYSICAL_EVIDENCE_JOIN_V0.md",
+  "required_invariants": {
+    "accepted": false,
+    "authenticity": "NOT_EVALUATED",
+    "authorization": "NOT_EVALUATED",
+    "completeness": "NOT_EVALUATED",
+    "durability": "NOT_EVALUATED",
+    "rotation": "NOT_EVALUATED",
+    "attestations": "NOT_EVALUATED",
+    "population": "NOT_EVALUATED",
+    "ceilings": "NOT_EVALUATED",
+    "recovery": "NOT_EVALUATED"
+  },
+  "rule": "Future real-file tests must implement each case and its variants; no case is a claimed test result. OBSERVED means only the bounded implemented diagnostic. Required blockers are not an exhaustive list; acquisition errors clear all provisional facts.",
+  "cases": [
+    {
+      "id": "ACQ-01",
+      "section": "3.1",
+      "p1_refs": [
+        "DIR-01"
+      ],
+      "given": "One required bound root is missing, versus existing and empty.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "SOURCE_UNAVAILABLE"
+        ],
+        "facts": [
+          "Missing root is not a zero population or empty namespace.",
+          "No usable partial payload."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-02",
+      "section": "3.1",
+      "p1_refs": [
+        "DIR-01"
+      ],
+      "given": "Selected leaf cannot be read (EACCES/IO), versus absent under a verified parent.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "SOURCE_UNAVAILABLE"
+        ],
+        "facts": [
+          "Read failure is not ABSENT; counts/hashes/rows cleared."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-03",
+      "section": "3",
+      "p1_refs": [
+        "STORE-02",
+        "DIR-01"
+      ],
+      "given": "Selected file is a symlink, FIFO, hardlink, public mode, foreign owner or wrong type.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [],
+        "facts": [
+          "No blocking FIFO read; no usable partial payload."
+        ],
+        "one_of_blockers": [
+          "SOURCE_PERMISSIONS",
+          "SOURCE_UNAVAILABLE"
+        ]
+      }
+    },
+    {
+      "id": "ACQ-04",
+      "section": "3",
+      "p1_refs": [
+        "DIR-01"
+      ],
+      "given": "Selected ancestor/child directory is a symlink or not owner0700.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [],
+        "facts": [
+          "No path escape; no permission repair."
+        ],
+        "one_of_blockers": [
+          "SOURCE_PERMISSIONS",
+          "SOURCE_UNAVAILABLE"
+        ]
+      }
+    },
+    {
+      "id": "ACQ-05",
+      "section": "3",
+      "p1_refs": [
+        "DIR-01"
+      ],
+      "given": "A selected path, file identity or inventory changes before final verification.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "SOURCE_CHANGED"
+        ],
+        "facts": [
+          "All provisional source facts are discarded."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-06",
+      "section": "3.1",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "A child/file observed absent is created before the repeated listing/final absence check.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "SOURCE_CHANGED"
+        ],
+        "facts": [
+          "No stale verified-absence fact escapes."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-07",
+      "section": "3",
+      "p1_refs": [],
+      "given": "A close fails after comparison produced provisional positive facts.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "SOURCE_UNAVAILABLE"
+        ],
+        "facts": [
+          "No row/hash/count/ledger payload survives."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-08",
+      "section": "3",
+      "p1_refs": [],
+      "given": "All expected safe sources, instrument every open/read/flock/effect syscall.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "One L1 acquisition, L1 then one L2 read pass; no nested scan.",
+          "No write open/create/fsync/rename/unlink/SQLite or lab/registrar action."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-09",
+      "section": "4",
+      "p1_refs": [],
+      "given": "Provisioned empty operation namespace, valid empty ledger and required roots.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Empty operation tuple still validates ledger once.",
+          "Ledger coverage MATCH with zero actual entries; population NOT_EVALUATED."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-10",
+      "section": "3",
+      "p1_refs": [
+        "DUR-08",
+        "QUAR-11"
+      ],
+      "given": "Corrupt neighbor plus an external termination claim.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "EXTERNAL_TERMINATION_NOT_EVALUATED"
+        ],
+        "facts": [
+          "Never skip the faulty log or infer a terminal override.",
+          "Corrupt log supplies no usable operation prefix."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-11",
+      "section": "3",
+      "p1_refs": [
+        "DUR-09"
+      ],
+      "given": "Acquired fault log records a sticky ledger fault.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "STICKY_FAULT"
+        ],
+        "facts": [
+          "Matching bytes cannot clear the recorded fault."
+        ]
+      }
+    },
+    {
+      "id": "ACQ-12",
+      "section": "3",
+      "p1_refs": [],
+      "given": "L1 or L2 is busy.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [],
+        "facts": [
+          "Nonblocking refusal, no retry/different lock or usable partial payload."
+        ]
+      }
+    },
+    {
+      "id": "HIST-01",
+      "section": "4",
+      "p1_refs": [
+        "TX-03",
+        "TX-10"
+      ],
+      "given": "Old REFUSED/ABANDONED attempt followed by latest PREPARED in the same child log.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Both frozen IDs requested once in the same sorted ledger tuple.",
+          "Old attempt D1 absent; its D2/D3 are SUPERSEDED_NOT_EVALUATED."
+        ]
+      }
+    },
+    {
+      "id": "HIST-02",
+      "section": "3.2",
+      "p1_refs": [
+        "LOG-04"
+      ],
+      "given": "Exactly256 valid distinct operation IDs across at most256 logs, within byte limits.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "History-ID boundary supported; not confused with log count."
+        ]
+      }
+    },
+    {
+      "id": "HIST-03",
+      "section": "3.2",
+      "p1_refs": [
+        "LOG-04"
+      ],
+      "given": "257 distinct attempts in otherwise valid logs, at most256 files.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "HISTORY_OPERATION_LIMIT"
+        ],
+        "facts": [
+          "Refuse before ledger open; no batching/pruning/limit increase."
+        ]
+      }
+    },
+    {
+      "id": "HIST-04",
+      "section": "4",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "The same operation ID occurs in two log/attempt locations.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "DUPLICATE_OPERATION"
+        ],
+        "facts": [
+          "Do not coalesce or sum a repeated operation twice."
+        ]
+      }
+    },
+    {
+      "id": "HIST-05",
+      "section": "5",
+      "p1_refs": [
+        "TX-04",
+        "TX-07"
+      ],
+      "given": "A prior REFUSED or ABANDONED attempt has a ledger entry.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_STATE_INCONSISTENT"
+        ],
+        "facts": [
+          "Latest attempt does not hide historical consumption."
+        ]
+      }
+    },
+    {
+      "id": "HIST-06",
+      "section": "4",
+      "p1_refs": [
+        "TX-03"
+      ],
+      "given": "A later attempt has different frozen material; current D2/D3 belong to it.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Do not compare latest material against the earlier unconsumed attempt."
+        ]
+      }
+    },
+    {
+      "id": "HIST-07",
+      "section": "3 4",
+      "p1_refs": [
+        "LOG-04"
+      ],
+      "given": "Recognized lexical fragment contains CR and fake PREPARED/future-root text.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Opaque fragment contributes no event or identity; preserve #502 behavior."
+        ]
+      }
+    },
+    {
+      "id": "HIST-08",
+      "section": "4",
+      "p1_refs": [
+        "LOG-04"
+      ],
+      "given": "An event would pass only if a historical segment reset its physical reserve positions.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_LOG_UNAVAILABLE"
+        ],
+        "facts": [
+          "Whole-log strict validation wins; no rebased permissive projection."
+        ]
+      }
+    },
+    {
+      "id": "HIST-09",
+      "section": "4",
+      "p1_refs": [
+        "CONC-01"
+      ],
+      "given": "Two distinct latest nonterminal births exist.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_PENDING"
+        ],
+        "facts": [
+          "Both remain visible; none resumed."
+        ]
+      }
+    },
+    {
+      "id": "HIST-10",
+      "section": "4 7",
+      "p1_refs": [
+        "QUAR-05"
+      ],
+      "given": "FAILED_CONSUMED with pending set-aside and one other open birth.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "ACTION_EVIDENCE_NOT_EVALUATED"
+        ],
+        "facts": [
+          "Only the actual open birth counts as pending.",
+          "Pending action does not become a second birth; action remains visible."
+        ]
+      }
+    },
+    {
+      "id": "LED-01",
+      "section": "4",
+      "p1_refs": [
+        "CRASH-L",
+        "DUR-05"
+      ],
+      "given": "Ledger has corrupt/torn bytes, even after valid rows.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [],
+        "facts": [
+          "Strict whole parse; no counts/hash/rows from the valid prefix."
+        ]
+      }
+    },
+    {
+      "id": "LED-02",
+      "section": "4",
+      "p1_refs": [
+        "COMP-06"
+      ],
+      "given": "Ledger contains a legacy/0 row, with or without matching /1 rows.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "LEGACY_LEDGER_UNBOUND"
+        ],
+        "facts": [
+          "Legacy count visible only after successful parse; no legacy adoption."
+        ]
+      }
+    },
+    {
+      "id": "LED-03",
+      "section": "4",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "One /1 row names an operation absent from all supported PREPARED records.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "LEDGER_OPERATION_UNBOUND"
+        ],
+        "facts": [
+          "E-S equals1; no invented identity for the unknown row."
+        ]
+      }
+    },
+    {
+      "id": "LED-04",
+      "section": "4",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "No operations exist but a valid /1 ledger row exists.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "LEDGER_OPERATION_UNBOUND"
+        ],
+        "facts": [
+          "Empty requested tuple does not hide an orphan."
+        ]
+      }
+    },
+    {
+      "id": "LED-05",
+      "section": "4",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "Two /1 entries bind to the same requested operation.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "LEDGER_UNAVAILABLE"
+        ],
+        "facts": [
+          "No multiple-entry success; preserve the trust conflict diagnostic."
+        ]
+      }
+    },
+    {
+      "id": "LED-06",
+      "section": "4",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "Strict ledger has only unique entries for the complete supported operation ID set.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Zero legacy, E=S; coverage MATCH is structural only."
+        ]
+      }
+    },
+    {
+      "id": "LED-07",
+      "section": "3 4",
+      "p1_refs": [],
+      "given": "Ledger read, metadata, unlock or caller-close failure.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [],
+        "facts": [
+          "Counts and unbound count are null, never0.",
+          "All provisional facts discarded."
+        ]
+      }
+    },
+    {
+      "id": "D1-01",
+      "section": "5",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "Effective completed D1, but no ledger row.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_STATE_INCONSISTENT"
+        ],
+        "facts": [
+          "No consumed proof from DONE alone."
+        ]
+      }
+    },
+    {
+      "id": "D1-02",
+      "section": "5",
+      "p1_refs": [
+        "CRASH-D1"
+      ],
+      "given": "Open BEGIN D1 with zero rows, then one matching row.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "ABSENT then FROZEN_HASH_MATCH; no recovery or completion promotion."
+        ]
+      }
+    },
+    {
+      "id": "D1-03",
+      "section": "5",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "Pre-D1 operation without BEGIN D1 but a consumption row.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_STATE_INCONSISTENT"
+        ],
+        "facts": [
+          "A matching envelope hash alone does not fix the phase contradiction."
+        ]
+      }
+    },
+    {
+      "id": "D1-04",
+      "section": "5",
+      "p1_refs": [
+        "COMP-05"
+      ],
+      "given": "Requested operation row has a foreign admission-envelope digest.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "LEDGER_ENVELOPE_MISMATCH"
+        ],
+        "facts": [
+          "No successful consumption binding."
+        ]
+      }
+    },
+    {
+      "id": "D1-05",
+      "section": "5",
+      "p1_refs": [
+        "CRASH-D1+"
+      ],
+      "given": "Completed D1, D2 not begun, no stored admission envelope.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "FROZEN_HASH_MATCH and NOT_AVAILABLE_BEFORE_D2 are separate facts.",
+          "Issuer/envelope IDs are not invented; authentication NOT_EVALUATED."
+        ]
+      }
+    },
+    {
+      "id": "D1-06",
+      "section": "5",
+      "p1_refs": [
+        "COMP-05"
+      ],
+      "given": "Stored admission envelope digest/issuer/envelope ID conflicts with its ledger row.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "LEDGER_ENVELOPE_MISMATCH"
+        ],
+        "facts": [
+          "No envelope-identity MATCH."
+        ]
+      }
+    },
+    {
+      "id": "D2-01",
+      "section": "6",
+      "p1_refs": [
+        "CRASH-D2-"
+      ],
+      "given": "D2 interrupted, all five selected material files absent beneath verified roots.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "D2 ABSENT, not completed or recovered."
+        ]
+      }
+    },
+    {
+      "id": "D2-02",
+      "section": "6",
+      "p1_refs": [
+        "CRASH-D2"
+      ],
+      "given": "Some whole matching D2 files present, others missing.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "D2 PARTIAL; no write of missing files or cold-read certification."
+        ]
+      }
+    },
+    {
+      "id": "D2-03",
+      "section": "6",
+      "p1_refs": [
+        "CRASH-D2+"
+      ],
+      "given": "Effective completed D2, all five selected files match.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "D2 MATERIAL_MATCH; no attestation or durability PASS."
+        ]
+      }
+    },
+    {
+      "id": "D2-04",
+      "section": "6",
+      "p1_refs": [
+        "TX-07",
+        "STORE-01"
+      ],
+      "given": "Effective completed D2 but any required file is absent or partial.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_STATE_INCONSISTENT"
+        ],
+        "facts": [
+          "An admission record alone is not complete D2 proof."
+        ]
+      }
+    },
+    {
+      "id": "D2-05",
+      "section": "6",
+      "p1_refs": [
+        "STORE-01"
+      ],
+      "given": "Any selected file is different, malformed or a short/prefix write.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "STORED_FILE_DIVERGENT"
+        ],
+        "facts": [
+          "Prefix JSON is not recoverable PARTIAL."
+        ]
+      }
+    },
+    {
+      "id": "D2-06",
+      "section": "6",
+      "p1_refs": [
+        "TX-06"
+      ],
+      "given": "Equal selected material pre-exists before BEGIN D2.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Presence is not ownership, D2 completion or evidence of this operation writing."
+        ]
+      }
+    },
+    {
+      "id": "D2-07",
+      "section": "6",
+      "p1_refs": [
+        "COMP-05"
+      ],
+      "given": "Frozen admission names foreign child/parent/policy/qualification or different budget/permissions/diff.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "FROZEN_MATERIAL_INVALID"
+        ],
+        "facts": [
+          "Visible frozen bindings checked without calling registrar prepare."
+        ]
+      }
+    },
+    {
+      "id": "D2-08",
+      "section": "6",
+      "p1_refs": [
+        "COMP-01",
+        "COMP-02"
+      ],
+      "given": "Presented record/envelope has a missing/duplicate/contradictory DECISION reference.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "FROZEN_MATERIAL_INVALID"
+        ],
+        "facts": [
+          "No global required-list completeness PASS;3B remains separate."
+        ]
+      }
+    },
+    {
+      "id": "D2-09",
+      "section": "6",
+      "p1_refs": [
+        "COMP-05"
+      ],
+      "given": "Birth qualification stored under child namespace, subject correctly names the frozen parent.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Correct parent subject is allowed even though the directory is the child namespace.",
+          "No parent_agent_spec_id admission field invented."
+        ]
+      }
+    },
+    {
+      "id": "D2-10",
+      "section": "6",
+      "p1_refs": [
+        "STORE-01"
+      ],
+      "given": "Admission storage whitespace differs but bounded strict decoded canonical object is equal.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Canonical equality, raw hash and byte equality remain distinct."
+        ]
+      }
+    },
+    {
+      "id": "D2-11",
+      "section": "6",
+      "p1_refs": [
+        "AUTH-10"
+      ],
+      "given": "Statement contains historical/evidence paths outside the checkout or secret-looking paths.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Do not open those paths; report only frozen digest/visible bindings.",
+          "Full statement semantics NOT_EVALUATED, never a qualification."
+        ]
+      }
+    },
+    {
+      "id": "D2-12",
+      "section": "6",
+      "p1_refs": [
+        "COMP-08"
+      ],
+      "given": "All required D2 material matches, but child individual attestation is not yet stored.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Individual attestation is not a D2 requirement; no filiation permission."
+        ]
+      }
+    },
+    {
+      "id": "D3-01",
+      "section": "7",
+      "p1_refs": [
+        "CRASH-D3-"
+      ],
+      "given": "Home absent before effective D3 completion.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "D3 ABSENT and no completion promotion."
+        ]
+      }
+    },
+    {
+      "id": "D3-02",
+      "section": "7",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "A home exists without effective D2 completion.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_STATE_INCONSISTENT"
+        ],
+        "facts": [
+          "Equal identity bytes do not erase missing D2 phase proof."
+        ]
+      }
+    },
+    {
+      "id": "D3-03",
+      "section": "7",
+      "p1_refs": [
+        "HOME-01"
+      ],
+      "given": "Matching home exists after D2 but before BEGIN D3.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "HOME_ORIGIN_NOT_EVALUATED"
+        ],
+        "facts": [
+          "Matching material remains visible; no implicit OWN_OPERATION or recovery decision."
+        ]
+      }
+    },
+    {
+      "id": "D3-04",
+      "section": "7",
+      "p1_refs": [
+        "CRASH-D3a"
+      ],
+      "given": "D3 interrupted; only whole equal files/directories are present, other components missing.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "D3 PARTIAL; no quarantine or recovery."
+        ]
+      }
+    },
+    {
+      "id": "D3-05",
+      "section": "7",
+      "p1_refs": [
+        "HOME-03"
+      ],
+      "given": "Open D3 contains short/prefix or divergent identity/initial usage bytes.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "STORED_FILE_DIVERGENT"
+        ],
+        "facts": [
+          "No recoverable PARTIAL verdict for short files."
+        ]
+      }
+    },
+    {
+      "id": "D3-06",
+      "section": "7",
+      "p1_refs": [
+        "CRASH-D3g"
+      ],
+      "given": "All initial identity/usage bytes and covered layout match during interrupted D3.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "INITIAL_MATCH does not mean recovered, durable, committed or ready."
+        ]
+      }
+    },
+    {
+      "id": "D3-07",
+      "section": "7",
+      "p1_refs": [
+        "OWN-01"
+      ],
+      "given": "Completed D3 with matching identity, changed usage after a run, and allowed temporary run names.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "IDENTITY_MATCH; usage content is NOT_EVALUATED and not read."
+        ]
+      }
+    },
+    {
+      "id": "D3-08",
+      "section": "7",
+      "p1_refs": [
+        "CRASH-D3g"
+      ],
+      "given": "RECOVERY_PRESENT D3 is structurally valid and later usage differs.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Same effective-completion identity comparison; no current-boot or cold-read certification."
+        ]
+      }
+    },
+    {
+      "id": "D3-09",
+      "section": "7",
+      "p1_refs": [
+        "TX-07"
+      ],
+      "given": "Completed D3 or COMMITTED but one identity file is missing/different.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "OPERATION_STATE_INCONSISTENT"
+        ],
+        "facts": [
+          "Terminal log claim alone never proves identity."
+        ]
+      }
+    },
+    {
+      "id": "D3-10",
+      "section": "7",
+      "p1_refs": [
+        "HOME-01"
+      ],
+      "given": "D3 Unicode spec equals the frozen object but raw encoding differs from Supervisor._dump.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "STORED_FILE_DIVERGENT"
+        ],
+        "facts": [
+          "Writer byte profile matters here; semantic hashes stay separate."
+        ]
+      }
+    },
+    {
+      "id": "D3-11",
+      "section": "7",
+      "p1_refs": [
+        "DIR-01"
+      ],
+      "given": "Completed layout lacks tasks/results/journal directory or nonempty store metadata.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "D3_LAYOUT_INCOMPLETE"
+        ],
+        "facts": [
+          "No semantic SQLite/content health claim."
+        ]
+      }
+    },
+    {
+      "id": "D3-12",
+      "section": "7",
+      "p1_refs": [
+        "QUAR-02"
+      ],
+      "given": "Selected root/journal has unknown names, unsafe type/link or too many entries.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [],
+        "facts": [
+          "No recursion into task/result content; selected unsafe namespace blocks."
+        ]
+      }
+    },
+    {
+      "id": "D3-13",
+      "section": "7",
+      "p1_refs": [
+        "QUAR-07"
+      ],
+      "given": "FAILED_CONSUMED after BEGIN D3, identity prefix of expected bytes.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "ACTION_EVIDENCE_NOT_EVALUATED"
+        ],
+        "facts": [
+          "TERMINAL_PREFIX is visible but never set-aside eligibility or admitted population."
+        ]
+      }
+    },
+    {
+      "id": "D3-14",
+      "section": "7",
+      "p1_refs": [
+        "QUAR-01",
+        "QUAR-06"
+      ],
+      "given": "A quarantine/set-aside action or external termination is claimed.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "ACTION_EVIDENCE_NOT_EVALUATED"
+        ],
+        "facts": [
+          "No destination scan, move, bypass, automatic release or sticky-fault clear."
+        ]
+      }
+    },
+    {
+      "id": "LIMIT-01",
+      "section": "3.2",
+      "p1_refs": [
+        "COMP-09"
+      ],
+      "given": "Any selected record/envelope/content aggregate or FD limit is exceeded.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "SOURCE_LIMIT"
+        ],
+        "facts": [
+          "No partial payload, no pruning/permission fix or larger retry."
+        ]
+      }
+    },
+    {
+      "id": "RESULT-01",
+      "section": "8",
+      "p1_refs": [
+        "AUTH-01"
+      ],
+      "given": "Every implemented comparison and bounded ledger coverage matches.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "accepted is false; authenticity/authorization/completeness/durability/rotation/attestations/population/ceilings/recovery all NOT_EVALUATED."
+        ]
+      }
+    },
+    {
+      "id": "RESULT-02",
+      "section": "8",
+      "p1_refs": [],
+      "given": "SQLite store metadata exists and is nonempty; no database bytes read.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Expose metadata-only stamp and null content hash, never a fabricated SHA or journal health PASS."
+        ]
+      }
+    },
+    {
+      "id": "COMPAT-01",
+      "section": "2",
+      "p1_refs": [],
+      "given": "Existing observe()/scan()/FD/trust/registrar tests and ACK/CR regressions run unchanged.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "OBSERVED",
+        "required_blockers": [],
+        "facts": [
+          "Existing API outputs/defaults, P1 pins and qualified hashes unchanged; no wider source authority."
+        ]
+      }
+    },
+    {
+      "id": "D2-13",
+      "section": "6",
+      "p1_refs": [
+        "COMP-05"
+      ],
+      "given": "Selected stored qualification envelope uses the child as subject where the frozen qualification names the parent.",
+      "when": "scan_evidence() on a private bound LAB_TEST fixture",
+      "expect": {
+        "status": "BLOCKED",
+        "required_blockers": [
+          "STORED_FILE_DIVERGENT"
+        ],
+        "facts": [
+          "Directory ownership does not substitute for record subject binding."
+        ]
+      }
+    }
+  ]
+}
