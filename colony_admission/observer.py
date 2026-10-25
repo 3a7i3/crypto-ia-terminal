@@ -1,4 +1,4 @@
-"""Bounded, read-only selected-child evidence acquisition; never admission."""
+"""Bounded, read-only evidence acquisition and operation-log inventory; never admission."""
 
 import fcntl
 import hashlib
@@ -57,6 +57,33 @@ class Observation:
     completeness: str = field(default="NOT_EVALUATED", init=False)
     durability: str = field(default="NOT_EVALUATED", init=False)
     rotation: str = field(default="NOT_EVALUATED", init=False)
+
+
+@dataclass(frozen=True)
+class ChildObservation:
+    child_agent_id: str
+    log: LogProjection
+    blockers: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class LabObservation:
+    status: str
+    blockers: tuple[str, ...]
+    sources: tuple[SourceStamp, ...] = ()
+    children: tuple[ChildObservation, ...] = ()
+    pending_operations: tuple[str, ...] = ()
+    ledger_bytes: bytes | None = None
+    root_status: str = "NOT_EVALUATED"
+    provenance: str = "NOT_EVALUATED"
+    accepted: bool = field(default=False, init=False)
+    authorization: str = field(default="NOT_EVALUATED", init=False)
+    completeness: str = field(default="NOT_EVALUATED", init=False)
+    durability: str = field(default="NOT_EVALUATED", init=False)
+    rotation: str = field(default="NOT_EVALUATED", init=False)
+
+
+MAX_SCAN_BYTES = 32 * 1024 * 1024
 
 
 def _need(condition, code="SOURCE_UNAVAILABLE"):
@@ -128,7 +155,7 @@ class _Acquisition:
         self.checks.append((fd, parent, name, _identity(value)))
         return fd
 
-    def file(self, parent, name, resource, limit, *, lock=False):
+    def file_descriptor(self, parent, name, limit, *, lock=False):
         fd = self._fd(name, os.O_RDONLY, parent=parent)
         before = os.fstat(fd)
         _need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == 0o600
@@ -139,6 +166,11 @@ class _Acquisition:
             except BlockingIOError:
                 raise _Blocked("REGISTRAR_BUSY") from None
         _need(before.st_size <= limit, "SOURCE_LIMIT")
+        self.checks.append((fd, parent, name, _identity(before)))
+        return fd, before
+
+    def file(self, parent, name, resource, limit, *, lock=False):
+        fd, before = self.file_descriptor(parent, name, limit, lock=lock)
         chunks, count = [], 0
         while True:
             chunk = os.read(fd, min(65536, limit + 1 - count))
@@ -149,7 +181,6 @@ class _Acquisition:
             _need(count <= limit, "SOURCE_LIMIT")
         raw = b"".join(chunks)
         _need(_identity(before) == _identity(os.fstat(fd)), "SOURCE_CHANGED")
-        self.checks.append((fd, parent, name, _identity(before)))
         self.stamps.append(SourceStamp(resource, before.st_dev, before.st_ino, len(raw),
                                        before.st_mtime_ns, before.st_ctime_ns, hashlib.sha256(raw).hexdigest()))
         return raw
@@ -161,10 +192,9 @@ class _Acquisition:
                   "SOURCE_CHANGED")
 
 
-def _join(config, child, fault_raw, policy_raw, history_raw, log_raw, ledger):
+def _external(config, fault_raw, policy_raw, history_raw):
     faults = project_fault_log(fault_raw, config.lab_id)
     policy = project_installed_trust(policy_raw, history_raw, config.lab_id)
-    log = project_log(log_raw)
     blockers, root_status = [], "NOT_EVALUATED"
     if faults.status not in ("EMPTY", "STRUCTURAL_ONLY"):
         blockers.append("FAULT_LOG_UNAVAILABLE")
@@ -184,6 +214,13 @@ def _join(config, child, fault_raw, policy_raw, history_raw, log_raw, ledger):
             root_status = "CURRENT_ROOT_VALIDATED"
         except (trust.TrustError, _Blocked):
             blockers.append("TRUST_CURRENT_UNAVAILABLE")
+    return faults, policy, root_status, tuple(blockers)
+
+
+def _join(config, child, fault_raw, policy_raw, history_raw, log_raw, ledger, *, external=None):
+    faults, policy, root_status, common = external or _external(config, fault_raw, policy_raw, history_raw)
+    blockers = list(common)
+    log = project_log(log_raw)
     if log.status in ("CORRUPT", "TORN_TAIL", "EMPTY", "PREPARATION_INCOMPLETE"):
         blockers.append("OPERATION_LOG_UNAVAILABLE")
         return log, root_status, blockers
@@ -283,10 +320,8 @@ class FileObserver:
             log = project_log(log_raw)
             _need(log.operation_sha256 is not None, "OPERATION_LOG_UNAVAILABLE")
             ledger_parent = source.directory(config.ledger.parent)
-            ledger_raw = source.file(ledger_parent, config.ledger.name, "LEDGER", 16 * 1024 * 1024)
-            # Existing reader takes L2 while L1 is held. It never creates a file.
-            ledger = trust.inspect_operation_consumption(config.ledger, log.operation_sha256)
-            _need(ledger["ledger_sha256"] == hashlib.sha256(ledger_raw).hexdigest(), "LEDGER_SNAPSHOT_MISMATCH")
+            batch = _ledger(source, ledger_parent, config.ledger.name, (log.operation_sha256,))
+            ledger = batch["observations"][0]
             result_log, root_status, blockers = _join(config, child, fault_raw, policy, history, log_raw, ledger)
             source.verify()
             result = Observation("BLOCKED" if blockers else "OBSERVED", tuple(dict.fromkeys(blockers)),
@@ -294,3 +329,84 @@ class FileObserver:
                                  "BOUND_FILES_OBSERVED")
         # A close error propagates through observe and discards the provisional payload.
         return result
+
+    def scan(self) -> LabObservation:
+        """Acquire the entire bounded operation-log directory; no resume/action."""
+        try:
+            return self._scan()
+        except _Blocked as exc:
+            return LabObservation("BLOCKED", (str(exc),))
+        except (OSError, ValueError, TypeError, f.FormatError):
+            return LabObservation("BLOCKED", ("SOURCE_UNAVAILABLE",))
+
+    def _scan(self):
+        config = self._config
+        with ExitStack() as stack:
+            source = _Acquisition(stack)
+            lab = source.directory(config.lab_root)
+            source.file(lab, "registrar.lock", "L1", 0, lock=True)
+            faults = source.directory(config.fault_file.parent)
+            fault_raw = source.file(faults, config.fault_file.name, "FAULT_LOG", FAULT_MAX_LINES * FAULT_LINE_BYTES)
+            installed = source.directory(config.trust_directory)
+            policy = source.file(installed, "policy.json", "TRUST_POLICY", POLICY_MAX_BYTES)
+            history = source.file(installed, "trust-history.log", "TRUST_HISTORY",
+                                  HISTORY_MAX_LINES * HISTORY_LINE_BYTES)
+            external = _external(config, fault_raw, policy, history)
+            operations = source.subdirectory(lab, "admission-ops")
+            names = _names(operations)
+            logs, total, operations_seen = [], 0, set()
+            blockers = list(external[3])
+            for name in names:
+                raw = source.file(operations, name, "OPERATION_LOG:" + name[:-4],
+                                  min(f.MAX_LOG, MAX_SCAN_BYTES - total))
+                total += len(raw)
+                log = project_log(raw)
+                if log.operation_sha256 is not None:
+                    if log.operation_sha256 in operations_seen:
+                        blockers.append("DUPLICATE_OPERATION")
+                    operations_seen.add(log.operation_sha256)
+                logs.append((name[:-4], raw, log))
+            ledger_parent = source.directory(config.ledger.parent)
+            batch = _ledger(source, ledger_parent, config.ledger.name, tuple(sorted(operations_seen)))
+            rows = {row["operation_sha256"]: row for row in batch["observations"]}
+            children, pending = [], set()
+            for child, raw, log in logs:
+                if log.operation_sha256 is None:
+                    errors = ["OPERATION_LOG_UNAVAILABLE"]
+                else:
+                    _, _, errors = _join(config, child, fault_raw, policy, history, raw,
+                                          rows[log.operation_sha256], external=external)
+                    if log.terminal_claim is None:
+                        pending.add(log.operation_sha256)
+                children.append(ChildObservation(child, log, tuple(dict.fromkeys(errors))))
+                blockers.extend(errors)
+            if len(pending) > 1:
+                blockers.append("OPERATION_PENDING")
+            if not logs and batch["legacy_entries"]:
+                blockers.append("LEGACY_LEDGER_UNBOUND")
+            _need(_names(operations) == names, "SOURCE_CHANGED")
+            source.verify()
+            result = LabObservation("BLOCKED" if blockers else "OBSERVED", tuple(dict.fromkeys(blockers)),
+                                    tuple(source.stamps), tuple(children), tuple(sorted(pending)),
+                                    f.canonical(batch), external[2], "BOUND_FILES_OBSERVED")
+        return result
+
+
+def _ledger(source, parent, name, operations):
+    fd, before = source.file_descriptor(parent, name, trust.INSPECTION_MAX_BYTES)
+    batch = trust.inspect_operations_fd(fd, operations)
+    _need(batch["status"] == "OBSERVED", batch["status"])
+    source.stamps.append(SourceStamp("LEDGER", before.st_dev, before.st_ino, before.st_size,
+                                    before.st_mtime_ns, before.st_ctime_ns, batch["ledger_sha256"]))
+    return batch
+
+
+def _names(directory):
+    names = []
+    with os.scandir(directory) as entries:
+        for entry in entries:
+            _need(len(names) < 256, "OPERATION_LOGS_FULL")
+            name = entry.name
+            _need(name.endswith(".log") and f.hex64(name[:-4]), "OPERATION_NAMESPACE_INVALID")
+            names.append(name)
+    return tuple(sorted(names))

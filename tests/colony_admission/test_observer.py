@@ -269,16 +269,18 @@ def test_invalid_selection_never_acquires(machine, child):
     assert o.FileObserver(machine[0]).observe(child).sources == ()
 
 
-def test_ledger_snapshot_crosscheck_is_not_asserted_by_caller(machine, monkeypatch):
-    original = o.trust.inspect_operation_consumption
+def test_ledger_path_substitution_cannot_rebind_borrowed_descriptor(machine, monkeypatch):
+    original = o.trust.inspect_operations_fd
 
     def substitute(*args):
         value = original(*args)
-        value["ledger_sha256"] = hashlib.sha256(b"different").hexdigest()
+        path = machine[0].ledger
+        path.rename(path.with_name("old-ledger"))
+        write(path, b"")
         return value
 
-    monkeypatch.setattr(o.trust, "inspect_operation_consumption", substitute)
-    assert observe(machine).blockers == ("LEDGER_SNAPSHOT_MISMATCH",)
+    monkeypatch.setattr(o.trust, "inspect_operations_fd", substitute)
+    assert observe(machine).blockers == ("SOURCE_CHANGED",)
 
 
 @pytest.mark.parametrize("version,pin", [(2, None), (1, "9" * 64)])
