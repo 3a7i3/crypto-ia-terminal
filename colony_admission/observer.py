@@ -227,7 +227,8 @@ def _join(config, child, fault_raw, policy_raw, history_raw, log_raw, ledger, *,
     # Only canonical prepared/event bytes already accepted by the pure projection
     # participate in the join. ACK fragments remain lexical, not identity sources.
     events, prepared_seen = [], False
-    for line in log_raw.splitlines():
+    # Match project_log: CR inside an acknowledged fragment is not an event boundary.
+    for line in log_raw.split(b"\n"):
         try:
             event = f.loads(line)
         except f.FormatError:
