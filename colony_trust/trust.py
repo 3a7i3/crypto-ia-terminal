@@ -497,13 +497,14 @@ def _read(fd: int) -> dict:
     return {key: entry["envelope_sha256"] for key, entry in _read_entries(fd).items()}
 
 
-def _read_entries(fd: int, *, max_bytes=None, max_entries=None, with_digest=False) -> dict | tuple[dict, str]:
+def _read_entries(fd: int, *, max_bytes=None, max_entries=None, with_digest=False, rewind=True) -> dict | tuple[dict, str]:
     """Strict full snapshot; existing callers keep a dict, optional digest uses the same bytes."""
     if max_bytes is not None and os.fstat(fd).st_size > max_bytes:
         raise TrustError("LEDGER_TOO_LARGE")
     chunks = []
     size = 0
-    os.lseek(fd, 0, os.SEEK_SET)
+    if rewind:
+        os.lseek(fd, 0, os.SEEK_SET)
     while chunk := os.read(fd, 65_536):
         size += len(chunk)
         if max_bytes is not None and size > max_bytes:
@@ -827,6 +828,76 @@ def inspect_operation_consumption(ledger: Path, operation_sha256: str) -> dict:
         return observed
     except TrustError as exc:
         status = {"LEDGER_TOO_LARGE": "LEDGER_UNAVAILABLE", "LEDGER_BUSY": "LEDGER_BUSY"}.get(
+            exc.code, "LEDGER_CORRUPT")
+        return {**result, "status": status, "failures": [exc.code]}
+    except (OSError, ValueError, TypeError):
+        return {**result, "status": "LEDGER_UNAVAILABLE", "failures": ["LEDGER_UNAVAILABLE"]}
+
+
+def inspect_operations_fd(fd: int, operations: tuple[str, ...]) -> dict:
+    """One whole borrowed-descriptor snapshot; caller proves provenance and owns close.
+
+    Borrow only a newly independently opened, unlocked O_RDONLY descriptor at offset0.
+    No path lookup, close, write or authority grant. L1 must already be held by caller.
+    """
+    result = {"inspection_schema": "colony-trust.operations-inspection/0", "status": "INVALID_INPUT",
+              "ledger_sha256": None, "ledger_entries": None, "legacy_entries": None,
+              "observations": [], "failures": [], "accepted": False,
+              **dict.fromkeys(("authenticity", "authorization", "completeness", "provenance", "durability"),
+                              "NOT_EVALUATED")}
+    if (type(fd) is not int or fd < 0 or type(operations) is not tuple or len(operations) > 256
+            or any(type(op) is not str or not _HEX64.fullmatch(op) for op in operations)
+            or len(set(operations)) != len(operations)):
+        return {**result, "failures": ["OPERATION_INVALID"]}
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+                or stat.S_IMODE(before.st_mode) != 0o600 or before.st_uid != os.geteuid()
+                or fcntl.fcntl(fd, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDONLY
+                or os.lseek(fd, 0, os.SEEK_CUR) != 0):
+            raise TrustError("LEDGER_CORRUPT")
+        try:
+            fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise TrustError("LEDGER_BUSY") from None
+        try:
+            entries, snapshot = _read_entries(fd, max_bytes=INSPECTION_MAX_BYTES,
+                                              max_entries=INSPECTION_MAX_ENTRIES, with_digest=True, rewind=False)
+            after = os.fstat(fd)
+            fields = ("st_dev", "st_ino", "st_mode", "st_uid", "st_nlink", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if any(getattr(before, name) != getattr(after, name) for name in fields):
+                raise TrustError("LEDGER_CORRUPT")
+            legacy = sum(e["ledger_schema"] == LEDGER_SCHEMA for e in entries.values())
+            by_operation = {}
+            for entry in entries.values():
+                if entry["ledger_schema"] == OPERATION_LEDGER_SCHEMA:
+                    by_operation.setdefault(entry["operation_sha256"], []).append(entry)
+            rows = []
+            for op in operations:
+                related = by_operation.get(op, [])
+                count = len(related)
+                if count > 1:
+                    status, failures = "CONFLICT", ["OPERATION_MULTIPLE_ENTRIES"]
+                elif count == 1:
+                    status, failures = "OPERATION_ENTRY_PRESENT", []
+                elif legacy:
+                    status, failures = "LEGACY_AMBIGUITY", ["LEGACY_OPERATION_UNBOUND"]
+                else:
+                    status, failures = "NO_OPERATION_ENTRY", []
+                rows.append({"inspection_schema": OPERATION_INSPECTION_SCHEMA, "status": status,
+                             "operation_sha256": op, "operation_entries": count, "legacy_entries": legacy,
+                             "ledger_entries": len(entries), "ledger_sha256": snapshot,
+                             "entry": dict(related[0]) if count == 1 else None, "failures": failures,
+                             "accepted": False, **{k: result[k] for k in
+                                                   ("authenticity", "authorization", "completeness", "provenance", "durability")}})
+            observed = {**result, "status": "OBSERVED", "ledger_sha256": snapshot,
+                        "ledger_entries": len(entries), "legacy_entries": legacy, "observations": rows}
+        finally:
+            # An unlock error invalidates every provisional observation.
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        return observed
+    except TrustError as exc:
+        status = {"LEDGER_BUSY": "LEDGER_BUSY", "LEDGER_TOO_LARGE": "LEDGER_UNAVAILABLE"}.get(
             exc.code, "LEDGER_CORRUPT")
         return {**result, "status": status, "failures": [exc.code]}
     except (OSError, ValueError, TypeError):
