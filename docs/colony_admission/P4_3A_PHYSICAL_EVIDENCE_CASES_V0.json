@@ -1155,5 +1155,11 @@
         ]
       }
     }
+  ],
+  "fixture_defaults": [
+    "Unless a case explicitly changes them, all other contract acquisition, frozen bindings, current-root, state, file-layout and resource requirements conform.",
+    "The fixture is an isolated private temporary LAB_TEST lab, with required roots provisioned and no sticky fault or unsupported action.",
+    "OS descriptor limits are sufficient for the nominal boundary cases; lower-limit refusal is exercised separately.",
+    "Each stated variant must be exercised independently; a positive case does not certify unrelated or out-of-scope properties."
   ]
 }
