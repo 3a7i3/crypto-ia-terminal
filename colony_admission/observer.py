@@ -157,6 +157,9 @@ class _Acquisition:
 
     def file_descriptor(self, parent, name, limit, *, lock=False):
         fd = self._fd(name, os.O_RDONLY, parent=parent)
+        return self.checked_file_descriptor(fd, parent, name, limit, lock=lock)
+
+    def checked_file_descriptor(self, fd, parent, name, limit, *, lock=False):
         before = os.fstat(fd)
         _need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == 0o600
               and before.st_nlink == 1 and before.st_uid == os.geteuid(), "SOURCE_PERMISSIONS")
@@ -330,6 +333,11 @@ class FileObserver:
                                  "BOUND_FILES_OBSERVED")
         # A close error propagates through observe and discards the provisional payload.
         return result
+
+    def scan_evidence(self):
+        """Bounded historical D1 and selected physical D2/D3 facts, never admission."""
+        from .evidence_observer import scan_evidence
+        return scan_evidence(self._config)
 
     def scan(self) -> LabObservation:
         """Acquire the entire bounded operation-log directory; no resume/action."""
