@@ -1,0 +1,1758 @@
+{
+  "schema": "colony-admission.3c-specification/0",
+  "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+  "baseline_main": "d890081e94bcf0818145d0f919162e11cae8e58f",
+  "baseline_tree": "f70d21a6d2ef456b3bee692636d7f6f79890647d",
+  "contract": "P4_3C_POPULATION_AND_CEILINGS_V0.md",
+  "p1_contract_sha256": "e8a125bd67964a01f8a06a5f2d3c50f34e9a154e521dce201cb4fb6d1a40bfcd",
+  "p1_scenarios_sha256": "4e518bfec6faaa582c2c42633d80e989b8204708b554f74b0eb1bbee6eaa59a1",
+  "defaults": {
+    "unspecified_preconditions": "Toutes autres préconditions de configuration, acquisition, format, binding, état, science supportée, racine LAB_TEST, politique opérateur et ressources valides. Chaque fixture est privée temporaire et utilise des clés publiques de test seulement.",
+    "accepted": false,
+    "cases_are_executed": false,
+    "no_operational_authority": true,
+    "permanent_not_evaluated": [
+      "authorization",
+      "completeness",
+      "operational_completeness",
+      "durability",
+      "rotation",
+      "recovery",
+      "source_revision_provenance"
+    ],
+    "p1_mapping": "Références normatives seulement ; le diagnostic n’exécute pas les effets opérationnels des scénarios P1.",
+    "failure_dominance": "FAIL prouvé domine NE ; aucun PASS sur sous-ensemble silencieux.",
+    "capacity": "Borne maximale suppose capacité OS suffisante ; source indisponible sinon."
+  },
+  "source_profiles": {
+    "reference_contract": "P4_3B_ATTESTATIONS_AND_ANCESTRY_V0.md §8–9",
+    "reference_cases": "P4_3B_ATTESTATIONS_AND_ANCESTRY_CASES_V0.json source_profiles",
+    "sentinel-r8-c9": "Bindings et pins identiques à 3B, aucune campagne exécutée.",
+    "pilot-p1-pc2": "Non supporté et bloquant ; aucun mapping inventé, p1 conservé dans g0."
+  },
+  "cases": [
+    {
+      "id": "INV-01",
+      "plan_family": "C-01",
+      "contract_sections": [
+        "3",
+        "4"
+      ],
+      "p1_scenarios": [
+        "COMP-03"
+      ],
+      "given": "individuals/ acquis, listing stable vide ; aucun CURRENT_OPEN.",
+      "when": "scan_population()",
+      "then": [
+        "inventory PASS ; homes vide ; population PASS pour cet univers vide.",
+        "ceilings NE / NO_CURRENT_OPEN_OPERATION non bloquant ; accepted=false."
+      ]
+    },
+    {
+      "id": "INV-02",
+      "plan_family": "C-01",
+      "contract_sections": [
+        "4",
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-03"
+      ],
+      "given": "individuals/ absent, inaccessible ou substitué par lien.",
+      "when": "scan_population()",
+      "then": [
+        "SOURCE_UNAVAILABLE/SOURCE_PERMISSIONS ; zéro payload, jamais population vide."
+      ]
+    },
+    {
+      "id": "INV-03",
+      "plan_family": "C-01",
+      "contract_sections": [
+        "4",
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-03"
+      ],
+      "given": "Entrée individuals/ inconnue, fichier isolé, FIFO ou nom non hex64.",
+      "when": "scan_population()",
+      "then": [
+        "SOURCE_NAMESPACE_INVALID ou refus de source ; invalidation totale avant toute signature."
+      ]
+    },
+    {
+      "id": "INV-04",
+      "plan_family": "C-02",
+      "contract_sections": [
+        "3",
+        "4"
+      ],
+      "p1_scenarios": [
+        "COMP-04"
+      ],
+      "given": "Deux fondateurs, deux branches et ancêtres partagés, corpus stable complet.",
+      "when": "scan_population()",
+      "then": [
+        "Tous foyers inventoriés une fois ; mêmes FD/bytes pour dépendances partagées ; aucun parent hors univers ajouté."
+      ]
+    },
+    {
+      "id": "LINEAGE-01",
+      "plan_family": "C-03",
+      "contract_sections": [
+        "4",
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-05"
+      ],
+      "given": "Record valide en hash mais ID de répertoire ou spec substitué.",
+      "when": "scan_population()",
+      "then": [
+        "Home UNAUTHENTICATED/BLOCKING, FAIL ; raw stamp conservé après acquisition stable."
+      ]
+    },
+    {
+      "id": "LINEAGE-02",
+      "plan_family": "C-03",
+      "contract_sections": [
+        "4",
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-05"
+      ],
+      "given": "Parent manquant dans individuals/ avec record descendant présent.",
+      "when": "scan_population()",
+      "then": [
+        "Parent stablement absent : structure divergente, Home UNAUTHENTICATED/BLOCKING ; pas de préfixe PASS et comptes exacts null."
+      ]
+    },
+    {
+      "id": "LINEAGE-03",
+      "plan_family": "C-03",
+      "contract_sections": [
+        "4",
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-05"
+      ],
+      "given": "Cycle de parents ; puis lignée nécessitant dix noeuds.",
+      "when": "scan_population()",
+      "then": [
+        "Cycle : FAIL de structure, aucun prefixe PASS.",
+        "Dixième noeud : SOURCE_LIMIT branch_nodes, payload totalement effacé."
+      ]
+    },
+    {
+      "id": "FOUNDER-01",
+      "plan_family": "C-04",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-07"
+      ],
+      "given": "Fondateur identité/lignée valides et individuelle sous racine actuelle PASS.",
+      "when": "scan_population()",
+      "then": [
+        "AUTHENTICATED/INCLUDED ; pas de naissance/admission de fondateur inventée.",
+        "birth_proof et scientific_bindings propres NE / NOT_APPLICABLE_FOUNDER non bloquant ; aucune qualification de fondateur inventée."
+      ]
+    },
+    {
+      "id": "FOUNDER-02",
+      "plan_family": "C-04",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-07"
+      ],
+      "given": "Fondateur sans individuelle, absence stable de son enveloppe attendue.",
+      "when": "scan_population()",
+      "then": [
+        "UNAUTHENTICATED/BLOCKING et POPULATION_UNAUTHENTICATED, jamais AWAITING."
+      ]
+    },
+    {
+      "id": "BIRTH-01",
+      "plan_family": "C-05",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "AUTH-01",
+        "AUTH-02"
+      ],
+      "given": "Descendant avec un seul COMMITTED exact, trois preuves propres valides, individuelle valide et /1 exact.",
+      "when": "scan_population()",
+      "then": [
+        "AUTHENTICATED/INCLUDED ; aucune nouvelle consommation, aucun ancien plan global reconstitué."
+      ]
+    },
+    {
+      "id": "BIRTH-02",
+      "plan_family": "C-05",
+      "contract_sections": [
+        "5",
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-11"
+      ],
+      "given": "COMMITTED ancien du foyer correspondant aux records actuels ; opérations ultérieures d’autres child terminées REFUSED/ABANDONED sans BEGIN D3 ni création de home.",
+      "when": "scan_population()",
+      "then": [
+        "Preuve propre recherchée dans U et liée à ce COMMITTED, indépendamment d’opérations ultérieures d’autres child ; pas de PASS global historique.",
+        "Aucune tentative du même child après COMMITTED n’est autorisée : parser inchangé ; foyer d’un FAILED_CONSUMED reste soumis à TERMINAL-01."
+      ]
+    },
+    {
+      "id": "BIRTH-03",
+      "plan_family": "C-06",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-06"
+      ],
+      "given": "Descendant avec ligne /0, admission seule, row /1 absente ou terminal FAILED_CONSUMED.",
+      "when": "scan_population()",
+      "then": [
+        "UNAUTHENTICATED/BLOCKING, jamais AUTHENTICATED depuis la présence du home."
+      ]
+    },
+    {
+      "id": "BIRTH-04",
+      "plan_family": "C-06",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-05",
+        "COMP-06"
+      ],
+      "given": "Substituer séparément op_sha, issuer_id, envelope_id, H(enveloppe), H(record) ou spec dans preuve de naissance.",
+      "when": "scan_population()",
+      "then": [
+        "Refus du binding exact ; pas de preuve de naissance ni statut positif."
+      ]
+    },
+    {
+      "id": "BIRTH-05",
+      "plan_family": "C-06",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-06"
+      ],
+      "given": "Deux COMMITTED canoniques correspondent au même home, chacun /1 distinct.",
+      "when": "scan_population()",
+      "then": [
+        "Unicité refusée ; aucune sélection arbitraire du meilleur COMMITTED."
+      ]
+    },
+    {
+      "id": "AWAIT-01",
+      "plan_family": "C-07",
+      "contract_sections": [
+        "5",
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-08",
+        "COMP-10"
+      ],
+      "given": "Descendant hors branche, birth_proof PASS, seule individuelle stablement absente.",
+      "when": "scan_population()",
+      "then": [
+        "AWAITING_INDIVIDUAL_ATTESTATION/INCLUDED ; absence individuelle non ajoutée à liste dérivée."
+      ]
+    },
+    {
+      "id": "AWAIT-02",
+      "plan_family": "C-07",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-08",
+        "AUTH-03"
+      ],
+      "given": "Même foyer mais individuelle présente avec signature invalide ou JSON malformé.",
+      "when": "scan_population()",
+      "then": [
+        "UNAUTHENTICATED ; absence permise ne couvre pas une preuve falsifiée."
+      ]
+    },
+    {
+      "id": "AWAIT-03",
+      "plan_family": "C-07",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-06",
+        "COMP-08"
+      ],
+      "given": "Individuelle absente et qualification, statement ou admission également absente.",
+      "when": "scan_population()",
+      "then": [
+        "Pas AWAITING ; preuve propre requise manquante, UNAUTHENTICATED/BLOCKING."
+      ]
+    },
+    {
+      "id": "AWAIT-04",
+      "plan_family": "C-08",
+      "contract_sections": [
+        "5",
+        "7",
+        "14"
+      ],
+      "p1_scenarios": [
+        "COMP-08",
+        "AUTH-02"
+      ],
+      "given": "Un descendant AWAITING figure dans la branche du CURRENT_OPEN.",
+      "when": "scan_population()",
+      "then": [
+        "FILIATION_NOT_ATTESTED ; decision_partition/branch_attestations ne passent pas, mais foyer compte."
+      ]
+    },
+    {
+      "id": "REVOKE-01",
+      "plan_family": "C-09",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "REV-03",
+        "REV-09"
+      ],
+      "given": "Preuves propres établies, une enveloppe propre genuine_but_revoked avec seuls codes KEY_REVOKED/ENVELOPE_REVOKED.",
+      "when": "scan_population()",
+      "then": [
+        "SUSPENDED/INCLUDED ; EXECUTION_SUSPENDED signalé sans aucune interdiction de run effective."
+      ]
+    },
+    {
+      "id": "REVOKE-02",
+      "plan_family": "C-09",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "AUTH-03",
+        "REV-03"
+      ],
+      "given": "Clé révoquée ET signature invalide de la même enveloppe.",
+      "when": "scan_population()",
+      "then": [
+        "UNAUTHENTICATED ; genuine_but_revoked false selon trust, jamais SUSPENDED."
+      ]
+    },
+    {
+      "id": "REVOKE-03",
+      "plan_family": "C-09",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "REV-03",
+        "COMP-08"
+      ],
+      "given": "Individuelle descendante absente, preuve de naissance propre genuinely révoquée, autres prérequis établis.",
+      "when": "scan_population()",
+      "then": [
+        "SUSPENDED avant AWAITING ; reste compté, jamais filiation."
+      ]
+    },
+    {
+      "id": "REVOKE-04",
+      "plan_family": "C-10",
+      "contract_sections": [
+        "5",
+        "7",
+        "8"
+      ],
+      "p1_scenarios": [
+        "REV-11",
+        "REV-12"
+      ],
+      "given": "Un frère hors branche est SUSPENDED ; DECISION courante valide et comptes dans les caps.",
+      "when": "scan_population()",
+      "then": [
+        "Frère inclus dans P, enfants et budgets ; son authenticité refusée ne devient pas révocation DECISION."
+      ]
+    },
+    {
+      "id": "REVOKE-05",
+      "plan_family": "C-10",
+      "contract_sections": [
+        "5",
+        "14"
+      ],
+      "p1_scenarios": [
+        "REV-01",
+        "REV-02",
+        "REV-03"
+      ],
+      "given": "Une preuve d’ancêtre DECISION est révoquée.",
+      "when": "scan_population()",
+      "then": [
+        "FILIATION_SUSPENDED si classe établie, preuve DECISION bloquée ; aucune transition terminale écrite."
+      ]
+    },
+    {
+      "id": "TERMINAL-01",
+      "plan_family": "C-11",
+      "contract_sections": [
+        "5",
+        "6"
+      ],
+      "p1_scenarios": [
+        "TX-05",
+        "QUAR-05"
+      ],
+      "given": "Home présent de FAILED_CONSUMED même complet en bytes.",
+      "when": "scan_population()",
+      "then": [
+        "UNAUTHENTICATED/BLOCKING ; jamais OWN ni foyer ignoré."
+      ]
+    },
+    {
+      "id": "TERMINAL-02",
+      "plan_family": "C-11",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-06"
+      ],
+      "given": "Home de descendant sans opération COMMITTED et sans opération ouverte own pertinente.",
+      "when": "scan_population()",
+      "then": [
+        "UNAUTHENTICATED ; admission /1 ou individuelle seule ne suffit pas."
+      ]
+    },
+    {
+      "id": "OWN-01",
+      "plan_family": "C-12",
+      "contract_sections": [
+        "6",
+        "8"
+      ],
+      "p1_scenarios": [
+        "TX-08",
+        "HOME-01"
+      ],
+      "given": "Une opération ouverte, DONE D2 puis BEGIN D3 ; home complet initial exact et /1 exact.",
+      "when": "scan_population()",
+      "then": [
+        "OWN_OPERATION/EXCLUDED_OWN une seule fois ; plan comparé avec own exclu ; aucune reprise autorisée."
+      ]
+    },
+    {
+      "id": "OWN-02",
+      "plan_family": "C-12",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "OWN-01"
+      ],
+      "given": "DONE D3 ouvert ; identité exacte ; usage.json et contenus runtime modifiés par run.",
+      "when": "scan_population()",
+      "then": [
+        "OWN_OPERATION depuis trois fichiers identité et layout ; ne pas lire/comparer les contenus mutables."
+      ]
+    },
+    {
+      "id": "OWN-03",
+      "plan_family": "C-12",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "HOME-01",
+        "HOME-02"
+      ],
+      "given": "Home partiel après BEGIN D3, fichiers présents égaux mais éléments requis manquants.",
+      "when": "scan_population()",
+      "then": [
+        "NE/OWN_HOME_INCOMPLETE ; aucune exclusion utilisable ni compte exact ; pas UNAUTHENTICATED pour le seul manque normal d’un candidat structurellement lié."
+      ]
+    },
+    {
+      "id": "OWN-04",
+      "plan_family": "C-12",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "HOME-01",
+        "TX-02"
+      ],
+      "given": "Home du bon ID mais spec, qualification, tentative ou plan divergent.",
+      "when": "scan_population()",
+      "then": [
+        "HOME_CONFLICT/FROZEN_ITEM_DIVERGENT selon fait ; jamais OWN par ID seul."
+      ]
+    },
+    {
+      "id": "OWN-05",
+      "plan_family": "C-12",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "TX-07"
+      ],
+      "given": "Home candidat présent avant BEGIN D3, ou BEGIN D3 annulé sans autre origine.",
+      "when": "scan_population()",
+      "then": [
+        "OPERATION_STATE_INCONSISTENT ou origine non établie ; pas de preuve OWN positive."
+      ]
+    },
+    {
+      "id": "EPOCH-01",
+      "plan_family": "C-13",
+      "contract_sections": [
+        "6",
+        "9"
+      ],
+      "p1_scenarios": [
+        "CONC-03"
+      ],
+      "given": "Deux opérations non terminales connues ou log non résolu cachant une opération.",
+      "when": "scan_population()",
+      "then": [
+        "OPERATION_PENDING ; aucune sélection own ni compte favorable."
+      ]
+    },
+    {
+      "id": "EPOCH-02",
+      "plan_family": "C-13",
+      "contract_sections": [
+        "6",
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-11"
+      ],
+      "given": "Opération candidate COMMITTED, child désormais membre courant.",
+      "when": "scan_population()",
+      "then": [
+        "Child INCLUDED selon ses preuves, jamais EXCLUDED_OWN par son ancienne opération."
+      ]
+    },
+    {
+      "id": "EPOCH-03",
+      "plan_family": "C-13",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "TX-12"
+      ],
+      "given": "Ancien COMMITTED et des naissances ultérieures légitimes ont modifié la population.",
+      "when": "scan_population()",
+      "then": [
+        "Ancien plan/counts/partition NE HISTORICAL_POPULATION_NOT_EVALUATED, pas de faux POPULATION_CHANGED."
+      ]
+    },
+    {
+      "id": "PLAN-01",
+      "plan_family": "C-14",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "TX-12"
+      ],
+      "given": "CURRENT_OPEN, univers déterminé mais un H(record) manque/est substitué dans birth_plan.population.",
+      "when": "scan_population()",
+      "then": [
+        "plan_match FAIL / POPULATION_CHANGED, aucune réécriture du plan."
+      ]
+    },
+    {
+      "id": "PLAN-02",
+      "plan_family": "C-14",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "TX-12"
+      ],
+      "given": "H(records) égaux mais population_count, children_count ou budget_totals divergent séparément.",
+      "when": "scan_population()",
+      "then": [
+        "POPULATION_CHANGED pour chaque divergence ; champs figés non réparés."
+      ]
+    },
+    {
+      "id": "PLAN-03",
+      "plan_family": "C-14",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "TX-08",
+        "TX-12"
+      ],
+      "given": "Home own exact présent ; comptage ferait +1 en le comptant comme individu déjà né.",
+      "when": "scan_population()",
+      "then": [
+        "Exclure une seule fois own avant comparaison ; ajouter candidat une seule fois aux prédicats."
+      ]
+    },
+    {
+      "id": "PARTITION-01",
+      "plan_family": "C-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-01"
+      ],
+      "given": "Triple POPULATION nécessaire omis de PREPARED.",
+      "when": "scan_population()",
+      "then": [
+        "ATTESTATION_MISSING ; aucune exception AWAITING pour triple descendant."
+      ]
+    },
+    {
+      "id": "PARTITION-02",
+      "plan_family": "C-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-02"
+      ],
+      "given": "Item surnuméraire sans explication ou même K dupliquée.",
+      "when": "scan_population()",
+      "then": [
+        "ATTESTATION_UNEXPECTED ou rejet lexical du doublon ; pas de complétude PASS."
+      ]
+    },
+    {
+      "id": "PARTITION-03",
+      "plan_family": "C-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-01",
+        "COMP-03"
+      ],
+      "given": "DECISION déplacé vers POPULATION ; puis besoin hors branche déplacé en DECISION.",
+      "when": "scan_population()",
+      "then": [
+        "DECISION_ROLE_MISMATCH / POPULATION_ROLE_MISMATCH ; ne pas réécrire les rôles."
+      ]
+    },
+    {
+      "id": "PARTITION-04",
+      "plan_family": "C-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-08",
+        "COMP-10"
+      ],
+      "given": "Individuelle AWAITING hors branche absente et non figée à D0.",
+      "when": "scan_population()",
+      "then": [
+        "Omission permise dans comparaison courante ; aucune enveloppe ou présence fictive."
+      ]
+    },
+    {
+      "id": "PARTITION-05",
+      "plan_family": "C-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-01"
+      ],
+      "given": "Individuelle figée dans PREPARED maintenant absente hors branche.",
+      "when": "scan_population()",
+      "then": [
+        "ATTESTATION_MISSING ; pas de suppression de la K figée pour bénéficier d’AWAITING."
+      ]
+    },
+    {
+      "id": "PARTITION-06",
+      "plan_family": "C-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-08",
+        "COMP-10"
+      ],
+      "given": "Individuelle hors branche présente aujourd’hui mais absente de PREPARED, possible ajout après D0.",
+      "when": "scan_population()",
+      "then": [
+        "Classe actuelle calculée ; frozen_completeness NE/HISTORICAL_POPULATION_ATTESTATION_UNAVAILABLE bloquant ; aucune histoire inventée."
+      ]
+    },
+    {
+      "id": "KEY-01",
+      "plan_family": "C-16",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-04"
+      ],
+      "given": "Même record de qualification utilisé par deux descendants et présenté pour le candidat.",
+      "when": "scan_population()",
+      "then": [
+        "Une K et rôle DECISION prioritaire, tous namespaces/copies requis ; aucune lecture répétée."
+      ]
+    },
+    {
+      "id": "KEY-02",
+      "plan_family": "C-16",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-04"
+      ],
+      "given": "Deux qualifications différentes du même sujet/spec.",
+      "when": "scan_population()",
+      "then": [
+        "Deux K par H(record), ni fusion ni omission."
+      ]
+    },
+    {
+      "id": "KEY-03",
+      "plan_family": "C-16",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "COMP-04",
+        "STORE-01"
+      ],
+      "given": "Copies réutilisées de K avec deux enveloppes valides différentes ou copie entièrement absente.",
+      "when": "scan_population()",
+      "then": [
+        "FROZEN_ITEM_DIVERGENT ou ATTESTATION_MISSING ; signature valide ne résout pas le conflit."
+      ]
+    },
+    {
+      "id": "EXCLUDE-01",
+      "plan_family": "C-17",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-02",
+        "COMP-05"
+      ],
+      "given": "Reviewer ou admitter contient le préfixe16 d’un individu d’une autre branche.",
+      "when": "scan_population()",
+      "then": [
+        "Exclusion globale FAIL ; aucun PASS depuis la seule branche connue."
+      ]
+    },
+    {
+      "id": "EXCLUDE-02",
+      "plan_family": "C-17",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "REV-12",
+        "COMP-08"
+      ],
+      "given": "Même auto-émetteur lié à un foyer SUSPENDED ou AWAITING.",
+      "when": "scan_population()",
+      "then": [
+        "Toujours exclu ; pas de filtrage de la population aux seuls AUTHENTICATED."
+      ]
+    },
+    {
+      "id": "EXCLUDE-03",
+      "plan_family": "C-17",
+      "contract_sections": [
+        "4",
+        "8"
+      ],
+      "p1_scenarios": [
+        "COMP-03"
+      ],
+      "given": "Un foyer ne peut être lié à un ID/spec vérifié.",
+      "when": "scan_population()",
+      "then": [
+        "Pas de global_identity_exclusions PASS sur sous-ensemble, comptes exacts null."
+      ]
+    },
+    {
+      "id": "POP-01",
+      "plan_family": "C-18",
+      "contract_sections": [
+        "8",
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-10"
+      ],
+      "given": "G0, P=5 dont un fondateur, candidat et tous budgets dans les bornes.",
+      "when": "scan_population()",
+      "then": [
+        "P+1=6 population_limit PASS ; ce seul prédicat ne donne aucune acceptation."
+      ]
+    },
+    {
+      "id": "POP-02",
+      "plan_family": "C-18",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-10"
+      ],
+      "given": "G0 P=6 puis P=7 classifiables (sous capacité physique65).",
+      "when": "scan_population()",
+      "then": [
+        "population_limit FAIL ; aucune hausse automatique de max_population, aucune troncature à6."
+      ]
+    },
+    {
+      "id": "POP-03",
+      "plan_family": "C-18",
+      "contract_sections": [
+        "8",
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-04",
+        "COMP-10"
+      ],
+      "given": "Plusieurs fondateurs et branches, tous classifiables.",
+      "when": "scan_population()",
+      "then": [
+        "F exact et distinct de profondeur ; total P exhaustif ; formule d’items ajustée."
+      ]
+    },
+    {
+      "id": "CEILING-01",
+      "plan_family": "C-19",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "CEIL-01"
+      ],
+      "given": "G0, parent avec deux enfants directs comptés ; candidat troisième.",
+      "when": "scan_population()",
+      "then": [
+        "children_limit FAIL / CHILDREN_LIMIT ; petits-enfants ne sont pas enfants directs du fondateur."
+      ]
+    },
+    {
+      "id": "CEILING-02",
+      "plan_family": "C-19",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "CEIL-02"
+      ],
+      "given": "G0 parent génération2 puis candidat génération3.",
+      "when": "scan_population()",
+      "then": [
+        "generation_limit FAIL / GENERATION_LIMIT, même si population faible."
+      ]
+    },
+    {
+      "id": "BUDGET-01",
+      "plan_family": "C-20",
+      "contract_sections": [
+        "8",
+        "9"
+      ],
+      "p1_scenarios": [
+        "CEIL-03"
+      ],
+      "given": "Pour chacune des six composantes, somme+candidat exactement au cap puis cap+1.",
+      "when": "scan_population()",
+      "then": [
+        "Égalité PASS, cap+1 FAIL / COLONY_BUDGET_EXCEEDED ; aucun arrondi."
+      ]
+    },
+    {
+      "id": "BUDGET-02",
+      "plan_family": "C-20",
+      "contract_sections": [
+        "8",
+        "9"
+      ],
+      "p1_scenarios": [
+        "CEIL-03"
+      ],
+      "given": "Budget candidat dépasse son parent mais non la colonie.",
+      "when": "scan_population()",
+      "then": [
+        "parent_budget FAIL / BUDGET_ESCALATION ; caps parent et colonie séparés."
+      ]
+    },
+    {
+      "id": "BUDGET-03",
+      "plan_family": "C-20",
+      "contract_sections": [
+        "4",
+        "8"
+      ],
+      "p1_scenarios": [
+        "CEIL-03"
+      ],
+      "given": "Remplacer un entier budget par bool, float, négatif ou entier hors bornes lineage.",
+      "when": "scan_population()",
+      "then": [
+        "Refus sémantique, jamais coercition ou somme favorable."
+      ]
+    },
+    {
+      "id": "BUDGET-04",
+      "plan_family": "C-20",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "AUTH-01"
+      ],
+      "given": "Permissions élargies ou diff différent des specs alors que budget passe.",
+      "when": "scan_population()",
+      "then": [
+        "PERMISSION_ESCALATION/UNDECLARED_MUTATION ; pas de ceilings global PASS."
+      ]
+    },
+    {
+      "id": "BOUND-01",
+      "plan_family": "C-21",
+      "contract_sections": [
+        "9",
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-09",
+        "COMP-10"
+      ],
+      "given": "Population avant naissance valide, F>=1 ; N exactement borne P/F puis +1.",
+      "when": "scan_population()",
+      "then": [
+        "Borne exacte évaluée avant signature ; +1 SOURCE_LIMIT item_references, zéro payload."
+      ]
+    },
+    {
+      "id": "BOUND-02",
+      "plan_family": "C-21",
+      "contract_sections": [
+        "9",
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "Sous g0 items20/21 puis politique max_population64 items252/253.",
+      "when": "scan_population()",
+      "then": [
+        "Borne policy/hard appliquée avant ledger si connue du log, sinon avant première signature ; dépassements payload vide."
+      ]
+    },
+    {
+      "id": "BOUND-03",
+      "plan_family": "C-21",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-10"
+      ],
+      "given": "P+1 déjà hors politique ou F inconnu.",
+      "when": "scan_population()",
+      "then": [
+        "Ne pas affirmer la chaîne P/F sous hypothèses fausses ; population FAIL ou comptesNE, borne universelle conservée."
+      ]
+    },
+    {
+      "id": "SCIENCE-01",
+      "plan_family": "C-22",
+      "contract_sections": [
+        "5",
+        "13"
+      ],
+      "p1_scenarios": [
+        "AUTH-09",
+        "QUAL-01"
+      ],
+      "given": "Qualification PC2/p1 ou famille inconnue, signatures et identité valides.",
+      "when": "scan_population()",
+      "then": [
+        "scientific_bindings NE/SCIENTIFIC_PROFILE_UNSUPPORTED bloquant, classification NE sans autre contradiction ; g0 inchangée."
+      ]
+    },
+    {
+      "id": "SCIENCE-02",
+      "plan_family": "C-22",
+      "contract_sections": [
+        "5",
+        "13"
+      ],
+      "p1_scenarios": [
+        "AUTH-10",
+        "QUAL-01"
+      ],
+      "given": "Profil R8/C9 : artefact ou digest code supporté divergent.",
+      "when": "scan_population()",
+      "then": [
+        "FAIL scientifique, Home UNAUTHENTICATED si preuve propre requise ; pas de signature suffisante."
+      ]
+    },
+    {
+      "id": "SCIENCE-03",
+      "plan_family": "C-22",
+      "contract_sections": [
+        "12",
+        "13"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Source scientifique requise inaccessible/limitée ou fermeture checkout irrégulière.",
+      "when": "scan_population()",
+      "then": [
+        "Échec acquisition/limite global, zéro payload ; pas de hash d’un sous-ensemble."
+      ]
+    },
+    {
+      "id": "FAULT-01",
+      "plan_family": "C-23",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-02",
+        "DUR-09"
+      ],
+      "given": "Faute ledger ou répertoireledger enregistrée ; tous bytes et tests présents cohérents.",
+      "when": "scan_population()",
+      "then": [
+        "Restriction globale ledger maintenue ; pas de levée par présence ni nouveau compteur favorable de naissance."
+      ]
+    },
+    {
+      "id": "FAULT-02",
+      "plan_family": "C-23",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "REV-04",
+        "REV-13"
+      ],
+      "given": "Faute trust install/policy/history ou trust courant invalide.",
+      "when": "scan_population()",
+      "then": [
+        "Trust indisponible/globalement bloquant ; preuve fondamentale invalide => zéro payload."
+      ]
+    },
+    {
+      "id": "FAULT-03",
+      "plan_family": "C-23",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-01",
+        "DUR-07"
+      ],
+      "given": "Faute propre d’opération terminée, sans foyer résiduel ni faute globale, autre CURRENT_OPEN sain.",
+      "when": "scan_population()",
+      "then": [
+        "Faute reste enregistrée et child propre bloqué ; pas de STICKY_FAULT global artificiel sur autre opération."
+      ]
+    },
+    {
+      "id": "FAULT-04",
+      "plan_family": "C-23",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "QUAR-10"
+      ],
+      "given": "Faute FSYNC/RENAME sur individuals/, home-dir ou quarantine-dir.",
+      "when": "scan_population()",
+      "then": [
+        "Restriction set-aside exacte ; aucun déplacement autorisé ; foyer encore présent demeure bloquant."
+      ]
+    },
+    {
+      "id": "FAULT-05",
+      "plan_family": "C-23",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-01"
+      ],
+      "given": "Target lexicalement permis mais hors mapping fermé (HOME_ENTRY inconnu ou enveloppe hors noms3B).",
+      "when": "scan_population()",
+      "then": [
+        "Aucun chemin ouvert depuis la cible libre ; TARGET_BINDING_UNAVAILABLE bloque les faits dépendants."
+      ]
+    },
+    {
+      "id": "EXTERNAL-01",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "3",
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-12"
+      ],
+      "given": "Claim /1 externe valide lié à faute OPERATION_LOG ; journal corrompu ; finding courant exact.",
+      "when": "scan_population()",
+      "then": [
+        "Zéro lecture des bytes du journal faulty ; terminal linkage PASS ; contribution pending levée, jamais naissance reconstruite."
+      ]
+    },
+    {
+      "id": "EXTERNAL-02",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-08"
+      ],
+      "given": "Même claim /1, finding historique0 et row courante0, aucune ligne legacy.",
+      "when": "scan_population()",
+      "then": [
+        "ABANDONED observé ; aucune consommation, aucun BirthPlan inventé ; child reste OPERATION_LOG_FAULTY."
+      ]
+    },
+    {
+      "id": "EXTERNAL-03",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-07",
+        "DUR-12"
+      ],
+      "given": "Claim /1 finding1 / row1 même entry ; SHA/total du ledger a changé par append d’autres opérations.",
+      "when": "scan_population()",
+      "then": [
+        "Comparer la row et l’entry, pas le digest/total historique au courant ; linkage encore PASS si autres conditions établies."
+      ]
+    },
+    {
+      "id": "EXTERNAL-04",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-08",
+        "DUR-12"
+      ],
+      "given": "Ancien format externe/0 avec seul observation_sha256, pas d’observation embarquée.",
+      "when": "scan_population()",
+      "then": [
+        "Journal faulty non lu, linkage NE/EXTERNAL_TERMINATION_UNPROVEN bloquant ; pending non certifié levé."
+      ]
+    },
+    {
+      "id": "EXTERNAL-05",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-12"
+      ],
+      "given": "Substituer fault_sha256, child, attempt, observation hash, entry ou count entre claim et row.",
+      "when": "scan_population()",
+      "then": [
+        "Refus lexical/fondamental ou linkageFAIL/EXTERNAL_TERMINATION_DIVERGENT, aucune exemption générique."
+      ]
+    },
+    {
+      "id": "EXTERNAL-06",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "3",
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-12"
+      ],
+      "given": "Op externe absent des logs lisibles mais présent dans fault log.",
+      "when": "scan_population()",
+      "then": [
+        "Hash inclus dans U avant unique inspection ; pas de requête ledger après découverte de foyer."
+      ]
+    },
+    {
+      "id": "EXTERNAL-07",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "10",
+        "12"
+      ],
+      "p1_scenarios": [
+        "DUR-11"
+      ],
+      "given": "Log corrompu ou torn tail sans claim d’exception externe ciblé.",
+      "when": "scan_population()",
+      "then": [
+        "OPERATION_LOG_UNAVAILABLE/CORRUPT, invalidation totale, aucune nouvelle règle de parser."
+      ]
+    },
+    {
+      "id": "ACTION-01",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-01",
+        "QUAR-06"
+      ],
+      "given": "BEGIN sans DONE, exactement une localisation liée ; puis DONE avec source absente et destination correcte.",
+      "when": "scan_population()",
+      "then": [
+        "Premier : action_completionNE bloquant ; second : lieu/identité évalués, aucune action exécutée."
+      ]
+    },
+    {
+      "id": "ACTION-02",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-05",
+        "QUAR-07"
+      ],
+      "given": "SET_ASIDE_DONE, ou QUARANTINE_DONE sans nouveau BEGIN D3 effectif ultérieur de la même opération/tentative : source encore présente, destination absente ou les deux présentes.",
+      "when": "scan_population()",
+      "then": [
+        "ACTION_LOCATION_DIVERGENT FAIL lorsque les localisations contredisent ces claims ; source reste inventoriée/classifiée, jamais effacée du compte.",
+        "La coexistence prouvée d’une ancienne quarantaine et d’un D3 recréé valide suit ACTION-08, pas ce refus générique."
+      ]
+    },
+    {
+      "id": "ACTION-03",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-06"
+      ],
+      "given": "Destination terminale connue avec identité absente, égale ou préfixe attendu, puis contenu autre.",
+      "when": "scan_population()",
+      "then": [
+        "Tolérance P1 terminale uniquement ; autre contenu FAIL ; pas de validation de journal ou fsync historique."
+      ]
+    },
+    {
+      "id": "ACTION-04",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-02"
+      ],
+      "given": "Destination de quarantaine non terminale avec identité présente préfixe mais non égale.",
+      "when": "scan_population()",
+      "then": [
+        "FAIL : tolérance de préfixe terminale non réutilisée pour la quarantaine partielle."
+      ]
+    },
+    {
+      "id": "ACTION-05",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-11"
+      ],
+      "given": "Terminaison externe liée mais aucun BirthPlan exact acquis pour identité de destination.",
+      "when": "scan_population()",
+      "then": [
+        "Localisation et terminal peuvent être établis ; identity_bindingNE/ACTION_EVIDENCE_NOT_EVALUATED bloquant, pas de plan inventé."
+      ]
+    },
+    {
+      "id": "ACTION-06",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-04"
+      ],
+      "given": "Lieu/identité/layout de destination valides ; journal SQLite opaque.",
+      "when": "scan_population()",
+      "then": [
+        "quarantine_journal_semanticsNE non bloquant pour seul lieu ; ne pas ouvrir SQLite ou copie, ni revendiquer permission d’action."
+      ]
+    },
+    {
+      "id": "ACTION-07",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-07"
+      ],
+      "given": "Namespace quarantine absent sans claim ; puis destination orpheline sans action connue.",
+      "when": "scan_population()",
+      "then": [
+        "Absence stable non applicable permise ; destination orpheline ACTION_EVIDENCE_NOT_EVALUATED bloquante."
+      ]
+    },
+    {
+      "id": "LIMIT-01",
+      "plan_family": "C-26",
+      "contract_sections": [
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "65 puis66 noms de foyers, y compris possible propre candidat.",
+      "when": "scan_population()",
+      "then": [
+        "65 capacité seulement, appliquer g0 séparément ;66 SOURCE_LIMIT homes et zéro payload."
+      ]
+    },
+    {
+      "id": "LIMIT-02",
+      "plan_family": "C-26",
+      "contract_sections": [
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "8192 puis8193 entrées privées uniques, racines/dossiers et métadonnées compris.",
+      "when": "scan_population()",
+      "then": [
+        "Pas de comptage par phase ;8193 SOURCE_LIMIT private_entries, effacement global."
+      ]
+    },
+    {
+      "id": "LIMIT-03",
+      "plan_family": "C-26",
+      "contract_sections": [
+        "3",
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "Union U=256 puis257 (logs et claims externes compris), même avec moins de256 fichiers logs.",
+      "when": "scan_population()",
+      "then": [
+        "257 refusé avant première ouverture ledger ; aucune augmentation du lot autorisé."
+      ]
+    },
+    {
+      "id": "LIMIT-04",
+      "plan_family": "C-26",
+      "contract_sections": [
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "Records64KiB, enveloppes16KiB, privé32MiB, checkout32MiB, ledger16MiB/16384 lignes : borne puis dépassement.",
+      "when": "scan_population()",
+      "then": [
+        "Bornes acceptées seulement si autres conditions valides ; dépassement SOURCE_LIMIT nommé et aucun payload tronqué."
+      ]
+    },
+    {
+      "id": "LIMIT-05",
+      "plan_family": "C-26",
+      "contract_sections": [
+        "3",
+        "12"
+      ],
+      "p1_scenarios": [
+        "CONC-01"
+      ],
+      "given": "FD4096 puis4097, erreur unlock L2 ou close du dernier FD.",
+      "when": "scan_population()",
+      "then": [
+        "Capacité/échec source total, tous stamps/homes/opérations/ledger effacés malgré calculs provisoires PASS."
+      ]
+    },
+    {
+      "id": "LIMIT-06",
+      "plan_family": "C-26",
+      "contract_sections": [
+        "12"
+      ],
+      "p1_scenarios": [
+        "QUAR-06"
+      ],
+      "given": "Nombreux artefacts runtime réguliers valides, dont certains de grande taille.",
+      "when": "scan_population()",
+      "then": [
+        "Ne pas lire leur contenu ni appliquer caprecord64KiB aux opaques ; nombre/FD/entrées imposent la capacité globale."
+      ]
+    },
+    {
+      "id": "IO-01",
+      "plan_family": "C-27",
+      "contract_sections": [
+        "4",
+        "12"
+      ],
+      "p1_scenarios": [
+        "STORE-01"
+      ],
+      "given": "Lien/FIFO/hardlink/propriétaire/mode dangereux sur source choisie.",
+      "when": "scan_population()",
+      "then": [
+        "Refus sans lecture de contenu non autorisée ; aucune création/chmod de réparation."
+      ]
+    },
+    {
+      "id": "IO-02",
+      "plan_family": "C-27",
+      "contract_sections": [
+        "12"
+      ],
+      "p1_scenarios": [
+        "STORE-02"
+      ],
+      "given": "ENOENT à open sous parent stable puis ENOENT à read/stat après open.",
+      "when": "scan_population()",
+      "then": [
+        "Premier : absence liée possible ; second : échec global, jamais transformé en absence."
+      ]
+    },
+    {
+      "id": "IO-03",
+      "plan_family": "C-27",
+      "contract_sections": [
+        "4",
+        "12"
+      ],
+      "p1_scenarios": [
+        "OWN-01"
+      ],
+      "given": "tasks avec task_id probe, a.b-c et identifiant64caractères, fichiers .json/.json.tmp ; résultat .json.",
+      "when": "scan_population()",
+      "then": [
+        "Layout conforme à regex Supervisor._TASK_ID exacte ; ne pas exiger hex64 de tâche."
+      ]
+    },
+    {
+      "id": "IO-04",
+      "plan_family": "C-27",
+      "contract_sections": [
+        "4",
+        "12"
+      ],
+      "p1_scenarios": [
+        "QUAR-06"
+      ],
+      "given": "Nom de tâche traversal,64+1caractères, majuscule ou sous-dossier inattendu.",
+      "when": "scan_population()",
+      "then": [
+        "Refus layout/namespace, aucune lecture arbitraire du contenu runtime."
+      ]
+    },
+    {
+      "id": "RACE-01",
+      "plan_family": "C-28",
+      "contract_sections": [
+        "3",
+        "12"
+      ],
+      "p1_scenarios": [
+        "CONC-01"
+      ],
+      "given": "Listing individuals/admission/quarantine ou inode/path/mode/ctime change après acquisition.",
+      "when": "scan_population()",
+      "then": [
+        "SOURCE_CHANGED, effacement total, aucune seconde tentative cachée."
+      ]
+    },
+    {
+      "id": "RACE-02",
+      "plan_family": "C-28",
+      "contract_sections": [
+        "3",
+        "12"
+      ],
+      "p1_scenarios": [
+        "CONC-01",
+        "CONC-03"
+      ],
+      "given": "L1 occupé, puis L2 occupé dans deux fixtures distinctes.",
+      "when": "scan_population()",
+      "then": [
+        "REGISTRAR_BUSY / LEDGER_BUSY, non bloquant système, pas de retry ; ordre L1→L2 instrumenté."
+      ]
+    },
+    {
+      "id": "ARCH-01",
+      "plan_family": "C-29",
+      "contract_sections": [
+        "2",
+        "3"
+      ],
+      "p1_scenarios": [
+        "ISO-02"
+      ],
+      "given": "Instrumenter opens/read/locks sur population multibranche et claims externes.",
+      "when": "scan_population()",
+      "then": [
+        "Un seul ledger FD frais offset0 et une inspection U ; paths partagés lus une fois ; pas de scan public imbriqué."
+      ]
+    },
+    {
+      "id": "ARCH-02",
+      "plan_family": "C-29",
+      "contract_sections": [
+        "1",
+        "2",
+        "3"
+      ],
+      "p1_scenarios": [
+        "ISO-02"
+      ],
+      "given": "Importer nouveau module et scanner fixtures ; tenter mutation des résultats.",
+      "when": "scan_population()",
+      "then": [
+        "Pas d’IO à l’import ; aucun writer/secret/environnement/runtime/campagne ; objets immuables et acceptedfalse permanent."
+      ]
+    },
+    {
+      "id": "REGRESS-01",
+      "plan_family": "C-30",
+      "contract_sections": [
+        "3",
+        "10",
+        "14"
+      ],
+      "p1_scenarios": [
+        "DUR-12"
+      ],
+      "given": "Mêmes fixtures historiques avec anciennes observe/scan/scan_evidence/scan_attestations.",
+      "when": "scan_population()",
+      "then": [
+        "Anciens résultats/refus conservateurs conservés ; exception externe réservée au nouveau mode3C."
+      ]
+    },
+    {
+      "id": "REGRESS-02",
+      "plan_family": "C-30",
+      "contract_sections": [
+        "3",
+        "12"
+      ],
+      "p1_scenarios": [
+        "TX-07"
+      ],
+      "given": "Fragment ACK contient CR et faux objet canonique apparent ; puis journal CRLF non reconnu.",
+      "when": "scan_population()",
+      "then": [
+        "ACK opaque selon parser ; aucun splitlines ; CRLF invalide toujours refusé."
+      ]
+    },
+    {
+      "id": "REGRESS-03",
+      "plan_family": "C-30",
+      "contract_sections": [
+        "8",
+        "9",
+        "14"
+      ],
+      "p1_scenarios": [
+        "CEIL-01",
+        "CEIL-02",
+        "CEIL-03",
+        "ISO-02"
+      ],
+      "given": "Conformité des comparaisons pures registrar et suites normales puis python-O.",
+      "when": "scan_population()",
+      "then": [
+        "Même sémantique de plafonds/exclusions, pins/hashes inchangés ; suites non additives, aucune qualification source inventée."
+      ]
+    },
+    {
+      "id": "BOUND-04",
+      "plan_family": "C-21",
+      "contract_sections": [
+        "3",
+        "7",
+        "9",
+        "12"
+      ],
+      "p1_scenarios": [
+        "COMP-09",
+        "COMP-10"
+      ],
+      "given": "Graphes structurels des K acquis, classification non exécutée ; compteur de signatures instrumenté.",
+      "when": "scan_population()",
+      "then": [
+        "Borne N policy/hard et P/F sous hypothèses structurelles évaluée avant toute signature ; aucun foyer écarté parce que présumé révoqué/invalide.",
+        "Aucun PASS des compteurs depuis le graphe provisoire ; après classification d’un corpus valide mêmes K que dérivation finale."
+      ]
+    },
+    {
+      "id": "PLAN-04",
+      "plan_family": "C-14",
+      "contract_sections": [
+        "5",
+        "8"
+      ],
+      "p1_scenarios": [
+        "TX-05",
+        "TX-12"
+      ],
+      "given": "Un foyer NE scientifique puis un foyer UNAUTHENTICATED dans deux fixtures ; autres foyers valides.",
+      "when": "scan_population()",
+      "then": [
+        "Population actuelle n’est jamais amputée ; counts.complete NE puis FAIL, P/F/enfants/sommes exacts null.",
+        "Preuves par foyer et raisons restent visibles si acquisition réussie ; pas de reste disponible calculé sur sous-ensemble."
+      ]
+    },
+    {
+      "id": "EXTERNAL-08",
+      "plan_family": "C-24",
+      "contract_sections": [
+        "3",
+        "10"
+      ],
+      "p1_scenarios": [
+        "DUR-08",
+        "DUR-12"
+      ],
+      "given": "Claim /1 finding0 historique mais row courante LEGACY_AMBIGUITY ou une entrée /0 existe.",
+      "when": "scan_population()",
+      "then": [
+        "Aucun linkage terminal PASS ni OPERATION_PENDING déclaré levé ; LEGACY_LEDGER_UNBOUND et preuve externe bloquante.",
+        "Journal faulty demeure non lu, aucune seconde inspection ledger."
+      ]
+    },
+    {
+      "id": "BIRTH-06",
+      "plan_family": "C-06",
+      "contract_sections": [
+        "5",
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-05",
+        "COMP-06",
+        "AUTH-10"
+      ],
+      "given": "Même qualification q que la naissance sélectionnée ; remplacer au path statement-H(q).json le statement et son enveloppe par un nouveau statement correctement signé, auteur/scope/science valides mais H(statement) différent du COMMITTED.presented.",
+      "when": "scan_population()",
+      "then": [
+        "birth_proof FAIL et aucun statut positif : les H(record) et H(enveloppe) des trois rôles doivent égaler op.presented et ses items DECISION exacts.",
+        "Liaison auteur/q/science et signature valide ne remplacent jamais les preuves figées de cette naissance ; ancienne partition globale reste NE."
+      ]
+    },
+    {
+      "id": "BIRTH-07",
+      "plan_family": "C-06",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-05",
+        "COMP-06"
+      ],
+      "given": "Record q identique mais enveloppe qualification actuelle valide re-signée avec autre envelope_id/hash au même path ; admission /1 toujours correcte.",
+      "when": "scan_population()",
+      "then": [
+        "birth_proof FAIL : H(enveloppe qualification) doit égaler le présenté et item DECISION du COMMITTED sélectionné.",
+        "Le seul /1 de l’admission n’authentifie ni l’enveloppe qualification substituée ni celle du statement."
+      ]
+    },
+    {
+      "id": "ACTION-08",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "6",
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-01",
+        "TX-08",
+        "OWN-01"
+      ],
+      "given": "QUARANTINE_DONE validé puis BEGIN D3 ultérieur non annulé, même op/attempt/plan ; ancienne destination partielle conservée et source recréée liée au D3 courant. Tester état courant OWN complet puis COMMITTED.",
+      "when": "scan_population()",
+      "then": [
+        "Coexistence des deux répertoires permise pour ces deux incarnations liées ; pas de ACTION_LOCATION_DIVERGENT depuis leur seule présence.",
+        "Ancienne destination liée au matériel partiel attendu, source actuelle comparée selon D3 courant ; un seul foyer courant inventorié, EXCLUDED_OWN si propre ouverte ou INCLUDED si naissance COMMITTED authentifiée.",
+        "Aucun ancien artefact effacé/déplacé, aucun historique ou droit de reprise inventé."
+      ]
+    },
+    {
+      "id": "ACTION-09",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-01",
+        "QUAR-05",
+        "QUAR-07"
+      ],
+      "given": "Source et destination coexistantes : seulement BEGIN D3 avant quarantaine, ou BEGIN D3 ultérieur annulé, ou autre op/attempt, ou SET_ASIDE_DONE terminal. Tester aussi incarnation impossible à lier sans contradiction prouvée.",
+      "when": "scan_population()",
+      "then": [
+        "Pas d’exception d’incarnation depuis un ancien d3_started, un BEGIN_CANCELLED ou un autre op/attempt ; contradiction établie ACTION_LOCATION_DIVERGENT.",
+        "Ambiguïté d’incarnation non résolue => correspondence NE bloquante, aucun PASS d’action ou foyer silencieusement écarté."
+      ]
+    },
+    {
+      "id": "ACTION-10",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "6",
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-01",
+        "HOME-01"
+      ],
+      "given": "QUARANTINE_DONE puis BEGIN D3 ultérieur effectif, même op/attempt ; destination ancienne présente et liée, source encore absente car aucun premier write de D3.",
+      "when": "scan_population()",
+      "then": [
+        "Ancien action_location PASS depuis source absente et destination liée, indépendamment du BEGIN D3 ultérieur.",
+        "Aucun foyer de nouvelle incarnation ni OWN_OPERATION inventé ; faits D3 absents observés, comptes depuis les autres foyers, aucune permission de recovery."
+      ]
+    }
+  ]
+}
