@@ -8,7 +8,7 @@ Baseline vérifié : `main@d890081e94bcf0818145d0f919162e11cae8e58f`, tree
 [#507](https://github.com/3a7i3/crypto-ia-terminal/pull/507#issuecomment-6417910506).
 Aucun code 3C ajouté, aucune revue indépendante finale encore revendiquée.
 Livraison documentaire : [contrat détaillé](P4_3C_POPULATION_AND_CEILINGS_V0.md)
-et [102 cas de spécification](P4_3C_POPULATION_AND_CEILINGS_CASES_V0.json),
+et [107 cas de spécification](P4_3C_POPULATION_AND_CEILINGS_CASES_V0.json),
 SPECIFICATION_ONLY_NOT_EXECUTED, distincts de tests exécutés.
 
 Normes : [P1](ADMISSION_CONTRACT.md) §3.1–3.4, §5, §6.1–6.8, §7–10 et §13 ;
@@ -44,7 +44,7 @@ La présence des bytes ne prouve ni durabilité ni droit de reprise à froid.
 |---|---|---|
 | `observer._Acquisition`, `evidence_observer._EvidenceAcquisition` et `_scan` | Un propriétaire L1→L2, FD gardés, historique, absences, D1/D2/D3, revalidation et close | L'extension actuelle n'inventorie pas tous les foyers ; les résultats antérieurs ne deviennent pas globaux |
 | `attestation_observer._Attestations`, `_attestation_checkout.Checkout` | Politique opérateur, cache de branches/enveloppes, profils scientifiques, bornes communes | Les besoins actuels sont DECISION ; hors branche et population restent NE |
-| `_attestation_core.branch/decision_partition/item_fact/ancestor_commit` | Identité/lignée, clé K complète, copies d'enveloppes, trust actuel, COMMITTED + `/1` exact | `branch` valide aussi une naissance candidate ; ne pas inventer une fausse opération pour valider un foyer isolé |
+| `_attestation_core.branch/decision_partition/item_fact/ancestor_commit` | Identité/lignée, clé K complète, copies d'enveloppes, trust actuel, COMMITTED + `/1` exact | `branch` valide aussi une naissance candidate ; pas de pseudo-opération pour un foyer isolé. `ancestor_commit` seul lie l'admission : compléter les liaisons présentées qualification/statement au COMMITTED sélectionné selon 3C §5 |
 | `_attestation_statement`, `attestation_evidence` | Grammaire fermée, bindings scientifiques, agrégats distincts, révocation authentique | Profil PC2 non supporté ; aucun PASS dérivé d'une signature seule ou d'une liste partielle |
 | `trust.inspect_operations_fd`, `classify_envelope` | Un snapshot commun et vérification cryptographique existante | L'inspecteur n'exporte pas les lignes orphelines : une couverture non rapprochée bloque ; aucun second lot |
 | `registrar._population/_prepare/_check_admitted/_check_own_home` | Référence des sommes, exclusions, capacités et identité de son propre enfant | Appellent `lab.load`, ouvrent des chemins ; `prepare` lit aussi STOP. Ni appel direct ni instance lab dans le diagnostic |
@@ -209,7 +209,7 @@ listing stable et ENOENT à l'ouverture ; ENOENT après ouverture est une erreur
 
 ## 7. Familles de tests à spécifier après validation
 
-Ces 30 familles sont reliées aux 102 cas de la matrice contractuelle ; ce ne sont
+Ces 30 familles sont reliées aux 107 cas de la matrice contractuelle ; ce ne sont
 pas des tests exécutés.
 
 | ID | Famille | Résultat attendu |

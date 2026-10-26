@@ -202,10 +202,11 @@
       "p1_scenarios": [
         "COMP-11"
       ],
-      "given": "Ancien COMMITTED du foyer correspond aux records actuels ; tentative ultérieure terminale sans nouvelle naissance.",
+      "given": "COMMITTED ancien du foyer correspondant aux records actuels ; opérations ultérieures d’autres child terminées REFUSED/ABANDONED sans BEGIN D3 ni création de home.",
       "when": "scan_population()",
       "then": [
-        "Chercher parmi tous COMMITTED inventoriés, pas seulement latest ; pas de PASS global historique."
+        "Preuve propre recherchée dans U et liée à ce COMMITTED, indépendamment d’opérations ultérieures d’autres child ; pas de PASS global historique.",
+        "Aucune tentative du même child après COMMITTED n’est autorisée : parser inchangé ; foyer d’un FAILED_CONSUMED reste soumis à TERMINAL-01."
       ]
     },
     {
@@ -1249,10 +1250,11 @@
         "QUAR-05",
         "QUAR-07"
       ],
-      "given": "DONE déclaré mais source encore présente, destination absente ou les deux présentes.",
+      "given": "SET_ASIDE_DONE, ou QUARANTINE_DONE sans nouveau BEGIN D3 effectif ultérieur de la même opération/tentative : source encore présente, destination absente ou les deux présentes.",
       "when": "scan_population()",
       "then": [
-        "ACTION_LOCATION_DIVERGENT FAIL ; source reste inventoriée/classifiée, jamais effacée du compte."
+        "ACTION_LOCATION_DIVERGENT FAIL lorsque les localisations contredisent ces claims ; source reste inventoriée/classifiée, jamais effacée du compte.",
+        "La coexistence prouvée d’une ancienne quarantaine et d’un D3 recréé valide suit ACTION-08, pas ce refus générique."
       ]
     },
     {
@@ -1658,6 +1660,98 @@
       "then": [
         "Aucun linkage terminal PASS ni OPERATION_PENDING déclaré levé ; LEGACY_LEDGER_UNBOUND et preuve externe bloquante.",
         "Journal faulty demeure non lu, aucune seconde inspection ledger."
+      ]
+    },
+    {
+      "id": "BIRTH-06",
+      "plan_family": "C-06",
+      "contract_sections": [
+        "5",
+        "9"
+      ],
+      "p1_scenarios": [
+        "COMP-05",
+        "COMP-06",
+        "AUTH-10"
+      ],
+      "given": "Même qualification q que la naissance sélectionnée ; remplacer au path statement-H(q).json le statement et son enveloppe par un nouveau statement correctement signé, auteur/scope/science valides mais H(statement) différent du COMMITTED.presented.",
+      "when": "scan_population()",
+      "then": [
+        "birth_proof FAIL et aucun statut positif : les H(record) et H(enveloppe) des trois rôles doivent égaler op.presented et ses items DECISION exacts.",
+        "Liaison auteur/q/science et signature valide ne remplacent jamais les preuves figées de cette naissance ; ancienne partition globale reste NE."
+      ]
+    },
+    {
+      "id": "BIRTH-07",
+      "plan_family": "C-06",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-05",
+        "COMP-06"
+      ],
+      "given": "Record q identique mais enveloppe qualification actuelle valide re-signée avec autre envelope_id/hash au même path ; admission /1 toujours correcte.",
+      "when": "scan_population()",
+      "then": [
+        "birth_proof FAIL : H(enveloppe qualification) doit égaler le présenté et item DECISION du COMMITTED sélectionné.",
+        "Le seul /1 de l’admission n’authentifie ni l’enveloppe qualification substituée ni celle du statement."
+      ]
+    },
+    {
+      "id": "ACTION-08",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "6",
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-01",
+        "TX-08",
+        "OWN-01"
+      ],
+      "given": "QUARANTINE_DONE validé puis BEGIN D3 ultérieur non annulé, même op/attempt/plan ; ancienne destination partielle conservée et source recréée liée au D3 courant. Tester état courant OWN complet puis COMMITTED.",
+      "when": "scan_population()",
+      "then": [
+        "Coexistence des deux répertoires permise pour ces deux incarnations liées ; pas de ACTION_LOCATION_DIVERGENT depuis leur seule présence.",
+        "Ancienne destination liée au matériel partiel attendu, source actuelle comparée selon D3 courant ; un seul foyer courant inventorié, EXCLUDED_OWN si propre ouverte ou INCLUDED si naissance COMMITTED authentifiée.",
+        "Aucun ancien artefact effacé/déplacé, aucun historique ou droit de reprise inventé."
+      ]
+    },
+    {
+      "id": "ACTION-09",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-01",
+        "QUAR-05",
+        "QUAR-07"
+      ],
+      "given": "Source et destination coexistantes : seulement BEGIN D3 avant quarantaine, ou BEGIN D3 ultérieur annulé, ou autre op/attempt, ou SET_ASIDE_DONE terminal. Tester aussi incarnation impossible à lier sans contradiction prouvée.",
+      "when": "scan_population()",
+      "then": [
+        "Pas d’exception d’incarnation depuis un ancien d3_started, un BEGIN_CANCELLED ou un autre op/attempt ; contradiction établie ACTION_LOCATION_DIVERGENT.",
+        "Ambiguïté d’incarnation non résolue => correspondence NE bloquante, aucun PASS d’action ou foyer silencieusement écarté."
+      ]
+    },
+    {
+      "id": "ACTION-10",
+      "plan_family": "C-25",
+      "contract_sections": [
+        "6",
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAR-01",
+        "HOME-01"
+      ],
+      "given": "QUARANTINE_DONE puis BEGIN D3 ultérieur effectif, même op/attempt ; destination ancienne présente et liée, source encore absente car aucun premier write de D3.",
+      "when": "scan_population()",
+      "then": [
+        "Ancien action_location PASS depuis source absente et destination liée, indépendamment du BEGIN D3 ultérieur.",
+        "Aucun foyer de nouvelle incarnation ni OWN_OPERATION inventé ; faits D3 absents observés, comptes depuis les autres foyers, aucune permission de recovery."
       ]
     }
   ]

@@ -170,8 +170,21 @@ avec child ID/spec, H(record), admission et qualification canoniques exacts ; li
 `/1` unique portant operation_sha256, issuer_id, envelope_id et H(enveloppe admission)
 exacts ; preuves admission/qualification/statement et liens auteur/sujet/critères/
 budgets/permissions/diff valides ; science prise en charge et recalculée selon 3B.
-Un ancien COMMITTED peut fournir cette preuve même s'il n'est plus la dernière
-tentative ; aucun fichier actuel n'est attribué à ses anciennes partitions globales.
+Le child_spec acquis doit égaler canoniquement le child_spec du BirthPlan de ce
+COMMITTED, de même que le record, l'admission et la qualification acquis. Pour
+chacun des trois rôles admission/qualification/statement, exiger simultanément
+H(record acquis) = op.presented[role].record_sha256 et H(enveloppe acquise) =
+op.presented[role].envelope_sha256. Le statement acquis est donc lié à son propre
+H(statement) figé, pas seulement au H(qualification) dans son path. Chacun des
+trois items DECISION correspondants du COMMITTED doit porter exactement la K,
+le rôle et les hashes présentés, sans rôle POPULATION substitué. Une preuve
+re-signée ou un nouveau statement valide du même q ne remplace pas ces bytes
+canoniques figés. Le lien `/1` de l'admission ne prouve pas les deux autres liens.
+Ces comparaisons locales ne réévaluent pas l'ancienne partition POPULATION.
+Rechercher la preuve parmi toutes les opérations de U : un COMMITTED d'un foyer
+reste utilisable si d'autres candidats ont eu des opérations ultérieures. Cela
+n'autorise aucune nouvelle tentative du même child après COMMITTED, interdite par
+le parser existant. Aucun fichier actuel n'est attribué aux anciennes partitions globales.
 Deux COMMITTED correspondants => contradiction, pas un choix arbitraire.
 Une ligne `/0`, un home seul, admission seule ou FAILED_CONSUMED ne suffit pas.
 
@@ -186,7 +199,7 @@ propriétés distinctes et ne sont jamais affirmées par cette tolérance de com
 
 | Priorité | Conditions | classification / counted |
 |---|---|---|
-| 1 | Contradiction indépendante démontrée d'identité, lignée, admission, COMMITTED, `/1`, science supportée, exclusion ou crypto ; preuve propre requise stablement absente hors exception individuelle | UNAUTHENTICATED / BLOCKING ; POPULATION_UNAUTHENTICATED |
+| 1 | Contradiction indépendante démontrée d'identité, lignée, admission, COMMITTED, `/1`, science supportée, exclusion ou crypto hors seules révocations genuine de priorité 4 ; preuve propre requise stablement absente hors exception individuelle | UNAUTHENTICATED / BLOCKING ; POPULATION_UNAUTHENTICATED |
 | 2 | Candidat de l'unique opération ouverte avec foyer, après BEGIN D3, conditions OWN §6 toutes remplies | OWN_OPERATION / EXCLUDED_OWN |
 | 3 | Prérequis manquant/non supporté sans contradiction démontrée, ou OWN partiel ne remplissant pas §6 | NE / NE ; CLASSIFICATION_NOT_EVALUATED |
 | 4 | Identité/preuves propres établies, au moins une enveloppe propre genuine_but_revoked et toutes les autres PASS ou genuine ; individuelle descendante peut être stablement absente | SUSPENDED / INCLUDED ; EXECUTION_SUSPENDED signalé |
@@ -385,9 +398,24 @@ sous budget privé ; pas de lecture de journaux SQLite ou contenus runtime.
 | Claim | Observation source/destination | Fait |
 |---|---|---|
 | BEGIN sans DONE | exactement une localisation du foyer, identité liée si disponible | action_location déterminée, action_completion NE bloquant ; aucune action exécutée |
-| DONE | source absente stable, destination présente et liée | action_location PASS ; comparer identité selon type ci-dessous |
-| DONE mensonger | source présente ou destination absente/divergente | ACTION_LOCATION_DIVERGENT FAIL ; source présente reste population |
-| Source et destination toutes deux présentes ou absentes | ambiguïté sans preuve de renommage | FAIL, aucun foyer ignoré |
+| SET_ASIDE_DONE ou QUARANTINE_DONE, source actuellement absente | source absente stable, destination présente et liée ; pour QUARANTINE_DONE, avec ou sans BEGIN D3 ultérieur | action_location PASS ; comparer identité selon type ci-dessous, sans inventer de foyer du nouveau D3 |
+| QUARANTINE_DONE puis nouveau BEGIN D3 effectif, même op/attempt | ancienne destination conservée et foyer source recréé lié à cette incarnation D3 | coexistence permise seulement sous les conditions ci-dessous ; source actuelle inventoriée et classifiée normalement |
+| DONE mensonger | destination absente/divergente, ou source présente sans exception d'incarnation prouvée | ACTION_LOCATION_DIVERGENT FAIL ; source présente reste population |
+| Deux localisations sans exception prouvée, ou aucune localisation attendue | ambiguïté sans preuve de renommage/incarnation | FAIL, aucun foyer ignoré |
+
+Les positions d'événements du journal strict lient chaque action à sa même
+opération/tentative. P1 §8.1 permet de recommencer D3 après QUARANTINE_DONE : le
+répertoire `op/attempt` reste la preuve de l'ancien foyer partiel, tandis que
+`individuals/child` peut être une nouvelle incarnation, jusqu'au COMMITTED.
+Exiger QUARANTINE_DONE avant un BEGIN D3 ultérieur non annulé, aucun changement
+op/attempt/plan, destination ancienne liée au matériel partiel attendu et source
+actuelle liée aux preuves/identités de son D3 courant selon 3A et §6. Pas de
+simple test d'un drapeau d3_started, pas d'exemption fondée sur un BEGIN_CANCELLED
+ou sur le D3 antérieur à la quarantaine. L'exception ne s'applique pas à
+SET_ASIDE_DONE terminal. Le lieu de l'ancienne incarnation n'efface ni ne compte
+deux fois le foyer recréé ; OWN ou INCLUDED dépend seulement de son état actuel.
+Si l'incarnation ne peut être liée sans ambiguïté, correspondence NE/bloquante ;
+ne pas conclure automatiquement DONE mensonger depuis cette seule coexistence.
 
 Pour QUARANTINE (partiel non terminal), les fichiers identité présents doivent
 égaler les bytes attendus (pas de préfixe toléré). Pour SET_ASIDE terminal, identité
