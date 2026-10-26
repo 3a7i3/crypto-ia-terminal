@@ -1,0 +1,1230 @@
+{
+  "schema": "colony-admission.3b-specification/0",
+  "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+  "baseline_main": "33144194a1ec85e6cff96e3bb9ae6fda5db972f8",
+  "baseline_tree": "374e0a6f0f2341410909ec41d7d3439c28eac20d",
+  "contract": "P4_3B_ATTESTATIONS_AND_ANCESTRY_V0.md",
+  "p1_contract_sha256": "e8a125bd67964a01f8a06a5f2d3c50f34e9a154e521dce201cb4fb6d1a40bfcd",
+  "p1_scenarios_sha256": "4e518bfec6faaa582c2c42633d80e989b8204708b554f74b0eb1bbee6eaa59a1",
+  "defaults": {
+    "unspecified_preconditions": "All other config/acquisition/binding/state/current-root/policy/resource preconditions valid. Fixtures use temporary LAB_TEST data and generated test keys only.",
+    "no_new_authority": true,
+    "accepted": false,
+    "global_not_evaluated": [
+      "authorization",
+      "completeness",
+      "population",
+      "ceilings",
+      "durability",
+      "rotation",
+      "recovery",
+      "source_revision_provenance"
+    ],
+    "p1_mapping": "References identify controlling requirements; this diagnostic does not execute controller state transitions or certify full P1 scenarios.",
+    "capacity": "Cases at maximum bounds assume adequate OS resources; lower OS capacity is reported unavailable, never promised."
+  },
+  "source_profiles": {
+    "sentinel-r8-c9": {
+      "supported_qualification_profile": true,
+      "artifacts": {
+        "docs/colony_lab/SENTINEL_QUALIFICATION_CRITERIA_R8.json": {
+          "sha256_raw": "22528f1629db5d565f54137e11e99f670c68152eb3127cbafabe5f1072ca990a",
+          "size_bytes_at_baseline": 25866
+        },
+        "docs/colony_lab/evidence/C9_sentinel_evidence.json": {
+          "sha256_raw": "bc2f37df6bf7ab8138d326862906431154c07b298fb4b482db4fc6a0910f71cf",
+          "size_bytes_at_baseline": 12241
+        },
+        "docs/colony_lab/SENTINEL_QUALIFICATION_RECORD_R8.json": {
+          "sha256_raw": "d38656c56f59c7d950d3031ec969cfe6e6e126ed27f3ab2c83ab3d022518c578",
+          "size_bytes_at_baseline": 742
+        }
+      },
+      "code_hash_encoding": "SHA256 concatenation over sorted unique relative POSIX paths: UTF8(path), NUL, SHA256(raw bytes).digest()",
+      "expected_subject_code_sha256": "2c926421416731dc629915067bcea472729e6785ec8dcb6e28f15ae7b41e4ec8",
+      "expected_evaluator_code_sha256": "41b78971184809652dd1190dded49ab27d58c35c8a995351a47bf0f85756faa4"
+    },
+    "pilot-p1-pc2": {
+      "supported_qualification_profile": false,
+      "reason": "PC2 has distinct Sentinel subject, pilot code and evaluator hashes; no standard external qualification record mapping is supplied. No mapping is invented. Policy g0 remains unchanged."
+    }
+  },
+  "cases": [
+    {
+      "id": "SCOPE-01",
+      "plan_family": "B-01",
+      "contract_sections": [
+        "1",
+        "2"
+      ],
+      "p1_scenarios": [
+        "AUTH-01"
+      ],
+      "given": "Branche founder complète et tous items locaux vérifiés sous LAB_TEST.",
+      "when": "scan_attestations",
+      "then": [
+        "Propriétés locales couvertes PASS ; accepted=false ; global completeness/authorization/population/ceilings restent NOT_EVALUATED.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCOPE-02",
+      "plan_family": "B-12",
+      "contract_sections": [
+        "1",
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-03"
+      ],
+      "given": "BirthPlan.population prétend être complet, un individu hors branche existe.",
+      "when": "scan_attestations",
+      "then": [
+        "Aucune complétude globale ou exclusion globale PASS ; population_partition NOT_EVALUATED.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCOPE-03",
+      "plan_family": "B-28",
+      "contract_sections": [
+        "2",
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Trois anciens entrypoints FileObserver et nouvelle configuration.",
+      "when": "Comparer résultats et import boundaries",
+      "then": [
+        "Aucun remplacement silencieux des types/defaults ; aucun writer/campaign/runtime importé pour agir.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "CONFIG-01",
+      "plan_family": "B-13",
+      "contract_sections": [
+        "2"
+      ],
+      "p1_scenarios": [
+        "REV-10"
+      ],
+      "given": "Paths relatifs, superposés, root pin malformé ou mauvaise classe config, un défaut à la fois.",
+      "when": "Construire/évaluer configuration",
+      "then": [
+        "CONFIG_INVALID ou code CONFIG existant ; aucun accès hors config ; résultat sans payload.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "CONFIG-02",
+      "plan_family": "B-23",
+      "contract_sections": [
+        "2",
+        "10"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "Un seul des deux paramètres registrar fourni, politique hors pin ou au-delà des hard caps.",
+      "when": "Valider politique avant signatures",
+      "then": [
+        "Politique refusée ; aucune signature, aucun ledger read si invalidation connue avant acquisition ; payload effacé.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "CONFIG-03",
+      "plan_family": "B-23",
+      "contract_sections": [
+        "2",
+        "10"
+      ],
+      "p1_scenarios": [
+        "CEIL-02"
+      ],
+      "given": "Politique valide différente de op.policy_sha256.",
+      "when": "Comparer contexte figé",
+      "then": [
+        "POLICY_CONTEXT_MISMATCH ; pas de substitution silencieuse de g0.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-01",
+      "plan_family": "B-01",
+      "contract_sections": [
+        "4"
+      ],
+      "p1_scenarios": [
+        "AUTH-02"
+      ],
+      "given": "Founder et parent descendant à génération1, preuve complète, candidat génération2.",
+      "when": "Valider du founder vers parent",
+      "then": [
+        "Chaîne ordonnée complète ; chaque record/spec/qualification lié au bon parent ; aucun appel Supervisor.load.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-02",
+      "plan_family": "B-02",
+      "contract_sections": [
+        "4",
+        "10"
+      ],
+      "p1_scenarios": [
+        "AUTH-02"
+      ],
+      "given": "Cycle A→B→A ou self-parent, records lisibles.",
+      "when": "Découvrir branche",
+      "then": [
+        "BRANCH_CYCLE ; terminaison bornée ; aucune récursion illimitée.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-03",
+      "plan_family": "B-02",
+      "contract_sections": [
+        "3",
+        "4"
+      ],
+      "p1_scenarios": [
+        "COMP-01"
+      ],
+      "given": "Parent référencé sans home ou sans record/spec.",
+      "when": "Acquérir sous parent stable",
+      "then": [
+        "BRANCH_INCOMPLETE ; agrégats dépendants NE ; absence n’est pas branche vide complète.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-04",
+      "plan_family": "B-03",
+      "contract_sections": [
+        "4"
+      ],
+      "p1_scenarios": [
+        "COMP-05"
+      ],
+      "given": "Record hash recomputé mais id de dossier, spec, génération, founder ou diff incohérent.",
+      "when": "Appeler validateurs purs",
+      "then": [
+        "BRANCH_DIVERGENT et détail lineage/A1 approprié ; jamais PASS fondé sur le seul hash.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-05",
+      "plan_family": "B-03",
+      "contract_sections": [
+        "4"
+      ],
+      "p1_scenarios": [
+        "COMP-05"
+      ],
+      "given": "Parent courant valide différent de birth_plan.parent.",
+      "when": "Comparer objet canonique complet",
+      "then": [
+        "BRANCH_DIVERGENT ; aucune re-préparation du BirthPlan.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-06",
+      "plan_family": "B-02",
+      "contract_sections": [
+        "4",
+        "10"
+      ],
+      "p1_scenarios": [
+        "CEIL-02"
+      ],
+      "given": "9 noeuds parent→founder puis10 ; politique valide à plafond dur.",
+      "when": "Découvrir et valider",
+      "then": [
+        "9 reste dans capacité si génération cohérente ;10 BRANCH_DEPTH_LIMIT ; g0 peut refuser bien avant.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-07",
+      "plan_family": "B-02",
+      "contract_sections": [
+        "4"
+      ],
+      "p1_scenarios": [
+        "CEIL-02"
+      ],
+      "given": "Branche valide mais génération candidate au-delà de politique.",
+      "when": "Vérifier prédicat local",
+      "then": [
+        "Détail GENERATION_LIMIT ; ceilings global reste NE.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-08",
+      "plan_family": "B-04",
+      "contract_sections": [
+        "4",
+        "6"
+      ],
+      "p1_scenarios": [
+        "COMP-07"
+      ],
+      "given": "Fondateur sans enveloppe individuelle ; puis parent descendant sans enveloppe individuelle.",
+      "when": "Évaluer besoins branche",
+      "then": [
+        "ATTESTATION_MISSING ; pas de filiation prouvée ; pas d’admission founder inventée.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-09",
+      "plan_family": "B-05",
+      "contract_sections": [
+        "4",
+        "6"
+      ],
+      "p1_scenarios": [
+        "COMP-08"
+      ],
+      "given": "Candidat D2 sans son enveloppe individuelle, ancêtres correctement attestés.",
+      "when": "Dériver besoins locaux",
+      "then": [
+        "Ne pas exiger attestation individuelle candidate ; population globale reste NE.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "BRANCH-10",
+      "plan_family": "B-03",
+      "contract_sections": [
+        "4"
+      ],
+      "p1_scenarios": [
+        "AUTH-02"
+      ],
+      "given": "Qualification ancêtre de mauvais sujet/critères ; admission avec budget/diff/permissions déliés.",
+      "when": "Valider bindings",
+      "then": [
+        "Codes purs appropriés ; branch_structure jamais PASS ; aucun prepare/commit.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "COMMIT-01",
+      "plan_family": "B-06",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "AUTH-02"
+      ],
+      "given": "Ancêtre avec unique COMMITTED concordant, admission signée et ligne /1 exacte.",
+      "when": "Rapprocher snapshot global",
+      "then": [
+        "Preuve consommation liée à son operation_sha256 ; aucune nouvelle consommation.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "COMMIT-02",
+      "plan_family": "B-07",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "COMP-06"
+      ],
+      "given": "Ligne /0 ou /1 d’une autre opération, un cas à la fois.",
+      "when": "Rapprocher admission acquise",
+      "then": [
+        "ANCESTOR_COMMIT_UNPROVEN ; ni signature ni home ne compensent le mauvais lien.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "COMMIT-03",
+      "plan_family": "B-08",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "COMP-06"
+      ],
+      "given": "Ancêtre home seul, admission orpheline, FAILED_CONSUMED, ou COMMITTED dont H(record) diffère.",
+      "when": "Vérifier preuve durable",
+      "then": [
+        "ANCESTOR_COMMIT_UNPROVEN ; pas d’authentification d’ancêtre.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "COMMIT-04",
+      "plan_family": "B-07",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "COMP-05"
+      ],
+      "given": "Bonne opération ledger mais issuer_id/envelope_id/envelope_sha256 remplacé.",
+      "when": "Comparer identité complète",
+      "then": [
+        "FROZEN_ITEM_DIVERGENT ou diagnostic D1 existant ; aucun lien par seul record hash.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "COMMIT-05",
+      "plan_family": "B-07",
+      "contract_sections": [
+        "3",
+        "6"
+      ],
+      "p1_scenarios": [
+        "COMP-06"
+      ],
+      "given": "Deux lignes pour même opération ou ligne sans journal inventorié.",
+      "when": "Inspecter un seul snapshot",
+      "then": [
+        "Conflit/couverture ledger3A bloquant ; ne pas lancer de second lot.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "COMMIT-06",
+      "plan_family": "B-06",
+      "contract_sections": [
+        "6"
+      ],
+      "p1_scenarios": [
+        "TX-02"
+      ],
+      "given": "Admission candidate non dépensée puis dépensée par cette opération.",
+      "when": "Observer suivant état D1",
+      "then": [
+        "NOT_CONSUMED/CONSUMED_BY_THIS_OPERATION distincts ; accepted reste false ; aucune admission nouvelle.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-01",
+      "plan_family": "B-09",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-04"
+      ],
+      "given": "Deux qualifications de même kind/sujet, digests différents.",
+      "when": "Dériver clés K",
+      "then": [
+        "Deux besoins distincts, aucun écrasement par couple kind/sujet.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-02",
+      "plan_family": "B-10",
+      "contract_sections": [
+        "5",
+        "6"
+      ],
+      "p1_scenarios": [
+        "COMP-04"
+      ],
+      "given": "Même qualification exacte utilisée comme naissance ancêtre et présentée.",
+      "when": "Dériver K et acquérir copies attendues",
+      "then": [
+        "Une K ; plusieurs origines vérifiées ; chaque path lu une fois.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-03",
+      "plan_family": "B-11",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-01"
+      ],
+      "given": "Supprimer un item DECISION mais conserver tous autres records valides.",
+      "when": "Comparer ensemble indépendamment dérivé",
+      "then": [
+        "ATTESTATION_MISSING ; jamais accepter op.items comme définition complète.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-04",
+      "plan_family": "B-11",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-02"
+      ],
+      "given": "Ajouter item DECISION inattendu ; puis dupliquer K dans format.",
+      "when": "Parser et comparer",
+      "then": [
+        "ATTESTATION_UNEXPECTED ou rejet strict doublon ; aucune normalisation réparatrice.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-05",
+      "plan_family": "B-11",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-03"
+      ],
+      "given": "Changer rôle DECISION nécessaire en POPULATION sans changer bytes de record.",
+      "when": "Comparer rôles dérivés",
+      "then": [
+        "DECISION_ROLE_MISMATCH ; population ne fournit pas un remplacement.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-06",
+      "plan_family": "B-10",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "COMP-05"
+      ],
+      "given": "Deux enveloppes valides de même K mais digests différents entre copies.",
+      "when": "Comparer à enveloppe figée",
+      "then": [
+        "FROZEN_ITEM_DIVERGENT ; ne pas choisir arbitrairement une signature valide.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-07",
+      "plan_family": "B-22",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "CRASH-D1"
+      ],
+      "given": "PREPARED avant D2 avec seulement hashes des enveloppes.",
+      "when": "Évaluer disponibilité",
+      "then": [
+        "EVIDENCE_NOT_STORED ; authenticité NE ; état incomplet attendu ne devient pas corruption.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SET-08",
+      "plan_family": "B-22",
+      "contract_sections": [
+        "5"
+      ],
+      "p1_scenarios": [
+        "LOG-03"
+      ],
+      "given": "Ancienne tentative et dernière tentative d’un même candidat, fichiers courants de la dernière.",
+      "when": "Scanner historique",
+      "then": [
+        "D1 conservé ; ancienne attestation HISTORICAL_ATTESTATIONS_NOT_EVALUATED, jamais attribuée rétroactivement.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-01",
+      "plan_family": "B-13",
+      "contract_sections": [
+        "3",
+        "7"
+      ],
+      "p1_scenarios": [
+        "REV-04"
+      ],
+      "given": "Racine absente, mauvais pin, floor trop haut, autre lab, non LAB_TEST, un cas à la fois.",
+      "when": "Valider confiance actuelle",
+      "then": [
+        "TRUST_CURRENT_UNAVAILABLE ; absence de preuve ne devient pas PASS ; fondation invalide efface payload.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-02",
+      "plan_family": "B-13",
+      "contract_sections": [
+        "3",
+        "7"
+      ],
+      "p1_scenarios": [
+        "REV-13"
+      ],
+      "given": "Historique tronqué/étranger ou ne correspondant pas à policy courante.",
+      "when": "Projeter sources externes",
+      "then": [
+        "Refus fondamental ; pas de root historique fallback.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-03",
+      "plan_family": "B-14",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "REV-08"
+      ],
+      "given": "Ancienne signature de clé désormais RETIRED mais root_version antérieure à retrait.",
+      "when": "Vérifier sous racine courante",
+      "then": [
+        "Rotation bénigne ne provoque pas refus par simple différence de root hash.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-04",
+      "plan_family": "B-14",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "AUTH-07"
+      ],
+      "given": "Enveloppe root_version future ou avant introduction clé.",
+      "when": "Appeler trust.verify_envelope",
+      "then": [
+        "ENVELOPE_FROM_FUTURE_ROOT / KEY_NOT_YET_VALID conservés.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-05",
+      "plan_family": "B-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "REV-03"
+      ],
+      "given": "Clé/enveloppe révoquée, signature valide, intégrité et droits PASS.",
+      "when": "Classify enveloppe",
+      "then": [
+        "genuine_but_revoked=true, authenticity FAIL ; branche ne reçoit aucun droit ; pas de statut global écrit.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-06",
+      "plan_family": "B-15",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "AUTH-03"
+      ],
+      "given": "Même révocation avec signature altérée.",
+      "when": "Classify enveloppe",
+      "then": [
+        "SIGNATURE_INVALID en plus ; genuine_but_revoked=false ; aucune suspension assimilée à preuve valide.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-07",
+      "plan_family": "B-16",
+      "contract_sections": [
+        "7"
+      ],
+      "p1_scenarios": [
+        "AUTH-04",
+        "AUTH-05",
+        "AUTH-06"
+      ],
+      "given": "Mauvais issuer, scope, lab, sujet, kind, purpose ou auteur, variantes.",
+      "when": "Vérifier enveloppe",
+      "then": [
+        "Codes trust d’origine conservés ; propriétés séparées ; pas de cryptographie parallèle.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-08",
+      "plan_family": "B-12",
+      "contract_sections": [
+        "5",
+        "7"
+      ],
+      "p1_scenarios": [
+        "REV-11"
+      ],
+      "given": "Révocation déclarée hors branche uniquement.",
+      "when": "Scanner3B",
+      "then": [
+        "Population non classifiée ; pas d’inférence SUSPENDED globale ni comptage.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "TRUST-09",
+      "plan_family": "B-16",
+      "contract_sections": [
+        "4",
+        "7"
+      ],
+      "p1_scenarios": [
+        "AUTH-02"
+      ],
+      "given": "Reviewer/admitter contient préfixe16 de candidat ou ancêtre.",
+      "when": "Tester exclusions connues",
+      "then": [
+        "Refus self-qualification/admission ; exclusion hors branche toujours NE.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-01",
+      "plan_family": "B-17",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-09"
+      ],
+      "given": "R8 historique nu sans nouvelles qualification/statement/enveloppes.",
+      "when": "Évaluer preuves",
+      "then": [
+        "ATTESTATION_MISSING ; R8 inchangé ; aucun issuer historique fictif créé.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-02",
+      "plan_family": "B-17",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Qualification présente reprend R8 avec auteur externe autorisé, statement correctement lié.",
+      "when": "Comparer historique et présent",
+      "then": [
+        "Reviewer différent permis seulement selon §8 ; H(q) diffère de H(R8) ; aucune signature historique revendiquée.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-03",
+      "plan_family": "B-18",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Champ supplémentaire, doublon JSON, NaN, mauvais type/bool int, version0.",
+      "when": "Parser statement",
+      "then": [
+        "STATEMENT_INVALID/JSON divergent ; pas de coercition ou de réparation.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-04",
+      "plan_family": "B-18",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Statement lie autre q/sujet/issuer/version root que les deux enveloppes.",
+      "when": "Comparer bindings complets",
+      "then": [
+        "STATEMENT_INVALID ; signature seule ne valide pas la correspondance.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-05",
+      "plan_family": "B-18",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "PRESENT avec historiques null, campagne true, digest de campagne set ; variantes.",
+      "when": "Valider scope",
+      "then": [
+        "STATEMENT_INVALID ; pas de lancement de campagne.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-06",
+      "plan_family": "B-18",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "FRESH avec historique set, campagne false, digest absent ou différent de q.",
+      "when": "Valider scope",
+      "then": [
+        "STATEMENT_INVALID ; pas de validation fondée sur libellé FRESH.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-07",
+      "plan_family": "B-18",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "historical_signature_claimed true ou0 ; source SHA malformé.",
+      "when": "Valider champs",
+      "then": [
+        "STATEMENT_INVALID ; false doit être littéral ; grammaire source SHA contrôlée.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "STATEMENT-08",
+      "plan_family": "B-19",
+      "contract_sections": [
+        "8",
+        "9"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Source SHA historique syntaxiquement valide différent du HEAD courant, code inchangé.",
+      "when": "Comparer sources courantes",
+      "then": [
+        "Ne pas confondre dérive documentaire et code ; source_revision_provenance NE, aucune preuve passée main inventée.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-01",
+      "plan_family": "B-19",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Profil R8/C9 exact, qualification sujet égale C9, code actuel correspondant.",
+      "when": "Recalculer bytes/code passivement",
+      "then": [
+        "scientific_bindings PASS à portée locale ; aucune nouvelle campagne, aucune qualification nouvelle.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-02",
+      "plan_family": "B-19",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Altérer bytes critère, C9 ou record R8 en gardant champs plausibles.",
+      "when": "Comparer pins raw",
+      "then": [
+        "SCIENTIFIC_DIVERGENCE ; pas de recanonicalisation pour cacher altération raw.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-03",
+      "plan_family": "B-19",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Qualification valide et signée mais sujet différent du C9 épinglé.",
+      "when": "Comparer C9.subject",
+      "then": [
+        "SCIENTIFIC_DIVERGENCE ; pas d’extension de l’évidence à un autre individu/spec.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-04",
+      "plan_family": "B-20",
+      "contract_sections": [
+        "9.2"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Critères pilot p1/PC2 ou famille inconnue.",
+      "when": "Sélectionner profil",
+      "then": [
+        "SCIENTIFIC_PROFILE_UNSUPPORTED ; scientific_bindings/branch_attestations NE sauf contradiction connue ; aucune correspondance inventée.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-05",
+      "plan_family": "B-20",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "STORE-01"
+      ],
+      "given": "Statement evidence propose .env.secret, chemin absolu, .. ou chemin non allowlisté.",
+      "when": "Valider avant open",
+      "then": [
+        "SOURCE_PATH_FORBIDDEN ; zéro lecture du chemin soumis et aucun secret lu.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-06",
+      "plan_family": "B-21",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Nouveau fichier régulier de fixture dans subject ou evaluator.",
+      "when": "Recalculer fermeture complète",
+      "then": [
+        "Hash change, pas seulement fichiers *.py ; SCIENTIFIC_DIVERGENCE.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-07",
+      "plan_family": "B-21",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Lien/nonrégulier ; ou sous-dossier/fichier nonpyc dans __pycache__.",
+      "when": "Inventorier sans suivre liens",
+      "then": [
+        "SOURCE_CODE_IRREGULAR ; aucun hash qualifié de sous-ensemble.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-08",
+      "plan_family": "B-21",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Caches directs *.pyc réguliers puis root de code attendue absente.",
+      "when": "Inventorier code",
+      "then": [
+        "Caches valides ignorés sans contenu lu ; root absente indisponible, jamais hash vide.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-09",
+      "plan_family": "B-20",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Nom secret inattendu au sein d’une fermeture de code.",
+      "when": "Inventorier avant contenu",
+      "then": [
+        "Refus de fermeture entière sans lecture ; ne pas sauter ce fichier puis produire PASS.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "SCIENCE-10",
+      "plan_family": "B-19",
+      "contract_sections": [
+        "9"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Évidence brute hashée différemment d’un objet JSON canonique ; record_hash individuel sans champ.",
+      "when": "Comparer identités",
+      "then": [
+        "Digests raw, canoniques, code closure et record_hash restent distincts.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-01",
+      "plan_family": "B-25",
+      "contract_sections": [
+        "3"
+      ],
+      "p1_scenarios": [
+        "STORE-01"
+      ],
+      "given": "Lien/hardlink/FIFO/mode/uid invalide sous lab.",
+      "when": "Acquérir sources privées",
+      "then": [
+        "Refus nofollow/nonblocking ; zéro payload utilisable.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-02",
+      "plan_family": "B-25",
+      "contract_sections": [
+        "3",
+        "9.3"
+      ],
+      "p1_scenarios": [
+        "STORE-01"
+      ],
+      "given": "Checkout fichiers0644 dirs0755 valides puis group/world writable.",
+      "when": "Acquérir checkout",
+      "then": [
+        "Lecture possible sous règles checkout propres ; writable refusé, aucun chmod.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-03",
+      "plan_family": "B-25",
+      "contract_sections": [
+        "3"
+      ],
+      "p1_scenarios": [
+        "STORE-01"
+      ],
+      "given": "ENOENT open puis ENOENT read/stat après open, EACCES, variantes.",
+      "when": "Injecter erreurs",
+      "then": [
+        "Seul open peut établir absence stable ; autres échecs invalident payload.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-04",
+      "plan_family": "B-25",
+      "contract_sections": [
+        "3"
+      ],
+      "p1_scenarios": [
+        "DIR-01"
+      ],
+      "given": "Source/remplacement/listing change pendant acquisition.",
+      "when": "Vérification finale",
+      "then": [
+        "SOURCE_CHANGED ; items/stamps/counts/ledger bytes effacés, pas de résultat provisoire.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-05",
+      "plan_family": "B-24",
+      "contract_sections": [
+        "3"
+      ],
+      "p1_scenarios": [
+        "DUR-12"
+      ],
+      "given": "Close ou unlock final échoue.",
+      "when": "Sortir acquisition",
+      "then": [
+        "Refus sans retry ; aucun payload provisoire publié.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-06",
+      "plan_family": "B-26",
+      "contract_sections": [
+        "3"
+      ],
+      "p1_scenarios": [
+        "CONC-01"
+      ],
+      "given": "L1 ou L2 déjà occupé.",
+      "when": "Essayer scan unique",
+      "then": [
+        "Refus nonblocking, ordre L1→L2, zéro retry.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-07",
+      "plan_family": "B-27",
+      "contract_sections": [
+        "3",
+        "6"
+      ],
+      "p1_scenarios": [
+        "AUTH-02"
+      ],
+      "given": "Plusieurs candidats partagent ancêtres et enveloppes.",
+      "when": "Instrumenter opens/reads",
+      "then": [
+        "Chaque path une fois, un ledger read global ; aucune vérification path-based cachée.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "ACQ-08",
+      "plan_family": "B-27",
+      "contract_sections": [
+        "3"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Audit hooks et isolation des modules purs, fixtures bytes stables.",
+      "when": "Appeler diagnostics/importer modules",
+      "then": [
+        "Aucun writer/network/subprocess/SQLite/campaign ; byte/mode/mtime inchangés, atime non garanti.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "LIMIT-01",
+      "plan_family": "B-23",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "20 puis21 items sous g0 ;252 puis253 sous politique plafonnée64.",
+      "when": "Vérifier bornes",
+      "then": [
+        "Dépasser refuse avant signatures ; aucune augmentation de politique.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "LIMIT-02",
+      "plan_family": "B-23",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "LOG-01"
+      ],
+      "given": "256 puis257 opérations toutes tentatives, pas seulement nombre de logs.",
+      "when": "Inventorier avant ledger",
+      "then": [
+        "257 refuse avant open ledger ; pas de second lot.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "LIMIT-03",
+      "plan_family": "B-24",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "Seuils de bytes privés/corpus/un fichier, FD/entrées/fichiers dépassés, variantes.",
+      "when": "Acquérir et compter au fil de l’eau",
+      "then": [
+        "SOURCE_LIMIT avec nom déterministe ; payload vide ; pas de troncature.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "LIMIT-04",
+      "plan_family": "B-24",
+      "contract_sections": [
+        "10"
+      ],
+      "p1_scenarios": [
+        "COMP-09"
+      ],
+      "given": "Un fichier partagé par plusieurs besoins et limite FD OS plus basse.",
+      "when": "Dédupliquer puis ouvrir",
+      "then": [
+        "Bytes une fois ; échec OS = indisponibilité, pas garantie de4096 FD.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "RESULT-01",
+      "plan_family": "B-27",
+      "contract_sections": [
+        "2",
+        "11"
+      ],
+      "p1_scenarios": [
+        "QUAL-01"
+      ],
+      "given": "Résultat complet et références vers dicts trust retournés.",
+      "when": "Essayer mutation",
+      "then": [
+        "Résultat immuable et détaché ; accepted non configurable.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "RESULT-02",
+      "plan_family": "B-12",
+      "contract_sections": [
+        "1",
+        "11"
+      ],
+      "p1_scenarios": [
+        "COMP-03"
+      ],
+      "given": "Un prérequis manque puis une contradiction est connue sur même agrégat.",
+      "when": "Agréger",
+      "then": [
+        "NE sans contradiction ; FAIL domine si contradiction prouvée ; jamais PASS partiel.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    },
+    {
+      "id": "COMPAT-01",
+      "plan_family": "B-28",
+      "contract_sections": [
+        "3",
+        "11"
+      ],
+      "p1_scenarios": [
+        "LOG-04"
+      ],
+      "given": "ACK CR contenant faux events, vieux lecteurs et suites sous -O.",
+      "when": "Régression ciblée et adversariale",
+      "then": [
+        "Formats/defaults/pins/qualified sources préservés ; fragments opaques ; pas de runtime proof.",
+        "accepted=false ; no mutation or runtime authority."
+      ]
+    }
+  ]
+}

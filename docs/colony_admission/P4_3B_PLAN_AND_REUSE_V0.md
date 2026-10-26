@@ -1,7 +1,7 @@
 # 3B — Plan proposé : attestations et ascendance
 
 2026-10-25, America/Mexico_City.
-**PLAN_FOR_OPERATOR_VALIDATION / SOURCE_ONLY / LAB_ONLY / NO_IMPLEMENTATION.**
+**SCOPE_VALIDATED / SOURCE_ONLY / LAB_ONLY / NO_IMPLEMENTATION.**
 
 ## 1. Point de départ vérifié
 
@@ -17,9 +17,12 @@ local différent n'est pas présenté comme le HEAD distant. Les ZIP ne font pas
 pour le code actuel. #286 est OPEN/ACTIVE. Les étapes 1 et 2 et la tranche 3A sont
 clôturées ; l'étape 3 entière reste ouverte.
 
-Le « go » autorise la préparation de ce plan. Son contenu concret est soumis à
-validation ; cette publication ne vaut ni validation humaine du plan, ni revue
-indépendante, ni autorisation d'implémentation déjà obtenue.
+Le premier « go » autorisait la préparation de ce plan. Après présentation dans
+#505, Mathieu a explicitement validé ce périmètre pour passer au contrat détaillé
+et à la matrice avant implémentation. Le [contrat](P4_3B_ATTESTATIONS_AND_ANCESTRY_V0.md)
+et ses [72 cas de spécification](P4_3B_ATTESTATIONS_AND_ANCESTRY_CASES_V0.json) sont
+désormais rédigés. Leur revue indépendante et CI finale restent à obtenir ;
+aucune implémentation, revue favorable ou fusion 3B n'est revendiquée ici.
 
 ## 2. Objectif et frontière d'acceptation
 
@@ -251,7 +254,12 @@ writers, restauration/reprise/naissance, inventaire exhaustif et plafonds 3C, P5
 installation/runtime/VPS/systemd/PPL/FIN/epoch/configuration production/TESTNET/LIVE,
 secret, Replay ou Diagnostic automatique. Aucun de ces outils n'est lancé par ce plan.
 
-Décision demandée : valider ce périmètre 3B et le découpage contrat→revue→petites PR
-SOURCE_ONLY, avec les bornes proposées et la séparation explicite de 3C. Après cette
-validation, rédiger le contrat et la matrice avant toute implémentation. La revue
-indépendante de ce nouveau contrat et ses preuves restent à obtenir.
+Décision de périmètre obtenue : Mathieu a validé ce périmètre 3B et le découpage
+contrat→revue→petites PR SOURCE_ONLY. Le contrat fixe les bornes, types, chemins,
+codes et la séparation de 3C. Limite scientifique explicite : le profil R8/C9 est
+défini ; le mapping d'un record qualification/0 externe pour PC2 n'est pas fourni
+par les sources existantes et ne sera pas inventé. Ce profil reste bloquant/non
+évalué jusqu'à un amendement contractuel. Cela n'enlève pas p1 de la politique g0.
+Prochaine porte : revue indépendante du contrat final et de sa matrice, corrections,
+CI et contrôles de composition, avant implémentation. Pas de nouvelle demande de
+validation du périmètre déjà accordé ; tout élargissement substantiel reste distinct.
