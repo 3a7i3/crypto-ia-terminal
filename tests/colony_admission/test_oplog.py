@@ -343,7 +343,8 @@ def test_purity_imports_and_no_external_calls():
     allowed = {"hashlib", "json", "re", "dataclasses", "formats", "oplog", "external_evidence"}
     forbidden = {"open", "exec", "eval", "__import__", "getattr", "setattr", "globals", "locals"}
     for path in root.glob("*.py"):
-        if path.name in {"observer.py", "evidence_observer.py"}:  # Explicit IO boundaries only.
+        if path.name in {"observer.py", "evidence_observer.py", "attestation_observer.py",
+                         "_attestation_checkout.py"}:  # Explicit IO boundaries only.
             continue
         # 3B's private pure adapters reuse the existing pure validators. The
         # original lexical projections retain their original import boundary.
@@ -351,6 +352,7 @@ def test_purity_imports_and_no_external_calls():
             "_attestation_core.py": {"colony_lab", "colony_lab.a1_identity", "colony_registrar", "colony_trust",
                                      "physical_evidence"},
             "_attestation_statement.py": {"colony_trust", "_attestation_core", "physical_evidence"},
+            "attestation_evidence.py": {"_attestation_core", "_attestation_statement", "physical_evidence"},
         }.get(path.name, set())
         permitted = allowed | extra
         tree = ast.parse(path.read_text())
@@ -359,7 +361,11 @@ def test_purity_imports_and_no_external_calls():
                 assert all(x.name in permitted for x in node.names)
             if isinstance(node, ast.ImportFrom):
                 if node.module is None:
-                    assert node.level == 1 and [alias.name for alias in node.names] == ["formats"]
+                    assert node.level == 1
+                    if path.name == "attestation_evidence.py":
+                        assert all(alias.name in permitted for alias in node.names)
+                    else:
+                        assert [alias.name for alias in node.names] == ["formats"]
                 else:
                     assert node.module in permitted
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
