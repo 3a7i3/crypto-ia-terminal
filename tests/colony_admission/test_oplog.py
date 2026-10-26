@@ -345,15 +345,23 @@ def test_purity_imports_and_no_external_calls():
     for path in root.glob("*.py"):
         if path.name in {"observer.py", "evidence_observer.py"}:  # Explicit IO boundaries only.
             continue
+        # 3B's private pure adapters reuse the existing pure validators. The
+        # original lexical projections retain their original import boundary.
+        extra = {
+            "_attestation_core.py": {"colony_lab", "colony_lab.a1_identity", "colony_registrar", "colony_trust",
+                                     "physical_evidence"},
+            "_attestation_statement.py": {"colony_trust", "_attestation_core", "physical_evidence"},
+        }.get(path.name, set())
+        permitted = allowed | extra
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
-                assert all(x.name in allowed for x in node.names)
+                assert all(x.name in permitted for x in node.names)
             if isinstance(node, ast.ImportFrom):
                 if node.module is None:
                     assert node.level == 1 and [alias.name for alias in node.names] == ["formats"]
                 else:
-                    assert node.module in allowed
+                    assert node.module in permitted
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 assert node.func.id not in forbidden
     assert list(inspect.signature(project_log).parameters) == ["raw"]
