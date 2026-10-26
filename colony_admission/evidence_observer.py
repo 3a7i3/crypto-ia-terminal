@@ -232,7 +232,7 @@ def scan_evidence(config):
         return p.PhysicalEvidence("BLOCKED", ("SOURCE_UNAVAILABLE",))
 
 
-def _scan(config):
+def _scan(config, *, extension=None):
     with ExitStack() as stack:
         source = _EvidenceAcquisition(stack)
         lab = source.directory(config.lab_root)
@@ -253,6 +253,8 @@ def _scan(config):
             fd = source.optional_directory(lab, name, name)
             o._need(fd is not None, "SOURCE_UNAVAILABLE")
             roots[name] = fd
+        if extension is not None:
+            extension.prepare(source, lab, external[1].policy_bytes)
         names = o._names(roots["admission-ops"])
         attempts, seen, total, pending = [], set(), 0, set()
         for name in names:
@@ -276,8 +278,12 @@ def _scan(config):
                 attempts.append((child, prefix, log, op, log.operation_sha256 == whole.operation_sha256))
             if whole.terminal_claim is None:
                 pending.add(whole.operation_sha256)
+        if extension is not None:
+            extension.before_ledger(attempts)
         ledger_parent = source.directory(config.ledger.parent)
-        batch = o._ledger(source, ledger_parent, config.ledger.name, tuple(sorted(seen)))
+        batch = (o._ledger(source, ledger_parent, config.ledger.name, tuple(sorted(seen)))
+                 if extension is None else extension.ledger(source, ledger_parent, config.ledger.name,
+                                                           tuple(sorted(seen))))
         rows = {row["operation_sha256"]: row for row in batch["observations"]}
         coverage, errors = _coverage(batch)
         blockers.extend(errors)
@@ -338,9 +344,13 @@ def _scan(config):
                               log, d1, d2, d3, p.unique(errors)))
             blockers.extend(errors)
         o._need(o._names(roots["admission-ops"]) == names, "SOURCE_CHANGED")
+        if extension is not None:
+            extension.project(attempts, rows, operations, coverage)
         source.verify()
         result = p.PhysicalEvidence("BLOCKED" if blockers else "OBSERVED", p.unique(blockers), tuple(source.stamps),
             tuple(source.metadata[key] for key in sorted(source.metadata)),
             tuple(sorted(operations, key=lambda x: (x.child_agent_id, x.attempt))), tuple(sorted(pending)),
             f.canonical(batch), coverage)
+        if extension is not None:
+            result = extension.finish(result)
     return result
