@@ -1225,6 +1225,56 @@
         "Formats/defaults/pins/qualified sources préservés ; fragments opaques ; pas de runtime proof.",
         "accepted=false ; no mutation or runtime authority."
       ]
+    },
+    {
+      "id": "SCIENCE-11",
+      "plan_family": "B-19",
+      "contract_sections": [
+        "8",
+        "9.1"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "FRESH signé avec q.evidence_sha256 et campaign_evidence_sha256 égaux au même faux digest X ; statement.evidence référence le vrai C9 et son pin ; autres sujets/critères/hashes sont valides.",
+      "when": "Comparer les champs signés aux bytes C9 acquis et épinglés",
+      "then": [
+        "SCIENTIFIC_DIVERGENCE ; q.evidence_sha256 doit égaler SHA256(raw C9), le pin et statement.evidence[0].sha256 ; aucun PASS scientifique ou de branche malgré signatures valides.",
+        "accepted=false ; aucun lancement de campagne."
+      ]
+    },
+    {
+      "id": "SCIENCE-12",
+      "plan_family": "B-19",
+      "contract_sections": [
+        "8",
+        "9.1"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "PRESENT signé, R8 exact au chemin autorisé, tous champs historiques et qualification cohérents sauf historical_record_sha256=faux digest X. Variante : digest R8 exact mais historical_record_path est un autre path.",
+      "when": "Lier les champs historiques signés au path et aux bytes du profil",
+      "then": [
+        "STATEMENT_INVALID pour lien historique signé divergent ; aucune lecture du path alternatif ; historical_record_sha256 doit égaler SHA256(raw R8) et le pin.",
+        "accepted=false ; aucune signature historique inventée."
+      ]
+    },
+    {
+      "id": "STATEMENT-09",
+      "plan_family": "B-18",
+      "contract_sections": [
+        "8"
+      ],
+      "p1_scenarios": [
+        "AUTH-10"
+      ],
+      "given": "Statement correctement signé avec scope=UNKNOWN_SCOPE, chaîne vide, null, int ou bool, un défaut à la fois ; tous autres champs valides.",
+      "when": "Valider le champ scope avant interprétation des deux branches",
+      "then": [
+        "STATEMENT_INVALID pour toute valeur/type hors des deux chaînes exactes PRESENT_ATTESTATION_OF_EXISTING_EVIDENCE et FRESH_CAMPAIGN ; pas de troisième branche par défaut.",
+        "accepted=false ; aucun PASS statement."
+      ]
     }
   ]
 }

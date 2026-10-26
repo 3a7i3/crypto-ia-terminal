@@ -273,6 +273,8 @@ qualification_record_sha256, historical_record_path, historical_record_sha256,
 evidence, criteria_sha256, subject_code_sha256, evaluator_code_sha256,
 verified_at_source_sha, scope, campaign_replayed, campaign_evidence_sha256,
 historical_signature_claimed. Aucun champ supplémentaire, doublon ou coercition.
+scope est une chaîne strictement égale à PRESENT_ATTESTATION_OF_EXISTING_EVIDENCE
+ou FRESH_CAMPAIGN ; toute autre valeur ou type donne STATEMENT_INVALID.
 Hashes hex64 lowercase ; source SHA git hex40 lowercase ; root version int strict
 1..trust.MAX_VERSION ; booleans littéraux (pas 0/1). evidence est une liste non vide
 triée par path, sans doublon, d'objets exactement {path, sha256}.
@@ -286,8 +288,10 @@ est vérifiée, pas sa preuve passée d'appartenance à main. On ne réécrit pa
 champ et source_revision_provenance reste NOT_EVALUATED ; les bytes courants
 recalculés sont la preuve de correspondance actuelle de code, pas d'un passé Git.
 
-PRESENT_ATTESTATION_OF_EXISTING_EVIDENCE : historical_record_path et digest non
-null, campaign_replayed exactement false, campaign_evidence_sha256 null.
+PRESENT_ATTESTATION_OF_EXISTING_EVIDENCE : historical_record_path est exactement
+le path historique autorisé du profil, et historical_record_sha256 égale
+SHA256(raw record historique acquis) ainsi que le pin raw du profil. Ils sont
+non null ; campaign_replayed exactement false, campaign_evidence_sha256 null.
 Lire le record historique seulement via le profil §9 ; en comparer id/spec,
 state/scope, critères/évidence/hashes de code à q. Seuls reviewer_kind/id sont
 remplacés par l'émetteur présent ; ne pas exiger H(q)=H(record historique).
@@ -296,8 +300,10 @@ colony-review-481-r8 ni d'enveloppe historique générés pour rendre R8 admissi
 
 FRESH_CAMPAIGN : historiques tous deux null, campaign_replayed exactement true,
 campaign_evidence_sha256 hex64 et égal à q.evidence_sha256 pour le profil mono-
-évidence §9. Ce booléen est une déclaration d'émetteur à vérifier sur l'artefact
-existant, jamais une instruction de lancement. L'absence d'un profil source pour
+évidence §9. Ce booléen est une déclaration signée d'émetteur, jamais une instruction
+de lancement. Le PASS de cohérence des champs et artefacts ne prouve pas qu'une
+nouvelle campagne a été exécutée par cet émetteur ou sa fraîcheur temporelle.
+L'absence d'un profil source pour
 une campagne/famille bloque scientific_bindings ; aucun fallback déclaratif.
 Toute incohérence de forme/binding connu => STATEMENT_INVALID ; source manquante
 ou profil non supporté reste un manque explicite, jamais un statement validé.
@@ -312,10 +318,19 @@ Critère exact `22528f1629db5d565f54137e11e99f670c68152eb3127cbafabe5f1072ca990a
 `bc2f37df6bf7ab8138d326862906431154c07b298fb4b482db4fc6a0910f71cf`.
 Historique autorisé, uniquement pour PRESENT :
 `docs/colony_lab/SENTINEL_QUALIFICATION_RECORD_R8.json`, raw digest dans la matrice.
+Son pin raw est `d38656c56f59c7d950d3031ec969cfe6e6e126ed27f3ab2c83ab3d022518c578` ;
+historical_record_path et historical_record_sha256 signés doivent désigner
+exactement ce path et ces bytes, pas un autre digest syntaxiquement valide.
 La liste evidence du statement est exactement le singleton C9/digest ; aucune
 lecture additionnelle déduite du contenu C9. PRESENT et FRESH peuvent référencer
 ce même corpus existant si leurs autres prérequis sont remplis ; le diagnostic
 ne certifie pas quand la campagne a été exécutée ou quand l'issuer l'a revue.
+Dans les deux scopes, exiger explicitement
+`q.evidence_sha256 = SHA256(raw C9 acquis) = pin raw C9 du profil = statement.evidence[0].sha256`.
+En FRESH, campaign_evidence_sha256 doit aussi égaler ce même digest. Un faux
+digest commun à q et au champ de campagne ne peut pas être justifié par la seule
+présence de C9 correct dans la liste evidence. Tout écart donne SCIENTIFIC_DIVERGENCE
+et aucun PASS scientifique ou de branche, même si toutes les signatures sont valides.
 
 Parser ces JSON sans doublons/non-finis, sans changer leurs bytes. Comparer q à
 C9.subject.agent_id/agent_spec_id, critères r8/CURRENT, scope SIMULATED_DETERMINISTIC,

@@ -20,7 +20,7 @@ clôturées ; l'étape 3 entière reste ouverte.
 Le premier « go » autorisait la préparation de ce plan. Après présentation dans
 #505, Mathieu a explicitement validé ce périmètre pour passer au contrat détaillé
 et à la matrice avant implémentation. Le [contrat](P4_3B_ATTESTATIONS_AND_ANCESTRY_V0.md)
-et ses [72 cas de spécification](P4_3B_ATTESTATIONS_AND_ANCESTRY_CASES_V0.json) sont
+et ses [75 cas de spécification](P4_3B_ATTESTATIONS_AND_ANCESTRY_CASES_V0.json) sont
 désormais rédigés. Leur revue indépendante et CI finale restent à obtenir ;
 aucune implémentation, revue favorable ou fusion 3B n'est revendiquée ici.
 
@@ -233,9 +233,10 @@ item omis, ancien COMMITTED non lié), sans confondre mutations tuées et qualif
 Pins P1 recalculés pendant cette préparation :
 `ADMISSION_CONTRACT.md` = `e8a125bd67964a01f8a06a5f2d3c50f34e9a154e521dce201cb4fb6d1a40bfcd` ;
 `SCENARIOS_A0.json` = `4e518bfec6faaa582c2c42633d80e989b8204708b554f74b0eb1bbee6eaa59a1`.
-Cette livraison n'ajoute que le présent document ; aucune source qualifiée n'est
-modifiée. Aucun nouveau calcul de hash qualifié ou test produit n'est revendiqué
-pour cette préparation documentaire.
+La livraison actuelle contient le plan, le contrat et la matrice ; aucune source
+qualifiée n'est modifiée. Les trois hashes qualifiés ont été recalculés inchangés
+avec un parcours passif stdlib ; listes irrégulières vides. Aucun test produit ni
+campagne n'est revendiqué pour cette préparation documentaire.
 
 Avant chaque fusion : contenu/plan approuvés, tests appropriés avec limites honnêtes,
 revue indépendante au tree final (une CI verte ne la remplace pas), threads résolus,
