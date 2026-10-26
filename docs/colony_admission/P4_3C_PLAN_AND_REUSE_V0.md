@@ -1,12 +1,15 @@
 # P4 / 3C — Population et plafonds : plan et audit de réutilisation
 
-**PLAN_FOR_OPERATOR_VALIDATION / SOURCE_ONLY / LAB_ONLY / NO_IMPLEMENTATION.**
-Préparé le 2026-10-26, America/Mexico_City. Le « Go » de Mathieu autorise cette
-préparation ; il ne vaut pas validation anticipée du présent périmètre détaillé.
+**PERIMETER_VALIDATED / CONTRACT_FOR_REVIEW / SOURCE_ONLY / LAB_ONLY / NO_IMPLEMENTATION.**
+Préparé le 2026-10-26, America/Mexico_City. Mathieu a validé explicitement ce
+périmètre pour rédiger le contrat détaillé et sa matrice avant implémentation.
 Baseline vérifié : `main@d890081e94bcf0818145d0f919162e11cae8e58f`, tree
 `f70d21a6d2ef456b3bee692636d7f6f79890647d` ; 3B clôturée dans
 [#507](https://github.com/3a7i3/crypto-ia-terminal/pull/507#issuecomment-6417910506).
-Aucun code 3C ajouté, aucune revue indépendante de ce plan revendiquée.
+Aucun code 3C ajouté, aucune revue indépendante finale encore revendiquée.
+Livraison documentaire : [contrat détaillé](P4_3C_POPULATION_AND_CEILINGS_V0.md)
+et [102 cas de spécification](P4_3C_POPULATION_AND_CEILINGS_CASES_V0.json),
+SPECIFICATION_ONLY_NOT_EXECUTED, distincts de tests exécutés.
 
 Normes : [P1](ADMISSION_CONTRACT.md) §3.1–3.4, §5, §6.1–6.8, §7–10 et §13 ;
 [scénarios P1](SCENARIOS_A0.json) ;
@@ -206,7 +209,8 @@ listing stable et ENOENT à l'ouverture ; ENOENT après ouverture est une erreur
 
 ## 7. Familles de tests à spécifier après validation
 
-Ces 30 familles sont des obligations de contrat/matrice futurs, pas des tests exécutés.
+Ces 30 familles sont reliées aux 102 cas de la matrice contractuelle ; ce ne sont
+pas des tests exécutés.
 
 | ID | Famille | Résultat attendu |
 |---|---|---|
@@ -249,8 +253,8 @@ Les tests normaux et -O se recouvrent ; pas de nombre de réussites promis avant
 
 ## 8. Découpage, gates et validation demandée
 
-1. **Ce plan documentaire** : audit et périmètre soumis à Mathieu ; aucune implémentation.
-2. **Contrat détaillé + matrice 3C** après validation : API/types, tables de priorité,
+1. **Ce plan documentaire** : périmètre validé par Mathieu ; aucune implémentation.
+2. **Contrat détaillé + matrice 3C** rédigés après validation : API/types, tables de priorité,
    mapping exact des chemins, partitions/époques, règles OWN et terminaisons,
    bornes/codes, références P1 et checklist de clôture de l'étape 3.
 3. **Revue indépendante de l'arbre contractuel final**, corrections, CI exacte,
@@ -281,6 +285,9 @@ Pins P1 à préserver : `ADMISSION_CONTRACT.md` =
 Les sources qualifiées ne sont pas changées. Rollback : revert source seulement,
 aucune migration ou mutation d'état opérationnel. #286 reste ACTIVE, accepted=false.
 
-**Décision demandée : valider ce périmètre 3C pour rédiger son contrat détaillé et
-sa matrice avant implémentation.** Les bornes et règles proposées seront figées
-et revues dans ce contrat ; aucune approbation anticipée du code ou de 3C complet.
+**Validation du périmètre obtenue.** Le contrat et sa matrice fixent les règles
+proposées ici, notamment les priorités de classification, les portées temporelles,
+les limites et les preuves externes sans lecture du journal faulty. Prochaine porte :
+revue indépendante de l'arbre documentaire final, corrections et CI exacte avant
+fusion gardée. Aucune implémentation commencée ; pas de nouvelle validation du
+même périmètre demandée. Tout élargissement substantiel reste une décision distincte.
