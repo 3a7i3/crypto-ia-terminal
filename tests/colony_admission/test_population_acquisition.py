@@ -41,6 +41,7 @@ def discarded(result, code=None):
     assert result.fault_bytes is result.trust_policy_bytes is result.trust_history_bytes is None
     assert result.policy_bytes is result.policy_pin is None
     assert not result.artifacts and result.subject_digest is result.evaluator_digest is None
+    assert result.external_bindings is None
     assert result.accepted is False
     if code:
         assert result.codes == (code,)
@@ -176,8 +177,13 @@ def test_complete_external_union_with_unread_faulty_log(signed_machine, monkeypa
     assert calls == [tuple(sorted((f.digest(op), fault['operation_sha256'])))]
     assert result.log_inventory.unread_logs[0].terminal_linkage == p.NE
     assert result.terminal_linkage == p.NE
-    assert 'OPERATION_PENDING' in result.preflight[0].codes
-    assert result.preflight[0].derived_n is None
+    if version == 1 and count == 0:
+        assert result.external_bindings.terminals[0].terminal_linkage == 'PASS'
+        assert result.external_bindings.resolved_ids == (fault['operation_sha256'],)
+        assert 'OPERATION_PENDING' not in result.preflight[0].codes
+    else:
+        assert 'OPERATION_PENDING' in result.preflight[0].codes
+        assert result.preflight[0].derived_n is None
 
 
 @pytest.mark.parametrize('level', [2, 3])

@@ -19,6 +19,7 @@ from . import physical_evidence as p
 from . import _population_inventory as inv
 from . import _population_log_acquisition as logs
 from . import _population_preflight as pf
+from . import _population_external as pe
 from .external_evidence import (
     FAULT_LINE_BYTES, FAULT_MAX_LINES, HISTORY_LINE_BYTES, HISTORY_MAX_LINES,
     POLICY_MAX_BYTES,
@@ -73,6 +74,7 @@ class Acquisition:
     artifacts: tuple[tuple[str, bytes], ...] = ()
     subject_digest: str | None = None
     evaluator_digest: str | None = None
+    external_bindings: pe.ExternalBindings | None = None
     accepted: bool = field(default=False, init=False)
     snapshot_completeness: str = field(default=p.NE, init=False)
     population: str = field(default=p.NE, init=False)
@@ -211,6 +213,8 @@ def _acquire(config):
         # A fresh FD, offset zero, one batch and U fixed before opening the ledger.
         ledger_parent = source.directory(cfg.ledger.parent)
         batch = helper.ledger(source, ledger_parent, cfg.ledger.name, log_inventory.operation_ids)
+        ledger_raw = f.canonical(batch)
+        external_bindings = pe.link(fault_raw, cfg.lab_id, ledger_raw, log_inventory.operation_ids)
         homes = inv.acquire_homes(source, lab, names)
         quarantined = _quarantine_bytes(source, lab, destinations)
         materials = []
@@ -233,18 +237,19 @@ def _acquire(config):
         materials = tuple(materials)
         preflight = pf.derive(homes, tuple(x.source for x in materials),
             helper.policy_raw, helper.policy_pin,
-            unresolved_external_ids=tuple(x.operation_sha256 for x in log_inventory.unread_logs))
+            unresolved_external_ids=external_bindings.unresolved_ids)
         artifacts, subject, evaluator = _science(helper.checkout, homes, materials)
         helper.checkout.verify()
         source.verify()
         result = Acquisition('ACQUIRED', sources=tuple(source.stamps),
             metadata_sources=tuple(source.metadata[k] for k in sorted(source.metadata)),
             log_inventory=log_inventory, homes=homes, operations=materials,
-            quarantined_homes=quarantined, preflight=preflight, ledger_bytes=f.canonical(batch),
+            quarantined_homes=quarantined, preflight=preflight, ledger_bytes=ledger_raw,
             root_bytes=helper.root_raw, minimum_version=helper.minimum_version,
             fault_bytes=fault_raw, trust_policy_bytes=installed, trust_history_bytes=history,
             policy_bytes=helper.policy_raw, policy_pin=helper.policy_pin,
-            artifacts=artifacts, subject_digest=subject, evaluator_digest=evaluator)
+            artifacts=artifacts, subject_digest=subject, evaluator_digest=evaluator,
+            external_bindings=external_bindings)
     return result
 
 
@@ -256,7 +261,7 @@ def acquire(config):
         except (o._Blocked, c.CoreError, f.FormatError, ValueError, TypeError, KeyError):
             return Acquisition('BLOCKED', ('CONFIG_INVALID',))
         return _acquire(config)
-    except (e._Capacity, pf.PreflightLimit) as exc:
+    except (e._Capacity, pf.PreflightLimit, pe.ExternalLimit) as exc:
         return Acquisition('BLOCKED', ('SOURCE_LIMIT',), (exc.limit_name,))
     except o._Blocked as exc:
         return Acquisition('BLOCKED', (str(exc),))
