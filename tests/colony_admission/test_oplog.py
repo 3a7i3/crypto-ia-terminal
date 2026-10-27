@@ -356,6 +356,7 @@ def test_purity_imports_and_no_external_calls():
             "_attestation_statement.py": {"colony_trust", "_attestation_core", "physical_evidence"},
             "attestation_evidence.py": {"_attestation_core", "_attestation_statement", "physical_evidence"},
             "_population_preflight.py": {"_attestation_core", "_population_core", "physical_evidence"},
+            "_population_external.py": {"physical_evidence"},
             "_population_core.py": {"colony_lab", "colony_lab.a1_identity", "colony_registrar",
                                     "_attestation_core", "attestation_evidence", "physical_evidence"},
         }.get(path.name, set())
