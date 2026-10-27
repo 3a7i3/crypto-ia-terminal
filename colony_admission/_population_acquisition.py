@@ -22,6 +22,7 @@ from . import _population_log_acquisition as logs
 from . import _population_preflight as pf
 from . import _population_external as pe
 from . import _population_proof as pp
+from . import _population_faults as pfx
 from .external_evidence import (
     FAULT_LINE_BYTES, FAULT_MAX_LINES, HISTORY_LINE_BYTES, HISTORY_MAX_LINES,
     POLICY_MAX_BYTES,
@@ -78,6 +79,8 @@ class Acquisition:
     evaluator_digest: str | None = None
     external_bindings: pe.ExternalBindings | None = None
     proofs: pp.ProofSet | None = None
+    fault_bindings: tuple[pfx.FaultBinding, ...] = ()
+    action_facts: tuple[pfx.ActionFact, ...] = ()
     accepted: bool = field(default=False, init=False)
     snapshot_completeness: str = field(default=p.NE, init=False)
     population: str = field(default=p.NE, init=False)
@@ -248,6 +251,9 @@ def _acquire(config):
             ledger_raw, helper.root_raw, root_pin=cfg.root_pin, minimum_version=helper.minimum_version,
             lab_id=cfg.lab_id, policy_raw=helper.policy_raw, policy_pin=helper.policy_pin,
             artifacts=artifacts, subject_digest=subject, evaluator_digest=evaluator)
+        fault_bindings, fault_projection = pfx.faults(fault_raw, cfg.lab_id, log_inventory.attempts,
+                                                      external_bindings.terminals)
+        action_facts = pfx.actions(log_inventory.attempts, fault_projection, quarantined, names)
         helper.checkout.verify()
         source.verify()
         result = Acquisition('ACQUIRED', sources=tuple(source.stamps),
@@ -258,7 +264,8 @@ def _acquire(config):
             fault_bytes=fault_raw, trust_policy_bytes=installed, trust_history_bytes=history,
             policy_bytes=helper.policy_raw, policy_pin=helper.policy_pin,
             artifacts=artifacts, subject_digest=subject, evaluator_digest=evaluator,
-            external_bindings=external_bindings, proofs=proofs)
+            external_bindings=external_bindings, proofs=proofs, fault_bindings=fault_bindings,
+            action_facts=action_facts)
     return result
 
 
