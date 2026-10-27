@@ -345,7 +345,8 @@ def test_purity_imports_and_no_external_calls():
     for path in root.glob("*.py"):
         if path.name in {"observer.py", "evidence_observer.py", "attestation_observer.py",
                          "_attestation_checkout.py", "_population_inventory.py",
-                         "_population_log_acquisition.py"}:  # Explicit IO boundaries only.
+                         "_population_log_acquisition.py",
+                         "_population_acquisition.py"}:  # Explicit IO boundaries only.
             continue
         # 3B's private pure adapters reuse the existing pure validators. The
         # original lexical projections retain their original import boundary.
