@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, replace
 
 from . import _attestation_core as c
 from . import _population_core as pc
+from . import _population_counts as pk
 from . import attestation_evidence as a
 from . import formats as f
 from . import physical_evidence as p
@@ -26,12 +27,8 @@ class OperationProof:
     own_agent_id: str | None = None
     own_home: str = NE
     codes: tuple[str, ...] = ()
+    current: pk.CurrentPopulation = field(default_factory=pk.CurrentPopulation)
     accepted: bool = field(default=False, init=False)
-    population_partition: str = field(default=NE, init=False)
-    frozen_completeness: str = field(default=NE, init=False)
-    counts: str = field(default=NE, init=False)
-    plan_match: str = field(default=NE, init=False)
-    ceilings: str = field(default=NE, init=False)
     authorization: str = field(default=NE, init=False)
 
 
@@ -217,13 +214,20 @@ materials in the same order, the one ledger batch and its external bindings.
     classes = [x.classification for x in results]
     status = 'FAIL' if 'UNAUTHENTICATED' in classes else NE if NE in classes else 'PASS'
     own = [x.agent_id for x in results if x.classification == 'OWN_OPERATION']
-    final = []
+    final, policy = [], c.policy(policy_raw, policy_pin)
     for operation in operations:
         if operation.scope == 'CURRENT_OPEN':
             mine = operation.child_agent_id in own
             state = 'PASS' if mine else NE
             operation = replace(operation, own_agent_id=operation.child_agent_id if mine else None,
                                 own_home=state)
+            op, _, _, decision, _, fact_codes, _ = open_by_child[operation.child_agent_id]
+            if 'OPERATION_PENDING' in fact_codes:
+                current = pk.CurrentPopulation(codes=('OPERATION_PENDING',))
+            else:
+                current = pk.current(op, homes, results, decision, operation.own_agent_id, policy,
+                                     scopes[operation.operation_sha256].derived_n)
+            operation = replace(operation, current=current, codes=p.unique(operation.codes + current.codes))
         final.append(operation)
     codes = p.unique(tuple(code for x in results for code in x.codes))
     return ProofSet(tuple(results), tuple(sorted(final, key=lambda x: (x.child_agent_id, x.attempt,
