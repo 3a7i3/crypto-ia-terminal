@@ -83,9 +83,15 @@ def test_one_owner_order_fresh_fd_and_deduplicated_private_reads(signed_machine,
     monkeypatch.setattr(pf, 'derive', preflight)
     monkeypatch.setattr(fcntl, 'flock', lock)
     monkeypatch.setattr(os, 'read', counted)
-    # Any signature/proof wiring would violate this acquisition-only tranche.
-    monkeypatch.setattr(o.trust, 'classify_envelope', lambda *a, **kw: pytest.fail('signature before proof phase'))
+    classify, signatures = o.trust.classify_envelope, []
+    def signature(*args, **kw):
+        # First signature only after global preflight, before unlock/close.
+        assert events[-1] == 'preflight'
+        signatures.append(1)
+        return classify(*args, **kw)
+    monkeypatch.setattr(o.trust, 'classify_envelope', signature)
     result = owner.acquire(config)
+    assert signatures
     assert result.status == 'ACQUIRED', result
     assert len(reads) == len(set(reads))
     assert events[-2:] == ['preflight', 'unlock']
@@ -321,10 +327,15 @@ def test_global_preflight_before_one_shared_scientific_checkout(full_profile_mac
         return science(self, **kw)
     monkeypatch.setattr(pf, 'derive', preflight)
     monkeypatch.setattr(owner.a.Checkout, 'science', checkout)
-    monkeypatch.setattr(o.trust, 'classify_envelope', lambda *a, **kw: pytest.fail('crypto in acquisition'))
+    classify = o.trust.classify_envelope
+    def signature(*args, **kw):
+        assert calls[:2] == ['preflight', 'checkout']
+        calls.append('signature')
+        return classify(*args, **kw)
+    monkeypatch.setattr(o.trust, 'classify_envelope', signature)
     result = owner.acquire(config)
     assert result.status == 'ACQUIRED', result
-    assert calls == ['preflight', 'checkout']
+    assert calls[:3] == ['preflight', 'checkout', 'signature'] and set(calls[2:]) == {'signature'}
     assert result.artifacts and result.subject_digest and result.evaluator_digest
     assert result.population == result.snapshot_completeness == p.NE
 
