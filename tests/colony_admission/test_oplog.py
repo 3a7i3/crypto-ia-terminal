@@ -344,7 +344,7 @@ def test_purity_imports_and_no_external_calls():
     forbidden = {"open", "exec", "eval", "__import__", "getattr", "setattr", "globals", "locals"}
     for path in root.glob("*.py"):
         if path.name in {"observer.py", "evidence_observer.py", "attestation_observer.py",
-                         "_attestation_checkout.py"}:  # Explicit IO boundaries only.
+                         "_attestation_checkout.py", "_population_inventory.py"}:  # Explicit IO boundaries only.
             continue
         # 3B's private pure adapters reuse the existing pure validators. The
         # original lexical projections retain their original import boundary.
@@ -353,6 +353,8 @@ def test_purity_imports_and_no_external_calls():
                                      "physical_evidence"},
             "_attestation_statement.py": {"colony_trust", "_attestation_core", "physical_evidence"},
             "attestation_evidence.py": {"_attestation_core", "_attestation_statement", "physical_evidence"},
+            "_population_core.py": {"colony_lab", "colony_lab.a1_identity", "colony_registrar",
+                                    "_attestation_core", "attestation_evidence", "physical_evidence"},
         }.get(path.name, set())
         permitted = allowed | extra
         tree = ast.parse(path.read_text())
@@ -362,7 +364,7 @@ def test_purity_imports_and_no_external_calls():
             if isinstance(node, ast.ImportFrom):
                 if node.module is None:
                     assert node.level == 1
-                    if path.name == "attestation_evidence.py":
+                    if path.name in {"attestation_evidence.py", "_population_core.py"}:
                         assert all(alias.name in permitted for alias in node.names)
                     else:
                         assert [alias.name for alias in node.names] == ["formats"]
