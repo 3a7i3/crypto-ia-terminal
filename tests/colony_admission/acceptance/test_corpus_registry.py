@@ -10,9 +10,9 @@ import pytest
 from tests.colony_admission.acceptance import corpus, report_plugin
 
 HERE = Path(__file__).resolve().parent
-CASE_KEYS = {'implementation', 'tests', 'fixture', 'variants', 'notes', 'negative', 'divergence',
+CASE_KEYS = {'implementation', 'tests', 'fixture', 'notes', 'negative', 'divergence',
              'name_tag_candidates', 'blocked_reason'}
-REGRESSION_KEYS = {'implementation', 'value', 'relation', 'tests', 'fixture', 'variants', 'notes', 'negative'}
+REGRESSION_KEYS = {'implementation', 'value', 'relation', 'tests', 'fixture', 'notes', 'negative'}
 
 
 @pytest.fixture(scope='module')
@@ -69,9 +69,12 @@ def test_implemented_entries_resolve_to_tests_that_claim_them(reg):
         if entry['implementation'] != 'IMPLEMENTED':
             assert 'tests' not in entry, cid
             continue
-        assert entry['tests'] and entry.get('fixture') and entry.get('variants'), cid
-        for node in entry['tests']:
-            assert cid in corpus.test_function(node).acceptance_cases, (cid, node)
+        assert entry['tests'] and entry.get('fixture'), cid
+        for node, ids in entry['tests'].items():
+            fn = corpus.test_function(node)
+            assert cid in fn.acceptance_cases, (cid, node)
+            # Every variant is an explicit parametrize id, registered exactly.
+            assert ids == corpus.parametrize_ids(fn) and len(set(ids)) == len(ids), (cid, node)
     for node in (n for e in reg['cases'].values() for n in e.get('name_tag_candidates', ())):
         corpus.test_function(node)  # candidates exist; they are never counted
 
@@ -96,22 +99,29 @@ def test_case_ids_are_namespaced(bad):
 
 def test_derive_never_reports_pass_without_every_item_passing():
     reg = {'cases': {
-        'X:pass': {'implementation': 'IMPLEMENTED', 'tests': ['a', 'b']},
-        'X:missing': {'implementation': 'IMPLEMENTED', 'tests': ['a', 'gone']},
-        'X:fail': {'implementation': 'IMPLEMENTED', 'tests': ['a', 'f']},
-        'X:skip': {'implementation': 'IMPLEMENTED', 'tests': ['s']},
-        'X:xfail': {'implementation': 'IMPLEMENTED', 'tests': ['x']},
-        'X:error': {'implementation': 'IMPLEMENTED', 'tests': ['e']},
+        'X:pass': {'implementation': 'IMPLEMENTED', 'tests': {'a': ['1', '2'], 'b': []}},
+        'X:missing': {'implementation': 'IMPLEMENTED', 'tests': {'a': ['1', '2'], 'gone': []}},
+        'X:partial': {'implementation': 'IMPLEMENTED', 'tests': {'a': ['1', '2', '3']}},
+        'X:extra': {'implementation': 'IMPLEMENTED', 'tests': {'a': ['1']}},
+        'X:fail': {'implementation': 'IMPLEMENTED', 'tests': {'a': ['1', '2'], 'f': []}},
+        'X:skip': {'implementation': 'IMPLEMENTED', 'tests': {'s': ['1', '2']}},
+        'X:xfail': {'implementation': 'IMPLEMENTED', 'tests': {'x': []}},
+        'X:error': {'implementation': 'IMPLEMENTED', 'tests': {'e': []}},
+        'X:empty': {'implementation': 'IMPLEMENTED', 'tests': {'a': ['1', '2'], 'z': []}},
         'X:none': {'implementation': 'NON_IMPLEMENTED'},
         'X:blocked': {'implementation': 'BLOCKED', 'blocked_reason': 'r'},
         'X:ext': {'implementation': 'CONTRACT_NOT_EXECUTABLE'}},
-        'regressions': {'REG:r': {'implementation': 'IMPLEMENTED', 'tests': ['b']}}}
-    outcomes = {'a': ['passed', 'passed'], 'b': ['passed'], 'f': ['passed', 'failed'], 's': ['passed', 'skipped'],
-                'x': ['xfailed'], 'e': ['passed', 'error']}
+        'regressions': {'REG:r': {'implementation': 'IMPLEMENTED', 'tests': {'b': []}}}}
+    outcomes = {'a': {'1': ['passed'], '2': ['passed']}, 'b': {'': ['passed']},
+                'f': {'': ['failed']}, 's': {'1': ['passed'], '2': ['skipped']},
+                'x': {'': ['xfailed']}, 'e': {'': ['passed', 'error']}, 'z': {'': []}}
     assert corpus.derive(reg, outcomes) == {
-        'X:pass': 'PASS', 'X:missing': 'NOT_EXECUTED', 'X:fail': 'FAIL', 'X:skip': 'NOT_EXECUTED',
-        'X:xfail': 'FAIL', 'X:error': 'FAIL', 'X:none': 'NON_IMPLEMENTED', 'X:blocked': 'BLOCKED',
-        'X:ext': 'CONTRACT_NOT_EXECUTABLE', 'REG:r': 'PASS'}
+        'X:pass': 'PASS', 'X:missing': 'NOT_EXECUTED', 'X:partial': 'NOT_EXECUTED', 'X:extra': 'NOT_EXECUTED',
+        'X:fail': 'FAIL', 'X:skip': 'NOT_EXECUTED', 'X:xfail': 'FAIL', 'X:error': 'FAIL', 'X:empty': 'NOT_EXECUTED',
+        'X:none': 'NON_IMPLEMENTED', 'X:blocked': 'BLOCKED', 'X:ext': 'CONTRACT_NOT_EXECUTABLE', 'REG:r': 'PASS'}
+    # An invalid run (digests or registry checks) never yields PASS.
+    states = corpus.derive(reg, outcomes, ('REGISTRY_CHECKS_NOT_PASSED',))
+    assert 'PASS' not in states.values() and states['X:pass'] == states['REG:r'] == 'NOT_EXECUTED'
 
 
 def test_recorder_maps_reports_to_outcomes(tmp_path):
@@ -125,6 +135,23 @@ def test_recorder_maps_reports_to_outcomes(tmp_path):
               report('m::teardown', 'teardown', 'failed'), report('m::skip', 'setup', 'skipped'),
               report('m::xf', 'call', 'skipped', wasxfail=''), report('m::xp', 'call', 'passed', wasxfail='')):
         recorder.pytest_runtest_logreport(r)
-    assert dict(recorder.outcomes) == {'m::ok': ['passed', 'failed'], 'm::setup': ['error'],
-                                       'm::teardown': ['passed', 'error'], 'm::skip': ['skipped'],
-                                       'm::xf': ['xfailed'], 'm::xp': ['xpassed']}
+    assert {k: dict(v) for k, v in recorder.outcomes.items()} == {
+        'm::ok': {'1': ['passed'], '2': ['failed']}, 'm::setup': {'': ['error']},
+        'm::teardown': {'': ['passed', 'error']}, 'm::skip': {'': ['skipped']},
+        'm::xf': {'': ['xfailed']}, 'm::xp': {'': ['xpassed']}}
+
+
+def test_run_is_invalid_without_matching_digests_checks_and_registered_claims(reg, tmp_path, monkeypatch):
+    recorder = report_plugin._Recorder(tmp_path / 'r.json')
+    assert recorder.invalid(reg) == ['REGISTRY_CHECKS_NOT_PASSED']
+    for node in report_plugin._registry_checks():
+        recorder.outcomes[node][''].append('passed')
+    assert recorder.invalid(reg) == []
+    recorder.outcomes[sorted(report_plugin._registry_checks())[0]]['x'].append('failed')
+    assert recorder.invalid(reg) == ['REGISTRY_CHECKS_NOT_PASSED']
+    del recorder.outcomes[sorted(report_plugin._registry_checks())[0]]['x']
+    recorder.claims['m::orphan'] = ('3C:INV-01',)
+    assert recorder.invalid(reg) == ['UNREGISTERED_CLAIM:m::orphan']
+    del recorder.claims['m::orphan']
+    changed = {**reg, 'matrices': {**reg['matrices'], '3C': {**reg['matrices']['3C'], 'sha256': '0' * 64}}}
+    assert recorder.invalid(changed) == ['MATRIX_DIGEST_MISMATCH:3C']

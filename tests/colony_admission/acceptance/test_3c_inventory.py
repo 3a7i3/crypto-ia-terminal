@@ -8,6 +8,7 @@ admitted by the matrix; any divergence from the contract text is in the registry
 
 import os
 import shutil
+import socket
 
 import pytest
 
@@ -23,11 +24,12 @@ NE = p.NE
 
 
 class Spy:
-    """Counts real signature verifications and ledger inspections of one scan."""
+    """Counts real signature verifications, ledger opens and ledger inspections of one scan."""
 
-    def __init__(self, monkeypatch):
-        self.signatures = self.inspections = 0
-        real, inspect, spy = trust.Ed25519PublicKey, trust.inspect_operations_fd, self
+    def __init__(self, monkeypatch, config):
+        self.signatures = self.ledger_opens = self.inspections = 0
+        real, inspect, opener, spy = trust.Ed25519PublicKey, trust.inspect_operations_fd, os.open, self
+        ledger = config.observer.ledger.name
 
         class Key:
             @staticmethod
@@ -43,8 +45,17 @@ class Spy:
         def inspected(fd, operations):
             spy.inspections += 1
             return inspect(fd, operations)
+
+        def opened(path, *args, **kwargs):
+            spy.ledger_opens += os.path.basename(os.fsdecode(path)) == ledger
+            return opener(path, *args, **kwargs)
         monkeypatch.setattr(trust, 'Ed25519PublicKey', Key)
         monkeypatch.setattr(trust, 'inspect_operations_fd', inspected)
+        monkeypatch.setattr(os, 'open', opened)
+
+    def nothing_after_inventory(self):
+        # §3: step 5 (individuals/) precedes the ledger (step 6) and signatures (step 7).
+        assert (self.signatures, self.ledger_opens, self.inspections) == (0, 0, 0)
 
 
 def discarded(result, code):
@@ -68,21 +79,23 @@ def empty_universe(config):
             shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
 
 
-def test_spies_count_real_signatures_and_the_single_ledger_inspection(full_profile_machine, monkeypatch):
-    # Positive control of the instruments used below; claims no matrix case.
+@case('3C:INV-02', '3C:INV-03')
+def test_spies_count_real_signatures_and_the_single_ledger_open(full_profile_machine, monkeypatch):
+    # Positive control: the zero counts of INV-02/03 are meaningful only if the
+    # same instruments see the real ledger open, inspection and signatures here.
     config, op = tpo.exact_own(full_profile_machine)
     tpo.proofs.home(config.observer, op)
-    spy = Spy(monkeypatch)
+    spy = Spy(monkeypatch, config)
     result = tpo.observe(config)
     assert result.status == 'OBSERVED', result.blockers
-    assert spy.signatures > 0 and spy.inspections == 1
+    assert spy.signatures > 0 and spy.ledger_opens == spy.inspections == 1
 
 
 @case('3C:INV-01')
 def test_inv_01_stable_empty_individuals_is_an_empty_population_not_a_failure(full_profile_machine, monkeypatch):
     config, _ = full_profile_machine
     empty_universe(config)
-    spy = Spy(monkeypatch)
+    spy = Spy(monkeypatch, config)
     result = tpo.observe(config)
     assert result.status == 'OBSERVED' and result.blockers == ()
     assert result.inventory == result.population == 'PASS' and result.homes == ()
@@ -96,77 +109,100 @@ def test_inv_01_stable_empty_individuals_is_an_empty_population_not_a_failure(fu
     individuals = (config.observer.lab_root / 'individuals').stat()
     stamp, = [x for x in result.metadata_sources if x.resource == 'individuals']
     assert (stamp.device, stamp.inode, stamp.mode & 0o7777) == (individuals.st_dev, individuals.st_ino, 0o700)
-    assert spy.signatures == 0 and spy.inspections == 1
+    assert (spy.signatures, spy.ledger_opens, spy.inspections) == (0, 1, 1)
     tpo.permanent(result)
 
 
-@pytest.mark.parametrize('variant,code', [
+INV_02 = [
     ('absent', 'SOURCE_UNAVAILABLE'),
     # Root bypasses DAC, so the private-mode check refuses; otherwise open() does.
     ('mode_000', 'SOURCE_PERMISSIONS' if os.geteuid() == 0 else 'SOURCE_UNAVAILABLE'),
     ('mode_755', 'SOURCE_PERMISSIONS'),
     ('symlink_to_directory', 'SOURCE_UNAVAILABLE'),
     ('symlink_to_file', 'SOURCE_UNAVAILABLE'),
-])
+    ('regular_file', 'SOURCE_UNAVAILABLE'),
+    ('fifo', 'SOURCE_UNAVAILABLE'),
+]
+
+
+@pytest.mark.parametrize('variant,code', INV_02, ids=[x for x, _ in INV_02])
 @case('3C:INV-02')
 def test_inv_02_unavailable_individuals_is_never_an_empty_population(full_profile_machine, monkeypatch, variant, code):
     config, _ = full_profile_machine
     lab = config.observer.lab_root
     individuals = lab / 'individuals'
-    if variant == 'absent':
-        shutil.rmtree(individuals)
-    elif variant.startswith('mode_'):
+    if variant.startswith('mode_'):
         individuals.chmod(int(variant[5:], 8))
     elif variant == 'symlink_to_directory':
         shutil.move(individuals, lab.parent / 'moved-individuals')
         individuals.symlink_to(lab.parent / 'moved-individuals')
     else:
         shutil.rmtree(individuals)
-        (lab.parent / 'plain-file').write_bytes(b'')
-        individuals.symlink_to(lab.parent / 'plain-file')
-    spy = Spy(monkeypatch)
+        if variant == 'symlink_to_file':
+            (lab.parent / 'plain-file').write_bytes(b'')
+            individuals.symlink_to(lab.parent / 'plain-file')
+        elif variant == 'regular_file':
+            individuals.write_bytes(b'')
+            individuals.chmod(0o600)
+        elif variant == 'fifo':
+            os.mkfifo(individuals, 0o600)
+    spy = Spy(monkeypatch, config)
     try:
         result = tpo.observe(config)
     finally:
         if variant.startswith('mode_'):
             individuals.chmod(0o700)
     discarded(result, code)
-    # §3 step 5 precedes the ledger (step 6) and every signature (step 7).
-    assert spy.signatures == 0 and spy.inspections == 0
+    spy.nothing_after_inventory()
 
 
-@pytest.mark.parametrize('variant,code', [
+# Admitted by the matrix ("SOURCE_NAMESPACE_INVALID ou refus de source"); the
+# hex64 typed entries diverge from the §4 wording, recorded in the registry.
+INV_03 = [
     ('regular_file_hex64', 'SOURCE_UNAVAILABLE'),
     ('fifo_hex64', 'SOURCE_UNAVAILABLE'),
+    ('socket_hex64', 'SOURCE_UNAVAILABLE'),
     ('symlink_hex64', 'SOURCE_UNAVAILABLE'),
+    ('symlink_not_hex', 'SOURCE_NAMESPACE_INVALID'),
     ('unknown_regular_file', 'SOURCE_NAMESPACE_INVALID'),
     ('directory_not_hex', 'SOURCE_NAMESPACE_INVALID'),
     ('directory_uppercase_hex64', 'SOURCE_NAMESPACE_INVALID'),
     ('directory_hex63', 'SOURCE_NAMESPACE_INVALID'),
     ('directory_hex65', 'SOURCE_NAMESPACE_INVALID'),
-])
+]
+
+
+@pytest.mark.parametrize('variant,code', INV_03, ids=[x for x, _ in INV_03])
 @case('3C:INV-03')
 def test_inv_03_invalid_individuals_entry_invalidates_everything_before_any_signature(
-        full_profile_machine, monkeypatch, variant, code):
+        full_profile_machine, monkeypatch, request, variant, code):
     config, op = tpo.exact_own(full_profile_machine)
     tpo.proofs.home(config.observer, op)  # otherwise complete: OBSERVED without the entry
     individuals = config.observer.lab_root / 'individuals'
     founder = individuals / op['parent_agent_id']
     name = {'directory_not_hex': 'not-an-id', 'directory_uppercase_hex64': 'E' * 64,
             'directory_hex63': 'e' * 63, 'directory_hex65': 'e' * 65,
-            'unknown_regular_file': 'README'}.get(variant, 'e' * 64)
+            'unknown_regular_file': 'README', 'symlink_not_hex': 'link'}.get(variant, 'e' * 64)
     target = individuals / name
     if variant.startswith('directory_'):
         target.mkdir(mode=0o700)
     elif variant == 'fifo_hex64':
         os.mkfifo(target, 0o600)
-    elif variant == 'symlink_hex64':
+    elif variant == 'socket_hex64':
+        listener = socket.socket(socket.AF_UNIX)
+        request.addfinalizer(listener.close)
+        cwd = os.getcwd()
+        os.chdir(individuals)  # AF_UNIX paths are short; bind relative to the directory
+        try:
+            listener.bind(name)
+        finally:
+            os.chdir(cwd)
+    elif variant.startswith('symlink_'):
         target.symlink_to(founder)
     else:
         target.write_bytes(b'{}')
         target.chmod(0o600)
-    spy = Spy(monkeypatch)
+    spy = Spy(monkeypatch, config)
     result = tpo.observe(config)
     discarded(result, code)
-    assert code in ('SOURCE_NAMESPACE_INVALID', 'SOURCE_UNAVAILABLE', 'SOURCE_PERMISSIONS')
-    assert spy.signatures == 0 and spy.inspections == 0
+    spy.nothing_after_inventory()

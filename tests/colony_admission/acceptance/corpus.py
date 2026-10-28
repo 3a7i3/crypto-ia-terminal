@@ -71,14 +71,17 @@ def test_function(node):
     return getattr(module, name)
 
 
-def derive(reg, outcomes):
+def derive(reg, outcomes, invalid=()):
     """Case execution states from one run.
 
-    ``outcomes`` maps a collected test function node (parametrisation removed)
-    to the list of its items' outcomes ('passed', 'failed', 'skipped', 'xfailed',
-    'xpassed', 'error'). A case passes only if every registered function ran,
-    every item passed and nothing was skipped. A strict xfail demonstrates a
-    documented defect, so it is reported FAIL, never PASS.
+    ``tests`` of an IMPLEMENTED entry maps each test function node to the exact
+    parametrisation ids it must run ([] for a plain function). ``outcomes`` maps
+    a function node to {param id ('' if none): [outcomes]} with outcomes among
+    'passed', 'failed', 'skipped', 'xfailed', 'xpassed', 'error'.
+    A case passes only if every registered function ran exactly its registered
+    ids, every item passed and nothing was skipped, in a run whose ``invalid``
+    reasons are empty (matrix digests and registry checks of the same run).
+    A strict xfail demonstrates a documented defect: FAIL, never PASS.
     """
     states = {}
     for cid, entry in list(reg['cases'].items()) + list(reg['regressions'].items()):
@@ -86,18 +89,28 @@ def derive(reg, outcomes):
         if impl != 'IMPLEMENTED':
             states[cid] = impl
             continue
-        runs = [outcomes.get(t) for t in entry['tests']]
-        if any(not r for r in runs):
-            states[cid] = 'NOT_EXECUTED'
-            continue
-        flat = [x for r in runs for x in r]
+        flat, complete = [], not invalid
+        for node, ids in entry['tests'].items():
+            ran = outcomes.get(node, {})
+            complete = complete and set(ran) == (set(ids) or {''}) and all(ran.values())
+            flat += [x for r in ran.values() for x in r]
         if any(x in ('failed', 'error', 'xfailed', 'xpassed') for x in flat):
             states[cid] = 'FAIL'
-        elif all(x == 'passed' for x in flat):
+        elif complete and flat and all(x == 'passed' for x in flat):
             states[cid] = 'PASS'
         else:
             states[cid] = 'NOT_EXECUTED'
     return states
+
+
+def parametrize_ids(fn):
+    """Explicit ids of the single parametrize mark of an acceptance test, [] if none."""
+    marks = [m for m in getattr(fn, 'pytestmark', ()) if m.name == 'parametrize']
+    if not marks:
+        return []
+    if len(marks) != 1 or 'ids' not in marks[0].kwargs:
+        raise ValueError('acceptance tests use one parametrize mark with explicit ids')
+    return list(marks[0].kwargs['ids'])
 
 
 def _cell(text):
@@ -132,10 +145,13 @@ def _defaults(ns):
 
 
 def _tests(e):
-    text = ', '.join(t.split('::')[-1] for t in e.get('tests', []))
+    text = ', '.join(t.split('::')[-1] + ('[' + ', '.join(ids) + ']' if ids else '')
+                     for t, ids in e.get('tests', {}).items())
     if e.get('name_tag_candidates'):
         text += (' ; ' if text else '') + 'candidats par commentaire, non vérifiés : ' + ', '.join(
             t.split('::')[-1] for t in e['name_tag_candidates'])
+    if e.get('notes'):
+        text += ' ; notes : ' + e['notes']
     if e.get('divergence'):
         text += ' ; divergence : ' + e['divergence']
     return text
@@ -167,8 +183,8 @@ def render_plan(report=None):
         if defaults:
             lines += ['Préconditions communes : ' + _cell(defaults), '']
         lines += [
-                  '| Cas | Exigence | Préconditions | Assertions attendues | Implémentation | Fixture | Tests | '
-                  + ('Exécution |' if report else ''),
+                  '| Cas | Exigence | Préconditions | Assertions attendues | Implémentation | Fixture | Tests |'
+                  + (' Exécution |' if report else ''),
                   '|---|---|---|---|---|---|---|' + ('---|' if report else '')]
         for cid, c in cases.items():
             if not cid.startswith(ns + ':'):
@@ -184,8 +200,7 @@ def render_plan(report=None):
               '| ID | Valeur non testée (dossier #518) | Rattachement | Implémentation | Tests |'
               + (' Exécution |' if report else ''), '|---|---|---|---|---|' + ('---|' if report else '')]
     for rid, r in reg['regressions'].items():
-        row = [rid, _cell(r['value']), _cell(r['relation']), r['implementation'],
-               _cell(', '.join(t.split('::')[-1] for t in r.get('tests', [])))]
+        row = [rid, _cell(r['value']), _cell(r['relation']), r['implementation'], _cell(_tests(r))]
         if report:
             row.append(states[rid])
         lines.append('| ' + ' | '.join(row) + ' |')

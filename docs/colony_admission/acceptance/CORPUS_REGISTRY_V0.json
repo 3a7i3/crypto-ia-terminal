@@ -5,6 +5,8 @@
  "rules": [
   "Une matrice ou ce registre n’est jamais une preuve d’exécution ; PASS/FAIL/NOT_EXECUTED n’existent que dans un rapport de run (report_plugin) sur un arbre exact.",
   "IMPLEMENTED exige des tests déclarés par case(), qui exercent le point d’entrée public de la matrice et tous les variants énoncés ; une correspondance de nom ou un compteur de tests ne couvre aucun cas.",
+  "tests associe chaque fonction de test à ses ids de paramétrage exacts ([] sans paramétrage) ; un run qui n’exécute pas exactement ces ids laisse le cas NOT_EXECUTED.",
+  "Un rapport n’est valide (et un cas PASS) que si les sha256 des matrices égalent ceux du registre, si toutes les vérifications de test_corpus_registry.py ont passé dans le même run et si chaque claim case() est enregistrée.",
   "name_tag_candidates : tests existants repérés par commentaire ; assertions non vérifiées, non comptés.",
   "Un verdict NE ou BLOCKED attendu peut être la réussite d’un test négatif ; il ne qualifie jamais le profil ou l’objet concerné.",
   "BLOCKED exige une raison contractuelle citée ; CONTRACT_NOT_EXECUTABLE est réservé aux cas EXT tant que leur statut contractuel n’est pas amendé.",
@@ -652,49 +654,51 @@
   },
   "3C:INV-01": {
    "implementation": "IMPLEMENTED",
-   "tests": [
-    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_01_stable_empty_individuals_is_an_empty_population_not_a_failure"
-   ],
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_01_stable_empty_individuals_is_an_empty_population_not_a_failure": []
+   },
    "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement ; individuals/, admission-ops/, registrar-admissions/, admission-envelopes/ vidés (listing stable vide, aucune opération)",
-   "variants": [
-    "univers vide"
-   ],
    "notes": "ceilings n’existent que par opération (contrat 3C §2) : sans opération, aucun PASS de plafond et NO_CURRENT_OPEN_OPERATION reste un avertissement non bloquant."
   },
   "3C:INV-02": {
    "implementation": "IMPLEMENTED",
    "negative": true,
-   "tests": [
-    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_02_unavailable_individuals_is_never_an_empty_population"
-   ],
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_02_unavailable_individuals_is_never_an_empty_population": [
+     "absent",
+     "mode_000",
+     "mode_755",
+     "symlink_to_directory",
+     "symlink_to_file",
+     "regular_file",
+     "fifo"
+    ],
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_spies_count_real_signatures_and_the_single_ledger_open": []
+   },
    "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement",
-   "variants": [
-    "absent",
-    "mode 000",
-    "mode 755",
-    "lien vers répertoire",
-    "lien vers fichier"
-   ],
-   "notes": "mode 000 : SOURCE_PERMISSIONS en root (contrôle du mode privé), SOURCE_UNAVAILABLE sinon (open refusé) ; les deux codes sont admis par la matrice. Aucune inspection ledger ni signature."
+   "notes": "mode 000 : SOURCE_PERMISSIONS en root (contrôle du mode privé), SOURCE_UNAVAILABLE sinon (open refusé) ; les deux codes sont admis par la matrice. Aucune ouverture ni inspection du ledger, aucune signature ; le contrôle positif montre que les mêmes instruments les voient dans un scan complet."
   },
   "3C:INV-03": {
    "implementation": "IMPLEMENTED",
    "negative": true,
-   "tests": [
-    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_03_invalid_individuals_entry_invalidates_everything_before_any_signature"
-   ],
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_03_invalid_individuals_entry_invalidates_everything_before_any_signature": [
+     "regular_file_hex64",
+     "fifo_hex64",
+     "socket_hex64",
+     "symlink_hex64",
+     "symlink_not_hex",
+     "unknown_regular_file",
+     "directory_not_hex",
+     "directory_uppercase_hex64",
+     "directory_hex63",
+     "directory_hex65"
+    ],
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_spies_count_real_signatures_and_the_single_ledger_open": []
+   },
    "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement ; snapshot OWN complet (OBSERVED sans l’entrée ajoutée)",
-   "variants": [
-    "fichier hex64",
-    "FIFO hex64",
-    "lien hex64",
-    "fichier inconnu",
-    "répertoire non hex",
-    "hex64 majuscule",
-    "hex63",
-    "hex65"
-   ],
-   "divergence": "Contrat 3C §4 : « lien/type spécial ou nom invalide => SOURCE_NAMESPACE_INVALID ». Le code renvoie SOURCE_UNAVAILABLE pour un fichier, une FIFO ou un lien au nom hex64 valide. La matrice INV-03 admet « ou refus de source », donc le cas passe ; l’écart de formulation §4 reste à arbitrer, sans correctif ni amendement ici."
+   "divergence": "Contrat 3C §4 : « lien/type spécial ou nom invalide => SOURCE_NAMESPACE_INVALID ». Le code renvoie SOURCE_UNAVAILABLE pour un fichier, une FIFO ou un lien au nom hex64 valide. La matrice INV-03 admet « ou refus de source », donc le cas passe ; l’écart de formulation §4 reste à arbitrer, sans correctif ni amendement ici.",
+   "notes": "Aucune ouverture ni inspection du ledger, aucune signature ; même contrôle positif que INV-02."
   },
   "3C:INV-04": {
    "implementation": "NON_IMPLEMENTED"
@@ -1124,7 +1128,7 @@
   "REG:UNDECODABLE-RECORD-SHA256": {
    "implementation": "NON_IMPLEMENTED",
    "value": "record_sha256 d’un record présent mais indécodable",
-   "relation": "Rattaché à 3C LINEAGE-01 et contrat §4 (JSON stable invalide = FileFact local) : régression."
+   "relation": "Aucun cas de matrice direct : contrat 3C §2 (FileFact, H(record) distinct du raw SHA256) et §4 (JSON stable invalide = fait local) ; LINEAGE-01 en est seulement voisin : régression supplémentaire."
   },
   "REG:UNRESOLVED-TERMINATION-LOG-COVERAGE": {
    "implementation": "NON_IMPLEMENTED",
