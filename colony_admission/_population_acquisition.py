@@ -1,7 +1,8 @@
-"""Private single-owner 3C acquisition and global preflight, without proof wiring.
+"""Private single-owner 3C acquisition, global preflight and home classification.
 
-No public population scan or classification is supplied. Every detached byte below
-is provisional until all inventories, paths, descriptors, unlocks and closes pass.
+No public population scan, count or ceiling is supplied. Every detached byte or
+proof below is provisional until all inventories, paths, descriptors, unlocks
+and closes pass.
 """
 
 import fcntl
@@ -20,6 +21,7 @@ from . import _population_inventory as inv
 from . import _population_log_acquisition as logs
 from . import _population_preflight as pf
 from . import _population_external as pe
+from . import _population_proof as pp
 from .external_evidence import (
     FAULT_LINE_BYTES, FAULT_MAX_LINES, HISTORY_LINE_BYTES, HISTORY_MAX_LINES,
     POLICY_MAX_BYTES,
@@ -75,6 +77,7 @@ class Acquisition:
     subject_digest: str | None = None
     evaluator_digest: str | None = None
     external_bindings: pe.ExternalBindings | None = None
+    proofs: pp.ProofSet | None = None
     accepted: bool = field(default=False, init=False)
     snapshot_completeness: str = field(default=p.NE, init=False)
     population: str = field(default=p.NE, init=False)
@@ -239,6 +242,12 @@ def _acquire(config):
             helper.policy_raw, helper.policy_pin,
             unresolved_external_ids=external_bindings.unresolved_ids)
         artifacts, subject, evaluator = _science(helper.checkout, homes, materials)
+        # First signature of the scan: only after the global preflight and the
+        # one shared checkout, and before any revalidation, unlock or close.
+        proofs = pp.prove(homes, log_inventory.attempts, materials, preflight, external_bindings,
+            ledger_raw, helper.root_raw, root_pin=cfg.root_pin, minimum_version=helper.minimum_version,
+            lab_id=cfg.lab_id, policy_raw=helper.policy_raw, policy_pin=helper.policy_pin,
+            artifacts=artifacts, subject_digest=subject, evaluator_digest=evaluator)
         helper.checkout.verify()
         source.verify()
         result = Acquisition('ACQUIRED', sources=tuple(source.stamps),
@@ -249,12 +258,12 @@ def _acquire(config):
             fault_bytes=fault_raw, trust_policy_bytes=installed, trust_history_bytes=history,
             policy_bytes=helper.policy_raw, policy_pin=helper.policy_pin,
             artifacts=artifacts, subject_digest=subject, evaluator_digest=evaluator,
-            external_bindings=external_bindings)
+            external_bindings=external_bindings, proofs=proofs)
     return result
 
 
 def acquire(config):
-    """Private acquisition only. ACQUIRED never means a population proof PASS."""
+    """Private acquisition and classification. ACQUIRED is never a population PASS."""
     try:
         try:
             a._configuration(config)

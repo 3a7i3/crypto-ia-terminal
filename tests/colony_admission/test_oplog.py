@@ -357,6 +357,8 @@ def test_purity_imports_and_no_external_calls():
             "attestation_evidence.py": {"_attestation_core", "_attestation_statement", "physical_evidence"},
             "_population_preflight.py": {"_attestation_core", "_population_core", "physical_evidence"},
             "_population_external.py": {"physical_evidence"},
+            "_population_proof.py": {"_attestation_core", "_population_core", "attestation_evidence",
+                                     "physical_evidence"},
             "_population_core.py": {"colony_lab", "colony_lab.a1_identity", "colony_registrar",
                                     "_attestation_core", "attestation_evidence", "physical_evidence"},
         }.get(path.name, set())
@@ -368,7 +370,8 @@ def test_purity_imports_and_no_external_calls():
             if isinstance(node, ast.ImportFrom):
                 if node.module is None:
                     assert node.level == 1
-                    if path.name in {"attestation_evidence.py", "_population_core.py", "_population_preflight.py"}:
+                    if path.name in {"attestation_evidence.py", "_population_core.py", "_population_preflight.py",
+                                     "_population_proof.py"}:
                         assert all(alias.name in permitted for alias in node.names)
                     else:
                         assert [alias.name for alias in node.names] == ["formats"]
