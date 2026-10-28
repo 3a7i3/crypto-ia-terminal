@@ -99,8 +99,9 @@ def no_authority(result):
     assert result.population == result.counts == result.ceilings == result.own_home == p.NE
     for x in proofs.operations:
         assert x.accepted is False
-        assert x.population_partition == x.frozen_completeness == x.counts == x.plan_match == p.NE
-        assert x.ceilings == x.authorization == p.NE
+        assert x.authorization == x.current.authorization == p.NE
+        assert x.current.accepted is x.current.counts.accepted is x.current.ceilings.accepted is False
+        assert x.current.ceilings.concurrency_enforcement == x.current.ceilings.authorization == p.NE
     for x in proofs.homes:
         assert x.accepted is False and x.completeness == x.authorization == x.filiation == p.NE
 
