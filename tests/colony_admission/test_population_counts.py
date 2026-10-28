@@ -95,8 +95,10 @@ def test_plan_divergence_is_population_changed(full_profile_machine, field):
         plan['budget_totals']['runs'] += 1
     proofs.own_machine(full_profile_machine)
     proofs.home(config.observer, op)
-    cur = current_of(proofs.scan(config), op)
+    result = proofs.scan(config)
+    cur = current_of(result, op)
     assert cur.plan_match == 'FAIL' and 'POPULATION_CHANGED' in cur.codes
+    assert 'POPULATION_CHANGED' in proofs.operation(result, op).codes  # carried by the operation proof
 
 
 def test_second_founder_population_item_required_with_exact_copy(full_profile_machine):
@@ -338,3 +340,63 @@ def test_population_need_frozen_as_decision_is_role_mismatch():
                     'envelope_sha256': f.digest(c.decode(raw))}]
     status, codes = partition(op, [founder], {founder['agent_id']: raw})
     assert status == 'FAIL' and 'POPULATION_ROLE_MISMATCH' in codes
+
+
+def test_suspended_home_is_counted_conservatively():
+    parent = fake('a' * 64)
+    child = fake('b' * 64, 'DESCENDANT', 'a' * 64)
+    homes, proof = detached(parent, child)
+    proof[child['agent_id']] = SimpleNamespace(counted='INCLUDED', classification='SUSPENDED')
+    counts = pk._counts(plan_op(parent), homes, proof, G0)
+    assert counts.complete == 'PASS' and counts.population == 2 and counts.children == 1
+    assert child['agent_id'] in counts.included_agent_ids
+
+
+def test_children_count_only_descendants_of_the_candidate_parent():
+    parent = fake('a' * 64)
+    others = [fake(f'{i:064x}', 'DESCENDANT', 'b' * 64) for i in range(1, 4)]
+    own = fake('c' * 64, 'DESCENDANT', 'a' * 64)
+    counts = counts_of(plan_op(parent), [parent, *others, own])
+    assert counts.population == 5 and counts.founders == 1 and counts.children == 1
+
+
+def test_bundle_bound_needs_population_pass_and_a_founder(monkeypatch):
+    monkeypatch.setattr(pk.lineage, 'spec_diff', lambda *a: [])
+    parent = fake('a' * 64)
+    op = plan_op(parent)
+    full = counts_of(op, [parent, *(fake(f'{i:064x}') for i in range(1, 6))])  # 6+1 > 6
+    ceilings = pk._ceilings(op, full, G0, 10 ** 6, {})
+    assert ceilings.population_limit == 'FAIL' and ceilings.bundle_bound == p.NE
+    no_founder = counts_of(op, [fake('b' * 64, 'DESCENDANT', 'a' * 64)])
+    assert pk._ceilings(op, no_founder, G0, 10 ** 6, {}).bundle_bound == p.NE
+    assert pk._ceilings(op, counts_of(op, [parent]), G0, None, {}).bundle_bound == p.NE
+
+
+@pytest.mark.parametrize('counted', ['EXCLUDED_OWN', 'INCLUDED'])
+def test_own_adds_no_premature_individual_nor_population_item(counted):
+    # §7: OWN adds neither a premature individual nor a POPULATION triple, even if counted were wrong.
+    own = fake('b' * 64, 'DESCENDANT', 'a' * 64)
+    homes, proof = detached(own, envelopes={own['agent_id']: env_bytes('premature')})
+    proof[own['agent_id']] = SimpleNamespace(counted=counted, classification='OWN_OPERATION')
+    op = plan_op(fake('a' * 64))
+    decision = SimpleNamespace(needs=())
+    assert pk._partition(op, homes, proof, decision, set(), own['agent_id']) == ('PASS', ())
+    op['items'] = [{'kind': c.IND, 'subject': {'agent_id': own['agent_id'], 'agent_spec_id': own['agent_spec_id']},
+                    'record_sha256': f.digest(own), 'role': 'POPULATION', 'envelope_sha256': 'e' * 64}]
+    status, codes = pk._partition(op, homes, proof, decision, set(), own['agent_id'])
+    assert status == 'FAIL' and codes == ('ATTESTATION_UNEXPECTED',)
+
+
+@pytest.mark.parametrize('structure', ['FAIL', p.NE])
+def test_partition_and_ceilings_not_evaluated_unless_branch_passes(structure):
+    parent = fake('a' * 64)
+    homes, proof = detached(parent)
+    op = plan_op(parent)
+    op['birth_plan'].update({'population': [f.digest(parent)], 'population_count': 1, 'children_count': 0,
+                             'budget_totals': dict(parent['budget'])})
+    decision = SimpleNamespace(branch=(), branch_structure=structure, decision_partition='PASS', needs=())
+    proof = [SimpleNamespace(agent_id=k, **vars(v)) for k, v in proof.items()]
+    cur = pk.current(op, homes, proof, decision, None, G0, None)
+    assert cur.population_partition == p.NE and 'CLASSIFICATION_NOT_EVALUATED' in cur.codes
+    assert cur.frozen_completeness != 'PASS'
+    assert cur.ceilings.aggregate == p.NE and 'BRANCH_INCOMPLETE' in cur.codes
