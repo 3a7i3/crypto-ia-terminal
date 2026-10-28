@@ -55,6 +55,8 @@ class CurrentPopulation:
     plan_match: str = NE
     ceilings: Ceilings = field(default_factory=Ceilings)
     codes: tuple[str, ...] = ()
+    # (key, namespaces, envelope digest per copy) of each POPULATION need; empty if not evaluated.
+    population_needs: tuple[tuple[c.Key, tuple[str, ...], tuple[str | None, ...]], ...] = ()
     accepted: bool = field(default=False, init=False)
     authorization: str = field(default=NE, init=False)
 
@@ -206,9 +208,12 @@ def current(op, homes, proofs, decision, own, policy, n):
     branch = set(decision.branch)
     if decision.branch_structure != 'PASS' or any(proofs[h.agent_id].counted not in ('INCLUDED', 'EXCLUDED_OWN')
                                                   for h in homes):
-        partition, codes = NE, ('CLASSIFICATION_NOT_EVALUATED',)
+        partition, codes, needs = NE, ('CLASSIFICATION_NOT_EVALUATED',), ()
     else:
         partition, codes = _partition(op, homes, proofs, decision, branch, own)
+        needs = tuple(sorted((k, tuple(x for x, _ in copies), tuple(d for _, d in copies))
+                             for k, copies in _needs(homes, proofs, branch, own)[0].items()
+                             if k not in {x.key for x in decision.needs}))
     frozen = a.aggregate((decision.decision_partition, partition))
     counts = _counts(op, homes, proofs, policy)
     plan = _plan(op, counts)
@@ -218,4 +223,4 @@ def current(op, homes, proofs, decision, own, policy, n):
     else:
         ceilings = Ceilings(codes=('BRANCH_INCOMPLETE',))
     codes = codes + counts.codes + ceilings.codes + (('POPULATION_CHANGED',) if plan == 'FAIL' else ())
-    return CurrentPopulation(partition, frozen, counts, plan, ceilings, p.unique(codes))
+    return CurrentPopulation(partition, frozen, counts, plan, ceilings, p.unique(codes), needs)

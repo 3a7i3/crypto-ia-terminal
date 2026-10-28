@@ -346,7 +346,7 @@ def test_purity_imports_and_no_external_calls():
         if path.name in {"observer.py", "evidence_observer.py", "attestation_observer.py",
                          "_attestation_checkout.py", "_population_inventory.py",
                          "_population_log_acquisition.py",
-                         "_population_acquisition.py"}:  # Explicit IO boundaries only.
+                         "_population_acquisition.py", "population_observer.py"}:  # Explicit IO boundaries only.
             continue
         # 3B's private pure adapters reuse the existing pure validators. The
         # original lexical projections retain their original import boundary.
@@ -357,6 +357,7 @@ def test_purity_imports_and_no_external_calls():
             "attestation_evidence.py": {"_attestation_core", "_attestation_statement", "physical_evidence"},
             "_population_preflight.py": {"_attestation_core", "_population_core", "physical_evidence"},
             "_population_external.py": {"physical_evidence"},
+            "_population_faults.py": {"physical_evidence", "external_evidence"},
             "_population_counts.py": {"colony_lab", "_attestation_core", "attestation_evidence",
                                       "physical_evidence", "_population_preflight"},
             "_population_proof.py": {"_attestation_core", "_population_core", "_population_counts",
@@ -374,7 +375,8 @@ def test_purity_imports_and_no_external_calls():
                 if node.module is None:
                     assert node.level == 1
                     if path.name in {"attestation_evidence.py", "_population_core.py", "_population_preflight.py",
-                                     "_population_proof.py", "_population_counts.py"}:
+                                     "_population_proof.py", "_population_counts.py",
+                                     "_population_faults.py"}:
                         assert all(alias.name in permitted for alias in node.names)
                     else:
                         assert [alias.name for alias in node.names] == ["formats"]
