@@ -51,10 +51,34 @@ def test_existing_ambiguity_and_conflict_semantics_preserved(tmp_path, entries):
     assert result["observations"] == [t.inspect_operation_consumption(path, op) for op in (OP, OTHER)]
 
 
+def forbid_module_io(monkeypatch):
+    # Replace only the os/fcntl names seen by colony_trust.trust; pytest's capture also uses os.fstat.
+    def guard(module):
+        class NoIO:
+            def __getattr__(self, name):
+                value = getattr(module, name)
+                if callable(value):
+                    return lambda *_a, **_k: pytest.fail(f"invalid batch performed IO: {module.__name__}.{name}")
+                return value
+        return NoIO()
+    monkeypatch.setattr(t, "os", guard(os))
+    monkeypatch.setattr(t, "fcntl", guard(fcntl))
+
+
 @pytest.mark.parametrize("ops", [None, [], (OP, OP), (True,), ("x",), tuple(f"{n:064x}" for n in range(257))])
 def test_invalid_operations_perform_no_io(monkeypatch, ops):
-    monkeypatch.setattr(t.os, "fstat", lambda *_: pytest.fail("invalid batch performed IO"))
+    forbid_module_io(monkeypatch)
     invalid(t.inspect_operations_fd(7, ops), "INVALID_INPUT")
+
+
+@pytest.mark.parametrize("call", [lambda: t.os.fstat(7), lambda: t.os.read(7, 1), lambda: t.os.lseek(7, 0, t.os.SEEK_CUR),
+                                  lambda: t.fcntl.flock(7, t.fcntl.LOCK_SH)])
+def test_io_guard_detects_module_io_without_patching_global_os(monkeypatch, call):
+    fstat = os.fstat
+    forbid_module_io(monkeypatch)
+    with pytest.raises(pytest.fail.Exception, match="invalid batch performed IO"):
+        call()
+    assert os.fstat is fstat and t.os.O_RDONLY == os.O_RDONLY
 
 
 @pytest.mark.parametrize("fd", [True, -1, None, "4"])
