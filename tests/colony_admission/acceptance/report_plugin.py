@@ -29,8 +29,10 @@ def pytest_addoption(parser):
 
 
 def _registry_checks():
+    """Every registry check function with its exact parametrize ids."""
+    from tests.colony_admission.acceptance import test_corpus_registry as checks
     tree = ast.parse((corpus.ROOT / REGISTRY_CHECKS).read_text(encoding='utf-8'))
-    return {REGISTRY_CHECKS + '::' + x.name for x in tree.body
+    return {REGISTRY_CHECKS + '::' + x.name: corpus.parametrize_ids(getattr(checks, x.name)) for x in tree.body
             if isinstance(x, ast.FunctionDef) and x.name.startswith('test_')}
 
 
@@ -68,8 +70,9 @@ class _Recorder:
             if corpus.sha256(corpus.DOCS / name) != reg['matrices'][ns]['sha256']:
                 reasons.append('MATRIX_DIGEST_MISMATCH:' + ns)
         checks = {k: v for k, v in self.outcomes.items() if k.startswith(REGISTRY_CHECKS + '::')}
-        if set(checks) != _registry_checks() or any(
-                x != 'passed' for r in checks.values() for v in r.values() for x in v):
+        expected = _registry_checks()
+        if set(checks) != set(expected) or any(set(checks[k]) != (set(ids) or {''}) for k, ids in expected.items()) \
+                or any(x != 'passed' for r in checks.values() for v in r.values() for x in v):
             reasons.append('REGISTRY_CHECKS_NOT_PASSED')
         entries = {**reg['cases'], **reg['regressions']}
         for node, ids in self.claims.items():
@@ -87,7 +90,7 @@ class _Recorder:
             'schema': 'colony-admission.acceptance-run/0',
             'run': {'python': platform.python_version(), 'pytest': pytest.__version__,
                     'optimize': sys.flags.optimize, 'dont_write_bytecode': sys.dont_write_bytecode,
-                    'euid': os.geteuid(),
+                    'euid': os.geteuid(), 'assertmode': session.config.getoption('assertmode'),
                     'exitstatus': int(session.exitstatus)},
             'registry_sha256': corpus.sha256(corpus.REGISTRY),
             'matrix_sha256': {ns: corpus.sha256(corpus.DOCS / f) for ns, (f, _) in corpus.MATRICES.items()},

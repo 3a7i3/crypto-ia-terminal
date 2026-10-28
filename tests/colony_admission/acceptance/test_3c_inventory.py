@@ -157,7 +157,8 @@ def test_inv_02_unavailable_individuals_is_never_an_empty_population(full_profil
 
 
 # Admitted by the matrix ("SOURCE_NAMESPACE_INVALID ou refus de source"); the
-# hex64 typed entries diverge from the §4 wording, recorded in the registry.
+# hex64 typed entries (file, FIFO, socket, link) diverge from the §4 wording,
+# recorded in the registry.
 INV_03 = [
     ('regular_file_hex64', 'SOURCE_UNAVAILABLE'),
     ('fifo_hex64', 'SOURCE_UNAVAILABLE'),

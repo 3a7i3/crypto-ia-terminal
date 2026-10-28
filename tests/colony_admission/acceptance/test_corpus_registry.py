@@ -91,7 +91,19 @@ def test_plan_document_is_rendered_from_the_current_registry():
         'regenerate: python -m tests.colony_admission.acceptance.corpus plan > ' + str(corpus.PLAN)
 
 
-@pytest.mark.parametrize('bad', ['INV-01', '3D:INV-01', '3C:', 'REG'])
+def test_assertions_are_enabled():
+    # Under -O --assert=plain no assert runs anywhere: such a run proves nothing.
+    try:
+        assert False
+    except AssertionError:
+        return
+    pytest.fail('assert statements are disabled in this run')
+
+
+BAD_IDS = ['INV-01', '3D:INV-01', '3C:', 'REG']
+
+
+@pytest.mark.parametrize('bad', BAD_IDS, ids=BAD_IDS)
 def test_case_ids_are_namespaced(bad):
     with pytest.raises(ValueError):
         corpus.case(bad)
@@ -144,9 +156,14 @@ def test_recorder_maps_reports_to_outcomes(tmp_path):
 def test_run_is_invalid_without_matching_digests_checks_and_registered_claims(reg, tmp_path, monkeypatch):
     recorder = report_plugin._Recorder(tmp_path / 'r.json')
     assert recorder.invalid(reg) == ['REGISTRY_CHECKS_NOT_PASSED']
-    for node in report_plugin._registry_checks():
-        recorder.outcomes[node][''].append('passed')
+    for node, ids in report_plugin._registry_checks().items():
+        for x in ids or ['']:
+            recorder.outcomes[node][x].append('passed')
     assert recorder.invalid(reg) == []
+    partial = sorted(k for k, ids in report_plugin._registry_checks().items() if ids)[0]
+    kept = recorder.outcomes[partial].pop(report_plugin._registry_checks()[partial][0])
+    assert recorder.invalid(reg) == ['REGISTRY_CHECKS_NOT_PASSED']
+    recorder.outcomes[partial][report_plugin._registry_checks()[partial][0]] = kept
     recorder.outcomes[sorted(report_plugin._registry_checks())[0]]['x'].append('failed')
     assert recorder.invalid(reg) == ['REGISTRY_CHECKS_NOT_PASSED']
     del recorder.outcomes[sorted(report_plugin._registry_checks())[0]]['x']

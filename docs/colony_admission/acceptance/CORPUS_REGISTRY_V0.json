@@ -7,6 +7,7 @@
   "IMPLEMENTED exige des tests déclarés par case(), qui exercent le point d’entrée public de la matrice et tous les variants énoncés ; une correspondance de nom ou un compteur de tests ne couvre aucun cas.",
   "tests associe chaque fonction de test à ses ids de paramétrage exacts ([] sans paramétrage) ; un run qui n’exécute pas exactement ces ids laisse le cas NOT_EXECUTED.",
   "Un rapport n’est valide (et un cas PASS) que si les sha256 des matrices égalent ceux du registre, si toutes les vérifications de test_corpus_registry.py ont passé dans le même run et si chaque claim case() est enregistrée.",
+  "Un run sans assertions actives (-O --assert=plain) est invalide : test_assertions_are_enabled échoue.",
   "name_tag_candidates : tests existants repérés par commentaire ; assertions non vérifiées, non comptés.",
   "Un verdict NE ou BLOCKED attendu peut être la réussite d’un test négatif ; il ne qualifie jamais le profil ou l’objet concerné.",
   "BLOCKED exige une raison contractuelle citée ; CONTRACT_NOT_EXECUTABLE est réservé aux cas EXT tant que leur statut contractuel n’est pas amendé.",
@@ -676,7 +677,7 @@
     "tests/colony_admission/acceptance/test_3c_inventory.py::test_spies_count_real_signatures_and_the_single_ledger_open": []
    },
    "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement",
-   "notes": "mode 000 : SOURCE_PERMISSIONS en root (contrôle du mode privé), SOURCE_UNAVAILABLE sinon (open refusé) ; les deux codes sont admis par la matrice. Aucune ouverture ni inspection du ledger, aucune signature ; le contrôle positif montre que les mêmes instruments les voient dans un scan complet."
+   "notes": "mode 000 : SOURCE_PERMISSIONS en root (contrôle du mode privé), SOURCE_UNAVAILABLE sinon (open refusé) ; les deux codes sont admis par la matrice. Aucune ouverture ni inspection du ledger, aucune signature ; le contrôle positif montre que les mêmes instruments les voient dans un scan complet. Variant non couvert : propriétaire de individuals/ différent de l’euid (créable seulement en root, la CI est non-root) ; il relève des familles d’acquisition (IO-01) et reste à couvrir. L’espion compte os.open, seul chemin d’ouverture du produit actuel."
   },
   "3C:INV-03": {
    "implementation": "IMPLEMENTED",
@@ -697,7 +698,7 @@
     "tests/colony_admission/acceptance/test_3c_inventory.py::test_spies_count_real_signatures_and_the_single_ledger_open": []
    },
    "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement ; snapshot OWN complet (OBSERVED sans l’entrée ajoutée)",
-   "divergence": "Contrat 3C §4 : « lien/type spécial ou nom invalide => SOURCE_NAMESPACE_INVALID ». Le code renvoie SOURCE_UNAVAILABLE pour un fichier, une FIFO ou un lien au nom hex64 valide. La matrice INV-03 admet « ou refus de source », donc le cas passe ; l’écart de formulation §4 reste à arbitrer, sans correctif ni amendement ici.",
+   "divergence": "Contrat 3C §4 : « lien/type spécial ou nom invalide => SOURCE_NAMESPACE_INVALID ». Le code renvoie SOURCE_UNAVAILABLE pour un fichier, une FIFO, une socket ou un lien au nom hex64 valide. La matrice INV-03 admet « ou refus de source », donc le cas passe ; l’écart de formulation §4 reste à arbitrer, sans correctif ni amendement ici.",
    "notes": "Aucune ouverture ni inspection du ledger, aucune signature ; même contrôle positif que INV-02."
   },
   "3C:INV-04": {
