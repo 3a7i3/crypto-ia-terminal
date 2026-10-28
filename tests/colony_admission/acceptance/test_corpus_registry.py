@@ -172,3 +172,8 @@ def test_run_is_invalid_without_matching_digests_checks_and_registered_claims(re
     del recorder.claims['m::orphan']
     changed = {**reg, 'matrices': {**reg['matrices'], '3C': {**reg['matrices']['3C'], 'sha256': '0' * 64}}}
     assert recorder.invalid(changed) == ['MATRIX_DIGEST_MISMATCH:3C']
+    # Under -p no:assertion the option does not exist: the run is invalid, never a crash.
+    def config(mode):
+        return SimpleNamespace(getoption=lambda name, default=None: mode if mode else default)
+    assert recorder.run_invalid(reg, config('rewrite')) == ([], 'rewrite')
+    assert recorder.run_invalid(reg, config(None)) == (['ASSERTMODE_UNAVAILABLE'], None)

@@ -768,19 +768,71 @@
    "implementation": "NON_IMPLEMENTED"
   },
   "3C:OWN-01": {
-   "implementation": "NON_IMPLEMENTED"
+   "implementation": "IMPLEMENTED",
+   "negative": false,
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_own.py::test_own_01_exact_open_d3_home_is_excluded_once_and_grants_nothing": [
+     "exact_open_d3",
+     "admission_not_consumed",
+     "plan_counting_own"
+    ]
+   },
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement. Plan exact via tests/colony_admission/test_population_counts.exact_plan (fondateur seul, own exclu), log et /1 via test_population_proof.own_machine, foyer D3 aux bytes de stockage exacts via test_population_proof.home",
+   "notes": "exact_open_d3 : OWN_OPERATION/EXCLUDED_OWN une seule fois, fondateur seul INCLUDED, counts PASS population=1, plan_match et plafonds PASS. plan_counting_own : un plan qui compte aussi l’enfant donne plan_match FAIL/POPULATION_CHANGED (own exclu avant comparaison). admission_not_consumed : sans /1, jamais OWN (BIRTH_COMMIT_UNPROVEN). « Aucune reprise » : l’observation n’expose aucun attribut de permission (can_resume, can_parent, admitted, qualified), contrôle structurel seulement."
   },
   "3C:OWN-02": {
-   "implementation": "NON_IMPLEMENTED"
+   "implementation": "IMPLEMENTED",
+   "negative": false,
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_own.py::test_own_02_after_done_d3_identity_and_layout_only_never_mutable_content": [
+     "done_d3_runtime_mutated",
+     "done_d3_layout_missing"
+    ]
+   },
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement. Plan exact via tests/colony_admission/test_population_counts.exact_plan (fondateur seul, own exclu), log et /1 via test_population_proof.own_machine, foyer D3 aux bytes de stockage exacts via test_population_proof.home",
+   "notes": "Après DONE D3, usage.json et contenus runtime réécrits : un garde sur os.read échoue si un inode mutable est lu ; OWN depuis les trois fichiers identité et le layout (OBSERVED). done_d3_layout_missing : layout absent => NE/OWN_HOME_INCOMPLETE, jamais OWN. Le garde ne voit que os.read (seul chemin de lecture du produit actuel)."
   },
   "3C:OWN-03": {
-   "implementation": "NON_IMPLEMENTED"
+   "implementation": "IMPLEMENTED",
+   "negative": true,
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_own.py::test_own_03_partial_open_d3_home_is_ne_incomplete_never_unauthenticated": [
+     "spec_only",
+     "spec_and_record",
+     "without_usage",
+     "without_layout",
+     "short_write_record",
+     "short_write_usage"
+    ]
+   },
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement. Plan exact via tests/colony_admission/test_population_counts.exact_plan (fondateur seul, own exclu), log et /1 via test_population_proof.own_machine, foyer D3 aux bytes de stockage exacts via test_population_proof.home",
+   "notes": "Fichiers présents égaux, éléments requis manquants : NE/OWN_HOME_INCOMPLETE, ni HOME_CONFLICT ni POPULATION_UNAUTHENTICATED, aucune exclusion ni compte exact. Variants short_write_* ajoutés depuis §6 (« short write divergent conserve les faits et refus 3A ») : STORED_FILE_DIVERGENT conservé en plus de OWN_HOME_INCOMPLETE. Observé, non asserté (à arbitrer) : quand spec/record de l’enfant manque ou diverge, le fondateur devient aussi NE (CLASSIFICATION_NOT_EVALUATED) et le code non bloquant NOT_APPLICABLE_FOUNDER apparaît dans result.blockers ; lien avec REG:COUNTED-HOME-WARNING-FILTER."
   },
   "3C:OWN-04": {
-   "implementation": "NON_IMPLEMENTED"
+   "implementation": "IMPLEMENTED",
+   "negative": true,
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_own.py::test_own_04_right_id_with_divergent_identity_or_plan_is_conflict_never_own": [
+     "spec_divergent",
+     "record_divergent",
+     "qualification_divergent",
+     "previous_attempt_plan"
+    ]
+   },
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement. Plan exact via tests/colony_admission/test_population_counts.exact_plan (fondateur seul, own exclu), log et /1 via test_population_proof.own_machine, foyer D3 aux bytes de stockage exacts via test_population_proof.home",
+   "notes": "Bon ID, spec/record/qualification divergents (JSON valide, autre contenu) ou record du plan d’une tentative précédente REFUSED : UNAUTHENTICATED/BLOCKING, HOME_CONFLICT et STORED_FILE_DIVERGENT, population FAIL, jamais OWN. La matrice admet HOME_CONFLICT/FROZEN_ITEM_DIVERGENT « selon fait » ; le produit donne HOME_CONFLICT. Observé, non asserté (à arbitrer) : quand spec/record de l’enfant manque ou diverge, le fondateur devient aussi NE (CLASSIFICATION_NOT_EVALUATED) et le code non bloquant NOT_APPLICABLE_FOUNDER apparaît dans result.blockers ; lien avec REG:COUNTED-HOME-WARNING-FILTER."
   },
   "3C:OWN-05": {
-   "implementation": "NON_IMPLEMENTED"
+   "implementation": "IMPLEMENTED",
+   "negative": true,
+   "tests": {
+    "tests/colony_admission/acceptance/test_3c_own.py::test_own_05_home_without_effective_begin_d3_has_no_established_origin": [
+     "home_before_begin_d3",
+     "begin_d3_cancelled"
+    ]
+   },
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement. Plan exact via tests/colony_admission/test_population_counts.exact_plan (fondateur seul, own exclu), log et /1 via test_population_proof.own_machine, foyer D3 aux bytes de stockage exacts via test_population_proof.home",
+   "notes": "Foyer présent sans BEGIN D3, ou BEGIN D3 suivi de BEGIN_CANCELLED D3 (LAB_STOPPED) : UNAUTHENTICATED/BLOCKING, OPERATION_STATE_INCONSISTENT, aucune preuve OWN positive."
   },
   "3C:EPOCH-01": {
    "implementation": "NON_IMPLEMENTED"
@@ -957,7 +1009,8 @@
    "implementation": "NON_IMPLEMENTED"
   },
   "3C:IO-01": {
-   "implementation": "NON_IMPLEMENTED"
+   "implementation": "NON_IMPLEMENTED",
+   "notes": "À couvrir avec IO-01 : propriétaire de individuals/ différent de l’euid (variant reporté depuis 3C:INV-02 ; créable seulement en root, la CI est non-root)."
   },
   "3C:IO-02": {
    "implementation": "NON_IMPLEMENTED"
