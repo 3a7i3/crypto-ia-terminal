@@ -80,9 +80,14 @@ class _Recorder:
                 reasons.append('UNREGISTERED_CLAIM:' + node)
         return reasons
 
+    def run_invalid(self, reg, config):
+        # Without the assertion plugin (-p no:assertion) the run mode is unknown: never a proof.
+        mode = config.getoption('assertmode', None)
+        return self.invalid(reg) + ([] if mode is not None else ['ASSERTMODE_UNAVAILABLE']), mode
+
     def pytest_sessionfinish(self, session):
         reg = corpus.registry()
-        invalid = self.invalid(reg)
+        invalid, mode = self.run_invalid(reg, session.config)
         states = corpus.derive(reg, self.outcomes, invalid)
         counts = {ns: {s: sum(1 for k, v in states.items() if k.startswith(ns + ':') and v == s)
                        for s in corpus.EXECUTION} for ns in corpus.NAMESPACES}
@@ -90,7 +95,7 @@ class _Recorder:
             'schema': 'colony-admission.acceptance-run/0',
             'run': {'python': platform.python_version(), 'pytest': pytest.__version__,
                     'optimize': sys.flags.optimize, 'dont_write_bytecode': sys.dont_write_bytecode,
-                    'euid': os.geteuid(), 'assertmode': session.config.getoption('assertmode'),
+                    'euid': os.geteuid(), 'assertmode': mode,
                     'exitstatus': int(session.exitstatus)},
             'registry_sha256': corpus.sha256(corpus.REGISTRY),
             'matrix_sha256': {ns: corpus.sha256(corpus.DOCS / f) for ns, (f, _) in corpus.MATRICES.items()},
