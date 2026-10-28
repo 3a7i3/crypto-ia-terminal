@@ -961,15 +961,102 @@ def test_a_divergent_artifact_dominates_an_absent_one(w):
 
 
 @case("PC2-61")
-@pytest.mark.parametrize("change", ["float", "duplicate_key", "nan", "bool_for_int", "not_utf8"])
+@pytest.mark.parametrize("change", ["float", "duplicate_key", "duplicate_same_value", "nan", "not_utf8"])
 def test_strict_decoding_of_q(w, change):
     raw = f.canonical(w.q)
     marker = b'"state":"QUALIFIED_SIMULATED"'
-    replacement = {"float": b'"state":1.5', "duplicate_key": marker + b',"state":"FAILED"', "nan": b'"state":NaN',
-                   "bool_for_int": b'"state":true', "not_utf8": b'"state":"\xff"'}[change]
+    replacement = {"float": b'"state":1.5', "duplicate_key": marker + b',"state":"FAILED"',
+                   "duplicate_same_value": marker + b"," + marker, "nan": b'"state":NaN',
+                   "not_utf8": b'"state":"\xff"'}[change]
     raw = raw.replace(marker, replacement)
+    assert raw != f.canonical(w.q)
     qe, se = w.envelopes()
     statement = s.statement(f.canonical(w.st), raw, f.canonical(qe), f.canonical(se))
     assert (statement.status, statement.codes) == ("FAIL", ("STATEMENT_INVALID",))
     science = pc2.bindings(f.canonical(w.st), raw, dict(w.raw), *w.digests, w.context_bytes())
-    assert science.status == "FAIL"
+    assert (science.status, science.codes) == ("FAIL", ("STORED_FILE_DIVERGENT",))
+
+
+@case("PC2-61")
+def test_uppercase_hex_in_q_is_not_normalised(w):
+    w.q["subject_code_sha256"] = w.st["subject_code_sha256"] = pc2.SUBJECT_PIN.upper()
+    assert w.rehash().statement().codes == ("STATEMENT_INVALID",)
+    assert w.science().codes == ("SCIENTIFIC_DIVERGENCE",)
+
+
+@case("PC2-25", "PC2-61")
+@pytest.mark.parametrize("target", ["statement", "qualification", "sentinel_record", "pilot_spec"])
+def test_decoding_bounds_of_q_statement_and_context(w, target):
+    # C10.5: s <= 16 KiB, q and context records <= 64 KiB at decoding, before any comparison.
+    limit = 16384 if target == "statement" else 65536
+    if target in ("statement", "qualification"):
+        record = w.st if target == "statement" else w.q
+        record["padding"] = "x" * limit
+        raw = f.canonical(record)
+        args = (raw, f.canonical(w.q)) if target == "statement" else (f.canonical(w.st), raw)
+        fact = pc2.bindings(*args, dict(w.raw), *w.digests, w.context_bytes())
+    else:
+        padded = {**w.context[target], "padding": "x" * limit}
+        fact = w.science(**{target: f.canonical(padded)})
+    assert (fact.status, fact.codes) == ("FAIL", ("SOURCE_LIMIT",))
+    if target == "statement":
+        assert pc2.select(f.canonical(w.q), raw) is None
+
+
+@case("PC2-05")
+@pytest.mark.parametrize("shape", ["exact_limit", "text", "dict_subclass"])
+def test_artifact_size_type_and_mapping_type(w, shape):
+    if shape == "exact_limit":
+        w.raw[pc2.PC2_PATH] = b" " * (16 * 1024 * 1024)  # at the limit: pin, not size, refuses it
+        assert w.science().codes == ("SCIENTIFIC_DIVERGENCE",)
+    elif shape == "text":
+        w.raw[pc2.PC2_PATH] = w.raw[pc2.PC2_PATH].decode()
+        assert w.science().codes == ("SOURCE_LIMIT",)
+    else:
+        class Mapping(dict):
+            pass
+        fact = pc2.bindings(f.canonical(w.st), f.canonical(w.q), Mapping(w.raw), *w.digests, w.context_bytes())
+        assert fact.status == "FAIL"
+
+
+@case("PC2-05")
+def test_a_pinned_artifact_above_the_decoding_bound(w):
+    w.reseal(PC2=lambda d: d.update(padding="x" * 70000))
+    assert len(w.raw[pc2.PC2_PATH]) > 65536
+    assert w.science(variant(w)).codes == ("SOURCE_LIMIT",)
+
+
+@case("PC2-41", "PC2-42", "PC2-38")
+@pytest.mark.parametrize("change", ["upper_facts", "parent_not_object", "rounds_of_strings"])
+def test_native_shapes_behind_instrumented_pins(change):
+    edit = {"upper_facts": lambda d: [r[0].update(facts_sha256=r[0]["facts_sha256"].upper()) for r in d["rounds"]],
+            "parent_not_object": lambda d: d.update(parent="sentinel"),
+            "rounds_of_strings": lambda d: d.update(rounds=[["x"] * 28, ["x"] * 28])}[change]
+    world = World().reseal(PC2=edit)
+    assert world.science(variant(world)).codes == ("SCIENTIFIC_DIVERGENCE",)
+
+
+@case("PC2-38")
+def test_q_scope_is_bound_even_when_pc2_agrees(w):
+    w.reseal(PC2=lambda d: d.update(scope="LIVE"))
+    w.q["scope"] = "LIVE"
+    assert w.rehash().science(variant(w)).codes == ("SCIENTIFIC_DIVERGENCE",)
+
+
+@case("PC2-08", "PC2-09")
+def test_a_divergent_closure_dominates_an_absent_one(w):
+    w.digests[0], w.digests[1] = "c" * 64, None
+    assert (w.science().status, w.science().codes) == ("FAIL", ("SCIENTIFIC_DIVERGENCE",))
+
+    class Digest(str):
+        pass
+    exact = World()
+    exact.digests[2] = Digest(pc2.PILOT_PIN)
+    assert exact.science().codes == ("SCIENTIFIC_DIVERGENCE",)
+
+
+@case("PC2-22")
+@pytest.mark.parametrize("scope", ["OTHER", None, 1])
+def test_unknown_scope_under_p1_selects_nothing(w, scope):
+    w.st["scope"] = scope
+    assert pc2.select(f.canonical(w.q), f.canonical(w.st)) is None
