@@ -398,5 +398,22 @@ def test_partition_and_ceilings_not_evaluated_unless_branch_passes(structure):
     proof = [SimpleNamespace(agent_id=k, **vars(v)) for k, v in proof.items()]
     cur = pk.current(op, homes, proof, decision, None, G0, None)
     assert cur.population_partition == p.NE and 'CLASSIFICATION_NOT_EVALUATED' in cur.codes
-    assert cur.frozen_completeness != 'PASS'
+    assert cur.frozen_completeness == p.NE
     assert cur.ceilings.aggregate == p.NE and 'BRANCH_INCOMPLETE' in cur.codes
+
+
+@pytest.mark.parametrize('counted', ['BLOCKING', p.NE])
+def test_blocking_or_unclassified_home_never_skipped_into_a_passing_partition(monkeypatch, counted):
+    monkeypatch.setattr(pk.lineage, 'spec_diff', lambda *a: [])
+    # §7: reclassifying a home so its items are skipped is never a proof of completeness.
+    parent, other = fake('a' * 64), fake('b' * 64)
+    homes, proof = detached(parent, other)
+    proof[other['agent_id']] = SimpleNamespace(counted=counted, classification=counted)
+    op = plan_op(parent)
+    op['birth_plan'].update({'population': [f.digest(parent)], 'population_count': 1, 'children_count': 0,
+                             'budget_totals': dict(parent['budget'])})
+    decision = SimpleNamespace(branch=(), branch_structure='PASS', decision_partition='PASS', needs=())
+    proof = [SimpleNamespace(agent_id=k, **vars(v)) for k, v in proof.items()]
+    cur = pk.current(op, homes, proof, decision, None, G0, None)
+    assert cur.population_partition == cur.frozen_completeness == p.NE
+    assert 'CLASSIFICATION_NOT_EVALUATED' in cur.codes and cur.counts.complete != 'PASS'
