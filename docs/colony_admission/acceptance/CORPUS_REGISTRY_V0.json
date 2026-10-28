@@ -1,0 +1,1140 @@
+{
+ "schema": "colony-admission.acceptance-registry/0",
+ "status": "TRACEABILITY_ONLY_NOT_AN_EXECUTION_RESULT",
+ "accepted": false,
+ "rules": [
+  "Une matrice ou ce registre n’est jamais une preuve d’exécution ; PASS/FAIL/NOT_EXECUTED n’existent que dans un rapport de run (report_plugin) sur un arbre exact.",
+  "IMPLEMENTED exige des tests déclarés par case(), qui exercent le point d’entrée public de la matrice et tous les variants énoncés ; une correspondance de nom ou un compteur de tests ne couvre aucun cas.",
+  "name_tag_candidates : tests existants repérés par commentaire ; assertions non vérifiées, non comptés.",
+  "Un verdict NE ou BLOCKED attendu peut être la réussite d’un test négatif ; il ne qualifie jamais le profil ou l’objet concerné.",
+  "BLOCKED exige une raison contractuelle citée ; CONTRACT_NOT_EXECUTABLE est réservé aux cas EXT tant que leur statut contractuel n’est pas amendé.",
+  "Ce registre ne modifie ni les matrices, ni P1/pins/formats/g0, ni accepted=false, ni #286 ACTIVE ; PC2/p1 reste SCIENTIFIC_PROFILE_UNSUPPORTED/NE bloquant."
+ ],
+ "entry_points": {
+  "3A": "colony_admission.evidence_observer.scan_evidence(ObserverConfig)",
+  "3B": "colony_admission.attestation_observer.AttestationObserver(AttestationConfig).scan_attestations()",
+  "3C": "colony_admission.population_observer.PopulationObserver(PopulationConfig).scan_population()",
+  "EXT": "colony_admission.external_evidence (lecteurs purs) ; matrice CONTRACT_FOR_REVIEW_NOT_EXECUTABLE"
+ },
+ "matrices": {
+  "3A": {
+   "path": "docs/colony_admission/P4_3A_PHYSICAL_EVIDENCE_CASES_V0.json",
+   "sha256": "1c314a38bb3fa8d61065e3e73ccbf231398ad3a09a3006961a2fd34a2579e455",
+   "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+   "cases": 66
+  },
+  "3B": {
+   "path": "docs/colony_admission/P4_3B_ATTESTATIONS_AND_ANCESTRY_CASES_V0.json",
+   "sha256": "82855639b2cefba1b9871a79646ec19640dfc1ee30e26799c9613d4ab3562282",
+   "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+   "cases": 75
+  },
+  "3C": {
+   "path": "docs/colony_admission/P4_3C_POPULATION_AND_CEILINGS_CASES_V0.json",
+   "sha256": "cd181a7d0d39d04213eccc181f40213dfd15a8f4bdfcc4487ff4058b557a94e7",
+   "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+   "cases": 107
+  },
+  "EXT": {
+   "path": "docs/colony_admission/P4_EXTERNAL_EVIDENCE_CASES_V0.json",
+   "sha256": "ddf335d9beab88b84736f91cd3bda9692e2659663b4901d4e9f9c9b3f9f375d8",
+   "status": "CONTRACT_FOR_REVIEW_NOT_EXECUTABLE",
+   "cases": 27
+  }
+ },
+ "external_evidence_role": "Les 27 cas EF01..EF27 de P4_EXTERNAL_EVIDENCE_CASES_V0.json appartiennent au contrat des formats de preuve externe (P4_EXTERNAL_EVIDENCE_FORMATS_V0.md §7) : ils complètent les scénarios P1 sans les remplacer. Ils ne font pas partie des matrices 3A/3B/3C visées par la checklist §13 de 3C. Leur statut reste CONTRACT_FOR_REVIEW_NOT_EXECUTABLE ; les rendre exécutables exige un amendement contractuel, pas une décision technique.",
+ "cases": {
+  "3A:ACQ-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_missing_bound_roots"
+   ]
+  },
+  "3A:ACQ-02": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_read_failure_is_not_absence"
+   ]
+  },
+  "3A:ACQ-03": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_unsafe_selected_file"
+   ]
+  },
+  "3A:ACQ-04": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_unsafe_selected_directory"
+   ]
+  },
+  "3A:ACQ-05": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_final_changes_discard_everything"
+   ]
+  },
+  "3A:ACQ-06": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_final_changes_discard_everything"
+   ]
+  },
+  "3A:ACQ-07": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_close_failure_clears_all"
+   ]
+  },
+  "3A:ACQ-08": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_io_one_read_no_effects_metadata_only_and_immutable"
+   ]
+  },
+  "3A:ACQ-09": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_empty_roots_and_ledger_once"
+   ]
+  },
+  "3A:ACQ-10": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_external_termination_never_skips_neighbor"
+   ]
+  },
+  "3A:ACQ-11": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_sticky_fault_cannot_be_cleared"
+   ]
+  },
+  "3A:ACQ-12": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_busy_lock_no_retry"
+   ]
+  },
+  "3A:HIST-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_history_all_ids_latest_material_only"
+   ]
+  },
+  "3A:HIST-02": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_history_cap_before_ledger_open"
+   ]
+  },
+  "3A:HIST-03": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_history_cap_before_ledger_open"
+   ]
+  },
+  "3A:HIST-04": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_duplicate_not_coalesced"
+   ]
+  },
+  "3A:HIST-05": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_historical_consumption_not_hidden"
+   ]
+  },
+  "3A:HIST-06": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_history_all_ids_latest_material_only"
+   ]
+  },
+  "3A:HIST-07": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_ack_cr_fragment_is_opaque"
+   ]
+  },
+  "3A:HIST-08": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_original_reserve_positions"
+   ]
+  },
+  "3A:HIST-09": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_two_pending_births"
+   ]
+  },
+  "3A:HIST-10": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_set_aside_is_not_pending_birth"
+   ]
+  },
+  "3A:LED-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_ledger_whole_parse_discards_prefix"
+   ]
+  },
+  "3A:LED-02": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_unbound_ledger_counts"
+   ]
+  },
+  "3A:LED-03": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_unbound_ledger_counts"
+   ]
+  },
+  "3A:LED-04": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_unbound_ledger_counts"
+   ]
+  },
+  "3A:LED-05": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_conflicting_requested_entries_never_match"
+   ]
+  },
+  "3A:LED-06": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_empty_roots_and_ledger_once"
+   ]
+  },
+  "3A:LED-07": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_close_failure_clears_all",
+    "tests/colony_admission/test_physical_evidence.py::test_ledger_failures_have_null_counts"
+   ]
+  },
+  "3A:D1-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d1_phases"
+   ]
+  },
+  "3A:D1-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3A:D1-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3A:D1-04": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_foreign_d1_hash"
+   ]
+  },
+  "3A:D1-05": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d1_phases"
+   ]
+  },
+  "3A:D1-06": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d1_stored_identity_mismatch"
+   ]
+  },
+  "3A:D2-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d2_interrupted_material"
+   ]
+  },
+  "3A:D2-02": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d2_interrupted_material"
+   ]
+  },
+  "3A:D2-03": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d2_interrupted_material"
+   ]
+  },
+  "3A:D2-04": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_completed_d2_requires_each_file"
+   ]
+  },
+  "3A:D2-05": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_divergent_strict_d2_content"
+   ]
+  },
+  "3A:D2-06": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d2_canonical_equality_namespace_paths_no_individual_required"
+   ]
+  },
+  "3A:D2-07": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_invalid_frozen_admission_bindings"
+   ]
+  },
+  "3A:D2-08": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_frozen_decision_bindings"
+   ]
+  },
+  "3A:D2-09": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d2_canonical_equality_namespace_paths_no_individual_required"
+   ]
+  },
+  "3A:D2-10": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3A:D2-11": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3A:D2-12": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_d2_canonical_equality_namespace_paths_no_individual_required"
+   ]
+  },
+  "3A:D3-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_home_phase_and_no_origin_inference"
+   ]
+  },
+  "3A:D3-02": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_home_phase_and_no_origin_inference"
+   ]
+  },
+  "3A:D3-03": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_home_phase_and_no_origin_inference"
+   ]
+  },
+  "3A:D3-04": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_partial_d3_whole_files_only"
+   ]
+  },
+  "3A:D3-05": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_open_d3_short_or_different_not_partial"
+   ]
+  },
+  "3A:D3-06": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_home_phase_and_no_origin_inference"
+   ]
+  },
+  "3A:D3-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3A:D3-08": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_recovery_present_d3_usage_excluded"
+   ]
+  },
+  "3A:D3-09": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_completed_d3_requires_identity"
+   ]
+  },
+  "3A:D3-10": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_unicode_writer_encoding_parity"
+   ]
+  },
+  "3A:D3-11": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_completed_layout_metadata_required"
+   ]
+  },
+  "3A:D3-12": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_layout_namespace_safety"
+   ]
+  },
+  "3A:D3-13": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_terminal_prefix_and_action_retained"
+   ]
+  },
+  "3A:D3-14": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_all_structural_actions_stay_unevaluated",
+    "tests/colony_admission/test_physical_evidence.py::test_external_termination_never_skips_neighbor",
+    "tests/colony_admission/test_physical_evidence.py::test_terminal_prefix_and_action_retained"
+   ]
+  },
+  "3A:LIMIT-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_resource_limits_discard"
+   ]
+  },
+  "3A:RESULT-01": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_io_one_read_no_effects_metadata_only_and_immutable"
+   ]
+  },
+  "3A:RESULT-02": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_io_one_read_no_effects_metadata_only_and_immutable"
+   ]
+  },
+  "3A:COMPAT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3A:D2-13": {
+   "implementation": "NON_IMPLEMENTED",
+   "name_tag_candidates": [
+    "tests/colony_admission/test_physical_evidence.py::test_foreign_qualification_subject"
+   ]
+  },
+  "3B:SCOPE-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCOPE-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCOPE-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:CONFIG-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:CONFIG-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:CONFIG-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-09": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:BRANCH-10": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:COMMIT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:COMMIT-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:COMMIT-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:COMMIT-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:COMMIT-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:COMMIT-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SET-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:TRUST-09": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-09": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-10": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:ACQ-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:LIMIT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:LIMIT-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:LIMIT-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:LIMIT-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:RESULT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:RESULT-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:COMPAT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-11": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:SCIENCE-12": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3B:STATEMENT-09": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:INV-01": {
+   "implementation": "IMPLEMENTED",
+   "tests": [
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_01_stable_empty_individuals_is_an_empty_population_not_a_failure"
+   ],
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement ; individuals/, admission-ops/, registrar-admissions/, admission-envelopes/ vidés (listing stable vide, aucune opération)",
+   "variants": [
+    "univers vide"
+   ],
+   "notes": "ceilings n’existent que par opération (contrat 3C §2) : sans opération, aucun PASS de plafond et NO_CURRENT_OPEN_OPERATION reste un avertissement non bloquant."
+  },
+  "3C:INV-02": {
+   "implementation": "IMPLEMENTED",
+   "negative": true,
+   "tests": [
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_02_unavailable_individuals_is_never_an_empty_population"
+   ],
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement",
+   "variants": [
+    "absent",
+    "mode 000",
+    "mode 755",
+    "lien vers répertoire",
+    "lien vers fichier"
+   ],
+   "notes": "mode 000 : SOURCE_PERMISSIONS en root (contrôle du mode privé), SOURCE_UNAVAILABLE sinon (open refusé) ; les deux codes sont admis par la matrice. Aucune inspection ledger ni signature."
+  },
+  "3C:INV-03": {
+   "implementation": "IMPLEMENTED",
+   "negative": true,
+   "tests": [
+    "tests/colony_admission/acceptance/test_3c_inventory.py::test_inv_03_invalid_individuals_entry_invalidates_everything_before_any_signature"
+   ],
+   "fixture": "full_profile_machine (tests/colony_admission/test_attestation_observer.py) : lab LAB_TEST privé temporaire, trust/ledger/fault log/checkout copié, clés tests/colony_trust/keys uniquement ; snapshot OWN complet (OBSERVED sans l’entrée ajoutée)",
+   "variants": [
+    "fichier hex64",
+    "FIFO hex64",
+    "lien hex64",
+    "fichier inconnu",
+    "répertoire non hex",
+    "hex64 majuscule",
+    "hex63",
+    "hex65"
+   ],
+   "divergence": "Contrat 3C §4 : « lien/type spécial ou nom invalide => SOURCE_NAMESPACE_INVALID ». Le code renvoie SOURCE_UNAVAILABLE pour un fichier, une FIFO ou un lien au nom hex64 valide. La matrice INV-03 admet « ou refus de source », donc le cas passe ; l’écart de formulation §4 reste à arbitrer, sans correctif ni amendement ici."
+  },
+  "3C:INV-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LINEAGE-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LINEAGE-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LINEAGE-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:FOUNDER-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:FOUNDER-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BIRTH-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BIRTH-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BIRTH-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BIRTH-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BIRTH-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:AWAIT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:AWAIT-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:AWAIT-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:AWAIT-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REVOKE-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REVOKE-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REVOKE-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REVOKE-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REVOKE-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:TERMINAL-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:TERMINAL-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:OWN-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:OWN-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:OWN-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:OWN-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:OWN-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EPOCH-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EPOCH-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EPOCH-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PLAN-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PLAN-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PLAN-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PARTITION-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PARTITION-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PARTITION-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PARTITION-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PARTITION-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PARTITION-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:KEY-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:KEY-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:KEY-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXCLUDE-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXCLUDE-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXCLUDE-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:POP-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:POP-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:POP-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:CEILING-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:CEILING-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BUDGET-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BUDGET-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BUDGET-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BUDGET-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BOUND-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BOUND-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BOUND-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:SCIENCE-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:SCIENCE-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:SCIENCE-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:FAULT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:FAULT-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:FAULT-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:FAULT-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:FAULT-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LIMIT-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LIMIT-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LIMIT-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LIMIT-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LIMIT-05": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:LIMIT-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:IO-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:IO-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:IO-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:IO-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:RACE-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:RACE-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ARCH-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ARCH-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REGRESS-01": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REGRESS-02": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:REGRESS-03": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BOUND-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:PLAN-04": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:EXTERNAL-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BIRTH-06": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:BIRTH-07": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-08": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-09": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "3C:ACTION-10": {
+   "implementation": "NON_IMPLEMENTED"
+  },
+  "EXT:EF01": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF02": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF03": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF04": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF05": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF06": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF07": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF08": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF09": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF10": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF11": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF12": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF13": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF14": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF15": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF16": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF17": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF18": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF19": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF20": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF21": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF22": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF23": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF24": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF25": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF26": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  },
+  "EXT:EF27": {
+   "implementation": "CONTRACT_NOT_EXECUTABLE"
+  }
+ },
+ "regressions": {
+  "REG:QUARANTINE-RESET-NON-D3-BEGIN": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "reset de cycle de quarantaine et BEGIN non-D3",
+   "relation": "Cas 3C ACTION-08/ACTION-10 (reset par BEGIN D3) et ACTION-09 ; le BEGIN non-D3 après quarantaine n’est énoncé par aucun cas : régression supplémentaire."
+  },
+  "REG:SUPERSEDED-ATTEMPT-FAULT": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "fautes liées à une tentative remplacée",
+   "relation": "Proche de 3C FAULT-03 (faute propre d’opération terminée) ; tentative remplacée non énoncée : régression supplémentaire."
+  },
+  "REG:W07-LEDGER-COVERAGE-CODE": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "code de couverture ledger côté observer (W07)",
+   "relation": "Rattaché à 3C EXTERNAL-08 (LEGACY_LEDGER_UNBOUND) et à la couverture §3 ; valeur exacte du code non figée : régression."
+  },
+  "REG:W09-PROFILE-CODE": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "code de profil retiré des seuls codes d’opération (W09)",
+   "relation": "Rattaché à 3C SCIENCE-01 ; mutant quasi-équivalent : régression fixant le code porté par l’opération."
+  },
+  "REG:EMPTY-STRING-VERSUS-NONE": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "marqueur chaîne vide au lieu de None",
+   "relation": "Aucun cas de matrice ; exactitude des champs observer (§2) : régression supplémentaire."
+  },
+  "REG:SNAPSHOT-COMPLETENESS-TERMS": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "termes de valeur de snapshot_completeness",
+   "relation": "Rattaché à 3C INV-01 (PASS), PLAN-04 et EXCLUDE-03 (NE/FAIL) ; valeurs exactes par terme : régression."
+  },
+  "REG:UNDECODABLE-RECORD-SHA256": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "record_sha256 d’un record présent mais indécodable",
+   "relation": "Rattaché à 3C LINEAGE-01 et contrat §4 (JSON stable invalide = FileFact local) : régression."
+  },
+  "REG:UNRESOLVED-TERMINATION-LOG-COVERAGE": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "log_coverage NE avec des terminaisons non résolues",
+   "relation": "Rattaché à 3C EXTERNAL-04 ; valeur log_coverage non figée : régression."
+  },
+  "REG:COUNTED-HOME-WARNING-FILTER": {
+   "implementation": "NON_IMPLEMENTED",
+   "value": "filtre d’avertissement d’un foyer compté",
+   "relation": "Rattaché à 3C AWAIT-01 et REVOKE-01 (avertissements d’un foyer INCLUDED) : régression."
+  }
+ }
+}
