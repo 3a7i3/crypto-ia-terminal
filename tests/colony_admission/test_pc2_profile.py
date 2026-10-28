@@ -625,6 +625,31 @@ NATIVE_MUTATIONS = {
     "PC2-41/one_round": {"PC2": lambda d: d["rounds"].pop()},
     "PC2-42/different_rounds": {"PC2": lambda d: d["rounds"][1][0].update(facts_sha256="1" * 64)},
     "PC2-42/malformed": {"PC2": lambda d: [r[0].update(facts_sha256="X" * 64) for r in d["rounds"]]},
+    "PC2-41/passed_int": {"PC2": lambda d: [r[3].update(passed=1) for r in d["rounds"]]},
+    "PC2-41/27_consistent": {"P1C": lambda d: d["birth_trials"].pop(11),
+                             "PC2": lambda d: [r.pop(11) for r in d["rounds"]]},
+    "PC2-38/criteria_pin": {"PC2": lambda d: d.update(criteria_sha256="1" * 64)},
+    "PC2-38/missing_key": {"PC2": lambda d: d.pop("proposed_state")},
+    "PC2-36/parent_agent": {"PC2": lambda d: d["parent"].update(agent_id="1" * 64)},
+    "PC2-36/parent_spec": {"PC2": lambda d: d["parent"].update(agent_spec_id="1" * 64)},
+    "PC2-37/matches_int": {"PC2": lambda d: d["parent"].update(matches_current_code=1)},
+    "PC2-37/r8q_spec": {"R8Q": lambda d: d.update(agent_spec_id="1" * 64)},
+    "PC2-37/r8q_state": {"R8Q": lambda d: d.update(state="FAILED")},
+    "PC2-37/r8q_scope": {"R8Q": lambda d: d.update(scope="LIVE")},
+    "PC2-39/c9_status": {"C9": lambda d: d.update(criteria_status="SUPERSEDED")},
+    "PC2-39/c9_criteria_pin": {"C9": lambda d: d.update(criteria_sha256="1" * 64)},
+    "PC2-39/c9_failures": {"C9": lambda d: d.update(failure_reasons=["x"])},
+    "PC2-39/c9_irregular": {"C9": lambda d: d.update(code_irregular=["x"])},
+    "PC2-39/c9_deterministic": {"C9": lambda d: d.update(deterministic_across_fresh_labs=1)},
+    "PC2-40/p1c_schema": {"P1C": lambda d: d.update(criteria_schema="colony-lab.pilot-criteria/1")},
+    "PC2-40/p1c_scope": {"P1C": lambda d: d.update(scope="LIVE")},
+    "PC2-40/p1c_parent_revision": {"P1C": lambda d: d["parent"].update(criteria_revision="r7")},
+    "PC2-40/p1c_evidence_file": {"P1C": lambda d: d["parent"].update(evidence_file="evidence/C8_sentinel_evidence.json")},
+    "PC2-40/p1c_declared_diff": {"P1C": lambda d: d["pilot"].update(declared_diff=["display_name", "purpose"])},
+    "PC2-40/p1c_parent_permissions": {"P1C": lambda d: d["pilot"].update(parent_lab_permissions=["DIAGNOSTIC_PRODUCE"])},
+    "PC2-40/p1c_canonical_name": {"P1C": lambda d: d["pilot"].update(canonical_name="sentinel_pilot_02")},
+    "PC2-40/p1c_display_name": {"P1C": lambda d: d["pilot"].update(display_name="Sentinel Pilot 02")},
+    "PC2-40/native_extra_key": {"PC2": lambda d: d["pilot"].update(note="extra")},
 }
 
 
@@ -857,6 +882,10 @@ def test_delivery_table_classifies_every_case_and_names_real_tests():
     assert set(CASES) == tested
     names = {n for n, v in globals().items() if n.startswith("test_") and callable(v)}
     assert all(set(v) <= names for v in CASES.values())
+    listed = dict(re.findall(r"^\| (PC2-\d\d) \| [A-Z0-9_]+ \| [^|]* \| ([^|]*) \|", DELIVERY.read_text(), re.MULTILINE))
+    for x in matrix:
+        cell = set(re.findall(r"`(test_[a-z0-9_]+)`", listed[x]))
+        assert cell == CASES.get(x, set()), x
 
 
 @pytest.mark.parametrize("path", sorted(pc2.PINS))
@@ -872,3 +901,75 @@ def test_absent_or_oversized_artifact_and_unknown_scope(w, path):
     other = World()
     other.st["scope"] = "OTHER"
     assert other.science().codes == ("STATEMENT_INVALID",)
+
+
+@case("PC2-29", "PC2-32")
+@pytest.mark.parametrize("record", ["pilot_record", "sentinel_record"])
+@pytest.mark.parametrize("forgery", ["record_hash", "individual_schema"])
+def test_context_records_are_verified_not_only_compared(w, record, forgery):
+    # The context is the one input no raw pin covers: lineage.verify_record must run on it.
+    if forgery == "record_hash":
+        w.context[record]["record_hash"] = "0" * 64
+    else:
+        w.reseal_record(record, lambda r: r.update(individual_schema="colony-lab.individual/9"))
+    assert w.science().codes == ("SCIENTIFIC_DIVERGENCE",)
+
+
+@case("PC2-27")
+def test_context_must_be_the_closed_context_type(w):
+    values = tuple(f.canonical(v) for v in w.context.values())
+    fact = pc2.bindings(f.canonical(w.st), f.canonical(w.q), dict(w.raw), *w.digests, values)
+    assert (fact.status, fact.codes) == (c.NE, ("SCIENTIFIC_SOURCE_UNAVAILABLE",))
+
+
+@case("PC2-13", "PC2-15", "PC2-16", "PC2-25")
+@pytest.mark.parametrize("change", ["history_path", "q_schema", "statement_evidence", "statement_subject"])
+def test_each_q_and_statement_binding_on_its_own(w, change):
+    if change == "history_path":
+        w.st["historical_record_path"] = "docs/colony_lab/evidence/PC2_pilot_evidence_copy.json"
+        expected = "STATEMENT_INVALID"
+    elif change == "q_schema":
+        w.q["qualification_schema"] = "colony-lab.qualification/1"
+        expected = "SCIENTIFIC_DIVERGENCE"
+    elif change == "statement_evidence":
+        w.st["evidence"] = [{"path": pc2.PC2_PATH, "sha256": pc2.PC2_PIN},
+                            {"path": pc2.P1C_PATH, "sha256": pc2.P1C_PIN}]
+        expected = "SCIENTIFIC_DIVERGENCE"
+    else:
+        w.st["subject_agent_id"] = w.context["sentinel_record"]["agent_id"]
+        expected = "SCIENTIFIC_DIVERGENCE"
+    assert w.rehash().science().codes == (expected,)
+
+
+@case("PC2-04")
+def test_a_canonical_hash_equal_to_the_pin_is_not_a_raw_pin(w):
+    # Instrument the PC2 pin as H(PC2): only SHA256(raw) may satisfy it.
+    w.reseal(PC2=lambda d: None)
+    canonical = f.digest(json.loads(w.raw[pc2.PC2_PATH]))
+    assert canonical != w.pins[pc2.PC2_PATH]
+    w.pins[pc2.PC2_PATH] = canonical
+    w.q["evidence_sha256"] = w.st["historical_record_sha256"] = canonical
+    w.st["evidence"] = [{"path": pc2.PC2_PATH, "sha256": canonical}]
+    assert w.rehash().science(variant(w)).codes == ("SCIENTIFIC_DIVERGENCE",)
+
+
+@case("PC2-05")
+def test_a_divergent_artifact_dominates_an_absent_one(w):
+    w.raw[s.CRITERIA_PATH] = None
+    w.raw[pc2.PC2_PATH] += b"\n"
+    assert w.science().status == "FAIL"
+
+
+@case("PC2-61")
+@pytest.mark.parametrize("change", ["float", "duplicate_key", "nan", "bool_for_int", "not_utf8"])
+def test_strict_decoding_of_q(w, change):
+    raw = f.canonical(w.q)
+    marker = b'"state":"QUALIFIED_SIMULATED"'
+    replacement = {"float": b'"state":1.5', "duplicate_key": marker + b',"state":"FAILED"', "nan": b'"state":NaN',
+                   "bool_for_int": b'"state":true', "not_utf8": b'"state":"\xff"'}[change]
+    raw = raw.replace(marker, replacement)
+    qe, se = w.envelopes()
+    statement = s.statement(f.canonical(w.st), raw, f.canonical(qe), f.canonical(se))
+    assert (statement.status, statement.codes) == ("FAIL", ("STATEMENT_INVALID",))
+    science = pc2.bindings(f.canonical(w.st), raw, dict(w.raw), *w.digests, w.context_bytes())
+    assert science.status == "FAIL"

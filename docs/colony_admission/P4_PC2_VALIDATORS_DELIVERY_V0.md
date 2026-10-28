@@ -53,8 +53,8 @@ liée à un HEAD exact (commentaire de PR). La matrice reste
 | PC2-01 | IMPLEMENTED_C8_3 | C0.1, C1.1, C1.4, C8.6, C15.1 | `test_public_readers_keep_the_refusal_until_integration` |  |
 | PC2-02 | IMPLEMENTED_C8_3 | C1.2, C2.2, C3.2, C3.3, C3.4, C4.1, C4.7, C4.9, C5.3, C6.1, C6.2, C6.3, C6.4, C6.5, C6.6, C14.1 | `test_exact_lab_test_world_passes_only_its_comparisons` |  |
 | PC2-03 | IMPLEMENTED_C8_3 | C2.2, C2.4, C10.2 | `test_pc1_p0_and_alternative_paths_never_select_or_pass` |  |
-| PC2-04 | IMPLEMENTED_C8_3 | C2.1, C2.4, C2.5, C10.4 | `test_raw_pin_refuses_reencoding_and_self_consistent_forgeries` |  |
-| PC2-05 | IMPLEMENTED_C8_3 | C2.1, C2.2, C4.8, C6.7 | `test_native_bindings_hold_behind_instrumented_pins`, `test_raw_pin_refuses_reencoding_and_self_consistent_forgeries` |  |
+| PC2-04 | IMPLEMENTED_C8_3 | C2.1, C2.4, C2.5, C10.4 | `test_a_canonical_hash_equal_to_the_pin_is_not_a_raw_pin`, `test_raw_pin_refuses_reencoding_and_self_consistent_forgeries` |  |
+| PC2-05 | IMPLEMENTED_C8_3 | C2.1, C2.2, C4.8, C6.7 | `test_a_divergent_artifact_dominates_an_absent_one`, `test_native_bindings_hold_behind_instrumented_pins`, `test_raw_pin_refuses_reencoding_and_self_consistent_forgeries` |  |
 | PC2-06 | IMPLEMENTED_C8_3 | C3.2, C3.3, C3.5 | `test_every_s_e_p_binding_mutant_is_killed`, `test_no_permutation_or_substitution_of_closures` |  |
 | PC2-07 | IMPLEMENTED_C8_3 | C3.3, C3.4, C3.5 | `test_every_s_e_p_binding_mutant_is_killed`, `test_no_permutation_or_substitution_of_closures` |  |
 | PC2-08 | IMPLEMENTED_C8_3 | C3.4 | `test_each_recomputed_closure_is_bound_and_rechecked_per_call`, `test_every_s_e_p_binding_mutant_is_killed` |  |
@@ -62,10 +62,10 @@ liée à un HEAD exact (commentaire de PR). La matrice reste
 | PC2-10 | DEFERRED_C8_4 | C3.1, C7.4 | — | Acquisition, limites, agrégats ou items figés |
 | PC2-11 | DEFERRED_C8_4 | C3.1, C7.4 | — | Acquisition, limites, agrégats ou items figés |
 | PC2-12 | DEFERRED_C8_4 | C3.1, C7.4, C13.0 | — | Acquisition, limites, agrégats ou items figés |
-| PC2-13 | IMPLEMENTED_C8_3 | C4.1, C4.7 | `test_subject_is_exactly_the_native_pilot` |  |
+| PC2-13 | IMPLEMENTED_C8_3 | C4.1, C4.7 | `test_each_q_and_statement_binding_on_its_own`, `test_subject_is_exactly_the_native_pilot` |  |
 | PC2-14 | IMPLEMENTED_C8_3 | C4.1, C5.7 | `test_subject_is_exactly_the_native_pilot` |  |
-| PC2-15 | IMPLEMENTED_C8_3 | C2.1, C4.1, C4.7 | `test_fake_evidence_hash_in_both_q_and_statement` |  |
-| PC2-16 | IMPLEMENTED_C8_3 | C1.3, C4.7 | `test_only_native_pc2_is_the_historical_record` |  |
+| PC2-15 | IMPLEMENTED_C8_3 | C2.1, C4.1, C4.7 | `test_each_q_and_statement_binding_on_its_own`, `test_fake_evidence_hash_in_both_q_and_statement` |  |
+| PC2-16 | IMPLEMENTED_C8_3 | C1.3, C4.7 | `test_each_q_and_statement_binding_on_its_own`, `test_only_native_pc2_is_the_historical_record` |  |
 | PC2-17 | IMPLEMENTED_C8_3 | C1.3, C16.1 | `test_exact_lab_test_world_passes_only_its_comparisons` |  |
 | PC2-18 | PARTIAL_C8_3 | C4.9, C13.0 | `test_missing_or_swapped_present_envelopes` | Reste : agrégat 3B ATTESTATION_MISSING (C8.4) |
 | PC2-19 | IMPLEMENTED_C8_3 | C4.9, C11.1 | `test_one_author_and_one_root_version_for_both_records` |  |
@@ -74,14 +74,14 @@ liée à un HEAD exact (commentaire de PR). La matrice reste
 | PC2-22 | IMPLEMENTED_C8_3 | C4.10, C10.2 | `test_fresh_under_p1_is_unsupported_after_its_grammar` |  |
 | PC2-23 | IMPLEMENTED_C8_3 | C4.10, C10.2, C13.1 | `test_fresh_under_p1_is_unsupported_after_its_grammar` |  |
 | PC2-24 | IMPLEMENTED_C8_3 | C4.7, C16.1 | `test_present_claims_no_campaign_and_no_past_signature` |  |
-| PC2-25 | IMPLEMENTED_C8_3 | C1.6, C3.5, C10.1, C10.5, C15.6 | `test_closed_formats_and_strict_decoding` |  |
+| PC2-25 | IMPLEMENTED_C8_3 | C1.6, C3.5, C10.1, C10.5, C15.6 | `test_closed_formats_and_strict_decoding`, `test_each_q_and_statement_binding_on_its_own` |  |
 | PC2-26 | IMPLEMENTED_C8_3 | C4.7, C12.0 | `test_exact_lab_test_world_passes_only_its_comparisons` |  |
-| PC2-27 | PARTIAL_C8_3 | C5.1 | `test_absent_context_is_not_evaluated` | Reste : acquisition par le propriétaire, pas de second snapshot (C8.4) |
+| PC2-27 | PARTIAL_C8_3 | C5.1 | `test_absent_context_is_not_evaluated`, `test_context_must_be_the_closed_context_type` | Reste : acquisition par le propriétaire, pas de second snapshot (C8.4) |
 | PC2-28 | IMPLEMENTED_C8_3 | C5.2 | `test_spec_artifact_hash_is_compared_beyond_a1_identity` |  |
-| PC2-29 | IMPLEMENTED_C8_3 | C5.2, C5.3 | `test_pilot_lineage_context_is_exact` |  |
+| PC2-29 | IMPLEMENTED_C8_3 | C5.2, C5.3 | `test_context_records_are_verified_not_only_compared`, `test_pilot_lineage_context_is_exact` |  |
 | PC2-30 | IMPLEMENTED_C8_3 | C5.3 | `test_pilot_lineage_context_is_exact`, `test_sentinel_parent_context_is_exact` |  |
 | PC2-31 | IMPLEMENTED_C8_3 | C5.3, C5.4 | `test_each_campaign_budget_is_exact_without_coercion` |  |
-| PC2-32 | IMPLEMENTED_C8_3 | C5.3, C5.4 | `test_pilot_lineage_context_is_exact` |  |
+| PC2-32 | IMPLEMENTED_C8_3 | C5.3, C5.4 | `test_context_records_are_verified_not_only_compared`, `test_pilot_lineage_context_is_exact` |  |
 | PC2-33 | PARTIAL_C8_3 | C5.5 | `test_pc2_q_is_not_the_birth_qualification_of_the_pilot` | Reste : liaison de naissance dans la branche 3B (C8.4) |
 | PC2-34 | PARTIAL_C8_3 | C5.5, C5.7, C14.1 | `test_pilot_as_parent_keeps_lineage_layer_and_grants_nothing`, `test_subject_is_exactly_the_native_pilot` | Reste : aucune autorisation de naissance à l'agrégat (C8.4) |
 | PC2-35 | PARTIAL_C8_3 | C5.6, C15.4 | `test_qualification_items_keep_full_record_digest` | Reste : toutes les copies exigées par la population 3C (C8.4) |
@@ -110,7 +110,7 @@ liée à un HEAD exact (commentaire de PR). La matrice reste
 | PC2-58 | IMPLEMENTED_C8_3 | C10.2, C4.7 | `test_selection_reads_q_criteria_and_statement_must_equal_it` |  |
 | PC2-59 | IMPLEMENTED_C8_3 | C10.3 | `test_a_later_profile_version_re_evaluates_without_writing` |  |
 | PC2-60 | IMPLEMENTED_C8_3 | C10.4, C4.7, C13.3 | `test_only_canonical_h_of_q_is_admitted` |  |
-| PC2-61 | IMPLEMENTED_C8_3 | C10.5, C13.3 | `test_closed_formats_and_strict_decoding` |  |
+| PC2-61 | IMPLEMENTED_C8_3 | C10.5, C13.3 | `test_closed_formats_and_strict_decoding`, `test_strict_decoding_of_q` |  |
 | PC2-62 | IMPLEMENTED_C8_3 | C11.1 | `test_one_author_and_one_root_version_for_both_records` |  |
 | PC2-63 | PARTIAL_C8_3 | C11.0, C11.1, C4.9 | `test_issuer_needs_both_kinds_in_the_current_lab_test_root` | Reste : pas de PASS de branche (C8.4) |
 | PC2-64 | PARTIAL_C8_3 | C11.2, C13.3 | `test_historical_reviewer_and_branch_prefixes_are_excluded` | Reste : autres foyers inventoriés 3C (C8.4) |
@@ -135,6 +135,16 @@ Statuts : `IMPLEMENTED_C8_3` = couche validateur couverte ; `PARTIAL_C8_3` = cou
 validateur couverte, le reste (note) est dû par C8.4, la revue ou une porte externe ;
 `DEFERRED_C8_4` = acquisition, limites, agrégats ou items figés, aucun test ici ;
 `REVIEW_GATE` = contrôle documentaire de revue, pas un test.
+
+## Écarts connus, non tranchés par le contrat
+
+- q ou s absent : le fait scientifique rend FAIL/`SOURCE_LIMIT` au décodage, comme le
+  profil R8 actuel ; le fait statement rend déjà NE/`EVIDENCE_NOT_STORED`. Le
+  dispatch C8.4 n'appellera la science qu'après un statement évalué.
+- Un chemin en plus dans le mapping d'artefacts donne FAIL/`SCIENTIFIC_DIVERGENCE`
+  (C2.4 : aucun artefact de substitution), là où le profil R8 rend NE.
+- `C9.scope` et `P1C.pilot.worker` ne sont pas comparés : C6.4/C6.5 ne l'exigent pas ;
+  leurs bytes restent liés par les pins raw.
 
 ## Toujours bloquant
 
