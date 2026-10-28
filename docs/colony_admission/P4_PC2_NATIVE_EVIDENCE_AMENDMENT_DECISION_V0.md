@@ -74,7 +74,7 @@ qualification historique, et quel hash va dans quel champ.
 |---|---|---|
 | Cinq artefacts épinglés (F7–F9) | Disponibles | Intégrité par pins raw ; contenu historique non authentifié |
 | Fermetures S/E/P courantes (F2) | Disponibles, recalculées | Égalité aux pins à main@cc36e36e |
-| Rapport natif et 13 revues #484 (F10–F11) | Disponibles | Revues d'agent du code et de la campagne, favorable à la 13e. Classement : **candidates non établies** comme revue SR (C4.3). Selon la note de la revue 13, elles ont été rendues par un sous-agent en lecture seule et sauvegardées sous forme condensée par l'auteur de la PR ; aucun reviewer EXTERNAL_* identifié dans une racine trust ; le rapport natif garde « Until then the pilot is not qualified ». Leur éventuelle prise en compte est un jugement de SR/I documenté dans le dossier SR, pas une conséquence de cet amendement (C4.5) |
+| Rapport natif et 13 revues #484 (F10–F11) | Disponibles | Revues d'agent du code et de la campagne, favorable à la 13e. Classement : **candidates non établies** comme revue SR (C4.3). Selon la note de la revue 13, elles ont été rendues par un sous-agent en lecture seule et sauvegardées sous forme condensée par l'auteur de la PR ; aucun reviewer EXTERNAL_* identifié dans une racine trust ; le rapport natif garde « Until then the pilot is not qualified ». La revue 13 laissait ouverte la condition « suite complète, gate ruff et campagne témoin par un relecteur disposant d'une copie inscriptible », close ensuite par la vérification d'agent `644aab6f` (CONFORME) ; elle déclare n'autoriser « ni … record pilote ». Leur éventuelle prise en compte est un jugement de SR/I documenté dans le dossier SR, pas une conséquence de cet amendement (C4.5) |
 | Revue d'agent de r1 (`/root/review_pc2_contract`, arbre `2fc7b569`) | Disponible (déclarée dans #510) | Revue du texte r1 seulement ; ne couvre pas r2 |
 | Matrice r1 (54 cas) | Disponible, vérifiée | 54 IDs uniques ; repris sans changement de given/when/then |
 
@@ -85,7 +85,10 @@ qu'imposerait l'adoption (P1) ou le texte que la PR d'intégration devrait propo
 (3B/3C, C15.5).
 
 **P1 `ADMISSION_CONTRACT.md` §3.5 — bytes et pin `e8a125bd…` inchangés, sémantique
-étendue par superposition (C0.4), comme AMENDMENT_3/AMENDMENT_4 :**
+étendue par superposition (C0.4). C'est la première extension sémantique de P1 par
+un document séparé : AMENDMENT_3 (registrar) et AMENDMENT_4 (trust) amendent des
+contrats dépendants prévus par P1 §12 et citent ses pins sans étendre sa sémantique ;
+ils ne sont donc pas un précédent pour cette extension. Dérogations (1)–(3) de C0.2 :**
 
 ```diff
  1. A **new** qualification record `colony-lab.qualification/0`, with R8's `agent_id`, ...
@@ -102,8 +105,18 @@ qu'imposerait l'adoption (P1) ou le texte que la PR d'intégration devrait propo
 +   FRESH_CAMPAIGN under p1 stays unsupported.
 ```
 
-**3B `P4_3B_ATTESTATIONS_AND_ANCESTRY_V0.md` §8 alinéa PRESENT et §9.2 — texte
-proposé pour la PR d'intégration (C15.5), pas avant :**
+**3B `P4_3B_ATTESTATIONS_AND_ANCESTRY_V0.md` §8 alinéa PRESENT et §9.2 (dérogations
+(4)–(5)) — texte proposé pour la PR d'intégration (C15.5), pas avant :**
+
+```diff
+ Lire le record historique seulement via le profil §9 ; en comparer id/spec,
+ state/scope, critères/évidence/hashes de code à q. Seuls reviewer_kind/id sont
+ remplacés par l'émetteur présent ; ne pas exiger H(q)=H(record historique).
++Exception : pour le profil pilot-p1-pc2-present-native-v0 de l'amendement P4_PC2
++(raw SHA256 <adopté>), le record historique est l'évidence native PC2, qui n'est pas
++une qualification ; q n'en est pas une copie et ses champs sont fixés par les §3–§6
++de cet amendement.
+```
 
 ```diff
 -Donc critères pilot p1 ou famille inconnue => SCIENTIFIC_PROFILE_UNSUPPORTED,
@@ -112,7 +125,7 @@ proposé pour la PR d'intégration (C15.5), pas avant :**
 +SCIENTIFIC_PROFILE_UNSUPPORTED,
 ```
 
-**3C `P4_3C_POPULATION_AND_CEILINGS_V0.md` §13 — idem, à la PR d'intégration :**
+**3C `P4_3C_POPULATION_AND_CEILINGS_V0.md` §13 (dérogation (6)) — idem, à la PR d'intégration :**
 
 ```diff
 -PC2/p1 reste SCIENTIFIC_PROFILE_UNSUPPORTED, NE bloquant, sans enlever p1 de g0.
@@ -133,7 +146,7 @@ D2/D3, K, `colony_lab/`, `sentinel_activity/`, `colony_pilot/`, `colony_admissio
 | Option | Description | Formats/pins | Nomme P (F10) | Lie E | Risque principal | Réversibilité |
 |---|---|---|---|---|---|---|
 | O0 Maintien du blocage | Rien ne change | Aucun | — | — | Étape 3/7 reste bloquée sur cette limite tant que g0 admet p1 | Totale |
-| **O1 Profil natif PRESENT (recommandée)** | Contrat r2 : S→subject, P→evaluator, E par PC2 | Aucun format ; P1 étendue par superposition | Oui | Oui, par pin raw PC2 + recalcul | Sémantique P1 répartie sur deux documents (atténué par C0.4) | Revert documentaire avant code ; ensuite PR de retrait |
+| **O1 Profil natif PRESENT (recommandée)** | Contrat r2 : S→subject, P→evaluator, E par PC2 | Aucun format ; P1 étendue par superposition (première fois) | Oui | Oui, par pin raw PC2 + recalcul | Sémantique P1 répartie sur deux documents (atténué par C0.4) | Revert documentaire avant code ; ensuite PR de retrait |
 | O2 Mapping S→subject, E→evaluator | Convention Sentinel conservée, P seulement via PC2 | Aucun format | Non (contredit F10) | Oui | Le champ « évaluateur » ne désigne pas le code qui a produit l'évidence | Idem O1 |
 | O3 qualification/1 à trois champs | Nouveau format | Change `colony_lab/lineage.py` ⇒ E change ⇒ R8 et PC2 périmés (P1 §11) | Oui | Oui | Requalification Sentinel ; amendement P1 et trust (kind) | Coûteuse |
 | O4 Hash composite S‖E‖P | Un champ porte un digest combiné | Aucun format, nouveau sens d'un champ | Indirect | Indirect | Ambiguïté : le champ n'égale plus aucun hash natif ; nouveau calcul à spécifier | Moyenne |
@@ -142,8 +155,8 @@ D2/D3, K, `colony_lab/`, `sentinel_activity/`, `colony_pilot/`, `colony_admissio
 
 Recommandation : **O1**, parce qu'elle ne change aucun format ni aucune fermeture,
 nomme P comme l'exige le rapport natif, garde E obligatoire, s'aligne sur la
-superposition déjà pratiquée pour P1 (AMENDMENT_3/4), et laisse intactes les portes
-SR, émetteur et signatures. O0 reste recevable si Mathieu préfère ne pas étendre
+superposition sans toucher aux bytes épinglés de P1 (première extension de ce
+genre, déclarée par C0.4), et laisse intactes les portes SR, émetteur et signatures. O0 reste recevable si Mathieu préfère ne pas étendre
 P1 : la conséquence est que la limite PC2 reste citée comme bloquante à l'étape 3/7.
 Cette recommandation n'est pas une adoption.
 
@@ -168,9 +181,9 @@ Aucune de ces preuves n'est générée par ce chantier.
 |---|---|---|---|---|
 | M1 | Décision d'adoption citant PR, commit, tree et SHA256 raw des documents | C0.3(a) | Mathieu | Un agent, la CI, une revue |
 | M2 | CI exacte du HEAD documentaire et du merge | C8.2 | GitHub Actions, constatée par un agent | Une CI d'un autre arbre |
-| M3 | Validateurs et tests exécutés liés aux 79 cas, mutants des bindings | C8.3 | PR SOURCE_ONLY future (développeur/agent) + revue indépendante d'arbre exact | Cette matrice (spécification) |
+| M3 | Validateurs et tests exécutés liés aux 80 cas, mutants des bindings | C8.3 | PR SOURCE_ONLY future (développeur/agent) + revue indépendante d'arbre exact | Cette matrice (spécification) |
 | M4 | Intégration acquisition/projection, R8/PC2/mélange | C8.4 | PR future après prérequis 3C | — |
-| M5 | Dossier SR (revue scientifique de p1, PC2, `colony_pilot/`, tests, mutants non vus) | C4.3 | Reviewer EXTERNAL_HUMAN (ex. Mathieu) ou EXTERNAL_REVIEW_PROCESS identifié, distinct de l'auteur de la campagne | Revue de cet amendement ou du validateur ; signatures |
+| M5 | Dossier SR (revue scientifique de p1, PC2, `colony_pilot/`, tests, mutants non vus) | C4.3 | Reviewer EXTERNAL_HUMAN ou EXTERNAL_REVIEW_PROCESS identifié, qui n'est pas un auteur de la campagne au sens de C11.3. Mathieu (EXTERNAL_HUMAN) est possible s'il déclare son rôle de commanditaire ; un agent commandité dans ce projet seulement si Mathieu désigne ce processus (question Q2 du §12) | Revue de cet amendement ou du validateur ; signatures |
 | M6 | Racine LAB_TEST autorisant I pour qualification/0 et statement/0 | C4.9, C11 | Opérateur, gate d'installation distincte | Cet amendement (C11.4) |
 | M7 | q réelle et qe | Attestation | I, après M5 et M6 et autorisation d'émission | Le diagnostic, un agent sans clé |
 | M8 | s réel et se | Attestation | I | Idem |
@@ -190,7 +203,7 @@ ne qualifient rien et ne portent aucune identité réelle.
 - **Glissement d'autorité** : risque de traiter une signature ou une revue d'agent
   comme une revue SR. Atténuation : C4.4–C4.5, C16.3, cas PC2-53/65/78.
 - **Péremption** : toute modification de `colony_lab/`, `sentinel_activity/`,
-  `governance_tower/`, `observability/` (fichiers S) ou `colony_pilot/` rend PC2
+  `governance_tower/`, des quatre fichiers `observability/` de S, ou de `colony_pilot/` rend PC2
   divergent (C3.6, P1 §11) ; le profil n'a pas de mécanisme de requalification.
 - **Compatibilité** : formats et profil R8 inchangés ; lecteurs actuels restent
   fail-closed (C15.1–C15.2).
@@ -211,15 +224,27 @@ ne qualifient rien et ne portent aucune identité réelle.
   historique sans rétroactivité et trois actes distincts (§16), q à state non
   qualifié (C13.0), classement explicite des revues #484 (C4.5, dossier §4).
 - Matrice : schéma `/1`, champ `clauses` sur chaque cas, 54 cas r1 inchangés,
-  25 cas r2 (PC2-55..PC2-79), toutes les clauses couvertes.
+  26 cas r2 (PC2-55..PC2-80), toutes les clauses couvertes.
 - Nouveau document : ce dossier.
+
+Corrections après la revue 1 (arbre `e7623017`, FAVORABLE AVEC CONDITIONS,
+0 bloquant, 6 moyens, 10 mineurs) : liste exhaustive des six dérogations (C0.2) ;
+précédent AMENDMENT_3/4 retiré et première extension de P1 déclarée (§5–§6) ;
+révocation définie (C13.4, cas PC2-80) ; exclusions d'émetteur alignées sur 3C §8
+(C11.2, PC2-64) ; code exact par fait (C13.3, C10.1, cas r2 précisés, note de
+lecture des cas r1) ; auteur de la campagne défini et désignation d'un agent comme
+SR laissée à Mathieu (C11.3, §8, Q2) ; ordre de tri (C3.1) ; bloc 3B §8 PRESENT
+(§5) ; conditions de la revue 13 (§4) ; portée de la ligne « absent » (C13.0) ;
+deux phrases r1 rétablies (C4.3, C6.7) ; PC2-03/PC2-75 ; fichiers `observability/`
+de S ; limite `EVIDENCE_NOT_STORED` à citer (C14.0) ; effet de verdict et de
+gouvernance distingués (C0.1) ; grammaire générale délimitée (C10.2).
 
 ## 11. Vérifications documentaires exécutées et limites
 
 Exécutées localement le 2026-10-28 : pins raw des cinq artefacts et de P1 ;
 recalcul S/E/P et `code_irregular` sur une copie `git archive` de main ; lecture
 stricte des cinq artefacts ; ordre et identité des 28×2 rounds ; égalité
-PC2.parent.qualification = R8Q ; 79 IDs uniques ; toute clause citée existe et toute
+PC2.parent.qualification = R8Q ; 80 IDs uniques ; toute clause citée existe et toute
 clause est citée ; 54 cas r1 identiques à r1. Non exécutés : aucun test produit,
 aucune campagne, aucun validateur, aucune CI (elle s'exécute sur le HEAD poussé).
 
@@ -235,5 +260,12 @@ commit `<SHA complet>`, tree `<tree>`, documents de SHA256 raw `<contrat>`,
 `<matrice>`, `<dossier>` — avec S→subject, P→evaluator et E lié par PC2 — sachant
 que cette adoption n'autorise que la fusion documentaire gardée puis de petites PR
 d'implémentation, sans émission, installation, naissance, sortie de p1 de g0 ni
-clôture de l'étape 3/7 ? » Les valeurs exactes figurent dans le commentaire de
-soumission de #510.
+clôture de l'étape 3/7 ? » (Q1)
+
+Sous-question liée (Q2, C11.3) : une revue par un agent commandité dans ce projet
+peut-elle être désignée comme processus `EXTERNAL_REVIEW_PROCESS` pour la porte SR,
+ou la revue SR doit-elle être humaine ou externe au projet ? Recommandation : ne
+rien désigner maintenant ; décider au moment où un dossier SR concret existe. Q2
+ne conditionne pas Q1.
+
+Les valeurs exactes figurent dans le commentaire de soumission de #510.

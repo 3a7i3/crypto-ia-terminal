@@ -27,13 +27,19 @@ du §4 ; P1C, PC2, R8C, C9, R8Q = artefacts du §2 ; H(x) = §10.4.
 
 ## 0. Statut, priorité et entrée en vigueur
 
-- **C0.1** Ce document est une proposition. Tant que C0.3 n'est pas rempli, il n'a
-  aucun effet : PC2/p1 reste `SCIENTIFIC_PROFILE_UNSUPPORTED`/NE bloquant, p1 reste
-  dans g0, accepted=false, #286 ACTIVE.
-- **C0.2** P1 prime sur tout ce qui n'est pas explicitement dérogé ici. Les seules
-  dérogations proposées sont : P1 §3.5 point 1 (copie d'une qualification
-  historique) et 3B §8 alinéa PRESENT et §9.2, pour le seul couple profil/scope du
-  §1. Aucune autre obligation P1/3A/3B/3C n'est levée ou assouplie.
+- **C0.1** Ce document est une proposition. Effet sur les verdicts : aucun tant que
+  C0.3(c) n'est pas rempli ; PC2/p1 reste `SCIENTIFIC_PROFILE_UNSUPPORTED`/NE
+  bloquant, p1 reste dans g0, accepted=false, #286 ACTIVE. Effet de gouvernance :
+  après C0.3(a)–(b) seulement, il autorise l'ouverture des PR C8.3–C8.4, rien d'autre.
+- **C0.2** P1 prime sur tout ce qui n'est pas explicitement dérogé ici. Liste
+  exhaustive des dérogations proposées, pour le seul couple profil/scope du §1 :
+  (1) P1 §3.5 point 1 (q copiée d'une qualification historique) ; (2) P1 §3.5
+  point 2 (`historical_record_*` désignant R8, `evidence` désignant C9) ; (3) la
+  phrase finale de P1 §3.5 « The same procedure applies to every qualification the
+  controller uses » ; (4) 3B §8, alinéa PRESENT sur la comparaison au record
+  historique ; (5) 3B §9.2 ; (6) 3C §13, phrase « PC2/p1 reste
+  SCIENTIFIC_PROFILE_UNSUPPORTED ». Le dossier de décision §5 montre ces six textes.
+  Aucune autre obligation P1/3A/3B/3C n'est levée ou assouplie.
 - **C0.3** Entrée en vigueur, cumulative et dans cet ordre : (a) adoption explicite
   par Mathieu citant la PR, le commit complet, le tree et les SHA256 raw des
   documents de cet arbre ; (b) fusion gardée de cet arbre exact et CI du merge ;
@@ -95,8 +101,11 @@ du §4 ; P1C, PC2, R8C, C9, R8Q = artefacts du §2 ; H(x) = §10.4.
 
 ## 3. Les trois fermetures de code : signification et liaisons
 
-- **C3.1** Encodage : SHA256 de la concaténation, dans l'ordre trié des chemins
-  POSIX relatifs uniques, de `path UTF-8 + NUL + SHA256(raw).digest()`. Sélection et
+- **C3.1** Encodage : celui de `qualification._hash_files`, comme 3B §9.1 : SHA256
+  de la concaténation de `path UTF-8 + NUL + SHA256(raw).digest()` pour chaque
+  fichier, chemins POSIX relatifs uniques triés dans l'ordre des chaînes (bytes
+  UTF-8 du chemin complet, exigé par `code_digest`). L'ordre par composants de
+  `Path` n'est admis que s'il coïncide ; pour S, E et P actuels il coïncide (vérifié). Sélection et
   caches exactement 3B §9.1–9.3 : tous les fichiers réguliers, pas seulement `*.py`.
   Aucun import des produits.
 
@@ -139,7 +148,8 @@ du §4 ; P1C, PC2, R8C, C9, R8Q = artefacts du §2 ; H(x) = §10.4.
   tests, avec mutants non vus par leur auteur, de type `EXTERNAL_REVIEW_PROCESS` ou
   `EXTERNAL_HUMAN`, et conclusion favorable justifiant le jugement. Son dossier DOIT
   identifier les artefacts (pins), le tree des tests revus, le reviewer, ses
-  conclusions et ses limites.
+  conclusions et ses limites. Aucune référence historique non lue n'est présentée
+  comme cette preuve.
 - **C4.4** La porte SR conditionne la décision externe d'émettre q. Le diagnostic ne
   la certifie pas : les champs persistants ne portent pas ce dossier ; sa provenance
   reste NE, jamais PASS. On n'ajoute ni champ persistant ni sixième artefact
@@ -251,8 +261,10 @@ En plus des pins raw et des fermetures, exiger :
   `failed_predicates` vide et `facts_sha256` hex64. Ni doublon, ni essai omis, ni
   27/28. Le pin raw lie aussi codes/kinds/status et tous les autres champs natifs.
 - **C6.7** Ces propriétés décrivent les claims du corpus épinglé ; aucun run, import
-  de campaign, replay de prédicats ni qualification du contrôleur n'en découle. Les
-  28×2 succès natifs ne sont pas des tests exécutés par cet amendement.
+  de campaign, replay de prédicats ni qualification du contrôleur n'en découle. La
+  provenance temporelle, la fraîcheur et l'exécution passée par l'auteur courant
+  restent NE. Les 28×2 succès natifs ne sont pas des tests exécutés par cet
+  amendement.
 
 ## 7. Acquisition, limites et propagation
 
@@ -319,10 +331,14 @@ En plus des pins raw et des fermetures, exiger :
 - **C10.1** Aucun format persistant nouveau : q = `colony-lab.qualification/0` (11
   champs, `lineage.check_qualification`) ; s = `colony-admission.attestation-statement/0`
   (18 champs, `STATEMENT_FIELDS`) ; enveloppes trust (`ENVELOPE_FIELDS`) inchangées.
-  Tout champ en plus ou en moins : FAIL/`STATEMENT_INVALID`.
+  Champ en plus ou en moins : dans s, FAIL/`STATEMENT_INVALID` ; dans q, fait
+  science FAIL/`SCIENTIFIC_DIVERGENCE` et fait lineage `QUALIFICATION_INVALID` (C13.3).
 - **C10.2** Sélection du profil, déterministe, sans champ persistant de profil :
-  1. la grammaire générale de s (3B §8) est évaluée indépendamment du profil ; son
-     échec donne FAIL/`STATEMENT_INVALID`, qui domine tout NE de sélection (C13.1) ;
+  1. la grammaire générale de s est évaluée indépendamment du profil ; elle comprend
+     exactement P1 §3.5 point 3 et le premier alinéa de 3B §8 plus ses règles sujet/
+     auteur/enveloppes, c'est-à-dire les contrôles de `statement()` actuel ; les
+     règles de path historique « autorisé du profil » relèvent du profil. Son échec
+     donne FAIL/`STATEMENT_INVALID`, qui domine tout NE de sélection (C13.1) ;
   2. `q.criteria_sha256` = pin R8C ⇒ profil `sentinel-r8-c9` inchangé ;
   3. `q.criteria_sha256` = pin P1C et `s.scope` = PRESENT ⇒ ce profil ;
   4. `q.criteria_sha256` = pin P1C et `s.scope` = FRESH ⇒ NE/`SCIENTIFIC_PROFILE_UNSUPPORTED` ;
@@ -359,12 +375,24 @@ En plus des pins raw et des fermetures, exiger :
 - **C11.1** Auteur = signataire : `q.reviewer_kind/id` = `s.issuer_kind/id` = émetteur
   de qe = émetteur de se ; `qe.root_version` = `se.root_version` = `s.issuer_root_version`.
   Toute divergence : FAIL/`STATEMENT_INVALID` ou refus trust.
-- **C11.2** Exclusions vérifiables : I ≠ `colony-review-481-r8` ; I ne contient pas le
-  préfixe 16 de l'ID du pilote, de Sentinel/fondateur ou du candidat (règle lineage) ;
-  FAIL/`STATEMENT_INVALID` ou `SELF_QUALIFICATION_DENIED`.
+- **C11.2** Exclusions vérifiables, sans desserrer aucune règle existante :
+  (a) I ≠ `colony-review-481-r8` : fait statement FAIL/`STATEMENT_INVALID` ;
+  (b) I ne contient le préfixe 16 caractères d'aucun ID de l'ensemble d'exclusion de
+  3C §8 (tous les foyers inventoriés quel que soit leur statut, identités de branche
+  validées, child de CURRENT_OPEN), qui inclut le pilote, Sentinel/fondateur et le
+  candidat : fait lineage/population FAIL/`SELF_QUALIFICATION_DENIED`
+  (`lineage.check_qualification`, `_population_core`). `statement()` ne porte pas ce
+  contrôle ; il n'est donc pas attendu en `STATEMENT_INVALID`.
 - **C11.3** Exclusion déclarative non vérifiable par le scanner : SR NE DOIT PAS être
-  l'auteur de la campagne PC2 ni de `colony_pilot/` ; elle est portée par le dossier
-  SR (C4.3) et reste NE dans le diagnostic.
+  un auteur de la campagne. Est auteur de la campagne toute identité ayant écrit
+  `colony_pilot/`, p1 ou leurs tests, ou exécuté PC1/PC2 : à ce jour les sessions
+  d'agent dont les commits `e497540d`, `5790976a`, `ad9227f0` portent l'auteur git
+  `Claude <noreply@anthropic.com>`, sous le compte de l'opérateur. L'opérateur
+  commanditaire n'est pas auteur par ce seul fait, mais DOIT déclarer ce lien dans le
+  dossier SR s'il est SR. Une revue par un agent commandité dans ce projet ne vaut
+  `EXTERNAL_REVIEW_PROCESS` que si Mathieu désigne explicitement ce processus comme
+  SR (ou I) ; cet amendement n'en désigne aucun. Ces points restent NE dans le
+  diagnostic.
 - **C11.4** L'adoption par Mathieu ne crée ni issuer, ni clé, ni autorisation
   d'émettre ; l'installation d'une racine et toute émission sont des portes
   distinctes.
@@ -386,24 +414,26 @@ En plus des pins raw et des fermetures, exiger :
 - **C12.1** Aucune clause n'affirme que le pilote était qualifié à une date passée.
   q est une déclaration présente ; elle ne qualifie rétroactivement ni une naissance,
   ni un PREPARED, ni une décision antérieure à son existence (§16).
-- **C12.2** Aucune expiration n'est définie ; la validité cesse par révocation,
+- **C12.2** Aucune expiration n'est définie ; la validité cesse par révocation trust (C13.4),
   divergence de fermeture, divergence de pin ou nouvelle version (C10.3).
 
 ## 13. Absence, ambiguïté, divergence, profil inconnu, révocation, invalidation
 
-**C13.0** Le tableau suivant est normatif ; une q signée dont `state` n'est pas
+**C13.0** Le tableau suivant est normatif pour le **fait scientifique** du profil ;
+les verdicts des faits statement, trust, lineage et des agrégats 3B/3C restent ceux
+de leurs contrats et du code existant (C13.3). Une q signée dont `state` n'est pas
 `QUALIFIED_SIMULATED` (par exemple FAILED ou REVOKED) n'est jamais PASS.
 
 | Situation | Verdict scientifique / code | Effet de branche |
 |---|---|---|
 | Profil non adopté ou non implémenté | NE / `SCIENTIFIC_PROFILE_UNSUPPORTED` | Bloquant |
 | Critère inconnu ou p1 en FRESH | NE / `SCIENTIFIC_PROFILE_UNSUPPORTED` | Bloquant |
-| q, s, qe ou se absent | NE / `EVIDENCE_NOT_STORED` ou `ATTESTATION_MISSING` | Bloquant |
+| q, s, qe ou se absent | NE / `EVIDENCE_NOT_STORED` (fait statement) ; agrégats 3B/3C : FAIL `ATTESTATION_MISSING` (C13.3) | Bloquant |
 | Artefact du §2 ou contexte §5 absent ; fermeture indisponible | NE / `SCIENTIFIC_SOURCE_UNAVAILABLE` | Bloquant |
 | Ambiguïté : plusieurs q distinctes du même pilote, ou contenu d'un path qui change pendant l'acquisition | Chaque q est un item distinct (K inclut H) ; seule la q figée/présentée pour la décision est la qualification de décision, chaque copie requise est vérifiée ; aucune fusion ni choix silencieux. Changement de contenu : `SOURCE_CHANGED`, payload effacé | Pas de PASS sur un choix implicite |
 | Grammaire ou auteur/sujet/scope de s incohérent | FAIL / `STATEMENT_INVALID` | Refus de preuve |
 | Pin raw, fermeture, binding §3–§6 divergent | FAIL / `SCIENTIFIC_DIVERGENCE` | Refus de preuve |
-| Lien, type irrégulier, nom interdit dans une fermeture | FAIL / `SOURCE_CODE_IRREGULAR` ou `SOURCE_PATH_FORBIDDEN` | Refus |
+| Lien, type irrégulier ou cache non conforme dans une fermeture ; nom interdit | FAIL / `SOURCE_CODE_IRREGULAR` ; FAIL / `SOURCE_PATH_FORBIDDEN` | Refus |
 | Limite, mutation, IO pendant acquisition | Codes 3A/3B (`SOURCE_LIMIT`, `SOURCE_CHANGED`, …), payload effacé | Pas de PASS |
 | Signature invalide | Refus trust (codes existants) | Pas de PASS trust |
 | Révocation authentique de clé ou d'enveloppe de q/s | Trust ≠ PASS ; règles P1 §5.2 et SUSPENDED 3C | Filiation interdite ; jamais PASS |
@@ -415,6 +445,31 @@ En plus des pins raw et des fermetures, exiger :
   séparés.
 - **C13.2** Aucune invalidation n'écrit, ne supprime ni ne modifie un record,
   une enveloppe ou un artefact ; elle est recalculée.
+- **C13.3** Code par fait (pas d'alternative libre) :
+
+| Fait | Situation | Code exact |
+|---|---|---|
+| statement (`statement()`) | q/s/qe/se absent | NE `EVIDENCE_NOT_STORED` |
+| statement | grammaire, champ en plus ou en moins dans s, décodage strict de s/q/qe/se impossible, sujet/auteur/root_version/H(q)/record_sha256 d'enveloppe incohérents, `colony-review-481-r8` | FAIL `STATEMENT_INVALID` |
+| science (profil) | critère non pris en charge, p1 FRESH | NE `SCIENTIFIC_PROFILE_UNSUPPORTED` |
+| science | artefact/contexte/fermeture absent | NE `SCIENTIFIC_SOURCE_UNAVAILABLE` |
+| science | historical_record_path/sha256 ≠ PC2 en PRESENT | FAIL `STATEMENT_INVALID` (comme le profil R8 actuel) |
+| science | pin, fermeture, binding §3–§6, state de q non qualifié, champ en plus dans q | FAIL `SCIENTIFIC_DIVERGENCE` |
+| science | artefact non décodable strictement | FAIL `STORED_FILE_DIVERGENT` |
+| science | taille d'artefact > 16 MiB | FAIL `SOURCE_LIMIT` |
+| trust (par enveloppe) | issuer, clé, signature, portée, auteur | codes `trust` existants : `UNKNOWN_ISSUER`, `UNKNOWN_KEY`, `SIGNATURE_INVALID`, `SCOPE_NOT_GRANTED`, `AUTHOR_NOT_ISSUER`, `SUBJECT_MISMATCH`, `RECORD_NOT_CANONICAL`, `KEY_REVOKED`, `ENVELOPE_REVOKED`, … |
+| lineage/population | q mal formée, autre sujet, non qualifiée, préfixe 16 | `QUALIFICATION_INVALID`, `QUALIFICATION_NOT_FOR_THIS_SPEC`, `PARENT_NOT_QUALIFIED`, `SELF_QUALIFICATION_DENIED` |
+| agrégats 3B/3C | item figé ou attestation de population manquante | FAIL `ATTESTATION_MISSING` (et autres codes 3B/3C inchangés) |
+
+  Un même défaut peut produire un code dans plusieurs faits ; chaque fait garde son
+  code, aucun n'est traduit en un autre.
+- **C13.4** Révocation : seule une révocation trust installée dans la racine
+  courante (`revoked_envelopes` contenant qe ou se, ou clé de I `REVOKED`) invalide
+  une q/s déjà émise ; effet P1 §5.2 et statut 3C (genuine-but-revoked : filiation
+  interdite, comptage conservateur). Une nouvelle q de state FAILED ou REVOKED est un
+  item K distinct (C5.6) : elle n'est jamais PASS mais ne révoque pas une q
+  antérieure. Le retrait d'une conclusion SR n'a d'effet sur le diagnostic que par
+  une telle révocation trust, décidée et installée par l'opérateur.
 
 ## 14. Conséquences sur les verdicts et les blocages
 
@@ -423,7 +478,7 @@ En plus des pins raw et des fermetures, exiger :
 | État | Science PC2 | Agrégats de branche | p1/g0 | Étape 3/7 |
 |---|---|---|---|---|
 | Aujourd'hui, ou amendement fusionné sans code | NE `SCIENTIFIC_PROFILE_UNSUPPORTED` | NE bloquant | p1 dans g0, inchangé | Bloquée (limite PC2 citée) |
-| Code intégré, aucune q/s réelle | NE (`EVIDENCE_NOT_STORED`/`ATTESTATION_MISSING`) en lab réel ; PASS seulement sur fixtures LAB_TEST | NE bloquant en lab réel | Inchangé | La limite « profil non supporté » peut sortir de la checklist si C8.3–C8.4 sont remplies ; les autres items restent |
+| Code intégré, aucune q/s réelle | NE (`EVIDENCE_NOT_STORED`/`ATTESTATION_MISSING`) en lab réel ; PASS seulement sur fixtures LAB_TEST | NE bloquant en lab réel | Inchangé | La limite « profil non supporté » peut sortir de la checklist si C8.3–C8.4 sont remplies ; l'absence de q/s réelles (`EVIDENCE_NOT_STORED`) reste une limite PC2 NE bloquante à citer (3C §13) ; les autres items restent |
 | q/s réelles valides, SR documentée hors scanner | PASS des comparaisons du profil | PASS seulement si toutes les autres propriétés 3B/3C passent | Inchangé | Inchangé par ce seul fait |
 
 - **C14.1** Un PASS scientifique PC2 n'est ni une admission, ni une autorisation de

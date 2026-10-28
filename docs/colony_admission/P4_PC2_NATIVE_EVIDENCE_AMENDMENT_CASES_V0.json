@@ -16,12 +16,13 @@
   "priority": "FAIL prouvé domine NE ; défaut actuel PC2 reste SCIENTIFIC_PROFILE_UNSUPPORTED/NE.",
   "mutation_semantics": "Les mutations des bytes épinglés sont refusées au pin raw. Tester séparément les liaisons avec artefacts intacts et contextes/digests recalculés adversariaux ; instrumenter des mutants en mémoire pour prouver que les gardes sémantiques ne sont pas masquées par le tripwire de pin. Aucun override de pin/profil exposé dans API publique.",
   "adopted": false,
+  "r1_reading_note": "Lecture des cas r1 figés : PC2-03 suppose q.criteria_sha256 = pin P1C (substitution de l'évidence) ; si q.criteria = pin p0, C15.3/PC2-75 s'appliquent. Quand un attendu r1 est disjonctif (ex. PC2-03, 13, 18, 19, 20), chaque fait (statement, science, trust, lineage, agrégat) porte le code exact que lui assigne C13.3 ; le texte r1 n'est pas réécrit.",
   "r1_cases_note": "Les 54 cas r1 sont repris sans modification de given/when/then ; seul le lien aux clauses r2 est ajouté. Ce sont des obligations de test futures, pas des tests exécutés."
  },
  "counts": {
-  "total": 79,
+  "total": 80,
   "origin_r1_verified": 54,
-  "origin_r2": 25,
+  "origin_r2": 26,
   "executed": 0
  },
  "cases": [
@@ -1008,24 +1009,26 @@
    "origin": "r2",
    "clauses": [
     "C10.4",
-    "C4.7"
+    "C4.7",
+    "C13.3"
    ],
    "given": "s.qualification_record_sha256 calculé sur des bytes non canoniques de q (indentation, ordre de clés) ; qe.record_sha256 idem.",
    "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
    "then": [
-    "STATEMENT_INVALID ou refus trust ; seul H(q) canonique est admis."
+    "Fait statement FAIL STATEMENT_INVALID ; fait trust : intégrité non PASS avec le code trust existant ; seul H(q) canonique est admis."
    ]
   },
   {
    "id": "PC2-61",
    "origin": "r2",
    "clauses": [
-    "C10.5"
+    "C10.5",
+    "C13.3"
    ],
    "given": "q ou s contenant un flottant, NaN, une clé dupliquée, un entier bool, un hex majuscule ou des bytes non UTF-8.",
    "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
    "then": [
-    "Refus de décodage ou STATEMENT_INVALID ; aucune coercition ni normalisation."
+    "Fait statement FAIL STATEMENT_INVALID (décodage strict impossible ou grammaire) ; aucune coercition ni normalisation."
    ]
   },
   {
@@ -1051,19 +1054,20 @@
    "given": "I autorisé pour le kind qualification/0 seulement, pas pour statement/0 (ou l'inverse).",
    "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
    "then": [
-    "Refus d'autorisation trust ; aucun PASS de profil."
+    "Fait trust FAIL SCOPE_NOT_GRANTED pour l'enveloppe du kind non accordé ; aucun PASS de branche."
    ]
   },
   {
    "id": "PC2-64",
    "origin": "r2",
    "clauses": [
-    "C11.2"
+    "C11.2",
+    "C13.3"
    ],
-   "given": "reviewer_id/issuer_id contenant le préfixe 16 de l'ID de Sentinel (fondateur) ou du candidat child.",
+   "given": "reviewer_id/issuer_id contenant le préfixe 16 de l'ID du pilote, de Sentinel (fondateur), du candidat child, puis d'un autre foyer inventorié SUSPENDED ou AWAITING.",
    "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
    "then": [
-    "SELF_QUALIFICATION_DENIED ou STATEMENT_INVALID ; exclusion vérifiée sur les trois identités."
+    "Fait lineage/population FAIL SELF_QUALIFICATION_DENIED dans chaque variante (ensemble d'exclusion 3C §8 complet) ; fait statement non concerné par ce contrôle."
    ]
   },
   {
@@ -1071,7 +1075,8 @@
    "origin": "r2",
    "clauses": [
     "C11.3",
-    "C4.4"
+    "C4.4",
+    "C4.6"
    ],
    "given": "Fixture où le dossier SR (hors scanner) nommerait l'auteur de la campagne ; q/s LAB_TEST valides.",
    "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
@@ -1084,12 +1089,13 @@
    "origin": "r2",
    "clauses": [
     "C11.4",
-    "C13.0"
+    "C13.0",
+    "C13.3"
    ],
-   "given": "Amendement adopté et code intégré, mais aucune racine LAB_TEST n'autorise d'émetteur pour ces kinds.",
+   "given": "Amendement adopté et code intégré ; variante a : I absent de la racine LAB_TEST courante ; variante b : I présent sans portée pour ces kinds.",
    "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
    "then": [
-    "NE/ATTESTATION_MISSING ou TRUST_CURRENT_UNAVAILABLE selon le cas ; aucune clé ou issuer créé par le code."
+    "Fait trust FAIL UNKNOWN_ISSUER (a) ou SCOPE_NOT_GRANTED (b) ; aucun PASS de branche ; aucune clé ou issuer créé par le code."
    ]
   },
   {
@@ -1249,12 +1255,27 @@
    "origin": "r2",
    "clauses": [
     "C13.0",
+    "C13.3",
     "C4.2"
    ],
    "given": "q signée par I avec state FAILED, IN_TRIAL ou REVOKED, autres champs exacts.",
    "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
    "then": [
-    "Jamais PASS (refus lineage PARENT_NOT_QUALIFIED ou SCIENTIFIC_DIVERGENCE) ; aucune conversion de PC2.proposed_state."
+    "Fait science FAIL SCIENTIFIC_DIVERGENCE ; fait lineage PARENT_NOT_QUALIFIED ; jamais PASS ; aucune conversion de PC2.proposed_state."
+   ]
+  },
+  {
+   "id": "PC2-80",
+   "origin": "r2",
+   "clauses": [
+    "C13.4",
+    "C12.2",
+    "C5.6"
+   ],
+   "given": "q PC2 valide émise par I ; variante a : I émet ensuite une q state REVOKED du même pilote ; variante b : l'opérateur installe une racine LAB_TEST listant qe dans revoked_envelopes ; variante c : la clé de I passe REVOKED.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "a : la q REVOKED est un item K distinct, jamais PASS, et la q antérieure reste évaluée inchangée ; b et c : trust ENVELOPE_REVOKED ou KEY_REVOKED, genuine-but-revoked, filiation interdite et comptage conservateur 3C ; jamais PASS ; aucune écriture."
    ]
   }
  ]
