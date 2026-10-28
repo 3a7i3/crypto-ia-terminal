@@ -151,9 +151,9 @@ def _tests(e):
         text += (' ; ' if text else '') + 'candidats par commentaire, non vérifiés : ' + ', '.join(
             t.split('::')[-1] for t in e['name_tag_candidates'])
     if e.get('notes'):
-        text += ' ; notes : ' + e['notes']
+        text += (' ; ' if text else '') + 'notes : ' + e['notes']
     if e.get('divergence'):
-        text += ' ; divergence : ' + e['divergence']
+        text += (' ; ' if text else '') + 'divergence : ' + e['divergence']
     return text
 
 

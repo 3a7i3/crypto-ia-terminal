@@ -126,8 +126,8 @@ def test_own_02_after_done_d3_identity_and_layout_only_never_mutable_content(ful
     tpo.permanent(result)
 
 
-OWN_03 = ['spec_only', 'spec_and_record', 'without_usage', 'without_layout', 'short_write_record',
-          'short_write_usage']
+OWN_03 = ['spec_only', 'spec_and_record', 'without_qualification', 'without_usage', 'without_layout',
+          'short_write_record', 'short_write_usage']
 
 
 @pytest.mark.parametrize('variant', OWN_03, ids=OWN_03)
@@ -136,14 +136,16 @@ def test_own_03_partial_open_d3_home_is_ne_incomplete_never_unauthenticated(full
     config, op = candidate(full_profile_machine)
     plan = op['birth_plan']
     record = p.storage_bytes(plan['record'])
+    # The layout stays complete except in without_layout: each variant lacks only what its name says.
     files = {
-        'spec_only': {'record.json': None, 'birth_qualification.json': None, 'usage': False, 'layout': False},
-        'spec_and_record': {'birth_qualification.json': None, 'usage': False, 'layout': False},
-        'without_usage': {'usage': False, 'layout': False},
+        'spec_only': {'record.json': None, 'birth_qualification.json': None, 'usage': False},
+        'spec_and_record': {'birth_qualification.json': None, 'usage': False},
+        'without_qualification': {'birth_qualification.json': None},
+        'without_usage': {'usage': False},
         'without_layout': {'layout': False},
         'short_write_record': {'record.json': record[:len(record) // 2], 'birth_qualification.json': None,
-                               'usage': False, 'layout': False},
-        'short_write_usage': {'usage': p.storage_bytes({'runs': 0})[:5], 'layout': False},
+                               'usage': False},
+        'short_write_usage': {'usage': p.storage_bytes({'runs': 0})[:5]},
     }[variant]
     proofs.home(config.observer, op, **files)
     result = tpo.observe(config)
@@ -157,7 +159,8 @@ def test_own_03_partial_open_d3_home_is_ne_incomplete_never_unauthenticated(full
     not_own(result, op)
 
 
-OWN_04 = ['spec_divergent', 'record_divergent', 'qualification_divergent', 'previous_attempt_plan']
+OWN_04 = ['spec_divergent', 'record_divergent', 'qualification_divergent', 'spec_schema_valid',
+          'qualification_schema_valid', 'previous_attempt_plan', 'done_d3_spec_schema_valid']
 
 
 @pytest.mark.parametrize('variant', OWN_04, ids=OWN_04)
@@ -166,7 +169,8 @@ def test_own_04_right_id_with_divergent_identity_or_plan_is_conflict_never_own(f
     config, op = full_profile_machine
     if variant == 'previous_attempt_plan':
         op['attempt'] = 2
-    config, op = candidate(full_profile_machine)
+    done = variant.startswith('done_d3')
+    config, op = candidate(full_profile_machine, level=3 if done else 2, events=() if done else None)
     plan = op['birth_plan']
     if variant == 'previous_attempt_plan':
         # Attempt 1 (REFUSED) froze another valid plan; its record is on disk.
@@ -178,11 +182,18 @@ def test_own_04_right_id_with_divergent_identity_or_plan_is_conflict_never_own(f
                    raw(*base.prefix(op=old), base.entry('REFUSED', op=old), *base.prefix(2, op=op),
                        *proofs.begin_d3(op)))
         files = {'record.json': p.storage_bytes(old['birth_plan']['record'])}
-    else:
+    elif variant.endswith('_divergent'):
         name, key = {'spec_divergent': ('spec.json', 'child_spec'), 'record_divergent': ('record.json', 'record'),
                      'qualification_divergent': ('birth_qualification.json', 'qualification')}[variant]
         value = dict(plan[key])
-        value['fixture_divergence'] = 1  # same ID, other valid JSON content, not a prefix
+        value['fixture_divergence'] = 1  # same ID, extra key: also a schema violation, not a prefix
+        files = {name: p.storage_bytes(value)}
+    else:
+        # Same ID, schema-valid object differing from the plan in one free-text field.
+        name, key, field = ('birth_qualification.json', 'qualification', 'reviewer_id') \
+            if variant == 'qualification_schema_valid' else ('spec.json', 'child_spec', 'display_name')
+        value = dict(plan[key])
+        value[field] += ' other'
         files = {name: p.storage_bytes(value)}
     proofs.home(config.observer, op, **files)
     result = tpo.observe(config)
