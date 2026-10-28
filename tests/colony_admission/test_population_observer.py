@@ -70,6 +70,9 @@ def test_complete_own_snapshot_is_observed_without_authority(full_profile_machin
     assert child.classification == 'OWN_OPERATION' and child.generation == 1
     assert (child.role, child.parent_agent_id, child.founder_agent_id) == (
         'DESCENDANT', op['parent_agent_id'], op['parent_agent_id'])
+    founder = next(x for x in result.homes if x.agent_id == op['parent_agent_id'])
+    assert (founder.role, founder.parent_agent_id, founder.founder_agent_id, founder.generation) == (
+        'FOUNDER', None, op['parent_agent_id'], 0)
     assert all(x.presence == 'PRESENT' and x.raw_sha256 for x in child.files)
     permanent(result)
     assert not hasattr(result, 'can_parent') and not hasattr(result, 'admitted')
