@@ -1,0 +1,1282 @@
+{
+ "schema": "colony-admission.pc2-amendment-specification/1",
+ "status": "SPECIFICATION_ONLY_NOT_EXECUTED",
+ "contract": "P4_PC2_NATIVE_EVIDENCE_AMENDMENT_V0.md",
+ "contract_revision": "r2",
+ "baseline_main": "cc36e36e84b0496965302a46dc17973ce50fdf41",
+ "baseline_tree": "62bcd5cff4e30ed1d3b34c80d28f9b2ca98360bd",
+ "r1_head": "f7f2f5ed0e31af241b2041e7bf069ccce067b5fc",
+ "profile_proposed": "pilot-p1-pc2-present-native-v0",
+ "defaults": {
+  "accepted": false,
+  "cases_are_executed": false,
+  "profile_enabled": false,
+  "fixtures": "LAB_TEST privées temporaires ; clés de test seulement ; aucune naissance, campagne, installation ou signature réelle.",
+  "preconditions": "Sauf mutation indiquée, toutes les préconditions du contrat et des autres couches sont satisfaites. Un cas scientifique PASS ne signifie pas PASS de branche, population, admission ou autorité.",
+  "priority": "FAIL prouvé domine NE ; défaut actuel PC2 reste SCIENTIFIC_PROFILE_UNSUPPORTED/NE.",
+  "mutation_semantics": "Les mutations des bytes épinglés sont refusées au pin raw. Tester séparément les liaisons avec artefacts intacts et contextes/digests recalculés adversariaux ; instrumenter des mutants en mémoire pour prouver que les gardes sémantiques ne sont pas masquées par le tripwire de pin. Aucun override de pin/profil exposé dans API publique.",
+  "adopted": false,
+  "r1_reading_note": "Lecture des cas r1 figés : PC2-03 suppose q.criteria_sha256 = pin P1C (substitution de l'évidence) ; si q.criteria = pin p0, C15.3/PC2-75 s'appliquent. Quand un attendu r1 est disjonctif (ex. PC2-03, 13, 18, 19, 20), chaque fait (statement, science, trust, lineage, agrégat) porte le code exact que lui assigne C13.3 ; le texte r1 n'est pas réécrit.",
+  "r1_cases_note": "Les 54 cas r1 sont repris sans modification de given/when/then ; seul le lien aux clauses r2 est ajouté. Ce sont des obligations de test futures, pas des tests exécutés."
+ },
+ "counts": {
+  "total": 80,
+  "origin_r1_verified": 54,
+  "origin_r2": 26,
+  "executed": 0
+ },
+ "cases": [
+  {
+   "id": "PC2-01",
+   "origin": "r1",
+   "clauses": [
+    "C0.1",
+    "C1.1",
+    "C1.4",
+    "C8.6",
+    "C15.1"
+   ],
+   "r1_contract_sections": [
+    "1",
+    "4"
+   ],
+   "given": "Profil non validé ou code non intégré ; PC2 natif intact.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Ancien lecteur garde SCIENTIFIC_PROFILE_UNSUPPORTED/NE ; aucun flag documentaire ne débloque le profil."
+   ]
+  },
+  {
+   "id": "PC2-02",
+   "origin": "r1",
+   "clauses": [
+    "C1.2",
+    "C2.2",
+    "C3.2",
+    "C3.3",
+    "C3.4",
+    "C4.1",
+    "C4.7",
+    "C4.9",
+    "C5.3",
+    "C6.1",
+    "C6.2",
+    "C6.3",
+    "C6.4",
+    "C6.5",
+    "C6.6",
+    "C14.1"
+   ],
+   "r1_contract_sections": [
+    "2",
+    "3",
+    "4",
+    "5",
+    "6"
+   ],
+   "given": "Profil adopté puis implémenté ; cinq artefacts et trois fermetures complets, contexte exact, q/statement et deux enveloppes LAB_TEST valides.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Comparaisons statement/science PASS seulement pour ce profil présent ; accepted=false, aucune autorisation ou campagne."
+   ]
+  },
+  {
+   "id": "PC2-03",
+   "origin": "r1",
+   "clauses": [
+    "C2.2",
+    "C2.4",
+    "C10.2"
+   ],
+   "r1_contract_sections": [
+    "2"
+   ],
+   "given": "Substituer PC1/p0 à PC2/p1, puis chemin alternatif pour les mêmes bytes.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ou STATEMENT_INVALID ; aucun fallback PC1 ou chemin de statement ouvert."
+   ]
+  },
+  {
+   "id": "PC2-04",
+   "origin": "r1",
+   "clauses": [
+    "C2.1",
+    "C2.4",
+    "C2.5",
+    "C10.4"
+   ],
+   "r1_contract_sections": [
+    "2"
+   ],
+   "given": "Réencoder PC2 en JSON canonique en conservant son contenu.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Pin raw différent => SCIENTIFIC_DIVERGENCE ; H(JSON) ne remplace pas SHA256(raw)."
+   ]
+  },
+  {
+   "id": "PC2-05",
+   "origin": "r1",
+   "clauses": [
+    "C2.1",
+    "C2.2",
+    "C4.8",
+    "C6.7"
+   ],
+   "r1_contract_sections": [
+    "2",
+    "6"
+   ],
+   "given": "Altérer séparément chacun des cinq artefacts puis aligner les hashes déclarés de q/statement sur le faux corpus.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Pins du profil empêchent toute auto-cohérence falsifiée ; aucun PASS."
+   ]
+  },
+  {
+   "id": "PC2-06",
+   "origin": "r1",
+   "clauses": [
+    "C3.2",
+    "C3.3",
+    "C3.5"
+   ],
+   "r1_contract_sections": [
+    "3"
+   ],
+   "given": "Permuter S et P dans q et statement, signatures LAB_TEST valides.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; le sujet est le worker et non le code du pilote évaluateur."
+   ]
+  },
+  {
+   "id": "PC2-07",
+   "origin": "r1",
+   "clauses": [
+    "C3.3",
+    "C3.4",
+    "C3.5"
+   ],
+   "r1_contract_sections": [
+    "3"
+   ],
+   "given": "Remplacer q.evaluator_code_sha256 par E et ré-signer q et statement.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; le champ exige P et E reste vérifié séparément."
+   ]
+  },
+  {
+   "id": "PC2-08",
+   "origin": "r1",
+   "clauses": [
+    "C3.4"
+   ],
+   "r1_contract_sections": [
+    "3"
+   ],
+   "given": "S/P corrects mais E recalculé divergent du pin et de PC2/C9/R8Q.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE même sans champ E dans qualification/0 ; mutant supprimant ce contrôle détecté."
+   ]
+  },
+  {
+   "id": "PC2-09",
+   "origin": "r1",
+   "clauses": [
+    "C3.2",
+    "C3.3",
+    "C3.6"
+   ],
+   "r1_contract_sections": [
+    "3"
+   ],
+   "given": "Altérer séparément S ou P recalculé sans changer les artefacts épinglés.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; mutants supprimant chaque binding détectés."
+   ]
+  },
+  {
+   "id": "PC2-10",
+   "origin": "r1",
+   "clauses": [
+    "C3.1",
+    "C7.4"
+   ],
+   "r1_contract_sections": [
+    "3",
+    "7"
+   ],
+   "given": "Fichier régulier non .py ajouté ou modifié dans chacune des trois fermetures.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Fichier inclus dans hash complet ; divergence ou SOURCE_CODE_IRREGULAR, jamais hash de sous-ensemble."
+   ]
+  },
+  {
+   "id": "PC2-11",
+   "origin": "r1",
+   "clauses": [
+    "C3.1",
+    "C7.4"
+   ],
+   "r1_contract_sections": [
+    "3",
+    "7"
+   ],
+   "given": "Cache contient .pyc régulier direct, puis lien, sous-dossier ou autre extension.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Cache régulier ignoré en contenu ; autre entrée invalide la fermeture entière."
+   ]
+  },
+  {
+   "id": "PC2-12",
+   "origin": "r1",
+   "clauses": [
+    "C3.1",
+    "C7.4",
+    "C13.0"
+   ],
+   "r1_contract_sections": [
+    "3",
+    "7"
+   ],
+   "given": "Nom de secret interdit dans fermeture, lien/FIFO/hardlink ou mode checkout dangereux.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus avant lecture de contenu interdit ; aucun contournement par omission."
+   ]
+  },
+  {
+   "id": "PC2-13",
+   "origin": "r1",
+   "clauses": [
+    "C4.1",
+    "C4.7"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Agent/spec de q ou du statement remplacé par Sentinel alors que PC2 correct.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "STATEMENT_INVALID ou SCIENTIFIC_DIVERGENCE ; sujet scientifique est PC2.pilot."
+   ]
+  },
+  {
+   "id": "PC2-14",
+   "origin": "r1",
+   "clauses": [
+    "C4.1",
+    "C5.7"
+   ],
+   "r1_contract_sections": [
+    "4",
+    "5"
+   ],
+   "given": "Autre ID pilote, même worker et même purpose ; puis même ID avec spec différente.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; aucune généralisation à un clone ou une autre génération."
+   ]
+  },
+  {
+   "id": "PC2-15",
+   "origin": "r1",
+   "clauses": [
+    "C2.1",
+    "C4.1",
+    "C4.7"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "q.evidence_sha256 et statement.evidence portent le même faux hex64 ; PC2 acquis exact.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; q, singleton et raw PC2 tous liés au pin."
+   ]
+  },
+  {
+   "id": "PC2-16",
+   "origin": "r1",
+   "clauses": [
+    "C1.3",
+    "C4.7"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "historical_record_path/hash remplacés par R8Q, faux record pilote ou autre hex64 valide.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "STATEMENT_INVALID ; le seul record historique natif autorisé est PC2 raw."
+   ]
+  },
+  {
+   "id": "PC2-17",
+   "origin": "r1",
+   "clauses": [
+    "C1.3",
+    "C16.1"
+   ],
+   "r1_contract_sections": [
+    "1",
+    "4"
+   ],
+   "given": "Aucun fichier historique qualification/0 pilote ; PC2 présent avec q actuel valide.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Après adoption seulement, absence de ce fichier non requis ne bloque pas ; aucune création de fichier historique."
+   ]
+  },
+  {
+   "id": "PC2-18",
+   "origin": "r1",
+   "clauses": [
+    "C4.9",
+    "C13.0"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Supprimer une des deux enveloppes actuelles q/statement, puis les échanger.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Absence NE/EVIDENCE_NOT_STORED ou ATTESTATION_MISSING ; substitution FAIL ; aucun PASS de branche."
+   ]
+  },
+  {
+   "id": "PC2-19",
+   "origin": "r1",
+   "clauses": [
+    "C4.9",
+    "C11.1"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Auteur q, statement, enveloppes ou root_version divergent séparément.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "STATEMENT_INVALID/trust refusé ; les deux signatures doivent lier le même auteur/version et bon sujet/kind."
+   ]
+  },
+  {
+   "id": "PC2-20",
+   "origin": "r1",
+   "clauses": [
+    "C4.6",
+    "C11.2"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Issuer historique colony-review-481-r8 réutilisé ou reviewer contenant préfixe16 du pilote/parent/candidat/autre home 3C.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus STATEMENT_INVALID/exclusion ; aucune création de clé ou auto-émetteur admis."
+   ]
+  },
+  {
+   "id": "PC2-21",
+   "origin": "r1",
+   "clauses": [
+    "C4.9",
+    "C13.0",
+    "C14.2"
+   ],
+   "r1_contract_sections": [
+    "4",
+    "7"
+   ],
+   "given": "Signature falsifiée puis enveloppe genuinely révoquée, dans des fixtures distinctes.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Trust invalide bloque ; genuine révocation conserve seulement règles SUSPENDED de 3C, jamais filiation ou PASS trust."
+   ]
+  },
+  {
+   "id": "PC2-22",
+   "origin": "r1",
+   "clauses": [
+    "C4.10",
+    "C10.2"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Scope FRESH bien formé mais référence à PC2 ancien et auteur récent.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "NE/SCIENTIFIC_PROFILE_UNSUPPORTED bloquant ; aucune fraîcheur déduite de signature/date/HEAD."
+   ]
+  },
+  {
+   "id": "PC2-23",
+   "origin": "r1",
+   "clauses": [
+    "C4.10",
+    "C10.2",
+    "C13.1"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Scope FRESH avec campaign_replayed=false ou historiques non null.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "STATEMENT_INVALID/FAIL prouvé avant le refus de support ; FAIL domine NE."
+   ]
+  },
+  {
+   "id": "PC2-24",
+   "origin": "r1",
+   "clauses": [
+    "C4.7",
+    "C16.1"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Scope PRESENT mais campaign_replayed=true, campaign_evidence_sha256 non null ou historical_signature_claimed=true.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "STATEMENT_INVALID ; pas de campagne ou signature passée inventée."
+   ]
+  },
+  {
+   "id": "PC2-25",
+   "origin": "r1",
+   "clauses": [
+    "C1.6",
+    "C3.5",
+    "C10.1",
+    "C10.5",
+    "C15.6"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "Ajouter un champ troisième code hash au q/statement ; bool/int/string hors grammaire ou JSON doublonné.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Format fermé refusé ; aucun changement qualification/0 ou statement/0."
+   ]
+  },
+  {
+   "id": "PC2-26",
+   "origin": "r1",
+   "clauses": [
+    "C4.7",
+    "C12.0"
+   ],
+   "r1_contract_sections": [
+    "4"
+   ],
+   "given": "verified_at_source_sha récent mais déclaratif et corpus ancien exact.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Grammaire vérifiée seulement ; source_revision_provenance et fraîcheur NE, aucun fetch Git ou replay."
+   ]
+  },
+  {
+   "id": "PC2-27",
+   "origin": "r1",
+   "clauses": [
+    "C5.1"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "Contexte sujet ou parent non disponible dans les bytes acquis.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "NE/SCIENTIFIC_SOURCE_UNAVAILABLE ; ne pas générer de spec ou charger un second snapshot."
+   ]
+  },
+  {
+   "id": "PC2-28",
+   "origin": "r1",
+   "clauses": [
+    "C5.2"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "Spec ID identique mais metadata du spec change et spec_artifact_hash diverge.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; le binding complet ne se limite pas aux champs identité A1."
+   ]
+  },
+  {
+   "id": "PC2-29",
+   "origin": "r1",
+   "clauses": [
+    "C5.2",
+    "C5.3"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "Lignée pilote parent/fondateur/generation/base spec/diff substituée séparément.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Contradiction de structure ou SCIENTIFIC_DIVERGENCE ; aucun PASS de préfixe."
+   ]
+  },
+  {
+   "id": "PC2-30",
+   "origin": "r1",
+   "clauses": [
+    "C5.3"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "Permissions pilote élargies, parent rétréci ou capabilities A1 incohérentes.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus exact du contexte ; pas de permission héritée ou hausse des politiques."
+   ]
+  },
+  {
+   "id": "PC2-31",
+   "origin": "r1",
+   "clauses": [
+    "C5.3",
+    "C5.4"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "Chacun des six budgets alloués diffère de la valeur campagne, y compris baisse ; bool/float.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus du profil exact ou lineage ; pas de somme favorable ni coercition."
+   ]
+  },
+  {
+   "id": "PC2-32",
+   "origin": "r1",
+   "clauses": [
+    "C5.3",
+    "C5.4"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "Mémoire héritée, credential, registry disponible ou operational_authority élargie dans un record.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus lineage/science ; worker identique ne justifie pas un autre contexte."
+   ]
+  },
+  {
+   "id": "PC2-33",
+   "origin": "r1",
+   "clauses": [
+    "C5.5"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "birth_qualification.json du pilote remplacé par son propre nouveau q PC2.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "QUALIFICATION_NOT_FOR_THIS_SPEC/liaison naissance refusée ; q de naissance concerne Sentinel."
+   ]
+  },
+  {
+   "id": "PC2-34",
+   "origin": "r1",
+   "clauses": [
+    "C5.5",
+    "C5.7",
+    "C14.1"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "q PC2 présenté pour pilote parent d un candidat de génération2 ; puis q PC2 attribué directement à ce nouveau child.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Science du pilote peut PASS avec prérequis ; aucune autorisation de naissance ; autre sujet refusé."
+   ]
+  },
+  {
+   "id": "PC2-35",
+   "origin": "r1",
+   "clauses": [
+    "C5.6",
+    "C15.4"
+   ],
+   "r1_contract_sections": [
+    "5",
+    "7"
+   ],
+   "given": "Même q utilisé en DECISION et dans une copie de naissance d un autre foyer ; puis deux q différents du pilote.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Déduplication K incluant H(record), toutes copies exigées ; deux q distincts jamais fusionnés."
+   ]
+  },
+  {
+   "id": "PC2-36",
+   "origin": "r1",
+   "clauses": [
+    "C6.3"
+   ],
+   "r1_contract_sections": [
+    "6"
+   ],
+   "given": "PC2.parent.qualification différent de R8Q complet ou PC2.parent.record_sha256 utilise H canonique au lieu raw.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; reviewer historique inclus dans comparaison du claim, sans lui donner de confiance."
+   ]
+  },
+  {
+   "id": "PC2-37",
+   "origin": "r1",
+   "clauses": [
+    "C6.3",
+    "C6.4"
+   ],
+   "r1_contract_sections": [
+    "6"
+   ],
+   "given": "R8Q.evidence_sha256 ou criteria_sha256 diffère mais PC2 flags matches_current_code=true.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus du binding R8Q/C9/R8C ; un booléen ne remplace pas la comparaison."
+   ]
+  },
+  {
+   "id": "PC2-38",
+   "origin": "r1",
+   "clauses": [
+    "C6.2"
+   ],
+   "r1_contract_sections": [
+    "6"
+   ],
+   "given": "PC2 criteria_revision/status/schema/scope/proposed_state, failure_reasons ou code_irregular divergent séparément.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; signatures valides ne remplacent pas le contenu scientifique."
+   ]
+  },
+  {
+   "id": "PC2-39",
+   "origin": "r1",
+   "clauses": [
+    "C6.4"
+   ],
+   "r1_contract_sections": [
+    "6"
+   ],
+   "given": "C9 subject/code/evaluator/golden/runtime/proposed_state ou critères divergent.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE de dépendance parent ; aucun PASS PC2 sur S/P seuls."
+   ]
+  },
+  {
+   "id": "PC2-40",
+   "origin": "r1",
+   "clauses": [
+    "C2.2",
+    "C6.1",
+    "C6.5"
+   ],
+   "r1_contract_sections": [
+    "6"
+   ],
+   "given": "PC2.not_claimed différent de P1C ou P1C parent paths/worker/purpose incohérents avec contexte.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SCIENTIFIC_DIVERGENCE ; chemin de contenu jamais suivi pour lire une ressource additionnelle."
+   ]
+  },
+  {
+   "id": "PC2-41",
+   "origin": "r1",
+   "clauses": [
+    "C6.6"
+   ],
+   "r1_contract_sections": [
+    "6"
+   ],
+   "given": "Omettre, dupliquer ou permuter un trial ; un passed=false ou failed_predicates non vide.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus de séquence exacte28x2 ; aucun échantillon partiel présenté comme exhaustif."
+   ]
+  },
+  {
+   "id": "PC2-42",
+   "origin": "r1",
+   "clauses": [
+    "C6.6",
+    "C6.7"
+   ],
+   "r1_contract_sections": [
+    "6"
+   ],
+   "given": "Deux rounds ont des facts_sha256 différents malgré deterministic=true ; puis facts digest malformé.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Refus de cohérence native ; aucun nouveau trial ni replay exécuté."
+   ]
+  },
+  {
+   "id": "PC2-43",
+   "origin": "r1",
+   "clauses": [
+    "C1.5",
+    "C2.3",
+    "C7.1",
+    "C7.2",
+    "C15.2"
+   ],
+   "r1_contract_sections": [
+    "7"
+   ],
+   "given": "Scanner fixtures R8 seulement, PC2 seulement puis mélange avec ancêtres partagés.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Ancienne sémantique R8 inchangée ; sélection par profil ; cinq artefacts PC2 dédupliqués, S/E/P complets."
+   ]
+  },
+  {
+   "id": "PC2-44",
+   "origin": "r1",
+   "clauses": [
+    "C7.2"
+   ],
+   "r1_contract_sections": [
+    "7"
+   ],
+   "given": "Instrumenter opens/reads/locks/inspect_operations_fd dans mélange multiopération.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Même owner L1→L2, un FD/lot ledger pour U, sources partagées lues une fois ; pas de scan public imbriqué."
+   ]
+  },
+  {
+   "id": "PC2-45",
+   "origin": "r1",
+   "clauses": [
+    "C7.3"
+   ],
+   "r1_contract_sections": [
+    "7"
+   ],
+   "given": "Limite checkout cumulative ou FD atteinte seulement par cumul R8+PC2.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SOURCE_LIMIT nommé, payload global effacé ; pas de budget32MiB par profil."
+   ]
+  },
+  {
+   "id": "PC2-46",
+   "origin": "r1",
+   "clauses": [
+    "C7.4"
+   ],
+   "r1_contract_sections": [
+    "7"
+   ],
+   "given": "Source mutée après preuves provisoires puis erreur verify/close/unlock.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "SOURCE_CHANGED/SOURCE_UNAVAILABLE et zéro payload, aucun PASS provisoire conservé."
+   ]
+  },
+  {
+   "id": "PC2-47",
+   "origin": "r1",
+   "clauses": [
+    "C7.3"
+   ],
+   "r1_contract_sections": [
+    "7"
+   ],
+   "given": "Graphe K ou item figé hors cap alors que PC2 valide.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Limite connue avant première signature ; aucun contournement par profil ou par lot."
+   ]
+  },
+  {
+   "id": "PC2-48",
+   "origin": "r1",
+   "clauses": [
+    "C0.2",
+    "C7.5",
+    "C14.2"
+   ],
+   "r1_contract_sections": [
+    "7"
+   ],
+   "given": "PC2 science PASS avec COMMITTED substitué, OWN incomplet ou autre home bloquant.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Bindings de naissance/OWN/agrégats inchangés, pas de PASS global dérivé de science."
+   ]
+  },
+  {
+   "id": "PC2-49",
+   "origin": "r1",
+   "clauses": [
+    "C8.5",
+    "C9.3",
+    "C11.4"
+   ],
+   "r1_contract_sections": [
+    "8",
+    "9"
+   ],
+   "given": "Valider le contrat ou réussir des tests LAB_TEST sans auteur externe/enveloppes réels.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Profil non activé automatiquement ; preuves opérationnelles absentes restent bloquantes ; aucune installation."
+   ]
+  },
+  {
+   "id": "PC2-50",
+   "origin": "r1",
+   "clauses": [
+    "C8.4",
+    "C9.1",
+    "C9.2"
+   ],
+   "r1_contract_sections": [
+    "8",
+    "9"
+   ],
+   "given": "Comparer suites normales puis -O séquentielles, pins et changements de blobs.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Même sémantique ; P1/scénarios/g0/formats et trois fermetures qualifiées inchangés ; résultats non additifs."
+   ]
+  },
+  {
+   "id": "PC2-51",
+   "origin": "r1",
+   "clauses": [
+    "C8.1",
+    "C8.2",
+    "C8.3"
+   ],
+   "r1_contract_sections": [
+    "8"
+   ],
+   "given": "Modifier un document ou un fichier source après revue du tree exact.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Revue devenue non applicable à cet arbre ; relecture exacte, CI HEAD puis CI merge nécessaires."
+   ]
+  },
+  {
+   "id": "PC2-52",
+   "origin": "r1",
+   "clauses": [
+    "C0.3",
+    "C8.6",
+    "C9.4",
+    "C14.0"
+   ],
+   "r1_contract_sections": [
+    "1",
+    "8",
+    "9"
+   ],
+   "given": "Amendement documentation fusionné mais validators PC2 absents, ou seulement validateur pur implémenté.",
+   "when": "Validation documentaire puis tests LAB_TEST futurs selon la porte applicable ; aucun test exécuté par cette matrice.",
+   "then": [
+    "Blocage du lecteur conservé, aucune clôture administrative de 3C/étape3 ; activation attend intégration complète."
+   ]
+  },
+  {
+   "id": "PC2-53",
+   "origin": "r1",
+   "clauses": [
+    "C4.3",
+    "C4.4",
+    "C4.5",
+    "C16.3"
+   ],
+   "r1_contract_sections": [
+    "4",
+    "8"
+   ],
+   "given": "Revue favorable du mapping ou du validateur, mais dossier de revue scientifique p1/PC2/colony_pilot/tests avec mutants non vus non établi ; aucun q réel émis.",
+   "when": "Décision externe d’émettre une qualification réelle, distincte des tests et comparaisons du scanner.",
+   "then": [
+    "Émission réelle/activation restent bloquées ; ne pas inventer la revue scientifique, ni en faire un PASS de provenance dans le diagnostic. Les signatures de test et la revue d’agent de l’implémentation ne remplissent pas cette porte."
+   ]
+  },
+  {
+   "id": "PC2-54",
+   "origin": "r1",
+   "clauses": [
+    "C5.3",
+    "C10.5"
+   ],
+   "r1_contract_sections": [
+    "5"
+   ],
+   "given": "Contexte pilote generation=true, parent generation=false ou inherits_parent_memory=0 ; records rescéllés de forme cohérente hors ces types.",
+   "when": "Comparaison scientifique du contexte fermé sur objets acquis.",
+   "then": [
+    "FAIL de contexte/SCIENTIFIC_DIVERGENCE ou refus structurel ; pas de PASS depuis True==1 ou False==0. Budget bool/float également refusé, comparaisons canoniques sans coercition."
+   ]
+  },
+  {
+   "id": "PC2-55",
+   "origin": "r2",
+   "clauses": [
+    "C0.3",
+    "C8.1"
+   ],
+   "given": "Adoption citant un commit/tree ou des SHA256 de documents différents de l'arbre fusionné, ou document modifié après adoption.",
+   "when": "Contrôle documentaire de revue ou de gate ; non exécuté par cette matrice.",
+   "then": [
+    "Amendement non en vigueur ; nouvelle revue exacte et nouvelle décision requises ; lecteurs gardent le refus."
+   ]
+  },
+  {
+   "id": "PC2-56",
+   "origin": "r2",
+   "clauses": [
+    "C0.4",
+    "C9.1"
+   ],
+   "given": "Un byte de ADMISSION_CONTRACT.md ou SCENARIOS_A0.json modifié dans une PR de l'amendement ou d'implémentation.",
+   "when": "Contrôle documentaire de revue ou de gate ; non exécuté par cette matrice.",
+   "then": [
+    "Pin P1 divergent : revue défavorable et fusion refusée ; l'amendement ne modifie jamais P1."
+   ]
+  },
+  {
+   "id": "PC2-57",
+   "origin": "r2",
+   "clauses": [
+    "C10.2",
+    "C4.7"
+   ],
+   "given": "q.criteria_sha256 = pin R8C mais s.historical_record_path/hash désignent PC2.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Profil sentinel-r8-c9 sélectionné ; historique non conforme => STATEMENT_INVALID ; aucun basculement vers le profil PC2 par le path."
+   ]
+  },
+  {
+   "id": "PC2-58",
+   "origin": "r2",
+   "clauses": [
+    "C10.2",
+    "C4.7"
+   ],
+   "given": "q.criteria_sha256 = pin P1C mais s.criteria_sha256 = pin R8C (ou l'inverse), signatures LAB_TEST valides.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "STATEMENT_INVALID ; la sélection ne lit que q.criteria_sha256 et s doit lui être égal."
+   ]
+  },
+  {
+   "id": "PC2-59",
+   "origin": "r2",
+   "clauses": [
+    "C10.3"
+   ],
+   "given": "Constante de profil remplacée par une variante v1 de test changeant une liaison ; même couple q/s v0.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Réévaluation sous la règle courante, FAIL ou NE possible ; aucun verdict persisté, aucune écriture ou migration."
+   ]
+  },
+  {
+   "id": "PC2-60",
+   "origin": "r2",
+   "clauses": [
+    "C10.4",
+    "C4.7",
+    "C13.3"
+   ],
+   "given": "s.qualification_record_sha256 calculé sur des bytes non canoniques de q (indentation, ordre de clés) ; qe.record_sha256 idem.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Fait statement FAIL STATEMENT_INVALID ; fait trust : intégrité non PASS avec le code trust existant ; seul H(q) canonique est admis."
+   ]
+  },
+  {
+   "id": "PC2-61",
+   "origin": "r2",
+   "clauses": [
+    "C10.5",
+    "C13.3"
+   ],
+   "given": "q ou s contenant un flottant, NaN, une clé dupliquée, un entier bool, un hex majuscule ou des bytes non UTF-8.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Fait statement FAIL STATEMENT_INVALID (décodage strict impossible ou grammaire) ; aucune coercition ni normalisation."
+   ]
+  },
+  {
+   "id": "PC2-62",
+   "origin": "r2",
+   "clauses": [
+    "C11.1"
+   ],
+   "given": "qe signée par I et se signée par J, tous deux autorisés et valides ; puis root_version différents entre qe et se.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "STATEMENT_INVALID ; auteur et signataire uniques pour q et s."
+   ]
+  },
+  {
+   "id": "PC2-63",
+   "origin": "r2",
+   "clauses": [
+    "C11.0",
+    "C11.1",
+    "C4.9"
+   ],
+   "given": "I autorisé pour le kind qualification/0 seulement, pas pour statement/0 (ou l'inverse).",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Fait trust FAIL SCOPE_NOT_GRANTED pour l'enveloppe du kind non accordé ; aucun PASS de branche."
+   ]
+  },
+  {
+   "id": "PC2-64",
+   "origin": "r2",
+   "clauses": [
+    "C11.2",
+    "C13.3"
+   ],
+   "given": "reviewer_id/issuer_id contenant le préfixe 16 de l'ID du pilote, de Sentinel (fondateur), du candidat child, puis d'un autre foyer inventorié SUSPENDED ou AWAITING.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Fait lineage/population FAIL SELF_QUALIFICATION_DENIED dans chaque variante (ensemble d'exclusion 3C §8 complet) ; fait statement non concerné par ce contrôle."
+   ]
+  },
+  {
+   "id": "PC2-65",
+   "origin": "r2",
+   "clauses": [
+    "C11.3",
+    "C4.4",
+    "C4.6"
+   ],
+   "given": "Fixture où le dossier SR (hors scanner) nommerait l'auteur de la campagne ; q/s LAB_TEST valides.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Le diagnostic ne lit pas le dossier SR : provenance et revue SR restent NE, jamais PASS ; aucune sortie ne dit « pilote qualifié »."
+   ]
+  },
+  {
+   "id": "PC2-66",
+   "origin": "r2",
+   "clauses": [
+    "C11.4",
+    "C13.0",
+    "C13.3"
+   ],
+   "given": "Amendement adopté et code intégré ; variante a : I absent de la racine LAB_TEST courante ; variante b : I présent sans portée pour ces kinds.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Fait trust FAIL UNKNOWN_ISSUER (a) ou SCOPE_NOT_GRANTED (b) ; aucun PASS de branche ; aucune clé ou issuer créé par le code."
+   ]
+  },
+  {
+   "id": "PC2-67",
+   "origin": "r2",
+   "clauses": [
+    "C12.1",
+    "C16.2"
+   ],
+   "given": "Opération PREPARED figée avant l'existence d'une q PC2 ; q valide présentée ensuite à la reprise.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Items figés inchangés ; aucune requalification rétroactive ni ajout silencieux ; règles 3B/P1 de FROZEN_ITEM_DIVERGENT/ATTESTATION_UNEXPECTED s'appliquent."
+   ]
+  },
+  {
+   "id": "PC2-68",
+   "origin": "r2",
+   "clauses": [
+    "C12.0"
+   ],
+   "given": "Environnement courant (Python, plateforme) différent de celui déclaré dans PC2.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Aucune comparaison d'environnement ni PASS/FAIL dérivé ; limite de provenance déclarée NE."
+   ]
+  },
+  {
+   "id": "PC2-69",
+   "origin": "r2",
+   "clauses": [
+    "C13.0",
+    "C13.1"
+   ],
+   "given": "Racine trust courante indisponible (pin, floor, historique incohérent) avec corpus PC2 exact.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "TRUST_CURRENT_UNAVAILABLE bloquant ; science non convertie en PASS de branche."
+   ]
+  },
+  {
+   "id": "PC2-70",
+   "origin": "r2",
+   "clauses": [
+    "C3.6",
+    "C12.2",
+    "C13.0",
+    "C13.2"
+   ],
+   "given": "Après un appel PASS sur fixtures, un fichier non .py de la fermeture E est modifié ; nouvel appel.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "FAIL/SCIENTIFIC_DIVERGENCE au nouvel appel ; aucun fichier écrit, supprimé ou réparé."
+   ]
+  },
+  {
+   "id": "PC2-71",
+   "origin": "r2",
+   "clauses": [
+    "C13.2"
+   ],
+   "given": "Instrumenter toutes les ouvertures en écriture pendant des appels FAIL, NE et PASS.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Zéro écriture ; invalidation uniquement recalculée."
+   ]
+  },
+  {
+   "id": "PC2-72",
+   "origin": "r2",
+   "clauses": [
+    "C14.0",
+    "C9.4"
+   ],
+   "given": "Code intégré, lab réel sans q/s PC2.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "NE bloquant (EVIDENCE_NOT_STORED/ATTESTATION_MISSING) ; checklist étape 3/7 non close automatiquement."
+   ]
+  },
+  {
+   "id": "PC2-73",
+   "origin": "r2",
+   "clauses": [
+    "C14.3"
+   ],
+   "given": "Comparer POLICY_G0.json et la liste des critères admissibles avant/après chaque PR de l'amendement.",
+   "when": "Contrôle documentaire de revue ou de gate ; non exécuté par cette matrice.",
+   "then": [
+    "Bytes g0 inchangés ; p1 reste admissible ; aucun déplacement automatique hors g0."
+   ]
+  },
+  {
+   "id": "PC2-74",
+   "origin": "r2",
+   "clauses": [
+    "C15.2"
+   ],
+   "given": "Fixtures R8 existantes (PASS, FAIL, NE) rejouées avant et après intégration du profil PC2.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Résultats et codes identiques ; sémantique de copie R8 inchangée."
+   ]
+  },
+  {
+   "id": "PC2-75",
+   "origin": "r2",
+   "clauses": [
+    "C15.3",
+    "C10.2"
+   ],
+   "given": "q/s construits sur PC1/p0 (critère p0) avec signatures LAB_TEST valides.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "NE/SCIENTIFIC_PROFILE_UNSUPPORTED ; aucun fallback vers le profil p1."
+   ]
+  },
+  {
+   "id": "PC2-76",
+   "origin": "r2",
+   "clauses": [
+    "C15.5"
+   ],
+   "given": "PR d'intégration sans mise à jour relue des phrases 3B §9.2/3C §13 sur PC2, ou mise à jour touchant P1.",
+   "when": "Contrôle documentaire de revue ou de gate ; non exécuté par cette matrice.",
+   "then": [
+    "Revue défavorable ; texte proposé au dossier §5 requis, P1 intact."
+   ]
+  },
+  {
+   "id": "PC2-77",
+   "origin": "r2",
+   "clauses": [
+    "C16.1"
+   ],
+   "given": "Tentative de créer ou de lire un fichier qualification/0 historique du pilote dans le checkout ; s.historical_signature_claimed=true.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Aucun tel fichier lu ou créé ; STATEMENT_INVALID pour la revendication de signature historique."
+   ]
+  },
+  {
+   "id": "PC2-78",
+   "origin": "r2",
+   "clauses": [
+    "C16.3",
+    "C4.4"
+   ],
+   "given": "q/s signées par I valides, revue de code favorable, aucun dossier SR.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Comparaisons du profil peuvent PASS sur fixtures ; revue SR et provenance NE ; émission réelle et activation bloquées."
+   ]
+  },
+  {
+   "id": "PC2-79",
+   "origin": "r2",
+   "clauses": [
+    "C13.0",
+    "C13.3",
+    "C4.2"
+   ],
+   "given": "q signée par I avec state FAILED, IN_TRIAL ou REVOKED, autres champs exacts.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "Fait science FAIL SCIENTIFIC_DIVERGENCE ; fait lineage PARENT_NOT_QUALIFIED ; jamais PASS ; aucune conversion de PC2.proposed_state."
+   ]
+  },
+  {
+   "id": "PC2-80",
+   "origin": "r2",
+   "clauses": [
+    "C13.4",
+    "C12.2",
+    "C5.6"
+   ],
+   "given": "q PC2 valide émise par I ; variante a : I émet ensuite une q state REVOKED du même pilote ; variante b : l'opérateur installe une racine LAB_TEST listant qe dans revoked_envelopes ; variante c : la clé de I passe REVOKED.",
+   "when": "Spécifié pour une future PR de validateurs/intégration (C8.3–C8.4) ; non exécuté.",
+   "then": [
+    "a : la q REVOKED est un item K distinct, jamais PASS, et la q antérieure reste évaluée inchangée ; b et c : trust ENVELOPE_REVOKED ou KEY_REVOKED, genuine-but-revoked, filiation interdite et comptage conservateur 3C ; jamais PASS ; aucune écriture."
+   ]
+  }
+ ]
+}
