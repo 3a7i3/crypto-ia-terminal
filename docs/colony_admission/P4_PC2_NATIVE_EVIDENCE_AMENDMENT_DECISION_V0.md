@@ -74,7 +74,7 @@ qualification historique, et quel hash va dans quel champ.
 |---|---|---|
 | Cinq artefacts épinglés (F7–F9) | Disponibles | Intégrité par pins raw ; contenu historique non authentifié |
 | Fermetures S/E/P courantes (F2) | Disponibles, recalculées | Égalité aux pins à main@cc36e36e |
-| Rapport natif et 13 revues #484 (F10–F11) | Disponibles | Revues d'agent du code et de la campagne, favorable à la 13e. Classement : **candidates non établies** comme revue SR (C4.3). Selon la note de la revue 13, elles ont été rendues par un sous-agent en lecture seule et sauvegardées sous forme condensée par l'auteur de la PR ; aucun reviewer EXTERNAL_* identifié dans une racine trust ; le rapport natif garde « Until then the pilot is not qualified ». La revue 13 laissait ouverte la condition « suite complète, gate ruff et campagne témoin par un relecteur disposant d'une copie inscriptible », close ensuite par la vérification d'agent `644aab6f` (CONFORME) ; elle déclare n'autoriser « ni … record pilote ». Leur éventuelle prise en compte est un jugement de SR/I documenté dans le dossier SR, pas une conséquence de cet amendement (C4.5) |
+| Rapport natif et 13 revues #484 (F10–F11) | Disponibles | Revues d'agent du code et de la campagne, favorable à la 13e. Classement : **candidates non établies** comme revue SR (C4.3). Selon la note de la revue 13, elles ont été rendues par un sous-agent en lecture seule et sauvegardées sous forme condensée par l'auteur de la PR ; aucun reviewer EXTERNAL_* identifié dans une racine trust ; le rapport natif garde « Until then the pilot is not qualified ». La revue 13 déclare n'autoriser « ni … record pilote » et laissait ouverte la condition « suite complète, gate ruff et campagne témoin par un relecteur disposant d'une copie inscriptible ». Cette condition a été déclarée close par une vérification `644aab6f` (`/mnt/project-files/governance-tower/COLONY_484_VERIFICATION_INSCRIPTIBLE_644aab6f.md` : suite, ruff et campagne témoin 28/28 ×2 CONFORMES), qui est elle aussi un rapport de sous-agent condensé par l'auteur de la PR, hors arbre, preuve locale sans CI revérifiée ; `colony_pilot/` est inchangé de `644aab6f` à `cc36e36e`. Leur éventuelle prise en compte est un jugement de SR/I documenté dans le dossier SR, pas une conséquence de cet amendement (C4.5) |
 | Revue d'agent de r1 (`/root/review_pc2_contract`, arbre `2fc7b569`) | Disponible (déclarée dans #510) | Revue du texte r1 seulement ; ne couvre pas r2 |
 | Matrice r1 (54 cas) | Disponible, vérifiée | 54 IDs uniques ; repris sans changement de given/when/then |
 
@@ -238,6 +238,12 @@ SR laissée à Mathieu (C11.3, §8, Q2) ; ordre de tri (C3.1) ; bloc 3B §8 PRES
 deux phrases r1 rétablies (C4.3, C6.7) ; PC2-03/PC2-75 ; fichiers `observability/`
 de S ; limite `EVIDENCE_NOT_STORED` à citer (C14.0) ; effet de verdict et de
 gouvernance distingués (C0.1) ; grammaire générale délimitée (C10.2).
+
+Corrections après la revue 2 (arbre `cabd63fe`, FAVORABLE AVEC CONDITIONS, 0
+bloquant, 1 moyen, 4 mineurs) : statut exact des agrégats pour une attestation
+absente (C13.0, C13.3, C14.0) ; liste des commits auteurs (C11.3) ; couverture
+d'exclusion par couche (C11.2) ; source et nature de la vérification `644aab6f`
+(§4) ; code statement pour un champ de q manquant (C10.1).
 
 ## 11. Vérifications documentaires exécutées et limites
 

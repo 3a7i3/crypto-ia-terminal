@@ -332,7 +332,9 @@ En plus des pins raw et des fermetures, exiger :
   champs, `lineage.check_qualification`) ; s = `colony-admission.attestation-statement/0`
   (18 champs, `STATEMENT_FIELDS`) ; enveloppes trust (`ENVELOPE_FIELDS`) inchangées.
   Champ en plus ou en moins : dans s, FAIL/`STATEMENT_INVALID` ; dans q, fait
-  science FAIL/`SCIENTIFIC_DIVERGENCE` et fait lineage `QUALIFICATION_INVALID` (C13.3).
+  science FAIL/`SCIENTIFIC_DIVERGENCE` et fait lineage `QUALIFICATION_INVALID`, plus
+  fait statement FAIL/`STATEMENT_INVALID` quand un champ de q lu par `statement()`
+  manque (C13.3).
 - **C10.2** Sélection du profil, déterministe, sans champ persistant de profil :
   1. la grammaire générale de s est évaluée indépendamment du profil ; elle comprend
      exactement P1 §3.5 point 3 et le premier alinéa de 3B §8 plus ses règles sujet/
@@ -380,14 +382,18 @@ En plus des pins raw et des fermetures, exiger :
   (b) I ne contient le préfixe 16 caractères d'aucun ID de l'ensemble d'exclusion de
   3C §8 (tous les foyers inventoriés quel que soit leur statut, identités de branche
   validées, child de CURRENT_OPEN), qui inclut le pilote, Sentinel/fondateur et le
-  candidat : fait lineage/population FAIL/`SELF_QUALIFICATION_DENIED`
-  (`lineage.check_qualification`, `_population_core`). `statement()` ne porte pas ce
-  contrôle ; il n'est donc pas attendu en `STATEMENT_INVALID`.
+  candidat : FAIL/`SELF_QUALIFICATION_DENIED`. Couverture par couche :
+  `lineage.check_qualification` contrôle individu, fondateur, parent et child ; le
+  fait d'exclusion de décision 3B (`attestation_evidence._exclusions`) contrôle la
+  branche et le child ; seule la couche population 3C (`_population_core`,
+  `_population_proof`) contrôle tous les foyers inventoriés. `statement()` ne porte
+  pas ce contrôle ; il n'est donc pas attendu en `STATEMENT_INVALID`.
 - **C11.3** Exclusion déclarative non vérifiable par le scanner : SR NE DOIT PAS être
   un auteur de la campagne. Est auteur de la campagne toute identité ayant écrit
   `colony_pilot/`, p1 ou leurs tests, ou exécuté PC1/PC2 : à ce jour les sessions
-  d'agent dont les commits `e497540d`, `5790976a`, `ad9227f0` portent l'auteur git
-  `Claude <noreply@anthropic.com>`, sous le compte de l'opérateur. L'opérateur
+  d'agent auteurs de tous les commits touchant ces chemins (notamment `e497540d`,
+  `5790976a`, `ad9227f0`, jusqu'à `3121d3d8` ; tous d'auteur git
+  `Claude <noreply@anthropic.com>`), sous le compte de l'opérateur. L'opérateur
   commanditaire n'est pas auteur par ce seul fait, mais DOIT déclarer ce lien dans le
   dossier SR s'il est SR. Une revue par un agent commandité dans ce projet ne vaut
   `EXTERNAL_REVIEW_PROCESS` que si Mathieu désigne explicitement ce processus comme
@@ -428,7 +434,7 @@ de leurs contrats et du code existant (C13.3). Une q signée dont `state` n'est 
 |---|---|---|
 | Profil non adopté ou non implémenté | NE / `SCIENTIFIC_PROFILE_UNSUPPORTED` | Bloquant |
 | Critère inconnu ou p1 en FRESH | NE / `SCIENTIFIC_PROFILE_UNSUPPORTED` | Bloquant |
-| q, s, qe ou se absent | NE / `EVIDENCE_NOT_STORED` (fait statement) ; agrégats 3B/3C : FAIL `ATTESTATION_MISSING` (C13.3) | Bloquant |
+| q, s, qe ou se absent | NE / `EVIDENCE_NOT_STORED` (fait statement) ; agrégats selon C13.3 | Bloquant |
 | Artefact du §2 ou contexte §5 absent ; fermeture indisponible | NE / `SCIENTIFIC_SOURCE_UNAVAILABLE` | Bloquant |
 | Ambiguïté : plusieurs q distinctes du même pilote, ou contenu d'un path qui change pendant l'acquisition | Chaque q est un item distinct (K inclut H) ; seule la q figée/présentée pour la décision est la qualification de décision, chaque copie requise est vérifiée ; aucune fusion ni choix silencieux. Changement de contenu : `SOURCE_CHANGED`, payload effacé | Pas de PASS sur un choix implicite |
 | Grammaire ou auteur/sujet/scope de s incohérent | FAIL / `STATEMENT_INVALID` | Refus de preuve |
@@ -458,8 +464,8 @@ de leurs contrats et du code existant (C13.3). Une q signée dont `state` n'est 
 | science | artefact non décodable strictement | FAIL `STORED_FILE_DIVERGENT` |
 | science | taille d'artefact > 16 MiB | FAIL `SOURCE_LIMIT` |
 | trust (par enveloppe) | issuer, clé, signature, portée, auteur | codes `trust` existants : `UNKNOWN_ISSUER`, `UNKNOWN_KEY`, `SIGNATURE_INVALID`, `SCOPE_NOT_GRANTED`, `AUTHOR_NOT_ISSUER`, `SUBJECT_MISMATCH`, `RECORD_NOT_CANONICAL`, `KEY_REVOKED`, `ENVELOPE_REVOKED`, … |
-| lineage/population | q mal formée, autre sujet, non qualifiée, préfixe 16 | `QUALIFICATION_INVALID`, `QUALIFICATION_NOT_FOR_THIS_SPEC`, `PARENT_NOT_QUALIFIED`, `SELF_QUALIFICATION_DENIED` |
-| agrégats 3B/3C | item figé ou attestation de population manquante | FAIL `ATTESTATION_MISSING` (et autres codes 3B/3C inchangés) |
+| lineage/exclusion/population | q mal formée, autre sujet, non qualifiée, préfixe 16 | `QUALIFICATION_INVALID`, `QUALIFICATION_NOT_FOR_THIS_SPEC`, `PARENT_NOT_QUALIFIED`, `SELF_QUALIFICATION_DENIED` (couverture par couche : C11.2(b)) |
+| agrégats 3B/3C | attestation absente | partition de décision 3B : NE `ATTESTATION_MISSING` ou `EVIDENCE_NOT_STORED` ; écart items figés/requis : FAIL `ATTESTATION_MISSING` ; foyer de population 3C sans attestation : FAIL `ATTESTATION_MISSING` (autres codes 3B/3C inchangés) |
 
   Un même défaut peut produire un code dans plusieurs faits ; chaque fait garde son
   code, aucun n'est traduit en un autre.
@@ -478,7 +484,7 @@ de leurs contrats et du code existant (C13.3). Une q signée dont `state` n'est 
 | État | Science PC2 | Agrégats de branche | p1/g0 | Étape 3/7 |
 |---|---|---|---|---|
 | Aujourd'hui, ou amendement fusionné sans code | NE `SCIENTIFIC_PROFILE_UNSUPPORTED` | NE bloquant | p1 dans g0, inchangé | Bloquée (limite PC2 citée) |
-| Code intégré, aucune q/s réelle | NE (`EVIDENCE_NOT_STORED`/`ATTESTATION_MISSING`) en lab réel ; PASS seulement sur fixtures LAB_TEST | NE bloquant en lab réel | Inchangé | La limite « profil non supporté » peut sortir de la checklist si C8.3–C8.4 sont remplies ; l'absence de q/s réelles (`EVIDENCE_NOT_STORED`) reste une limite PC2 NE bloquante à citer (3C §13) ; les autres items restent |
+| Code intégré, aucune q/s réelle | Fait statement NE `EVIDENCE_NOT_STORED` en lab réel, agrégats selon C13.3 ; PASS seulement sur fixtures LAB_TEST | NE bloquant en lab réel | Inchangé | La limite « profil non supporté » peut sortir de la checklist si C8.3–C8.4 sont remplies ; l'absence de q/s réelles (`EVIDENCE_NOT_STORED`) reste une limite PC2 NE bloquante à citer (3C §13) ; les autres items restent |
 | q/s réelles valides, SR documentée hors scanner | PASS des comparaisons du profil | PASS seulement si toutes les autres propriétés 3B/3C passent | Inchangé | Inchangé par ce seul fait |
 
 - **C14.1** Un PASS scientifique PC2 n'est ni une admission, ni une autorisation de
