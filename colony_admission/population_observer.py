@@ -63,7 +63,12 @@ class HomeFact:
 
 @dataclass(frozen=True)
 class ItemFact:
-    """One extended 3B need or one frozen PREPARED item; immutable values only."""
+    """One extended 3B need or one frozen PREPARED item; immutable values only.
+
+    DECISION needs carry 3B's namespaces and its sorted frozen envelope digests.
+    POPULATION needs carry one (namespace, envelope digest or None) pair per copy,
+    positionally. Items carry their single frozen envelope digest.
+    """
     kind: str
     agent_id: str
     agent_spec_id: str
@@ -169,7 +174,7 @@ def _needs(decision, cur):
                       n.namespaces, n.envelope_sha256s) for n in (decision.needs if decision else ())]
     facts += [ItemFact(k.kind, k.agent_id, k.agent_spec_id, k.record_sha256, 'POPULATION', namespaces, digests)
               for k, namespaces, digests in cur.population_needs]
-    return tuple(sorted(facts, key=lambda x: (x.kind, x.agent_id, x.record_sha256, x.role)))
+    return tuple(sorted(facts, key=lambda x: (c.Key(x.kind, x.agent_id, x.agent_spec_id, x.record_sha256), x.role)))
 
 
 def _items(op):

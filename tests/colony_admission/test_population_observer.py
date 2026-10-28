@@ -623,3 +623,45 @@ def current_state(exclusions='PASS'):
 ])
 def test_global_identity_exclusions_never_pass_on_unknown_prerequisites(homes, current, expected):
     assert po._global_exclusions(homes, current) == expected
+
+
+def test_extended_needs_items_and_home_digests_are_exact(full_profile_machine, monkeypatch):
+    config, op = full_profile_machine
+    record, env = counts.second_founder(config.observer)
+    op['items'].append(counts.pure.item(counts.c.IND, record, 'POPULATION', env=f.digest(env)))
+    counts.pure.sort_items(op)
+    seen = []
+    prove = owner.pp.prove
+
+    def spy(*args, **kwargs):
+        seen.append(prove(*args, **kwargs))
+        return seen[-1]
+    monkeypatch.setattr(owner.pp, 'prove', spy)
+    config, op = exact_own(full_profile_machine, prepare=lambda *_: [record])
+    proofs.home(config.observer, op)
+    result = observe(config)
+    assert result.status == 'OBSERVED', result.blockers
+    current, = result.operations
+    decision = seen[-1].operations[0].decision
+    key = counts.c.key(counts.c.IND, record)
+    expected = {(n.key.kind, n.key.agent_id, n.key.agent_spec_id, n.key.record_sha256, 'DECISION', n.namespaces,
+                 n.envelope_sha256s) for n in decision.needs}
+    expected.add((key.kind, key.agent_id, key.agent_spec_id, key.record_sha256, 'POPULATION',
+                  (record['agent_id'] + '/individual',), (f.digest(env),)))
+    actual = [(x.kind, x.agent_id, x.agent_spec_id, x.record_sha256, x.role, x.namespaces, x.envelope_sha256s)
+              for x in current.needs]
+    assert set(actual) == expected and len(actual) == len(expected)
+    assert all(x.namespaces and x.envelope_sha256s for x in current.needs)
+    assert [x.role for x in current.needs if x.agent_id == record['agent_id']] == ['POPULATION']
+    assert {x.agent_id for x in current.needs if x.role == 'POPULATION'} == {record['agent_id']}  # no branch/OWN
+    keys = [counts.c.Key(x.kind, x.agent_id, x.agent_spec_id, x.record_sha256) for x in current.needs]
+    assert keys == sorted(keys)
+    assert [(x.kind, x.agent_id, x.agent_spec_id, x.record_sha256, x.role, x.envelope_sha256s)
+            for x in current.items] == [
+        (x['kind'], x['subject']['agent_id'], x['subject']['agent_spec_id'], x['record_sha256'], x['role'],
+         (x['envelope_sha256'],)) for x in op['items']]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        current.items[0].role = 'POPULATION'
+    founder = next(x for x in result.homes if x.agent_id == op['parent_agent_id'])
+    assert founder.record_sha256 == f.digest(counts.founder_record(config.observer, op))
+    assert founder.spec_id == counts.founder_record(config.observer, op)['agent_spec_id']

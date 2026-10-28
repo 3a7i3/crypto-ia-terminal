@@ -55,7 +55,7 @@ class CurrentPopulation:
     plan_match: str = NE
     ceilings: Ceilings = field(default_factory=Ceilings)
     codes: tuple[str, ...] = ()
-    # (key, namespaces, envelope digests) of each POPULATION need; empty while NE.
+    # (key, namespaces, envelope digest per copy) of each POPULATION need; empty if not evaluated.
     population_needs: tuple[tuple[c.Key, tuple[str, ...], tuple[str | None, ...]], ...] = ()
     accepted: bool = field(default=False, init=False)
     authorization: str = field(default=NE, init=False)

@@ -394,12 +394,15 @@ def test_partition_and_ceilings_not_evaluated_unless_branch_passes(structure):
     op = plan_op(parent)
     op['birth_plan'].update({'population': [f.digest(parent)], 'population_count': 1, 'children_count': 0,
                              'budget_totals': dict(parent['budget'])})
-    decision = SimpleNamespace(branch=(), branch_structure=structure, decision_partition='PASS', needs=())
+    decision = SimpleNamespace(branch=(), branch_structure=structure, decision_partition='PASS',
+                               needs=(SimpleNamespace(key=c.key(c.IND, parent), namespaces=('x',),
+                                                      envelope_sha256s=('e' * 64,)),))
     proof = [SimpleNamespace(agent_id=k, **vars(v)) for k, v in proof.items()]
     cur = pk.current(op, homes, proof, decision, None, G0, None)
     assert cur.population_partition == p.NE and 'CLASSIFICATION_NOT_EVALUATED' in cur.codes
     assert cur.frozen_completeness == p.NE
     assert cur.ceilings.aggregate == p.NE and 'BRANCH_INCOMPLETE' in cur.codes
+    assert cur.population_needs == ()  # nothing derived while not evaluated
 
 
 @pytest.mark.parametrize('counted', ['BLOCKING', p.NE])
@@ -417,3 +420,25 @@ def test_blocking_or_unclassified_home_never_skipped_into_a_passing_partition(mo
     cur = pk.current(op, homes, proof, decision, None, G0, None)
     assert cur.population_partition == cur.frozen_completeness == p.NE
     assert 'CLASSIFICATION_NOT_EVALUATED' in cur.codes and cur.counts.complete != 'PASS'
+
+
+@pytest.mark.parametrize('own_counted', ['EXCLUDED_OWN', 'INCLUDED'])
+def test_population_needs_exclude_branch_own_and_decision_keys(monkeypatch, own_counted):
+    monkeypatch.setattr(pk.lineage, 'spec_diff', lambda *a: [])
+    parent, own, shared = fake('a' * 64), fake('c' * 64, 'DESCENDANT', 'a' * 64), fake('b' * 64)
+    other, last = fake('f' * 64), fake('d' * 64)
+    envelopes = {x['agent_id']: env_bytes(x['agent_id']) for x in (parent, own, shared, other, last)}
+    homes, proof = detached(parent, own, shared, other, last, envelopes=envelopes)
+    proof[own['agent_id']] = SimpleNamespace(counted=own_counted, classification='OWN_OPERATION')
+    op = plan_op(parent)
+    op['birth_plan'].update({'population': sorted(f.digest(x) for x in (parent, shared, other, last)),
+                             'population_count': 4, 'children_count': 0,
+                             'budget_totals': {k: 4 * b.BUDGET[k] for k in f.BUDGET_KEYS}})
+    shared_key = c.key(c.IND, shared)
+    decision = SimpleNamespace(branch=(parent['agent_id'],), branch_structure='PASS', decision_partition='PASS',
+                               needs=(SimpleNamespace(key=shared_key),))
+    proof = [SimpleNamespace(agent_id=k, **vars(v)) for k, v in proof.items()]
+    cur = pk.current(op, homes, proof, decision, own['agent_id'], G0, None)
+    expected = sorted((c.key(c.IND, x), (x['agent_id'] + '/individual',),
+                       (f.digest(c.decode(envelopes[x['agent_id']])),)) for x in (other, last))
+    assert list(cur.population_needs) == expected  # sorted by 3B key, one exact copy each

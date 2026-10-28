@@ -56,8 +56,10 @@ It wraps the one owner acquisition; any acquisition failure gives a BLOCKED
 evidence with no homes. `HomeFact.role`, parent, founder and generation are exposed
 only once the home structure is PASS (role in FOUNDER/DESCENDANT), never as raw
 values. `OperationPopulation.needs` lists the 3B DECISION needs extended with the
-POPULATION needs (namespaces and envelope digests per copy; empty while the
-partition is NE) and `items` the frozen PREPARED items, all as immutable tuples. It aggregates home facts, operation facts (CURRENT_OPEN
+POPULATION needs, sorted by the 3B key (DECISION: 3B namespaces and frozen envelope
+digests; POPULATION: one namespace/envelope-digest pair per copy; none while the
+partition is CLASSIFICATION_NOT_EVALUATED), and `items` the frozen PREPARED items,
+all as immutable tuples. It aggregates home facts, operation facts (CURRENT_OPEN
 counts, plan match, ceilings), external terminations, fault bindings and action
 facts. NOT_APPLICABLE_FOUNDER, HISTORICAL_POPULATION_NOT_EVALUATED,
 NO_CURRENT_OPEN_OPERATION and NO_RUNTIME_OBSERVATION are warnings, never
