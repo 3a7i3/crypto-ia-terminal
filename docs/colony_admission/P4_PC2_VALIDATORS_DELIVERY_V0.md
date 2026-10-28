@@ -54,7 +54,7 @@ liée à un HEAD exact (commentaire de PR). La matrice reste
 | PC2-02 | IMPLEMENTED_C8_3 | C1.2, C2.2, C3.2, C3.3, C3.4, C4.1, C4.7, C4.9, C5.3, C6.1, C6.2, C6.3, C6.4, C6.5, C6.6, C14.1 | `test_exact_lab_test_world_passes_only_its_comparisons` |  |
 | PC2-03 | IMPLEMENTED_C8_3 | C2.2, C2.4, C10.2 | `test_pc1_p0_and_alternative_paths_never_select_or_pass` |  |
 | PC2-04 | IMPLEMENTED_C8_3 | C2.1, C2.4, C2.5, C10.4 | `test_a_canonical_hash_equal_to_the_pin_is_not_a_raw_pin`, `test_raw_pin_refuses_reencoding_and_self_consistent_forgeries` |  |
-| PC2-05 | IMPLEMENTED_C8_3 | C2.1, C2.2, C4.8, C6.7 | `test_a_divergent_artifact_dominates_an_absent_one`, `test_a_pinned_artifact_above_the_decoding_bound`, `test_artifact_size_type_and_mapping_type`, `test_native_bindings_hold_behind_instrumented_pins`, `test_raw_pin_refuses_reencoding_and_self_consistent_forgeries` |  |
+| PC2-05 | IMPLEMENTED_C8_3 | C2.1, C2.2, C4.8, C6.7 | `test_a_divergent_artifact_dominates_an_absent_one`, `test_a_divergent_context_dominates_an_absent_artifact`, `test_a_pinned_artifact_above_the_decoding_bound`, `test_artifact_size_type_and_mapping_type`, `test_native_bindings_hold_behind_instrumented_pins`, `test_raw_pin_refuses_reencoding_and_self_consistent_forgeries` |  |
 | PC2-06 | IMPLEMENTED_C8_3 | C3.2, C3.3, C3.5 | `test_every_s_e_p_binding_mutant_is_killed`, `test_no_permutation_or_substitution_of_closures` |  |
 | PC2-07 | IMPLEMENTED_C8_3 | C3.3, C3.4, C3.5 | `test_every_s_e_p_binding_mutant_is_killed`, `test_no_permutation_or_substitution_of_closures` |  |
 | PC2-08 | IMPLEMENTED_C8_3 | C3.4 | `test_a_divergent_closure_dominates_an_absent_one`, `test_each_recomputed_closure_is_bound_and_rechecked_per_call`, `test_every_s_e_p_binding_mutant_is_killed` |  |
@@ -71,12 +71,12 @@ liée à un HEAD exact (commentaire de PR). La matrice reste
 | PC2-19 | IMPLEMENTED_C8_3 | C4.9, C11.1 | `test_one_author_and_one_root_version_for_both_records` |  |
 | PC2-20 | PARTIAL_C8_3 | C4.6, C11.2 | `test_historical_reviewer_and_branch_prefixes_are_excluded` | Reste : exclusion de tous les foyers 3C (C8.4) |
 | PC2-21 | PARTIAL_C8_3 | C4.9, C13.0, C14.2 | `test_forged_and_genuinely_revoked_envelopes_never_pass_trust` | Reste : statut SUSPENDED 3C (C8.4) |
-| PC2-22 | IMPLEMENTED_C8_3 | C4.10, C10.2 | `test_fresh_under_p1_is_unsupported_after_its_grammar`, `test_unknown_scope_under_p1_selects_nothing` |  |
+| PC2-22 | IMPLEMENTED_C8_3 | C4.10, C10.2 | `test_a_statement_without_scope_is_refused_not_raised`, `test_fresh_under_p1_is_unsupported_after_its_grammar`, `test_unknown_scope_under_p1_selects_nothing` |  |
 | PC2-23 | IMPLEMENTED_C8_3 | C4.10, C10.2, C13.1 | `test_fresh_under_p1_is_unsupported_after_its_grammar` |  |
 | PC2-24 | IMPLEMENTED_C8_3 | C4.7, C16.1 | `test_present_claims_no_campaign_and_no_past_signature` |  |
 | PC2-25 | IMPLEMENTED_C8_3 | C1.6, C3.5, C10.1, C10.5, C15.6 | `test_closed_formats_and_strict_decoding`, `test_decoding_bounds_of_q_statement_and_context`, `test_each_q_and_statement_binding_on_its_own` |  |
 | PC2-26 | IMPLEMENTED_C8_3 | C4.7, C12.0 | `test_exact_lab_test_world_passes_only_its_comparisons` |  |
-| PC2-27 | PARTIAL_C8_3 | C5.1 | `test_absent_context_is_not_evaluated`, `test_context_must_be_the_closed_context_type` | Reste : acquisition par le propriétaire, pas de second snapshot (C8.4) |
+| PC2-27 | PARTIAL_C8_3 | C5.1 | `test_a_divergent_context_dominates_an_absent_artifact`, `test_absent_context_is_not_evaluated`, `test_context_must_be_the_closed_context_type` | Reste : acquisition par le propriétaire, pas de second snapshot (C8.4) |
 | PC2-28 | IMPLEMENTED_C8_3 | C5.2 | `test_spec_artifact_hash_is_compared_beyond_a1_identity` |  |
 | PC2-29 | IMPLEMENTED_C8_3 | C5.2, C5.3 | `test_context_records_are_verified_not_only_compared`, `test_pilot_lineage_context_is_exact` |  |
 | PC2-30 | IMPLEMENTED_C8_3 | C5.3 | `test_pilot_lineage_context_is_exact`, `test_sentinel_parent_context_is_exact` |  |

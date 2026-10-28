@@ -449,7 +449,9 @@ def test_fresh_under_p1_is_unsupported_after_its_grammar(w, fresh):
 
 @case("PC2-24", "PC2-77")
 @pytest.mark.parametrize("field,value", [("campaign_replayed", True), ("campaign_evidence_sha256", "f" * 64),
-                                         ("historical_signature_claimed", True), ("campaign_replayed", 0)])
+                                         ("historical_signature_claimed", True), ("campaign_replayed", 0),
+                                         ("historical_signature_claimed", None), ("historical_signature_claimed", 0),
+                                         ("campaign_evidence_sha256", "")])
 def test_present_claims_no_campaign_and_no_past_signature(w, field, value):
     w.st[field] = value
     assert w.statement().codes == ("STATEMENT_INVALID",)
@@ -650,6 +652,20 @@ NATIVE_MUTATIONS = {
     "PC2-40/p1c_canonical_name": {"P1C": lambda d: d["pilot"].update(canonical_name="sentinel_pilot_02")},
     "PC2-40/p1c_display_name": {"P1C": lambda d: d["pilot"].update(display_name="Sentinel Pilot 02")},
     "PC2-40/native_extra_key": {"PC2": lambda d: d["pilot"].update(note="extra")},
+    # Review 3: literal true, exact lists, exact round count, unique ids, full R8Q, no name folding.
+    "PC2-38/sandbox_int": {"PC2": lambda d: d["sandbox_view"].update(matches_subject=1)},
+    "PC2-39/golden_int": {"C9": lambda d: d.update(golden_subject_code_matches=1)},
+    "PC2-39/runtime_int": {"C9": lambda d: d["evaluator_runtime"].update(source_only=1)},
+    "PC2-41/predicates_none": {"PC2": lambda d: [r[3].update(failed_predicates=None) for r in d["rounds"]]},
+    "PC2-41/predicates_empty_string": {"PC2": lambda d: [r[3].update(failed_predicates="") for r in d["rounds"]]},
+    "PC2-41/three_rounds": {"PC2": lambda d: d["rounds"].append(copy.deepcopy(d["rounds"][0]))},
+    "PC2-41/duplicate_criteria_id": {
+        "P1C": lambda d: d["birth_trials"][1].update(id=d["birth_trials"][0]["id"]),
+        "PC2": lambda d: [r[1].update(id=r[0]["id"]) for r in d["rounds"]]},
+    "PC2-42/second_round_passed_int": {"PC2": lambda d: d["rounds"][1][3].update(passed=1)},
+    "PC2-40/record_file_suffix": {"P1C": lambda d: d["parent"].update(record_file="RECORD_R8.json")},
+    "PC2-37/parent_qualification_extra_key": {"PC2": lambda d: d["parent"]["qualification"].update(note="x")},
+    "PC2-40/purpose_case": {"P1C": lambda d: d["pilot"].update(purpose=d["pilot"]["purpose"].upper())},
 }
 
 
@@ -923,7 +939,8 @@ def test_context_must_be_the_closed_context_type(w):
 
 
 @case("PC2-13", "PC2-15", "PC2-16", "PC2-25")
-@pytest.mark.parametrize("change", ["history_path", "q_schema", "statement_evidence", "statement_subject"])
+@pytest.mark.parametrize("change", ["history_path", "q_schema", "statement_evidence", "statement_subject",
+                                    "statement_subject_spec"])
 def test_each_q_and_statement_binding_on_its_own(w, change):
     if change == "history_path":
         w.st["historical_record_path"] = "docs/colony_lab/evidence/PC2_pilot_evidence_copy.json"
@@ -935,8 +952,11 @@ def test_each_q_and_statement_binding_on_its_own(w, change):
         w.st["evidence"] = [{"path": pc2.PC2_PATH, "sha256": pc2.PC2_PIN},
                             {"path": pc2.P1C_PATH, "sha256": pc2.P1C_PIN}]
         expected = "SCIENTIFIC_DIVERGENCE"
-    else:
+    elif change == "statement_subject":
         w.st["subject_agent_id"] = w.context["sentinel_record"]["agent_id"]
+        expected = "SCIENTIFIC_DIVERGENCE"
+    else:
+        w.st["subject_agent_spec_id"] = w.context["sentinel_record"]["agent_spec_id"]
         expected = "SCIENTIFIC_DIVERGENCE"
     assert w.rehash().science().codes == (expected,)
 
@@ -958,6 +978,20 @@ def test_a_divergent_artifact_dominates_an_absent_one(w):
     w.raw[s.CRITERIA_PATH] = None
     w.raw[pc2.PC2_PATH] += b"\n"
     assert w.science().status == "FAIL"
+
+
+@case("PC2-05", "PC2-27")
+def test_a_divergent_context_dominates_an_absent_artifact(w):
+    w.raw[pc2.PC2_PATH] = None
+    w.context["sentinel_record"]["record_hash"] = "0" * 64
+    assert (w.science().status, w.science().codes) == ("FAIL", ("SCIENTIFIC_DIVERGENCE",))
+
+
+@case("PC2-22")
+def test_a_statement_without_scope_is_refused_not_raised(w):
+    del w.st["scope"]
+    fact = pc2.bindings(f.canonical(w.st), f.canonical(w.q), dict(w.raw), *w.digests, w.context_bytes())
+    assert (fact.status, fact.codes) == ("FAIL", ("STATEMENT_INVALID",))
 
 
 @case("PC2-61")
@@ -985,7 +1019,8 @@ def test_uppercase_hex_in_q_is_not_normalised(w):
 
 
 @case("PC2-25", "PC2-61")
-@pytest.mark.parametrize("target", ["statement", "qualification", "sentinel_record", "pilot_spec"])
+@pytest.mark.parametrize("target", ["statement", "qualification", "sentinel_record", "sentinel_spec",
+                                    "pilot_record", "pilot_spec"])
 def test_decoding_bounds_of_q_statement_and_context(w, target):
     # C10.5: s <= 16 KiB, q and context records <= 64 KiB at decoding, before any comparison.
     limit = 16384 if target == "statement" else 65536
@@ -1004,7 +1039,7 @@ def test_decoding_bounds_of_q_statement_and_context(w, target):
 
 
 @case("PC2-05")
-@pytest.mark.parametrize("shape", ["exact_limit", "text", "dict_subclass"])
+@pytest.mark.parametrize("shape", ["exact_limit", "text", "dict_subclass", "empty"])
 def test_artifact_size_type_and_mapping_type(w, shape):
     if shape == "exact_limit":
         w.raw[pc2.PC2_PATH] = b" " * (16 * 1024 * 1024)  # at the limit: pin, not size, refuses it
@@ -1012,6 +1047,9 @@ def test_artifact_size_type_and_mapping_type(w, shape):
     elif shape == "text":
         w.raw[pc2.PC2_PATH] = w.raw[pc2.PC2_PATH].decode()
         assert w.science().codes == ("SOURCE_LIMIT",)
+    elif shape == "empty":
+        w.raw[pc2.PC2_PATH] = b""  # present, so compared to its pin, never treated as absent
+        assert w.science().codes == ("SCIENTIFIC_DIVERGENCE",)
     else:
         class Mapping(dict):
             pass
