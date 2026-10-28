@@ -1,6 +1,7 @@
 """3C-5 public PopulationObserver: fault scopes, actions, aggregation; LAB_TEST only."""
 
 import dataclasses
+from types import SimpleNamespace
 
 import pytest
 
@@ -56,10 +57,15 @@ def test_complete_own_snapshot_is_observed_without_authority(full_profile_machin
     assert result.status == 'OBSERVED' and result.blockers == (), result.blockers
     assert result.inventory == result.population == result.snapshot_completeness == 'PASS'
     assert result.global_identity_exclusions == 'PASS'
-    assert 'NO_RUNTIME_OBSERVATION' in result.warnings
+    assert 'NO_RUNTIME_OBSERVATION' in result.warnings and 'NOT_APPLICABLE_FOUNDER' in result.warnings
     current, = result.operations
     assert current.scope == 'CURRENT_OPEN' and current.own_home == 'PASS' and current.plan_match == 'PASS'
     assert current.counts.population == 1 and current.ceilings.aggregate == 'PASS'
+    assert current.needs and {x.role for x in current.needs} <= {'DECISION', 'POPULATION'}
+    assert {(x.kind, x.agent_id, x.record_sha256, x.role) for x in current.items} == {
+        (x['kind'], x['subject']['agent_id'], x['record_sha256'], x['role']) for x in op['items']}
+    assert all(type(x.namespaces) is tuple and type(x.envelope_sha256s) is tuple
+               for x in current.needs + current.items)
     child = next(x for x in result.homes if x.agent_id == op['child_agent_id'])
     assert child.classification == 'OWN_OPERATION' and child.generation == 1
     assert all(x.presence == 'PRESENT' and x.raw_sha256 for x in child.files)
@@ -89,11 +95,13 @@ def test_unsupported_profile_blocks(signed_machine):
     result = observe(config)
     assert result.status == 'BLOCKED' and 'SCIENTIFIC_PROFILE_UNSUPPORTED' in result.blockers
     assert result.population == p.NE and result.snapshot_completeness != 'PASS'
+    assert result.global_identity_exclusions == p.NE  # unknown prerequisites never give PASS
     permanent(result)
 
 
-@pytest.mark.parametrize('resource,scope', [('LEDGER', 'GLOBAL'), ('LEDGER_DIRECTORY', 'GLOBAL'),
-                                            ('INDIVIDUALS_DIRECTORY', 'GLOBAL')])
+@pytest.mark.parametrize('resource,scope', [(x, 'GLOBAL') for x in (
+    'LEDGER', 'LEDGER_DIRECTORY', 'INDIVIDUALS_DIRECTORY', 'LAB_DIRECTORY', 'OPERATION_LOG_DIRECTORY',
+    'ADMISSION_DIRECTORY', 'ENVELOPE_DIRECTORY')])
 def test_global_faults_always_block(full_profile_machine, resource, scope):
     config, op = exact_own(full_profile_machine)
     proofs.home(config.observer, op)
@@ -146,7 +154,7 @@ def test_current_operation_fault_blocks_that_operation(full_profile_machine):
     assert result.fault_bindings[0].scope == 'OPERATION_CURRENT' and result.status == 'BLOCKED'
 
 
-@pytest.mark.parametrize('path', ['unknown.json', 'tasks/../x.json', 'tasks/UPPER.json'])
+@pytest.mark.parametrize('path', ['unknown.json', 'tasks/../x.json', 'tasks/UPPER.json', 'tasks/Upper.json'])
 def test_target_outside_closed_mapping_is_unbound(full_profile_machine, path):
     config, op = exact_own(full_profile_machine)
     proofs.home(config.observer, op)
@@ -331,6 +339,11 @@ def test_owner_wires_every_home_id_and_candidate_envelopes_into_the_contradictio
     result = observe(config)  # the unfrozen sibling blocks POPULATION, not this wiring
     (envelopes, excluded), = seen
     assert envelopes and {x.agent_id for x in result.homes} <= excluded
+    assert result.status == 'BLOCKED'
+    current, = result.operations  # the extended needs name the unfrozen sibling as POPULATION
+    sibling = next(x for x in result.homes if x.agent_id not in (op['parent_agent_id'], op['child_agent_id']))
+    assert any(x.role == 'POPULATION' and x.kind == counts.c.IND and x.agent_id == sibling.agent_id
+               for x in current.needs)
     assert op['child_agent_id'] in excluded
 
 
@@ -445,3 +458,168 @@ def test_fault_naming_a_closed_operation_with_another_child_or_attempt_is_unboun
     binding, = result.fault_bindings
     assert binding.scope == 'UNBOUND' and binding.blocking
     assert result.status == 'BLOCKED' and 'TARGET_BINDING_UNAVAILABLE' in result.blockers
+
+
+def test_home_role_is_exposed_only_validated_never_as_a_raw_value(full_profile_machine):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    agent = 'a' * 64
+    ao.store(config.observer, 'individuals/' + agent + '/record.json',
+             f.canonical({'role': ['x'], 'agent_spec_id': ['y'], 'lineage': {'founder_agent_id': agent}}))
+    ao.store(config.observer, 'individuals/' + agent + '/spec.json', f.canonical({}))
+    result = observe(config)
+    bad = next(x for x in result.homes if x.agent_id == agent)
+    assert bad.role is bad.spec_id is None
+    assert bad.parent_agent_id is bad.founder_agent_id is bad.generation is None
+    assert result.status == 'BLOCKED'
+    good = next(x for x in result.homes if x.agent_id == op['parent_agent_id'])
+    assert good.role == 'FOUNDER'
+
+
+def test_unproven_external_termination_is_unresolved_and_blocks(full_profile_machine):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    fault, terminal = proofs.logtests.external(config.observer, child='e' * 64, op='f' * 64, version=0, count=0)
+    base.write(config.observer.fault_file, raw(fault, terminal))
+    result = observe(config)
+    assert result.external_terminations[0].terminal_linkage == p.NE
+    binding, = result.fault_bindings
+    assert binding.scope == 'OPERATION_UNRESOLVED' and binding.blocking
+    assert 'EXTERNAL_TERMINATION_UNPROVEN' in binding.codes and 'EXTERNAL_TERMINATION_UNPROVEN' in result.blockers
+    assert result.status == 'BLOCKED'
+
+
+def test_divergent_external_finding_is_unresolved_and_blocks(full_profile_machine):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    fault, terminal = proofs.logtests.external(config.observer, child='e' * 64, op='f' * 64, version=1, count=1)
+    base.write(config.observer.fault_file, raw(fault, terminal))
+    result = observe(config)
+    assert result.external_terminations[0].terminal_linkage == 'FAIL'
+    binding, = result.fault_bindings
+    assert binding.scope == 'OPERATION_UNRESOLVED' and binding.blocking
+    assert 'EXTERNAL_TERMINATION_DIVERGENT' in result.blockers and result.status == 'BLOCKED'
+
+
+def set_aside_events(op, *, done=True):
+    events = [*proofs.begin_d3(op), base.entry('TERMINATED', op=op, code='OPERATOR_TERMINATED'),
+              base.entry('FAILED_CONSUMED', op=op, code='OPERATOR_TERMINATED'),
+              base.entry('SET_ASIDE_BEGIN', 'D3', op=op)]
+    if done:
+        events.append(base.entry('SET_ASIDE_DONE', 'D3', op=op))
+    return tuple(events)
+
+
+def set_aside(config, op, record=None):
+    path = 'admission-quarantine/' + f.digest(op) + '/terminal/record.json'
+    value = p.storage_bytes(op['birth_plan']['record']) if record is None else record
+    return proofs.acquisition.quarantine_store(config, path, value)
+
+
+@pytest.mark.parametrize('identity', ['equal', 'prefix'])
+def test_log_set_aside_done_accepts_equal_or_prefix_identity(full_profile_machine, identity):
+    config, op = exact_own(full_profile_machine, events=set_aside_events)
+    record = p.storage_bytes(op['birth_plan']['record'])
+    set_aside(config.observer, op, record if identity == 'equal' else record[:10])
+    result = observe(config)
+    action, = result.action_facts
+    assert action.action == 'SET_ASIDE' and action.destination == 'terminal' and action.claim == 'DONE'
+    assert action.action_location == action.identity_binding == action.action_completion == 'PASS'
+    assert not action.blocking and action.durability == action.permission == p.NE
+
+
+def test_log_set_aside_done_with_source_still_present_is_divergent(full_profile_machine):
+    config, op = exact_own(full_profile_machine, events=set_aside_events)
+    set_aside(config.observer, op)
+    proofs.home(config.observer, op)  # no incarnation exception for a set-aside
+    result = observe(config)
+    action, = result.action_facts
+    assert action.action == 'SET_ASIDE' and action.action_location == 'FAIL' and action.blocking
+    assert 'ACTION_LOCATION_DIVERGENT' in result.blockers and result.status == 'BLOCKED'
+
+
+def test_log_set_aside_identity_divergence_fails(full_profile_machine):
+    config, op = exact_own(full_profile_machine, events=set_aside_events)
+    set_aside(config.observer, op, b'{"other": 1}')
+    action, = observe(config).action_facts
+    assert action.identity_binding == 'FAIL' and action.blocking
+
+
+@pytest.mark.parametrize('locations', [0, 2])
+def test_begin_without_done_needs_exactly_one_location(full_profile_machine, locations):
+    config, op = exact_own(full_profile_machine, events=lambda op: quarantine_events(op, done=False))
+    if locations == 2:
+        quarantined(config.observer, op)
+        proofs.home(config.observer, op)
+    result = observe(config)
+    action, = result.action_facts
+    assert action.action_location == 'FAIL' and action.action_completion == p.NE and action.blocking
+    assert 'ACTION_LOCATION_DIVERGENT' in result.blockers and result.status == 'BLOCKED'
+
+
+def test_current_decision_exclusions_not_pass_keep_global_exclusions_ne(full_profile_machine, monkeypatch):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    prove = owner.pp.prove
+
+    def unknown(*args, **kwargs):
+        result = prove(*args, **kwargs)
+        ops = tuple(dataclasses.replace(x, decision=dataclasses.replace(
+            x.decision, known_identity_exclusions=p.NE)) for x in result.operations)
+        return dataclasses.replace(result, operations=ops)
+    monkeypatch.setattr(owner.pp, 'prove', unknown)
+    result = observe(config)
+    assert result.global_identity_exclusions == result.snapshot_completeness == p.NE
+    assert result.status == 'BLOCKED' and result.blockers == ('CLASSIFICATION_NOT_EVALUATED',)
+
+
+@pytest.mark.parametrize('resource,failure,restricted', [('HOME_DIRECTORY', 'FSYNC', True),
+                                                         ('HOME_DIRECTORY', 'RENAME', True),
+                                                         ('HOME_DIRECTORY', 'WRITE', False),
+                                                         ('HOME_ENTRY', 'FSYNC', False)])
+def test_action_restriction_only_for_home_directory_fsync_or_rename(full_profile_machine, resource, failure,
+                                                                    restricted):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    path = op['child_agent_id'] + ('' if resource == 'HOME_DIRECTORY' else '/spec.json')
+    kind = 'DIRECTORY' if resource == 'HOME_DIRECTORY' else 'FILE'
+    base.write(config.observer.fault_file, raw(fault_on(config, op, resource, path, failure=failure, kind=kind)))
+    binding, = observe(config).fault_bindings
+    assert ('ACTION_RESTRICTED' in binding.codes) is restricted and binding.blocking
+
+
+def test_external_pending_set_aside_begin_is_located_but_incomplete(full_profile_machine):
+    config, op = exact_own(full_profile_machine)
+    other, digest = 'e' * 64, 'f' * 64
+    fault, terminal = proofs.logtests.external(config.observer, child=other, op=digest, version=1, count=0)
+    begin = fx.aside(terminal, lab_id=config.observer.lab_id, child_agent_id=other, operation_sha256=digest)
+    base.write(config.observer.fault_file, raw(fault, terminal, begin))
+    proofs.acquisition.quarantine_store(config.observer, 'admission-quarantine/' + digest + '/terminal/spec.json',
+                                        b'{"p"')
+    result = observe(config)
+    action, = result.action_facts
+    assert action.action == 'SET_ASIDE_EXTERNAL' and action.claim == 'BEGIN'
+    assert action.action_completion == p.NE and action.blocking and result.status == 'BLOCKED'
+
+
+def home_state(structure='PASS', counted='INCLUDED', exclusions='PASS', individual='PASS'):
+    return SimpleNamespace(structure=structure, counted=counted, identity_exclusions=exclusions,
+                           individual_proof=individual)
+
+
+def current_state(exclusions='PASS'):
+    return SimpleNamespace(decision=SimpleNamespace(known_identity_exclusions=exclusions))
+
+
+@pytest.mark.parametrize('homes,current,expected', [
+    ([home_state()], [current_state()], 'PASS'),
+    ([home_state(structure='FAIL')], [current_state()], p.NE),
+    ([home_state(counted=p.NE)], [current_state()], p.NE),
+    ([home_state(exclusions=p.NE)], [current_state()], p.NE),  # a present individual left unchecked
+    ([home_state(exclusions=p.NE, individual=p.NE)], [current_state()], 'PASS'),  # absent: no issuer
+    ([home_state()], [current_state(p.NE)], p.NE),
+    ([home_state()], [current_state('FAIL')], 'FAIL'),
+    ([home_state(exclusions='FAIL', structure='FAIL')], [current_state(p.NE)], 'FAIL'),  # FAIL dominates
+])
+def test_global_identity_exclusions_never_pass_on_unknown_prerequisites(homes, current, expected):
+    assert po._global_exclusions(homes, current) == expected

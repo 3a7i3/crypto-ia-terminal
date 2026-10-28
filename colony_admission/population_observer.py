@@ -62,6 +62,18 @@ class HomeFact:
 
 
 @dataclass(frozen=True)
+class ItemFact:
+    """One extended 3B need or one frozen PREPARED item; immutable values only."""
+    kind: str
+    agent_id: str
+    agent_spec_id: str
+    record_sha256: str
+    role: str
+    namespaces: tuple[str, ...] = ()
+    envelope_sha256s: tuple[str | None, ...] = ()
+
+
+@dataclass(frozen=True)
 class OperationPopulation:
     child_agent_id: str
     operation_sha256: str
@@ -72,6 +84,8 @@ class OperationPopulation:
     scope: str
     own_home: str
     own_agent_id: str | None
+    needs: tuple[ItemFact, ...]
+    items: tuple[ItemFact, ...]
     decision_partition: str
     branch_attestations: str
     population_partition: str
@@ -134,8 +148,10 @@ def _home(home, proof):
     spec = record_hash = role = parent = founder = generation = None
     try:
         record = c.decode(home.record_bytes)
-        spec, record_hash, role = record.get('agent_spec_id'), f.digest(record), record.get('role')
+        spec, record_hash = record.get('agent_spec_id'), f.digest(record)
         if proof.structure == 'PASS':
+            # §2: role and lineage are exposed only once validated, never as raw values.
+            role = record['role'] if record['role'] in ('FOUNDER', 'DESCENDANT') else None
             lineage = record['lineage']
             parent, founder = lineage.get('parent_agent_id'), lineage['founder_agent_id']
             generation = lineage['generation']
@@ -145,6 +161,20 @@ def _home(home, proof):
                     generation, files, home.layout, proof.classification, proof.codes, proof.birth_proof,
                     proof.individual_proof, proof.scientific_bindings, proof.identity_exclusions,
                     proof.counted, proof.execution_restriction)
+
+
+def _needs(decision, cur):
+    """3B DECISION needs extended with the POPULATION needs, each with its copies."""
+    facts = [ItemFact(n.key.kind, n.key.agent_id, n.key.agent_spec_id, n.key.record_sha256, 'DECISION',
+                      n.namespaces, n.envelope_sha256s) for n in (decision.needs if decision else ())]
+    facts += [ItemFact(k.kind, k.agent_id, k.agent_spec_id, k.record_sha256, 'POPULATION', namespaces, digests)
+              for k, namespaces, digests in cur.population_needs]
+    return tuple(sorted(facts, key=lambda x: (x.kind, x.agent_id, x.record_sha256, x.role)))
+
+
+def _items(op):
+    return tuple(ItemFact(x['kind'], x['subject']['agent_id'], x['subject']['agent_spec_id'], x['record_sha256'],
+                          x['role'], envelope_sha256s=(x['envelope_sha256'],)) for x in op['items'])
 
 
 def _global_exclusions(homes, current):
@@ -164,7 +194,9 @@ def _global_exclusions(homes, current):
 
 def _evidence(acq):
     proofs = acq.proofs
-    homes = tuple(_home(h, x) for h, x in zip(sorted(acq.homes, key=lambda h: h.agent_id), proofs.homes))
+    ordered = sorted(acq.homes, key=lambda h: h.agent_id)
+    c.need([h.agent_id for h in ordered] == [x.agent_id for x in proofs.homes], 'SOURCE_UNAVAILABLE')
+    homes = tuple(_home(h, x) for h, x in zip(ordered, proofs.homes))
     blockers, warnings = [], []
     for home in homes:
         if home.counted not in ('INCLUDED', 'EXCLUDED_OWN'):
@@ -193,7 +225,8 @@ def _evidence(acq):
             warnings.append('HISTORICAL_POPULATION_NOT_EVALUATED')
         operations.append(OperationPopulation(proof.child_agent_id, proof.operation_sha256, proof.attempt,
             op['child_agent_spec_id'], attempts[proof.operation_sha256].latest, proof.source_state, proof.scope,
-            proof.own_home, proof.own_agent_id, decision.decision_partition if decision else NE,
+            proof.own_home, proof.own_agent_id, _needs(decision, cur), _items(op),
+            decision.decision_partition if decision else NE,
             decision.branch_attestations if decision else NE, cur.population_partition,
             cur.frozen_completeness, cur.counts, cur.plan_match, cur.ceilings, proof.codes))
     if not current:

@@ -1,8 +1,7 @@
 # 3C-5 — Fault scopes, action correspondences and the public PopulationObserver
 
 SOURCE_ONLY / LAB_ONLY / NO_AUTHORITY.
-Prepared on the 3C-4 tree (counts, plan match and ceilings). This dependent
-delivery cannot merge before 3C-4 (#516) is closed after its own complete merge CI.
+Based on main `efe1fa71` (3C-4 #516 merged and closed after its own merge CI).
 3C-3 (#515) was closed with a recorded one-off reservation: its exact merge CI stayed
 red (pytest 9.2, fixed by #517). No prior green transfers to this tree.
 
@@ -54,7 +53,11 @@ performed, recommended or permitted.
 `population_observer.PopulationObserver(PopulationConfig).scan_population()`
 returns `PopulationEvidence` (schema `colony-admission.population-evidence/0`).
 It wraps the one owner acquisition; any acquisition failure gives a BLOCKED
-evidence with no homes. It aggregates home facts, operation facts (CURRENT_OPEN
+evidence with no homes. `HomeFact.role`, parent, founder and generation are exposed
+only once the home structure is PASS (role in FOUNDER/DESCENDANT), never as raw
+values. `OperationPopulation.needs` lists the 3B DECISION needs extended with the
+POPULATION needs (namespaces and envelope digests per copy; empty while the
+partition is NE) and `items` the frozen PREPARED items, all as immutable tuples. It aggregates home facts, operation facts (CURRENT_OPEN
 counts, plan match, ceilings), external terminations, fault bindings and action
 facts. NOT_APPLICABLE_FOUNDER, HISTORICAL_POPULATION_NOT_EVALUATED,
 NO_CURRENT_OPEN_OPERATION and NO_RUNTIME_OBSERVATION are warnings, never
@@ -91,14 +94,18 @@ quarantine identity prefix refused; orphan destination; external set-aside
 identity NE; self-issued individual making global exclusions FAIL; failed branch
 attestations blocking with decision codes; plan divergence, ceiling FAIL and
 counts NE blocking at the observer; fault of an operation unknown to U UNBOUND;
-quarantine-root fault GLOBAL; envelope entry outside mapping UNBOUND; home
-directory FSYNC fault ACTION_RESTRICTED; fault of a closed readable operation
+quarantine-root fault GLOBAL; LAB/operation-log/admission/envelope directory faults
+GLOBAL; envelope entry outside mapping UNBOUND; ACTION_RESTRICTED only for a home
+directory FSYNC/RENAME fault; unproven (/0) and divergent external terminations
+OPERATION_UNRESOLVED and blocking; log-based SET_ASIDE DONE with equal or prefix
+identity PASS, with divergent identity or a still-present source FAIL; BEGIN without
+DONE with zero or two locations FAIL; global identity exclusions NE for an
+unsupported profile or a current decision not PASS; raw role never exposed; fault of a closed readable operation
 historical and non-blocking; fault naming a closed operation with another child
 or attempt UNBOUND; invalid config; acquisition failure; no
-public export. Still untested (values only, status stays BLOCKED): log-based
-SET_ASIDE, external pending set-aside BEGIN, BEGIN with two or zero locations,
-quarantine cycle reset, superseded-attempt faults, observer-level ledger coverage
-code. Exact counts,
+public export. External pending set-aside BEGIN is located but incomplete and blocking. Still
+untested (values only, status stays BLOCKED): quarantine cycle reset, superseded-attempt faults, observer-level ledger
+coverage code. Exact counts,
 -O runs, mutants and independent exact-tree agent review are recorded in the PR.
 
 P1/pins/scenarios/formats/g0 and colony_lab/sentinel_activity/colony_pilot are
