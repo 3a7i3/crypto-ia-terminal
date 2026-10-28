@@ -1,6 +1,8 @@
 """3C-5 public PopulationObserver: fault scopes, actions, aggregation; LAB_TEST only."""
 
 import dataclasses
+import hashlib
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -9,6 +11,7 @@ from colony_admission import _population_acquisition as owner
 from colony_admission import formats as f
 from colony_admission import physical_evidence as p
 from colony_admission import population_observer as po
+from colony_admission._population_faults import ActionFact, FaultBinding
 from tests.colony_admission import test_external_evidence as fx
 from tests.colony_admission import test_population_counts as counts
 from tests.colony_admission import test_population_proof as proofs
@@ -89,6 +92,9 @@ def test_no_current_open_operation_is_non_blocking_warning(full_profile_machine)
     assert 'HISTORICAL_POPULATION_NOT_EVALUATED' in result.warnings
     assert {x.classification for x in result.homes} == {'AUTHENTICATED', 'AWAITING_INDIVIDUAL_ATTESTATION'}
     assert result.operations[0].counts.complete == p.NE and result.operations[0].plan_match == p.NE
+    child = next(x for x in result.homes if x.agent_id == op['child_agent_id'])
+    assert (child.birth_proof, child.individual_proof, child.scientific_bindings, child.identity_exclusions,
+            child.counted) == ('PASS', p.NE, 'PASS', 'PASS', 'INCLUDED')
     permanent(result)
 
 
@@ -275,6 +281,8 @@ def test_external_set_aside_without_birthplan_keeps_identity_ne(full_profile_mac
     action, = result.action_facts
     assert action.action == 'SET_ASIDE_EXTERNAL' and action.action_location == 'PASS'
     assert action.identity_binding == p.NE and action.blocking and result.status == 'BLOCKED'
+    assert (action.operation_sha256, action.destination) == (digest, 'terminal')
+    assert 'ACTION_EVIDENCE_NOT_EVALUATED' in action.codes  # identity NE is never a silent PASS
 
 
 def test_invalid_config_and_acquisition_failure_have_no_payload(full_profile_machine):
@@ -327,6 +335,8 @@ def test_failed_branch_attestations_block_with_decision_codes(full_profile_machi
     monkeypatch.setattr(owner.pp, 'prove', failed_branch)
     result = observe(config)
     assert result.status == 'BLOCKED' and 'BRANCH_FAIL_PROBE' in result.blockers
+    current, = result.operations
+    assert (current.decision_partition, current.branch_attestations) == ('PASS', 'FAIL')
 
 
 def test_owner_wires_every_home_id_and_candidate_envelopes_into_the_contradiction(full_profile_machine,
@@ -670,3 +680,179 @@ def test_extended_needs_items_and_home_digests_are_exact(full_profile_machine, m
     founder = next(x for x in result.homes if x.agent_id == op['parent_agent_id'])
     assert founder.record_sha256 == f.digest(counts.founder_record(config.observer, op))
     assert founder.spec_id == counts.founder_record(config.observer, op)['agent_spec_id']
+
+
+def expected_files(config, agent_id):
+    """FileFacts recomputed from the on-disk bytes, independently of the observer."""
+    facts = []
+    for name in ('record.json', 'spec.json', 'birth_qualification.json'):
+        path = 'individuals/' + agent_id + '/' + name
+        disk = config.observer.lab_root / path
+        if not disk.exists():
+            facts.append(p.FileFact(name, path, 'LAB', 'ABSENT'))
+            continue
+        data = disk.read_bytes()
+        facts.append(p.FileFact(name, path, 'LAB', 'PRESENT', size_bytes=len(data),
+                                raw_sha256=hashlib.sha256(data).hexdigest(), record_sha256=f.digest(json.loads(data))))
+    return tuple(facts)
+
+
+def test_complete_own_fields_are_exact_values(full_profile_machine, monkeypatch):
+    acquired = []
+    acquire = owner.acquire
+
+    def spy(*args, **kwargs):
+        acquired.append(acquire(*args, **kwargs))
+        return acquired[-1]
+    monkeypatch.setattr(owner, 'acquire', spy)
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    result = observe(config)
+    assert result.status == 'OBSERVED', result.blockers
+    founder_id, child_id = op['parent_agent_id'], op['child_agent_id']
+    assert [x.agent_id for x in result.homes] == sorted((founder_id, child_id))
+    homes = {x.agent_id: x for x in result.homes}
+    for agent_id in (founder_id, child_id):
+        assert homes[agent_id].files == expected_files(config, agent_id)
+    child_record = homes[child_id].files[0]
+    assert child_record.raw_sha256 != child_record.record_sha256  # raw bytes are not H(canonical record)
+    assert homes[founder_id].files[2].presence == 'ABSENT'  # a founder has no birth qualification
+    fields = ('layout', 'classification', 'classification_codes', 'birth_proof', 'individual_proof',
+              'scientific_bindings', 'identity_exclusions', 'counted', 'execution_restriction')
+    assert tuple(getattr(homes[founder_id], x) for x in fields) == (
+        'PARTIAL', 'AUTHENTICATED', ('NOT_APPLICABLE_FOUNDER',), p.NE, 'PASS', p.NE, 'PASS', 'INCLUDED', None)
+    assert tuple(getattr(homes[child_id], x) for x in fields) == (
+        'OBSERVED', 'OWN_OPERATION', (), p.NE, p.NE, 'PASS', 'PASS', 'EXCLUDED_OWN', None)
+    current, = result.operations
+    assert (current.child_agent_id, current.operation_sha256, current.attempt, current.child_agent_spec_id,
+            current.latest, current.source_state, current.scope, current.own_home, current.own_agent_id) == (
+        child_id, f.digest(op), op['attempt'], op['child_agent_spec_id'], True, 'INTERRUPTED', 'CURRENT_OPEN',
+        'PASS', child_id)
+    assert (current.decision_partition, current.branch_attestations, current.population_partition,
+            current.frozen_completeness, current.plan_match, current.blockers) == (
+        'PASS', 'PASS', 'PASS', 'PASS', 'PASS', ())
+    acq, = acquired
+    assert result.sources == acq.sources and {'L1', 'FAULT_LOG'} <= {x.resource for x in result.sources}
+    assert result.metadata_sources == acq.metadata_sources and result.metadata_sources
+    # The immutable canonical batch result of the one ledger read, which binds this operation.
+    assert result.ledger_bytes == acq.ledger_bytes and f.loads(result.ledger_bytes)['status'] == 'OBSERVED'
+    assert f.digest(op).encode() in result.ledger_bytes
+    assert result.ledger_coverage == p.LedgerCoverage(status='MATCH', total_entries=1, legacy_entries=0,
+                                                      matched_entries=1, unbound_entries=0)
+    assert result.log_coverage == 'PASS'
+    permanent(result)
+
+
+def test_superseded_attempt_is_historical_and_not_latest(full_profile_machine):
+    config, op = full_profile_machine
+    op['attempt'] = 2
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    old = {**op, 'attempt': 1}
+    base.write(config.observer.lab_root / 'admission-ops' / (op['child_agent_id'] + '.log'),
+               raw(*base.prefix(op=old), base.entry('REFUSED', op=old), *base.prefix(2, op=op),
+                   *proofs.begin_d3(op)))
+    result = observe(config)
+    assert result.status == 'OBSERVED', result.blockers
+    assert 'HISTORICAL_POPULATION_NOT_EVALUATED' in result.warnings
+    ops = {x.attempt: x for x in result.operations}
+    assert sorted(ops) == [1, 2]
+    child_id = op['child_agent_id']
+    assert (ops[1].child_agent_id, ops[1].operation_sha256, ops[1].latest, ops[1].source_state, ops[1].scope,
+            ops[1].own_home, ops[1].own_agent_id, ops[1].decision_partition, ops[1].branch_attestations,
+            ops[1].population_partition, ops[1].frozen_completeness, ops[1].plan_match, ops[1].blockers) == (
+        child_id, f.digest(old), False, 'TERMINAL_CLAIM', 'HISTORICAL', p.NE, None, p.NE, p.NE, p.NE, p.NE, p.NE,
+        ('HISTORICAL_POPULATION_NOT_EVALUATED',))
+    assert ops[1].needs == () and ops[1].counts.complete == p.NE
+    assert (ops[2].operation_sha256, ops[2].latest, ops[2].scope, ops[2].own_agent_id) == (
+        f.digest(op), True, 'CURRENT_OPEN', child_id)
+    permanent(result)
+
+
+def test_operation_blockers_and_specific_codes_are_exact(full_profile_machine):
+    config, op = exact_own(full_profile_machine, tweak=lambda plan: plan.update(children_count=1))
+    proofs.home(config.observer, op)
+    result = observe(config)
+    current, = result.operations
+    assert current.blockers == result.blockers == ('POPULATION_CHANGED',)
+
+
+def test_unsupported_profile_code_is_carried_by_the_operation(signed_machine):
+    config, op, envs = signed_machine
+    proofs.log(config.observer, op, *proofs.begin_d3(op), level=2)
+    proofs.spend(config.observer, op, f.canonical(envs[op['child_agent_id'] + '/admission']))
+    proofs.home(config.observer, op)
+    current, = observe(config).operations
+    assert 'SCIENTIFIC_PROFILE_UNSUPPORTED' in current.blockers
+
+
+def test_execution_suspended_restriction_is_a_warning_only(full_profile_machine, monkeypatch):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    prove = owner.pp.prove
+
+    def suspended(*args, **kwargs):
+        result = prove(*args, **kwargs)
+        homes = tuple(dataclasses.replace(x, execution_restriction='EXECUTION_SUSPENDED')
+                      if x.agent_id == op['parent_agent_id'] else x for x in result.homes)
+        return dataclasses.replace(result, homes=homes)
+    monkeypatch.setattr(owner.pp, 'prove', suspended)
+    result = observe(config)
+    assert 'EXECUTION_SUSPENDED' in result.warnings and 'EXECUTION_SUSPENDED' not in result.blockers
+    assert next(x for x in result.homes if x.agent_id == op['parent_agent_id']).execution_restriction == \
+        'EXECUTION_SUSPENDED'
+
+
+def test_fault_binding_references_are_exact(full_profile_machine):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    path = op['child_agent_id'] + '/spec.json'
+    fault = fault_on(config, op, 'HOME_ENTRY', path)
+    base.write(config.observer.fault_file, raw(fault))
+    result = observe(config)
+    assert result.fault_bindings == (FaultBinding(f.digest(fault), 'HOME_ENTRY', path, f.digest(op),
+                                                  'OPERATION_CURRENT', True, ('STICKY_FAULT',)),)
+    assert result.blockers == ('STICKY_FAULT',)
+
+
+def test_historical_fault_binding_references_are_exact(full_profile_machine):
+    config, op = exact_own(full_profile_machine)
+    other, digest = 'e' * 64, 'f' * 64
+    fault, terminal = proofs.logtests.external(config.observer, child=other, op=digest, version=1, count=0)
+    base.write(config.observer.fault_file, raw(fault, terminal))
+    result = observe(config)
+    assert result.fault_bindings == (FaultBinding(f.digest(fault), 'OPERATION_LOG', other + '.log', digest,
+                                                  'OPERATION_HISTORICAL', False, ('OPERATION_LOG_FAULTY',)),)
+
+
+def test_action_fact_references_are_exact(full_profile_machine):
+    config, op = exact_own(full_profile_machine, events=quarantine_events)
+    quarantined(config.observer, op)
+    proofs.home(config.observer, op)
+    result = observe(config)
+    assert result.action_facts == (ActionFact(f.digest(op), 'QUARANTINE', str(op['attempt']), 'DONE', 'PASS',
+                                              'PASS', 'PASS', False, ()),)
+
+
+def test_unknown_and_identity_ne_action_facts_are_exact(full_profile_machine):
+    config, op = exact_own(full_profile_machine)
+    proofs.acquisition.quarantine_store(config.observer, 'admission-quarantine/' + 'f' * 64 + '/terminal/spec.json',
+                                        b'{}')
+    orphan, = observe(config).action_facts
+    assert orphan == ActionFact('f' * 64, 'UNKNOWN', 'terminal', 'NONE', 'FAIL', p.NE, p.NE, True,
+                                ('ACTION_EVIDENCE_NOT_EVALUATED',))
+
+
+def test_current_population_codes_and_partitions_are_carried_exactly(full_profile_machine, monkeypatch):
+    config, op = exact_own(full_profile_machine)
+    proofs.home(config.observer, op)
+    current = owner.pp.pk.current
+
+    def unfrozen(*args, **kwargs):
+        return dataclasses.replace(current(*args, **kwargs), frozen_completeness=p.NE, codes=('FROZEN_PROBE',))
+    monkeypatch.setattr(owner.pp.pk, 'current', unfrozen)
+    result = observe(config)
+    operation, = result.operations
+    assert (operation.population_partition, operation.frozen_completeness) == ('PASS', p.NE)
+    # The specific population code is carried, never replaced by the generic fallback.
+    assert result.blockers == ('FROZEN_PROBE',) and result.status == 'BLOCKED'

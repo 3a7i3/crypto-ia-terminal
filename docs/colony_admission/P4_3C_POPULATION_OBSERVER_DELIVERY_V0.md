@@ -105,9 +105,18 @@ DONE with zero or two locations FAIL; global identity exclusions NE for an
 unsupported profile or a current decision not PASS; raw role never exposed; fault of a closed readable operation
 historical and non-blocking; fault naming a closed operation with another child
 or attempt UNBOUND; invalid config; acquisition failure; no
-public export. External pending set-aside BEGIN is located but incomplete and blocking. Still
-untested (values only, status stays BLOCKED): quarantine cycle reset, superseded-attempt faults, observer-level ledger
-coverage code. Exact counts,
+public export. External pending set-aside BEGIN is located but incomplete and blocking.
+Exact values are pinned for every exposed field of the complete OWN snapshot (both
+homes' FileFacts recomputed from disk bytes, proof fields, layout and lineage; every
+OperationPopulation field; sources, metadata sources, ledger batch bytes and
+coverage, log coverage PASS), a superseded attempt (historical, not latest, NE
+decision, no own home), a closed operation's descendant proofs, specific population
+and decision codes carried instead of the generic fallback, EXECUTION_SUSPENDED as a
+warning only, and the references of current/historical FaultBindings and of
+QUARANTINE/UNKNOWN/identity-NE ActionFacts. Still untested (values only, status stays
+BLOCKED): quarantine cycle reset, faults bound to a superseded attempt, observer-level
+ledger coverage code, and SCIENTIFIC_PROFILE_UNSUPPORTED dropped from the operation codes
+alone (the home codes still carry it). Exact counts,
 -O runs, mutants and independent exact-tree agent review are recorded in the PR.
 
 P1/pins/scenarios/formats/g0 and colony_lab/sentinel_activity/colony_pilot are
