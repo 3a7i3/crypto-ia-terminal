@@ -669,6 +669,92 @@ NATIVE_MUTATIONS = {
 }
 
 
+def _systematic_native_mutations():
+    """Review 4: every C6 guard of _native, each against several near values, never one counterexample."""
+    docs = {"PC2": json.loads((ROOT / pc2.PC2_PATH).read_bytes()), "C9": json.loads((ROOT / s.EVIDENCE_PATH).read_bytes()),
+            "R8Q": json.loads((ROOT / s.HISTORY_PATH).read_bytes()), "P1C": json.loads((ROOT / pc2.P1C_PATH).read_bytes())}
+
+    def get(doc, path):
+        node = docs[doc]
+        for key in path:
+            node = node[key]
+        return node
+
+    def setter(path, value):
+        def edit(d):
+            for key in path[:-1]:
+                d = d[key]
+            d[path[-1]] = copy.deepcopy(value)
+        return edit
+
+    out = {}
+
+    def add(case_id, doc, path, label, value):
+        assert get(doc, path) != value or type(get(doc, path)) is not type(value)
+        out[f"{case_id}/sys_{doc}_{'.'.join(path)}_{label}"] = {doc: setter(path, value)}
+
+    empty = [("PC2-38", "PC2", ("failure_reasons",)), ("PC2-38", "PC2", ("code_irregular",)),
+             ("PC2-37", "PC2", ("parent", "mismatched")), ("PC2-39", "C9", ("failure_reasons",)),
+             ("PC2-39", "C9", ("code_irregular",))]
+    for case_id, doc, path in empty:
+        assert get(doc, path) == []
+        for label, value in (("none", None), ("text", ""), ("zero", 0), ("false", False), ("object", {})):
+            add(case_id, doc, path, label, value)
+    literal = [("PC2-38", "PC2", ("deterministic_across_fresh_labs",)), ("PC2-38", "PC2", ("evaluator_runtime", "source_only")),
+               ("PC2-38", "PC2", ("sandbox_view", "matches_subject")), ("PC2-37", "PC2", ("parent", "matches_current_code")),
+               ("PC2-39", "C9", ("deterministic_across_fresh_labs",)), ("PC2-39", "C9", ("golden_subject_code_matches",)),
+               ("PC2-39", "C9", ("evaluator_runtime", "source_only"))]
+    for case_id, doc, path in literal:
+        assert get(doc, path) is True
+        for label, value in (("one", 1), ("text", "true"), ("list", [True])):
+            add(case_id, doc, path, label, value)
+    exact = [("PC2-38", "PC2", ("evidence_schema",)), ("PC2-38", "PC2", ("criteria_revision",)),
+             ("PC2-38", "PC2", ("criteria_status",)), ("PC2-38", "PC2", ("scope",)),
+             ("PC2-38", "PC2", ("proposed_state",)), ("PC2-38", "PC2", ("environment", "sandbox")),
+             ("PC2-39", "C9", ("criteria_revision",)), ("PC2-39", "C9", ("criteria_status",)),
+             ("PC2-39", "C9", ("proposed_state",)), ("PC2-37", "R8Q", ("state",)), ("PC2-37", "R8Q", ("scope",)),
+             ("PC2-40", "P1C", ("criteria_schema",)), ("PC2-40", "P1C", ("revision",)), ("PC2-40", "P1C", ("scope",)),
+             ("PC2-40", "P1C", ("parent", "criteria_revision")), ("PC2-40", "P1C", ("parent", "record_file")),
+             ("PC2-40", "P1C", ("parent", "evidence_file")), ("PC2-40", "P1C", ("pilot", "canonical_name")),
+             ("PC2-40", "P1C", ("pilot", "display_name")), ("PC2-40", "P1C", ("pilot", "purpose"))]
+    for case_id, doc, path in exact:
+        value = get(doc, path)
+        variants = {"lower": value.lower(), "upper": value.upper(), "lead": " " + value, "trail": value + " "}
+        for label, variant_value in variants.items():
+            if variant_value != value:
+                add(case_id, doc, path, label, variant_value)
+    alternatives = [("PC2-38", "PC2", ("criteria_status",), "DRAFT"), ("PC2-39", "C9", ("criteria_status",), "DRAFT"),
+                    ("PC2-37", "R8Q", ("scope",), "LIVE_SIMULATED"), ("PC2-37", "R8Q", ("state",), "REVOKED"),
+                    ("PC2-40", "P1C", ("parent", "evidence_file"), s.EVIDENCE_PATH.rsplit("/", 1)[1][1:]),
+                    ("PC2-40", "P1C", ("parent", "record_file"), s.HISTORY_PATH.rsplit("/", 1)[1][1:])]
+    for case_id, doc, path, value in alternatives:
+        add(case_id, doc, path, "alternative", value)
+    sentinel_ids = {"agent_id": pc2.SENTINEL["agent_id"], "agent_spec_id": pc2.SENTINEL["agent_spec_id"]}
+    pilot_ids = {"agent_id": pc2.PILOT["agent_id"], "agent_spec_id": pc2.PILOT["agent_spec_id"]}
+    for case_id, doc, prefix in (("PC2-36", "PC2", ("parent",)), ("PC2-39", "C9", ("subject",)), ("PC2-37", "R8Q", ())):
+        for key, value in sentinel_ids.items():
+            assert get(doc, prefix + (key,)) == value
+            add(case_id, doc, prefix + (key,), "pilot", pilot_ids[key])
+            add(case_id, doc, prefix + (key,), "upper", value.upper())
+    native = {"agent_id": pc2.SENTINEL["agent_id"], "agent_spec_id": pc2.SENTINEL["agent_spec_id"],
+              "spec_artifact_hash": pc2.SENTINEL["spec_artifact_hash"], "lab_permissions": pc2.SENTINEL_PERMISSIONS,
+              "declared_diff": [], "generation": 0}
+    assert set(native) == set(get("PC2", ("pilot",)))
+    for key, value in native.items():
+        add("PC2-40", "PC2", ("pilot", key), "parent_value", value)
+    out["PC2-40/sys_not_claimed_order"] = {"PC2": lambda d: d["not_claimed"].reverse()}
+    out["PC2-41/sys_last_id"] = {"PC2": lambda d: [r[-1].update(id="P02-other") for r in d["rounds"]]}
+    out["PC2-41/sys_last_failed"] = {"PC2": lambda d: [r[-1].update(passed=False) for r in d["rounds"]]}
+    out["PC2-41/sys_last_predicates"] = {"PC2": lambda d: [r[-1].update(failed_predicates=["x"]) for r in d["rounds"]]}
+    out["PC2-42/sys_last_facts"] = {"PC2": lambda d: [r[-1].update(facts_sha256="X" * 64) for r in d["rounds"]]}
+    out["PC2-42/sys_facts_none"] = {"PC2": lambda d: [r[0].update(facts_sha256=None) for r in d["rounds"]]}
+    assert not set(out) & set(NATIVE_MUTATIONS)
+    return out
+
+
+NATIVE_MUTATIONS.update(_systematic_native_mutations())
+
+
 @case("PC2-36", "PC2-37", "PC2-38", "PC2-39", "PC2-40", "PC2-41", "PC2-42", "PC2-05")
 @pytest.mark.parametrize("name", sorted(NATIVE_MUTATIONS))
 def test_native_bindings_hold_behind_instrumented_pins(name):
@@ -902,6 +988,10 @@ def test_delivery_table_classifies_every_case_and_names_real_tests():
     for x in matrix:
         cell = set(re.findall(r"`(test_[a-z0-9_]+)`", listed[x]))
         assert cell == CASES.get(x, set()), x
+    clauses = {x["id"]: x["clauses"] for x in json.loads(MATRIX.read_bytes())["cases"]}
+    cited = dict(re.findall(r"^\| (PC2-\d\d) \| [A-Z0-9_]+ \| ([^|]*) \|", DELIVERY.read_text(), re.MULTILINE))
+    for x in matrix:
+        assert [v.strip() for v in cited[x].split(",")] == clauses[x], x
 
 
 @pytest.mark.parametrize("path", sorted(pc2.PINS))
@@ -936,6 +1026,8 @@ def test_context_must_be_the_closed_context_type(w):
     values = tuple(f.canonical(v) for v in w.context.values())
     fact = pc2.bindings(f.canonical(w.st), f.canonical(w.q), dict(w.raw), *w.digests, values)
     assert (fact.status, fact.codes) == (c.NE, ("SCIENTIFIC_SOURCE_UNAVAILABLE",))
+    absent = pc2.bindings(f.canonical(w.st), f.canonical(w.q), dict(w.raw), *w.digests, None)
+    assert (absent.status, absent.codes) == (c.NE, ("SCIENTIFIC_SOURCE_UNAVAILABLE",))
 
 
 @case("PC2-13", "PC2-15", "PC2-16", "PC2-25")
@@ -1084,7 +1176,8 @@ def test_q_scope_is_bound_even_when_pc2_agrees(w):
 @case("PC2-08", "PC2-09")
 def test_a_divergent_closure_dominates_an_absent_one(w):
     w.digests[0], w.digests[1] = "c" * 64, None
-    assert (w.science().status, w.science().codes) == ("FAIL", ("SCIENTIFIC_DIVERGENCE",))
+    fact = w.science()
+    assert (fact.status, fact.codes) == ("FAIL", ("SCIENTIFIC_DIVERGENCE",))
 
     class Digest(str):
         pass
