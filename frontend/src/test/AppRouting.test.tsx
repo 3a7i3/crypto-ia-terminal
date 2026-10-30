@@ -64,6 +64,15 @@ describe("Module workspace routing", () => {
       "ne certifie pas",
     );
   });
+  it("keeps five source owners when StrictMode repeats development mount effects", async () => {
+    const { StrictMode } = await import("react");
+    render(<StrictMode><App /></StrictMode>);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(10));
+    const urls = fetchMock.mock.calls.map(call => String(call[0]));
+    expect(new Set(urls).size).toBe(5);
+    expect(urls.filter(url => url === "/api/operator/v1/snapshot")).toHaveLength(2);
+  });
+
   it("opens the owned source from a home card", async () => {
     render(<App />);
     fireEvent.click(

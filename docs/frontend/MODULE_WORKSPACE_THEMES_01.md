@@ -71,7 +71,11 @@ Les scripts visuels de navigation suivent les nouveaux parcours. La preuve
 historique burn-in reste exercée par les tests de composant, de validation et
 le cas J généré par le vrai producteur/API ; son ancien script de navigation
 vérifie désormais les redirections et l’absence de requête burn-in. Son verdict
-ne prétend plus certifier l’ancien écran. Les critères de protection sont inchangés.
+ne prétend plus certifier l’ancien écran. Les critères de protection sont inchangés. En serveur Vite de développement,
+React StrictMode répète les effets de montage : la preuve navigateur vérifie
+les cinq sources uniques et borne les lectures de démarrage à deux par source.
+La preuve Finance attend le DOM et ses valeurs validées plutôt qu’un réseau
+globalement inactif, qui n’est pas un critère fiable avec le polling.
 
 ## Vérification reproductible
 
@@ -92,11 +96,16 @@ ne prétend plus certifier l’ancien écran. Les critères de protection sont i
   leurs contrôles de valeurs exactes, d’UNKNOWN et de provenance ; seules les
   attentes des éléments de navigation retirés sont remplacées.
 
-Résultats locaux : build production et démo réussis ; 491 tests frontend réussis
+Résultats locaux : build production et démo réussis ; 492 tests frontend réussis
 avec les fixtures (aucun ignoré) ; 113 tests Python cross-stack réussis ;
 16 contrats runtime réussis. Node local 24.22.1, Python isolé 3.11.17.
 Le navigateur d’audit de la VM utilise Playwright 1.64.1 / Chromium 156 ; la CI
-visuelle existante utilise Playwright 1.56.1. La CI au SHA de PR demeure une
+visuelle existante utilise Playwright 1.56.1. Le navigateur de la VM conserve
+son sandbox. Le runner GitHub jetable refuse les namespaces de ce binaire :
+le nouveau script accepte uniquement dans GitHub Actions un opt-in explicite
+`MODULE_VISUAL_SANDBOX=false`, identique à la politique de lancement des autres
+preuves visuelles. Les requêtes de la page restent bornées au build local et
+aux fixtures ; aucune configuration de sécurité de la VM n’est changée. La CI au SHA de PR demeure une
 preuve distincte. 154 vérifications visuelles finales passent (clair/sombre, états sources et
 responsive), dont la visibilité et le détail du scanner mobile. Les scripts
 UX français (124 contrôles) et mobile (75 contrôles) passent aussi. Les reçus

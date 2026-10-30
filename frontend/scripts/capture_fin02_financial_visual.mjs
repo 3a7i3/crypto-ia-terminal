@@ -24,7 +24,7 @@ async function noPageOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(`${baseUrl}/paper-live/finance`, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live/finance`, { waitUntil: "domcontentloaded" });
   assert(response?.ok(), "frontend navigation failed");
 
   await page.getByTestId("financial-reconciliation-view").waitFor({ state: "visible" });

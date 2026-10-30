@@ -25,7 +25,12 @@ const routes = [
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 const checks=[], errors=[], requests=[], blocked=[];
 await mkdir(out,{recursive:true});
-const browser = await chromium.launch({headless:true,chromiumSandbox:true});
+// The VM audit defaults to sandboxed Chromium. GitHub's disposable runner
+// restricts user namespaces; its existing visual proofs use Playwright's
+// default launch policy. Permit that policy only by explicit CI opt-in.
+const sandbox = process.env.MODULE_VISUAL_SANDBOX !== "false";
+assert(sandbox || process.env.GITHUB_ACTIONS === "true", "Sandbox opt-out is restricted to the disposable GitHub runner");
+const browser = await chromium.launch({headless:true,chromiumSandbox:sandbox});
 const mime={".js":"text/javascript",".css":"text/css",".html":"text/html",".png":"image/png",".webmanifest":"application/manifest+json"};
 async function intercept(context, scenario) {
   await context.route("**/*", async route => {
