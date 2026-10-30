@@ -1,0 +1,24 @@
+{
+  "verified_at_utc": "2026-10-30T09:37:02.898697+00:00",
+  "mode": "live",
+  "disposition": "READ_ONLY_CHECK_PASS",
+  "served_source_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+  "candidate_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+  "candidate_archive_sha256": "1cf7d3ef9da134f6655c538951b646f3b2cc161cb77b7426fdd5b5bfcaf57d3c",
+  "candidate_not_selected": false,
+  "candidate_files_verified": true,
+  "local_assets_verified": 8,
+  "private_https_index_verified": true,
+  "api_pid": "79546",
+  "web_pid": "108817",
+  "presentation_empty": true,
+  "this_checker_grants_no_authority": true,
+  "exec_start_comparison": "CONFIGURED_PATH_ARGV_IGNORE_ERRORS; PROCESS_IDENTITY_CHECKED_SEPARATELY",
+  "api_exec_start_metadata_differs_from_baseline": true,
+  "limitations": [
+    "point-in-time read-only observation",
+    "no new-frontend runtime proof before activation",
+    "no external egress behavior or reboot test",
+    "no scientific certification"
+  ]
+}

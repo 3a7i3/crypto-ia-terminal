@@ -7,6 +7,7 @@ import http.client
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import stat
 import subprocess
@@ -45,10 +46,36 @@ def properties(unit, keys):
     return dict(line.split("=", 1) for line in raw.splitlines() if "=" in line)
 
 
+def exec_start_configuration(value):
+    """Compare configured command, preserving strict failure on unknown formats."""
+    pattern = (
+        r"\{ path=(?P<path>[^;\n{}]+) ; "
+        r"argv\[\]=(?P<argv>[^;\n{}]+) ; "
+        r"ignore_errors=(?P<ignore_errors>yes|no) ; "
+        r"start_time=\[[^\]\n]*\] ; stop_time=\[[^\]\n]*\] ; "
+        r"pid=\d+ ; code=[^;\n{}]+ ; status=[^;\n{}]+ \}"
+    )
+    require(isinstance(value, str), "Unsupported ExecStart representation")
+    matched = re.fullmatch(pattern, value)
+    require(matched is not None, "Unsupported ExecStart representation")
+    return matched.group("path"), matched.group("argv"), matched.group("ignore_errors")
+
+
+def require_api_process_argv(argv):
+    expected = [
+        str(BASE / "releases" / OLD / ".venv/bin/python"),
+        "-B", "-m", "uvicorn", "observability.operator_api.app:app",
+        "--host", "127.0.0.1", "--port", "8090", "--no-access-log",
+    ]
+    require(argv == expected, "Actual API command changed")
+
+
 def same_properties(actual, expected, label):
     for key, value in expected.items():
         left, right = actual.get(key), value
-        if key in SET_PROPERTIES:
+        if key == "ExecStart":
+            left, right = exec_start_configuration(left), exec_start_configuration(right)
+        elif key in SET_PROPERTIES:
             left, right = sorted((left or "").split()), sorted(right.split())
         require(left == right, label + " changed: " + key)
 
@@ -126,7 +153,9 @@ def verify(mode):
         if unit == WEB:
             require(argv == ["/usr/local/bin/node", actual["WorkingDirectory"] + "/scripts/web01_local_frontend_server.mjs"], "Actual web command differs from loaded unit")
         else:
-            require(argv[0] == str(BASE / "releases" / OLD / ".venv/bin/python") and argv[1:4] == ["-B", "-m", "uvicorn"], "Actual API command changed")
+            require_api_process_argv(argv)
+            started = properties(API, ("ExecMainStartTimestamp",))["ExecMainStartTimestamp"]
+            require(started == before["ActiveEnterTimestamp"], "API execution start changed")
 
     destination = Path(manifest["dropin"]["destination"])
     dropin_dir = destination.parent
@@ -188,6 +217,8 @@ def verify(mode):
         "local_assets_verified": len(assets), "private_https_index_verified": True,
         "api_pid": observed[API]["MainPID"], "web_pid": observed[WEB]["MainPID"],
         "presentation_empty": True, "this_checker_grants_no_authority": True,
+        "exec_start_comparison": "CONFIGURED_PATH_ARGV_IGNORE_ERRORS; PROCESS_IDENTITY_CHECKED_SEPARATELY",
+        "api_exec_start_metadata_differs_from_baseline": observed[API]["ExecStart"] != baseline["units"][API]["ExecStart"],
         "limitations": ["point-in-time read-only observation", "no new-frontend runtime proof before activation", "no external egress behavior or reboot test", "no scientific certification"],
     }
 
