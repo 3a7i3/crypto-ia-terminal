@@ -1,0 +1,243 @@
+{
+  "mission": "#529 APP-BRAND-01",
+  "source_base": "20cd5744d4b27e2bad2310a03162ff62d9ec1a49",
+  "observation": {
+    "observed_start_utc": "2026-10-30T10:53:44.444008+00:00",
+    "observed_end_utc": "2026-10-30T10:53:45.269773+00:00",
+    "disposition": "READ_ONLY_FINDINGS_RECORDED_NOT_EXHAUSTIVE_CERTIFICATION",
+    "host": "crypto-restore-01",
+    "uid": 1001,
+    "boot_id": "d76ab0a4-9e71-44a2-8d43-cec3c3bc897d",
+    "services": {
+      "exit_code": 0,
+      "stdout": "MainPID=79546\nNRestarts=0\nWorkingDirectory=/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345\nId=crypto-operator-api.service\nActiveState=active\nSubState=running\nUnitFileState=disabled\nActiveEnterTimestamp=Fri 2026-10-30 02:48:04 UTC\nNeedDaemonReload=no\n\nMainPID=108817\nNRestarts=0\nWorkingDirectory=/home/lecanada26/crypto-install/releases/1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab/frontend\nId=crypto-operator-web.service\nActiveState=active\nSubState=running\nUnitFileState=disabled\nActiveEnterTimestamp=Fri 2026-10-30 09:26:25 UTC\nNeedDaemonReload=no",
+      "stderr": ""
+    },
+    "failed_system_units": {
+      "exit_code": 0,
+      "stdout": "UNIT LOAD ACTIVE SUB DESCRIPTION\n0 loaded units listed.",
+      "stderr": ""
+    },
+    "failed_user_units": {
+      "exit_code": 0,
+      "stdout": "UNIT LOAD ACTIVE SUB DESCRIPTION\n0 loaded units listed.",
+      "stderr": ""
+    },
+    "resources": {
+      "uptime": {
+        "exit_code": 0,
+        "stdout": "10:53:45 up 1 day,  6:41,  0 users,  load average: 0.92, 0.51, 0.21",
+        "stderr": ""
+      },
+      "memory_mib": {
+        "exit_code": 0,
+        "stdout": "total        used        free      shared  buff/cache   available\nMem:           15991         634       10808           1        4548       15016\nSwap:              0           0           0",
+        "stderr": ""
+      },
+      "disk": {
+        "exit_code": 0,
+        "stdout": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/root        97G   30G   68G  31% /",
+        "stderr": ""
+      },
+      "inodes": {
+        "exit_code": 0,
+        "stdout": "Filesystem       Inodes  IUsed    IFree IUse% Mounted on\n/dev/root      12902400 204180 12698220    2% /",
+        "stderr": ""
+      }
+    },
+    "cpu_vulnerabilities_guest_report": {
+      "mds": "Mitigation: Clear CPU buffers; SMT Host state unknown",
+      "tsx_async_abort": "Mitigation: Clear CPU buffers; SMT Host state unknown",
+      "mmio_stale_data": "Vulnerable: Clear CPU buffers attempted, no microcode; SMT Host state unknown"
+    },
+    "kernel_current_boot_pattern_counts": {
+      "Out of memory": 0,
+      "Killed process": 0,
+      "oom-kill": 0,
+      "I/O error": 0,
+      "EXT4-fs error": 0,
+      "Buffer I/O error": 0,
+      "segfault": 0,
+      "GPT:": 5
+    },
+    "kernel_query_exit_code": 0,
+    "ssh_current_boot_event_counts": {
+      "Invalid user": 3458,
+      "maximum authentication attempts exceeded": 22,
+      "kex_exchange_identification": 144,
+      "Accepted publickey": 23,
+      "Accepted password": 0,
+      "Failed password": 0
+    },
+    "ssh_query_exit_code": 0,
+    "ssh_successes": [
+      {
+        "method": "publickey",
+        "user": "lecanada26",
+        "events": 23
+      }
+    ],
+    "tcp_listeners": [
+      {
+        "family": "tcp",
+        "local_address_hex": "00000000:4EEA",
+        "port": 20202,
+        "uid": 0
+      },
+      {
+        "family": "tcp",
+        "local_address_hex": "00000000:0016",
+        "port": 22,
+        "uid": 0
+      },
+      {
+        "family": "tcp",
+        "local_address_hex": "58D77664:C7EE",
+        "port": 51182,
+        "uid": 0
+      },
+      {
+        "family": "tcp",
+        "local_address_hex": "58D77664:01BB",
+        "port": 443,
+        "uid": 0
+      },
+      {
+        "family": "tcp",
+        "local_address_hex": "0100007F:1FF5",
+        "port": 8181,
+        "uid": 1001
+      },
+      {
+        "family": "tcp",
+        "local_address_hex": "0100007F:1F9A",
+        "port": 8090,
+        "uid": 1001
+      },
+      {
+        "family": "tcp",
+        "local_address_hex": "3500007F:0035",
+        "port": 53,
+        "uid": 101
+      },
+      {
+        "family": "tcp6",
+        "local_address_hex": "00000000000000000000000000000000:4EE9",
+        "port": 20201,
+        "uid": 0
+      },
+      {
+        "family": "tcp6",
+        "local_address_hex": "00000000000000000000000000000000:0016",
+        "port": 22,
+        "uid": 0
+      },
+      {
+        "family": "tcp6",
+        "local_address_hex": "5C117AFD0000E0A10000000059D72DCC:01BB",
+        "port": 443,
+        "uid": 0
+      },
+      {
+        "family": "tcp6",
+        "local_address_hex": "5C117AFD0000E0A10000000059D72DCC:B629",
+        "port": 46633,
+        "uid": 0
+      }
+    ],
+    "cached_apt_upgradable": {
+      "exit_code": 0,
+      "stdout": "Listing...\nsnapd/jammy-updates 2.77.1+ubuntu22.04.1 amd64 [upgradable from: 2.76.3+ubuntu22.04.1]",
+      "stderr": "WARNING: apt does not have a stable CLI interface. Use with caution in scripts."
+    },
+    "reboot_required_file_present": false,
+    "ntp": {
+      "exit_code": 0,
+      "stdout": "Timezone=Etc/UTC\nNTPSynchronized=yes",
+      "stderr": ""
+    },
+    "presentation_entries": 0,
+    "application_warning_error_journal_since_publication": {
+      "exit_code": 0,
+      "stdout": "-- No entries --",
+      "stderr": ""
+    },
+    "limitations": [
+      "point-in-time, current boot and accessible logs only",
+      "no exhaustive code, vulnerability or compromise certification",
+      "no effective privileged sshd/firewall/cloud ACL verification",
+      "no raw block-device GPT verification, fsck or hardware/host validation",
+      "no original databases/backups/secrets opened",
+      "no runtime publication/service restart, update or repair"
+    ]
+  },
+  "additional_observations": {
+    "active_frontend_read_only_checker_at_utc": "2026-10-30T10:48:25.670826+00:00",
+    "active_frontend_checker_disposition": "READ_ONLY_CHECK_PASS",
+    "active_frontend_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+    "eight_served_assets_and_private_tls_verified": true,
+    "ssh_readable_configuration": [
+      "/etc/ssh/sshd_config: KbdInteractiveAuthentication no",
+      "/etc/ssh/sshd_config.d/60-cloudimg-settings.conf: PasswordAuthentication no"
+    ],
+    "ssh_effective_privileged_configuration_verified": false,
+    "boot_gpt_warning": [
+      "Primary header thinks Alt. header is not at the end of the disk",
+      "8388607 != 209715199",
+      "Alternate GPT header not at the end of the disk"
+    ],
+    "lsblk_disk_and_root_partition": "sda 100G; sda1 99.9G ext4; root use31percent",
+    "existing_systemd_warnings": [
+      "netplan-ovs-cleanup.service world-inaccessible configuration",
+      "snapd.service unknown RestartMode key"
+    ],
+    "osconfig_historical_transient_warning_latest": "2026-10-30T02:59:55Z",
+    "root_listener_process_ownership_verified": false,
+    "ops_agent_port_attribution": "INFERENCE_FROM_DOCUMENTED_PORTS_AND_RUNNING_COMPONENTS_NOT_ROOT_PID_PROOF",
+    "external_firewall_reachability_tested": false
+  },
+  "candidate_validation": {
+    "scope": "ISOLATED_SOURCE_NOT_DEPLOYED",
+    "npm_ci": "--ignore-scripts;159 packages audited;0 vulnerabilities",
+    "frontend": {
+      "passed": 492,
+      "skipped": 0,
+      "fixture_files": 19,
+      "fixture_hashes_match_previous_manifest": true,
+      "fixtures_regenerated": false
+    },
+    "runtime": {
+      "passed": 16,
+      "skipped": 0
+    },
+    "production_build": "PASS;Node24.22.2;Vite8.3.5",
+    "visual": {
+      "existing_checks_passed": 154,
+      "targeted_logo_views": 6,
+      "targeted_logo_assertions": 74,
+      "zero_page_errors": true,
+      "zero_blocked_requests": true,
+      "sandbox": true,
+      "minimum_semantic_contrast": 5.274303905253394
+    },
+    "actual_candidate_runtime_started": false,
+    "proof_hashes": {
+      "captures/checks.json": "2388a9152aaf4ac823b2c38481eb350050e7716ca152e3d563088d4d997e843c",
+      "LOGO_BROWSER.json": "e2a9d9ac685e338aadae5d72bca066214eeab334d2ade5182be8c552c5f8ac10",
+      "frontend-tests.log": "596035115905f2778943dcfc10fa24d4a35eea86ea2d3afcb4f39b654b30b992",
+      "runtime-tests.log": "d16c22443150cbce1a50972babb363bd7ea7f4c4eed1688735e2fa2b5fd41a25",
+      "build.log": "c65507e5ff379f0a275afe42fee4e3531854dcf9dc16d1c9f9f2a3466cabbf07",
+      "VM_READ_ONLY.json": "a48984e57aadd8221545af602c2815ef10d8a935605c642e124d246f633968eb"
+    },
+    "svg_sha256": "558a4e3346c3a94a40b50ea49bbd7e83dd98077b9ecd4610de3c7e29cb125436",
+    "png_sha256": {
+      "frontend/public/icons/operator-192.png": "5f8e38bca670a96916ed4089375ee0d6209c4d19161222489b30b756d4b2d411",
+      "frontend/public/icons/operator-512.png": "48308c17cac212c82b1d84f6c53571642249f3283cf62862f06cad13f1bc75b1"
+    }
+  },
+  "external_primary_references": [
+    "https://docs.kernel.org/admin-guide/hw-vuln/processor_mmio_stale_data.html",
+    "https://docs.cloud.google.com/monitoring/agent/ops-agent",
+    "https://docs.cloud.google.com/monitoring/agent/ops-agent/troubleshoot-install-startup"
+  ]
+}

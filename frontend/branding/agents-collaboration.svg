@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64">
+  <title>Deux agents partenaires se serrent la main</title>
+  <rect width="64" height="64" rx="16" fill="#e9f2f2"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6">
+    <g stroke="#146b68">
+      <path d="M20 13v3"/>
+      <rect x="13" y="17" width="14" height="12" rx="4"/>
+      <path d="M13 47V37a5 5 0 0 1 5-5h3l5 4M16 47h6"/>
+    </g>
+    <g stroke="#223342">
+      <path d="M44 13v3"/>
+      <rect x="37" y="17" width="14" height="12" rx="4"/>
+      <path d="M51 47V37a5 5 0 0 0-5-5h-3l-5 4M42 47h6"/>
+    </g>
+    <path d="m23 40 6 5a4 4 0 0 0 5 0l7-6M23 35l4-2h5" stroke="#146b68"/>
+    <path d="m41 35-5-3h-4l-6 6 2 2a2 2 0 0 0 3 0l2-2 6 5M25 42l-3 3M40 42l3 3" stroke="#223342"/>
+  </g>
+  <g fill="#146b68"><circle cx="17.5" cy="23" r="1.25"/><circle cx="22.5" cy="23" r="1.25"/></g>
+  <g fill="#223342"><circle cx="41.5" cy="23" r="1.25"/><circle cx="46.5" cy="23" r="1.25"/></g>
+</svg>
