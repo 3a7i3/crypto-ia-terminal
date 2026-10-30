@@ -1,0 +1,195 @@
+{
+  "observed_at_utc": "2026-10-30T08:17:04.757Z",
+  "source_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+  "scope": "POST_MERGE_PUSH_WORKFLOWS_NOT_RUNTIME_CERTIFICATION",
+  "total_count": 20,
+  "runs": [
+    {
+      "id": 41005746949,
+      "name": "CI",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746949"
+    },
+    {
+      "id": 41005746911,
+      "name": "Coverage Report",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746911"
+    },
+    {
+      "id": 41005746905,
+      "name": "Test Dashboards and Panels",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746905"
+    },
+    {
+      "id": 41005746816,
+      "name": "Upload coverage to Coveralls",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746816"
+    },
+    {
+      "id": 41005746861,
+      "name": "Upload coverage to Codecov",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746861"
+    },
+    {
+      "id": 41005746797,
+      "name": "Orchestration Integrity Check",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746797"
+    },
+    {
+      "id": 41005746858,
+      "name": "Frontend CI",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746858"
+    },
+    {
+      "id": 41005746814,
+      "name": "WEB-DIR-01 Direction Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746814"
+    },
+    {
+      "id": 41005746770,
+      "name": "Legacy UI Route Compatibility",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746770"
+    },
+    {
+      "id": 41005746958,
+      "name": "APP-UNIFY U4 Research Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746958"
+    },
+    {
+      "id": 41005746768,
+      "name": "APP-UNIFY U3a Scanner Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746768"
+    },
+    {
+      "id": 41005746833,
+      "name": "APP-UNIFY U3b Microstructure Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746833"
+    },
+    {
+      "id": 41005746786,
+      "name": "WEB-02 PPL Comparator Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746786"
+    },
+    {
+      "id": 41005746902,
+      "name": "APP-UNIFY U2b Runtime Service Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746902"
+    },
+    {
+      "id": 41005746834,
+      "name": "WEB-01 Market Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746834"
+    },
+    {
+      "id": 41005746901,
+      "name": "FIN-02 Financial Cockpit Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746901"
+    },
+    {
+      "id": 41005746849,
+      "name": "WEB-RL Research Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746849"
+    },
+    {
+      "id": 41005746837,
+      "name": "Cross-Stack Compatibility Gate",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746837"
+    },
+    {
+      "id": 41005746866,
+      "name": "Generate Panel Screenshots",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746866"
+    },
+    {
+      "id": 41005746896,
+      "name": "Machine Lab U6 Visual Proof",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+      "url": "https://github.com/3a7i3/crypto-ia-terminal/actions/runs/41005746896"
+    }
+  ],
+  "handoff_526": {
+    "head_sha": "c0104fa7a2b7b43f9112a706fd3e3511434c552e",
+    "merged_sha": "d6fd88bea24ec124a2de3c82d1ff2d18a256180a",
+    "required_checks_success": true,
+    "reviews": 0,
+    "review_threads": 0
+  }
+}

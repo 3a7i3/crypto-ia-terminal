@@ -1,0 +1,254 @@
+{
+  "archive": {
+    "path": "/home/lecanada26/crypto-install/staging/frontend-1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab/frontend-1c3f0b5.tar.gz",
+    "sha256": "1cf7d3ef9da134f6655c538951b646f3b2cc161cb77b7426fdd5b5bfcaf57d3c",
+    "size_bytes": 167970
+  },
+  "authorization": "PREPARATION_ONLY; PUBLICATION AND WEB RESTART NOT AUTHORIZED",
+  "baseline": {
+    "candidate_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+    "candidate_tree": "c3fa07c323852c937c6c7ac4cc74bad86c52eba1",
+    "hostname": "crypto-restore-01",
+    "observed_at_utc": "2026-10-30T08:11:15.067165+00:00",
+    "presentation_empty": true,
+    "protected_file_sha256": {
+      "/etc/systemd/system/crypto-operator-api.service": "cc22f8fe09c408fc5c911e7f50dab900e57ced356678c8319a1c0d83d78824ec",
+      "/etc/systemd/system/crypto-operator-web.service": "6a423068c5f70523da4f45b5e956a8467ccef8f151f0a4ddb294076c0f114591",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/assets/index-B2n-HB2t.css": "4995daa1c050ec48112dca063fd60b5fef475b30c90149c255b6bdd3764708a5",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/assets/index-BDjaRrDY.js": "2a14fff93fe8120041786c73ca956bf41d42f982450b283fc8bf547c3322bbe2",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/icons/operator-192.png": "bc969e04c6b134b4cba00af788d2a202a496290d169a5b64cbc7b4fd5f10a262",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/icons/operator-512.png": "9fa2842f016e5a2a0f8f0496f9f778ecc87382db91e6d423d9691497a627f10c",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/index.html": "9625e9e8f501c956b1355890e3f7d8a980869c43f0972ab24cd1ebd05ba5ac73",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/manifest.webmanifest": "aa7204dcf7cd65973c766fd836c6783151217775e53b9285df85b72c9954e3f4",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/pwa-policy.js": "ff9d4dbc9cce8c06809ea33ad474886b2e095d8609db1136fdadb44ca859ec39",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/dist/sw.js": "8acfc51826d7f462f419ee0a957f4e78e27c053d181414a834545eab35cb7595",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/package-lock.json": "1b954b61f4e2f0e39f92ca9449bffd34b0dfcb32eb82dc39c0e889e03644e0ed",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/package.json": "909fc68d6434caa0fe851ba6953e359cd8ed5aa2f0818485b7fe0f8dc1f3f751",
+      "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/scripts/web01_local_frontend_server.mjs": "bcf42a665192777bf041b1f1cf69074c96c3fde313ac74e13ee7d9fbc56f0798"
+    },
+    "uid": 1001,
+    "units": {
+      "crypto-operator-api.service": {
+        "ActiveEnterTimestamp": "Fri 2026-10-30 02:48:04 UTC",
+        "ActiveState": "active",
+        "BindReadOnlyPaths": "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345:/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345:rbind /home/lecanada26/crypto-install/python/cpython-3.11.17-linux-x86_64-gnu:/home/lecanada26/crypto-install/python/cpython-3.11.17-linux-x86_64-gnu:rbind /home/lecanada26/crypto-install/presentation:/home/lecanada26/crypto-install/presentation:rbind",
+        "DropInPaths": "",
+        "ExecStart": "{ path=/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/.venv/bin/python ; argv[]=/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/.venv/bin/python -B -m uvicorn observability.operator_api.app:app --host 127.0.0.1 --port 8090 --no-access-log ; ignore_errors=no ; start_time=[Fri 2026-10-30 02:48:04 UTC] ; stop_time=[n/a] ; pid=79546 ; code=(null) ; status=0/0 }",
+        "FragmentPath": "/etc/systemd/system/crypto-operator-api.service",
+        "Id": "crypto-operator-api.service",
+        "MainPID": "79546",
+        "NRestarts": "0",
+        "NeedDaemonReload": "no",
+        "SubState": "running",
+        "UnitFileState": "disabled",
+        "WorkingDirectory": "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345"
+      },
+      "crypto-operator-web.service": {
+        "ActiveEnterTimestamp": "Fri 2026-10-30 02:48:06 UTC",
+        "ActiveState": "active",
+        "BindReadOnlyPaths": "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend:/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend:rbind",
+        "DropInPaths": "",
+        "ExecStart": "{ path=/usr/local/bin/node ; argv[]=/usr/local/bin/node /home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend/scripts/web01_local_frontend_server.mjs ; ignore_errors=no ; start_time=[Fri 2026-10-30 02:48:06 UTC] ; stop_time=[n/a] ; pid=79556 ; code=(null) ; status=0/0 }",
+        "FragmentPath": "/etc/systemd/system/crypto-operator-web.service",
+        "Id": "crypto-operator-web.service",
+        "MainPID": "79556",
+        "NRestarts": "0",
+        "NeedDaemonReload": "no",
+        "SubState": "running",
+        "UnitFileState": "disabled",
+        "WorkingDirectory": "/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345/frontend"
+      }
+    }
+  },
+  "baseline_before_sha256": "6ab53cb8314eebe527cbcd204873dacbe91d76b2d2f2e87e6ef8761245343136",
+  "ci_evidence_sha256": "863acb88b6c99fca4b888d0af5eccaab0bddb5029f5a5393ec3558f06e178b21",
+  "dropin": {
+    "destination": "/etc/systemd/system/crypto-operator-web.service.d/90-ui-modules-1c3f0b5.conf",
+    "path": "/home/lecanada26/crypto-install/staging/frontend-1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab/units/crypto-operator-web.service.d/90-ui-modules-1c3f0b5.conf",
+    "sha256": "867b846d0567ae8f62f3d11709b41bf43e168a5a1fda42f29b04350a552f594e"
+  },
+  "hardening_baseline": {
+    "crypto-operator-api.service": {
+      "AmbientCapabilities": "",
+      "CapabilityBoundingSet": "",
+      "Group": "lecanada26",
+      "IPAddressAllow": "127.0.0.0/8 ::1/128",
+      "IPAddressDeny": "0.0.0.0/0 ::/0",
+      "LockPersonality": "yes",
+      "NoNewPrivileges": "yes",
+      "PrivateDevices": "yes",
+      "PrivateTmp": "yes",
+      "ProtectControlGroups": "yes",
+      "ProtectHome": "tmpfs",
+      "ProtectKernelModules": "yes",
+      "ProtectKernelTunables": "yes",
+      "ProtectSystem": "strict",
+      "Requires": "sysinit.target -.mount system.slice",
+      "Restart": "on-failure",
+      "RestartUSec": "10s",
+      "RestrictAddressFamilies": "AF_INET AF_UNIX",
+      "RestrictSUIDSGID": "yes",
+      "UMask": "0077",
+      "User": "lecanada26",
+      "Wants": "tmp.mount"
+    },
+    "crypto-operator-web.service": {
+      "AmbientCapabilities": "",
+      "CapabilityBoundingSet": "",
+      "Group": "lecanada26",
+      "IPAddressAllow": "127.0.0.0/8 ::1/128",
+      "IPAddressDeny": "0.0.0.0/0 ::/0",
+      "LockPersonality": "yes",
+      "NoNewPrivileges": "yes",
+      "PrivateDevices": "yes",
+      "PrivateTmp": "yes",
+      "ProtectControlGroups": "yes",
+      "ProtectHome": "tmpfs",
+      "ProtectKernelModules": "yes",
+      "ProtectKernelTunables": "yes",
+      "ProtectSystem": "strict",
+      "Requires": "system.slice sysinit.target -.mount",
+      "Restart": "on-failure",
+      "RestartUSec": "10s",
+      "RestrictAddressFamilies": "AF_INET AF_UNIX",
+      "RestrictSUIDSGID": "yes",
+      "UMask": "0077",
+      "User": "lecanada26",
+      "Wants": "tmp.mount"
+    }
+  },
+  "prepared_at_utc": "2026-10-30T08:16:05.585839+00:00",
+  "prepared_final_at_utc": "2026-10-30T08:17:07.906340+00:00",
+  "private_ipv4": "100.118.215.88",
+  "private_url": "https://crypto-restore-01.tailfebca3.ts.net/",
+  "source": {
+    "node_version": "v24.22.2",
+    "npm_version": "11.19.1",
+    "operator_api_tree_unchanged": "bfecb44199958a5b7666272aaa2260b040192146",
+    "previous_release_sha": "82cd63e202e09ff52e00372cb9d9f3eb65cc8345",
+    "runtime_files": {
+      "frontend/dist/assets/index-BRFj9H6x.css": {
+        "sha256": "9f4f122a109c7c61e0136845e45f81767e05233672aa56589ab769ae7d8ff91e",
+        "size_bytes": 103651
+      },
+      "frontend/dist/assets/index-D1gvj9uI.js": {
+        "sha256": "a60fac0472c962782b8d242e247846349a9ea8c89eb8e157ca5bc845c5435061",
+        "size_bytes": 408730
+      },
+      "frontend/dist/icons/operator-192.png": {
+        "sha256": "bc969e04c6b134b4cba00af788d2a202a496290d169a5b64cbc7b4fd5f10a262",
+        "size_bytes": 1059
+      },
+      "frontend/dist/icons/operator-512.png": {
+        "sha256": "9fa2842f016e5a2a0f8f0496f9f778ecc87382db91e6d423d9691497a627f10c",
+        "size_bytes": 3161
+      },
+      "frontend/dist/index.html": {
+        "sha256": "e16d8fe8767ce798acc5eb3151703492ec46735ac38781f55b69e7aebb1e8dde",
+        "size_bytes": 760
+      },
+      "frontend/dist/manifest.webmanifest": {
+        "sha256": "aa7204dcf7cd65973c766fd836c6783151217775e53b9285df85b72c9954e3f4",
+        "size_bytes": 626
+      },
+      "frontend/dist/pwa-policy.js": {
+        "sha256": "ff9d4dbc9cce8c06809ea33ad474886b2e095d8609db1136fdadb44ca859ec39",
+        "size_bytes": 1832
+      },
+      "frontend/dist/sw.js": {
+        "sha256": "8acfc51826d7f462f419ee0a957f4e78e27c053d181414a834545eab35cb7595",
+        "size_bytes": 2621
+      },
+      "frontend/package-lock.json": {
+        "sha256": "1b954b61f4e2f0e39f92ca9449bffd34b0dfcb32eb82dc39c0e889e03644e0ed",
+        "size_bytes": 92338
+      },
+      "frontend/package.json": {
+        "sha256": "909fc68d6434caa0fe851ba6953e359cd8ed5aa2f0818485b7fe0f8dc1f3f751",
+        "size_bytes": 950
+      },
+      "frontend/scripts/web01_local_frontend_server.mjs": {
+        "sha256": "bcf42a665192777bf041b1f1cf69074c96c3fde313ac74e13ee7d9fbc56f0798",
+        "size_bytes": 6141
+      }
+    },
+    "scope": "FRONTEND_ONLY_PREPARED_NOT_PUBLISHED",
+    "source_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+    "tested_pr_head": "2085fe2a65c0259bb09a8bd60949baa52f3154df",
+    "tree": "c3fa07c323852c937c6c7ac4cc74bad86c52eba1"
+  },
+  "tailscale_serve": {
+    "TCP": {
+      "443": {
+        "HTTPS": true
+      }
+    },
+    "Web": {
+      "crypto-restore-01.tailfebca3.ts.net:443": {
+        "Handlers": {
+          "/": {
+            "Proxy": "http://127.0.0.1:8181"
+          }
+        }
+      }
+    }
+  },
+  "validation": {
+    "browser": {
+      "blocked": [],
+      "checks": 154,
+      "chromium": "156.0.8078.4",
+      "errors": [],
+      "minimum_semantic_contrast": 5.274303905253394,
+      "playwright": "1.64.1",
+      "production_api_contacted": false,
+      "proof_path": "/home/lecanada26/crypto-install/audit-browser/release-1c3f0b5-20261030/captures/checks.json",
+      "proof_sha256": "2388a9152aaf4ac823b2c38481eb350050e7716ca152e3d563088d4d997e843c",
+      "sandbox": true,
+      "scope": "SYNTHETIC_SOURCE_UI_NOT_DEPLOYED",
+      "theme_persistence": "PASS"
+    },
+    "build_warning": "Vite future configLoader native / CommonJS config warning, not suppressed; no source change",
+    "frontend_tests": {
+      "fixture_origin": "reused generated synthetic fixtures from module-preview-final, no recovered data",
+      "fixtures_sha256": {
+        "A_minimal_canonical.json": "8e64e0fd04d990ce5e800ba79434b226441e1b0b1ea3a8b28e13a82f8fc027e8",
+        "B_unknown_mode_fail_closed.json": "1b7be27e74c7d86c27bfaa195f1b1d54e6555c111d8dac07961d073947f21fb9",
+        "C_portfolio_semantics.json": "e8cb3700a9b2e029978e25436c6304d268f3f0efe9c7816e2c881efcd5d82897",
+        "D_decision_authority.json": "49a5adf8355f3721b70a595b961e880654db1dd6536001a45b12f8735acb4f9a",
+        "E_previous_instance.json": "618d22096c40cc55644f2b86d0ff7c3b044fc9ed932658a11cef0d3a33d33a5a",
+        "F_failure_honesty.json": "2b425d1b9b160bf4aef1a1338c2ad38681ee8509783d9c8444cc2f63612ca25e",
+        "G_market.json": "1b66991fb00ad89cf3f7511147565ec6e2ad1ece996c333c412171bdefc92841",
+        "H_ppl_comparison.json": "247de88efddc603d607da8082f862b63e6cc3123973ae395cfd9472b91b15327",
+        "I_research_lab.json": "dce7485bd24df718dd583df5ce72ba3be333ca53671d77331c20ebe20c5be13c",
+        "J_burn_in.json": "3111ae0d413ac5941c249ddc7ad6f683f0734d97ee1fc01eac2eef61c43124f3",
+        "K_runtime_service.json": "023bb1e31acfc1b59341d2b7fefc4f41b7e74a7438abdb122b28d3111412b1b5",
+        "L_events.json": "3ad26444a75e0f649b97e6a9e12af135b6e205742f74805f5a1ed66c1e25e3f3",
+        "L_events_partial.json": "95dc1f81038870ce68b6ea1c020fdf8f99ee7c4d4f30bf6be83c6146990a4033",
+        "L_scanner.json": "88e3093bcab5abccdefa753f029a5d9cd0f1646f608f8bb5e2aac948fa160214",
+        "M_microstructure.json": "7172c1621f004b840b55a83e2ca1681f8f611591eedb78c62328529b93c912f5",
+        "N_research_publication.json": "892c21b3eabafebc69f0dc0a640208b21f243a3e1ff358c2077605aca89638fd",
+        "N_storage.json": "79ec9c27d54b9685a8fe90c79c780cb3f6cace01b070ca1bb2e538ff8da63e2c",
+        "O_research_strategies.json": "b61fd1c06a4b5d429a927dd78badfe110a2ce9b2e61dff29c3d727e142cf5f67",
+        "P_financial_clarity.json": "2caad6b335e1a35bc2cfa4853e5051f6840a15dc9a7bff2e01056930e6d95c1b"
+      },
+      "passed": 492,
+      "skipped": 0
+    },
+    "node": "v24.22.2",
+    "npm": "11.19.1",
+    "npm_audit_vulnerabilities": 0,
+    "production_build": "PASS",
+    "runtime_contracts": {
+      "passed": 16,
+      "skipped": 0
+    },
+    "systemd_verify": {
+      "exit_code": 0,
+      "unrelated_existing_warnings": [
+        "netplan-ovs-cleanup: read permission denied",
+        "snapd: unknown RestartMode key"
+      ]
+    }
+  }
+}
