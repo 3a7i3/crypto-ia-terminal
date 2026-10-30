@@ -75,7 +75,7 @@ Staging :
 | `frontend-1c3f0b5.tar.gz`, 167970 octets | `1cf7d3ef9da134f6655c538951b646f3b2cc161cb77b7426fdd5b5bfcaf57d3c` |
 | `RELEASE_MANIFEST.json` | `21838846782410e258177ae0885b60a294068304e35b20df54e12f655cf723af` |
 | `90-ui-modules-1c3f0b5.conf` | `867b846d0567ae8f62f3d11709b41bf43e168a5a1fda42f29b04350a552f594e` |
-| `verify_frontend_release.py` | `0ab857fbb93f99bd5075d52024dac9848293096f126519f9b0d023b6e3532270` |
+| `verify_frontend_release.py` | `f48a30e6ad514c14fe404a9c694d4b302c1d7a9b16f389dc986bcd0842b11296` |
 | Nouvel `dist/index.html` | `e16d8fe8767ce798acc5eb3151703492ec46735ac38781f55b69e7aebb1e8dde` |
 
 [Manifeste complet](evidence/frontend_1c3f0b5_20261030/RELEASE_MANIFEST.json),
@@ -102,7 +102,7 @@ dans les deux sources : aucune mise à niveau API requise par cette refonte.
 | npm audit | 0 vulnérabilité |
 | Source | HEAD/tree exacts, tree suivi propre, diff --check PASS |
 | Analyse systemd de l'équivalent composé | Exit0 ; aucune installation ou prise en charge par PID1 |
-| Navigateur de la nouvelle dist | 154 contrôles PASS, zéro pageerror/flux externe/débordement, thèmes persistés, 1440/820/390px, états présents/absents/périmés/invalides/erreur réseau |
+| Navigateur de la nouvelle dist | 154 contrôles PASS, zéro pageerror/requête externe de page/débordement, thèmes persistés, 1440/820/390px, états présents/absents/périmés/invalides/erreur réseau |
 | Contraste sémantique testé | Minimum5.274:1 |
 | Contrôle courant HTTP/TLS | Ancienne dist vérifiée, pas la nouvelle |
 | Garde négative | Mode `live` refusé avec « Wrong served web directory » tant que 82cd63e est servi |
@@ -165,7 +165,7 @@ Sur la VM, sous lecanada26 :
 
 ```bash
 stage=/home/lecanada26/crypto-install/staging/frontend-1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab
-printf '%s  %s\n' 0ab857fbb93f99bd5075d52024dac9848293096f126519f9b0d023b6e3532270 "$stage/verify_frontend_release.py" | sha256sum --check -
+printf '%s  %s\n' f48a30e6ad514c14fe404a9c694d4b302c1d7a9b16f389dc986bcd0842b11296 "$stage/verify_frontend_release.py" | sha256sum --check -
 python3 -B "$stage/verify_frontend_release.py" preflight
 ```
 
@@ -186,7 +186,7 @@ set -euo pipefail
 stage=/home/lecanada26/crypto-install/staging/frontend-1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab
 custody=/root/frontend-1c3f0b5-20261030
 dest=/etc/systemd/system/crypto-operator-web.service.d/90-ui-modules-1c3f0b5.conf
-printf '%s  %s\n' 0ab857fbb93f99bd5075d52024dac9848293096f126519f9b0d023b6e3532270 "$stage/verify_frontend_release.py" | sha256sum --check -
+printf '%s  %s\n' f48a30e6ad514c14fe404a9c694d4b302c1d7a9b16f389dc986bcd0842b11296 "$stage/verify_frontend_release.py" | sha256sum --check -
 python3 -B "$stage/verify_frontend_release.py" preflight
 sudo test ! -e "$custody"
 sudo test ! -L "$custody"
@@ -229,7 +229,7 @@ test "$(sudo sha256sum "$dest" | cut -d ' ' -f1)" = 867b846d0567ae8f62f3d11709b4
 sudo rm -- "$dest"
 sudo systemctl daemon-reload
 sudo systemctl restart crypto-operator-web.service
-printf '%s  %s\n' 0ab857fbb93f99bd5075d52024dac9848293096f126519f9b0d023b6e3532270 "$stage/verify_frontend_release.py" | sha256sum --check -
+printf '%s  %s\n' f48a30e6ad514c14fe404a9c694d4b302c1d7a9b16f389dc986bcd0842b11296 "$stage/verify_frontend_release.py" | sha256sum --check -
 python3 -B "$stage/verify_frontend_release.py" rollback
 ```
 
@@ -237,6 +237,14 @@ Résultat attendu : ancienne unité sans drop-in, cwd/commande web82cd63e,
 8 anciens assets et index privé conformes ; API inchangée, boot disabled,
 présentation vide. Ancienne release, custody, source candidate, logs et archives
 restent conservés. Aucun restore de base, backup, secret ou fichier scientifique.
+
+Le mode rollback du vérificateur ne dépend pas de l'intégrité de la release
+candidate : il vérifie les anciens fichiers, l'ancienne présentation servie,
+l'API et les frontières préservées. Régression testée en refusant en mémoire toute
+lecture de hash de la candidate/archive : rollback checker PASS sur l'ancien
+frontend, préflight REFUSED. Aucun fichier n'a été corrompu ou supprimé ; reçu
+ROLLBACK_CHECKER_REGRESSION.json dans le répertoire de validations. Les identités
+API/web sont relues après les GET pour détecter un changement pendant le contrôle.
 
 Le rollback runtime n'a pas été exécuté ni testé en production pendant cette
 préparation. Échec de rollback, interruption ou garde refusée : état inconnu

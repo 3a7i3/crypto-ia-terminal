@@ -73,23 +73,25 @@ def verify(mode):
     baseline = manifest["baseline"]
     for filename, expected in baseline["protected_file_sha256"].items():
         require(digest(filename) == expected, "Protected old file changed: " + filename)
-    for relative, metadata in manifest["source"]["runtime_files"].items():
-        require(digest(BASE / "releases" / NEW / relative) == metadata["sha256"], "Candidate file changed: " + relative)
-    dist_root = BASE / "releases" / NEW / "frontend/dist"
-    dist_nodes = list(dist_root.rglob("*"))
-    require(not any(p.is_symlink() for p in dist_nodes), "Symlink in candidate dist")
-    expected_assets = {p for p in manifest["source"]["runtime_files"] if p.startswith("frontend/dist/")}
-    actual_assets = {p.relative_to(BASE / "releases" / NEW).as_posix()
-                     for p in dist_nodes if p.is_file()}
-    require(actual_assets == expected_assets, "Unexpected candidate dist file inventory")
-    require(digest(manifest["archive"]["path"]) == manifest["archive"]["sha256"], "Frontend archive changed")
-    require(digest(manifest["dropin"]["path"]) == manifest["dropin"]["sha256"], "Staged drop-in changed")
-    require(digest(STAGE / "CI_POST_MERGE.json") == manifest["ci_evidence_sha256"], "CI receipt changed")
+    if mode != "rollback":
+        for relative, metadata in manifest["source"]["runtime_files"].items():
+            require(digest(BASE / "releases" / NEW / relative) == metadata["sha256"], "Candidate file changed: " + relative)
+        dist_root = BASE / "releases" / NEW / "frontend/dist"
+        dist_nodes = list(dist_root.rglob("*"))
+        require(not any(p.is_symlink() for p in dist_nodes), "Symlink in candidate dist")
+        expected_assets = {p for p in manifest["source"]["runtime_files"] if p.startswith("frontend/dist/")}
+        actual_assets = {p.relative_to(BASE / "releases" / NEW).as_posix()
+                         for p in dist_nodes if p.is_file()}
+        require(actual_assets == expected_assets, "Unexpected candidate dist file inventory")
+        require(digest(manifest["archive"]["path"]) == manifest["archive"]["sha256"], "Frontend archive changed")
+        require(digest(manifest["dropin"]["path"]) == manifest["dropin"]["sha256"], "Staged drop-in changed")
+        require(digest(STAGE / "CI_POST_MERGE.json") == manifest["ci_evidence_sha256"], "CI receipt changed")
+        candidate = BASE / "releases" / NEW
+        require(command("git", "-C", str(candidate), "rev-parse", "HEAD") == NEW, "Candidate HEAD changed")
+        require(command("git", "-C", str(candidate), "rev-parse", "HEAD^{tree}") == manifest["source"]["tree"], "Candidate tree changed")
+        require(command("git", "-C", str(candidate), "status", "--porcelain") == "", "Candidate tracked tree is dirty")
+
     require(not any((BASE / "presentation").iterdir()), "Presentation is no longer empty")
-    candidate = BASE / "releases" / NEW
-    require(command("git", "-C", str(candidate), "rev-parse", "HEAD") == NEW, "Candidate HEAD changed")
-    require(command("git", "-C", str(candidate), "rev-parse", "HEAD^{tree}") == manifest["source"]["tree"], "Candidate tree changed")
-    require(command("git", "-C", str(candidate), "status", "--porcelain") == "", "Candidate tracked tree is dirty")
 
     observed = {}
     for unit in (API, WEB):
@@ -173,13 +175,16 @@ def verify(mode):
         check=True, capture_output=True, timeout=15,
     ).stdout
     require(hashlib.sha256(private_body).hexdigest() == index_sha, "Private HTTPS index mismatch")
-    require(command("systemctl", "show", API, "--property=MainPID", "--value") == baseline["units"][API]["MainPID"], "API PID changed during HTTP checks")
+    for unit in (API, WEB):
+        same_properties(properties(unit, observed[unit].keys()), observed[unit],
+                        unit + " changed during HTTP checks")
     return {
         "verified_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "mode": mode, "disposition": "READ_ONLY_CHECK_PASS",
         "served_source_sha": served_sha, "candidate_sha": NEW,
         "candidate_archive_sha256": manifest["archive"]["sha256"],
         "candidate_not_selected": mode != "live",
+        "candidate_files_verified": mode != "rollback",
         "local_assets_verified": len(assets), "private_https_index_verified": True,
         "api_pid": observed[API]["MainPID"], "web_pid": observed[WEB]["MainPID"],
         "presentation_empty": True, "this_checker_grants_no_authority": True,
