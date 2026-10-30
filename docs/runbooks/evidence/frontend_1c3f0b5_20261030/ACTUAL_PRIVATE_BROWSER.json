@@ -1,0 +1,329 @@
+{
+  "at_utc": "2026-10-30T09:33:33.503Z",
+  "scope": "ACTUAL_DEPLOYED_PRIVATE_FRONTEND_PRESENTATION_EMPTY",
+  "source_sha": "1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab",
+  "base": "https://crypto-restore-01.tailfebca3.ts.net",
+  "index_sha256": "e16d8fe8767ce798acc5eb3151703492ec46735ac38781f55b69e7aebb1e8dde",
+  "fixtures_used": false,
+  "sandbox": true,
+  "service_workers": "blocked",
+  "tls_verification": true,
+  "host_resolver": "private hostname mapped to known Tailscale IP; system DNS unchanged",
+  "checks": [
+    {
+      "label": "393-light-home",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 1717
+    },
+    {
+      "label": "393-light-market",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-decisions",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-positions",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-ppl",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-finance",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-research",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-strategies",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-system",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-events",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-light-project",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 4993
+    },
+    {
+      "label": "393-dark-home",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 1717
+    },
+    {
+      "label": "393-dark-market",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-decisions",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-positions",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-ppl",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-finance",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-research",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-strategies",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-system",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-events",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 852
+    },
+    {
+      "label": "393-dark-project",
+      "width": 393,
+      "scrollWidth": 393,
+      "height": 4993
+    },
+    {
+      "label": "1440-light-home",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1009
+    },
+    {
+      "label": "1440-light-market",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-decisions",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-positions",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-ppl",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-finance",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-research",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-strategies",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-system",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-events",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-light-project",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 2295
+    },
+    {
+      "label": "1440-dark-home",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1009
+    },
+    {
+      "label": "1440-dark-market",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-decisions",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-positions",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-ppl",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-finance",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-research",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-strategies",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-system",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-events",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 1000
+    },
+    {
+      "label": "1440-dark-project",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "height": 2295
+    }
+  ],
+  "assertions": 234,
+  "errors": [],
+  "blocked": [],
+  "api_responses": [
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/snapshot",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/market",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/financial-reconciliation",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/runtime-service",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/research-lab",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/ppl-comparison",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/ppl-accounting-history",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/research-strategies",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/storage",
+      "status": 503
+    },
+    {
+      "url": "https://crypto-restore-01.tailfebca3.ts.net/api/operator/v1/events",
+      "status": 503
+    }
+  ],
+  "service_identity_before_and_after": "MainPID=79546\nNRestarts=0\nWorkingDirectory=/home/lecanada26/crypto-install/releases/82cd63e202e09ff52e00372cb9d9f3eb65cc8345\nId=crypto-operator-api.service\nDropInPaths=\nActiveEnterTimestamp=Fri 2026-10-30 02:48:04 UTC\n\nMainPID=108817\nNRestarts=0\nWorkingDirectory=/home/lecanada26/crypto-install/releases/1c3f0b5c6f7d7ab553106f4788f66d9c7c9e67ab/frontend\nId=crypto-operator-web.service\nDropInPaths=/etc/systemd/system/crypto-operator-web.service.d/90-ui-modules-1c3f0b5.conf\nActiveEnterTimestamp=Fri 2026-10-30 09:26:25 UTC\n",
+  "limitations": [
+    "fresh ephemeral browser contexts on VM; usual Android/PWA client not observed",
+    "no populated or fresh-data runtime admission",
+    "no scientific certification"
+  ]
+}
