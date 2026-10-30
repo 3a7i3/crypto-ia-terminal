@@ -89,10 +89,10 @@ const FinancialReconciliationContent: React.FC = () => {
     return (
       <div className="fin-panel fin-state fin-state-error" data-testid="financial-reconciliation-view">
         <strong>Publication FIN-02 indisponible</strong>
-        <span>
+        <details><summary>Source et diagnostic</summary><span>
           {state.error.error_code ?? "UNKNOWN_ERROR"} ·{" "}
           {state.error.error_message ?? "Aucun détail"}
-        </span>
+        </span></details>
       </div>
     );
   }
@@ -101,7 +101,7 @@ const FinancialReconciliationContent: React.FC = () => {
     return (
       <div className="fin-panel fin-state fin-state-error" data-testid="financial-reconciliation-view">
         <strong>Erreur de transport ou de contrat financier</strong>
-        <span>{state.message}</span>
+        <details><summary>Source et diagnostic</summary>{state.message}</details>
       </div>
     );
   }

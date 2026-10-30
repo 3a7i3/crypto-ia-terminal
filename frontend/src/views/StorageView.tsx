@@ -1,5 +1,6 @@
 import React from "react";
 import { useStorage, type StorageState } from "../lib/storage";
+import { PublicationStamp } from "../components/PublicationStamp";
 
 const statuses = { PRESENT: "Capture disponible", NOT_CONFIGURED: "Source non configurée", MISSING: "Répertoire absent", READ_ERROR: "Lecture impossible", INVALID_PATH: "Chemin ou fichier non régulier", OUTPUT_LIMIT: "Limite de lecture dépassée", SOURCE_CHANGED: "Source modifiée pendant la capture", INVALID_METADATA: "Métadonnées invalides" };
 export const StorageCard: React.FC<{ state: StorageState }> = ({ state }) => {
@@ -11,6 +12,7 @@ export const StorageCard: React.FC<{ state: StorageState }> = ({ state }) => {
   return <article className="direction-card direction-card-governed" data-testid="storage-view">
     <div className="direction-card-heading"><h3>Stockage · DecisionPackets</h3><span className="direction-card-badge">{s.freshness_classification === "STALE" ? "Capture périmée" : "Capture récente"}</span></div>
     <strong>{statuses[s.source_status]}</strong>
+    <PublicationStamp source="Métadonnées des fichiers" generatedAt={s.observed_at_utc} freshness={s.freshness_classification} age={s.snapshot_age_s}/>
     {s.freshness_classification === "STALE" && <p className="direction-warning">Observation historique : volume actuel inconnu.</p>}
     <dl className="direction-fact-grid">
       <div><dt>Fichiers à la capture</dt><dd>{available ? s.matched_file_count : "Indisponible"}</dd></div>

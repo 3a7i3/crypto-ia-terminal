@@ -7,23 +7,23 @@
 import React from "react";
 import type { PortfolioMode } from "../types";
 
-const MODE_STYLE: Record<string, { color: string; label: string }> = {
-  PAPER: { color: "#52657a", label: "PAPER" },
-  REAL_API: { color: "#c2410c", label: "REAL_API" },
-  TESTNET_API: { color: "#1d4ed8", label: "TESTNET_API" },
+const MODE_STYLE: Record<string, { color: string; background: string; label: string }> = {
+  PAPER: { color: "var(--neutral)", background: "var(--neutral-dim)", label: "PAPER" },
+  REAL_API: { color: "var(--warn)", background: "var(--warn-dim)", label: "REAL_API" },
+  TESTNET_API: { color: "var(--accent)", background: "var(--accent-dim)", label: "TESTNET_API" },
   // UNKNOWN is an unavailable/unresolved state, not an actual runtime failure.
-  UNKNOWN: { color: "#64748b", label: "UNKNOWN" },
+  UNKNOWN: { color: "var(--neutral)", background: "var(--neutral-dim)", label: "UNKNOWN" },
 };
 
 export const ModeBadge: React.FC<{ mode: PortfolioMode | string | null | undefined }> = ({ mode }) => {
   const key = typeof mode === "string" && mode in MODE_STYLE ? mode : "UNKNOWN";
-  const { color, label } = MODE_STYLE[key];
+  const { color, background, label } = MODE_STYLE[key];
   return (
     <span
       data-testid="mode-badge"
       data-mode={key}
       className="mode-badge"
-      style={{ color, background: `${color}18`, borderRadius: "var(--r-chip)" }}
+      style={{ color, background, borderRadius: "var(--r-chip)" }}
     >
       <span className="mode-dot" style={{ background: color }} aria-hidden="true" />
       {label}

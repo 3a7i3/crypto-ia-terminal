@@ -39,7 +39,8 @@ describe("U2b independent host runtime presentation", () => {
     vi.stubGlobal("fetch", vi.fn().mockImplementation((url) => Promise.resolve(String(url).endsWith("/runtime-service") ? response(runtimeServiceFixture()) : response({ error_code: "SNAPSHOT_MISSING" }, 503))));
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("ÉTAT OBSERVÉ · active"));
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
+    expect(screen.queryByTestId("no-snapshot")).toBeNull();
+    expect(fetch).not.toHaveBeenCalledWith("/api/operator/v1/snapshot", expect.anything());
   });
   it.each([
     [response({ authority: "fake" }), "ERREUR TRANSPORT / CONTRAT"],

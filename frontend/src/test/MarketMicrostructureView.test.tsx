@@ -63,10 +63,12 @@ describe("U3b LMI presentation", () => {
     const fetchMock = vi.fn((url) => Promise.resolve(String(url).endsWith("/market-microstructure") ? jsonResponse(microstructureFixture()) : jsonResponse({ error_code: "SOURCE_NOT_DEPLOYED" }, 503)));
     vi.stubGlobal("fetch", fetchMock);
     render(<App />);
+    const details = screen.getByText("Microstructure · flux et liquidité").closest("details")!;
+    details.open = true; fireEvent(details, new Event("toggle"));
     await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
     expect(screen.getByTestId("market-error")).toBeInTheDocument();
-    expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("SOURCE_NOT_DEPLOYED");
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(screen.queryByTestId("market-canonical-context")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it.each(["api", "invalid", "network"])("keeps %s failures explicit without zero coverage", async (kind) => {

@@ -12,7 +12,7 @@ try {
   page.on('pageerror', e => errors.push(String(e)));
   page.on('request', r => { if (new URL(r.url()).pathname.startsWith('/api/')) requests.push(`${r.method()} ${new URL(r.url()).pathname}`); });
   for (const [name, path, testid] of [
-    ['machine','/direction','direction-view'],['radar','/paper-live/market','market-view'],
+    ['machine','/direction','module-home'],['radar','/paper-live/market','market-view'],
     ['finance','/paper-live/finance','financial-reconciliation-view'],['portfolio','/paper-live/portfolio','portfolio-view'],
     ['research','/research','research-lab-view'],['strategies','/research/strategies','strategy-board-view'],
     ['comparison','/paper-live/lifecycle','ppl-comparison-view'],
@@ -24,10 +24,8 @@ try {
    if(overflow.width > overflow.client+1) { await page.screenshot({path:`${out}/overflow-${name}-${width}.png`,fullPage:true}); console.log(overflow); }
    assert(overflow.width <= overflow.client+1, `${name}/${width}: no page overflow`);
    if(name === 'machine') {
-    assert(await page.locator('#machine-state').isVisible(),`machine/${width}: state section`);
-    assert(await page.locator('.section-evidence[open]').count()===0,`machine/${width}: evidence initially closed`);
-    await page.getByRole('link',{name:'Portefeuille et finances',exact:true}).click();
-    assert((await page.evaluate(()=>location.hash)) === '#machine-finance',`machine/${width}: category navigation`);
+    assert(await page.locator('.module-card').count()===6,`machine/${width}: six owned modules`);
+    assert(await page.locator('.module-card h2').count()===6,`machine/${width}: module navigation`);
     assert(await page.locator('.financial-history').count()===0,`machine/${width}: no detailed accounting chart`);
    }
    if(name === 'radar') {

@@ -13,7 +13,16 @@ const open = (o: Overrides = {}) => {
 };
 const refresh = () => fireEvent.click(screen.getByRole("button", { name: "Actualiser depuis GitHub" }));
 const track = (id: string, name: string) => row(id).querySelector(`[data-track="${name}"]`)!;
-const row = (id: string) => screen.getByText(id, { selector: ".wb-row-id" }).closest("tr")!;
+const row = (id: string) => {
+  const previous = screen.getByRole("button", {name:"Précédent"});
+  while (!(previous as HTMLButtonElement).disabled) fireEvent.click(previous);
+  let found = screen.queryByText(id, {selector:".wb-row-id"});
+  const next = screen.getByRole("button", {name:"Suivant"});
+  while (!found && !(next as HTMLButtonElement).disabled) {
+    fireEvent.click(next); found = screen.queryByText(id, {selector:".wb-row-id"});
+  }
+  return screen.getByText(id, {selector:".wb-row-id"}).closest("tr")!;
+};
 
 describe("Workboard GitHub sync UI", () => {
   beforeEach(() => window.localStorage.clear());

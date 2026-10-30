@@ -28,12 +28,9 @@ async function assertNoOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live/lifecycle`, { waitUntil: "networkidle" });
   assert(response?.ok(), `frontend navigation failed: ${response?.status() ?? "no-response"}`);
 
-  await page.getByTestId("overview-view").waitFor({ state: "visible" });
-  await page.getByTestId("tab-paper").click();
-  await page.getByTestId("tab-ppl").click();
   await page.getByTestId("ppl-comparison-view").waitFor({ state: "visible" });
   await page.getByTestId("ppl-comparison-row").first().waitFor({ state: "visible" });
 
@@ -99,7 +96,7 @@ try {
   assert(cardText.includes("Ancien simulateur"), "phone card lacks former simulator raw side");
   assert(cardText.includes("PPL"), "phone card lacks PPL raw side");
   assert(cardText.includes("DIFFERENT"), "phone card lacks relation");
-  const navBox = await page.locator(".operator-nav").boundingBox();
+  const navBox = await page.locator(".app-topbar").boundingBox();
   assert(navBox !== null && navBox.width <= 390, "phone navigation exceeds viewport");
   await assertNoOverflow(page, "phone");
   await page.screenshot({ path: mobilePath, fullPage: true });

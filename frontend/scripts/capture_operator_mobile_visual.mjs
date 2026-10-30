@@ -13,7 +13,7 @@ try {
   const page=await browser.newPage({viewport:{width,height:844}});
   page.on('pageerror',e=>errors.push(String(e)));
   page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))requests.push(`${r.method()} ${new URL(r.url()).pathname}`);});
-  for(const [name,path,id] of [['machine','/direction','direction-view'],['finance','/paper-live/finance','financial-reconciliation-view'],['decisions','/paper-live/decisions','decisions-view'],['portfolio','/paper-live/portfolio','portfolio-view'],['overview','/paper-live/overview','overview-view'],['research','/research','research-lab-view'],['burnin','/paper-live/burn-in','burnin-view']]) {
+  for(const [name,path,id] of [['machine','/direction','module-home'],['finance','/paper-live/finance','financial-reconciliation-view'],['decisions','/paper-live/decisions','decisions-view'],['portfolio','/paper-live/portfolio','portfolio-view'],['research','/research','research-lab-view']]) {
    await page.goto(base+path,{waitUntil:'networkidle'}); await page.getByTestId(id).waitFor();
    assert(await page.getByText('DÉMONSTRATION · DONNÉES FICTIVES',{exact:true}).isVisible(),`${name}/${width}: synthetic label`);
    if(name==='machine') assert(await page.locator('.financial-history').count()===0,`machine/${width}: chart absent`);
@@ -42,10 +42,10 @@ try {
  for(const scenario of ['missing','stale']) {
   const page=await browser.newPage({viewport:{width:360,height:844}});
   await page.context().addCookies([{name:'ux-demo-scenario',value:scenario,url:base}]);
-  for(const [name,path] of [['machine','/direction'],['research','/research'],['burnin','/paper-live/burn-in'],['decisions','/paper-live/decisions'],['portfolio','/paper-live/portfolio']]) {
+  for(const [name,path] of [['machine','/direction'],['research','/research'],['decisions','/paper-live/decisions'],['portfolio','/paper-live/portfolio']]) {
    await page.goto(base+path,{waitUntil:'networkidle'});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`${scenario}/${name}: no horizontal overflow`);
-   if(scenario==='missing' && ['research','burnin'].includes(name))assert(await page.getByTestId('source-availability').isVisible(),`${scenario}/${name}: useful degradation`);
+   if(scenario==='missing' && ['research'].includes(name))assert(await page.getByTestId('source-availability').isVisible(),`${scenario}/${name}: useful degradation`);
    await page.screenshot({path:`${out}/${scenario}-${name}-360.png`,fullPage:true});
   }
   await page.close();

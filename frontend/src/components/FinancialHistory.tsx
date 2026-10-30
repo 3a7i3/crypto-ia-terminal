@@ -9,7 +9,7 @@ import type {
 import "../accounting-history.css";
 export const ACCOUNTING_HISTORY_ENDPOINT =
   "/api/operator/v1/ppl-accounting-history";
-const colors = ["#1d4ed8", "#6d28d9", "#a16207"];
+const colors = ["var(--accent)", "var(--violet)", "var(--warn)"];
 const labels: Record<string, string> = {
   available_cash: "Disponible",
   reserved_principal: "Réservé",

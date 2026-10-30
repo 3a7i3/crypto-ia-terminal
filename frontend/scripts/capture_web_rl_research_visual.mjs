@@ -27,11 +27,9 @@ async function assertNoOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
-  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/research`, { waitUntil: "networkidle" });
   assert(response?.ok(), `frontend navigation failed: ${response?.status() ?? "no-response"}`);
 
-  await page.getByTestId("overview-view").waitFor({ state: "visible" });
-  await page.getByTestId("tab-research").click();
   await page.getByTestId("research-lab-view").waitFor({ state: "visible" });
   await page.getByTestId("research-domain-banner").waitFor({ state: "visible" });
 
@@ -78,7 +76,7 @@ try {
     await page.getByTestId("research-candidate-empty").isVisible(),
     "mobile empty candidate state is not visible",
   );
-  const navBox = await page.locator(".operator-subnav").boundingBox();
+  const navBox = await page.locator(".module-subnav").boundingBox();
   assert(navBox !== null && navBox.width <= 390, "mobile navigation exceeds viewport");
   await assertNoOverflow(page, "mobile");
   await page.screenshot({ path: mobilePath, fullPage: true });

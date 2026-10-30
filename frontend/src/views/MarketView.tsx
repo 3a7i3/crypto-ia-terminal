@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useMarketSnapshot } from "../lib/marketClient";
 import { fr } from "../lib/presentationFr";
 import type { MarketOpportunity } from "../lib/marketTypes";
+import { PublicationStamp } from "../components/PublicationStamp";
 
 function formatUtc(value: string | null): string {
   if (!value) return "—";
@@ -62,11 +63,11 @@ export const MarketView: React.FC = () => {
     return (
       <div data-testid="market-view" className="market-panel market-error">
         <div data-testid="market-error" className="market-error-title">
-          Marché indisponible — HTTP {state.httpStatus}
+          Observations du marché indisponibles
         </div>
-        <div className="market-error-detail">
+        <details className="market-error-detail"><summary>Source et diagnostic</summary><p>HTTP {state.httpStatus}</p>
           {state.error.error_code ?? "MARKET_API_ERROR"}: {state.error.error_message ?? "Aucune publication de marché disponible."}
-        </div>
+        </details>
       </div>
     );
   }
@@ -77,7 +78,7 @@ export const MarketView: React.FC = () => {
         <div data-testid="market-error" className="market-error-title">
           Erreur de contrat ou de transport du marché
         </div>
-        <div className="market-error-detail">{state.message}</div>
+        <details className="market-error-detail"><summary>Source et diagnostic</summary>{state.message}</details>
       </div>
     );
   }
@@ -94,6 +95,7 @@ export const MarketView: React.FC = () => {
   return (
     <div className="market-stack" data-testid="market-view">
       <section className="market-panel market-summary">
+        <PublicationStamp source="CryptoRadar · observation" generatedAt={m.generated_at_utc} freshness={m.freshness_classification} age={m.snapshot_age_s}/>
         <div className="market-summary-row">
           <div>
             <div className="market-eyebrow">OBSERVATION DU MARCHÉ</div>

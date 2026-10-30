@@ -214,7 +214,7 @@ describe("WEB-RL Research Lab", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
 
     await waitFor(() =>
@@ -239,8 +239,7 @@ describe("WEB-RL Research Lab", () => {
       { method: "GET" },
     );
 
-    fireEvent.click(screen.getByTestId("space-machine"));
-    fireEvent.click(screen.getByTestId("return-paper-live"));
+    fireEvent.click(screen.getByTestId("tab-paper"));
     await waitFor(() =>
       expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent(
         "SNAPSHOT_MISSING",

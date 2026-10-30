@@ -87,9 +87,9 @@ describe("App FIN-02 domain", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
 
     fireEvent.click(screen.getByTestId("tab-paper"));
     fireEvent.click(screen.getByTestId("tab-finance"));
@@ -99,8 +99,6 @@ describe("App FIN-02 domain", () => {
         "Portefeuille et finances",
       ),
     );
-    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("SIMULATION PAPER");
-    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("fonds fictifs");
     expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/operator/v1/financial-reconciliation",

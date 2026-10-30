@@ -16,8 +16,10 @@ try {
     });
     await page.goto(`${base}/direction/travaux`, { waitUntil: "networkidle" });
     await page.getByTestId("machine-workboard").waitFor();
-    if (await page.locator("tbody tr").count() !== 32) throw new Error("Register rows missing");
+    if (await page.locator("tbody tr").count() !== 8) throw new Error("Register rows missing");
+    await page.getByLabel("Rechercher",{exact:true}).fill("U8");
     if (!await page.getByText("U8 · non certifié", { exact: true }).isVisible()) throw new Error("Runtime scope missing");
+    await page.getByRole("button",{name:"Réinitialiser"}).click();
     if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error(`Page overflow at ${width}`);
     await page.screenshot({ path: `${out}/workboard-${width}.png` });
     if (width === 390 || width === 1440) {
@@ -31,7 +33,7 @@ try {
     if (await page.locator("tbody tr").count() !== 1) throw new Error("Accent-insensitive search failed");
     await page.getByRole("button", { name: "Réinitialiser" }).click();
     if (api.length || errors.length) throw new Error(JSON.stringify({ api, errors }));
-    checks.push({ width, rows: 32, page_overflow: false, api_requests: 0, page_errors: 0, filters: "PASS" });
+    checks.push({ width, rows_per_page: 8, page_overflow: false, api_requests: 0, page_errors: 0, filters: "PASS" });
     await page.close();
   }
   await writeFile(`${out}/checks.json`, JSON.stringify({ scope: "LOCAL_SOURCE_PRESENTATION_ONLY", checks }, null, 2));

@@ -24,12 +24,9 @@ async function noPageOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live/finance`, { waitUntil: "networkidle" });
   assert(response?.ok(), "frontend navigation failed");
 
-  await page.getByTestId("overview-view").waitFor({ state: "visible" });
-  await page.getByTestId("tab-paper").click();
-  await page.getByTestId("tab-finance").click();
   await page.getByTestId("financial-reconciliation-view").waitFor({ state: "visible" });
   await page
     .getByRole("heading", { name: "Portefeuille et finances", exact: true })
@@ -69,7 +66,7 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(100);
-  const nav = await page.locator(".operator-nav").boundingBox();
+  const nav = await page.locator(".app-topbar").boundingBox();
   assert(nav !== null && nav.width <= 390, "mobile navigation exceeds viewport");
   await noPageOverflow(page, "mobile");
   await page.screenshot({

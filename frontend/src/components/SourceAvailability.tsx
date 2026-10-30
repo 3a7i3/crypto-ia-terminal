@@ -30,6 +30,8 @@ export const SourceAvailability: React.FC<{
 }> = ({ source, code, httpStatus, message, lastEvidence }) => (
   <section className="source-availability" role="status" data-testid="source-availability">
     <h2>{source === "research" ? "Laboratoire indisponible" : "Burn-in indisponible"}</h2>
+    <p>La source ne permet pas d’afficher de données actuelles.</p>
+    <details><summary>Source, dernière preuve et diagnostic</summary>
     <p>{causes[code] ?? "La lecture a échoué : transport ou contrat à vérifier."}</p>
     <p>Les données actuelles restent inconnues (UNKNOWN), jamais assimilées à zéro.
       {source === "burn-in" && " L’absence de publication ne prouve ni la fin du burn-in ni l’absence de positions."}</p>
@@ -47,6 +49,7 @@ export const SourceAvailability: React.FC<{
       <p>GET /api/operator/v1/{source === "research" ? "research-lab" : "burn-in"}</p>
       <p>{httpStatus && `HTTP ${httpStatus} · `}{code}</p>
       {message && <p>{message}</p>}
+    </details>
     </details>
   </section>
 );

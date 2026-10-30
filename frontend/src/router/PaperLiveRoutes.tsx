@@ -1,48 +1,130 @@
-import React from "react";
-import { useOutletContext } from "react-router-dom";
-import type { SnapshotState } from "../lib/snapshotClient";
+import React, { useState } from "react";
+import { Link, useOutletContext } from "react-router-dom";
 import type { PaperLiveOutletContext } from "../shells/PaperLiveShell";
 import { DecisionsView } from "../views/DecisionsView";
 import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
 import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
 import { MarketView } from "../views/MarketView";
-import { NotExposedView } from "../views/NotExposedView";
-import { OverviewView } from "../views/OverviewView";
 import { PortfolioView } from "../views/PortfolioView";
 import { PplComparisonView } from "../views/PplComparisonView";
 import { SystemView } from "../views/SystemView";
 import { RuntimeServiceView } from "../views/RuntimeServiceView";
 import { StorageView } from "../views/StorageView";
-
-function usePaperLive(): PaperLiveOutletContext { return useOutletContext<PaperLiveOutletContext>(); }
-
-const NoSnapshot: React.FC<{ domain: string }> = ({ domain }) => (
-  <div className="canonical-unresolved" data-testid="no-snapshot">
-    Snapshot canonique indisponible — {domain} reste non résolu jusqu’à réception d’une source validée.
-  </div>
+import { SnapshotStatusBanner } from "../components/SnapshotStatusBanner";
+import { PublicationStamp } from "../components/PublicationStamp";
+import { useOperatorSnapshot } from "../lib/snapshotClient";
+const CanonicalView: React.FC<{
+  children: (
+    snapshot: NonNullable<PaperLiveOutletContext["activeSnapshot"]>,
+  ) => React.ReactNode;
+}> = ({ children }) => {
+  const { snapshotState, activeSnapshot } =
+    useOutletContext<PaperLiveOutletContext>();
+  if (!activeSnapshot)
+    return (
+      <div data-testid="no-snapshot">
+        <SnapshotStatusBanner state={snapshotState} />
+      </div>
+    );
+  return (
+    <>
+      <PublicationStamp
+        source="Projection opérateur"
+        generatedAt={activeSnapshot.generated_at_utc}
+        freshness={activeSnapshot.freshness_classification}
+        age={activeSnapshot.snapshot_age_s}
+      />
+      {(activeSnapshot.runtime_state === "LAST_KNOWN" ||
+        activeSnapshot.instance_relation !== "CURRENT_INSTANCE") && (
+        <p className="home-notice">
+          Capture antérieure ou instance non vérifiée : aucune activité actuelle
+          attestée.
+        </p>
+      )}
+      <details className="snapshot-source-details">
+        <summary>Source et identité de la capture</summary>
+        <dl>
+          <dt>Relation d’instance</dt>
+          <dd data-testid="instance-relation">
+            {activeSnapshot.instance_relation}
+          </dd>
+          <dt>État de la capture</dt>
+          <dd data-testid="runtime-state">{activeSnapshot.runtime_state}</dd>
+          <dt>Identifiant</dt>
+          <dd>{activeSnapshot.snapshot_id}</dd>
+          <dt>Source SHA</dt>
+          <dd>{activeSnapshot.source_sha ?? "Inconnu"}</dd>
+          <dt>Preuve SHA</dt>
+          <dd>{activeSnapshot.runtime_sha_evidence_status}</dd>
+          <dt>Motif</dt>
+          <dd>{activeSnapshot.stale_reason ?? "Non disponible"}</dd>
+        </dl>
+      </details>
+      {children(activeSnapshot)}
+    </>
+  );
+};
+export const MarketRoute: React.FC = () => {
+  const [details, setDetails] = useState(false);
+  return (
+    <>
+      <MarketView />
+      <details
+        className="module-details"
+        onToggle={(e) => setDetails(e.currentTarget.open)}
+      >
+        <summary>Microstructure · flux et liquidité</summary>
+        {details && <MarketMicrostructureView />}
+      </details>
+    </>
+  );
+};
+export const PortfolioRoute: React.FC = () => (
+  <CanonicalView>
+    {(snapshot) => <PortfolioView snapshot={snapshot} />}
+  </CanonicalView>
 );
-
-const MarketCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
-  if (state.status === "success") return null;
-  if (state.status === "loading") return <div className="market-domain-context" data-testid="market-canonical-context">Chargement du contexte Advisor canonique · les observations du marché ont leur propre source.</div>;
-  const summary = state.status === "api_error"
-    ? state.error.error_code === "SNAPSHOT_MISSING" ? "Advisor canonique : UNRESOLVED · SNAPSHOT_MISSING" : `Erreur API Advisor canonique · ${state.error.error_code ?? "UNKNOWN_ERROR"}`
-    : "Advisor canonique : DISCONNECTED";
-  const detail = state.status === "api_error" ? state.error.error_message ?? "Aucun message source fourni" : state.message;
-  return <details className="market-domain-context" data-testid="market-canonical-context"><summary>{summary} · le marché reste un domaine observationnel indépendant</summary><div className="market-domain-context-detail">{detail}</div></details>;
-};
-
-const PplCanonicalContext: React.FC<{ state: SnapshotState }> = ({ state }) => {
-  if (state.status === "success") return null;
-  const summary = state.status === "loading" ? "Chargement du contexte Advisor canonique" : state.status === "api_error" ? `Advisor canonique : ${state.error.error_code ?? "UNRESOLVED"}` : "Advisor canonique : DISCONNECTED";
-  return <div className="market-domain-context" data-testid="ppl-canonical-context">{summary} · la comparaison PPL conserve sa source indépendante.</div>;
-};
-
-export const OverviewRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <OverviewView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
-export const MarketRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><MarketCanonicalContext state={snapshotState} /><MarketView /><details className="machine-section"><summary>Microstructure · flux et liquidité publiés</summary><MarketMicrostructureView /></details></>; };
-export const PortfolioRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <PortfolioView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
-export const DecisionsRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return activeSnapshot ? <DecisionsView snapshot={activeSnapshot} /> : <NoSnapshot domain="PAPER LIVE" />; };
-export const LifecycleRoute: React.FC = () => { const { snapshotState } = usePaperLive(); return <><PplCanonicalContext state={snapshotState} /><PplComparisonView /></>; };
+export const DecisionsRoute: React.FC = () => (
+  <CanonicalView>
+    {(snapshot) => <DecisionsView snapshot={snapshot} />}
+  </CanonicalView>
+);
+export const LifecycleRoute: React.FC = () => <PplComparisonView />;
 export const FinanceRoute: React.FC = () => <FinancialReconciliationView />;
-export const SystemRoute: React.FC = () => { const { activeSnapshot } = usePaperLive(); return <><RuntimeServiceView /><StorageView />{activeSnapshot ? <SystemView snapshot={activeSnapshot} /> : <NoSnapshot domain="SYSTEM" />}</>; };
-export const ScoresRoute: React.FC = () => <NotExposedView title="Scores" />;
+const AdvisorDiagnostics: React.FC = () => {
+  const state = useOperatorSnapshot();
+  return state.status === "success" ? (
+    <>
+      <PublicationStamp
+        source="Projection opérateur · diagnostic"
+        generatedAt={state.snapshot.generated_at_utc}
+        freshness={state.snapshot.freshness_classification}
+        age={state.snapshot.snapshot_age_s}
+      />
+      <SystemView snapshot={state.snapshot} />
+    </>
+  ) : (
+    <SnapshotStatusBanner state={state} />
+  );
+};
+export const SystemRoute: React.FC = () => {
+  const [diagnostics, setDiagnostics] = useState(false);
+  return (
+    <>
+      <div className="system-source-grid">
+        <RuntimeServiceView />
+        <StorageView />
+      </div>
+      <details
+        className="module-details"
+        onToggle={(e) => setDiagnostics(e.currentTarget.open)}
+      >
+        <summary>Diagnostic applicatif Advisor</summary>
+        {diagnostics && <AdvisorDiagnostics />}
+      </details>
+      <Link className="module-secondary-link" to="/paper-live/events">
+        Consulter le journal des événements →
+      </Link>
+    </>
+  );
+};

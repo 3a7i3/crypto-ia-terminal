@@ -4,7 +4,7 @@
 import { chromium } from "playwright";
 import http from "node:http";
 import { once } from "node:events";
-import { createServer, FRONTEND_PORT } from "./web01_local_frontend_server.mjs";
+import { createServer } from "./web01_local_frontend_server.mjs";
 
 const observed = (value, semantics = "PRESENT") => ({ value, semantics });
 const snapshot = {
@@ -25,17 +25,18 @@ const api = http.createServer((request, response) => {
 });
 api.listen(0, "127.0.0.1"); await once(api, "listening");
 const apiPort = api.address().port;
-const frontend = createServer({ port: FRONTEND_PORT, apiTarget: `http://127.0.0.1:${apiPort}` });
+const frontend = createServer({ port: 0, apiTarget: `http://127.0.0.1:${apiPort}` });
 await once(frontend, "listening");
+const frontendPort=frontend.address().port;
 
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(`http://127.0.0.1:${FRONTEND_PORT}/paper-live`, { waitUntil: "networkidle" });
+  const response = await page.goto(`http://127.0.0.1:${frontendPort}/paper-live/portfolio`, { waitUntil: "networkidle" });
   if (!response?.ok()) throw new Error(`frontend navigation failed: ${response?.status() ?? "no-response"}`);
   await page.waitForTimeout(100);
-  if (!(await page.getByTestId("overview-view").count())) throw new Error(`overview did not render: ${await page.textContent("body")}`);
-  for (const [tab, marker] of [["overview", "overview-view"], ["system", "system-view"], ["decisions", "decisions-view"], ["portfolio", "portfolio-view"], ["market", "market-view"]]) {
+  if (!(await page.getByTestId("portfolio-view").count())) throw new Error(`overview did not render: ${await page.textContent("body")}`);
+  for (const [tab, marker] of [["overview", "module-home"], ["system", "runtime-service-view"], ["decisions", "decisions-view"], ["paper", "portfolio-view"], ["market", "market-view"]]) {
     if (tab === "decisions" || tab === "portfolio") await page.getByTestId("tab-paper").click();
     await page.getByTestId(`tab-${tab}`).click(); await page.getByTestId(marker).waitFor({ state: "visible" });
   }

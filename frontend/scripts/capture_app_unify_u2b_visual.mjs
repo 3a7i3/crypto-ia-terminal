@@ -49,10 +49,11 @@ try {
       assert(response?.ok(), "System navigation failed");
       const card = page.getByTestId("runtime-service-view");
       await card.waitFor();
+      for(const label of ["Source et diagnostic","Paramètres et preuve du service"]) {const control=card.getByText(label,{exact:true});if(await control.count())await control.click();}
       const text = await card.innerText();
       for (const value of scenario.expected) assert(text.toLowerCase().includes(value.toLowerCase()), `${scenario.name}/${viewport.width} missing ${value}`);
       if (!scenario.status && !scenario.abort && scenario.name !== "invalid") {
-        await card.locator("summary").click();
+        await card.getByText("Voir provenance host",{exact:true}).click();
         assert((await card.innerText()).includes("HOST_SYSTEMD_OBSERVATION"), "Missing host authority");
       }
       const noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
@@ -60,12 +61,10 @@ try {
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: path.join(out, `system-${scenario.name}-${viewport.width}.png`), fullPage: true });
       if (scenario.name === "active") {
-        await page.goto(`${baseUrl}/direction`, { waitUntil: "networkidle" });
-        await page.getByText("Expérience, état du service et preuves complètes").click();
-        const directionCard = page.getByTestId("direction-runtime-service-card");
-        assert((await directionCard.innerText()).includes("4321"), "Direction host evidence missing");
-        assert((await page.getByTestId("direction-federation-notice").innerText()).includes("Sources indépendantes"), "Missing independent source declaration");
-        assert((await page.getByTestId("direction-global-card").innerText()).includes("ERREUR SOURCE"), "Host evidence hid the missing Advisor source");
+        await page.goto(`${baseUrl}/direction`, {waitUntil:"networkidle"});
+        assert(await page.locator(".module-card").count()===6,"Home must expose module availability");
+        assert(!/MainPID|4321/.test(await page.getByTestId("module-home").innerText()),"Home duplicated host diagnostics");
+
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "Direction overflow");
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.screenshot({ path: path.join(out, `direction-host-${viewport.width}.png`), fullPage: true });

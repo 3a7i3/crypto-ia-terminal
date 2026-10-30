@@ -1,10 +1,11 @@
 import React from "react";
 import { useRuntimeService, type RuntimeServiceState } from "../lib/runtimeServiceClient";
+import { PublicationStamp } from "../components/PublicationStamp";
 
 export const RuntimeServiceCard: React.FC<{ state: RuntimeServiceState; testId?: string }> = ({ state, testId = "runtime-service-view" }) => {
   if (state.status !== "success") {
     const label = state.status === "loading" ? "CHARGEMENT" : state.status === "api_error" ? state.errorCode : "ERREUR TRANSPORT / CONTRAT";
-    return <article className="direction-card direction-card-governed runtime-service-card" data-testid={testId}><h3>Service Advisor · host</h3><strong>{label}</strong><p>État du service · INCONNU</p><p>La preuve host est indépendante du snapshot Advisor.</p></article>;
+    return <article className="direction-card direction-card-governed runtime-service-card" data-testid={testId}><h3>Service Advisor · host</h3><strong>{state.status === "loading" ? "Lecture en cours" : "Observation indisponible"}</strong><p>État du service · INCONNU</p><details><summary>Source et diagnostic</summary><p>{label}</p><p>La preuve host est indépendante du snapshot Advisor.</p></details></article>;
   }
   const s = state.snapshot, service = s.service, d = s.deployment;
   const stale = s.freshness_classification === "STALE";
@@ -12,8 +13,9 @@ export const RuntimeServiceCard: React.FC<{ state: RuntimeServiceState; testId?:
     <article className="direction-card direction-card-governed runtime-service-card" data-testid={testId}>
       <div className="direction-card-heading"><h3>Service Advisor · host</h3><span className="direction-card-badge">{s.freshness_classification}</span></div>
       <div className="runtime-service-state" data-testid="runtime-service-state"><strong>{stale || service.query_status !== "OK" ? "ÉTAT ACTUEL · INCONNU" : `ÉTAT OBSERVÉ · ${service.active_state}`}</strong><span>{service.query_status}</span></div>
+      <PublicationStamp source="Observation du service Advisor" generatedAt={s.generated_at_utc} freshness={s.freshness_classification} age={s.snapshot_age_s}/>
       {stale && <p className="direction-warning">Preuve périmée : les valeurs ci-dessous décrivent la dernière observation, pas l’état actuel.</p>}
-      <dl className="direction-fact-grid">
+      <details className="runtime-host-details"><summary>Paramètres et preuve du service</summary><dl className="direction-fact-grid">
         <div><dt>Unité Advisor</dt><dd>{service.unit}</dd></div>
         <div><dt>Host</dt><dd>{s.host_id}</dd></div>
         <div><dt>LoadState</dt><dd>{service.load_state ?? "NOT_AVAILABLE"}</dd></div>
@@ -26,7 +28,7 @@ export const RuntimeServiceCard: React.FC<{ state: RuntimeServiceState; testId?:
         <div><dt>Âge de la preuve host</dt><dd>{s.snapshot_age_s}s</dd></div>
         <div><dt>Source code · preuve fournie</dt><dd>{d.source_code_sha ?? "NOT_AVAILABLE"}</dd></div>
         <div><dt>Preuve de déploiement</dt><dd>{d.status}</dd></div>
-      </dl>
+      </dl></details>
       <p className="direction-boundary">Un service actif ne certifie ni la santé du cycle Advisor ni une permission de trade.</p>
       <details className="direction-provenance" data-testid="runtime-service-provenance">
         <summary>Voir provenance host</summary>

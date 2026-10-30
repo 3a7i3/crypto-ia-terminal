@@ -28,13 +28,11 @@ async function assertNoPageOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(`${baseUrl}/paper-live`, { waitUntil: "networkidle" });
+  const response = await page.goto(`${baseUrl}/paper-live/market`, { waitUntil: "networkidle" });
   if (!response || !response.ok()) {
     throw new Error(`frontend navigation failed: ${response?.status() ?? "no-response"}`);
   }
 
-  await page.getByTestId("overview-view").waitFor({ state: "visible" });
-  await page.getByTestId("tab-market").click();
   await page.getByTestId("market-view").waitFor({ state: "visible" });
   await page.getByTestId("market-opportunity-row").first().waitFor({ state: "visible" });
 
@@ -116,7 +114,7 @@ try {
   for (const label of ["Symbole", "Score moyen", "Score maximal", "Dominance", "Signaux", "Régime"]) assert((await tableHeaders.allTextContents()).includes(label), `mobile table missing column ${label}`);
   const freshnessBox = await page.getByTestId("market-freshness").boundingBox();
   assert(freshnessBox !== null && freshnessBox.y < 844, "phone freshness state is not visible above the initial fold");
-  const navBox = await page.locator(".operator-nav").boundingBox();
+  const navBox = await page.locator(".app-topbar").boundingBox();
   assert(navBox !== null && navBox.width <= 390, "phone navigation exceeds viewport width");
   await assertNoPageOverflow(page, "phone");
   await page.screenshot({ path: mobilePath, fullPage: true });
