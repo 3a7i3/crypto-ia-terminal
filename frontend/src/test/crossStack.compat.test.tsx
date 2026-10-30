@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
+import { BurnInStatusView } from "../views/BurnInStatusView";
 import { ResearchLabView } from "../views/ResearchLabView";
 import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
 import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
@@ -77,9 +78,9 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(validateOperatorSnapshot(fixture.body)).toBe(true);
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
 
     fireEvent.click(screen.getByTestId("tab-paper"));
     expect(screen.getByTestId("portfolio-view")).toBeInTheDocument();
@@ -88,7 +89,9 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(screen.getByTestId("decisions-view")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("tab-system"));
-    expect(screen.getByTestId("system-view")).toBeInTheDocument();
+    const diagnostics = screen.getByText("Diagnostic applicatif Advisor").closest("details")!;
+    diagnostics.open = true; fireEvent(diagnostics, new Event("toggle"));
+    await screen.findByTestId("system-view");
   });
 
   it("B: UNKNOWN mode snapshot is accepted and rendered honestly, never defaulted to PAPER", async () => {
@@ -99,7 +102,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(validateOperatorSnapshot(fixture.body)).toBe(true);
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("mode-badge")).toHaveAttribute("data-mode", "UNKNOWN"));
   });
@@ -114,9 +117,9 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(snapshot.portfolio.paper_equity_usd.value).not.toBe(snapshot.portfolio.real_account_equity_usd.value);
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-paper"));
     const text = screen.getByTestId("portfolio-view").textContent ?? "";
     expect(text).toMatch(/Indisponible/);
@@ -150,9 +153,9 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(snapshot.stale_reason).toBe("PRODUCER_RESTARTED");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200)));
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
     expect(screen.getByTestId("instance-relation")).toHaveTextContent("PREVIOUS_INSTANCE");
     expect(screen.getByTestId("runtime-state")).toHaveTextContent("LAST_KNOWN");
   });
@@ -164,7 +167,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(errorBody.error_code).toBe("SNAPSHOT_UNSUPPORTED_SCHEMA_VERSION");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(fixture.body, 503)));
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toBeInTheDocument());
     expect(screen.getByTestId("no-snapshot")).toBeInTheDocument();
@@ -189,9 +192,9 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-market"));
 
     await waitFor(() => expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT"));
@@ -230,9 +233,9 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-paper"));
     fireEvent.click(screen.getByTestId("tab-ppl"));
 
@@ -274,9 +277,9 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("tab-research"));
 
     await waitFor(() =>
@@ -324,11 +327,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
-    render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId("tab-paper"));
-    fireEvent.click(screen.getByTestId("tab-burn-in"));
+    render(<BurnInStatusView />);
 
     await waitFor(() =>
       expect(screen.getByTestId("burnin-view")).toHaveTextContent("BURN-IN-EPOCH-CROSS-STACK"),
@@ -356,14 +355,15 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     window.history.replaceState({}, "", "/paper-live/system");
     const fetchMock = vi.fn().mockImplementation((url) => Promise.resolve(String(url).endsWith("/runtime-service") ? jsonResponse(fixture.body, 200) : jsonResponse({ error_code: "SNAPSHOT_MISSING" }, 503)));
     vi.stubGlobal("fetch", fetchMock);
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live");
+    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("host-cross-stack"));
     const view = screen.getByTestId("runtime-service-view");
     expect(view).toHaveTextContent("MainPID à la capture4321");
     expect(view).toHaveTextContent("NRestarts0");
     expect(view).toHaveTextContent("b".repeat(40));
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
+    expect(screen.queryByTestId("no-snapshot")).toBeNull();
+    expect(fetchMock.mock.calls.some(call => String(call[0]).endsWith("/snapshot"))).toBe(false);
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/runtime-service", { method: "GET", signal: expect.any(AbortSignal) });
   });
 

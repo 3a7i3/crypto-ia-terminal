@@ -27,6 +27,7 @@ try {
     const view = page.getByTestId("research-lab-view");
     await view.waitFor();
     if (["missing", "invalid", "network"].includes(scenario)) {
+      await page.getByText("Source, dernière preuve et diagnostic",{exact:true}).click();
       assert((await view.innerText()).includes(scenario === "missing" ? "indisponible" : "La lecture a échoué : transport ou contrat à vérifier."), "Failure hidden");
       assert(await page.getByTestId("research-metric-card").count() === 0, "Error retained metrics");
     } else {
@@ -45,9 +46,8 @@ try {
     await page.screenshot({ path: path.join(out, `research-${scenario}-${width}.png`), fullPage: true });
     if (["published", "missing"].includes(scenario)) {
       await page.goto(`${base}/direction`, { waitUntil: "networkidle" });
-      await page.getByText("Recherche et capacités non déployées").click();
-      const card = page.getByTestId("direction-research-card"); await card.waitFor();
-      assert((await card.innerText()).includes(scenario === "published" ? "AVAILABLE" : "ERREUR SOURCE"), "Direction hides independent Research");
+      const card = page.locator(".module-card").filter({has:page.getByRole("link",{name:"Laboratoire",exact:true})}); await card.waitFor();
+      assert((await card.innerText()).includes(scenario === "published" ? "Publication disponible" : "Source indisponible"), "Home hides independent Research");
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "Direction overflow");
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: path.join(out, `direction-full-${scenario}-${width}.png`), fullPage: true });

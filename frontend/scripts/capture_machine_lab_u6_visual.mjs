@@ -55,11 +55,10 @@ try {
       });
     });
     for (const [name, route, testid] of [
-      ["machine", "/direction", "direction-view"],
+      ["machine", "/direction", "module-home"],
       ["radar", "/paper-live/market", "market-view"],
       ["portfolio", "/paper-live/portfolio", "portfolio-view"],
       ["finance", "/paper-live/finance", "financial-reconciliation-view"],
-      ["burn-in", "/paper-live/burn-in", "burnin-view"],
       ["research", "/research", "research-lab-view"],
       ["strategies", "/research/strategies", "strategy-board-view"],
     ]) {
@@ -68,17 +67,10 @@ try {
         `${name}: navigation failed`,
       );
       await page.getByTestId(testid).waitFor();
-      const spaces = page.getByTestId("space-navigation");
-      assert(
-        (await spaces.getByRole("link").count()) === 2,
-        "Two main spaces missing",
-      );
-      assert(
-        (await spaces.locator('[aria-current="page"]').innerText()).includes(
-          route.startsWith("/research") ? "Laboratoire" : "Machine",
-        ),
-        "Wrong workspace identity",
-      );
+      if(width === 390) await page.getByRole("button",{name:"Ouvrir les modules"}).click();
+      const modules=page.getByRole("navigation",{name:"Modules de la machine"});
+      assert(await modules.getByRole("link").count()===7,"Missing module navigation");
+      if(width === 390) await page.keyboard.press("Escape");
       assert(
         await page.evaluate(
           () =>

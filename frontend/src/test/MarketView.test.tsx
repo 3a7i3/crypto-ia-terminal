@@ -181,7 +181,7 @@ it("resolves selected detail from replacement snapshots and hides it on polling 
     expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("70.0");
     expect(screen.getByTestId("market-symbol-detail")).not.toHaveTextContent("75.0");
     await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
-    expect(screen.getByTestId("market-error")).toHaveTextContent("Marché indisponible");
+    expect(screen.getByTestId("market-error")).toHaveTextContent("Observations du marché indisponibles");
     expect(screen.queryByTestId("market-symbol-detail")).not.toBeInTheDocument();
   } finally { vi.useRealTimers(); }
 });

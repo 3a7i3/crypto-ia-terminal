@@ -179,11 +179,13 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
         style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}
       >
         <div className="font-mono text-xs font-bold mb-2">PAPER</div>
-        <Field label="paper_equity_usd">
-          <ObservedValueView ov={p.paper_equity_usd} render={fmtUsd} />
-        </Field>
         <Field label="paper_open_positions_count">
           <ObservedValueView ov={p.paper_open_positions_count} />
+        </Field>
+        <details className="portfolio-snapshot-amounts"><summary>Montants de cette capture opérateur · diagnostic</summary>
+        <p className="source-date">Ces observations du snapshot ne remplacent pas la publication FIN du module Finance.</p>
+        <Field label="paper_equity_usd">
+          <ObservedValueView ov={p.paper_equity_usd} render={fmtUsd} />
         </Field>
         <Field label="paper_unrealized_pnl_usd">
           <ObservedValueView ov={p.paper_unrealized_pnl_usd} render={fmtUsd} />
@@ -191,6 +193,7 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
         <Field label="paper_realized_pnl_usd">
           <ObservedValueView ov={p.paper_realized_pnl_usd} render={fmtUsd} />
         </Field>
+        </details>
       </div>
 
       {/* REAL/TESTNET block — never combined with PAPER numbers above */}
@@ -209,7 +212,7 @@ export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapsh
         style={{ background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--bg-border)" }}
       >
         <summary>Observation de compte réel / testnet · périmètre distinct</summary>
-        <div className="font-mono text-[10px] mb-2" style={{ color: "#c2410c" }} data-testid="real-account-warning">
+        <div className="font-mono text-[10px] mb-2" style={{ color: "var(--warn)" }} data-testid="real-account-warning">
           Observation en lecture seule · sans autorité de décision ou de dimensionnement
         </div>
         <Field label="real_account_equity_usd">

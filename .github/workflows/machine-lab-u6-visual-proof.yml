@@ -35,6 +35,8 @@ jobs:
           python -m tests.cross_stack.generate_runtime_service_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_strategy_board_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_financial_clarity_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_event_center_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_storage_fixture --out frontend/.cross-stack-fixtures
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -60,7 +62,9 @@ jobs:
           curl --fail --silent http://127.0.0.1:3000/research >/dev/null
       - name: Assert two spaces, criteria, exact financial values and responsive layouts
         working-directory: frontend
-        run: node scripts/capture_machine_lab_u6_visual.mjs
+        run: |
+          node scripts/capture_machine_lab_u6_visual.mjs
+          MODULE_VISUAL_SANDBOX=false MODULE_VISUAL_OUT_DIR=artifacts/machine-lab-u6/module-workspace node scripts/capture_module_workspace_visual.mjs
       - name: Upload Machine/Lab visual proof
         if: always()
         uses: actions/upload-artifact@v4

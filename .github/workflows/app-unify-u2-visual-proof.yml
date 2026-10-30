@@ -1,4 +1,4 @@
-name: APP-UNIFY U2 Burn-in Visual Proof
+name: Legacy UI Route Compatibility
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   u2-burn-in-visual:
-    name: "APP-UNIFY U2 BURN-IN VISUAL PROOF"
+    name: "LEGACY UI REDIRECT COMPATIBILITY"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:3000/paper-live/burn-in >/dev/null
-      - name: Capture and assert U2 visual proof
+      - name: Verify retired routes and absence of burn-in requests
         working-directory: frontend
         run: node scripts/capture_app_unify_u2_visual.mjs
       - name: Collect proof logs
@@ -52,11 +52,11 @@ jobs:
         run: |
           mkdir -p frontend/artifacts/app-unify-u2/runtime
           cp /tmp/app-unify-u2-vite.log frontend/artifacts/app-unify-u2/runtime/vite.log 2>/dev/null || true
-      - name: Upload U2 visual proof
+      - name: Upload retired route compatibility proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-unify-u2-burn-in-visual-proof
+          name: app-unify-u2-retired-route-proof
           path: frontend/artifacts/app-unify-u2/
           if-no-files-found: error
           retention-days: 14

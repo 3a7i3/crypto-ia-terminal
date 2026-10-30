@@ -1,113 +1,93 @@
 import React from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { SpaceNavigation } from "../components/SpaceNavigation";
-import { ModeBadge } from "../components/ModeBadge";
-import { SnapshotStatusBanner } from "../components/SnapshotStatusBanner";
 import { useOperatorSnapshot, type SnapshotState } from "../lib/snapshotClient";
 import type { OperatorSnapshot } from "../types";
-
+import { ModuleHeading } from "../components/ModuleHeading";
+import { ModeBadge } from "../components/ModeBadge";
 export interface PaperLiveOutletContext {
   snapshotState: SnapshotState;
   activeSnapshot: OperatorSnapshot | null;
 }
-
-const mainLinks = [
-  { to: "/paper-live", label: "Vue générale", glyph: "◉", testId: "tab-overview", end: true },
-  { to: "/paper-live/market", label: "CryptoRadar", glyph: "↗", testId: "tab-market" },
-  { to: "/paper-live/portfolio", label: "Portefeuille", glyph: "▣", testId: "tab-paper" },
-  { to: "/paper-live/system", label: "Système", glyph: "⚙", testId: "tab-system" },
-];
-
-const paperLinks = [
-  { to: "/paper-live/portfolio", label: "Portefeuille", testId: "tab-portfolio" },
-  { to: "/paper-live/burn-in", label: "Ordres & Burn-in", testId: "tab-burn-in" },
-  { to: "/paper-live/decisions", label: "Décisions", testId: "tab-decisions" },
-  { to: "/paper-live/lifecycle", label: "Comparaison simulateur / PPL", testId: "tab-ppl" },
-  { to: "/paper-live/finance", label: "Finance", testId: "tab-finance" },
-  { to: "/paper-live/events", label: "Événements", testId: "tab-events" },
-];
-
-const PAPER_PATHS = new Set(paperLinks.map((link) => link.to));
-
-function domain(pathname: string): "market" | "paper" | "system" | "overview" {
-  if (pathname === "/paper-live/market") return "market";
-  if (pathname === "/paper-live/system" || pathname === "/paper-live/scores") return "system";
-  if (PAPER_PATHS.has(pathname)) return "paper";
-  return "overview";
-}
-
-export const PaperLiveShell: React.FC = () => {
-  const location = useLocation();
+// Only dependent routes mount this reader. Independent modules never fetch Advisor.
+const CanonicalOutlet: React.FC = () => {
   const snapshotState = useOperatorSnapshot();
-  const activeSnapshot = snapshotState.status === "success" ? snapshotState.snapshot : null;
-  const lastFetchedAt = snapshotState.status === "success"
-    ? snapshotState.fetchedAt
-    : snapshotState.lastSuccess?.fetchedAt ?? null;
-  const activeDomain = domain(location.pathname);
-  const independentRoute = activeDomain === "market" ||
-    location.pathname === "/paper-live/lifecycle" ||
-    location.pathname === "/paper-live/burn-in" ||
-    location.pathname === "/paper-live/events" ||
-    location.pathname === "/paper-live/finance";
-
+  const positions = useLocation().pathname.endsWith("/portfolio");
   return (
-    <div className="operator-shell" data-testid="paper-live-shell">
-      <header className="operator-header">
-        <SpaceNavigation />
-        <div className="operator-header-row">
-          <div className="operator-brand-group">
-            <span className="operator-brand">CRYPTO<span className="operator-brand-accent">AI</span></span>
-            {activeDomain === "market" ? (
-              <span className="domain-badge domain-badge-market" data-testid="market-domain-badge">
-                <span className="domain-dot" aria-hidden="true" /> MARCHÉ OBSERVÉ
-              </span>
-            ) : activeDomain === "paper" ? (
-              <span className="domain-badge domain-badge-paper" data-testid="paper-domain-badge">
-                <span className="domain-dot" aria-hidden="true" /> SIMULATION PAPER
-              </span>
-            ) : activeDomain === "system" ? (
-              <span className="domain-badge domain-badge-system" data-testid="system-domain-badge">
-                <span className="domain-dot" aria-hidden="true" /> SYSTÈME
-              </span>
-            ) : <ModeBadge mode={activeSnapshot?.portfolio.mode} />}
-          </div>
-          <nav className="operator-nav" aria-label="Espaces opérateur">
-            {mainLinks.map((link) => (
-              <NavLink key={link.to} to={link.to} end={link.end}
-                className={({ isActive }) => `operator-tab${isActive ? " operator-tab-active" : ""}`}
-                data-testid={link.testId}>
-                <span className="operator-tab-glyph" aria-hidden="true">{link.glyph}</span><span>{link.label}</span>
-              </NavLink>
-            ))}
-            <NavLink className="direction-open-link" to="/direction" data-testid="open-direction">
-              Synthèse Machine →
-            </NavLink>
-          </nav>
-          <span className="operator-last-fetch" data-testid="last-fetch">
-            {lastFetchedAt ? new Date(lastFetchedAt).toLocaleTimeString() : "—"}
-          </span>
-        </div>
-      </header>
-      {!independentRoute && <SnapshotStatusBanner state={snapshotState} />}
-      <main className="operator-main">
-        {activeDomain === "paper" && <>
-          <div className="paper-domain-banner" data-testid="paper-domain-banner">
-            PAPER · exécution simulée · fonds fictifs
-          </div>
-          <nav className="operator-subnav" aria-label="Vues PAPER LIVE" data-testid="paper-subnav">
-            {paperLinks.map((link) => (
-              <NavLink key={link.to} to={link.to}
-                className={({ isActive }) => `operator-subtab${isActive ? " operator-subtab-active" : ""}`}
-                data-testid={link.testId}>{link.label}</NavLink>
-            ))}
-          </nav>
-        </>}
-        {activeDomain === "system" && <nav className="operator-subnav" aria-label="Vues Système / Gouvernance">
-          <NavLink to="/paper-live/system" className={({ isActive }) => `operator-subtab${isActive ? " operator-subtab-active" : ""}`} data-testid="tab-system-health">État du système</NavLink>
-          <NavLink to="/paper-live/scores" className={({ isActive }) => `operator-subtab${isActive ? " operator-subtab-active" : ""}`} data-testid="tab-scores">Scores</NavLink>
-        </nav>}
-        <Outlet context={{ snapshotState, activeSnapshot } satisfies PaperLiveOutletContext} />
-      </main>
+    <>
+      {!positions && (
+        <span className="module-mode">
+          <ModeBadge
+            mode={
+              snapshotState.status === "success"
+                ? snapshotState.snapshot.portfolio.mode
+                : undefined
+            }
+          />
+        </span>
+      )}
+      <Outlet
+        context={
+          {
+            snapshotState,
+            activeSnapshot:
+              snapshotState.status === "success"
+                ? snapshotState.snapshot
+                : null,
+          } satisfies PaperLiveOutletContext
+        }
+      />
+    </>
+  );
+};
+export const PaperLiveShell: React.FC = () => {
+  const { pathname } = useLocation();
+  const key = pathname.split("/").at(-1) ?? "";
+  const headings: Record<string, [string, string]> = {
+    market: ["Marché", "Scanner CryptoRadar et contexte de liquidité publié."],
+    decisions: [
+      "Décisions",
+      "Signaux observés, motifs de refus et traces de décision.",
+    ],
+    portfolio: [
+      "Positions",
+      "Positions publiées et provenance de leur cycle de vie.",
+    ],
+    lifecycle: [
+      "Positions",
+      "Comparaison publiée entre simulateur et PPL ; autorités distinctes.",
+    ],
+    finance: [
+      "Finance",
+      "Montants FIN, frais et rapprochements. Historique PPL séparé.",
+    ],
+    events: [
+      "Événements",
+      "Journal publié des événements, dans son périmètre de couverture.",
+    ],
+    system: [
+      "Système",
+      "Preuves de service et de stockage ; aucune santé globale déduite.",
+    ],
+  };
+  const [title, description] = headings[key] ?? [
+    "Module",
+    "Source de présentation en lecture seule.",
+  ];
+  const canonical = key === "portfolio" || key === "decisions";
+  return (
+    <div data-testid="paper-live-shell">
+      <ModuleHeading title={title} description={description} />
+      {(key === "portfolio" || key === "lifecycle") && (
+        <nav className="module-subnav" aria-label="Vues Positions">
+          <NavLink to="/paper-live/portfolio" data-testid="tab-portfolio">
+            Positions observées
+          </NavLink>
+          <NavLink to="/paper-live/lifecycle" data-testid="tab-ppl">
+            Comparaison PPL
+          </NavLink>
+        </nav>
+      )}
+      {canonical ? <CanonicalOutlet /> : <Outlet />}
     </div>
   );
 };

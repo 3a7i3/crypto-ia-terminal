@@ -94,7 +94,7 @@ describe("App", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    window.history.replaceState({}, "", "/paper-live");
+    window.history.replaceState({}, "", "/paper-live/portfolio");
     fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "/api/operator/v1/runtime-service") return Promise.resolve(jsonResponse(runtimeServiceFixture()));
@@ -109,86 +109,49 @@ describe("App", () => {
     vi.unstubAllGlobals();
   });
 
-  it("feeds the canonical advisor panels from a single snapshot fetch", async () => {
+  it("shares one canonical request across Positions and Decisions; System reads host separately", async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
-
-    fireEvent.click(screen.getByTestId("tab-paper"));
-    expect(screen.getByTestId("portfolio-view")).toBeInTheDocument();
-    expect(screen.getByTestId("paper-domain-banner")).toHaveTextContent("fonds fictifs");
-
+    await screen.findByTestId("portfolio-view");
     fireEvent.click(screen.getByTestId("tab-decisions"));
     expect(screen.getByTestId("decisions-view")).toBeInTheDocument();
-
+    expect(fetchMock.mock.calls.filter(call => call[0] === "/api/operator/v1/snapshot")).toHaveLength(1);
     fireEvent.click(screen.getByTestId("tab-system"));
-    expect(screen.getByTestId("system-view")).toBeInTheDocument();
-
     await waitFor(() => expect(screen.getByTestId("runtime-service-view")).toHaveTextContent("ÉTAT OBSERVÉ · active"));
-    // Canonical panels share one Advisor request; System separately reads host evidence.
-    expect(fetchMock.mock.calls.filter((call) => call[0] === "/api/operator/v1/snapshot")).toHaveLength(1);
-    expect(fetchMock.mock.calls.filter((call) => call[0] === "/api/operator/v1/runtime-service")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter(call => call[0] === "/api/operator/v1/snapshot")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter(call => call[0] === "/api/operator/v1/runtime-service")).toHaveLength(1);
   });
 
-  it("renders WEB-02 as an independent observational domain", async () => {
+  it("keeps PPL comparison independent and discloses its publication date", async () => {
+    window.history.replaceState({}, "", "/paper-live/lifecycle");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
-
-    fireEvent.click(screen.getByTestId("tab-paper"));
-    fireEvent.click(screen.getByTestId("tab-ppl"));
     await waitFor(() => expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("Ancien simulateur PAPER"));
-    expect(screen.getByTestId("paper-domain-badge")).toHaveTextContent("SIMULATION PAPER");
-    expect(screen.queryByTestId("mode-badge")).toBeNull();
     expect(screen.getByTestId("ppl-comparison-view")).toHaveTextContent("678.46");
-    expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/ppl-comparison", { method: "GET" });
+    expect(document.querySelector('time[datetime="2026-09-18T01:00:00Z"]')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/ppl-comparison", {method:"GET"});
   });
 
-  it("renders real MARKET telemetry while Scores remains NOT_EXPOSED", async () => {
+  it("loads MARKET alone and exposes microstructure only when requested", async () => {
+    window.history.replaceState({}, "", "/paper-live/market");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("overview-view")).toBeInTheDocument());
-
-    fireEvent.click(screen.getByTestId("tab-market"));
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
-    expect(screen.getByTestId("market-domain-badge")).toHaveTextContent("MARCHÉ OBSERVÉ");
-    expect(screen.queryByTestId("mode-badge")).toBeNull();
-    expect(screen.getByTestId("market-view")).toHaveTextContent("CryptoRadar");
     expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT");
-    expect(screen.queryByTestId("not-exposed-label")).toBeNull();
-
-    // Canonical snapshot, scanner and independent LMI source.
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-
-    fireEvent.click(screen.getByTestId("tab-system"));
-    fireEvent.click(screen.getByTestId("tab-scores"));
-    expect(screen.getByTestId("not-exposed-label")).toHaveTextContent("NOT_EXPOSED");
-    const text = screen.getByTestId("not-exposed-view").textContent ?? "";
-    expect(text).not.toMatch(/\d+%\s*win/i);
-    expect(text).not.toMatch(/expectancy|equity_curve/i);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("tab-scores")).toBeNull();
+    expect(screen.queryByTestId("tab-burn-in")).toBeNull();
   });
 
-  it("keeps MARKET independently healthy when the canonical snapshot is explicitly missing", async () => {
-    fetchMock.mockImplementation((input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url === "/api/operator/v1/runtime-service") return Promise.resolve(jsonResponse(runtimeServiceFixture()));
-      if (url === "/api/operator/v1/market") return Promise.resolve(jsonResponse(baseMarketSnapshot()));
-      return Promise.resolve(jsonResponse({ error_code: "SNAPSHOT_MISSING", error_message: "canonical artifact absent" }, 503));
-    });
-
+  it("keeps MARKET independent of missing Advisor and reports that absence on Positions", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => Promise.resolve(String(input) === "/api/operator/v1/market" ? jsonResponse(baseMarketSnapshot()) : jsonResponse({error_code:"SNAPSHOT_MISSING",error_message:"canonical artifact absent"},503)));
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
-
     fireEvent.click(screen.getByTestId("tab-market"));
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
-    expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("SNAPSHOT_MISSING");
-    expect(screen.getByTestId("market-canonical-context")).toHaveTextContent("domaine observationnel indépendant");
+    expect(screen.queryByTestId("market-canonical-context")).toBeNull();
     expect(screen.getByTestId("market-view")).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
-    expect(screen.queryByTestId("overview-view")).toBeNull();
-
-    // The canonical truth is not hidden; it returns with the canonical domain.
-    fireEvent.click(screen.getByTestId("tab-overview"));
-    expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING");
-    expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu");
+    fireEvent.click(screen.getByTestId("tab-paper"));
+    await waitFor(() => expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu"));
   });
 
   it("renders the canonical portfolio mode without a PAPER fallback for UNKNOWN", async () => {

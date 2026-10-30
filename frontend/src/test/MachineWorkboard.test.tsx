@@ -11,7 +11,9 @@ describe("Machine workboard governance boundary", () => {
     render(<App />);
     expect(screen.getByTestId("machine-workboard")).toBeInTheDocument();
     expect(screen.getByText(/changements GitHub ultérieurs/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Rechercher"), {target:{value:"U8"}});
     expect(screen.getByText("U8 · non certifié")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Rechercher"), {target:{value:"D1-E"}});
     expect(screen.getByText("D1-E · NOT_PROVEN")).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
   });

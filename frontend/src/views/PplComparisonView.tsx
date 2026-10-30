@@ -1,4 +1,5 @@
 import React from "react";
+import { PublicationStamp } from "../components/PublicationStamp";
 import { usePplComparison } from "../lib/pplComparisonClient";
 import type {
   PplComparisonClass,
@@ -230,6 +231,7 @@ export const PplComparisonView: React.FC = () => {
 
   return (
     <div className="ppl-stack" data-testid="ppl-comparison-view">
+      <PublicationStamp source="Comparaison simulateur / PPL" generatedAt={snapshot.generated_at_utc} freshness={snapshot.freshness_classification} age={snapshot.snapshot_age_s}/>
       <section className="ppl-panel ppl-hero">
         <div className="ppl-hero-row">
           <div>

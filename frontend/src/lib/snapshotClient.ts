@@ -1,9 +1,10 @@
 // ── snapshotClient — the ONE application-level polling source ───────────────
 //
-// Every panel in the cockpit is fed from a single GET to
+// Canonical Advisor panels (Positions and Decisions) share a single GET to
 // /api/operator/v1/snapshot, polled on one shared interval. There is no
 // per-panel polling and no mixing of domains from different snapshots: a
 // single fetch's response is the sole coherent view for that render cycle.
+// Market, FIN, Research and host metadata keep their independent readers.
 //
 // A failed fetch is NEVER converted into an empty "healthy" snapshot, and a
 // previously-successful snapshot is never silently kept presented as
