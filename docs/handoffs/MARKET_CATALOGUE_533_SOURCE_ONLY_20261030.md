@@ -36,6 +36,7 @@ Sur `crypto-restore-01`, accès Remote Desktop Commander confirmé comme
 | Python ciblé + intégralité `tests/cross_stack/` | 160 PASS |
 | Frontend complet, 20 fixtures synthétiques | 509 PASS, 39 fichiers, aucun skip |
 | Contrat serveur local / PWA | 17 PASS |
+| Preuves visuelles historiques scanner et indépendance LMI, adaptées à la pagination | PASS |
 | TypeScript + build production | PASS |
 | Ruff des 5 fichiers Python concernés | PASS |
 | Audit npm production | 0 vulnérabilité déclarée |
@@ -83,3 +84,18 @@ Prochaine action runtime : définir une admission distincte comprenant le
 lecteur API compatible v1.1, l’interface exacte, la source autorisée et le rollback.
 La capture active de 20 lignes ne peut pas être complétée à partir de ses
 seuls agrégats. L’autorisation ponctuelle #532 reste consommée.
+
+## Compatibilité des contrôles visuels
+
+Les scripts U3A et U3B recherchent toujours S25 au-delà de la première page.
+Le reset vérifie désormais 20 lignes et le début des deux premières pages,
+au lieu de confondre les 50 lignes publiées avec une seule page visible.
+Ces deux scripts ont été réexécutés dans l’audit isolé, avec assets interceptés,
+fixtures et Chromium sandboxé, sans serveur ou API active.
+
+Le premier essai CI a refusé le sandbox Chromium sur l’image rolling du runner.
+Le job cross-stack est fixé à l’image supportée `ubuntu-22.04` ; aucun flag
+`--no-sandbox`, privilège supplémentaire ou assouplissement de politique hôte
+n’est ajouté. Les autres workflows gardent leurs runners. La prise en charge
+est documentée par [GitHub Actions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job).
+Cette sélection d’environnement reste à confirmer par la CI du nouveau HEAD.

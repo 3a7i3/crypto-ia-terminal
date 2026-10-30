@@ -31,7 +31,10 @@ concurrency:
 jobs:
   cross-stack-compat:
     name: "CROSS-STACK COMPATIBILITY GATE"
-    runs-on: ubuntu-latest
+    # Keep the Chromium user-namespace sandbox enabled. The rolling image
+    # refused sandboxed Chromium; do not disable the sandbox
+    # or relax host security policy to make a visual check green.
+    runs-on: ubuntu-22.04
 
     # No secrets, no exchange access, no VPS/network deployment, and
     # deliberately no exchange-mode environment variable at all — the

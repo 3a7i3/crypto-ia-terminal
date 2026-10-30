@@ -54,7 +54,10 @@ try {
         assert(await detail.count() === 0, "Old detail retained after filter");
         await page.screenshot({ path: path.join(out, `scanner-no-match-${scenario}-${width}.png`), fullPage: true });
         await page.getByRole("button", { name: "Réinitialiser" }).click();
-        assert(await page.getByTestId("market-opportunity-row").count() === 50, "Reset lost ranking");
+        assert(await page.getByTestId("market-opportunity-row").count() === 20, "Reset lost first page");
+        assert((await page.getByTestId("market-opportunity-row").first().innerText()).includes(fixture.body.top_opportunities[0].symbol), "Reset reordered source");
+        await page.getByRole("button", { name: "Page suivante", exact: true }).click();
+        assert((await page.getByTestId("market-opportunity-row").first().innerText()).includes(fixture.body.top_opportunities[20].symbol), "Second page reordered source");
         await page.getByLabel("Biais dominant").selectOption("MIXED");
         assert((await view.innerText()).includes("S02/USDT"), "MIXED filter missing");
         assert(scenarioRequests.filter((r) => r.endsWith("/market")).length === initialMarketRequests, "Filters triggered API request");
