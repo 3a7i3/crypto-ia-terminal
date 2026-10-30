@@ -3,6 +3,7 @@ import { useMarketSnapshot } from "../lib/marketClient";
 import { fr } from "../lib/presentationFr";
 import type { MarketOpportunity } from "../lib/marketTypes";
 import { PublicationStamp } from "../components/PublicationStamp";
+import "../market-catalogue.css";
 
 function formatUtc(value: string | null): string {
   if (!value) return "—";
@@ -44,7 +45,13 @@ export const MarketView: React.FC = () => {
   const state = useMarketSnapshot();
   const [query, setQuery] = useState("");
   const [side, setSide] = useState("ALL");
+  const [population, setPopulation] = useState("qualified");
+  const [regime, setRegime] = useState("ALL");
+  const [page, setPage] = useState(0);
+  const [view, setView] = useState("table");
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+
+  useEffect(() => { setPage(0); setSelectedSymbol(null); }, [query, side, population, regime, view]);
 
   const detail = useRef<HTMLElement>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -85,12 +92,23 @@ export const MarketView: React.FC = () => {
 
   const m = state.snapshot;
   const stale = m.freshness_classification === "STALE";
-  const rows = m.top_opportunities.filter((row) =>
+  const complete = m.catalogue;
+  // Global symbol search includes below-threshold observations when the source supplies them.
+  const allPopulation = Boolean(complete) && (population === "all" || query.trim() !== "");
+  const available = complete ? (allPopulation ? complete.rows : complete.qualified_rows) : m.top_opportunities;
+  const rows = available.filter((row) =>
     row.symbol.toUpperCase().includes(query.trim().toUpperCase()) &&
-    (side === "ALL" || row.dominant_side === side));
+    (side === "ALL" || row.dominant_side === side) &&
+    (regime === "ALL" || row.regime === regime));
+  const pageCount = Math.max(1, Math.ceil(rows.length / 20));
+  const currentPage = Math.min(page, pageCount - 1);
+  const visibleRows = rows.slice(currentPage * 20, currentPage * 20 + 20);
+  const populationLabel = allPopulation ? "tous les paquets observés" : `paquets au seuil ≥ ${m.min_confidence}`;
+  const changePage = (next: number) => { setPage(next); setSelectedSymbol(null); };
+  const reset = () => { setQuery(""); setSide("ALL"); setPopulation("qualified"); setRegime("ALL"); setPage(0); setSelectedSymbol(null); };
   // Resolve from the current validated snapshot: never retain a stale row
   // object after polling replaces the source or the selection is filtered out.
-  const selected = rows.find((row) => row.symbol === selectedSymbol);
+  const selected = visibleRows.find((row) => row.symbol === selectedSymbol);
 
   return (
     <div className="market-stack" data-testid="market-view">
@@ -115,6 +133,7 @@ export const MarketView: React.FC = () => {
 
         <details className="market-provenance-details">
           <summary>Provenance et dates des sources</summary>
+          {complete && <p className="market-catalogue-window">Fenêtre UTC bornée : {formatUtc(complete.coverage.start_at_utc)} → {formatUtc(complete.coverage.end_at_utc)}. {complete.coverage.included_packets} observations incluses sur {complete.coverage.input_packets} chargées ; {complete.coverage.outside_window_packets} hors fenêtre, {complete.coverage.future_packets} futures, {complete.coverage.unresolved_timestamp_packets} sans date résolue. L’univers observé ne représente pas toutes les paires d’un exchange.</p>}
           <div className="market-provenance-grid"><div className="market-provenance">Autorité : <code>{m.authority}</code></div>
             <div className="market-provenance">
               Publication : <span className="market-provenance-value">{formatUtc(m.generated_at_utc)}</span>
@@ -146,7 +165,7 @@ export const MarketView: React.FC = () => {
 
         <div className="market-scanner-controls">
           <label>Recherche symbole
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="BTC, ETH…" />
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={complete ? "BTC ou ETH…" : "Symbole dans les lignes publiées…"} />
           </label>
           <label>Biais dominant
             <select value={side} onChange={(event) => setSide(event.target.value)}>
@@ -154,17 +173,32 @@ export const MarketView: React.FC = () => {
               <option value="SHORT">Vendeur</option><option value="MIXED">Mixte</option>
             </select>
           </label>
-          <button type="button" onClick={() => { setQuery(""); setSide("ALL"); setSelectedSymbol(null); }}>Réinitialiser</button>
+          {complete && <label>Population
+            <select aria-label="Population" value={allPopulation ? "all" : population} disabled={query.trim() !== ""} onChange={(event) => setPopulation(event.target.value)}>
+              <option value="qualified">Au seuil publié</option><option value="all">Tous les observés</option>
+            </select>
+          </label>}
+          <label>Régime publié
+            <select aria-label="Régime publié" value={regime} onChange={(event) => setRegime(event.target.value)}>
+              <option value="ALL">Tous</option>
+              {[...new Set(available.map((row) => row.regime))].sort().map((r) => <option key={r} value={r}>{fr(r)}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={reset}>Réinitialiser</button>
         </div>
         <div className="market-scanner-coverage" role="status" data-testid="market-scanner-coverage">
-          {rows.length} résultat(s) · {m.top_opportunities.length} ligne(s) publiée(s) sur {m.actionable_count} symbole(s) au seuil · univers observé : {m.universe_size}
-          {m.top_opportunities.length < m.actionable_count && <span> · Couverture partielle : recherche et filtres limités aux lignes publiées.</span>}
+          {complete ? <>{rows.length} résultat(s) · {available.length} symbole(s) consultables · {populationLabel} · univers observé : {m.universe_size}. {query.trim() && "Recherche élargie à tous les observés, hors seuil inclus."}</> : <>{rows.length} résultat(s) · {m.top_opportunities.length} ligne(s) publiée(s) sur {m.actionable_count} symbole(s) au seuil · univers observé : {m.universe_size}
+            {m.top_opportunities.length < m.actionable_count && <span> · Couverture partielle : recherche et filtres limités aux lignes publiées. Un symbole absent de ce fichier ne peut pas être retrouvé ici.</span>}</>}
+        </div>
+        <div className="market-display-choice" role="group" aria-label="Affichage du scanner">
+          <button type="button" aria-pressed={view === "table"} onClick={() => setView("table")}>Tableau</button>
+          <button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}>Carte des symboles</button>
         </div>
         {stale && <div className="market-scanner-coverage">Données historiques périmées · état actuel du marché INCONNU.</div>}
         {selected && <section className="market-symbol-detail" ref={detail} tabIndex={-1} onKeyDown={(event) => { if (event.key === "Escape") close(); }} aria-label="Détail observationnel" data-testid="market-symbol-detail">
           <div className="market-section-head"><strong>{selected.symbol} · détail observationnel</strong>
             <button type="button" onClick={close}>Fermer le détail</button></div>
-          <p>Population : paquets au seuil ≥ {m.min_confidence}, fenêtre {m.window_hours}h. {stale ? "Ancien · périmé · historique" : "Publication récente · observation"}.</p>
+          <p>Population : {populationLabel}, fenêtre {m.window_hours}h. {stale ? "Ancien · périmé · historique" : "Publication récente · observation"}.</p>
           <dl>
             <div><dt>Score moyen</dt><dd>{selected.avg_confidence.toFixed(1)}</dd></div>
             <div><dt>Score maximal</dt><dd>{selected.max_confidence.toFixed(1)}</dd></div>
@@ -175,15 +209,22 @@ export const MarketView: React.FC = () => {
           </dl>
           <p>Comptages LONG/SHORT exacts non disponibles · NOT_AVAILABLE dans cette projection. Aucune permission de trading.</p>
         </section>}
-        {m.top_opportunities.length === 0 ? (
+        {available.length === 0 ? (
           <div className="market-empty" data-testid="market-empty">
-            Aucun symbole n’atteint le seuil d’affichage dans cette fenêtre d’observation.
+            {allPopulation ? "Aucune observation datée dans cette publication." : "Aucun symbole n’atteint le seuil d’affichage dans cette fenêtre d’observation."}
           </div>
         ) : rows.length === 0 ? (
           <div className="market-empty" data-testid="market-filter-empty">Aucun résultat dans les lignes publiées pour ces filtres. Le marché n’est pas déclaré vide.</div>
         ) : (
           <>
-            <div className="market-table-wrap market-table-desktop" role="region" aria-label="Scanner CryptoRadar · défilement horizontal" tabIndex={0}>
+            {view === "map" ? <div className="market-heatmap" data-testid="market-heatmap">
+              <p className="market-heatmap-legend">Couleur : biais publié · intensité : score moyen. Même population et même ordre que le tableau, sans score de timing.</p>
+              <div className="market-heatmap-grid">
+                {visibleRows.map((row) => <button type="button" key={row.symbol} className={`market-heat-cell market-heat-${row.dominant_side.toLowerCase()}`} style={{ "--heat-fill": `${Math.min(30, Math.max(5, row.avg_confidence * 0.3))}%` } as React.CSSProperties} aria-label={`Détail ${row.symbol}`} onClick={(event) => { trigger.current = event.currentTarget; setSelectedSymbol(row.symbol); }}>
+                  <strong>{row.symbol}</strong><span>{row.avg_confidence.toFixed(1)} · score moyen</span><span>{fr(row.dominant_side)} · {fr(row.regime)}</span><span>{row.n_signals} observation(s)</span>
+                </button>)}
+              </div>
+            </div> : <div className="market-table-wrap market-table-desktop" role="region" aria-label="Scanner CryptoRadar · défilement horizontal" tabIndex={0}>
               <table className="market-table">
                 <thead>
                   <tr>
@@ -197,7 +238,7 @@ export const MarketView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
+                  {visibleRows.map((row) => (
                     <tr key={row.symbol} data-testid="market-opportunity-row">
                       <td className="market-table-symbol"><button type="button" className="market-symbol-button" aria-label={`Détail ${row.symbol}`} onClick={(event) => { trigger.current = event.currentTarget; setSelectedSymbol(row.symbol); }}>{row.symbol}</button></td>
                       <td className="market-num">{row.avg_confidence.toFixed(1)}</td>
@@ -210,13 +251,26 @@ export const MarketView: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
-
-
+            </div>}
+            <nav className="market-pagination" aria-label="Pages des symboles">
+              <button type="button" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 0}>Page précédente</button>
+              <span role="status">Page {currentPage + 1} / {pageCount} · {rows.length} résultat(s)</span>
+              <button type="button" onClick={() => changePage(currentPage + 1)} disabled={currentPage + 1 >= pageCount}>Page suivante</button>
+            </nav>
           </>
         )}
       </section>
 
+      <details className="market-panel market-analysis-notes">
+        <summary>Timing, volume et limites du scanner</summary>
+        <p>Le score moyen décrit les observations de la fenêtre publiée. « Signaux » compte des paquets d’observation, pas des ordres, des transactions ou du volume échangé. La dominance décrit leurs biais, pas une part de volume acheteur ou vendeur.</p>
+        <dl>
+          <div><dt>Variation du score sur 5 / 15 min</dt><dd>Non disponible : cette projection ne publie pas les points horodatés de comparaison.</dd></div>
+          <div><dt>Volume relatif / RVOL</dt><dd>Non disponible : les volumes de marché et leur référence ne sont pas publiés.</dd></div>
+          <div><dt>Transition de régime</dt><dd>Non disponible : le régime agrégé ne date pas son dernier changement.</dd></div>
+        </dl>
+        <p>Les fenêtres 1 h ou 4 h exigent leur propre publication bornée. Recharger une capture de 24 h ne crée pas ces observations. Aucun score ne certifie une opportunité exploitable.</p>
+      </details>
       <div className="market-footer">
         Le scanner décrit des observations au seuil publié. Aucun score ne donne une permission de trading.
       </div>

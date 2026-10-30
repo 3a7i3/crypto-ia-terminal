@@ -78,10 +78,38 @@ function isMarketOpportunity(x: unknown): x is MarketOpportunity {
   return true;
 }
 
+
+function validCatalogue(doc: Record<string, unknown>): boolean {
+  const c = doc.catalogue;
+  if (!isPlainObject(c) || !exactKeys(c, ["population", "rows", "qualified_rows", "coverage"])) return false;
+  if (c.population !== "ALL_OBSERVED_PACKETS") return false;
+  if (!Array.isArray(c.rows) || !c.rows.every(isMarketOpportunity)) return false;
+  if (!Array.isArray(c.qualified_rows) || !c.qualified_rows.every(isMarketOpportunity)) return false;
+  const rows = c.rows, qualified = c.qualified_rows;
+  if (rows.length !== doc.universe_size || qualified.length !== doc.actionable_count) return false;
+  const counts = new Map(rows.map((r) => [r.symbol, r.n_signals]));
+  if (counts.size !== rows.length || new Set(qualified.map((r) => r.symbol)).size !== qualified.length) return false;
+  if (rows.some((r) => r.n_signals <= 0) || qualified.some((r) => r.n_signals <= 0 || !counts.has(r.symbol) || r.n_signals > counts.get(r.symbol)!)) return false;
+  const top = doc.top_opportunities as MarketOpportunity[];
+  if (!top.every((r, i) => qualified[i] && ROW_KEYS.every((k) => r[k] === qualified[i][k]))) return false;
+  if (rows.reduce((n, r) => n + r.n_signals, 0) !== doc.packets_observed) return false;
+  const cv = c.coverage;
+  const countKeys = ["input_packets", "included_packets", "outside_window_packets", "future_packets", "unresolved_timestamp_packets"] as const;
+  if (!isPlainObject(cv) || !exactKeys(cv, ["start_at_utc", "end_at_utc", ...countKeys])) return false;
+  if (!countKeys.every((k) => isNonNegativeInteger(cv[k]))) return false;
+  if (cv.included_packets !== doc.packets_observed) return false;
+  if (cv.input_packets !== countKeys.filter((k) => k !== "input_packets").reduce((sum, k) => sum + (cv[k] as number), 0)) return false;
+  const instant = (v: unknown): number => typeof v === "string" && /(Z|[+-]\d{2}:\d{2})$/.test(v) ? Date.parse(v) : NaN;
+  const start = instant(cv.start_at_utc), end = instant(cv.end_at_utc), generated = instant(doc.generated_at_utc);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start !== (doc.window_hours as number) * 3_600_000 || end !== generated) return false;
+  const source = instant(doc.source_updated_at_utc);
+  return rows.length === 0 ? doc.source_updated_at_utc === null : Number.isFinite(source) && start <= source && source <= end;
+}
+
 export function validateMarketRadarSnapshot(x: unknown): x is MarketRadarSnapshot {
   if (!isPlainObject(x)) return false;
-  if (!exactKeys(x, TOP_LEVEL_KEYS)) return false;
-  if (x.schema_version !== "1.0.0") return false;
+  if (x.schema_version !== "1.0.0" && x.schema_version !== "1.1.0") return false;
+  if (!exactKeys(x, x.schema_version === "1.1.0" ? [...TOP_LEVEL_KEYS, "catalogue"] : TOP_LEVEL_KEYS)) return false;
   if (x.product !== "CryptoRadar") return false;
   if (x.domain !== "market") return false;
   if (x.authority !== "OBSERVATIONAL_TELEMETRY") return false;
@@ -100,5 +128,5 @@ export function validateMarketRadarSnapshot(x: unknown): x is MarketRadarSnapsho
   if (new Set(x.top_opportunities.map((row) => row.symbol)).size !== x.top_opportunities.length) return false;
   if (!isFiniteNumber(x.snapshot_age_s) || x.snapshot_age_s < 0) return false;
   if (x.freshness_classification !== "FRESH" && x.freshness_classification !== "STALE") return false;
-  return true;
+  return x.schema_version === "1.1.0" ? validCatalogue(x) : true;
 }

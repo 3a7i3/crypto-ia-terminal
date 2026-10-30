@@ -10,8 +10,25 @@ export interface MarketOpportunity {
   regime: string;
 }
 
+export interface MarketCatalogueCoverage {
+  start_at_utc: string;
+  end_at_utc: string;
+  input_packets: number;
+  included_packets: number;
+  outside_window_packets: number;
+  future_packets: number;
+  unresolved_timestamp_packets: number;
+}
+
+export interface MarketCatalogue {
+  population: "ALL_OBSERVED_PACKETS";
+  rows: MarketOpportunity[];
+  qualified_rows: MarketOpportunity[];
+  coverage: MarketCatalogueCoverage;
+}
+
 export interface MarketRadarSnapshot {
-  schema_version: "1.0.0";
+  schema_version: "1.0.0" | "1.1.0";
   product: "CryptoRadar";
   domain: "market";
   authority: "OBSERVATIONAL_TELEMETRY";
@@ -26,6 +43,7 @@ export interface MarketRadarSnapshot {
   actionable_count: number;
   watchlist_count: number;
   top_opportunities: MarketOpportunity[];
+  catalogue?: MarketCatalogue;
   snapshot_age_s: number;
   freshness_classification: MarketFreshness;
 }

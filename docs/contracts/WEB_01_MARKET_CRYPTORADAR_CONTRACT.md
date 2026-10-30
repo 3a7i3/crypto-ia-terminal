@@ -2,6 +2,9 @@
 
 Status: `IMPLEMENTATION_CONTRACT`
 
+Extension opt-in v1.1 : [MARKET-CATALOGUE-01](MARKET_CATALOGUE_01.md).
+Le contrat v1.0 et les valeurs par défaut ci-dessous restent pris en charge.
+
 Mission: `WEB-01-MARKET`
 
 Base SHA: `8798ad7a983bc6e949ea160619ec9a3ddb6c3f94`
