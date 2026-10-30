@@ -1,5 +1,6 @@
 // WEB-01B source-level PWA safety contract.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -21,8 +22,9 @@ async function loadWorkerHarness() {
   const policySource = await readFile(path.join(PUBLIC, "pwa-policy.js"), "utf8");
   const workerSource = await readFile(path.join(PUBLIC, "sw.js"), "utf8");
   const listeners = new Map();
+  const precached = [];
   const cache = {
-    addAll: async () => undefined,
+    addAll: async (urls) => { precached.push(...urls); },
     match: async () => undefined,
     put: async () => undefined,
   };
@@ -49,7 +51,7 @@ async function loadWorkerHarness() {
   });
   vm.runInContext(policySource, context, { filename: "pwa-policy.js" });
   vm.runInContext(workerSource, context, { filename: "sw.js" });
-  return { self, listeners };
+  return { self, listeners, precached };
 }
 
 test("manifest is installable and carries the required Chromium icon sizes", async () => {
@@ -152,4 +154,30 @@ test("service-worker registration keeps same-session replacement reload armed wi
   assert.ok(listenerStart >= 0 && listenerEnd > listenerStart, "controllerchange listener block must be present");
   const listenerBlock = source.slice(listenerStart, listenerEnd);
   assert.doesNotMatch(listenerBlock, /once:\s*true/, "controllerchange listener must survive the first-install claim");
+});
+
+
+test("brand URLs carry content identity and agree across PWA, document, header and precache", async () => {
+  const manifest = JSON.parse(await readFile(path.join(PUBLIC, "manifest.webmanifest"), "utf8"));
+  const { listeners, precached } = await loadWorkerHarness();
+  let installed;
+  listeners.get("install")({ waitUntil: (promise) => { installed = promise; } });
+  await installed;
+  for (const icon of manifest.icons) {
+    assert.match(icon.src, /^\/icons\/[^/]+\.png$/, "same-origin flat icon path required");
+    const bytes = await readFile(path.join(PUBLIC, icon.src.slice(1)));
+    const identity = createHash("sha256").update(bytes).digest("hex").slice(0, 12);
+    assert.ok(icon.src.includes(identity), "mutable icon URL must include its content hash to escape an existing cache");
+    const size = Number(icon.sizes.split("x")[0]);
+    assert.deepEqual(pngDimensions(bytes), { width: size, height: size });
+    assert.ok(precached.includes(icon.src), "worker must precache the exact versioned manifest icon");
+  }
+  const primary = manifest.icons.find((icon) => icon.sizes === "192x192").src;
+  const document = await readFile(path.join(ROOT, "index.html"), "utf8");
+  for (const rel of ["icon", "apple-touch-icon"]) {
+    const match = document.match(new RegExp('rel="' + rel + '"\\s+href="([^"]+)"'));
+    assert.equal(match?.[1], primary, rel + " must use the same content-addressed icon");
+  }
+  const frame = await readFile(path.join(SRC, "shells", "AppFrame.tsx"), "utf8");
+  assert.ok(frame.includes('src="' + primary + '"'), "header must use the versioned PWA icon");
 });

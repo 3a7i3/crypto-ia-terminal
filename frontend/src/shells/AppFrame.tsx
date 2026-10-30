@@ -44,7 +44,7 @@ export const AppFrame: React.FC = () => {
         </button>
         <Link className="app-brand" to="/direction">
           <span className="app-brand-symbol" aria-hidden="true">
-            <img src="/icons/operator-192.png" width={38} height={38} alt="" />
+            <img src="/icons/operator-agents-5f8e38bca670-192.png" width={38} height={38} alt="" />
           </span>
           <span>
             Crypto AI <b>Terminal</b>

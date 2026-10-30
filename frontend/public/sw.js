@@ -10,8 +10,8 @@ const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",
   "/pwa-policy.js",
-  "/icons/operator-192.png",
-  "/icons/operator-512.png",
+  "/icons/operator-agents-5f8e38bca670-192.png",
+  "/icons/operator-agents-48308c17cac2-512.png",
 ];
 
 const policy = self.WEB01B_PWA_POLICY;

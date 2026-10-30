@@ -1,0 +1,91 @@
+{
+  "mission": "#529 APP-BRAND-01 cache upgrade",
+  "base_source": "c8efb6e22e004bb058e13c9eece18e315a830635",
+  "runtime_after_operator_activation": {
+    "verified_at_utc": "2026-10-30T11:50:40.910647+00:00",
+    "disposition": "APP_BRAND_READ_ONLY_PASS",
+    "mode": "live",
+    "served_source_sha": "5386db38eb67e594d57a2b21623389a0239a07e0",
+    "candidate_sha": "5386db38eb67e594d57a2b21623389a0239a07e0",
+    "candidate_files_verified": true,
+    "protected_files_verified": 25,
+    "local_assets_verified": 8,
+    "private_tls_index_and_logo_verified": true,
+    "api_pid": "79546",
+    "web_pid": "118966",
+    "presentation_empty": true,
+    "this_checker_grants_no_authority": true,
+    "limitations": [
+      "point-in-time read-only observation",
+      "no actual new-frontend proof before activation",
+      "no host mitigation, egress or reboot test",
+      "no scientific certification"
+    ]
+  },
+  "actual_fresh_browser": {
+    "at_utc": "2026-10-30T11:51:06.439Z",
+    "source_sha": "5386db38eb67e594d57a2b21623389a0239a07e0",
+    "views": 44,
+    "assertions": 238,
+    "errors": [],
+    "blocked": [],
+    "fixtures_used": false,
+    "service_workers": "blocked",
+    "tls_verification": true
+  },
+  "isolated_existing_cache_upgrade": {
+    "at_utc": "2026-10-30T11:58:36.478Z",
+    "scope": "ISOLATED_SYNTHETIC_LOOPBACK_OLD_TO_CURRENT_SERVICE_WORKER",
+    "production_api_contacted": false,
+    "sandbox": true,
+    "service_workers": "allowed",
+    "reproduced": true,
+    "cache_key": "/icons/operator-192.png",
+    "cached_sha256": "bc969e04c6b134b4cba00af788d2a202a496290d169a5b64cbc7b4fd5f10a262",
+    "old_sha256": "bc969e04c6b134b4cba00af788d2a202a496290d169a5b64cbc7b4fd5f10a262",
+    "network_sha256": "5f8e38bca670a96916ed4089375ee0d6209c4d19161222489b30b756d4b2d411",
+    "expected_new_sha256": "5f8e38bca670a96916ed4089375ee0d6209c4d19161222489b30b756d4b2d411",
+    "fix_tested": true,
+    "blocked": [],
+    "errors": [],
+    "fixed_src": "/icons/operator-agents-5f8e38bca670-192.png",
+    "fixed_sha256": "5f8e38bca670a96916ed4089375ee0d6209c4d19161222489b30b756d4b2d411",
+    "old_worker_retained_for_fix": true,
+    "legacy_cache_retained": true,
+    "service_identity_before_and_after": "MainPID=79546\nNRestarts=0\nId=crypto-operator-api.service\nActiveEnterTimestamp=Fri 2026-10-30 02:48:04 UTC\n\nMainPID=118966\nNRestarts=0\nId=crypto-operator-web.service\nActiveEnterTimestamp=Fri 2026-10-30 11:45:30 UTC\n"
+  },
+  "validation": {
+    "frontend_tests_passed": 492,
+    "frontend_skipped": 0,
+    "runtime_contracts_passed": 17,
+    "runtime_skipped": 0,
+    "npm_audit_vulnerabilities": 0,
+    "production_build": "PASS",
+    "synthetic_visual": {
+      "checks": 154,
+      "errors": [],
+      "blocked": [],
+      "themePersistence": "PASS",
+      "minimum_contrast": 5.274303905253394
+    },
+    "fixture_files_reused": 19,
+    "fixtures_regenerated": false,
+    "active_services_modified": false
+  },
+  "proof_hashes": {
+    "final-proof/WARM_CACHE_FIXED.json": "fdbf7c5974f9532dc72edb1a43b30ba53b951e051ef3499bfe53ac8208de9ef3",
+    "captures/checks.json": "2388a9152aaf4ac823b2c38481eb350050e7716ca152e3d563088d4d997e843c",
+    "frontend-tests.log": "008032e7dad677fa81eda81373d92d29b515c301c87b9437b83a4513d7374461",
+    "runtime-tests.log": "445e287fc4687ff7694388eec65df2199b3c2437a42a3c9980575bea8812fabf",
+    "build.log": "0f3c6e777fcd85ce5a22be7fa64344401da8e641c2f858beb0ee6bc4d8cbfb65",
+    "regression-before-fix.log": "40d0a15b9c28ed92ee0ffe4647f93ec1c797fdc92964aefd2e668051ed644a9c"
+  },
+  "limitations": [
+    "actual5386 network/fresh browser pass is separate from normal phone cache",
+    "old worker intentionally retained during fix proof; old cache not cleared",
+    "no OS launcher icon refresh observed",
+    "usual phone mode/viewport settings not inspected",
+    "source correction not deployed by these proofs",
+    "no scientific certification"
+  ]
+}
