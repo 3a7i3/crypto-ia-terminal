@@ -31,7 +31,10 @@ concurrency:
 jobs:
   cross-stack-compat:
     name: "CROSS-STACK COMPATIBILITY GATE"
-    runs-on: ubuntu-latest
+    # Keep the Chromium user-namespace sandbox enabled. The rolling image
+    # refused sandboxed Chromium; do not disable the sandbox
+    # or relax host security policy to make a visual check green.
+    runs-on: ubuntu-22.04
 
     # No secrets, no exchange access, no VPS/network deployment, and
     # deliberately no exchange-mode environment variable at all — the
@@ -84,7 +87,7 @@ jobs:
         working-directory: frontend
         env:
           CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
-        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx src/test/LmiDetail.compat.test.tsx
+        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/marketCatalogue.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx src/test/LmiDetail.compat.test.tsx
 
       - name: Install browser for Events and Storage desktop/mobile proof
         working-directory: frontend
@@ -104,6 +107,23 @@ jobs:
             sleep 1
           done
           node scripts/capture_app_passive_visual.mjs
+
+      - name: Build and inspect bounded MARKET catalogue without an HTTP server
+        working-directory: frontend
+        env:
+          CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
+        run: |
+          npm run build
+          node scripts/capture_market_catalogue_visual.mjs
+
+      - name: Upload MARKET catalogue synthetic proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-catalogue-synthetic-proof
+          path: frontend/artifacts/market-catalogue/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload Events and Storage visual proof
         if: always()

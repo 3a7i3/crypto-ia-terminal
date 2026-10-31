@@ -79,6 +79,8 @@ describe("MarketView", () => {
 
     await waitFor(() => expect(screen.getByText("Provenance et dates des sources")).toBeInTheDocument());
     const view = screen.getByTestId("market-view");
+    expect(screen.getByTestId("market-venue-provenance")).toHaveTextContent("non attestés");
+    expect(screen.getByTestId("market-venue-provenance")).not.toHaveTextContent("MEXC");
     expect(view).toHaveTextContent("2026-09-14 20:00:00Z");
     expect(view).toHaveTextContent("2026-09-14 19:59:00Z");
   });

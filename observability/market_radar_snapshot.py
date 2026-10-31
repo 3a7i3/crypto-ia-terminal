@@ -25,13 +25,14 @@ import os
 import sys
 import time
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from scripts import radar_bot
 
 SCHEMA_VERSION = "1.0.0"
+CATALOGUE_SCHEMA_VERSION = "1.1.0"
 DEFAULT_WINDOW_HOURS = 24
 DEFAULT_MIN_CONFIDENCE = 65.0
 DEFAULT_WATCHLIST_MIN_CONFIDENCE = 50.0
@@ -172,12 +173,49 @@ def _validate_projected_row(row: Mapping[str, Any]) -> None:
         raise ValueError("regime must be a string")
 
 
+def _catalogue_window(packets, window_hours, now_fn):
+    """Bound the opt-in catalogue by genuine UTC instants; keep exclusions visible."""
+    if isinstance(window_hours, bool) or not isinstance(window_hours, int):
+        raise ValueError("catalogue window_hours must be an integer")
+    end = datetime.fromtimestamp(float(now_fn()), tz=timezone.utc)
+    start = end - timedelta(hours=window_hours)
+    included = []
+    outside = future = unresolved = 0
+    for packet in packets:
+        if not isinstance(packet, Mapping):
+            raise ValueError("catalogue input must contain packet objects")
+        normalized = _normalize_packet_timestamp_utc(packet.get("created_at"))
+        if normalized is None:
+            unresolved += 1
+        elif normalized[0] < start:
+            outside += 1
+        elif normalized[0] > end:
+            future += 1
+        else:
+            if not isinstance(packet.get("symbol"), str) or not packet["symbol"].strip():
+                raise ValueError("catalogue packet symbol must be non-empty")
+            if _finite_number(packet.get("confidence"), "packet confidence") < 0:
+                raise ValueError("catalogue confidence must be non-negative")
+            included.append(packet)
+    return included, {
+        "start_at_utc": start.isoformat().replace("+00:00", "Z"),
+        "end_at_utc": end.isoformat().replace("+00:00", "Z"),
+        "input_packets": len(packets),
+        "included_packets": len(included),
+        "outside_window_packets": outside,
+        "future_packets": future,
+        "unresolved_timestamp_packets": unresolved,
+    }
+
+
 def build_market_snapshot(
     *,
     window_hours: int = DEFAULT_WINDOW_HOURS,
     min_confidence: float = DEFAULT_MIN_CONFIDENCE,
     watchlist_min_confidence: float = DEFAULT_WATCHLIST_MIN_CONFIDENCE,
     top_n: int = DEFAULT_TOP_N,
+    include_catalogue: bool = False,
+    source_packets: Optional[Iterable[Mapping[str, Any]]] = None,
     now_fn=time.time,
 ) -> Dict[str, Any]:
     """Build one deterministic read-only MARKET presentation document.
@@ -198,7 +236,14 @@ def build_market_snapshot(
     if watchlist_min_confidence > min_confidence:
         raise ValueError("watchlist_min_confidence must be <= min_confidence")
 
-    packets: List[Mapping[str, Any]] = list(radar_bot.load_recent_packets(window_hours))
+    # Explicit immutable inputs support offline catalogue preparation without
+    # changing the runtime loader, its dates or process-global state.
+    packets: List[Mapping[str, Any]] = list(
+        radar_bot.load_recent_packets(window_hours) if source_packets is None else source_packets
+    )
+    coverage = None
+    if include_catalogue:
+        packets, coverage = _catalogue_window(packets, window_hours, now_fn)
     all_stats = list(radar_bot.compute_symbol_stats(packets, min_conf=0))
     qualifying = list(radar_bot.compute_symbol_stats(packets, min_conf=min_confidence))
 
@@ -221,12 +266,12 @@ def build_market_snapshot(
         _validate_projected_row(row)
 
     snapshot: Dict[str, Any] = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": CATALOGUE_SCHEMA_VERSION if include_catalogue else SCHEMA_VERSION,
         "product": "CryptoRadar",
         "domain": "market",
         "authority": "OBSERVATIONAL_TELEMETRY",
         "mode": "OBSERVATION",
-        "generated_at_utc": _utc_now_iso(now_fn),
+        "generated_at_utc": coverage["end_at_utc"] if coverage is not None else _utc_now_iso(now_fn),
         "source_updated_at_utc": _latest_packet_timestamp(packets),
         "window_hours": int(window_hours),
         "min_confidence": float(min_confidence),
@@ -237,6 +282,18 @@ def build_market_snapshot(
         "watchlist_count": watchlist_count,
         "top_opportunities": top_rows,
     }
+
+    if include_catalogue:
+        catalogue_rows = [_safe_row(row) for row in all_stats]
+        qualified_rows = [_safe_row(row) for row in qualifying]
+        for row in catalogue_rows + qualified_rows:
+            _validate_projected_row(row)
+        snapshot["catalogue"] = {
+            "population": "ALL_OBSERVED_PACKETS",
+            "rows": catalogue_rows,
+            "qualified_rows": qualified_rows,
+            "coverage": coverage,
+        }
 
     # Explicit no-execution/no-secret guard over the serialized document.
     lowered = json.dumps(snapshot, sort_keys=True).lower()
@@ -257,6 +314,7 @@ def write_market_snapshot(
     window_hours: int = DEFAULT_WINDOW_HOURS,
     min_confidence: float = DEFAULT_MIN_CONFIDENCE,
     top_n: int = DEFAULT_TOP_N,
+    include_catalogue: bool = False,
 ) -> Dict[str, Any]:
     """Build and atomically publish one MARKET snapshot.
 
@@ -269,6 +327,7 @@ def write_market_snapshot(
         window_hours=window_hours,
         min_confidence=min_confidence,
         top_n=top_n,
+        include_catalogue=include_catalogue,
         now_fn=now_fn,
     )
     payload = json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True)
@@ -290,11 +349,11 @@ def publish_once(path: Path = DEFAULT_PATH, **kwargs: Any) -> bool:
         return False
 
 
-def run_loop(path: Path, interval_s: float) -> None:
+def run_loop(path: Path, interval_s: float, **publish_kwargs: Any) -> None:
     if interval_s <= 0:
         raise ValueError("interval_s must be > 0")
     while True:
-        publish_once(path)
+        publish_once(path, **publish_kwargs)
         time.sleep(interval_s)
 
 
@@ -303,11 +362,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--once", action="store_true", help="publish once and exit")
     parser.add_argument("--path", type=Path, default=DEFAULT_PATH)
     parser.add_argument("--interval", type=float, default=DEFAULT_INTERVAL_S)
+    parser.add_argument("--catalogue", action="store_true", help="opt in to complete v1.1 catalogue and bounded UTC window")
+    parser.add_argument("--window-hours", type=int, default=DEFAULT_WINDOW_HOURS)
     args = parser.parse_args(argv)
+    if not args.catalogue and args.window_hours != DEFAULT_WINDOW_HOURS:
+        parser.error("--window-hours requires --catalogue for a bounded UTC window")
+    kwargs = {"include_catalogue": args.catalogue, "window_hours": args.window_hours}
 
     if args.once:
-        return 0 if publish_once(args.path) else 1
-    run_loop(args.path, args.interval)
+        return 0 if publish_once(args.path, **kwargs) else 1
+    run_loop(args.path, args.interval, **kwargs)
     return 0
 
 
@@ -318,6 +382,7 @@ if __name__ == "__main__":
 __all__ = [
     "DEFAULT_PATH",
     "SCHEMA_VERSION",
+    "CATALOGUE_SCHEMA_VERSION",
     "build_market_snapshot",
     "write_market_snapshot",
     "publish_once",

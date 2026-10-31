@@ -46,7 +46,8 @@ try {
       if (["missing", "invalid", "network"].includes(scenario)) {
         assert((await view.innerText()).includes("INCONNU"), "Failure not explicit");
         assert(await page.getByTestId("microstructure-coverage").count() === 0, "Error fabricated coverage");
-        assert((await page.getByTestId("market-view").innerText()).includes("S25/USDT"), "LMI failure hid Scanner");
+        await page.getByLabel("Recherche symbole", { exact: true }).fill("S25");
+        assert((await page.getByTestId("market-view").innerText()).includes("S25/USDT"), "LMI failure hid searchable Scanner");
       } else {
         assert(await page.getByTestId("market-error").count() === 1, "Fixture did not exercise independent scanner error");
         assert((await view.innerText()).includes("Demandés"), "Coverage missing");

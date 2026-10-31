@@ -113,6 +113,9 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     generate_market_fixture(args.out)
+    from tests.cross_stack.generate_market_catalogue_fixture import generate_market_catalogue_fixture
+
+    generate_market_catalogue_fixture(args.out)
 
 
 if __name__ == "__main__":

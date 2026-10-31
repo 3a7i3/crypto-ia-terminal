@@ -124,7 +124,7 @@ def _valid_row(row: Any) -> bool:
         return False
     if not _non_negative_int(row["n_signals"]):
         return False
-    if row["dominant_side"] not in {"LONG", "SHORT", "MIXED"}:
+    if row["dominant_side"] not in ("LONG", "SHORT", "MIXED"):
         return False
     if not _finite_number(row["dominance_pct"]):
         return False
@@ -135,14 +135,62 @@ def _valid_row(row: Any) -> bool:
     return True
 
 
+def _valid_catalogue(doc: Dict[str, Any]) -> bool:
+    catalogue = doc.get("catalogue")
+    if not isinstance(catalogue, dict) or set(catalogue) != {"population", "rows", "qualified_rows", "coverage"}:
+        return False
+    if catalogue["population"] != "ALL_OBSERVED_PACKETS":
+        return False
+    rows, qualified = catalogue["rows"], catalogue["qualified_rows"]
+    if not isinstance(rows, list) or not isinstance(qualified, list):
+        return False
+    if not all(_valid_row(row) for row in rows + qualified):
+        return False
+    if any(row["n_signals"] <= 0 for row in rows + qualified):
+        return False
+    if len(rows) != doc["universe_size"] or len(qualified) != doc["actionable_count"]:
+        return False
+    symbols = {row["symbol"] for row in rows}
+    if len(symbols) != len(rows) or len({row["symbol"] for row in qualified}) != len(qualified):
+        return False
+    if not {row["symbol"] for row in qualified}.issubset(symbols):
+        return False
+    if qualified[:len(doc["top_opportunities"])] != doc["top_opportunities"]:
+        return False
+    if sum(row["n_signals"] for row in rows) != doc["packets_observed"]:
+        return False
+    all_counts = {row["symbol"]: row["n_signals"] for row in rows}
+    if any(row["n_signals"] > all_counts[row["symbol"]] for row in qualified):
+        return False
+    coverage = catalogue["coverage"]
+    expected = {"start_at_utc", "end_at_utc", "input_packets", "included_packets", "outside_window_packets", "future_packets", "unresolved_timestamp_packets"}
+    if not isinstance(coverage, dict) or set(coverage) != expected:
+        return False
+    counts = expected - {"start_at_utc", "end_at_utc"}
+    if not all(_non_negative_int(coverage[key]) for key in counts):
+        return False
+    if coverage["included_packets"] != doc["packets_observed"]:
+        return False
+    if coverage["input_packets"] != sum(coverage[key] for key in counts - {"input_packets"}):
+        return False
+    start, end = _parse_utc(coverage["start_at_utc"]), _parse_utc(coverage["end_at_utc"])
+    if start is None or end is None or (end - start).total_seconds() != doc["window_hours"] * 3600:
+        return False
+    if end != _parse_utc(doc["generated_at_utc"]):
+        return False
+    source = _parse_utc(doc["source_updated_at_utc"])
+    return (source is None if not rows else source is not None and start <= source <= end)
+
+
 def validate_market_snapshot(doc: Any) -> bool:
     """Closed-schema admission gate for producer-authored MARKET data."""
 
     if not isinstance(doc, dict):
         return False
-    if set(doc) != _TOP_LEVEL_KEYS:
+    version = doc.get("schema_version")
+    if version not in ("1.0.0", "1.1.0"):
         return False
-    if doc["schema_version"] != "1.0.0":
+    if set(doc) != _TOP_LEVEL_KEYS | ({"catalogue"} if version == "1.1.0" else set()):
         return False
     if doc["product"] != "CryptoRadar":
         return False
@@ -178,7 +226,7 @@ def validate_market_snapshot(doc: Any) -> bool:
         return False
     if len({row["symbol"] for row in opportunities}) != len(opportunities):
         return False
-    return True
+    return _valid_catalogue(doc) if version == "1.1.0" else True
 
 
 class MarketSnapshotReader:

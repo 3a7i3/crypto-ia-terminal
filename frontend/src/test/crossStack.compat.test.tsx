@@ -379,7 +379,9 @@ describe.skipIf(!HAS_FIXTURES)("U3a scanner real producer → API → React", ()
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200));
     vi.stubGlobal("fetch", fetchMock);
     render(<MarketView />);
-    await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(50));
+    await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(20));
+    fireEvent.click(screen.getByRole("button", { name: "Page suivante" }));
+    expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(20);
     expect(screen.getByTestId("market-scanner-coverage")).toHaveTextContent("50 ligne(s) publiée(s) sur 60");
     fireEvent.change(screen.getByLabelText("Recherche symbole"), { target: { value: "s25" } });
     expect(screen.getByTestId("market-opportunity-row")).toHaveTextContent("S25/USDT");
