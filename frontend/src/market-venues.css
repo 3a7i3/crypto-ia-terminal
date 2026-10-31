@@ -1,0 +1,25 @@
+.market-workspace { min-width:0; }
+.market-workspace-tabs { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px; }
+.market-workspace-tabs button { min-height:44px;padding:10px 15px;border-radius:8px;border:1px solid var(--bg-border-strong);background:var(--bg-card);color:var(--text-pri);cursor:pointer;font:inherit; }
+.market-workspace-tabs button[aria-selected="true"] { background:var(--accent-dim);color:var(--accent);border-color:var(--accent); }
+.market-workspace :is(button,select):focus-visible { outline:3px solid var(--focus-ring);outline-offset:3px; }
+.venue-panel { padding:20px;min-width:0; }
+.venue-panel h2,.venue-panel h3 { color:var(--text-pri);margin:12px 0;font-size:20px; }
+.venue-panel p,.venue-panel dd { color:var(--text-sec);font-size:14px;line-height:1.65; }
+.venue-evidence { padding:10px 12px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:7px; }
+.venue-quality { font-weight:600; }
+.venue-note { font-size:13px!important; }
+.venue-controls { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px; }
+.venue-controls label { display:grid;gap:7px;font-size:13px;color:var(--text-sec);min-width:0; }
+.venue-controls select { width:100%;min-height:44px;background:var(--bg-card);color:var(--text-pri);border:1px solid var(--bg-border-strong);border-radius:7px;padding:9px;font:inherit;min-width:0; }
+.venue-table-wrap { overflow-x:auto;max-width:100%;margin-top:16px; }
+.venue-table-wrap table { min-width:800px;width:100%; }
+.venue-caption { text-align:left;padding:10px 0;color:var(--text-sec);font-size:13px; }
+.venue-detail { border:2px solid var(--accent); }
+.venue-detail dl { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px; }
+.venue-detail dt { font-weight:600;color:var(--text-pri);font-size:13px; }
+.venue-detail dd { margin:5px 0 0;overflow-wrap:anywhere; }
+.venue-detail code { overflow-wrap:anywhere;word-break:break-all; }
+.venue-detail button { min-height:44px;background:var(--bg-card-soft);color:var(--text-pri);padding:9px;border:1px solid var(--bg-border);border-radius:7px;cursor:pointer; }
+.venue-panel summary { cursor:pointer;font-size:14px;color:var(--text-pri);font-weight:600; }
+@media(max-width:480px) { .venue-panel{padding:14px}.market-workspace-tabs button{flex:1} }

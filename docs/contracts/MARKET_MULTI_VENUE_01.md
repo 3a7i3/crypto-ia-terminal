@@ -134,3 +134,7 @@ Avant admission d’une venue :
 La VM n’est pas déclarée capable d’absorber 25 ou 50 flux sans ce test.
 Aucun collecteur, service, clé, port, alerte, compte ou stratégie n’est activé
 par le registre, le prototype, la CI ou une fusion source.
+
+## Suite source séparée
+
+La mission [#536](https://github.com/3a7i3/crypto-ia-terminal/issues/536) prépare les décodeurs offline et un second onglet Marché dans [MARKET_MULTI_VENUE_02](MARKET_MULTI_VENUE_02.md). Le champ offline_snapshot_decoder du registre documente cette source ; network_adapter et collection_enabled restent inchangés. Aucune observation historique de cette page ne devient une preuve de connexion.

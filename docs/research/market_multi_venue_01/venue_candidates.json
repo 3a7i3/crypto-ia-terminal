@@ -16,7 +16,8 @@
       "documentation": "https://mexcdevelop.github.io/apidocs/spot_v3_en/#order-book",
       "note": "Spot depth/BBO documented; packet venue remains UNRESOLVED.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "bybit",
@@ -27,7 +28,8 @@
       "documentation": "https://bybit-exchange.github.io/docs/v5/market/orderbook",
       "note": "Separate spot/linear/inverse products; matching-engine and publication timestamps differ; RPI excluded.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "okx",
@@ -38,7 +40,8 @@
       "documentation": "https://www.okx.com/docs-v5/en/",
       "note": "Instrument type and book channel including RPI/ELP coverage must be explicit.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "kraken",
@@ -49,7 +52,8 @@
       "documentation": "https://docs.kraken.com/exchange/api-reference/spot-websocket-v2/book",
       "note": "Book snapshots/deltas and checksum; native pair/quote currency retained.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "bitfinex",
@@ -60,7 +64,8 @@
       "documentation": "https://docs.bitfinex.com/reference/rest-public-book",
       "note": "Trading-book signed amounts differ from funding books; no invented exchange event time.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "kucoin",
@@ -71,7 +76,8 @@
       "documentation": "https://www.kucoin.com/docs-new/rest/spot-trading/market-data/get-ticker",
       "note": "Native bestBid/bestAsk and time/sequence; spot/futures/UTA endpoints kept distinct.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "coinbase_exchange",
@@ -82,7 +88,8 @@
       "documentation": "https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-book",
       "note": "Book levels/sequence; do not substitute last-trade time or USD for USDT.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "hyperliquid",
@@ -93,7 +100,8 @@
       "documentation": "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint",
       "note": "Spot/perp native metadata and remapped tokens; allMids can fall back to last trade.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
     {
       "id": "binance",
@@ -104,7 +112,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "bitget",
@@ -115,7 +124,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "gate",
@@ -126,7 +136,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "crypto_com",
@@ -137,7 +148,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "bitstamp",
@@ -148,7 +160,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "gemini",
@@ -159,7 +172,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "htx",
@@ -170,7 +184,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "upbit",
@@ -181,7 +196,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "bithumb",
@@ -192,7 +208,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "bitmart",
@@ -203,7 +220,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "whitebit",
@@ -214,7 +232,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "poloniex",
@@ -225,7 +244,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "lbank",
@@ -236,7 +256,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "phemex",
@@ -247,7 +268,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "deribit",
@@ -258,7 +280,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "dydx",
@@ -269,7 +292,8 @@
       "documentation": null,
       "note": "Candidate name only. Market coverage, API access, fees, regional availability, limits and timestamp quality remain unverified.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     },
     {
       "id": "opensea",
@@ -280,7 +304,8 @@
       "documentation": "https://docs.opensea.io/reference/api-overview",
       "note": "NFTs and token swap quotes documented; API key required. No order-book equivalence, NFT/fungible aggregation or key creation is authorised.",
       "network_adapter": "NOT_IMPLEMENTED",
-      "collection_enabled": false
+      "collection_enabled": false,
+      "offline_snapshot_decoder": "NOT_IMPLEMENTED"
     }
   ]
 }

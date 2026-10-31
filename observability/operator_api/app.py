@@ -27,6 +27,7 @@ from fastapi.responses import JSONResponse
 
 from observability.operator_api.event_center_reader import EventCenterReader
 from observability.operator_api.storage_reader import StorageSnapshotReader
+from observability.operator_api.venue_comparison_reader import VenueComparisonReader
 
 from observability.operator_api.market_microstructure_reader import (
     DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
@@ -598,3 +599,19 @@ __all__ = [
     "configure_research_lab_reader",
     "get_research_lab_reader",
 ]
+
+
+# MARKET-MULTI-VENUE-02: separate artifact, no on-demand collection or calculation.
+_venue_comparison_reader = VenueComparisonReader()
+
+def configure_venue_comparison_reader(path=None, *, now_fn=None):
+    global _venue_comparison_reader
+    _venue_comparison_reader = VenueComparisonReader(path, **({} if now_fn is None else {"now_fn": now_fn}))
+    return _venue_comparison_reader
+
+@app.get("/api/operator/v1/venue-comparison")
+def get_venue_comparison():
+    result = _venue_comparison_reader.read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
