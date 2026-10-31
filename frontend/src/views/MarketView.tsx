@@ -4,6 +4,8 @@ import { fr } from "../lib/presentationFr";
 import type { MarketOpportunity } from "../lib/marketTypes";
 import { PublicationStamp } from "../components/PublicationStamp";
 import "../market-catalogue.css";
+import "../market-venues.css";
+import { MarketVenuesView } from "./MarketVenuesView";
 
 function formatUtc(value: string | null): string {
   if (!value) return "—";
@@ -41,7 +43,7 @@ const Regime: React.FC<{ value: string }> = ({ value }) => (
   <span className={`market-regime market-regime-${regimeTone(value)}`} title={value}>{fr(value)}</span>
 );
 
-export const MarketView: React.FC = () => {
+const MarketScanner: React.FC = () => {
   const state = useMarketSnapshot();
   const [query, setQuery] = useState("");
   const [side, setSide] = useState("ALL");
@@ -277,4 +279,21 @@ export const MarketView: React.FC = () => {
       </div>
     </div>
   );
+};
+
+
+export const MarketView: React.FC = () => {
+  const [active, setActive] = useState(0);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const choose = (next: number) => { setActive(next); tabs.current[next]?.focus(); };
+  return <div className="market-workspace" data-testid="market-workspace">
+    <div className="market-workspace-tabs" role="tablist" aria-label="Vues du marché">
+      {["Scanner", "Comparaison des plateformes"].map((label, i) => <button key={label} type="button" role="tab" id={"market-tab-" + i} aria-controls={"market-panel-" + i} aria-selected={active === i} tabIndex={active === i ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => setActive(i)} onKeyDown={e => {
+        if (["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) { e.preventDefault(); choose(e.key === "Home" ? 0 : e.key === "End" ? 1 : 1 - i); }
+      }}>{label}</button>)}
+    </div>
+    <div role="tabpanel" id={"market-panel-" + active} aria-labelledby={"market-tab-" + active}>
+      {active === 0 ? <MarketScanner/> : <MarketVenuesView/>}
+    </div>
+  </div>;
 };
