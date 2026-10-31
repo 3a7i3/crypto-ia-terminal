@@ -258,7 +258,7 @@ def decode_snapshot(
                 amount = Decimal(row[2])
                 if not amount.is_finite() or amount == 0:
                     raise ValueError("INVALID_DECIMAL_RANGE")
-                (bids if amount > 0 else asks).append([row[0], abs(amount)])
+                (bids if amount > 0 else asks).append([row[0], amount.copy_abs()])
         elif venue == "kucoin":
             if doc["code"] != "200000":
                 raise ValueError("KUCOIN_RESPONSE_ERROR")

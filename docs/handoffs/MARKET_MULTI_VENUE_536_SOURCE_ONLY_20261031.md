@@ -22,7 +22,7 @@ Exécutés sur `crypto-restore-01`, compte `lecanada26` UID 1001, dans un nouvea
 
 | Contrôle | Résultat |
 | --- | --- |
-| Python : cross-stack, nouveaux décodeurs/publication, catalogue/préparation, comparateur existant | 253 tests réussis (sélection dédupliquée) |
+| Python : cross-stack, nouveaux décodeurs/publication, catalogue/préparation, comparateur existant | 254 tests réussis (sélection dédupliquée) |
 | Vitest complet, fixtures cross-stack générées | 530 tests réussis, aucun skip |
 | Vitest de la nouvelle vue après correction des libellés accessibles | 21 tests réussis |
 | Tests de cache/PWA/runtime frontend | 17 tests réussis |
@@ -32,7 +32,7 @@ Exécutés sur `crypto-restore-01`, compte `lecanada26` UID 1001, dans un nouvea
 | Scanner catalogue existant en navigateur sandboxé | 375 assertions, 50 captures, réussi |
 
 La preuve navigateur utilise le build et des fixtures **entièrement synthétiques** : aucune API active ni exchange atteint, aucun serveur HTTP démarré. Elle n’atteste pas de prix de marché ou de qualité réseau. Les artefacts CI sont conservés 14 jours ; les contrôles GitHub au HEAD exact de la PR restent à vérifier séparément.
-Les avertissements préexistants pytest asyncio, Starlette/httpx et chargement de configuration Vite sont conservés, sans suppression. Des essais initiaux ont révélé puis corrigé un identifiant de fixture invalide, le refus d’un chemin répertoire et le libellé des sélecteurs. Une commande de sélection de tests a aussi refusé un fichier de cache Python ; la sélection a été limitée aux fichiers `.py`, sans retirer de test. Les logs d’essai restent dans le dossier d’audit isolé.
+Les avertissements préexistants pytest asyncio, Starlette/httpx et chargement de configuration Vite sont conservés, sans suppression. Des essais initiaux ont révélé puis corrigé un identifiant de fixture invalide, le refus d’un chemin répertoire et le libellé des sélecteurs. Une commande de sélection de tests a aussi refusé un fichier de cache Python ; la sélection a été limitée aux fichiers `.py`, sans retirer de test. La revue finale a aussi reproduit puis corrigé un arrondi de taille Bitfinex au-delà de 28 chiffres, avec un test gardant les décimales natives. Les logs d’essai restent dans le dossier d’audit isolé.
 
 ## Production observée, inchangée par cette tranche
 

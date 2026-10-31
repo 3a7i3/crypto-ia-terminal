@@ -169,3 +169,10 @@ def test_pure_pipeline_has_no_file_network_or_subprocess_effects():
             evidence_kind="SYNTHETIC",
         )
     assert doc["execution_authority"] is False
+
+
+def test_bitfinex_negative_ask_size_preserves_all_native_decimal_digits():
+    precise = "1.123456789012345678901234567890123456789"
+    payload = ("[[100,1,2],[101,1,-" + precise + "]]").encode()
+    observation = decode(binding("bitfinex"), payload)
+    assert str(observation.quote.ask_size_base) == precise
