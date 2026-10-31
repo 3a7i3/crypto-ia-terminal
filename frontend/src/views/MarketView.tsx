@@ -133,6 +133,7 @@ export const MarketView: React.FC = () => {
 
         <details className="market-provenance-details">
           <summary>Provenance et dates des sources</summary>
+          <p className="market-catalogue-window" data-testid="market-venue-provenance">Plateforme et type de marché : non attestés dans cette publication. Le symbole seul ne prouve ni l’exchange ni le contrat observé.</p>
           {complete && <p className="market-catalogue-window">Fenêtre UTC bornée : {formatUtc(complete.coverage.start_at_utc)} → {formatUtc(complete.coverage.end_at_utc)}. {complete.coverage.included_packets} observations incluses sur {complete.coverage.input_packets} chargées ; {complete.coverage.outside_window_packets} hors fenêtre, {complete.coverage.future_packets} futures, {complete.coverage.unresolved_timestamp_packets} sans date résolue. L’univers observé ne représente pas toutes les paires d’un exchange.</p>}
           <div className="market-provenance-grid"><div className="market-provenance">Autorité : <code>{m.authority}</code></div>
             <div className="market-provenance">

@@ -107,3 +107,20 @@ Reconstruire un catalogue réel depuis les JSONL récupérés exige un périmèt
 de lecture autorisé ; cette mission n’a pas ouvert ces données.
 Le privilège ponctuel de #532 est consommé et ne s’étend pas à cette extension.
 Aucun check vert, fusion de source ou fichier de protocole n’accorde ces actes.
+
+## Préparation historique et provenance — #535
+
+Le nouvel outil offline `python -m tools.prepare_market_catalogue` accepte
+des fichiers journaliers explicitement sélectionnés et vérifiés contre le
+manifest reçu. Son dossier de sortie doit être nouveau, privé et extérieur
+aux données récupérées et à `presentation`. Aucun chargeur runtime n’est
+appelé quand `source_packets` est fourni explicitement au producteur.
+
+Le reçu conserve hashes, état de la source, ancre historique, exclusions et
+limites de provenance. Les clés métier/risque/secrets ne traversent pas la
+projection. Le catalogue n’est pas un roster scientifique indépendant.
+Le lecteur v1.1 vérifie le candidat offline ; cela ne modifie pas le lecteur
+v1.0 installé et ne vaut pas autorisation de raccordement.
+
+La provenance et la comparaison future sont détaillées dans
+[MARKET-MULTI-VENUE-01](MARKET_MULTI_VENUE_01.md).

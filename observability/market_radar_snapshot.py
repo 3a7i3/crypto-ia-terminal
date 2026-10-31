@@ -215,6 +215,7 @@ def build_market_snapshot(
     watchlist_min_confidence: float = DEFAULT_WATCHLIST_MIN_CONFIDENCE,
     top_n: int = DEFAULT_TOP_N,
     include_catalogue: bool = False,
+    source_packets: Optional[Iterable[Mapping[str, Any]]] = None,
     now_fn=time.time,
 ) -> Dict[str, Any]:
     """Build one deterministic read-only MARKET presentation document.
@@ -235,7 +236,11 @@ def build_market_snapshot(
     if watchlist_min_confidence > min_confidence:
         raise ValueError("watchlist_min_confidence must be <= min_confidence")
 
-    packets: List[Mapping[str, Any]] = list(radar_bot.load_recent_packets(window_hours))
+    # Explicit immutable inputs support offline catalogue preparation without
+    # changing the runtime loader, its dates or process-global state.
+    packets: List[Mapping[str, Any]] = list(
+        radar_bot.load_recent_packets(window_hours) if source_packets is None else source_packets
+    )
     coverage = None
     if include_catalogue:
         packets, coverage = _catalogue_window(packets, window_hours, now_fn)

@@ -69,6 +69,10 @@ try {
       await page.goto(origin + "/paper-live/market", { waitUntil: "domcontentloaded" });
       await page.getByTestId("market-view").waitFor();
       assert(await page.locator("html").getAttribute("data-theme") === theme, "Theme mismatch");
+      if (["catalogue", "legacy", "empty"].includes(scenario)) {
+        await page.getByTestId("market-venue-provenance").waitFor({ state: "attached" });
+        assert((await page.getByTestId("market-venue-provenance").textContent()).includes("non attestés"), "Venue invented from symbol");
+      }
       if (["missing", "invalid", "network"].includes(scenario)) {
         await page.locator(".market-error-title").waitFor();
         assert(await page.getByTestId("market-opportunity-row").count() === 0, "Error fabricated rows");
@@ -85,7 +89,7 @@ try {
         await page.getByText("Provenance et dates des sources", { exact: true }).click();
         assert((await page.getByTestId("market-view").innerText()).includes("2026-10-30 12:00:00Z"), "Publication date absent");
         if (scenario === "catalogue") {
-          assert((await page.locator(".market-catalogue-window").innerText()).includes("48 observations incluses sur 51"), "Coverage accounting hidden");
+          assert((await page.locator(".market-catalogue-window:not([data-testid])").innerText()).includes("48 observations incluses sur 51"), "Coverage accounting hidden");
           await page.getByRole("button", { name: "Page suivante", exact: true }).click();
           assert((await page.getByTestId("market-opportunity-row").first().innerText()).includes("COIN20/USDT"), "Pagination reordered rows");
           await page.getByRole("button", { name: "Page suivante", exact: true }).click();
