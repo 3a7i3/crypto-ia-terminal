@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0.0",
+  "product": "SyntheticTimeAmbiguityExamples",
+  "synthetic": true,
+  "admission_granted": false,
+  "policy_thresholds_defined": false,
+  "note": "Invented values only. The two worlds are illustrations of missing constraints, never estimates of platform errors.",
+  "examples": [
+    {
+      "id": "UNBOUNDED_SOURCE_OFFSET",
+      "kind": "event",
+      "observed": {
+        "native_ns": 1700000000000000000,
+        "now_ns": 1700000000100000000,
+        "quantization_ns": [
+          0,
+          0
+        ]
+      },
+      "worlds": [
+        {
+          "assumptions": {
+            "offset_ns": [
+              0,
+              0
+            ],
+            "lag_ns": [
+              0,
+              0
+            ]
+          },
+          "expected_event_ns": [
+            1700000000000000000,
+            1700000000000000000
+          ],
+          "expected_age_ns": [
+            100000000,
+            100000000
+          ]
+        },
+        {
+          "assumptions": {
+            "offset_ns": [
+              60000000000,
+              60000000000
+            ],
+            "lag_ns": [
+              0,
+              0
+            ]
+          },
+          "expected_event_ns": [
+            1699999940000000000,
+            1699999940000000000
+          ],
+          "expected_age_ns": [
+            60100000000,
+            60100000000
+          ]
+        }
+      ],
+      "inference": "Identical encoded times do not bound event age without a bound on the source offset. The offset can be any K not excluded by evidence."
+    },
+    {
+      "id": "UNBOUNDED_EVENT_TO_LABEL_DELAY",
+      "kind": "event",
+      "observed": {
+        "native_ns": 1700000000000000000,
+        "now_ns": 1700000000100000000,
+        "quantization_ns": [
+          0,
+          0
+        ],
+        "http_headers": {
+          "date": "SYNTHETIC_MESSAGE_DATE",
+          "cache_control": "public, max-age=14400",
+          "age": null
+        }
+      },
+      "worlds": [
+        {
+          "assumptions": {
+            "offset_ns": [
+              0,
+              0
+            ],
+            "lag_ns": [
+              0,
+              0
+            ]
+          },
+          "expected_event_ns": [
+            1700000000000000000,
+            1700000000000000000
+          ],
+          "expected_age_ns": [
+            100000000,
+            100000000
+          ]
+        },
+        {
+          "assumptions": {
+            "offset_ns": [
+              0,
+              0
+            ],
+            "lag_ns": [
+              60000000000,
+              60000000000
+            ]
+          },
+          "expected_event_ns": [
+            1699999940000000000,
+            1699999940000000000
+          ],
+          "expected_age_ns": [
+            60100000000,
+            60100000000
+          ]
+        }
+      ],
+      "inference": "Equal message headers and native labels can accompany different book-event ages when their relation is not attested. TTL is not the body's event age."
+    },
+    {
+      "id": "CONSISTENT_SAMPLES_WITH_CONSTANT_OFFSET",
+      "kind": "clock_stability",
+      "observed": {
+        "wall_ns": [
+          1700000000000000000,
+          1700000001000000000,
+          1700000002000000000
+        ],
+        "monotonic_ns": [
+          1000,
+          1000001000,
+          2000001000
+        ]
+      },
+      "worlds": [
+        {
+          "assumed_constant_offset_ns": 0
+        },
+        {
+          "assumed_constant_offset_ns": 60000000000
+        }
+      ],
+      "expected_max_delta_difference_ns": 0,
+      "inference": "A constant absolute offset cancels from successive clock differences; sample consistency alone cannot measure that offset."
+    }
+  ]
+}

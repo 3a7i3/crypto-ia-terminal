@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.0.0",
+  "product": "TemporalQualificationDossier",
+  "mission": 548,
+  "source_base_sha": "fa1d39f0bee74e68c569d46b9ae469afa10e3e8e",
+  "scope": "Four original REST bindings; one distinct documentary candidate; no admission engine",
+  "anchors": {
+    "capture_result_sha256": "20a5b97800ac44f5e37d3e8a422598a7321b3ddd41e2f5609aa874b2d7faa00a",
+    "replay543_sha256": "9d63af467a968b1d952441456b1c5e2e83c50caed69876c26c3148bdc3def2cf",
+    "admission542_sha256": "7f1c2d0252b74e71efa20845f03aa969246dc7105567a3d4959ec8e904ca09a5"
+  },
+  "population": {
+    "expected_bindings": 4,
+    "cycles_per_binding": 3,
+    "book_observations": 12,
+    "metadata_requests": 3,
+    "total_requests_in_original_run": 15,
+    "new_market_requests": 0
+  },
+  "bindings": [
+    {
+      "venue": "coinbase_advanced",
+      "transport": "HTTPS_REST",
+      "route": "/api/v3/brokerage/market/product_book",
+      "instrument": "BTC-USD",
+      "base": "BTC",
+      "quote": "USD",
+      "market": "SPOT",
+      "profile": "CB_REST",
+      "observations": 3,
+      "host": "api.coinbase.com",
+      "method": "GET",
+      "target": "/api/v3/brokerage/market/product_book?product_id=BTC-USD&limit=1",
+      "saved_receipt_ordinals": [
+        4,
+        8,
+        12
+      ]
+    },
+    {
+      "venue": "coinbase_advanced",
+      "transport": "HTTPS_REST",
+      "route": "/api/v3/brokerage/market/product_book",
+      "instrument": "ETH-USD",
+      "base": "ETH",
+      "quote": "USD",
+      "market": "SPOT",
+      "profile": "CB_REST",
+      "observations": 3,
+      "host": "api.coinbase.com",
+      "method": "GET",
+      "target": "/api/v3/brokerage/market/product_book?product_id=ETH-USD&limit=1",
+      "saved_receipt_ordinals": [
+        6,
+        10,
+        14
+      ]
+    },
+    {
+      "venue": "bitstamp",
+      "transport": "HTTPS_REST",
+      "route": "/api/v2/order_book/btcusd/",
+      "instrument": "btcusd",
+      "base": "BTC",
+      "quote": "USD",
+      "market": "SPOT",
+      "profile": "BS_REST",
+      "observations": 3,
+      "host": "www.bitstamp.net",
+      "method": "GET",
+      "target": "/api/v2/order_book/btcusd/?group=1",
+      "saved_receipt_ordinals": [
+        5,
+        9,
+        13
+      ]
+    },
+    {
+      "venue": "bitstamp",
+      "transport": "HTTPS_REST",
+      "route": "/api/v2/order_book/ethusd/",
+      "instrument": "ethusd",
+      "base": "ETH",
+      "quote": "USD",
+      "market": "SPOT",
+      "profile": "BS_REST",
+      "observations": 3,
+      "host": "www.bitstamp.net",
+      "method": "GET",
+      "target": "/api/v2/order_book/ethusd/?group=1",
+      "saved_receipt_ordinals": [
+        7,
+        11,
+        15
+      ]
+    }
+  ],
+  "profiles": {
+    "CB_REST": {
+      "native_field": "pricebook.time",
+      "format_documentation": "RFC3339 annotation in selected optional string field",
+      "saved_representation": "PRESENT_AND_REPLAYABLE",
+      "documentary_evidence": [
+        "CB_BOOK_V3",
+        "CB_OPENAPI_BOOK_TIME"
+      ],
+      "event_semantics": "NOT_ATTESTED",
+      "quantization_rounding": "NOT_ATTESTED",
+      "exchange_clock_mapping": "NOT_PROVEN",
+      "qualified_event_window_ns": null,
+      "qualified_age_window_ns": null,
+      "book_cache_headers": {
+        "public, max-age=14400": 6
+      },
+      "age_header_present_in_books": 0,
+      "cache_event_relationship": "UNRESOLVED",
+      "verdict": "NO_FINITE_QUALIFIED_BOUND_JUSTIFIED"
+    },
+    "BS_REST": {
+      "native_field": "microtimestamp",
+      "format_documentation": "Unix microseconds documented; field optional in selected schema",
+      "saved_representation": "PRESENT_AND_REPLAYABLE",
+      "documentary_evidence": [
+        "BITSTAMP_BOOK_V2"
+      ],
+      "event_semantics": "NOT_ATTESTED",
+      "quantization_rounding": "NOT_ATTESTED",
+      "exchange_clock_mapping": "NOT_PROVEN",
+      "qualified_event_window_ns": null,
+      "qualified_age_window_ns": null,
+      "book_cache_headers": {
+        "max-age=1, public": 3,
+        "NOT_SUPPLIED": 3
+      },
+      "age_header_present_in_books": 0,
+      "cache_event_relationship": "UNRESOLVED",
+      "verdict": "NO_FINITE_QUALIFIED_BOUND_JUSTIFIED"
+    }
+  },
+  "observer": {
+    "reference_in_saved_preflight": "metadata.google.internal",
+    "conditional_point_bound_ns": 867112,
+    "point_only": true,
+    "continuous_bound_ns": null,
+    "common_scale_relation": "NOT_PROVEN",
+    "leap_smear_at_capture": "NOT_ASSESSED_NO_ERROR_INFERRED",
+    "sampled_wall_monotonic_consistency_is_absolute_bound": false
+  },
+  "candidate_not_in_capture": {
+    "id": "CB_ADVANCED_L2",
+    "transport": "WSS",
+    "host": "advanced-trade-ws.coinbase.com",
+    "channel": "level2",
+    "received_channel": "l2_data",
+    "documentary_evidence": [
+      "CB_ADVANCED_L2_NATIVE_FIELDS",
+      "CB_ADVANCED_PUBLIC_WS"
+    ],
+    "documentary_event_definition": "ENGINE_RECORDED_EVENT",
+    "documentary_envelope_definition": "MESSAGE_SEND_TIME",
+    "historical_rest_reclassification": false,
+    "roster_replacement": false,
+    "connection_attempted": false,
+    "clock_bound_ns": null,
+    "book_frontier_qualified": false,
+    "comparability": "NOT_PROVEN"
+  },
+  "pair_comparability": "NOT_PROVEN",
+  "economic_metrics": null,
+  "scientific_admission": false,
+  "app_publication": false,
+  "execution_authority": false
+}

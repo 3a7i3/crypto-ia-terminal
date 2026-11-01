@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0.0",
+  "mission": 548,
+  "observed_on": "2026-11-01",
+  "calendar_timezone": "America/Mexico_City",
+  "source_base_sha": "fa1d39f0bee74e68c569d46b9ae469afa10e3e8e",
+  "inherited_register": "../market_time_attestation_546/ATTESTATIONS.json",
+  "inherited_register_git_blob": "29ebb65214c6074703a4f12b11e93bddd0744641",
+  "scope": "Documentary delta only; no source substitution, runtime admission or market connection",
+  "records": [
+    {
+      "id": "CB_ADVANCED_L2_NATIVE_FIELDS",
+      "url": "https://docs.cdp.coinbase.com/api-reference/advanced-trade-api/advanced-trade-asyncapi.json",
+      "locator": "channels.level2.messages.l2_data.payload -> components.schemas.L2Envelope -> events.items.properties.updates.items -> L2Update",
+      "asyncapi": "3.0.0",
+      "declared_info_version": "1.0.0",
+      "immutable_upstream_revision": null,
+      "private_retrieved_text_sha256": "d60f9b4cc07112566d0439f13d10fb985f8303cdd805fefd58ba7169df1f866f",
+      "private_retrieved_text_bytes": 57210,
+      "excerpt": "Time of the event as recorded by the trading engine.\nServer time the message was sent (RFC 3339).",
+      "supports": [
+        "L2Update.event_time: event recorded by engine",
+        "L2Envelope.timestamp: message send time",
+        "sequence_num is documented per connection, not a global matching-engine sequence",
+        "event_time not required in selected L2Update schema"
+      ],
+      "does_not_prove": [
+        "REST pricebook.time semantics",
+        "engine clock equals message or /time clock",
+        "clock offset or error bound",
+        "snapshot cut, BBO frontier or network completeness",
+        "runtime access or scientific admission"
+      ],
+      "excerpt_sha256": "1ee269599e2995ccd5c694352941e723dc9a91f71f0ee7d1a4c278df2e3f660a"
+    },
+    {
+      "id": "CB_ADVANCED_PUBLIC_WS",
+      "url": "https://docs.cdp.coinbase.com/coinbase-app/advanced-trade-apis/websocket/websocket-endpoints",
+      "locator": "Spot and US Derivatives > Public > Notes",
+      "immutable_upstream_revision": null,
+      "excerpt": "A JWT is not required.",
+      "supports": [
+        "Public WS channel documentation; no credential needed according to this notice"
+      ],
+      "does_not_prove": [
+        "eligibility or network access from this VM",
+        "permission to connect",
+        "equivalence with REST or old capture"
+      ],
+      "excerpt_sha256": "fb50d4aa8d89a6d74aac447e4cbc93b67ae987fc3ac7364d9e8dd905ab543ccb"
+    },
+    {
+      "id": "GCP_NTP_TIME_DOMAIN",
+      "url": "https://docs.cloud.google.com/compute/docs/instances/time-synchronization/configure-ntp",
+      "locator": "Overview of Google NTP servers and leap smearing; Linux chrony",
+      "page_last_updated_as_shown": "2026-10-26",
+      "immutable_upstream_revision": null,
+      "excerpt": "the extra second over 24 hours",
+      "supports": [
+        "Google documents a leap-smear policy for its NTP service; metadata.google.internal is the internal reference discussed"
+      ],
+      "inference": "The saved Chrony reference names metadata.google.internal; its relation to a common scale must be stated, not assumed.",
+      "does_not_prove": [
+        "smear active at the capture date",
+        "a specific clock error in this VM",
+        "continuity or exchange alignment",
+        "authorization to change NTP"
+      ],
+      "excerpt_sha256": "540686a678e00953d76d1b29d4abf2afd5d53b77e9d31943624d6085de677e38"
+    },
+    {
+      "id": "BITSTAMP_WS_DOCUMENT_ACCESS",
+      "url": "https://www.bitstamp.net/websocket/v2/",
+      "status": "NOT_READABLE_CHALLENGE_HTML",
+      "http_status": null,
+      "excerpt": null,
+      "excerpt_sha256": null,
+      "observations": [
+        "Web reader returned no readable lines",
+        "RDC document read returned a script challenge; not executed or followed"
+      ],
+      "does_not_prove": [
+        "absence of a definition in the complete documentation",
+        "WS field semantics",
+        "access to the market feed"
+      ],
+      "followup": "Keep REST scope unchanged; draft clarification questions only"
+    }
+  ]
+}
