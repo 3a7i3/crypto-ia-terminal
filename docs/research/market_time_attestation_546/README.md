@@ -10,7 +10,7 @@ probe d’heure exchange, installation, action de service ou publication.
 
 ## Résultat préparé
 
-- [ATTESTATIONS.json](ATTESTATIONS.json) : sept notices officielles, localisateurs,
+- [ATTESTATIONS.json](ATTESTATIONS.json) : huit notices officielles, localisateurs,
   versions disponibles et empreintes des seuls extraits courts ;
 - [Modèle et hypothèses](../../contracts/MARKET_TIME_UNCERTAINTY_546.md) :
   intervalles d’événement, âge et séparation, inconnus conservés ;
@@ -18,8 +18,10 @@ probe d’heure exchange, installation, action de service ou publication.
 - [DECISION.json](DECISION.json) : statut documentaire distinct de l’admission ;
 - tests synthétiques dans tests/market_venues/test_temporal_interval_reference.py.
 
-Les hashes portent sur les extraits UTF-8 explicitement conservés, pas sur
-un document complet ou une réponse signée. Les API v2/v3 ne donnent pas la
+Les hashes d’extrait portent sur les seuls fragments UTF-8 conservés.
+Les avis OpenAPI ajoutent les empreintes du texte reçu ou de l’objet de
+spécification extrait, conservés privés ; ce ne sont ni des empreintes des
+octets HTTP wire ni une signature de l’origine. Les API v2/v3 ne donnent pas la
 révision de leur documentation glissante. Une révision amont non identifiée
 reste null ; le commit de cette PR versionne notre observation, sans inventer
 une version amont. Les lectures documentaires ultérieures ne certifient pas
@@ -53,19 +55,31 @@ contact de mesure temporelle ; la version binaire de la capture reste non attest
 
 | Sujet | État après cette étape |
 | --- | --- |
-| Coinbase pricebook.time | Champ présent dans le schéma récupéré ; événement précis/horloge/délai non attestés |
-| Bitstamp microtimestamp | Exemple natif retrouvé ; définition événementielle non attestée par cet extrait |
+| Coinbase pricebook.time | Chaîne time annotée RFC3339 Timestamp, non requise dans PriceBook ; événement/horloge/délai non attestés |
+| Bitstamp microtimestamp | Unités Unix/microsecondes documentées ; événement non défini, champs non requis dans OrderBookResponse |
 | Cache Coinbase | Écart entre notice et en-têtes conservés non résolu |
 | Horloge source liée au carnet | Relation et incertitude non attestées |
 | Continuité de borne locale | Validité et taux maximal non établis dans les pièces conservées |
 | Lecture Coinbase /time | Documentée, non appelée ; lien avec l’horloge du carnet non prouvé |
 | Format et app | Sortie standalone toujours non admise par le lecteur actif |
 
-Les ouvertures directes du grand document Bitstamp ont expiré. L’extrait de sa
-section officielle Order book a été récupéré par recherche ; il n’est pas
-présenté comme une revue exhaustive de la page. L’OpenAPI Coinbase lié a été
-identifié, mais son type YAML n’était pas pris en charge par l’outil de lecture ;
-il n’est pas déclaré téléchargé/hashé ou relu intégralement.
+Les premières ouvertures web Bitstamp ont expiré. Une lecture documentaire
+via RDC a ensuite fourni le bloc OpenAPI3.0.3 / info.versionv2 de la page.
+La branche OrderBookResponse donne les unités Unix/microsecondes, sans
+événement défini ni champs temporels requis. Seul le bloc documentaire
+__redoc_state.spec.data a été conservé ; le contexte de page, dont des
+tickers préchargés accessoires, a été écarté et ne forme aucune observation
+de marché. Aucun JavaScript, widget ou WebSocket n’a été exécuté.
+Ce ciblage de schémas ne vaut pas revue exhaustive de toute la page. La première lecture web de l’OpenAPI Coinbase ne prenait pas en charge YAML.
+Une lecture documentaire textuelle via RDC a ensuite permis de conserver le
+texte privé et de suivre la chaîne du GET public vers PriceBook.time.
+OpenAPI3.1.0 / info.version0.1 est une version déclarée du document, sans
+révision amont immuable attestée. L’annotation de format et le caractère
+optionnel du champ sont établis dans cette chaîne ; sa signification
+événementielle reste absente. Ce n’est pas une revue sémantique exhaustive du spec.
+La lecture ciblée a utilisé le parseur YAML système déjà présent, sans
+installation ; le venv de tests n’avait pas ce parseur. Le corps documentaire
+complet reste privé, seuls empreinte et extrait court sont publiés.
 Aucun client tiers n’a été utilisé comme autorité de sémantique.
 Ne pas substituer les définitions de X-Auth-Timestamp, d’un trade, de FIX ou
 d’un autre flux au timestamp du carnet REST considéré.

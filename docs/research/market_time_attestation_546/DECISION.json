@@ -6,10 +6,10 @@
   "status": "DOCUMENTARY_REFERENCE_PREPARED_ADMISSION_NOT_GRANTED",
   "observed_on": "2026-11-01",
   "document_register": "ATTESTATIONS.json",
-  "snapshot_scope": "BOUNDED_EXCERPTS_NOT_FULL_UPSTREAM_REVISIONS",
-  "documentary_records": 7,
+  "snapshot_scope": "BOUNDED_EXCERPTS_PLUS_PRIVATE_OPENAPI_SNAPSHOTS",
+  "documentary_records": 8,
   "cb_book_semantics": "NOT_ATTESTED_BY_RETRIEVED_CONTENT",
-  "bitstamp_book_semantics": "NOT_ATTESTED_BY_OFFICIAL_EXTRACT",
+  "bitstamp_book_semantics": "NOT_ATTESTED_BY_OPENAPI_FIELD_DESCRIPTIONS",
   "cb_cache_doc_vs_saved_headers": "UNRESOLVED",
   "http_age_default_vs_event_freshness": "DISTINGUISHED",
   "chrony_reference_version": "4.2",
@@ -39,5 +39,11 @@
     "review_final_sha256": "9d63af467a968b1d952441456b1c5e2e83c50caed69876c26c3148bdc3def2cf",
     "isolated_install_result_sha256": "cc70495829413f971a867f68ed323e95f7787ba3c8ff439bfc404ad570f93480"
   },
-  "next_decision": "Review this documentary/source preparation. Resolve exact native book-event meanings and clock/cache relationships before any separately authorized probe, collection or publication."
+  "next_decision": "Review this documentary/source preparation. Resolve exact native book-event meanings and clock/cache relationships before any separately authorized probe, collection or publication.",
+  "cb_openapi_declared_info_version": "0.1",
+  "cb_openapi_time_format_annotation": "RFC3339 Timestamp",
+  "cb_openapi_time_required_in_selected_book_schema": false,
+  "bitstamp_microtimestamp_unit": "UNIX_MICROSECONDS_DOCUMENTED",
+  "bitstamp_temporal_fields_required_in_selected_schema": false,
+  "incidental_documentary_page_tickers_used_as_market_observations": false
 }
