@@ -85,3 +85,9 @@ Les exemples de tests sont entièrement inventés. Ils empruntent la chaîne ré
 La preuve navigateur intercepte les seuls GET d’artifacts et les assets du build, sans serveur HTTP ni API active ; Chromium conserve son sandbox. Les états synthétique, périmé, non résolu, 503 et invalide sont inspectés en clair/sombre, 1440/768/393 px. La CI conserve captures et checks.json pendant 14 jours.
 
 Une prochaine tranche doit encore décider, avant toute collecte/publication : bindings natifs revus, univers indépendant, accès et restrictions par plateforme, fréquences/rate limits et coûts, horloges et signification des temps, transport snapshot/deltas et synchronisation, custody/erreurs, chemin isolé, recette puis publication et rollback bornés. Aucun abonnement payant, clé, collecte, fusion ou activation n’est autorisé par ce document.
+
+## Préparation ultérieure, toujours distincte de l’activation
+
+[#539](https://github.com/3a7i3/crypto-ia-terminal/issues/539) prépare un pilote réseau fermé Bybit/OKX en source et ses simulations :
+[contrat et gates](MARKET_MULTI_VENUE_PILOT_539.md).
+Cette extension ne rend pas les huit décodeurs collecteurs actifs et ne configure pas le lecteur déployé.

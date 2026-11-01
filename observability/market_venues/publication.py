@@ -119,6 +119,11 @@ def build_publication(
                         **metric,
                         "status": "NOT_AVAILABLE",
                         "reason": "QUOTE_UNAVAILABLE",
+                        **{
+                            k: None
+                            for k in PAIR_FIELDS
+                            if k not in ("status", "reason", "event_skew_ms")
+                        },
                     }
                 comparisons.append(
                     {

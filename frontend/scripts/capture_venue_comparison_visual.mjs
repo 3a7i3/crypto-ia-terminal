@@ -8,8 +8,8 @@ const fixtures=process.env.CROSS_STACK_FIXTURES_DIR;
 if(!fixtures)throw Error("CROSS_STACK_FIXTURES_DIR required; no fixture skips");
 const out=path.resolve(here,"../artifacts/market-venues"),origin="http://127.0.0.1:4173";
 const read=async name=>JSON.parse(await readFile(path.join(fixtures,name+".json"),"utf8"));
-const good=await read("S_market_venues"),stale=await read("S_market_venues_stale"),unresolved=await read("S_market_venues_unresolved"),market=await read("R_market_catalogue");
-const cases=[["synthetic",good],["stale",stale],["unresolved",unresolved],["missing",{http_status:503,body:{error_code:"VENUE_COMPARISON_NOT_CONFIGURED"}}],["invalid",{http_status:200,body:{...good.body,execution_authority:true}}]];
+const good=await read("S_market_venues"),stale=await read("S_market_venues_stale"),unresolved=await read("S_market_venues_unresolved"),market=await read("R_market_catalogue"),pilot=await read("T_market_pilot");
+const cases=[["synthetic",good],["pilot",pilot],["expired-between-polls",good],["stale",stale],["unresolved",unresolved],["missing",{http_status:503,body:{error_code:"VENUE_COMPARISON_NOT_CONFIGURED"}}],["invalid",{http_status:200,body:{...good.body,execution_authority:true}}]];
 let assertions=0;const views=[],errors=[],blocked=[],requests=[];
 const assert=(ok,m)=>{assertions++;if(!ok)throw Error(m);};
 await mkdir(out,{recursive:true});
@@ -18,11 +18,13 @@ try{
  for(const theme of ["light","dark"])for(const width of [1440,768,393])for(const [name,fixture]of cases){
   const context=await browser.newContext({viewport:{width,height:900},locale:"fr-FR",serviceWorkers:"block"});
   await context.addInitScript(t=>localStorage.setItem("crypto-terminal.theme",t),theme);
+  let comparisonRequests=0;
   await context.route("**/*",async route=>{
    const q=route.request(),u=new URL(q.url());
    if(u.origin!==origin||!["GET","HEAD"].includes(q.method())){blocked.push(q.method()+" "+u.href);return route.abort();}
    if(u.pathname.startsWith("/api/")){
     requests.push(q.method()+" "+u.pathname);
+    if(u.pathname.endsWith("/venue-comparison"))comparisonRequests++;
     const f=u.pathname.endsWith("/venue-comparison")?fixture:u.pathname.endsWith("/market")?market:{http_status:503,body:{error_code:"SYNTHETIC_NOT_AVAILABLE"}};
     return route.fulfill({status:f.http_status,contentType:"application/json",body:JSON.stringify(f.body)});
    }
@@ -43,8 +45,19 @@ try{
   }else{
    await page.getByTestId("venue-synthetic").waitFor();
    assert(await page.getByTestId("market-opportunity-row").count()===0,"comparison does not duplicate scanner");
-   assert(await page.getByTestId("venue-row").count()===4,"one selected instrument with four expected sources");
+   assert(await page.getByTestId("venue-row").count()===(name==="pilot"?2:4),"selected instrument retains the explicit expected source roster");
    assert((await page.getByTestId("venue-comparison-view").innerText()).includes("Exemple synthétique"),"fixture is never runtime proof");
+   if(name==="expired-between-polls"){
+    const before=await page.getByTestId("venue-comparison-view").innerText();
+    assert(before.includes("29.97002997 bp"),"exact published metrics present before expiry");
+    assert((await page.getByRole("status").innerText()).includes("Publication récente"),"fixture initially fresh");
+    await page.waitForFunction(()=>[...document.querySelectorAll('[role="status"]')].some(e=>e.textContent.includes("périmée")));
+    assert(comparisonRequests===1,"expiry happens before any second API response");
+    assert((await page.getByTestId("venue-comparison-view").innerText()).includes("29.97002997 bp"),"expiry keeps the original published exact value with its stale state");
+   }
+   if(name==="pilot"){
+    assert((await page.getByTestId("venue-comparison-view").innerText()).includes("29.97002997 bp"),"bounded synthetic pilot reaches the app unchanged");
+   }
    if(name==="stale")assert((await page.getByRole("status").innerText()).includes("périmée"),"stale visible");
    if(name==="unresolved")assert((await page.getByRole("status").innerText()).includes("indisponible"),"unresolved visible");
    if(name==="synthetic"){
