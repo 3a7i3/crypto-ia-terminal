@@ -369,3 +369,36 @@ def test_interruption_preserves_a_terminal_incomplete_receipt_and_pending_intent
     checked = verify_run(root / "case")
     assert checked["pending_ordinals"] == [7]
     assert not checked["capture_population_complete"]
+
+
+@pytest.mark.parametrize(
+    "venue,code",
+    [("bybit", 10006), ("bybit", 10009), ("okx", "50011"), ("okx", "50040")],
+)
+def test_native_refusal_in_http_200_stops_before_another_request(tmp_path, venue, code):
+    def refuse(t, spec, response):
+        if spec.purpose == "book" and spec.venue == venue:
+            payload = {"retCode": code} if venue == "bybit" else {"code": code}
+            return replace(response, body=json.dumps(payload).encode())
+        return response
+
+    root, clock, transport = setup(tmp_path, mutator(refuse))
+    result = run(root, clock, transport)
+    assert (
+        result["status"] == "STOPPED"
+        and result["stopped_reason"] == "NATIVE_API_REFUSED"
+    )
+    attempted = 7 if venue == "bybit" else 8
+    assert len(transport.calls) == attempted
+    receipt = json.loads(
+        (root / f"case/attempt-{attempted:04d}.receipt.json").read_text()
+    )
+    assert receipt["http_status"] == 200 and receipt["body_complete"] is True
+    assert (root / "case" / receipt["raw_file"]).exists()
+    doc = json.loads((root / "case/latest.json").read_text())
+    assert doc["source_counts"]["expected"] == 4
+    assert any(
+        row["reason"] == "NATIVE_API_REFUSED"
+        for group in doc["groups"]
+        for row in group["rows"]
+    )

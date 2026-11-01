@@ -72,6 +72,24 @@ class Capture:
             != "application/json"
         ):
             return "NON_JSON_RESPONSE"
+        # Native APIs can refuse an otherwise successful HTTP 200 request.
+        try:
+            doc = strict_json(self.response.body)
+        except (ValueError, RecursionError):
+            return None  # The native decoder/qualifier reports malformed data.
+        if isinstance(doc, dict):
+            if (
+                self.spec.venue == "bybit"
+                and type(doc.get("retCode")) is int
+                and doc["retCode"] != 0
+            ):
+                return "NATIVE_API_REFUSED"
+            if (
+                self.spec.venue == "okx"
+                and isinstance(doc.get("code"), str)
+                and doc["code"] != "0"
+            ):
+                return "NATIVE_API_REFUSED"
         return None
 
     @property

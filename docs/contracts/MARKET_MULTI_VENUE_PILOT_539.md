@@ -35,7 +35,7 @@ l’identité du contexte de requête, sans inventer un écho absent de sa répo
 `observability/market_venues/pilot/` ne réalise aucune opération à l’import.
 `PublicHTTPS()` refuse le réseau par défaut. Le seul transport préparé utilise
 TLS vérifié, HTTPS 443 et GET sur deux hôtes fixés :
-`api.bybit.com` et `www.okx.com`.
+`api.bybit.com` et `openapi.okx.com`.
 Les dix requêtes possibles, paramètres et symboles sont fermés dans le plan.
 
 | Plateforme | Métadonnées | Horloge | Carnet, un niveau |
@@ -64,7 +64,9 @@ La CLI livrée ne propose aucun mode réseau réel.
 
 Le run s’arrête plutôt que de masquer une limite. Aucun retry immédiat,
 host alternatif ou contournement géographique. HTTP 401/403/429 et redirection
-arrêtent le run ; corps trop grand et encodage compressé refusé également.
+arrêtent le run ; un code API natif non nul sous HTTP 200 arrête aussi le run
+(par exemple Bybit 10006/10009 ou OKX 50011/50040). Les corps trop grands et
+l’encodage compressé sont refusés également.
 Une panne ordinaire garde sa ligne indisponible dans le cycle. Le cycle suivant,
 s’il reste admis, constitue une nouvelle tentative avec son propre reçu.
 
@@ -143,6 +145,9 @@ Avant une éventuelle activation : revoir le HEAD exact et ses checks, admettre
 les quatre mappings, vérifier l’horloge/NTP de l’observateur, accès/région/conditions
 et limites partagées par IP, puis arrêter les bornes et le processus isolé.
 L’éligibilité native et la disponibilité réelle ne sont pas attestées par les tests.
+Bybit documente le refus des IP des États-Unis et de Chine continentale :
+la région de l’opérateur ne prouve pas celle de l’IP sortante de la VM.
+Cette éligibilité reste à établir avant toute activation, sans proxy ni hôte de repli.
 Ne pas desserrer le réseau des unités API/web pour y intégrer un collecteur.
 Une lecture pilote réelle n’autorise pas sa publication dans l’app : custody,
 roster, temps, erreurs et limites du run doivent être revus avant ce raccordement.
@@ -154,9 +159,12 @@ retour à l’état non configuré, sans modifier les originaux ni l’epoch.
 Schémas documentaires consultés le 31 octobre 2026, America/Mexico_City ;
 aucun endpoint de données de marché appelé pour cette préparation.
 
-- Bybit : [instruments](https://bybit-exchange.github.io/docs/v5/market/instrument),
+- Bybit : [hôte et restrictions d’accès](https://bybit-exchange.github.io/docs/v5/guide),
+  [instruments](https://bybit-exchange.github.io/docs/v5/market/instrument),
   [heure](https://bybit-exchange.github.io/docs/v5/market/time),
-  [carnet](https://bybit-exchange.github.io/docs/v5/market/orderbook).
-- OKX : [instruments publics](https://www.okx.com/docs-v5/en/#public-data-rest-api-get-instruments),
+  [carnet](https://bybit-exchange.github.io/docs/v5/market/orderbook),
+  [codes de refus](https://bybit-exchange.github.io/docs/v5/error).
+- OKX : [hôte REST officiel](https://www.okx.com/docs-v5/en/#overview-production-trading-services),
+  [instruments publics](https://www.okx.com/docs-v5/en/#public-data-rest-api-get-instruments),
   [heure](https://www.okx.com/docs-v5/en/#public-data-rest-api-get-system-time),
   [carnet](https://www.okx.com/docs-v5/en/#order-book-trading-market-data-get-order-book).

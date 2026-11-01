@@ -37,8 +37,8 @@ navigateur après un saut ne rajeunit pas une publication déjà expirée.
 
 | Contrôle | Résultat |
 | --- | --- |
-| Python : cross-stack, market_venues, comparateur | 278 PASS ; 0 échec, 0 skip |
-| Dont tests spécifiques du pilote | 64 PASS, réseau bloqué par les tests |
+| Python : cross-stack, market_venues, comparateur | 282 PASS ; 0 échec, 0 skip |
+| Dont tests spécifiques du pilote | 68 PASS, réseau bloqué par les tests |
 | Vitest complet avec fixtures Python générées | 543 PASS / 41 fichiers ; 0 skip |
 | Runtime frontend / contrat PWA | 17 PASS |
 | TypeScript et build Vite | PASS |
@@ -59,6 +59,10 @@ sans attente réelle ni réseau.
 Deux avertissements Python locaux restent visibles : option asyncio_mode
 sans son plugin dans le venv réutilisé, et dépréciation Starlette/httpx.
 Vite signale son changement futur de chargement de configuration.
+La revue des hôtes REST aligne OKX sur openapi.okx.com, annoncé dans sa
+documentation officielle ; aucun appel API réel n’est utilisé pour ce contrôle.
+Les codes natifs non nuls sous HTTP 200 arrêtent aussi le run : quatre tests
+couvrent les refus de rate limit/région Bybit et fréquence OKX.
 La revue finale ajoute aussi le rétablissement du handler de timeout si
 l’installation du timer échoue, avec un test d’injection dédié.
 Un premier passage a révélé quatre erreurs dans le double de réponse HTTP

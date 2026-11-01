@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 from observability.market_venues.models import Binding
 from observability.venue_quote_comparison import InstrumentKey
 
-HOSTS = {"bybit": "api.bybit.com", "okx": "www.okx.com"}
+HOSTS = {"bybit": "api.bybit.com", "okx": "openapi.okx.com"}
 NATIVE = {
     "bybit": {"BTC": "BTCUSDT", "ETH": "ETHUSDT"},
     "okx": {"BTC": "BTC-USDT", "ETH": "ETH-USDT"},

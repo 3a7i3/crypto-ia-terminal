@@ -13,6 +13,7 @@ from observability.market_venues.publication import build_publication
 
 FATAL = {
     "ACCESS_OR_RATE_LIMIT_REFUSED",
+    "NATIVE_API_REFUSED",
     "CONTENT_ENCODING_REFUSED",
     "RESPONSE_TOO_LARGE",
 }

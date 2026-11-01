@@ -45,6 +45,10 @@ def test_explicit_roster_is_closed_and_not_inferred_from_responses():
         and doc["maximum_requests"] == 724
     )
     assert doc["credentials"] is False and doc["trading_authority"] is False
+    assert {s["host"] for s in doc["endpoints"]} == {"api.bybit.com", "openapi.okx.com"}
+    assert all(
+        s["host"] == "openapi.okx.com" for s in doc["endpoints"] if s["venue"] == "okx"
+    )
 
 
 @pytest.mark.parametrize(

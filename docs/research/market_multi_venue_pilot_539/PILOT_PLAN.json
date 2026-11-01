@@ -65,7 +65,7 @@
       "venue": "bybit"
     },
     {
-      "host": "www.okx.com",
+      "host": "openapi.okx.com",
       "method": "GET",
       "native_symbol": null,
       "purpose": "time",
@@ -89,7 +89,7 @@
       "venue": "bybit"
     },
     {
-      "host": "www.okx.com",
+      "host": "openapi.okx.com",
       "method": "GET",
       "native_symbol": "BTC-USDT",
       "purpose": "metadata",
@@ -97,7 +97,7 @@
       "venue": "okx"
     },
     {
-      "host": "www.okx.com",
+      "host": "openapi.okx.com",
       "method": "GET",
       "native_symbol": "BTC-USDT",
       "purpose": "book",
@@ -121,7 +121,7 @@
       "venue": "bybit"
     },
     {
-      "host": "www.okx.com",
+      "host": "openapi.okx.com",
       "method": "GET",
       "native_symbol": "ETH-USDT",
       "purpose": "metadata",
@@ -129,7 +129,7 @@
       "venue": "okx"
     },
     {
-      "host": "www.okx.com",
+      "host": "openapi.okx.com",
       "method": "GET",
       "native_symbol": "ETH-USDT",
       "purpose": "book",
