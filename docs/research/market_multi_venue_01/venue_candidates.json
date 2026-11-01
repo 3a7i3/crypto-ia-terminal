@@ -27,7 +27,7 @@
       "documentation_status": "OFFICIAL_DOCS_REVIEWED",
       "documentation": "https://bybit-exchange.github.io/docs/v5/market/orderbook",
       "note": "Separate spot/linear/inverse products; matching-engine and publication timestamps differ; RPI excluded.",
-      "network_adapter": "NOT_IMPLEMENTED",
+      "network_adapter": "PREPARED_SOURCE_ONLY_539",
       "collection_enabled": false,
       "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },
@@ -39,7 +39,7 @@
       "documentation_status": "OFFICIAL_DOCS_REVIEWED",
       "documentation": "https://www.okx.com/docs-v5/en/",
       "note": "Instrument type and book channel including RPI/ELP coverage must be explicit.",
-      "network_adapter": "NOT_IMPLEMENTED",
+      "network_adapter": "PREPARED_SOURCE_ONLY_539",
       "collection_enabled": false,
       "offline_snapshot_decoder": "PREPARED_SOURCE_ONLY_536"
     },

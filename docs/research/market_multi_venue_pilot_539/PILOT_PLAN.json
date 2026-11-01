@@ -1,0 +1,161 @@
+{
+  "activation_status": "PREPARED_NOT_AUTHORISED",
+  "bindings": [
+    {
+      "instrument": {
+        "base_asset_id": "BTC",
+        "contract_identity": "SPOT",
+        "market_kind": "SPOT",
+        "quote_asset_id": "USDT",
+        "settlement_asset_id": "USDT"
+      },
+      "mapping_id": "PILOT539_bybit_BTC",
+      "mapping_sha256": "d5fa1dcc242f42ed1e2fcf3a10788ae57940347e6217601247238cb4e5c5f8a4",
+      "native_symbol": "BTCUSDT",
+      "venue": "bybit"
+    },
+    {
+      "instrument": {
+        "base_asset_id": "BTC",
+        "contract_identity": "SPOT",
+        "market_kind": "SPOT",
+        "quote_asset_id": "USDT",
+        "settlement_asset_id": "USDT"
+      },
+      "mapping_id": "PILOT539_okx_BTC",
+      "mapping_sha256": "54e804aeee601444ebdb160f695a55393917f906fe1ef8e6270765123041374d",
+      "native_symbol": "BTC-USDT",
+      "venue": "okx"
+    },
+    {
+      "instrument": {
+        "base_asset_id": "ETH",
+        "contract_identity": "SPOT",
+        "market_kind": "SPOT",
+        "quote_asset_id": "USDT",
+        "settlement_asset_id": "USDT"
+      },
+      "mapping_id": "PILOT539_bybit_ETH",
+      "mapping_sha256": "3ef206636158bed2862b3e110c97d29d61957aff67b3d541df33b9d06a6b2ba0",
+      "native_symbol": "ETHUSDT",
+      "venue": "bybit"
+    },
+    {
+      "instrument": {
+        "base_asset_id": "ETH",
+        "contract_identity": "SPOT",
+        "market_kind": "SPOT",
+        "quote_asset_id": "USDT",
+        "settlement_asset_id": "USDT"
+      },
+      "mapping_id": "PILOT539_okx_ETH",
+      "mapping_sha256": "3b6728b7c94385b6a10a1942a2d6145a1df509ed48a162a4e8cadafc74f5640d",
+      "native_symbol": "ETH-USDT",
+      "venue": "okx"
+    }
+  ],
+  "credentials": false,
+  "endpoints": [
+    {
+      "host": "api.bybit.com",
+      "method": "GET",
+      "native_symbol": null,
+      "purpose": "time",
+      "target": "/v5/market/time",
+      "venue": "bybit"
+    },
+    {
+      "host": "www.okx.com",
+      "method": "GET",
+      "native_symbol": null,
+      "purpose": "time",
+      "target": "/api/v5/public/time",
+      "venue": "okx"
+    },
+    {
+      "host": "api.bybit.com",
+      "method": "GET",
+      "native_symbol": "BTCUSDT",
+      "purpose": "metadata",
+      "target": "/v5/market/instruments-info?category=spot&symbol=BTCUSDT",
+      "venue": "bybit"
+    },
+    {
+      "host": "api.bybit.com",
+      "method": "GET",
+      "native_symbol": "BTCUSDT",
+      "purpose": "book",
+      "target": "/v5/market/orderbook?category=spot&symbol=BTCUSDT&limit=1",
+      "venue": "bybit"
+    },
+    {
+      "host": "www.okx.com",
+      "method": "GET",
+      "native_symbol": "BTC-USDT",
+      "purpose": "metadata",
+      "target": "/api/v5/public/instruments?instId=BTC-USDT&instType=SPOT",
+      "venue": "okx"
+    },
+    {
+      "host": "www.okx.com",
+      "method": "GET",
+      "native_symbol": "BTC-USDT",
+      "purpose": "book",
+      "target": "/api/v5/market/books?instId=BTC-USDT&sz=1",
+      "venue": "okx"
+    },
+    {
+      "host": "api.bybit.com",
+      "method": "GET",
+      "native_symbol": "ETHUSDT",
+      "purpose": "metadata",
+      "target": "/v5/market/instruments-info?category=spot&symbol=ETHUSDT",
+      "venue": "bybit"
+    },
+    {
+      "host": "api.bybit.com",
+      "method": "GET",
+      "native_symbol": "ETHUSDT",
+      "purpose": "book",
+      "target": "/v5/market/orderbook?category=spot&symbol=ETHUSDT&limit=1",
+      "venue": "bybit"
+    },
+    {
+      "host": "www.okx.com",
+      "method": "GET",
+      "native_symbol": "ETH-USDT",
+      "purpose": "metadata",
+      "target": "/api/v5/public/instruments?instId=ETH-USDT&instType=SPOT",
+      "venue": "okx"
+    },
+    {
+      "host": "www.okx.com",
+      "method": "GET",
+      "native_symbol": "ETH-USDT",
+      "purpose": "book",
+      "target": "/api/v5/market/books?instId=ETH-USDT&sz=1",
+      "venue": "okx"
+    }
+  ],
+  "instrument_mapping_admission": "PENDING_OPERATOR_REVIEW",
+  "maximum_requests": 724,
+  "mission": "MARKET-MULTI-VENUE-04",
+  "network_methods": [
+    "GET"
+  ],
+  "parameters": {
+    "cycles": 120,
+    "duration_ms": 600000,
+    "interval_ms": 5000,
+    "max_age_ms": 5000,
+    "max_clock_jump_ms": 50,
+    "max_clock_offset_ms": 250,
+    "max_response_bytes": 65536,
+    "max_rtt_ms": 1000,
+    "max_run_bytes": 16777216,
+    "max_skew_ms": 500,
+    "request_timeout_ms": 3000
+  },
+  "schema_version": "1.0.0",
+  "trading_authority": false
+}
