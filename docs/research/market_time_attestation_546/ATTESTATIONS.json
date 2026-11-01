@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0.0",
+  "product": "DocumentaryEvidenceRegister",
+  "mission": 546,
+  "observed_on": "2026-11-01",
+  "observer_calendar_timezone": "America/Mexico_City",
+  "source_base_sha": "9af84de7d570604f03192c74cd27ae6e61a6cf33",
+  "snapshot_kind": "BOUNDED_EXCERPTS_NOT_FULL_DOCUMENT_SNAPSHOTS",
+  "revision_note": "Une version API ou un hash d’extrait ne fournit pas la révision amont inconnue ; les champs nulls restent non attestés.",
+  "source_authentication": "Retrieved official documentation; not signed origin evidence",
+  "market_requests": 0,
+  "app_publication": false,
+  "records": [
+    {
+      "id": "CB_BOOK_V3",
+      "url": "https://docs.cdp.coinbase.com/api-reference/advanced-trade-api/rest-api/public/get-public-product-book",
+      "api_version": "v3",
+      "upstream_document_revision": null,
+      "retrieval": "DOCUMENT_PAGE",
+      "locator": "200 response, pricebook.time",
+      "excerpt": "\"time\": \"<string>\"",
+      "supports": "Champ time présent sous pricebook ; événement précis et horloge non définis dans le contenu récupéré.",
+      "does_not_prove": [
+        "matching_engine_time",
+        "bbo_last_change_time",
+        "generation_to_event_delay",
+        "clock_offset_bound"
+      ],
+      "excerpt_sha256": "ab9db6a8dc2cc3e9f3f794bc4d89216a791439abb49281ec181a61204c3a2a7d"
+    },
+    {
+      "id": "CB_PUBLIC_CACHE",
+      "url": "https://docs.cdp.coinbase.com/coinbase-app/advanced-trade-apis/rest-api",
+      "api_version": "v3",
+      "upstream_document_revision": null,
+      "retrieval": "DOCUMENT_PAGE",
+      "locator": "Public > Notes",
+      "excerpt": "Public responses are cached for 1 second.",
+      "supports": "Annonce de cache public court et option documentaire no-cache, sans changement du client.",
+      "does_not_prove": [
+        "observed_response_age",
+        "reconciliation_with_saved_max_age_14400",
+        "book_event_meaning",
+        "past_response_compliance"
+      ],
+      "excerpt_sha256": "5fe12ee09e487710975ae2f6e69360cf596f4c2cd5cf52bfbcb387ba53ab205c"
+    },
+    {
+      "id": "BITSTAMP_BOOK_V2",
+      "url": "https://www.bitstamp.net/api/#tag/Order-book/operation/GetOrderBook",
+      "api_version": "v2",
+      "upstream_document_revision": null,
+      "retrieval": "OFFICIAL_DOCUMENT_SEARCH_EXTRACT",
+      "locator": "Order book > GET /api/v2/order_book/{market_symbol}/ > OrderBookResponse example",
+      "excerpt": "\"timestamp\": \"1643643584\",\n\"microtimestamp\": \"1643643584684047\"",
+      "supports": "Exemple natif associant timestamp et microtimestamp au carnet ; contexte group documenté.",
+      "does_not_prove": [
+        "full_page_complete_review",
+        "timestamp_event_meaning",
+        "cache_bound",
+        "matching_engine_clock"
+      ],
+      "access_limit": "Deux ouvertures directes ont expiré ; extrait indexé officiel uniquement, aucun client tiers substitué.",
+      "excerpt_sha256": "ae3387fd9613ff8ca541e8aba5304a1a5e7134ceaf9b21d6f8abdad97e102918"
+    },
+    {
+      "id": "RFC9111_CACHE",
+      "url": "https://www.rfc-editor.org/rfc/rfc9111.html",
+      "api_version": null,
+      "upstream_document_revision": "RFC 9111, June 2022",
+      "retrieval": "DOCUMENT_PAGE",
+      "locator": "4.2.3; 5.1; 5.2.1.4; 5.2.2.1",
+      "excerpt": "or 0, if not available.\nlack of an Age header field does not imply the origin was contacted.",
+      "supports": "Le calcul d’âge HTTP admet zéro par défaut ; ce défaut ne certifie pas l’origine ni l’âge événementiel. max-age décrit une limite HTTP, no-cache demande validation.",
+      "does_not_prove": [
+        "bbo_event_age",
+        "physical_clock_alignment",
+        "origin_revalidation_in_saved_capture"
+      ],
+      "excerpt_sha256": "c93eb0d3e4efc4127e2dc92955a18ccb964f8c3f7f0d173cc6712526928c3f6b"
+    },
+    {
+      "id": "RFC9110_DATE",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+      "api_version": null,
+      "upstream_document_revision": "RFC 9110, June 2022",
+      "retrieval": "DOCUMENT_PAGE",
+      "locator": "6.6.1 Date",
+      "excerpt": "date and time at which the message was originated",
+      "supports": "Date désigne le message HTTP, pas automatiquement un événement du carnet.",
+      "does_not_prove": [
+        "book_clock_identity",
+        "event_time_equals_http_date",
+        "timestamp_inside_client_request_window"
+      ],
+      "excerpt_sha256": "1a8bd932a364108bf9928f650cb2eb6c86a4081bb937d9ee43a62155ef44cb6f"
+    },
+    {
+      "id": "CHRONY42_TRACKING",
+      "url": "https://chrony-project.org/doc/4.2/chronyc.html",
+      "api_version": "4.2",
+      "upstream_document_revision": "Manual version 4.2",
+      "retrieval": "DOCUMENT_PAGE",
+      "locator": "tracking > Root dispersion",
+      "excerpt": "assuming the stratum-1 computer is correct",
+      "supports": "Borne conditionnelle : valeur absolue System time + root dispersion + demi root delay ; aucune continuité n’est accordée par ce calcul isolé.",
+      "does_not_prove": [
+        "stratum1_correctness",
+        "captured_binary_version",
+        "exchange_clock_bound",
+        "continuous_bound_without_validity_and_drift"
+      ],
+      "excerpt_sha256": "34f374873e25bcc32584ce0d9346c7abdfac5e68923ea6d6e03a55576c51a425"
+    },
+    {
+      "id": "CB_SERVER_TIME_V3",
+      "url": "https://docs.cdp.coinbase.com/api-reference/advanced-trade-api/rest-api/public/get-server-time",
+      "api_version": "v3",
+      "upstream_document_revision": null,
+      "retrieval": "DOCUMENT_PAGE",
+      "locator": "Summary and 200 response iso/epochSeconds/epochMillis",
+      "excerpt": "Get the current time from the Coinbase Advanced API.",
+      "supports": "Lecture d’heure serveur documentée avec formes seconde et milliseconde ; endpoint non appelé.",
+      "does_not_prove": [
+        "clock_equals_book_clock",
+        "response_stamp_inside_request",
+        "uncached_time_response",
+        "permission_to_probe"
+      ],
+      "excerpt_sha256": "18454b1b7b1253aeb0fd0cf17062c6e7404dbcc9acd2e59ab5eb8a0ca5f50f14"
+    }
+  ]
+}
