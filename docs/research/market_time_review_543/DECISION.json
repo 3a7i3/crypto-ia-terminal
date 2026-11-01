@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0.0",
+  "product": "MarketTemporalAdmissionReview",
+  "mission": 543,
+  "status": "REVIEW_COMPLETE_ADMISSION_NOT_GRANTED",
+  "review_basis": "SAVED_EVIDENCE_ONLY",
+  "capture_source_sha": "1e82b9750202e62f687b2e0404e62ea84a1a1b52",
+  "input_result_sha256": "20a5b97800ac44f5e37d3e8a422598a7321b3ddd41e2f5609aa874b2d7faa00a",
+  "private_replay_sha256": "f5990600a677c2b351e2cecabc786e240e358146e7c7b19403fdd38c3f82a37a",
+  "observed_at_utc": "2026-11-01T06:20:19.843364+00:00",
+  "evidence_kind": "OBSERVATION",
+  "app_publication": false,
+  "source_merge_authorized_by_review": false,
+  "new_capture_authorized": false,
+  "execution_authority": false,
+  "economic_metrics": null,
+  "scope": {
+    "new_exchange_requests": 0,
+    "original_indexed_files_verified": 65,
+    "book_rows_replayed_exactly": 12,
+    "metadata_rows_replayed": 4
+  },
+  "gates": [
+    {
+      "id": "SAVED_EVIDENCE_COHERENCE",
+      "status": "PASS",
+      "evidence": "65 indexed files match hashes; 15 intents/receipts; 12 exact row replays",
+      "limit": "Local coherence only; no signed origin or scientific certification"
+    },
+    {
+      "id": "NATIVE_INSTRUMENT_METADATA",
+      "status": "PASS_WITH_LIMITS",
+      "evidence": "BTC/USD and ETH/USD SPOT on four explicit bindings",
+      "limit": "Metadata response content qualifies; Coinbase cache policy does not certify current market status"
+    },
+    {
+      "id": "NATIVE_TIME_SERIALIZATION",
+      "status": "PASS_WITH_LIMITS",
+      "evidence": "12 native fields preserved; Bitstamp seconds/microseconds consistent",
+      "limit": "Numeric encoding and precision are not a documented event meaning"
+    },
+    {
+      "id": "APPARENT_NATIVE_AGE_AT_CAPTURE",
+      "status": "PASS_WITH_LIMITS",
+      "evidence": "12 WITHIN_BUDGET at cycle ends, 192.984 to 1774.399 ms",
+      "limit": "Observer time minus unqualified native time, not a physical book age bound"
+    },
+    {
+      "id": "CACHE_BEHAVIOR",
+      "status": "UNRESOLVED",
+      "evidence": {
+        "NOT_SUPPLIED": 4,
+        "max-age=1, public": 3,
+        "public, max-age=14400": 8
+      },
+      "limit": "Age missing in all 15 responses; no origin revalidation or event freshness proof"
+    },
+    {
+      "id": "BOOK_EVENT_SEMANTICS",
+      "status": "NOT_PROVEN",
+      "evidence": "UNRESOLVED_BOOK_TIMESTAMP_SEMANTICS",
+      "limit": "No versioned upstream semantic attestation in indexed evidence"
+    },
+    {
+      "id": "OBSERVER_CLOCK_CONTINUOUS_BOUND",
+      "status": "NOT_PROVEN",
+      "evidence": "Preflight NTP/Chrony plus maximum cumulative UTC/monotonic difference 0.000883 ms",
+      "limit": "No continuous absolute UTC bound; no bracketing Chrony evidence"
+    },
+    {
+      "id": "EXCHANGE_CLOCK_BOUND",
+      "status": "NOT_PROVEN",
+      "evidence": "Zero clock probes",
+      "limit": "HTTP Date and RTT/2 are not substitutes"
+    },
+    {
+      "id": "CROSS_VENUE_TEMPORAL_COMPARABILITY",
+      "status": "NOT_PROVEN",
+      "evidence": "6 numeric native timestamp differences: 122.221 to 838.369 ms; sequential nonoverlapping request windows",
+      "limit": "Different unqualified time meanings/clocks; no simultaneity proof; no US pair skew policy"
+    },
+    {
+      "id": "CURRENT_FRESHNESS",
+      "status": "STALE",
+      "evidence": "31 October 2026 Mexico samples",
+      "limit": "No new capture or refresh in this review"
+    },
+    {
+      "id": "ACTIVE_READER_COMPATIBILITY",
+      "status": "FAIL_CLOSED_EXPECTED",
+      "evidence": "4 files rejected offline by production-equivalent reader; coinbase_advanced and bitstamp absent from ENDPOINTS",
+      "limit": "Standalone PublicUSCapture is not MarketVenueComparison"
+    },
+    {
+      "id": "PUBLICATION_PERMISSION",
+      "status": "NOT_GRANTED",
+      "evidence": "Operator keeps publication distinct; one-use #542 consumed",
+      "limit": "No active path, environment, service or artifact change"
+    }
+  ],
+  "next_step_proposal": {
+    "offline_only": [
+      "Acquire a separately scoped, versioned documentary attestation of each native time field and cache contract",
+      "Specify observer/exchange clock uncertainty and allowed temporal relation",
+      "Review distinct venue/endpoint IDs, mapping and provenance contract without aliases",
+      "Prepare fail-closed source/fixture tests for any future adapter in a separate scope"
+    ],
+    "requires_distinct_decision": [
+      "Any new market request or time probe",
+      "Any app publication or runtime installation"
+    ]
+  },
+  "raw_responses_published": false,
+  "active_app_changed": false
+}
