@@ -37,8 +37,8 @@ navigateur après un saut ne rajeunit pas une publication déjà expirée.
 
 | Contrôle | Résultat |
 | --- | --- |
-| Python : cross-stack, market_venues, comparateur | 277 PASS ; 0 échec, 0 skip |
-| Dont tests spécifiques du pilote | 63 PASS, réseau bloqué par les tests |
+| Python : cross-stack, market_venues, comparateur | 278 PASS ; 0 échec, 0 skip |
+| Dont tests spécifiques du pilote | 64 PASS, réseau bloqué par les tests |
 | Vitest complet avec fixtures Python générées | 543 PASS / 41 fichiers ; 0 skip |
 | Runtime frontend / contrat PWA | 17 PASS |
 | TypeScript et build Vite | PASS |
@@ -59,6 +59,8 @@ sans attente réelle ni réseau.
 Deux avertissements Python locaux restent visibles : option asyncio_mode
 sans son plugin dans le venv réutilisé, et dépréciation Starlette/httpx.
 Vite signale son changement futur de chargement de configuration.
+La revue finale ajoute aussi le rétablissement du handler de timeout si
+l’installation du timer échoue, avec un test d’injection dédié.
 Un premier passage a révélé quatre erreurs dans le double de réponse HTTP
 (statut manquant) ; le double a été corrigé sans retirer de test.
 Une commande initiale PWA visait un fichier absent ; le script suivi du dépôt

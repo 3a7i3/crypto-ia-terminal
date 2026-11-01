@@ -146,3 +146,20 @@ def test_an_existing_alarm_is_not_repurposed(monkeypatch):
     with pytest.raises(RuntimeError, match="EXISTING_PROCESS_TIMER"):
         with request_deadline(1):
             pass
+
+
+def test_deadline_handler_is_restored_even_when_timer_setup_fails(monkeypatch):
+    previous = signal.getsignal(signal.SIGALRM)
+    calls = []
+
+    def timer(which, seconds):
+        calls.append(seconds)
+        if len(calls) == 1:
+            raise TimeoutError("timer setup interrupted")
+
+    monkeypatch.setattr(signal, "setitimer", timer)
+    with pytest.raises(TimeoutError):
+        with request_deadline(1):
+            pytest.fail("must not enter the transport")
+    assert calls == [1, 0]
+    assert signal.getsignal(signal.SIGALRM) == previous

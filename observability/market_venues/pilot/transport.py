@@ -34,8 +34,8 @@ def request_deadline(seconds):
         raise TimeoutError("PUBLIC_READ_DEADLINE")
 
     signal.signal(signal.SIGALRM, expired)
-    signal.setitimer(signal.ITIMER_REAL, seconds)
     try:
+        signal.setitimer(signal.ITIMER_REAL, seconds)
         yield
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
