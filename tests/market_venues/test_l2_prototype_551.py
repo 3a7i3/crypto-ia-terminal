@@ -414,9 +414,10 @@ def test_r3_attestation_must_name_the_connection_flow():
     obs, clk = attestations(bound=0)
     f0 = m.COINBASE_L2_FLOW
     for other in (
-        m.FlowIdentity("UNRELATED_PROVIDER", f0.host, f0.channel),
-        m.FlowIdentity(f0.venue, "other.example", f0.channel),
-        m.FlowIdentity(f0.venue, f0.host, "heartbeats"),
+        m.FlowIdentity("UNRELATED_PROVIDER", f0.host, f0.channel, f0.layout_version),
+        m.FlowIdentity(f0.venue, "other.example", f0.channel, f0.layout_version),
+        m.FlowIdentity(f0.venue, f0.host, "heartbeats", f0.layout_version),
+        m.FlowIdentity(f0.venue, f0.host, f0.channel, "ASYNCAPI_3.0.0_INFO_2.0.0"),
     ):
         wrong = m.ClockAttestation(other, clk.products, clk.field, SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, clk.evidence_ref, clk.attested_by)
         c = m.L2Connection("c", f0)
@@ -429,7 +430,7 @@ def test_r3_attestation_must_name_the_connection_flow():
     assert ok["freshness"] == "QUALIFIED_WITHIN_ASSUMPTIONS"  # witness: the matching proof still works
 
 
-@pytest.mark.parametrize("flow", [m.FlowIdentity("bitstamp", "ws.bitstamp.net", "order_book"), "coinbase_advanced", None])
+@pytest.mark.parametrize("flow", [m.FlowIdentity("bitstamp", "ws.bitstamp.net", "order_book", "v2"), "coinbase_advanced", None])
 def test_r3_connection_refuses_a_flow_the_decoder_does_not_implement(flow):
     with pytest.raises(ValueError):
         m.L2Connection("c", flow)

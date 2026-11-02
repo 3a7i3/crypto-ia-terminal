@@ -167,7 +167,7 @@ class ObserverAttestation:
 
 @dataclass(frozen=True)
 class FlowIdentity:
-    """Declared identity of a flow: provider, host and channel.
+    """Declared identity of a flow: provider, host, channel and layout version.
 
     The prototype cannot authenticate a transport; the caller (a future plan)
     declares which flow the bytes belong to, and every proof must name the same
@@ -177,10 +177,14 @@ class FlowIdentity:
     venue: str
     host: str
     channel: str
+    layout_version: str
 
 
 COINBASE_L2_FLOW = FlowIdentity(
-    "coinbase_advanced", "advanced-trade-ws.coinbase.com", "l2_data"
+    "coinbase_advanced",
+    "advanced-trade-ws.coinbase.com",
+    "l2_data",
+    "ASYNCAPI_3.0.0_INFO_1.0.0",  # declared version in #548; not an immutable revision
 )
 
 
