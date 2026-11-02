@@ -96,7 +96,7 @@ Quatre défauts reproduits par la relecture de l'opérateur, corrigés et couver
 | R3 | `ClockAttestation` porte un `FlowIdentity` (fournisseur, hôte, canal, version de layout déclarée) qui doit égaler celui déclaré par la connexion ; fournisseur, hôte, canal, produit et champ ont chacun un contre-exemple. La connexion refuse un flux que le décodeur n'implémente pas. L'identité du flux est déclarée par l'appelant : le prototype n'authentifie aucun transport. |
 | R4 | Types validés avant tout lookup (`product_id`, `side`, `type`, `channel`, nombres, dates, listes) : listes, objets, booléens, null, entiers, fractions sont refusés avec invalidation, sans exception. Aucun catch général ajouté. |
 
-Recommandations D1–D6 de l'opérateur-relecteur, **sans décision runtime** : D1 5 s de silence de connexion seulement
+Recommandations D1–D6 de la revue technique Codex (relecture indépendante de l'auteur, pas une validation humaine), **sans décision runtime** : D1 5 s de silence de connexion seulement
 si un heartbeat documentaire de 1 s est retenu (valeur de travail à justifier, ni défaut ni seuil de stratégie) ;
 D2 âge `null / UNRESOLVED` tant que les preuves manquent, aucun budget admis ; D3 `LIVE_UNQUALIFIED` acceptable pour
 une maquette identifiée, sans publication dans l'app active ; D4 invalidation de toute la connexion puis nouvelle

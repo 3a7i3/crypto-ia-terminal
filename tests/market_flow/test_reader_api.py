@@ -81,3 +81,27 @@ def test_route_is_get_only_and_reader_has_no_writer_or_exchange_import():
         assert method(URL).status_code == 405
     src = (Path(__file__).resolve().parents[2] / "observability/operator_api/market_flow_reader.py").read_text()
     assert not any(w in src for w in ("socket", "requests", "urllib", "http.client", "write(", "write_text"))
+
+
+NESTED_COUNTER_EXAMPLES = {
+    "nested_unknown_key": lambda d: d["book"].update(unexpected_score="999"),
+    "nan_text_in_series": lambda d: d["bars"][0].update(delta_base="NaN"),
+    "not_covered_given_zero": lambda d: d["bars"][3].update(delta_base="0", cvd_base="0", cvd_base_bounds=["0", "0"]),
+    "relabelled_book_identity": lambda d: d["book"]["bbo"].update(product="ETH-USD"),
+    "relabelled_flow": lambda d: d["flow"].update(venue="OTHER_PROVIDER"),
+    "ns_as_number": lambda d: d["bars"][0].update(start_ns=1),
+}
+
+
+@pytest.mark.parametrize("name", sorted(NESTED_COUNTER_EXAMPLES))
+def test_nested_contract_violations_never_reach_the_api(tmp_path, name):
+    doc = json.loads(GOLDEN.read_text())
+    NESTED_COUNTER_EXAMPLES[name](doc)
+    p = tmp_path / "a.json"
+    p.write_text(json.dumps(doc))
+    r = MarketFlowReader(str(p)).read()
+    assert (r.ok, r.error_code) == (False, "MARKET_FLOW_INVALID_SCHEMA")
+    api.configure_market_flow_reader(str(p))
+    res = TestClient(api.app).get(URL)
+    assert res.status_code == 503 and res.json() == {"error_code": "MARKET_FLOW_INVALID_SCHEMA"}
+    assert "NaN" not in res.text
