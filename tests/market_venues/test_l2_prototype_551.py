@@ -1,7 +1,6 @@
 """Synthetic counter-examples for the #551 offline L2 prototype. No network."""
 
 import ast
-import copy
 import importlib.util
 import json
 from pathlib import Path
