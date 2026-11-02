@@ -105,6 +105,8 @@
     {
       "cvd_base": null,
       "cvd_base_bounds": null,
+      "delta_base": null,
+      "delta_base_bounds": null,
       "delta_status": "NOT_COVERED",
       "end_ns": "1240000000000",
       "index": 3,
@@ -179,8 +181,8 @@
       "book_state": "LIVE",
       "connection_last_channel": "l2_data",
       "connection_silence_ns": [
-        9999999990,
-        10000000000
+        "9999999990",
+        "10000000000"
       ],
       "connection_silence_status": "WITHIN_BUDGET",
       "freshness": "LIVE_UNQUALIFIED",
@@ -254,7 +256,7 @@
           ]
         ],
         "bucket": 0,
-        "sample_receipt_ns": "1030000000000",
+        "sample_receipt_ns": "1030000000010",
         "status": "LIVE"
       },
       {
@@ -281,7 +283,7 @@
           ]
         ],
         "bucket": 1,
-        "sample_receipt_ns": "1090000000000",
+        "sample_receipt_ns": "1090000000010",
         "status": "LIVE"
       },
       {
@@ -300,7 +302,7 @@
           ]
         ],
         "bucket": 2,
-        "sample_receipt_ns": "1170000000000",
+        "sample_receipt_ns": "1170000000010",
         "status": "LIVE"
       },
       {
@@ -319,7 +321,7 @@
           ]
         ],
         "bucket": 3,
-        "sample_receipt_ns": "1210000000000",
+        "sample_receipt_ns": "1210000000010",
         "status": "LIVE"
       },
       {
@@ -342,7 +344,7 @@
           ]
         ],
         "bucket": 4,
-        "sample_receipt_ns": "1290000000000",
+        "sample_receipt_ns": "1290000000010",
         "status": "LIVE"
       }
     ],
@@ -357,15 +359,17 @@
   "inputs": {
     "event_count": 19,
     "events_after_as_of_not_read": 1,
-    "events_sha256": "a35de89b7b382e25ceaccb26f06dbd70c8a491c9e01efeb5fbba05d6ff65c438"
+    "events_sha256": "a35de89b7b382e25ceaccb26f06dbd70c8a491c9e01efeb5fbba05d6ff65c438",
+    "events_straddling_as_of_not_read": 0,
+    "l2_events_not_read_after_straddle": 0
   },
   "level_events": {
     "items": [
       {
         "cause": "CAUSE_UNDETERMINED",
         "interval_ns": [
-          "1001000000000",
-          "1020000000000"
+          "1001000000010",
+          "1020000000010"
         ],
         "kind": "APPEARED",
         "price": "1000.5",
@@ -375,8 +379,8 @@
       {
         "cause": "CAUSE_UNDETERMINED",
         "interval_ns": [
-          "1020000000000",
-          "1030000000000"
+          "1020000000010",
+          "1030000000010"
         ],
         "kind": "DISAPPEARED",
         "last_qty": "3",
@@ -392,8 +396,8 @@
       {
         "cause": "CAUSE_UNDETERMINED",
         "interval_ns": [
-          "1210000000000",
-          "1290000000000"
+          "1210000000010",
+          "1290000000010"
         ],
         "kind": "APPEARED",
         "price": "1000.5",
