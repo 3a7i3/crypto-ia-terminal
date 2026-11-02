@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "product": "MarketV0IndependentReview",
+  "mission": 551,
+  "source_base_sha": "1a1e61ca375b1f54a9a9b424d9ff5cc0ef95c3f7",
+  "status": "OFFLINE_PROTOTYPE_PREPARED_COLLECTION_AND_PUBLICATION_NOT_GRANTED",
+  "review_independence": "SECOND_AGENT_READ_NOT_HUMAN_VALIDATION",
+  "private_bytes_audited": false,
+  "verdicts": {
+    "source_offline": "GO_DELIVERED",
+    "collection": "NO_GO_CONDITIONS_LISTED",
+    "publication": "NO_GO"
+  },
+  "venues": {
+    "coinbase_advanced_l2": "PROTOTYPE_DECODER_OFFLINE_ASSUMPTIONS_UNATTESTED",
+    "bitstamp_ws": "BLOCKED_DOCUMENTATION_UNREADABLE_NO_BYPASS",
+    "rest_historical": "UNCHANGED_NO_FINITE_BOUND"
+  },
+  "unattested_assumptions": ["A-LAYOUT", "A-SEQ-CONN", "A-QTY-ABS", "A-SNAP-FULL", "A-STREAM-ORDER", "A-PLACEHOLDER", "A-SEND-AS-OF"],
+  "operator_decisions_pending": ["D1_silence_budget", "D2_age_budget", "D3_unqualified_display", "D4_resync_policy", "D5_single_venue_v0", "D6_provider_questions"],
+  "pair_comparability": "NOT_PROVEN",
+  "economic_metrics": null,
+  "new_market_requests": 0,
+  "feed_connections": 0,
+  "provider_contacts": 0,
+  "vm_actions": 0,
+  "collector_started": false,
+  "app_publication": false,
+  "merge_authorized_by_this_preparation": false,
+  "execution_authority": false,
+  "model_imported_by_runtime": false
+}
