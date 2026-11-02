@@ -90,6 +90,9 @@ NESTED_COUNTER_EXAMPLES = {
     "relabelled_book_identity": lambda d: d["book"]["bbo"].update(product="ETH-USD"),
     "relabelled_flow": lambda d: d["flow"].update(venue="OTHER_PROVIDER"),
     "ns_as_number": lambda d: d["bars"][0].update(start_ns=1),
+    "qualified_with_unresolved_age": lambda d: d["book"]["freshness"].update(freshness="QUALIFIED_WITHIN_ASSUMPTIONS"),
+    "series_currency_relabelled": lambda d: d["bars"][0].update(quote="USDT"),
+    "free_text_state": lambda d: d["book"].update(state=["HEALTHY", None]),
 }
 
 
@@ -105,3 +108,23 @@ def test_nested_contract_violations_never_reach_the_api(tmp_path, name):
     res = TestClient(api.app).get(URL)
     assert res.status_code == 503 and res.json() == {"error_code": "MARKET_FLOW_INVALID_SCHEMA"}
     assert "NaN" not in res.text
+
+
+def test_native_decoder_refusal_is_served_as_a_readable_unavailable_book(tmp_path):
+    from observability.market_flow import artifact, fixtures
+    S = fixtures.S
+    ev, cfg = fixtures.synthetic_session()
+    first = dict(ev[0], receipt={"mono": [10 * S, 10 * S + 10], "utc": [10 * S, 10 * S + 10]})
+    bad = {"kind": "l2", "message": {"channel": "l2_data", "sequence_num": 1, "events": [
+        {"type": "update", "product_id": "BTC-USD", "updates": [{"side": [], "price_level": "1", "new_quantity": "1"}]}]},
+        "receipt": {"mono": [20 * S, 20 * S + 10], "utc": [20 * S, 20 * S + 10]}}
+    cfg = dict(cfg, as_of_receipt_ns=30 * S, anchor_ns=0, coverage=[(0, 30 * S)], windows_ns=[fixtures.BAR])
+    cfg["heatmap"] = {**cfg["heatmap"], "t0_ns": 0, "bucket_ns": 10 * S, "buckets": 3}
+    p = tmp_path / "a.json"
+    p.write_text(json.dumps(artifact.replay([first, bad], cfg)))
+    api.configure_market_flow_reader(str(p))
+    res = TestClient(api.app).get(URL)
+    assert res.status_code == 200
+    book = res.json()["book"]
+    assert book["state"] == ["INVALID", "MALFORMED_MESSAGE:SIDE_UNKNOWN"]
+    assert book["bbo"]["status"] == "NOT_AVAILABLE" and book["bbo"]["bid"] is None
