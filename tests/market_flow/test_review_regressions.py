@@ -341,3 +341,45 @@ def test_c3_every_decoder_refusal_code_is_in_the_contract():
             and getattr(n.func, "id", None) == "L2Refusal" and n.args and isinstance(n.args[0], ast.Constant)}
     assert used and used <= set(contract.L2_REFUSALS)
     assert set(contract.L2_REFUSALS) <= used  # no stale entry either
+
+
+# ----------------------------------------------------------------------------- placeholder epoch (third review)
+
+def _placeholder_doc():
+    events, cfg = fixtures.synthetic_session()
+    first = copy.deepcopy(events[0])
+    for update in first["message"]["events"][0]["updates"]:
+        update["event_time"] = "1970-01-01T00:00:00Z"
+    return artifact.replay([first], cfg)
+
+
+def test_epoch_placeholder_survives_builder_and_validator():
+    doc = _placeholder_doc()
+    bid = doc["book"]["bbo"]["bid"]
+    assert bid["level_event_time_state"] == "PLACEHOLDER_EPOCH_NOT_A_DATE"
+    assert bid["level_event_time_ns"] is None  # not a date 0, not a freshness proof
+    assert doc["book"]["freshness"]["state_age_ns"] is None
+    assert artifact.validate_artifact(doc)
+
+
+def test_placeholder_state_never_carries_a_time_and_arbitrary_states_stay_refused():
+    doc = _placeholder_doc()
+    doc["book"]["bbo"]["bid"]["level_event_time_ns"] = "0"
+    with pytest.raises(ValueError):
+        artifact.validate_artifact(doc)
+    doc = _placeholder_doc()
+    doc["book"]["bbo"]["bid"]["level_event_time_state"] = "QUALIFIED"
+    with pytest.raises(ValueError):
+        artifact.validate_artifact(doc)
+
+
+def test_every_level_time_state_emitted_by_the_decoder_is_in_the_contract():
+    import re
+    from pathlib import Path
+
+    from observability.market_flow import contract
+    src = (Path(contract.__file__).parent / "l2.py").read_text()
+    body = src[src.index("def _level_time"):src.index("def _envelope") if "def _envelope" in src else None]
+    emitted = set(re.findall(r'"([A-Z_]{8,})"', body.split("\n\n\n")[0]))
+    assert {"NOT_SUPPLIED", "PLACEHOLDER_EPOCH_NOT_A_DATE", "NATIVE_UNQUALIFIED"} <= emitted
+    assert emitted <= set(contract.LEVEL_TIME_STATES)
