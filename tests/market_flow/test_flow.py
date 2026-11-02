@@ -340,10 +340,12 @@ def test_package_has_no_transport_clock_write_or_float_and_nobody_imports_it():
     hits = []
     for base in ("observability", "core", "paper_trading", "market_data", "trade_analysis", "frontend/src"):
         for p in (ROOT / base).rglob("*"):
-            if p.suffix in (".py", ".ts", ".tsx") and p.is_file() and "market_flow" not in str(p.relative_to(ROOT)).split("/")[:2]:
+            rel = str(p.relative_to(ROOT))
+            if p.suffix in (".py", ".ts", ".tsx") and p.is_file() and not rel.startswith("observability/market_flow/"):
                 if "market_flow" in p.read_text(errors="ignore"):
-                    hits.append(str(p))
-    assert hits == []
+                    hits.append(rel)
+    # The only consumer is the GET-only presentation reader and its route.
+    assert sorted(hits) == ["observability/operator_api/app.py", "observability/operator_api/market_flow_reader.py"]
 
 
 def test_bars_never_include_a_trade_received_after_as_of_even_if_its_event_time_is_inside():
