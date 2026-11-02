@@ -194,7 +194,7 @@ _BAR_NOT_COVERED_KEYS = (
 
 
 @exact
-def _check_bar(b, i, anchor, bar_ns):
+def _check_bar(b, i, anchor, bar_ns, quote):
     p = "bars[%d]" % i
     if not isinstance(b, dict):
         bad(p, "OBJECT_REQUIRED")
@@ -212,7 +212,8 @@ def _check_bar(b, i, anchor, bar_ns):
             bad(p + ".delta_status", "STATUS_INCONSISTENT")
         return None
     count = is_int(b["trade_count"], p + ".trade_count")
-    text(b["quote"], p + ".quote", max_len=32)
+    if b["quote"] != quote:
+        bad(p + ".quote", "QUOTE_MISMATCH")  # USD is not USDT is not USDC
     vols = {k: dec(b[k], "%s.%s" % (p, k)) for k in ("buy_volume", "sell_volume", "unknown_volume")}
     for k in ("buy_notional", "sell_notional", "unknown_notional"):
         dec(b[k], "%s.%s" % (p, k))
@@ -251,14 +252,14 @@ def _check_bar(b, i, anchor, bar_ns):
     return b["segment"]
 
 
-def check_bars(bars, anchor, bar_ns, as_of):
+def check_bars(bars, anchor, bar_ns, as_of, quote):
     if not isinstance(bars, list) or len(bars) > MAX_BARS:
         bad("bars", "LIST_REQUIRED")
     if bars and anchor + len(bars) * bar_ns > as_of:
         bad("bars", "BAR_AFTER_AS_OF")
     last_seg = -1
     for i, b in enumerate(bars):
-        seg = _check_bar(b, i, anchor, bar_ns)
+        seg = _check_bar(b, i, anchor, bar_ns, quote)
         if seg is not None:
             if seg < last_seg:
                 bad("bars[%d].segment" % i, "SEGMENT_ORDER")
@@ -300,22 +301,46 @@ _FRESH_KEYS = ("product", "book_state", "reason", "connection_silence_ns", "conn
                "freshness", "unattested_assumptions")
 
 
-def _check_level(v, path):
-    obj(v, _LEVEL_KEYS, path)
-    dec(v["price"], path + ".price", positive=True)
-    dec(v["size"], path + ".size", positive=True)
-    opt(v["level_event_time_ns"], ns, path + ".level_event_time_ns")
-    code(v["level_event_time_state"], path + ".level_event_time_state")
-    is_int(v["level_last_change_seq"], path + ".level_last_change_seq")
+# Every refusal code the L2 decoder/applier can emit (a test keeps this list equal to l2.py's).
+L2_REFUSALS = (
+    "BOUNDED_BYTES_REQUIRED", "CHANNEL_MISSING", "DECIMAL_TEXT_REFUSED", "DUPLICATE_NATIVE_FIELD",
+    "ENVELOPE_NOT_OBJECT", "EVENTS_NOT_LIST", "EVENT_NOT_OBJECT", "EVENT_TYPE_UNKNOWN", "INVALID_JSON",
+    "JSON_NUMBER_FRACTION_REFUSED", "LEVEL_LIMIT_EXCEEDED", "NONFINITE_JSON", "REMOVE_UNKNOWN_LEVEL",
+    "SEQUENCE_NOT_NONNEGATIVE_INTEGER", "SIDE_UNKNOWN", "SNAPSHOT_DUPLICATE_LEVEL", "TIME_FORMAT_REFUSED",
+    "TIME_NOT_TEXT", "TIME_VALUE_REFUSED", "UNEXPECTED_PRODUCT", "UPDATES_NOT_LIST", "ZERO_NOT_ALLOWED",
+)
+BOOK_STATES = ("NO_SNAPSHOT", "LIVE", "INVALID", "CONNECTION_CLOSED", "UNRESOLVED")
+INVALID_REASONS = (
+    ("SEQUENCE_DUPLICATE_OR_REORDERED", "SEQUENCE_GAP", "CROSSED_OR_LOCKED_BOOK")
+    + tuple("MALFORMED_MESSAGE:" + r for r in L2_REFUSALS)
+    + tuple("APPLY_REFUSED:" + r for r in L2_REFUSALS)
+)
+SILENCE_STATUSES = ("UNRESOLVED", "STALE_BY_SILENCE", "SILENCE_BUDGET_NOT_EXCLUDED", "WITHIN_BUDGET")
+AGE_STATUSES = ("UNRESOLVED", "FUTURE", "FUTURE_NOT_EXCLUDED", "STALE", "STALE_NOT_EXCLUDED", "WITHIN_ASSUMPTIONS")
+FRESHNESS = ("NOT_USABLE", "FUTURE_TIMESTAMP", "STALE", "FUTURE_NOT_EXCLUDED", "STALE_NOT_EXCLUDED",
+             "UNRESOLVED", "QUALIFIED_WITHIN_ASSUMPTIONS", "LIVE_UNQUALIFIED")
+SEND_STATES = ("NOT_SUPPLIED", "NATIVE_UNQUALIFIED")
+LEVEL_TIME_STATES = ("NOT_SUPPLIED", "NATIVE_UNQUALIFIED")
+
+
+def _state_reason(st, path):
+    """(state, reason) pair: enumerated, and the reason must fit the state."""
+    if not isinstance(st, list) or len(st) != 2:
+        bad(path, "PAIR_REQUIRED")
+    state = one_of(st[0], BOOK_STATES, path + "[0]")
+    reason = st[1]
+    if state == "INVALID":
+        one_of(reason, INVALID_REASONS, path + "[1]")
+    elif state == "UNRESOLVED":
+        one_of(reason, ("MESSAGE_STRADDLES_AS_OF",), path + "[1]")
+    else:
+        must_be_none(reason, path + "[1]")
+    return state, reason
 
 
 def check_book(book, flow):
     obj(book, ("state", "bbo", "freshness"), "book")
-    st = book["state"]
-    if not isinstance(st, list) or len(st) != 2:
-        bad("book.state", "PAIR_REQUIRED")
-    code(st[0], "book.state[0]")
-    opt(st[1], code, "book.state[1]")
+    state, reason = _state_reason(book["state"], "book.state")
     b = obj(book["bbo"], _BBO_KEYS, "book.bbo")
     text(b["connection_id"], "book.bbo.connection_id", max_len=128)
     if (b["product"], b["base"], b["quote"], b["market_kind"]) != (
@@ -327,41 +352,60 @@ def check_book(book, flow):
     one_of(b["qualification"], ("UNQUALIFIED",), "book.bbo.qualification")
     str_list(b["unattested_assumptions"], "book.bbo.unattested_assumptions")
     if b["status"] == "OBSERVED_UNQUALIFIED":
+        if state != "LIVE":
+            bad("book.bbo.status", "STATUS_INCONSISTENT")
         must_be_none(b["reason"], "book.bbo.reason")
-        _check_level(b["bid"], "book.bbo.bid")
-        _check_level(b["ask"], "book.bbo.ask")
-        if st[0] != "LIVE":
-            bad("book", "STATUS_INCONSISTENT")
+        for side in ("bid", "ask"):
+            lv = obj(b[side], _LEVEL_KEYS, "book.bbo." + side)
+            dec(lv["price"], "book.bbo.%s.price" % side, positive=True)
+            dec(lv["size"], "book.bbo.%s.size" % side, positive=True)
+            opt(lv["level_event_time_ns"], ns, "book.bbo.%s.level_event_time_ns" % side)
+            one_of(lv["level_event_time_state"], LEVEL_TIME_STATES, "book.bbo.%s.level_event_time_state" % side)
+            is_int(lv["level_last_change_seq"], "book.bbo.%s.level_last_change_seq" % side)
     else:
-        code(b["reason"], "book.bbo.reason")
         must_be_none(b["bid"], "book.bbo.bid")
         must_be_none(b["ask"], "book.bbo.ask")
+        want = "EMPTY_SIDE" if state == "LIVE" else (reason or state)
+        if b["reason"] != want:
+            bad("book.bbo.reason", "STATUS_INCONSISTENT")
     f = book["freshness"]
     if f is None:
         return
     obj(f, _FRESH_KEYS, "book.freshness")
     if f["product"] != flow["instrument"]:
         bad("book.freshness.product", "FLOW_BOOK_IDENTITY_MISMATCH")
-    code(f["book_state"], "book.freshness.book_state")
-    opt(f["reason"], code, "book.freshness.reason")
-    opt(f["connection_silence_ns"], lambda v, p: span(v, p), "book.freshness.connection_silence_ns")
-    code(f["connection_silence_status"], "book.freshness.connection_silence_status")
+    if f["book_state"] != state or f["reason"] != reason:
+        bad("book.freshness.book_state", "STATUS_INCONSISTENT")
+    silence_status = one_of(f["connection_silence_status"], SILENCE_STATUSES, "book.freshness.connection_silence_status")
+    age_status = one_of(f["state_age_status"], AGE_STATUSES, "book.freshness.state_age_status")
+    silence = opt(f["connection_silence_ns"], lambda v, p: span(v, p), "book.freshness.connection_silence_ns")
+    age = opt(f["state_age_ns"], lambda v, p: span(v, p, signed=True), "book.freshness.state_age_ns")
+    if (silence is None) != (silence_status == "UNRESOLVED") or (age is None) != (age_status == "UNRESOLVED"):
+        bad("book.freshness", "STATUS_INCONSISTENT")  # a status never claims a value that is absent
     opt(f["connection_last_channel"], text, "book.freshness.connection_last_channel")
-    if f["frontier"] is not None:
-        fr = obj(f["frontier"], ("channel", "sequence_num", "send_state"), "book.freshness.frontier")
-        text(fr["channel"], "book.freshness.frontier.channel", max_len=64)
-        opt(fr["sequence_num"], is_int, "book.freshness.frontier.sequence_num")
-        code(fr["send_state"], "book.freshness.frontier.send_state")
-    opt(f["state_age_ns"], lambda v, p: span(v, p, signed=True), "book.freshness.state_age_ns")
-    code(f["state_age_status"], "book.freshness.state_age_status")
     if not isinstance(f["unresolved"], list) or len(f["unresolved"]) > MAX_LIST:
         bad("book.freshness.unresolved", "LIST_REQUIRED")
     for i, v in enumerate(f["unresolved"]):
         code(v, "book.freshness.unresolved[%d]" % i)
-    code(f["freshness"], "book.freshness.freshness")
     str_list(f["unattested_assumptions"], "book.freshness.unattested_assumptions")
-    if f["state_age_ns"] is None and f["state_age_status"] != "UNRESOLVED":
-        bad("book.freshness.state_age_status", "STATUS_INCONSISTENT")
+    one_of(f["freshness"], FRESHNESS, "book.freshness.freshness")
+    if state != "LIVE":
+        if (f["freshness"], silence_status, age_status, f["frontier"]) != ("NOT_USABLE", "UNRESOLVED", "UNRESOLVED", None):
+            bad("book.freshness", "STATUS_INCONSISTENT")
+        return
+    fr = obj(f["frontier"], ("channel", "sequence_num", "send_state"), "book.freshness.frontier")
+    if fr["channel"] != l2.COINBASE_L2_FLOW.channel:
+        bad("book.freshness.frontier.channel", "FLOW_BOOK_IDENTITY_MISMATCH")
+    is_int(fr["sequence_num"], "book.freshness.frontier.sequence_num")
+    one_of(fr["send_state"], SEND_STATES, "book.freshness.frontier.send_state")
+    # The overall classification is derived, never free: no qualification may exist
+    # while the age or the provenance behind it is unresolved.
+    if f["freshness"] != l2._overall(silence_status, age_status, None):
+        bad("book.freshness.freshness", "STATUS_INCONSISTENT")
+    if age_status == "UNRESOLVED" and not f["unresolved"]:
+        bad("book.freshness.unresolved", "STATUS_INCONSISTENT")
+    if f["freshness"] == "QUALIFIED_WITHIN_ASSUMPTIONS" and (f["unresolved"] or age is None):
+        bad("book.freshness.freshness", "STATUS_INCONSISTENT")
 
 
 # --------------------------------------------------------------------------- heatmap / events

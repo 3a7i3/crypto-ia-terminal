@@ -250,3 +250,94 @@ def test_f5_valid_convention_and_unknown_values():
     conv = tr.SideConvention((("B", tr.BUY), ("S", tr.SELL)), False, "SYNTHETIC")
     assert conv.aggressor("B") == tr.BUY and conv.aggressor("S") == tr.SELL
     assert conv.aggressor("?") == tr.UNKNOWN and conv.aggressor(None) == tr.UNKNOWN
+
+
+# ----------------------------------------------------------------------------- C1-C3 (second review)
+
+def test_c1_no_qualification_with_unresolved_age():
+    doc = fresh()
+    assert doc["book"]["freshness"]["state_age_status"] == "UNRESOLVED"
+    doc["book"]["freshness"]["freshness"] = "QUALIFIED_WITHIN_ASSUMPTIONS"
+    with pytest.raises(ValueError):
+        artifact.validate_artifact(doc)
+
+
+C1_STATE_MUTATIONS = {
+    "free_text_freshness": (("book", "freshness", "freshness"), "GREEN"),
+    "unknown_silence_status": (("book", "freshness", "connection_silence_status"), "FINE"),
+    "status_without_value": (("book", "freshness", "state_age_status"), "WITHIN_ASSUMPTIONS"),
+    "silence_status_unresolved_with_value": (("book", "freshness", "connection_silence_status"), "UNRESOLVED"),
+    "unknown_state": (("book", "state"), ["HEALTHY", None]),
+    "live_with_reason": (("book", "state"), ["LIVE", "SEQUENCE_GAP"]),
+    "invalid_without_reason": (("book", "state"), ["INVALID", None]),
+    "invalid_free_reason": (("book", "state"), ["INVALID", "whatever"]),
+    "freshness_book_state": (("book", "freshness", "book_state"), "INVALID"),
+    "frontier_channel": (("book", "freshness", "frontier", "channel"), "heartbeats"),
+    "frontier_state": (("book", "freshness", "frontier", "send_state"), "ATTESTED"),
+    "unresolved_emptied": (("book", "freshness", "unresolved"), []),
+    "level_time_state": (("book", "bbo", "bid", "level_event_time_state"), "QUALIFIED"),
+    "bbo_unavailable_while_live": (("book", "bbo", "status"), "NOT_AVAILABLE"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(C1_STATE_MUTATIONS))
+def test_c1_state_fields_are_enumerated_and_consistent(name):
+    path, value = C1_STATE_MUTATIONS[name]
+    with pytest.raises(ValueError):
+        artifact.validate_artifact(mutate(path, value))
+
+
+def test_c2_series_currency_must_match_the_flow():
+    for bar_index in (0, 2, 4):
+        doc = fresh()
+        doc["bars"][bar_index]["quote"] = "USDT"
+        with pytest.raises(ValueError, match="QUOTE_MISMATCH"):
+            artifact.validate_artifact(doc)
+
+
+def _book_refusal_session(message, seq=1):
+    ev, cfg = fixtures.synthetic_session()
+    first = ev[0]
+    bad = {"kind": "l2", "message": message, "receipt": {"mono": [20 * S, 20 * S + 10], "utc": [20 * S, 20 * S + 10]}}
+    cfg = dict(cfg)
+    cfg["as_of_receipt_ns"] = 30 * S
+    cfg["heatmap"] = {**cfg["heatmap"], "t0_ns": 0, "bucket_ns": 10 * S, "buckets": 3}
+    cfg.update(anchor_ns=0, coverage=[(0, 30 * S)], windows_ns=[BAR])
+    first = copy.deepcopy(first)
+    first["receipt"] = {"mono": [10 * S, 10 * S + 10], "utc": [10 * S, 10 * S + 10]}
+    return [first, bad], cfg
+
+
+NATIVE_REFUSALS = {
+    "side_list": ({"channel": "l2_data", "sequence_num": 1, "events": [{"type": "update", "product_id": "BTC-USD",
+        "updates": [{"side": [], "price_level": "1", "new_quantity": "1"}]}]}, "MALFORMED_MESSAGE:SIDE_UNKNOWN"),
+    "unknown_level_removed": ({"channel": "l2_data", "sequence_num": 1, "events": [{"type": "update",
+        "product_id": "BTC-USD", "updates": [{"side": "bid", "price_level": "5", "new_quantity": "0"}]}]},
+        "APPLY_REFUSED:REMOVE_UNKNOWN_LEVEL"),
+    "sequence_gap": ({"channel": "l2_data", "sequence_num": 9, "events": []}, "SEQUENCE_GAP"),
+    "duplicate_sequence": ({"channel": "l2_data", "sequence_num": 0, "events": []}, "SEQUENCE_DUPLICATE_OR_REORDERED"),
+    "crossed": ({"channel": "l2_data", "sequence_num": 1, "events": [{"type": "update", "product_id": "BTC-USD",
+        "updates": [{"side": "bid", "price_level": "2000", "new_quantity": "1"}]}]}, "CROSSED_OR_LOCKED_BOOK"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(NATIVE_REFUSALS))
+def test_c3_native_refusals_survive_builder_and_validator(name):
+    message, reason = NATIVE_REFUSALS[name]
+    ev, cfg = _book_refusal_session(message)
+    doc = artifact.replay(ev, cfg)  # the refusal episode is kept, not lost to a crash
+    assert doc["book"]["state"] == ["INVALID", reason]
+    assert doc["book"]["bbo"]["status"] == "NOT_AVAILABLE" and doc["book"]["bbo"]["reason"] == reason
+    assert artifact.validate_artifact(doc)
+
+
+def test_c3_every_decoder_refusal_code_is_in_the_contract():
+    import ast
+    from pathlib import Path
+
+    from observability.market_flow import contract
+    src = (Path(contract.__file__).parent / "l2.py").read_text()
+    used = {n.args[0].value for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Call)
+            and getattr(n.func, "id", None) == "L2Refusal" and n.args and isinstance(n.args[0], ast.Constant)}
+    assert used and used <= set(contract.L2_REFUSALS)
+    assert set(contract.L2_REFUSALS) <= used  # no stale entry either
