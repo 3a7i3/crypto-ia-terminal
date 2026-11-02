@@ -28,6 +28,7 @@ from fastapi.responses import JSONResponse
 from observability.operator_api.event_center_reader import EventCenterReader
 from observability.operator_api.storage_reader import StorageSnapshotReader
 from observability.operator_api.venue_comparison_reader import VenueComparisonReader
+from observability.operator_api.market_flow_reader import MarketFlowReader
 
 from observability.operator_api.market_microstructure_reader import (
     DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
@@ -612,6 +613,22 @@ def configure_venue_comparison_reader(path=None, *, now_fn=None):
 @app.get("/api/operator/v1/venue-comparison")
 def get_venue_comparison():
     result = _venue_comparison_reader.read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
+
+
+# CRYPTORADAR-FLUX (#553): one explicitly configured artifact; no collection or calculation here.
+_market_flow_reader = MarketFlowReader()
+
+def configure_market_flow_reader(path=None):
+    global _market_flow_reader
+    _market_flow_reader = MarketFlowReader(path)
+    return _market_flow_reader
+
+@app.get("/api/operator/v1/market-flow")
+def get_market_flow():
+    result = _market_flow_reader.read()
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
     return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
