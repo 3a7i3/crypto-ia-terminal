@@ -47,15 +47,17 @@ un lien envoi→état, une borne observateur valide, le tout couvrant la fenêtr
 D1 budget de silence ; D2 budget d'âge ; D3 si « LIVE_UNQUALIFIED » (prix natifs + silence, sans âge certifié)
 peut être montré à l'écran avec ses états ; D4 politique de reprise (snapshot par produit vs reconnexion
 complète) ; D5 si une V0 à une seule venue est acceptable en attendant Bitstamp ;
-D6 sur les questions fournisseur : les envoyer, ou accepter les risques de A-SEQ-CONN et A-SEND-AS-OF.
+D6 sur les questions fournisseur : les envoyer (décision séparée) ou ne pas les envoyer. **Accepter un risque ou une hypothèse n'en fait pas une preuve** : cela n'autorise ni qualification, ni publication, et A-SEQ-CONN / A-SEND-AS-OF restent non attestées.
 
-## 5. Ce qu'une première capture L2 pourrait réellement apprendre
+## 5. Ce qu'une capture finie peut et ne peut pas établir
 
-Elle pourrait infirmer ou confirmer : le layout (A-LAYOUT), le périmètre du compteur (A-SEQ-CONN),
-la complétude du snapshot (A-SNAP-FULL), la sémantique de la quantité (A-QTY-ABS), le placeholder
-d'époque (A-PLACEHOLDER). Elle **ne peut pas** fournir l'offset d'horloge fournisseur ni le lien envoi→état :
-sans clarification documentaire ou sonde d'heure justifiée, la fenêtre d'âge reste nulle et la
-meilleure sortie est `LIVE_UNQUALIFIED`. Une capture qui ne vise aucune de ces hypothèses ne vaut pas la requête.
+Une capture finie peut **observer des formats et réfuter** des hypothèses (layout, libellés, présence
+d'un placeholder d'époque, comportement du compteur sur la durée observée). Elle ne peut pas, seule,
+**attester** la complétude d'un snapshot, le domaine général d'un compteur de séquence, la sémantique
+absolue d'une quantité, l'offset d'horloge fournisseur ni le lien envoi→état : une absence d'écart sur
+un échantillon n'est pas une preuve universelle. Sans clarification documentaire ou sonde d'heure
+justifiée, la fenêtre d'âge reste nulle et la meilleure sortie est `LIVE_UNQUALIFIED`.
+Une capture qui ne vise aucune hypothèse nommée et réfutable ne vaut pas la requête.
 
 ## 6. Le prototype (`l2_reconstruction_prototype.py`)
 
@@ -64,15 +66,16 @@ décimal exact), dates RFC 3339 en nanosecondes entières, carnet par connexion 
 `NO_SNAPSHOT / LIVE / INVALID / CONNECTION_CLOSED`, application atomique d'un message, invalidation
 sur trou, doublon, ordre inversé, message mal formé, retrait inconnu, carnet croisé, dépassement de
 niveaux ; reprise uniquement par nouveau snapshot du produit ; aucun état hérité d'une autre connexion ;
-BBO avec texte natif et provenance par niveau, sans mid ni spread ; fraîcheur = silence monotone +
-âge attesté de l'enveloppe, avec attestation observateur (validité) et fournisseur (champ, produit,
-fenêtre de validité, provenance) ; relation de paire `NOT_PROVEN` sans deux fenêtres qualifiées.
+BBO avec texte natif et provenance par niveau, sans mid ni spread ; deux questions séparées : silence de la connexion (monotone, tout canal)
+et frontière du carnet par produit (heure d'envoi du dernier message `l2_data` portant un événement de ce produit),
+qualifiée seulement par une attestation observateur (validité) et fournisseur nommant le même flux
+(fournisseur, hôte, canal), le produit et le champ, avec fenêtre de validité et provenance ; relation de paire `NOT_PROVEN` sans deux fenêtres qualifiées.
 
-Tests : `tests/market_venues/test_l2_prototype_551.py` (65 cas : snapshot/update, trous, reconnexion,
+Tests : `tests/market_venues/test_l2_prototype_551.py` (157 cas après corrections : snapshot/update, trous, reconnexion,
 portée de séquence, dates absentes/futures, neuf décimales sans float, expiration des preuves,
 non-transfert d'attestation, double comptage, état ancien reçu à l'instant, interdiction d'imports
-réseau/horloge). Sept mutations du code (désactiver doublon, trou, expiration, couverture, signe de
-l'offset, placeholder, domaine) font chacune échouer au moins un test.
+réseau/horloge). Des mutations du code (doublon, trou, expiration, couverture, signe de l'offset, placeholder,
+domaine, flux, refus atomique, validation de type) font chacune échouer au moins un test.
 
 ## 7. Limites
 
@@ -80,3 +83,23 @@ Copie du carnet à chaque message (O(niveaux)) : acceptable en prototype, pas po
 Aucune reconnexion automatique, aucun transport. Le prototype ne prouve rien sur un fournisseur réel.
 Les fixtures ne sont pas des données de marché. Rien n'a été comparé à des octets privés de #550.
 Aucune baseline, dépendance, workflow, producteur ou contrat actif n'est modifié.
+
+## 8. Corrections après la revue technique du HEAD `754c78c0`
+
+Quatre défauts reproduits par la relecture de l'opérateur, corrigés et couverts par des régressions
+(les contre-exemples du relecteur sont repris dans `test_l2_prototype_551.py`, section R1–R4) :
+
+| ID | Correction |
+|---|---|
+| R1 | Le dernier message global ne date plus le carnet. Silence de connexion (tout canal) et frontière du carnet sont séparés ; la frontière est l'heure d'envoi du dernier `l2_data` portant un événement du produit. Un heartbeat ou un autre produit ne la fait pas avancer et n'emprunte pas la preuve `l2_data.timestamp`. Un produit calme garde une frontière ancienne (échec sûr). La continuité de séquence reste indépendante. |
+| R2 | Un refus atomique invalide **toute la connexion** (aussi les produits après l'opération fautive) ; un heartbeat ou un delta suivant ne ressuscite rien, les deltas sur base invalide étant écartés. |
+| R3 | `ClockAttestation` porte un `FlowIdentity` (fournisseur, hôte, canal) qui doit égaler celui déclaré par la connexion ; fournisseur, hôte, canal, produit et champ ont chacun un contre-exemple. La connexion refuse un flux que le décodeur n'implémente pas. L'identité du flux est déclarée par l'appelant : le prototype n'authentifie aucun transport. |
+| R4 | Types validés avant tout lookup (`product_id`, `side`, `type`, `channel`, nombres, dates, listes) : listes, objets, booléens, null, entiers, fractions sont refusés avec invalidation, sans exception. Aucun catch général ajouté. |
+
+Recommandations D1–D6 de l'opérateur-relecteur, **sans décision runtime** : D1 5 s de silence de connexion seulement
+si un heartbeat documentaire de 1 s est retenu (valeur de travail à justifier, ni défaut ni seuil de stratégie) ;
+D2 âge `null / UNRESOLVED` tant que les preuves manquent, aucun budget admis ; D3 `LIVE_UNQUALIFIED` acceptable pour
+une maquette identifiée, sans publication dans l'app active ; D4 invalidation de toute la connexion puis nouvelle
+session et snapshots complets (le prototype autorise encore la reprise par snapshot sur la même connexion : mode plus
+permissif, qui repose sur A-SNAP-FULL et A-SEQ-CONN, à resserrer dans le futur plan) ; D5 V0 mono-plateforme
+explicitement annoncée, aucune comparaison inter-plateformes ; D6 questions préparées, non envoyées.
