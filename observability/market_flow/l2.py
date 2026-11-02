@@ -1,6 +1,6 @@
 """Level-2 book reconstruction for CryptoRadar Flux (source only, #551/#553).
 
-Graduated from docs/research/market_v0_551 (kept as the reviewed reference; a
+Graduated from the reviewed offline prototype of #552 (kept under docs/research; a
 differential test pins both to the same behaviour). NON_ADMIS / NOT WIRED.
 Stdlib only. No network, no clock read, no file write. Every time is an integer
 supplied by the caller; this module never asks the machine for one.
