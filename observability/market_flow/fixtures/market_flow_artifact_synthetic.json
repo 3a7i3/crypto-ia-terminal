@@ -1,0 +1,450 @@
+{
+  "anchor_ns": "1000000000000",
+  "as_of_receipt_ns": "1300000000000",
+  "assumptions": [
+    "A-LAYOUT",
+    "A-PLACEHOLDER",
+    "A-QTY-ABS",
+    "A-SEND-AS-OF",
+    "A-SEQ-CONN",
+    "A-SNAP-FULL",
+    "A-STREAM-ORDER"
+  ],
+  "bar_ns": "60000000000",
+  "bars": [
+    {
+      "buy_notional": "1101.15",
+      "buy_volume": "1.1",
+      "close": "1001.5",
+      "cvd_base": "0.7",
+      "cvd_base_bounds": [
+        "0.7",
+        "0.7"
+      ],
+      "delta_base": "0.7",
+      "delta_base_bounds": [
+        "0.7",
+        "0.7"
+      ],
+      "delta_status": "EXACT",
+      "end_ns": "1060000000000",
+      "high": "1001.5",
+      "index": 0,
+      "low": "1000",
+      "open": "1001",
+      "quote": "USD",
+      "segment": 0,
+      "sell_notional": "400.0",
+      "sell_volume": "0.4",
+      "start_ns": "1000000000000",
+      "status": "OBSERVED",
+      "trade_count": 3,
+      "unknown_notional": "0",
+      "unknown_volume": "0"
+    },
+    {
+      "buy_notional": "0",
+      "buy_volume": "0",
+      "close": null,
+      "cvd_base": "0.7",
+      "cvd_base_bounds": [
+        "0.7",
+        "0.7"
+      ],
+      "delta_base": "0",
+      "delta_base_bounds": [
+        "0",
+        "0"
+      ],
+      "delta_status": "EXACT",
+      "end_ns": "1120000000000",
+      "high": null,
+      "index": 1,
+      "low": null,
+      "open": null,
+      "quote": "USD",
+      "segment": 0,
+      "sell_notional": "0",
+      "sell_volume": "0",
+      "start_ns": "1060000000000",
+      "status": "OBSERVED_ZERO",
+      "trade_count": 0,
+      "unknown_notional": "0",
+      "unknown_volume": "0"
+    },
+    {
+      "buy_notional": "0",
+      "buy_volume": "0",
+      "close": "1000.5",
+      "cvd_base": null,
+      "cvd_base_bounds": [
+        "-0.05",
+        "0.95"
+      ],
+      "delta_base": null,
+      "delta_base_bounds": [
+        "-0.75",
+        "0.25"
+      ],
+      "delta_status": "PARTIAL_UNKNOWN_SIDE",
+      "end_ns": "1180000000000",
+      "high": "1000.5",
+      "index": 2,
+      "low": "1000.5",
+      "open": "1000.5",
+      "quote": "USD",
+      "segment": 0,
+      "sell_notional": "250.125",
+      "sell_volume": "0.25",
+      "start_ns": "1120000000000",
+      "status": "OBSERVED",
+      "trade_count": 2,
+      "unknown_notional": "500.25",
+      "unknown_volume": "0.5"
+    },
+    {
+      "cvd_base": null,
+      "cvd_base_bounds": null,
+      "delta_status": "NOT_COVERED",
+      "end_ns": "1240000000000",
+      "index": 3,
+      "segment": null,
+      "start_ns": "1180000000000",
+      "status": "NOT_COVERED",
+      "trade_count": null
+    },
+    {
+      "buy_notional": "3003",
+      "buy_volume": "3",
+      "close": "1001",
+      "cvd_base": null,
+      "cvd_base_bounds": null,
+      "delta_base": null,
+      "delta_base_bounds": null,
+      "delta_status": "SESSION_BREAK_UNRESOLVED",
+      "end_ns": "1300000000000",
+      "high": "1001",
+      "index": 4,
+      "low": "1001",
+      "open": "1001",
+      "quote": "USD",
+      "segment": null,
+      "sell_notional": "0",
+      "sell_volume": "0",
+      "start_ns": "1240000000000",
+      "status": "SESSION_BREAK_UNRESOLVED",
+      "trade_count": 2,
+      "unknown_notional": "0",
+      "unknown_volume": "0"
+    }
+  ],
+  "book": {
+    "bbo": {
+      "ask": {
+        "level_event_time_ns": null,
+        "level_event_time_state": "NOT_SUPPLIED",
+        "level_last_change_seq": 6,
+        "price": "1001.5",
+        "size": "3"
+      },
+      "base": "BTC",
+      "bid": {
+        "level_event_time_ns": null,
+        "level_event_time_state": "NOT_SUPPLIED",
+        "level_last_change_seq": 7,
+        "price": "1000.5",
+        "size": "1"
+      },
+      "connection_id": "synthetic-c1",
+      "economic_metrics": null,
+      "market_kind": "SPOT",
+      "mid": null,
+      "product": "BTC-USD",
+      "qualification": "UNQUALIFIED",
+      "quote": "USD",
+      "reason": null,
+      "spread": null,
+      "status": "OBSERVED_UNQUALIFIED",
+      "unattested_assumptions": [
+        "A-LAYOUT",
+        "A-PLACEHOLDER",
+        "A-QTY-ABS",
+        "A-SEND-AS-OF",
+        "A-SEQ-CONN",
+        "A-SNAP-FULL",
+        "A-STREAM-ORDER"
+      ]
+    },
+    "freshness": {
+      "book_state": "LIVE",
+      "connection_last_channel": "l2_data",
+      "connection_silence_ns": [
+        9999999990,
+        10000000000
+      ],
+      "connection_silence_status": "WITHIN_BUDGET",
+      "freshness": "LIVE_UNQUALIFIED",
+      "frontier": {
+        "channel": "l2_data",
+        "send_state": "NOT_SUPPLIED",
+        "sequence_num": 7
+      },
+      "product": "BTC-USD",
+      "reason": null,
+      "state_age_ns": null,
+      "state_age_status": "UNRESOLVED",
+      "unattested_assumptions": [
+        "A-LAYOUT",
+        "A-PLACEHOLDER",
+        "A-QTY-ABS",
+        "A-SEND-AS-OF",
+        "A-SEQ-CONN",
+        "A-SNAP-FULL",
+        "A-STREAM-ORDER"
+      ],
+      "unresolved": [
+        "SEND_TIME_NOT_SUPPLIED"
+      ]
+    },
+    "state": [
+      "LIVE",
+      null
+    ]
+  },
+  "calc_version": "flow-calc-1.0.0",
+  "economic_metrics": null,
+  "evidence_kind": "SYNTHETIC",
+  "flow": {
+    "base": "BTC",
+    "id_domain": "SESSION",
+    "instrument": "BTC-USD",
+    "market_kind": "SPOT",
+    "quote": "USD",
+    "side_convention": {
+      "attested": false,
+      "evidence_ref": "SYNTHETIC-CONVENTION-NOT-ATTESTED"
+    },
+    "venue": "coinbase_advanced"
+  },
+  "heatmap": {
+    "aggregation": "LAST_LIVE_SAMPLE_IN_BUCKET",
+    "bucket_ns": "60000000000",
+    "columns": [
+      {
+        "ask_cover_ceiling": null,
+        "asks": [
+          [
+            8,
+            "4"
+          ]
+        ],
+        "bid_cover_floor": null,
+        "bids": [
+          [
+            3,
+            "1"
+          ],
+          [
+            4,
+            "2"
+          ],
+          [
+            5,
+            "5"
+          ]
+        ],
+        "bucket": 0,
+        "sample_receipt_ns": "1030000000000",
+        "status": "LIVE"
+      },
+      {
+        "ask_cover_ceiling": null,
+        "asks": [
+          [
+            8,
+            "4"
+          ]
+        ],
+        "bid_cover_floor": null,
+        "bids": [
+          [
+            3,
+            "1"
+          ],
+          [
+            4,
+            "2"
+          ],
+          [
+            5,
+            "5"
+          ]
+        ],
+        "bucket": 1,
+        "sample_receipt_ns": "1090000000000",
+        "status": "LIVE"
+      },
+      {
+        "ask_cover_ceiling": null,
+        "asks": [
+          [
+            7,
+            "3"
+          ]
+        ],
+        "bid_cover_floor": null,
+        "bids": [
+          [
+            4,
+            "2"
+          ]
+        ],
+        "bucket": 2,
+        "sample_receipt_ns": "1170000000000",
+        "status": "LIVE"
+      },
+      {
+        "ask_cover_ceiling": null,
+        "asks": [
+          [
+            7,
+            "3"
+          ]
+        ],
+        "bid_cover_floor": null,
+        "bids": [
+          [
+            4,
+            "2"
+          ]
+        ],
+        "bucket": 3,
+        "sample_receipt_ns": "1210000000000",
+        "status": "LIVE"
+      },
+      {
+        "ask_cover_ceiling": null,
+        "asks": [
+          [
+            7,
+            "3"
+          ]
+        ],
+        "bid_cover_floor": null,
+        "bids": [
+          [
+            4,
+            "2"
+          ],
+          [
+            5,
+            "1"
+          ]
+        ],
+        "bucket": 4,
+        "sample_receipt_ns": "1290000000000",
+        "status": "LIVE"
+      }
+    ],
+    "price_hi": "1004",
+    "price_lo": "998",
+    "rows": 12,
+    "t0_ns": "1000000000000",
+    "tick": "0.5",
+    "unit": "DISPLAYED_BASE_QUANTITY",
+    "zero_semantics": "ABSENT_CELL_IN_LIVE_COLUMN_WITHIN_COVER_IS_OBSERVED_ZERO"
+  },
+  "inputs": {
+    "event_count": 19,
+    "events_after_as_of_not_read": 1,
+    "events_sha256": "a35de89b7b382e25ceaccb26f06dbd70c8a491c9e01efeb5fbba05d6ff65c438"
+  },
+  "level_events": {
+    "items": [
+      {
+        "cause": "CAUSE_UNDETERMINED",
+        "interval_ns": [
+          "1001000000000",
+          "1020000000000"
+        ],
+        "kind": "APPEARED",
+        "price": "1000.5",
+        "qty": "5",
+        "side": "bid"
+      },
+      {
+        "cause": "CAUSE_UNDETERMINED",
+        "interval_ns": [
+          "1020000000000",
+          "1030000000000"
+        ],
+        "kind": "DISAPPEARED",
+        "last_qty": "3",
+        "left_censored": true,
+        "persistence_ns": {
+          "max": null,
+          "min": "19000000000"
+        },
+        "price": "1001",
+        "side": "ask",
+        "trades_at_price_in_interval": 0
+      },
+      {
+        "cause": "CAUSE_UNDETERMINED",
+        "interval_ns": [
+          "1210000000000",
+          "1290000000000"
+        ],
+        "kind": "APPEARED",
+        "price": "1000.5",
+        "qty": "1",
+        "side": "bid"
+      }
+    ],
+    "truncated": false
+  },
+  "limits": [
+    "Synthetic fixtures only: nothing here is provider output.",
+    "Delta/CVD use an aggressor convention that is unattested unless side_convention.attested.",
+    "Displayed quantity is not executed volume; a vanished level has no proven cause.",
+    "Native times are unqualified; no age is certified without provider and observer proofs."
+  ],
+  "product": "MarketFlowArtifact",
+  "recommendation": null,
+  "rolling_delta": {
+    "120000000000": {
+      "reason": "COVERAGE_INCOMPLETE_OR_UNRESOLVED",
+      "status": "NOT_AVAILABLE"
+    },
+    "300000000000": {
+      "reason": "COVERAGE_INCOMPLETE_OR_UNRESOLVED",
+      "status": "NOT_AVAILABLE"
+    },
+    "60000000000": {
+      "reason": "COVERAGE_INCOMPLETE_OR_UNRESOLVED",
+      "status": "NOT_AVAILABLE"
+    }
+  },
+  "schema_version": "1.0.0",
+  "score": null,
+  "state_label": "SYNTHETIC",
+  "synthetic": true,
+  "trades": {
+    "accepted": 8,
+    "conflicts": [],
+    "duplicates": 1,
+    "excluded": {
+      "future_event_time": 1,
+      "no_event_time": 0,
+      "outside_range": 0
+    },
+    "refused": {
+      "QUOTE_MISMATCH": 1,
+      "TRADE_ID_REQUIRED": 1
+    },
+    "sessions": [
+      "s1",
+      "s2"
+    ]
+  }
+}
