@@ -8,6 +8,7 @@ a vanished level has no proven cause. Bids and asks stay separate and every
 
 from decimal import Decimal
 
+from .exact import exact
 from .trades import _text
 
 
@@ -36,13 +37,15 @@ def _floor(sample):
     return bf, af
 
 
+@exact
 def build_heatmap(samples, *, tick, t0_ns, bucket_ns, buckets, price_lo, price_hi, as_of_ns):
     tick, price_lo, price_hi = Decimal(tick), Decimal(price_lo), Decimal(price_hi)
     if tick <= 0 or price_hi <= price_lo or type(buckets) is not int or buckets < 1:
         raise ValueError("GRID_GEOMETRY_INVALID")
     if type(bucket_ns) is not int or bucket_ns <= 0 or type(t0_ns) is not int:
         raise ValueError("GRID_GEOMETRY_INVALID")
-    rows = int(((price_hi - price_lo) / tick).to_integral_value(rounding="ROUND_CEILING"))
+    whole, rest = divmod(price_hi - price_lo, tick)  # exact: no division rounding
+    rows = int(whole) + (1 if rest else 0)
     visible = [s for s in samples if s["receipt_ns"] <= as_of_ns]  # no future samples
     cols = []
     for i in range(buckets):

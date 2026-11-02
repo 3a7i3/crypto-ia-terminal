@@ -13,7 +13,9 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 import re
 
-_DEC = re.compile(r"\d{1,30}(\.\d{1,30})?")
+from .exact import exact
+
+_DEC = re.compile(r"[0-9]{1,30}(\.[0-9]{1,30})?")  # ASCII digits only
 BUY, SELL, UNKNOWN = "BUY", "SELL", "UNKNOWN"
 
 
@@ -48,6 +50,22 @@ class SideConvention:
     mapping: tuple  # ((raw_text, "BUY"|"SELL"), ...)
     attested: bool
     evidence_ref: str
+
+    def __post_init__(self):
+        # An ambiguous or malformed table is refused here: no entry order may
+        # silently pick a sign, and delta must never depend on it.
+        if not isinstance(self.mapping, tuple):
+            raise ValueError("SIDE_MAPPING_MALFORMED")
+        seen = set()
+        for entry in self.mapping:
+            if (not isinstance(entry, tuple) or len(entry) != 2 or not isinstance(entry[0], str)
+                    or not entry[0] or entry[1] not in (BUY, SELL)):
+                raise ValueError("SIDE_MAPPING_MALFORMED")
+            if entry[0] in seen:
+                raise ValueError("SIDE_MAPPING_AMBIGUOUS")  # duplicate raw value, even if identical
+            seen.add(entry[0])
+        if type(self.attested) is not bool or not isinstance(self.evidence_ref, str) or not self.evidence_ref:
+            raise ValueError("SIDE_CONVENTION_EVIDENCE_REQUIRED")
 
     def aggressor(self, raw):
         if not isinstance(raw, str):
@@ -93,6 +111,7 @@ class Trade:
     arrival_seq: int
 
     @property
+    @exact
     def notional(self):
         return self.price * self.size
 
@@ -183,6 +202,7 @@ def _covered(spans, lo, hi):
     return any(a <= lo and hi <= b for a, b in spans)
 
 
+@exact
 def build_bars(ledger, *, anchor_ns, bar_ns, as_of_ns, coverage):
     """Complete bars in [anchor, as_of) by native event time; trades visible only
     if received at or before ``as_of_ns`` (no future data in a replay)."""
@@ -216,6 +236,7 @@ def build_bars(ledger, *, anchor_ns, bar_ns, as_of_ns, coverage):
         bar = {"index": i, "start_ns": str(lo), "end_ns": str(hi)}
         if not _covered(spans, lo, hi):
             bar.update(status="NOT_COVERED", trade_count=None, delta_status="NOT_COVERED",
+                       delta_base=None, delta_base_bounds=None,
                        segment=None, cvd_base=None, cvd_base_bounds=None)
             bars.append(bar)
             prev_ok = False
@@ -250,9 +271,9 @@ def build_bars(ledger, *, anchor_ns, bar_ns, as_of_ns, coverage):
             continue
         d = vol[BUY] - vol[SELL]
         u = vol[UNKNOWN]
-        exact = u == 0
-        bar["delta_status"] = "EXACT" if exact else "PARTIAL_UNKNOWN_SIDE"
-        bar["delta_base"] = _text(d) if exact else None
+        is_exact = u == 0
+        bar["delta_status"] = "EXACT" if is_exact else "PARTIAL_UNKNOWN_SIDE"
+        bar["delta_base"] = _text(d) if is_exact else None
         bar["delta_base_bounds"] = [_text(d - u), _text(d + u)]
         if not prev_ok:
             seg += 1
@@ -266,6 +287,7 @@ def build_bars(ledger, *, anchor_ns, bar_ns, as_of_ns, coverage):
     return {"bars": bars, "excluded": excluded}
 
 
+@exact
 def rolling_delta(bars, bar_ns, windows_ns):
     """Delta over the last W complete bars; NOT_AVAILABLE unless every bar is usable."""
     out = {}
