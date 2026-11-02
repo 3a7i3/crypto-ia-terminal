@@ -166,10 +166,29 @@ class ObserverAttestation:
 
 
 @dataclass(frozen=True)
+class FlowIdentity:
+    """Declared identity of a flow: provider, host and channel.
+
+    The prototype cannot authenticate a transport; the caller (a future plan)
+    declares which flow the bytes belong to, and every proof must name the same
+    one. No neighbour transfer: another provider, host or channel never matches.
+    """
+
+    venue: str
+    host: str
+    channel: str
+
+
+COINBASE_L2_FLOW = FlowIdentity(
+    "coinbase_advanced", "advanced-trade-ws.coinbase.com", "l2_data"
+)
+
+
+@dataclass(frozen=True)
 class ClockAttestation:
     """Provider-clock proof for ONE exact field on ONE flow (no neighbour transfer)."""
 
-    venue: str
+    flow: FlowIdentity
     products: frozenset
     field: str
     scale: str
@@ -180,9 +199,11 @@ class ClockAttestation:
     evidence_ref: str
     attested_by: str
 
-    def window(self, native_ns, product, field):
+    def window(self, native_ns, flow, product, field):
         if not self.evidence_ref or not self.attested_by:
             return None, "ATTESTATION_PROVENANCE_MISSING"
+        if type(self.flow) is not FlowIdentity or self.flow != flow:
+            return None, "ATTESTATION_FLOW_MISMATCH"
         if field != self.field or product not in self.products:
             return None, "ATTESTATION_DOMAIN_MISMATCH"
         event = _ref.event_window(
@@ -236,16 +257,20 @@ def _decode(raw):
         if not isinstance(ev, dict):
             raise L2Refusal("EVENT_NOT_OBJECT")
         kind, product = ev.get("type"), ev.get("product_id")
-        if kind not in ("snapshot", "update"):
+        if not isinstance(kind, str) or kind not in ("snapshot", "update"):
             raise L2Refusal("EVENT_TYPE_UNKNOWN")
-        if product not in INSTRUMENTS:
+        if not isinstance(product, str) or product not in INSTRUMENTS:
             raise L2Refusal("UNEXPECTED_PRODUCT")
         updates = ev.get("updates")
         if not isinstance(updates, list):
             raise L2Refusal("UPDATES_NOT_LIST")
         parsed, seen = [], set()
         for u in updates:
-            if not isinstance(u, dict) or u.get("side") not in SIDES:
+            if (
+                not isinstance(u, dict)
+                or not isinstance(u.get("side"), str)
+                or u["side"] not in SIDES
+            ):
                 raise L2Refusal("SIDE_UNKNOWN")
             price_text, qty_text = u.get("price_level"), u.get("new_quantity")
             price = _decimal(price_text, zero_ok=False)
@@ -265,10 +290,15 @@ class _Book:
         self.state, self.reason = "NO_SNAPSHOT", None
         self.bids, self.asks = {}, {}
         self.resyncs = 0
+        # (send_ns, send_state, sequence_num, receipt) of the last accepted
+        # l2_data message that carried an event for THIS product; never a
+        # heartbeat or another channel, never another product's message.
+        self.frontier = None
 
     def clone(self):
         c = _Book()
         c.state, c.reason, c.resyncs = self.state, self.reason, self.resyncs
+        c.frontier = self.frontier
         c.bids, c.asks = dict(self.bids), dict(self.asks)
         return c
 
@@ -282,9 +312,13 @@ class _Book:
 class L2Connection:
     """One connection's books. A new connection never inherits any state."""
 
-    def __init__(self, connection_id, *, max_levels_per_side=5000):
+    def __init__(self, connection_id, flow, *, max_levels_per_side=5000):
         if not isinstance(connection_id, str) or not connection_id:
             raise ValueError("CONNECTION_ID_REQUIRED")
+        if flow != COINBASE_L2_FLOW:
+            # The decoder implements one documented layout; no other flow.
+            raise ValueError("UNSUPPORTED_FLOW")
+        self.flow = flow
         if type(max_levels_per_side) is not int or max_levels_per_side < 1:
             raise ValueError("LEVEL_LIMIT_REQUIRED")
         self.connection_id = connection_id
@@ -293,8 +327,8 @@ class L2Connection:
         self.expected_seq = None
         self.baseline_seq = None
         self.closed = False
-        self.last_receipt = None
-        self.last_send = (None, "NOT_SUPPLIED")
+        self.last_receipt = None  # any channel: connection liveness only
+        self.last_channel = None
         self.messages_applied = 0
 
     # -- invalidation -----------------------------------------------------
@@ -344,14 +378,17 @@ class L2Connection:
                 staged[product] = book
                 self._apply(book, kind, updates)
         except L2Refusal as e:
-            self._invalidate("APPLY_REFUSED:" + str(e), list(staged) or None)
+            # Events after the faulty one were never applied either: no product
+            # can be trusted, whatever its position in the message.
+            self._invalidate("APPLY_REFUSED:" + str(e))
             return {"accepted": False, "reason": str(e)}
         for product, book in staged.items():
             if book.state == "LIVE" and book.crossed():
                 book.state, book.reason = "INVALID", "CROSSED_OR_LOCKED_BOOK"
+            book.frontier = (env["send_ns"], env["send_state"], seq, receipt)
             self.books[product] = book
         self.last_receipt = receipt
-        self.last_send = (env["send_ns"], env["send_state"])
+        self.last_channel = env["channel"]
         self.messages_applied += 1
         return {"accepted": True, "reason": note, "sequence_num": seq}
 
@@ -439,11 +476,19 @@ class L2Connection:
         observer=None,
         envelope_clock=None,
     ):
-        """Freshness from observer-only silence plus an optional attested age.
+        """Two separate questions, never merged.
+
+        1. Connection silence: observer-only, monotonic, any channel. It can
+           refuse a silent connection; it says nothing about the book's age.
+        2. Book frontier: the send time of the last accepted ``l2_data``
+           message that carried an event for THIS product, qualified only by a
+           proof naming this exact flow, product and field. A heartbeat or any
+           other channel never dates the book, and sequence continuity is
+           checked independently of this qualification.
 
         ``silence_budget_ns`` has no default: its value is a governance decision.
-        The level event_time is deliberately NOT used here (a level can stay
-        valid while old); the age is of the last accepted message's send time.
+        The level event_time is deliberately NOT used (a level can stay valid
+        while old). A quiet product keeps an old frontier: that is fail-safe.
         """
         if type(now) is not Receipt:
             raise TypeError("RECEIPT_REQUIRED")
@@ -452,8 +497,10 @@ class L2Connection:
             "product": product,
             "book_state": state,
             "reason": reason,
-            "silence_ns": None,
-            "silence_status": "UNRESOLVED",
+            "connection_silence_ns": None,
+            "connection_silence_status": "UNRESOLVED",
+            "connection_last_channel": self.last_channel,
+            "frontier": None,
             "state_age_ns": None,
             "state_age_status": "UNRESOLVED",
             "unresolved": [],
@@ -462,7 +509,6 @@ class L2Connection:
         }
         if state != "LIVE":
             return out
-        # 1. Observer-only silence on the monotonic clock: needs no provider clock.
         if type(silence_budget_ns) is not int or silence_budget_ns < 0:
             raise ValueError("EXPLICIT_SILENCE_BUDGET_REQUIRED")
         last = self.last_receipt.mono
@@ -474,16 +520,20 @@ class L2Connection:
         if silence is None:
             out["unresolved"].append("MONOTONIC_ORDER_NOT_ESTABLISHED")
         else:
-            out["silence_ns"] = [silence.lo, silence.hi]
-            out["silence_status"] = (
+            out["connection_silence_ns"] = [silence.lo, silence.hi]
+            out["connection_silence_status"] = (
                 "STALE_BY_SILENCE"
                 if silence.lo > silence_budget_ns
                 else "SILENCE_BUDGET_NOT_EXCLUDED"
                 if silence.hi > silence_budget_ns
                 else "WITHIN_BUDGET"
             )
-        # 2. Attested state age from the last accepted message's send time.
-        send_ns, send_state = self.last_send
+        send_ns, send_state, frontier_seq, _ = self.books[product].frontier
+        out["frontier"] = {
+            "channel": self.flow.channel,
+            "sequence_num": frontier_seq,
+            "send_state": send_state,
+        }
         window = None
         if send_ns is None:
             out["unresolved"].append("SEND_TIME_" + send_state)
@@ -496,7 +546,7 @@ class L2Connection:
         else:
             now_w, why = observer.window(now.utc)
             event_w, why2 = envelope_clock.window(
-                send_ns, product, "l2_data.timestamp"
+                send_ns, self.flow, product, "l2_data.timestamp"
             )
             if why or why2:
                 out["unresolved"].append(why or why2)
@@ -511,7 +561,9 @@ class L2Connection:
                     out["state_age_status"] = _ref.classify_age(
                         age, max_age_ns=age_budget_ns
                     )
-        out["freshness"] = _overall(out["silence_status"], out["state_age_status"], window)
+        out["freshness"] = _overall(
+            out["connection_silence_status"], out["state_age_status"], window
+        )
         return out
 
 

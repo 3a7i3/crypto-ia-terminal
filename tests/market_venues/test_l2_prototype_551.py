@@ -64,7 +64,7 @@ def play(conn, messages, t0=1000):
 def attestations(valid=(0, 10**20), bound=1000, lag=(0, 0), offset=(0, 0)):
     obs = m.ObserverAttestation(SCALE, bound, Span(0, 10**20), "SYNTHETIC-OBSERVER")
     clk = m.ClockAttestation(
-        "synthetic_venue", frozenset({"BTC-USD", "ETH-USD"}), "l2_data.timestamp", SCALE,
+        m.COINBASE_L2_FLOW, frozenset({"BTC-USD", "ETH-USD"}), "l2_data.timestamp", SCALE,
         Span(*offset), Span(0, 0), Span(*lag), Window(SCALE, Span(*valid)),
         "SYNTHETIC-PROVIDER-CLOCK", "synthetic-test",
     )
@@ -73,7 +73,7 @@ def attestations(valid=(0, 10**20), bound=1000, lag=(0, 0), offset=(0, 0)):
 
 # ---- snapshot / update ---------------------------------------------------
 def test_fixture_snapshot_then_updates_exact_text_and_level_provenance():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     assert all(r["accepted"] for r in play(c, FIX["snapshot_then_updates"]))
     b = c.bbo("BTC-USD")
     assert b["status"] == "OBSERVED_UNQUALIFIED" and b["qualification"] == "UNQUALIFIED"
@@ -86,34 +86,34 @@ def test_fixture_snapshot_then_updates_exact_text_and_level_provenance():
 
 
 def test_snapshot_native_text_is_kept_verbatim():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     c.feed(raw(FIX["snapshot_then_updates"][0]), rec(0))
     c.feed(raw(upd(1, "bid", "1000.000000001", "0")), rec(100))
     assert c.bbo("BTC-USD")["bid"]["price"] == "999.5"
 
 
 def test_update_before_snapshot_is_discarded_not_guessed():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     assert c.feed(raw(upd(0, "bid", "100", "1")), rec(0))["accepted"]
     assert c.state("BTC-USD") == ("NO_SNAPSHOT", None)
     assert c.bbo("BTC-USD")["bid"] is None
 
 
 def test_remove_of_unknown_level_invalidates_instead_of_inventing_state():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0), upd(1, "bid", "77", "0")])
     assert c.state("BTC-USD")[0] == "INVALID"
     assert c.bbo("BTC-USD")["bid"] is None
 
 
 def test_crossed_book_is_invalid_not_published():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0), upd(1, "bid", "102", "1")])
     assert c.state("BTC-USD") == ("INVALID", "CROSSED_OR_LOCKED_BOOK")
 
 
 def test_refused_message_leaves_previous_good_book_untouched_then_invalidates():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0)])
     bad = upd(1, "bid", "100.5", "1", event_time="not-a-date")
     assert not c.feed(raw(bad), rec(100))["accepted"]
@@ -122,7 +122,7 @@ def test_refused_message_leaves_previous_good_book_untouched_then_invalidates():
 
 # ---- gaps, order, scope, reconnection -----------------------------------
 def test_fixture_gap_invalidates_until_new_snapshot():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     r = play(c, FIX["gap"])
     assert r[1]["reason"] == "SEQUENCE_GAP"
     assert c.state("ETH-USD") == ("INVALID", "SEQUENCE_GAP")
@@ -132,14 +132,14 @@ def test_fixture_gap_invalidates_until_new_snapshot():
 
 
 def test_gap_in_one_product_stream_invalidates_every_product_of_the_connection():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0), snap(1, "ETH-USD")])
     c.feed(raw(upd(5, "bid", "100.5", "1", "ETH-USD")), rec(500))
     assert c.state("BTC-USD")[0] == c.state("ETH-USD")[0] == "INVALID"
 
 
 def test_duplicate_sequence_is_not_applied_twice():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0), upd(1, "bid", "100.5", "9")])
     r = c.feed(raw(upd(1, "bid", "100.5", "10")), rec(900))
     assert r["reason"] == "SEQUENCE_DUPLICATE_OR_REORDERED"
@@ -148,13 +148,13 @@ def test_duplicate_sequence_is_not_applied_twice():
 
 
 def test_deltas_after_a_gap_do_not_resurrect_the_book():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0), upd(2, "bid", "100.5", "1"), upd(3, "bid", "100.6", "1")])
     assert c.state("BTC-USD")[0] == "INVALID"
 
 
 def test_sequence_is_scoped_to_the_connection_never_global():
-    a, b = m.L2Connection("a"), m.L2Connection("b")
+    a, b = m.L2Connection("a", m.COINBASE_L2_FLOW), m.L2Connection("b", m.COINBASE_L2_FLOW)
     play(a, [snap(0), upd(1, "bid", "100.5", "1")])
     b.feed(raw(snap(0)), rec(0))  # a fresh connection restarts at its own counter
     assert b.state("BTC-USD")[0] == "LIVE"
@@ -163,7 +163,7 @@ def test_sequence_is_scoped_to_the_connection_never_global():
 
 
 def test_other_channel_messages_share_the_connection_counter():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0), {"channel": "heartbeats", "sequence_num": 1, "timestamp": "2030-01-01T00:00:01Z"}, upd(2, "bid", "100.5", "1")])
     assert c.state("BTC-USD")[0] == "LIVE"
     play(c, [{"channel": "heartbeats", "sequence_num": 4}], t0=900)  # seq 3 never seen
@@ -171,7 +171,7 @@ def test_other_channel_messages_share_the_connection_counter():
 
 
 def test_closed_connection_serves_nothing():
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     play(c, [snap(0)])
     c.close()
     assert c.state("BTC-USD")[0] == "CONNECTION_CLOSED"
@@ -182,7 +182,7 @@ def test_closed_connection_serves_nothing():
 # ---- instruments, numbers, bytes -----------------------------------------
 @pytest.mark.parametrize("product", ["BTC-USDT", "BTC-USDC", "btcusd", "ETH-EUR"])
 def test_usd_is_not_usdt_usdc_or_a_neighbour(product):
-    c = m.L2Connection("c1")
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW)
     assert not c.feed(raw(snap(0, product)), rec(0))["accepted"]
 
 
@@ -191,29 +191,29 @@ def test_price_must_be_exact_positive_decimal_text(bad):
     msg = snap(0)
     msg["events"][0]["updates"][0]["price_level"] = bad
     text = json.dumps(msg).encode()
-    assert not m.L2Connection("c").feed(text, rec(0))["accepted"]
+    assert not m.L2Connection("c", m.COINBASE_L2_FLOW).feed(text, rec(0))["accepted"]
 
 
 def test_json_fraction_numbers_are_refused_before_any_float_exists():
     text = b'{"channel":"l2_data","sequence_num":0,"events":[{"type":"snapshot","product_id":"BTC-USD","updates":[{"side":"bid","price_level":100.5,"new_quantity":"1"}]}]}'
-    assert m.L2Connection("c").feed(text, rec(0))["reason"] == "JSON_NUMBER_FRACTION_REFUSED"
+    assert m.L2Connection("c", m.COINBASE_L2_FLOW).feed(text, rec(0))["reason"] == "JSON_NUMBER_FRACTION_REFUSED"
 
 
 def test_duplicate_json_keys_and_huge_messages_are_refused():
     dup = b'{"channel":"l2_data","channel":"x","sequence_num":0}'
-    assert m.L2Connection("c").feed(dup, rec(0))["reason"] == "DUPLICATE_NATIVE_FIELD"
-    assert m.L2Connection("c").feed(b" " * (m.MAX_MESSAGE_BYTES + 1), rec(0))["accepted"] is False
+    assert m.L2Connection("c", m.COINBASE_L2_FLOW).feed(dup, rec(0))["reason"] == "DUPLICATE_NATIVE_FIELD"
+    assert m.L2Connection("c", m.COINBASE_L2_FLOW).feed(b" " * (m.MAX_MESSAGE_BYTES + 1), rec(0))["accepted"] is False
 
 
 @pytest.mark.parametrize("seq", [True, -1, "0", 1.0, None])
 def test_sequence_must_be_a_nonnegative_integer(seq):
     msg = snap(0)
     msg["sequence_num"] = seq
-    assert not m.L2Connection("c").feed(json.dumps(msg).encode(), rec(0))["accepted"]
+    assert not m.L2Connection("c", m.COINBASE_L2_FLOW).feed(json.dumps(msg).encode(), rec(0))["accepted"]
 
 
 def test_level_limit_is_enforced():
-    c = m.L2Connection("c1", max_levels_per_side=1)
+    c = m.L2Connection("c1", m.COINBASE_L2_FLOW, max_levels_per_side=1)
     play(c, [snap(0), upd(1, "bid", "99", "1")])
     assert c.state("BTC-USD")[0] == "INVALID"
 
@@ -233,9 +233,9 @@ def test_time_text_outside_the_closed_format_is_refused(text):
 def test_absent_dates_stay_unknown_and_never_become_zero():
     msg = snap(0)
     del msg["timestamp"]
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(msg), rec(0))
-    assert c.last_send == (None, "NOT_SUPPLIED")
+    assert c.books["BTC-USD"].frontier[:2] == (None, "NOT_SUPPLIED")
     obs, clk = attestations()
     f = c.freshness("BTC-USD", rec(50), silence_budget_ns=10**9, age_budget_ns=10**9, observer=obs, envelope_clock=clk)
     assert f["state_age_ns"] is None and "SEND_TIME_NOT_SUPPLIED" in f["unresolved"]
@@ -243,7 +243,7 @@ def test_absent_dates_stay_unknown_and_never_become_zero():
 
 
 def test_future_send_time_is_flagged_not_hidden():
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0, ts="1970-01-01T00:01:40Z")), rec(1 * S))  # send 100 s, received ~1 s
     obs, clk = attestations()
     f = c.freshness("BTC-USD", rec(2 * S), silence_budget_ns=10**12, age_budget_ns=5 * S, observer=obs, envelope_clock=clk)
@@ -252,7 +252,7 @@ def test_future_send_time_is_flagged_not_hidden():
 
 # ---- freshness: attestation, expiry, old-but-newly-received ----------------
 def test_without_attestations_nothing_is_ever_called_fresh():
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0)), rec(0))
     f = c.freshness("BTC-USD", rec(5), silence_budget_ns=10**9)
     assert f["freshness"] == "LIVE_UNQUALIFIED" and f["state_age_status"] == "UNRESOLVED"
@@ -262,7 +262,7 @@ def test_without_attestations_nothing_is_ever_called_fresh():
 
 def test_attested_recent_state_is_within_assumptions_only():
     t = m.parse_rfc3339_ns("1970-01-01T00:00:10Z")
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0, ts="1970-01-01T00:00:10Z")), rec(t + 1000))
     obs, clk = attestations(bound=500, lag=(0, 200), offset=(-100, 100))
     f = c.freshness("BTC-USD", rec(t + 2000), silence_budget_ns=S, age_budget_ns=S, observer=obs, envelope_clock=clk)
@@ -272,7 +272,7 @@ def test_attested_recent_state_is_within_assumptions_only():
 
 def test_age_window_arithmetic_is_conservative_both_sides():
     t = 10 * S
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0, ts="1970-01-01T00:00:10Z")), rec(t))
     obs, clk = attestations(bound=500, lag=(0, 200), offset=(-100, 100))
     f = c.freshness("BTC-USD", rec(t + 2000), silence_budget_ns=S, age_budget_ns=S, observer=obs, envelope_clock=clk)
@@ -281,33 +281,33 @@ def test_age_window_arithmetic_is_conservative_both_sides():
 
 
 def test_old_state_newly_received_is_stale_not_fresh():
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0, ts="1970-01-01T00:00:10Z")), rec(10 * S + 3_600 * S))  # received an hour later
     obs, clk = attestations()
     now = rec(10 * S + 3_600 * S + 50)
     f = c.freshness("BTC-USD", now, silence_budget_ns=10**12, age_budget_ns=5 * S, observer=obs, envelope_clock=clk)
-    assert f["silence_status"] == "WITHIN_BUDGET"  # received just now...
+    assert f["connection_silence_status"] == "WITHIN_BUDGET"  # received just now...
     assert f["freshness"] == "STALE"  # ...but the state it carries is old
 
 
 def test_silence_alone_can_refuse_without_any_provider_clock():
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0)), rec(0))
     f = c.freshness("BTC-USD", rec(20 * S), silence_budget_ns=5 * S)
-    assert f["silence_status"] == "STALE_BY_SILENCE" and f["freshness"] == "STALE"
+    assert f["connection_silence_status"] == "STALE_BY_SILENCE" and f["freshness"] == "STALE"
     g = c.freshness("BTC-USD", m.Receipt(Span(5 * S - 5, 5 * S + 5), Span(0, 0)), silence_budget_ns=5 * S)
-    assert g["silence_status"] == "SILENCE_BUDGET_NOT_EXCLUDED"
+    assert g["connection_silence_status"] == "SILENCE_BUDGET_NOT_EXCLUDED"
 
 
 def test_monotonic_regression_is_unresolved_not_zero_silence():
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0)), rec(10_000))
     f = c.freshness("BTC-USD", rec(0), silence_budget_ns=S)
-    assert f["silence_ns"] is None and f["freshness"] == "UNRESOLVED"
+    assert f["connection_silence_ns"] is None and f["freshness"] == "UNRESOLVED"
 
 
 def test_silence_budget_is_mandatory_and_explicit():
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0)), rec(0))
     with pytest.raises(ValueError):
         c.freshness("BTC-USD", rec(1), silence_budget_ns=None)
@@ -316,7 +316,7 @@ def test_silence_budget_is_mandatory_and_explicit():
 @pytest.mark.parametrize("which", ["observer", "provider"])
 def test_expired_or_non_covering_proof_yields_unresolved(which):
     t = 10 * S
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0, ts="1970-01-01T00:00:10Z")), rec(t))
     obs, clk = attestations()
     if which == "observer":
@@ -330,35 +330,139 @@ def test_expired_or_non_covering_proof_yields_unresolved(which):
 
 def test_attestation_does_not_transfer_to_neighbour_field_or_product():
     t = 10 * S
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     c.feed(raw(snap(0, "ETH-USD", ts="1970-01-01T00:00:10Z")), rec(t))
     obs, clk = attestations()
-    narrow = m.ClockAttestation(clk.venue, frozenset({"BTC-USD"}), clk.field, SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, clk.evidence_ref, clk.attested_by)
+    narrow = m.ClockAttestation(clk.flow, frozenset({"BTC-USD"}), clk.field, SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, clk.evidence_ref, clk.attested_by)
     f = c.freshness("ETH-USD", rec(t + 5), silence_budget_ns=S, age_budget_ns=S, observer=obs, envelope_clock=narrow)
     assert "ATTESTATION_DOMAIN_MISMATCH" in f["unresolved"]
-    other = m.ClockAttestation(clk.venue, clk.products, "l2_data.events.updates.event_time", SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, clk.evidence_ref, clk.attested_by)
+    other = m.ClockAttestation(clk.flow, clk.products, "l2_data.events.updates.event_time", SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, clk.evidence_ref, clk.attested_by)
     f = c.freshness("ETH-USD", rec(t + 5), silence_budget_ns=S, age_budget_ns=S, observer=obs, envelope_clock=other)
     assert "ATTESTATION_DOMAIN_MISMATCH" in f["unresolved"]
 
 
 def test_attestation_without_provenance_is_not_accepted():
     obs, clk = attestations()
-    blank = m.ClockAttestation(clk.venue, clk.products, clk.field, SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, "", "")
-    assert blank.window(10, "BTC-USD", clk.field) == (None, "ATTESTATION_PROVENANCE_MISSING")
+    blank = m.ClockAttestation(clk.flow, clk.products, clk.field, SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, "", "")
+    assert blank.window(10, m.COINBASE_L2_FLOW, "BTC-USD", clk.field) == (None, "ATTESTATION_PROVENANCE_MISSING")
 
 
 def test_cache_style_double_counting_is_absent_lag_counted_once():
     # Only the declared event->label lag widens the window; no residence term exists.
     _, clk = attestations(lag=(0, 7))
-    w, _ = clk.window(100, "BTC-USD", "l2_data.timestamp")
+    w, _ = clk.window(100, m.COINBASE_L2_FLOW, "BTC-USD", "l2_data.timestamp")
     assert w.span == Span(100 - 7, 100)
 
 
 def test_level_time_is_never_used_as_book_age():
-    c = m.L2Connection("c")
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
     play(c, [snap(0), upd(1, "bid", "100.5", "1", event_time="1970-01-01T00:00:01Z")])
     f = c.freshness("BTC-USD", rec(2 * 3_600 * S), silence_budget_ns=10**15)
     assert f["state_age_ns"] is None and f["freshness"] == "LIVE_UNQUALIFIED"
+
+
+# ---- review of PR #552: R1-R4 regressions ---------------------------------------
+def heartbeat(seq, ts):
+    return {"channel": "heartbeats", "sequence_num": seq, "timestamp": ts}
+
+
+def test_r1_heartbeat_never_dates_the_book_nor_borrows_the_l2_proof():
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
+    c.feed(raw(snap(0, ts="1970-01-01T00:00:10Z")), rec(10 * S))
+    c.feed(raw(heartbeat(1, "1970-01-01T00:01:40Z")), rec(100 * S))
+    obs, clk = attestations(bound=0)
+    f = c.freshness("BTC-USD", rec(100 * S + 100), silence_budget_ns=5 * S, age_budget_ns=5 * S, observer=obs, envelope_clock=clk)
+    assert f["connection_silence_status"] == "WITHIN_BUDGET"  # the connection is alive...
+    assert f["frontier"] == {"channel": "l2_data", "sequence_num": 0, "send_state": "NATIVE_UNQUALIFIED"}
+    assert f["state_age_status"] == "STALE"  # ...but the book frontier is the 10 s snapshot
+    assert f["freshness"] == "STALE" and f["connection_last_channel"] == "heartbeats"
+
+
+def test_r1_quiet_product_keeps_its_own_frontier_when_another_product_updates():
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
+    c.feed(raw(snap(0, "BTC-USD", ts="1970-01-01T00:00:10Z")), rec(10 * S))
+    c.feed(raw(snap(1, "ETH-USD", ts="1970-01-01T00:00:50Z")), rec(50 * S))
+    c.feed(raw(upd(2, "bid", "100.5", "1", "ETH-USD")), rec(60 * S))
+    assert c.books["BTC-USD"].frontier[2] == 0 and c.books["ETH-USD"].frontier[2] == 2
+
+
+def test_r1_sequence_continuity_is_independent_of_qualification():
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
+    c.feed(raw(snap(0)), rec(0))
+    c.feed(raw(heartbeat(2, "1970-01-01T00:00:10Z")), rec(100))  # seq 1 lost
+    assert c.state("BTC-USD") == ("INVALID", "SEQUENCE_GAP")
+
+
+def test_r2_atomic_refusal_invalidates_products_after_the_faulty_event():
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
+    play(c, [snap(0), snap(1, "ETH-USD")])
+    for order in (("ETH-USD", "BTC-USD"), ("BTC-USD", "ETH-USD")):
+        c = m.L2Connection("c", m.COINBASE_L2_FLOW)
+        play(c, [snap(0), snap(1, "ETH-USD")])
+        bad = {"channel": "l2_data", "sequence_num": 2, "events": [
+            {"type": "update", "product_id": order[0], "updates": [{"side": "bid", "price_level": "77", "new_quantity": "0"}]},
+            {"type": "update", "product_id": order[1], "updates": [{"side": "bid", "price_level": "100.5", "new_quantity": "2"}]}]}
+        assert not c.feed(raw(bad), rec(500))["accepted"]
+        assert c.state("BTC-USD")[0] == c.state("ETH-USD")[0] == "INVALID"
+        assert c.bbo("BTC-USD")["bid"] is None
+        c.feed(raw(heartbeat(3, "1970-01-01T00:00:10Z")), rec(600))
+        c.feed(raw(upd(4, "bid", "100.2", "1")), rec(700))  # later delta resurrects nothing
+        assert c.state("BTC-USD")[0] == c.state("ETH-USD")[0] == "INVALID"
+
+
+def test_r3_attestation_must_name_the_connection_flow():
+    obs, clk = attestations(bound=0)
+    f0 = m.COINBASE_L2_FLOW
+    for other in (
+        m.FlowIdentity("UNRELATED_PROVIDER", f0.host, f0.channel),
+        m.FlowIdentity(f0.venue, "other.example", f0.channel),
+        m.FlowIdentity(f0.venue, f0.host, "heartbeats"),
+    ):
+        wrong = m.ClockAttestation(other, clk.products, clk.field, SCALE, clk.offset, clk.quantization, clk.lag, clk.validity, clk.evidence_ref, clk.attested_by)
+        c = m.L2Connection("c", f0)
+        c.feed(raw(snap(0, ts="1970-01-01T00:00:10Z")), rec(10 * S))
+        f = c.freshness("BTC-USD", rec(10 * S + 100), silence_budget_ns=S, age_budget_ns=S, observer=obs, envelope_clock=wrong)
+        assert "ATTESTATION_FLOW_MISMATCH" in f["unresolved"] and f["freshness"] == "LIVE_UNQUALIFIED"
+    c = m.L2Connection("c", f0)
+    c.feed(raw(snap(0, ts="1970-01-01T00:00:10Z")), rec(10 * S))
+    ok = c.freshness("BTC-USD", rec(10 * S + 100), silence_budget_ns=S, age_budget_ns=S, observer=obs, envelope_clock=clk)
+    assert ok["freshness"] == "QUALIFIED_WITHIN_ASSUMPTIONS"  # witness: the matching proof still works
+
+
+@pytest.mark.parametrize("flow", [m.FlowIdentity("bitstamp", "ws.bitstamp.net", "order_book"), "coinbase_advanced", None])
+def test_r3_connection_refuses_a_flow_the_decoder_does_not_implement(flow):
+    with pytest.raises(ValueError):
+        m.L2Connection("c", flow)
+
+
+BAD_VALUES = [[], {}, True, None, 1, 1.5, ["bid"], {"a": 1}]
+
+
+CLOSED = ["product_id", "side", "type", "channel", "price_level", "new_quantity", "event_time", "timestamp", "sequence_num", "events", "updates"]
+CASES = [
+    (w, b) for w in CLOSED for b in BAD_VALUES
+    if not (w == "sequence_num" and b == 1) and not (w in ("events", "updates") and b == [])
+]
+
+
+@pytest.mark.parametrize("where,bad", CASES)
+def test_r4_closed_fields_of_any_json_type_are_refused_and_invalidate(where, bad):
+    c = m.L2Connection("c", m.COINBASE_L2_FLOW)
+    c.feed(raw(snap(0)), rec(0))
+    msg = upd(1, "bid", "100.5", "1")
+    ev = msg["events"][0]
+    u = ev["updates"][0]
+    if where in ("product_id", "type"):
+        ev[where] = bad
+    elif where in ("side", "price_level", "new_quantity", "event_time"):
+        u[where] = bad
+    elif where == "updates":
+        ev["updates"] = bad
+    else:
+        msg[where] = bad
+    result = c.feed(raw(msg), rec(100))  # must never raise
+    assert result["accepted"] is False
+    assert c.state("BTC-USD")[0] == "INVALID"
 
 
 # ---- pair --------------------------------------------------------------------
