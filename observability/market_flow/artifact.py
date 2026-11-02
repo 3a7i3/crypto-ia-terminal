@@ -60,7 +60,7 @@ def validate_artifact(doc):
     contract.check_flow(doc["flow"])
     contract.check_inputs(doc["inputs"])
     contract.check_trades(doc["trades"])
-    contract.check_bars(doc["bars"], anchor, bar_ns, as_of)
+    contract.check_bars(doc["bars"], anchor, bar_ns, as_of, doc["flow"]["quote"])
     contract.check_rolling(doc["rolling_delta"], bar_ns)
     contract.check_book(doc["book"], doc["flow"])
     contract.check_heatmap(doc["heatmap"], as_of)
