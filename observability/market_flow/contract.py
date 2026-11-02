@@ -320,7 +320,7 @@ AGE_STATUSES = ("UNRESOLVED", "FUTURE", "FUTURE_NOT_EXCLUDED", "STALE", "STALE_N
 FRESHNESS = ("NOT_USABLE", "FUTURE_TIMESTAMP", "STALE", "FUTURE_NOT_EXCLUDED", "STALE_NOT_EXCLUDED",
              "UNRESOLVED", "QUALIFIED_WITHIN_ASSUMPTIONS", "LIVE_UNQUALIFIED")
 SEND_STATES = ("NOT_SUPPLIED", "NATIVE_UNQUALIFIED")
-LEVEL_TIME_STATES = ("NOT_SUPPLIED", "NATIVE_UNQUALIFIED")
+LEVEL_TIME_STATES = ("NOT_SUPPLIED", "NATIVE_UNQUALIFIED", "PLACEHOLDER_EPOCH_NOT_A_DATE")
 
 
 def _state_reason(st, path):
@@ -360,7 +360,10 @@ def check_book(book, flow):
             dec(lv["price"], "book.bbo.%s.price" % side, positive=True)
             dec(lv["size"], "book.bbo.%s.size" % side, positive=True)
             opt(lv["level_event_time_ns"], ns, "book.bbo.%s.level_event_time_ns" % side)
-            one_of(lv["level_event_time_state"], LEVEL_TIME_STATES, "book.bbo.%s.level_event_time_state" % side)
+            lts = one_of(lv["level_event_time_state"], LEVEL_TIME_STATES, "book.bbo.%s.level_event_time_state" % side)
+            # A placeholder epoch is not a date: no time value may stand behind it.
+            if (lv["level_event_time_ns"] is not None) != (lts == "NATIVE_UNQUALIFIED"):
+                bad("book.bbo.%s.level_event_time_ns" % side, "STATUS_INCONSISTENT")
             is_int(lv["level_last_change_seq"], "book.bbo.%s.level_last_change_seq" % side)
     else:
         must_be_none(b["bid"], "book.bbo.bid")
