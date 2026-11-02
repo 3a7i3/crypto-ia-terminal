@@ -128,3 +128,22 @@ def test_native_decoder_refusal_is_served_as_a_readable_unavailable_book(tmp_pat
     book = res.json()["book"]
     assert book["state"] == ["INVALID", "MALFORMED_MESSAGE:SIDE_UNKNOWN"]
     assert book["bbo"]["status"] == "NOT_AVAILABLE" and book["bbo"]["bid"] is None
+
+
+def test_epoch_placeholder_is_served_with_null_date_and_synthetic_label(tmp_path):
+    import copy
+
+    from observability.market_flow import artifact, fixtures
+    events, cfg = fixtures.synthetic_session()
+    first = copy.deepcopy(events[0])
+    for update in first["message"]["events"][0]["updates"]:
+        update["event_time"] = "1970-01-01T00:00:00Z"
+    p = tmp_path / "placeholder.json"
+    p.write_text(json.dumps(artifact.replay([first], cfg)))
+    assert MarketFlowReader(str(p)).read().ok
+    api.configure_market_flow_reader(str(p))
+    res = TestClient(api.app).get(URL)
+    body = res.json()
+    bid = body["book"]["bbo"]["bid"]
+    assert res.status_code == 200 and body["state_label"] == "SYNTHETIC"
+    assert bid["level_event_time_state"] == "PLACEHOLDER_EPOCH_NOT_A_DATE" and bid["level_event_time_ns"] is None
