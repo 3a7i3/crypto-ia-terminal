@@ -26,7 +26,30 @@ Base : main@452a630, API servie = release `1728b3ad952b87d903ccb7442579000da292b
 - **Limite 2 MiB et lecture bornée (`alerts.jsonl`)** : G0 a mesuré `alerts.jsonl` à 2 013 413 o (96 % du plafond). En contrat 1.0.0 la source P12 passerait en `OUTPUT_LIMIT` durablement (aucun enregistrement ni compteur publié). **Lecture bornée préparée en source (contrat 1.1.0, `docs/contracts/APP_EVENTS_01_CONTRACT.md`)** : au-delà de 2 MiB ou de 10 000 lignes, la source JSONL devient `PARTIAL_TAIL` : fin du journal seulement (1 MiB, coupé sur un début de ligne), `coverage`/`source_bytes`/`window_bytes` explicites, enregistrements antérieurs inconnus et non comptés, jamais `PRESENT`. Fichier modifié pendant la lecture, fenêtre sans ligne complète ou dernière ligne non terminée : `INVALID`, sans ligne partielle. Les autres sources restent publiées (testé). Le nombre de lignes de `alerts.jsonl` est inconnu (G0 n'a relevé que les octets) : sous ~201 o/ligne il dépasse déjà 10 000 lignes, cas que seule la lecture bornée traite sans `OUTPUT_LIMIT`. Une API/un frontend/un publisher 1.0.0 déployés ne lisent pas 1.1.0 : la lecture bornée exige une release commune, hors de ce plan source.
 - **Source burn-in absente** : `ppl_lifecycles` reste `MISSING` et n'empêche pas la publication des autres sources (testé). Elle ne devient jamais un zéro ni une liste vide.
 - **Course avec les écritures (horodatage)** : l'horodatage sous-seconde est pris **avant** le balayage. Une écriture entre l'horodatage et le balayage est détectée (mtime > observé → `INVALID_METADATA`, ou `FUTURE_*` côté events), jamais acceptée silencieusement (testé). `observed_at` est donc une borne **inférieure** : « rien de plus récent que cet instant n'a été accepté ». La précision sous-seconde réduit la fenêtre d'échec (donc les instantanés INVALID spurieux) sans supprimer la course ; l'échec est visible et le run suivant (30 s) corrige. Supprimer la course exigerait d'horodater après le balayage, donc une nouvelle version du code publié : hors de ce plan.
-- **Découverte reproduite** : un horodatage à la seconde entière rend le snapshot `INVALID_METADATA` dès qu'un packet est modifié dans la même seconde (`latest ≤ observed` exigé). Les units passent un horodatage sous-seconde (`%6N`) ; testé.
+- **Découverte reproduite** : un horodatage à la seconde entière rend le snapshot `INVALID_METADATA` dès qu'un packet est modifié dans la même seconde (`latest ≤ observed` exigé). Les unités utilisaient initialement `date ...%6N`, validé avec GNU date. Cette preuve historique ne couvre pas le fournisseur uutils ; voir la correction source #559 ci-dessous.
+
+### Correction source #559 — 4 novembre 2026
+Les runners TEST et Coveralls ont reproduit une corruption des fractions avec
+uutils date 0.10.0 : `.055685400` devient `.556854` avec `%6N`. Dans un même
+appel courant, `%N` reste dans les bornes d'horloge parent alors que `%6N`
+peut déclarer une fausse date future. Les versions et hashes observés sont
+consignés dans [#559](https://github.com/3a7i3/crypto-ia-terminal/issues/559).
+
+Les unités storage/events fabriquent désormais leur stamp avec le Python déjà
+épinglé, `datetime.now(timezone.utc).isoformat(timespec="microseconds")`, puis
+remplacent le suffixe UTC par `Z`. Une lecture UTC et six décimales explicites
+préservent les zéros initiaux, indépendamment du fournisseur de `date`.
+La lecture précède toujours le scan ; les écritures postérieures restent
+refusées et les readers conservent le refus strict `now < generated`.
+
+Cette substitution lance un court processus du même Python avant le publisher.
+Les chemins de release, modules, permissions, timers et budgets de service
+restent inchangés. Un échec de génération donne un stamp invalide : le publisher
+échoue sans remplacer l'artifact précédent. Les six sorties G1/G2/G3 sont
+régénérées par leurs builders existants, avec leurs nouveaux hashes ; aucun
+script d'installation ou d'essai n'est exécuté sur le VPS par cette correction.
+Source corrigée, installation et activation demeurent des preuves séparées ;
+les chemins de release historiques restent à requalifier avant un déploiement.
 
 ## 3. Dossier de sortie, utilisateur, permissions
 - Sortie : `/home/mathieu/operator_presentation/` (hors de l'arbre runtime gelé, jamais dans `databases/`). Chemins exacts : `.../runtime_service_snapshot.json`, `.../storage_snapshot.json`, `.../event_center_snapshot.json`.

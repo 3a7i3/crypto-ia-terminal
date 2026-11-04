@@ -176,7 +176,8 @@ Type=oneshot
 SyslogIdentifier=crypto_publish_storage
 # Sub-second UTC stamp: a whole-second stamp is rejected as INVALID_METADATA whenever a
 # packet file was modified in the same second (latest_file_modified <= observed is required).
-ExecStart=/bin/sh -c 'exec /opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -m observability.storage_snapshot --out /home/mathieu/operator_presentation/storage_snapshot.json --source-directory /home/mathieu/crypto_ai_terminal/databases --generated-at-utc "$(date -u +%%Y-%%m-%%dT%%H:%%M:%%S.%%6NZ)"'
+# UTC microseconds from the pinned Python; independent of date provider (#559).
+ExecStart=/bin/sh -c 'exec /opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -m observability.storage_snapshot --out /home/mathieu/operator_presentation/storage_snapshot.json --source-directory /home/mathieu/crypto_ai_terminal/databases --generated-at-utc "$(/opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -c "from datetime import datetime, timezone; import sys; print(datetime.now(timezone.utc).isoformat(timespec=sys.argv[1]).replace(sys.argv[2], sys.argv[3]))" microseconds +00:00 Z)"'
 User=mathieu
 UMask=0077
 WorkingDirectory=/opt/crypto-ai-terminal/operator/staging-src/1728b3ad952b87d903ccb7442579000da292b848
@@ -242,7 +243,8 @@ ConditionPathIsDirectory=/home/mathieu/operator_presentation
 [Service]
 Type=oneshot
 SyslogIdentifier=crypto_publish_events
-ExecStart=/bin/sh -c 'exec /opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -m observability.event_center_snapshot --out /home/mathieu/operator_presentation/event_center_snapshot.json --generated-at-utc "$(date -u +%%Y-%%m-%%dT%%H:%%M:%%S.%%6NZ)" --p12-alerts /home/mathieu/crypto_ai_terminal/cache/startup/alerts.jsonl --ppl-lifecycles /home/mathieu/crypto_ai_terminal/databases/burn_in_status_snapshot.json'
+# UTC microseconds from the pinned Python; independent of date provider (#559).
+ExecStart=/bin/sh -c 'exec /opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -m observability.event_center_snapshot --out /home/mathieu/operator_presentation/event_center_snapshot.json --generated-at-utc "$(/opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -c "from datetime import datetime, timezone; import sys; print(datetime.now(timezone.utc).isoformat(timespec=sys.argv[1]).replace(sys.argv[2], sys.argv[3]))" microseconds +00:00 Z)" --p12-alerts /home/mathieu/crypto_ai_terminal/cache/startup/alerts.jsonl --ppl-lifecycles /home/mathieu/crypto_ai_terminal/databases/burn_in_status_snapshot.json'
 User=mathieu
 UMask=0077
 WorkingDirectory=/opt/crypto-ai-terminal/operator/staging-src/1728b3ad952b87d903ccb7442579000da292b848
@@ -384,7 +386,7 @@ echo "== end G1"
 if [ "$FAILS" -ne 0 ] || [ "$CLEANFAIL" -ne 0 ]; then exit 1; fi
 exit 0
 G1_SCRIPT_EOF
-echo "166caedb8161d9c3426f242442200fa0202f4500be44f2b14358f3766155e01e  $D/g1.sh" | sha256sum -c - || { rm -rf "$D"; echo 'HASH MISMATCH: not run'; exit 1; }
+echo "68691b689f4d166003465d71ad82abc87eb5e9c1f78963df240b1a3dbb70bbf9  $D/g1.sh" | sha256sum -c - || { rm -rf "$D"; echo 'HASH MISMATCH: not run'; exit 1; }
 sh "$D/g1.sh"; RC=$?
 rm -rf "$D"
 echo "exit status: $RC"
