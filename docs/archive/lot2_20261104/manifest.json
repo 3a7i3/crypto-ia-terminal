@@ -1,0 +1,53 @@
+{
+  "archive_version": 1,
+  "recorded_at_utc": "2026-11-04T02:39:15Z",
+  "baseline_main": "9433c18b5077cc957bfdf2c8bd707070dc5c67d1",
+  "status": "HISTORICAL_TEXT_ONLY_NOT_ACTIVE_INSTRUCTIONS",
+  "files": [
+    {
+      "source_pr": 465,
+      "source_head": "811c2feda8dfe4439c77ec23bd8e88d4248aedef",
+      "source_path": "docs/sentinel_v2/J01_ACTIVITY_LEDGER_SPEC.md",
+      "git_blob_sha1": "38f3cb6368658e4782274f634ef16247ac681596",
+      "archive_path": "docs/archive/lot2_20261104/pr465/docs/sentinel_v2/J01_ACTIVITY_LEDGER_SPEC.md.txt",
+      "bytes": 9204,
+      "sha256": "05e2ab2d8a560995ccc4c660447717d9cb3fbaf63fb0d61058f29cc4f6cf8742"
+    },
+    {
+      "source_pr": 465,
+      "source_head": "811c2feda8dfe4439c77ec23bd8e88d4248aedef",
+      "source_path": "docs/sentinel_v2/README.md",
+      "git_blob_sha1": "ff5bcabb7034b98e4fb1018e02ae9e80b4d6f5be",
+      "archive_path": "docs/archive/lot2_20261104/pr465/docs/sentinel_v2/README.md.txt",
+      "bytes": 8520,
+      "sha256": "43f7ed737ef61c5b782da46c9c23d49bc1ffe96ad01cd29f6bc169af44418b5f"
+    },
+    {
+      "source_pr": 465,
+      "source_head": "811c2feda8dfe4439c77ec23bd8e88d4248aedef",
+      "source_path": "docs/sentinel_v2/WORK_PLAN_FIRST_HANDOFF.md",
+      "git_blob_sha1": "634ee3cb0a5ccae94f980cd7e3fe3c5454b618fc",
+      "archive_path": "docs/archive/lot2_20261104/pr465/docs/sentinel_v2/WORK_PLAN_FIRST_HANDOFF.md.txt",
+      "bytes": 8039,
+      "sha256": "c684388d9f8e1ba0289839af25a3d260f51f10ab96266fc9eff76c70a352e1c0"
+    },
+    {
+      "source_pr": 487,
+      "source_head": "e9f989a60b19680ff6ccdde5d6f18eea5dc988a3",
+      "source_path": "docs/colony_registrar/STEP7_AUTHENTICATED_ADMISSION_PLAN.md",
+      "git_blob_sha1": "1c25df2879f1d49d9fd2de1c6c15f8228cec3329",
+      "archive_path": "docs/archive/lot2_20261104/pr487/docs/colony_registrar/STEP7_AUTHENTICATED_ADMISSION_PLAN.md.txt",
+      "bytes": 8733,
+      "sha256": "dcdd86cc56e1915920de32881178023dc64fb1f6d8d49eafa6577101de9a40ae"
+    },
+    {
+      "source_pr": 491,
+      "source_head": "edfc2da078ca71498f8fc75373f4ec7a70a1b0d1",
+      "source_path": "docs/colony_admission/P4_IMPLEMENTATION_PREPARATION.md",
+      "git_blob_sha1": "22a7b024cee38c71fc2d243381219b4f1dd210eb",
+      "archive_path": "docs/archive/lot2_20261104/pr491/docs/colony_admission/P4_IMPLEMENTATION_PREPARATION.md.txt",
+      "bytes": 14436,
+      "sha256": "3ef713da3ee62ef08ef248da6af7524568136ccd35e01ddf067bcbe0eb734e6f"
+    }
+  ]
+}

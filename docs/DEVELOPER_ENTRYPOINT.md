@@ -1,7 +1,11 @@
 # Entrée développeur canonique
 
 Lire cette page avant de reprendre Crypto AI Terminal, puis
-[CLAUDE.md](../CLAUDE.md) et la mission applicable. État documentaire synchronisé par
+[CLAUDE.md](../CLAUDE.md) et la mission applicable. Pour l'étape actuelle,
+consulter [CURRENT_TASK.md](../CURRENT_TASK.md) et le
+[checkpoint lot 2 du 2026-11-04](handoffs/LOT2_TRACKING_RECONCILIATION_20261104.md).
+Les baselines et observations ci-dessous restent des références historiques.
+La structure documentaire avait été synchronisée par
 DOC-CANON-03 / [#412](https://github.com/3a7i3/crypto-ia-terminal/issues/412)
 depuis `main@598ab14b7fff06fdae5d3f2a24bc8d4484f48e71`, le 2026-10-12.
 DOC-CANON-02 / #380 reste historique.

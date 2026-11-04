@@ -1,4 +1,35 @@
-# Reprise canonique — DOC-CANON-03
+# Reprise canonique — lot 2, 2026-11-04 UTC
+
+Objectif : terminer la V0 Flux en source et rendre son suivi vérifiable.
+Base : `main@9433c18b5077cc957bfdf2c8bd707070dc5c67d1`.
+Lire le [checkpoint et journal de décisions du lot 2](docs/handoffs/LOT2_TRACKING_RECONCILIATION_20261104.md)
+et le [handoff Flux](docs/research/market_flux_553/HANDOFF.md).
+Roadmap : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) ;
+cockpit : [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323).
+
+- Lot 1 : #556 fusionnée ; 19 workflows / 24 check-runs SUCCESS au commit de
+  fusion cité, résultat non transposable à une autre PR.
+- Lot 2 : #467–#469 fermées administrativement, déjà absorbées par #470.
+  #465/#487/#491 restent DRAFT ; leurs cinq documents sont conservés dans
+  l'archive proposée par cette PR, à intégrer avant leur clôture.
+- Flux #552/#554/#555 intégré ; validateur/client TypeScript, fixtures
+  cross-stack générées et interface Flux restent **NON FAITS**.
+- Prochaine action : **revue et décision de fusion du lot 2**. Le lot 3A
+  (contrat frontend Flux) vient ensuite, après audit ciblé et validation de son
+  plan ; ne pas commencer 3B, C8.4 ou une publication en parallèle.
+- Blocages préservés : #397 HOLD fusion/activation ; #374 parquée ; #520
+  candidat C8.3 sous décision séparée ; Gate O ouverte ; #286 ACTIVE.
+
+Dernier relevé runtime disponible : 2026-11-03 18:35:26 UTC, historique,
+non renouvelé ici. API/Web observés sur la release #537, **pas sur main**.
+Ni cette reprise ni la CI ne prouvent une release Flux installée ou active.
+Aucune autorisation de collecte, service, déploiement ou recertification.
+
+## Référence historique DOC-CANON-03 — 2026-10-12
+
+Le bloc ci-dessous conserve ses faits et limites à sa date. L'ordre de travail
+actuel est celui du checkpoint lot 2 ; les références scientifiques et les
+garde-fous restent à consulter avant toute mission de leur domaine.
 
 Mission documentaire : [#412](https://github.com/3a7i3/crypto-ia-terminal/issues/412).
 Roadmap : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
@@ -29,7 +60,7 @@ reste consultable à `a057d4e972cd60ee32710d59f327b4185f3af287`.
 - #315 Gate O : `OPEN / NON_RESOLVED`, OperatorDecision `NON_DEPLOYED`.
 - #374 Agent Registry : `PARKED_SOURCE_ONLY / DRAFT / NON_DEPLOYED`.
 
-## Reprise Research et ordre de travail
+## Reprise Research historique et dépendances conservées
 
 1. Consulter l'[inventaire des copies autorisées](docs/research/paper_stress_404/D1_D_E_AUTHORIZED_COPY_INVENTORY_20261012.md).
    Passerelle VPS observée Offline le 2026-10-12 : aucun byte Research relu ici.
