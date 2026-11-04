@@ -30,6 +30,136 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio coveralls
+      - name: CI559 — date binary and timestamp provenance (diagnostic only)
+        timeout-minutes: 2
+        run: |
+          python - <<'PY'
+          import calendar
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import subprocess
+          import sys
+          import time
+
+
+          def emit(kind, **values):
+              print("CI559_DATE_DIAGNOSTIC=" + json.dumps(
+                  {"kind": kind, **values}, sort_keys=True, allow_nan=False), flush=True)
+
+
+          # Match tests/test_passive_publishers_units.py::_run without dumping PATH/env.
+          child_env = {
+              "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+              "PYTHONPATH": str(Path.cwd()),
+              "PYTHONDONTWRITEBYTECODE": "1", "TZ": "UTC", "LC_ALL": "C",
+          }
+
+
+          def run(argv):
+              try:
+                  result = subprocess.run(argv, env=child_env, capture_output=True,
+                                          text=True, timeout=3)
+                  return {"returncode": result.returncode,
+                          "stdout": result.stdout[:4096], "stderr": result.stderr[:1024]}
+              except (OSError, subprocess.TimeoutExpired) as error:
+                  return {"returncode": None, "stdout": "", "stderr": type(error).__name__}
+
+
+          date_path = shutil.which("date", path=child_env["PATH"])
+          date_realpath, date_sha256, identity_error = None, None, None
+          try:
+              if date_path is None:
+                  raise FileNotFoundError("date")
+              binary = Path(date_path).resolve(strict=True)
+              date_realpath = str(binary)
+              if binary.stat().st_size > 64 * 1024 * 1024:
+                  raise ValueError("binary exceeds diagnostic read bound")
+              digest = hashlib.sha256()
+              with binary.open("rb") as stream:
+                  for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              date_sha256 = digest.hexdigest()
+          except (OSError, ValueError) as error:
+              identity_error = type(error).__name__
+
+          os_release = {}
+          try:
+              for line in Path("/etc/os-release").read_text()[:4096].splitlines():
+                  key, _, value = line.partition("=")
+                  if key in {"NAME", "VERSION", "VERSION_ID", "PRETTY_NAME"}:
+                      os_release[key] = value.strip('"')[:256]
+          except OSError:
+              os_release = None
+
+          emit("identity", image_os=os.getenv("ImageOS"), image_version=os.getenv("ImageVersion"),
+               runner_os=os.getenv("RUNNER_OS"), runner_arch=os.getenv("RUNNER_ARCH"),
+               github_sha=os.getenv("GITHUB_SHA"), run_id=os.getenv("GITHUB_RUN_ID"),
+               run_attempt=os.getenv("GITHUB_RUN_ATTEMPT"), checkout=run(["git", "rev-parse", "HEAD"]),
+               os_release=os_release, python_version=sys.version, python_executable=sys.executable,
+               shell_realpath=str(Path("/bin/sh").resolve()), date_path=date_path,
+               date_realpath=date_realpath, date_sha256=date_sha256, identity_error=identity_error,
+               shell_date=run(["/bin/sh", "-c", "command -v date; date --version"]),
+               package_owners=run(["dpkg-query", "-S", date_path or "/usr/bin/date",
+                                  date_realpath or "/usr/bin/date"]),
+               packages=run(["dpkg-query", "-W", "-f=${binary:Package} ${Version}\n",
+                             "coreutils", "coreutils-from-uutils", "coreutils-from-gnu",
+                             "rust-coreutils", "gnu-coreutils", "dash", "libc6"]))
+
+          fractions = (
+              "000000000", "000000001", "000001000", "000556854", "005568540", "005685400",
+              "052749556", "055685400", "055685499", "055685500", "099999999", "100000000",
+              "105685400", "179994097", "556854000", "999999999",
+          )
+          stamp_format = "+%Y-%m-%dT%H:%M:%S.%6NZ|%Y-%m-%dT%H:%M:%S.%NZ"
+          prefix = "2026-11-04T17:08:42."
+          mismatches, command_errors = 0, 0
+          for fraction in fractions:
+              result = run(["/bin/sh", "-c", 'date -u -d "$1" "$2"', "ci559-date",
+                            "@1793812122." + fraction, stamp_format])
+              stamp, separator, full_stamp = result["stdout"].strip().partition("|")
+              expected, expected_full = prefix + fraction[:6] + "Z", prefix + fraction + "Z"
+              command_ok = result["returncode"] == 0 and bool(separator)
+              matches = command_ok and stamp == expected and full_stamp == expected_full
+              mismatches += int(command_ok and not matches)
+              command_errors += int(not command_ok)
+              emit("fixed", input_epoch="1793812122." + fraction, expected=expected,
+                   expected_full=expected_full, matches=matches, result=result)
+
+
+          def stamp_ns(value):
+              match = re.fullmatch(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(\d{1,9})Z", value)
+              if match is None:
+                  return None
+              try:
+                  seconds = calendar.timegm(time.strptime(match[1], "%Y-%m-%dT%H:%M:%S"))
+                  return seconds * 1_000_000_000 + int(match[2].ljust(9, "0"))
+              except (ValueError, OverflowError):
+                  return None
+
+
+          before = [time.clock_gettime_ns(time.CLOCK_REALTIME), time.monotonic_ns()]
+          live = run(["/bin/sh", "-c", 'date -u "$1"', "ci559-date", stamp_format])
+          after = [time.clock_gettime_ns(time.CLOCK_REALTIME), time.monotonic_ns()]
+          stamp, _, full_stamp = live["stdout"].strip().partition("|")
+          limited_ns, full_ns = stamp_ns(stamp), stamp_ns(full_stamp)
+          emit("live", result=live, clock_order=["CLOCK_REALTIME", "monotonic"],
+               parent_before_ns=[str(value) for value in before],
+               parent_after_ns=[str(value) for value in after],
+               limited_ns=None if limited_ns is None else str(limited_ns),
+               full_ns=None if full_ns is None else str(full_ns),
+               limited_in_boundary=None if limited_ns is None else before[0] <= limited_ns <= after[0],
+               full_in_boundary=None if full_ns is None else before[0] <= full_ns <= after[0],
+               matches_full_truncated=None if full_ns is None or limited_ns is None else
+               limited_ns == full_ns // 1000 * 1000)
+          # Observation only: this summary is not a PASS of date or of the pytest corpus.
+          emit("summary", fixed_cases=len(fractions), format_mismatches=mismatches,
+               command_errors=command_errors, live_returncode=live["returncode"])
+          PY
+
       # Coveralls owns coverage generation + transport, not performance gating.
       # Resource-sensitive memory/endurance tests run in CI's dedicated
       # LONG-RUN PERFORMANCE GATE.
