@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from observability.event_center_contract import validate_event_center
+from observability.event_center_contract import finite, utc_seconds, validate_event_center
 from observability.operator_api.event_center_reader import EventCenterReader
 from observability.operator_api.runtime_service_reader import (
     RuntimeServiceSnapshotReader,
@@ -207,6 +207,53 @@ def _run(argv: list[str]) -> subprocess.CompletedProcess:
     )
 
 
+def _run_clocked(argv: list[str]):
+    """Observe the parent boundary; do not substitute the publisher's clock."""
+    before = [time.clock_gettime_ns(time.CLOCK_REALTIME), time.monotonic_ns()]
+    result = _run(argv)
+    after = [time.clock_gettime_ns(time.CLOCK_REALTIME), time.monotonic_ns()]
+    return result, {"parent_before_ns": before, "parent_after_ns": after}
+
+
+def _read_clocked(reader, doc, boundary):
+    """Delegate each original clock call once, retaining at most two readings."""
+    clock = reader.now_fn
+    readings = []
+    calls = 0
+
+    def observed_clock():
+        nonlocal calls
+        value = clock()
+        calls += 1
+        if len(readings) < 2:
+            readings.append(value if finite(value) else {"type": type(value).__name__[:80]})
+        return value
+
+    reader.now_fn = observed_clock
+    try:
+        served = reader.read()
+    finally:
+        reader.now_fn = clock
+    clock_name = getattr(clock, "__name__", None)
+    diagnostic = {
+        **boundary,
+        "parent_clock_order": ["CLOCK_REALTIME", "monotonic"],
+        "generated_at_utc": doc["generated_at_utc"],
+        "generated_seconds": utc_seconds(doc["generated_at_utc"]),
+        "reader_clock_type": f"{type(clock).__module__}.{type(clock).__qualname__}"[:160],
+        "reader_clock_name": clock_name[:80] if isinstance(clock_name, str) else None,
+        "reader_clock_calls": calls,
+        "reader_clock_values": readings,
+        "error_code": served.error_code,
+    }
+    return served, diagnostic
+
+
+def _clock_failure(diagnostic):
+    # Pytest evaluates an assertion message only on failure; no payload or env.
+    return "CI559_CLOCK_DIAGNOSTIC=" + json.dumps(diagnostic, sort_keys=True, allow_nan=False)
+
+
 def _tree(path: Path) -> dict:
     """Byte-exact fingerprint of everything under path (names, bytes, mtimes)."""
     state = {}
@@ -249,7 +296,7 @@ def machine(tmp_path):
 def test_storage_publisher_does_not_touch_sources_and_writes_one_valid_file(machine):
     rt, out = machine
     before = _tree(rt)
-    result = _run(_command("storage", out, rt))
+    result, boundary = _run_clocked(_command("storage", out, rt))
     assert result.returncode == 0, result.stderr
     assert _tree(rt) == before  # content, mode, mtime of every source file and dir
     assert [p.name for p in out.iterdir()] == ["storage_snapshot.json"]  # no temp left
@@ -258,8 +305,10 @@ def test_storage_publisher_does_not_touch_sources_and_writes_one_valid_file(mach
     assert doc["source_status"] == "PRESENT"
     assert (doc["matched_file_count"], doc["entries_observed"]) == (5, 6)
     assert doc["total_bytes"] == sum(8 * n for n in range(1, 6))
-    served = StorageSnapshotReader(out / "storage_snapshot.json").read()
-    assert served.ok and served.snapshot["freshness_classification"] == "FRESH"
+    served, diagnostic = _read_clocked(
+        StorageSnapshotReader(out / "storage_snapshot.json"), doc, boundary
+    )
+    assert served.ok and served.snapshot["freshness_classification"] == "FRESH", _clock_failure(diagnostic)
 
 
 def test_whole_second_stamp_would_turn_a_live_packet_file_into_invalid_metadata(
@@ -294,7 +343,7 @@ def test_whole_second_stamp_would_turn_a_live_packet_file_into_invalid_metadata(
 def test_events_publisher_reads_sources_read_only_and_reports_missing_honestly(machine):
     rt, out = machine
     before = _tree(rt)
-    result = _run(_command("events", out, rt))
+    result, boundary = _run_clocked(_command("events", out, rt))
     assert result.returncode == 0, result.stderr
     assert _tree(rt) == before
     assert [p.name for p in out.iterdir()] == ["event_center_snapshot.json"]
@@ -306,8 +355,45 @@ def test_events_publisher_reads_sources_read_only_and_reports_missing_honestly(m
         "supervision_alerts": "NOT_CONFIGURED",
         "ppl_lifecycles": "MISSING",  # burn-in projection absent: shown, not invented
     }
-    served = EventCenterReader(out / "event_center_snapshot.json").read()
-    assert served.ok and served.snapshot["freshness_classification"] == "FRESH"
+    served, diagnostic = _read_clocked(
+        EventCenterReader(out / "event_center_snapshot.json"), doc, boundary
+    )
+    assert served.ok and served.snapshot["freshness_classification"] == "FRESH", _clock_failure(diagnostic)
+
+
+@pytest.mark.parametrize("name", ("storage", "events"))
+@pytest.mark.parametrize("offset", (-1.0, 0.25))
+def test_clock_probe_preserves_real_reader_verdict_and_original_clock(machine, name, offset):
+    rt, out = machine
+    result, boundary = _run_clocked(_command(name, out, rt))
+    assert result.returncode == 0, result.stderr
+    path = out / ARTIFACT[name]
+    doc = json.loads(path.read_text())
+    now = utc_seconds(doc["generated_at_utc"]) + offset
+    calls = []
+
+    def clock():
+        calls.append(now)
+        return now
+
+    reader_type = StorageSnapshotReader if name == "storage" else EventCenterReader
+    reader = reader_type(path, now_fn=clock)
+    expected = reader.read()
+    assert calls == [now]
+    calls.clear()
+    served, diagnostic = _read_clocked(reader, doc, boundary)
+    assert served == expected
+    assert reader.now_fn is clock and calls == [now]
+    assert diagnostic["reader_clock_calls"] == 1
+    assert diagnostic["reader_clock_values"] == [now]
+    assert json.loads(_clock_failure(diagnostic).split("=", 1)[1]) == diagnostic
+    if offset < 0:
+        assert not served.ok
+        assert served.error_code == (
+            "STORAGE_FUTURE_TIMESTAMP" if name == "storage" else "EVENT_CENTER_FUTURE_TIMESTAMP"
+        )
+    else:
+        assert served.ok and served.snapshot["freshness_classification"] == "FRESH"
 
 
 def test_runtime_service_publisher_writes_a_valid_artifact_and_nothing_else(machine):
@@ -422,7 +508,7 @@ def test_alerts_over_the_limit_is_an_explicit_partial_tail_never_presented_as_ex
     size = alerts.stat().st_size
     assert size > 2_097_152
     before = _tree(rt)
-    result = _run(_command("events", out, rt))
+    result, boundary = _run_clocked(_command("events", out, rt))
     assert result.returncode == 0, result.stderr
     assert _tree(rt) == before
     doc = json.loads((out / "event_center_snapshot.json").read_text())
@@ -432,8 +518,10 @@ def test_alerts_over_the_limit_is_an_explicit_partial_tail_never_presented_as_ex
     assert p12["source_bytes"] == size and p12["window_bytes"] < size
     assert p12["records_observed"] < count  # records before the window are never counted
     assert {e["source_id"] for e in doc["events"]} == {"p12_alerts"}
-    served = EventCenterReader(out / "event_center_snapshot.json").read()
-    assert served.ok and served.snapshot["sources"][0]["status"] == "PARTIAL_TAIL"
+    served, diagnostic = _read_clocked(
+        EventCenterReader(out / "event_center_snapshot.json"), doc, boundary
+    )
+    assert served.ok and served.snapshot["sources"][0]["status"] == "PARTIAL_TAIL", _clock_failure(diagnostic)
 
 
 def test_a_log_just_under_the_limit_is_still_published_whole_with_schema_1_0_0(machine):
