@@ -41,8 +41,9 @@ class Checkout:
             current = source._fd(name, os.O_RDONLY | os.O_DIRECTORY, parent=parent)
             value = os.fstat(current)
             o._need(stat.S_ISDIR(value.st_mode), "SOURCE_UNAVAILABLE")
-            source.checks.append((current, parent, name, o._identity(value)))
-            if index == len(root.parts) - 2:
+            bound = index == len(root.parts) - 2
+            source.remember_directory(current, parent, name, value, bound=bound)
+            if bound:
                 self._permissions(value, directory=True)
         self.root = current
         self.directories[""] = current

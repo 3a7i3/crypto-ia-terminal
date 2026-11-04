@@ -122,9 +122,15 @@ def _identity(value):
             value.st_size, value.st_mtime_ns, value.st_ctime_ns)
 
 
+def _ancestor_identity(value):
+    # Ancestors bind the path, not their unrelated entries (e.g. shared /tmp).
+    return (value.st_dev, value.st_ino, value.st_mode, value.st_uid)
+
+
 class _Acquisition:
     def __init__(self, stack):
         self.stack, self.checks, self.stamps = stack, [], []
+        self.ancestor_checks = []
 
     def _fd(self, path, flags, *, parent=None):
         fd = os.open(path, flags | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=parent)
@@ -138,10 +144,15 @@ class _Acquisition:
             current = self._fd(part, os.O_RDONLY | os.O_DIRECTORY, parent=parent)
             value = os.fstat(current)
             _need(stat.S_ISDIR(value.st_mode))
-            self.checks.append((current, parent, part, _identity(value)))
-            if index == len(root.parts) - 2:
+            bound = index == len(root.parts) - 2
+            self.remember_directory(current, parent, part, value, bound=bound)
+            if bound:
                 self.private_directory(value)
         return current
+
+    def remember_directory(self, fd, parent, name, value, *, bound):
+        checks, identity = (self.checks, _identity) if bound else (self.ancestor_checks, _ancestor_identity)
+        checks.append((fd, parent, name, identity(value)))
 
     @staticmethod
     def private_directory(value):
@@ -189,10 +200,11 @@ class _Acquisition:
         return raw
 
     def verify(self):
-        for fd, parent, name, expected in self.checks:
-            _need(_identity(os.fstat(fd)) == expected, "SOURCE_CHANGED")
-            _need(_identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == expected,
-                  "SOURCE_CHANGED")
+        for checks, identity in ((self.ancestor_checks, _ancestor_identity), (self.checks, _identity)):
+            for fd, parent, name, expected in checks:
+                _need(identity(os.fstat(fd)) == expected, "SOURCE_CHANGED")
+                _need(identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == expected,
+                      "SOURCE_CHANGED")
 
 
 def _external(config, fault_raw, policy_raw, history_raw):
