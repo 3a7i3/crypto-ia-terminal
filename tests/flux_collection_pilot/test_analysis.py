@@ -12,7 +12,8 @@ from observability.flux_collection_pilot.sequence import SequenceTracker
 from observability.flux_collection_pilot.simulated import EPOCH_NS, Feed
 from .helpers import S, write_campaign
 
-B = lambda *lv: [("bid" if s == "b" else "offer", p, q) for s, p, q in lv]
+def B(*lv):
+    return [("bid" if s == "b" else "offer", p, q) for s, p, q in lv]
 
 
 def stamp(raws, start=EPOCH_NS):
@@ -161,7 +162,8 @@ def test_time_inventory_counts_missing_invalid_sentinel_and_after_cut_separately
 # --- trades ---------------------------------------------------------------------------------
 def test_duplicates_exact_once_and_contradictions_excluded_in_every_variant_across_sessions(tmp_path):
     f1, f2 = Feed(), Feed()
-    T = lambda i, p, s, side="BUY", tm="2026-11-05T08:00:00Z": (i, p, s, side, tm)
+    def T(i, p, s, side="BUY", tm="2026-11-05T08:00:00Z"):
+        return (i, p, s, side, tm)
     s1 = [f1.trades([T("a", "100", "1"), T("a", "100", "1"), T("b", "100", "2", "SELL"), T("c", "100", "4")]),
           f1.trades([T("d", "100", "8")])]
     s2 = [f2.trades([T("b", "100", "2", "SELL"), T("c", "100", "5"), T("e", "100", "16")], kind="snapshot"),  # b: exact dup across sessions; c: contradicts the first-seen variant
@@ -180,7 +182,8 @@ def test_maker_side_is_kept_raw_and_the_aggressor_inversion_is_explicit_and_unat
     assert (analysis.derive_aggressor("BUY"), analysis.derive_aggressor("SELL")) == ("SELL", "BUY")
     assert analysis.derive_aggressor("buy") == analysis.derive_aggressor(None) == analysis.derive_aggressor("?") == "UNKNOWN"
     f = Feed()
-    T = lambda i, s, side: (i, "100", s, side, "2026-11-05T08:00:00Z")
+    def T(i, s, side):
+        return (i, "100", s, side, "2026-11-05T08:00:00Z")
     raws = [f.trades([T("1", "1", "BUY"), T("2", "3", "SELL")])]
     a = analysis.analyze(write_campaign(tmp_path, "s", {"S01": stamp(raws)}))["trades"]["aggregates"]
     assert a["volume_by_raw_maker_side"] == {"BUY": "1", "SELL": "3", "UNKNOWN": "0"}

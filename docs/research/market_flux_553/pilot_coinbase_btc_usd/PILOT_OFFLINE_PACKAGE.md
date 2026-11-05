@@ -10,7 +10,7 @@ Le contrat Flux garde `synthetic=true` : une capture n'entre pas dans Flux (déc
 |---|---|
 | Base | `main@2009c62f94f053db4f170b6a13065cc018618b7a` |
 | Référence auditée (crypto-restore-01) | `2009c62f94f053db4f170b6a13065cc018618b7a` : **identique à main, aucun écart de source** |
-| Empreinte du paquet (`package_digest`) | `711a93198ee3500cd3d00ba00acfc46dda615131261bdf5a2b310005c77486c4` |
+| Empreinte du paquet (`package_digest`) | `a44c5c83288a5873f28cf115d73c0006aa50a72b8aa587660be4d7258cf82538` |
 | Commit de la branche | voir la PR (le SHA ne peut pas figurer dans le commit qu'il identifie) |
 | Python | tests passés sous 3.13 (local) et 3.11 (cible CI) |
 

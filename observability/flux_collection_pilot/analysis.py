@@ -289,7 +289,9 @@ def _trades(seen):
         size = Decimal(payload[1])
         total += size
         vol[payload[2] if payload[2] in ("BUY", "SELL") else "UNKNOWN"] += size
-    fmt = lambda d: format(d, "f")
+    def fmt(d):
+        return format(d, "f")
+
     taker = {"BUY": vol["SELL"], "SELL": vol["BUY"]}  # explicit inversion of the maker side
     d, u = taker["BUY"] - taker["SELL"], vol["UNKNOWN"]
     return {
