@@ -84,12 +84,13 @@ jobs:
           python -m tests.cross_stack.generate_runtime_service_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_event_center_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_storage_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_market_flow_fixture --out frontend/.cross-stack-fixtures
 
       - name: Frontend cross-stack compatibility test
         working-directory: frontend
         env:
           CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
-        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/marketCatalogue.compat.test.tsx src/test/venueComparison.compat.test.tsx src/test/venueFreshness.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx src/test/LmiDetail.compat.test.tsx
+        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/marketCatalogue.compat.test.tsx src/test/venueComparison.compat.test.tsx src/test/venueFreshness.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx src/test/LmiDetail.compat.test.tsx src/test/marketFlowExact.test.ts src/test/marketFlowJson.test.ts src/test/marketFlowValidation.test.ts src/test/marketFlowClient.test.ts src/test/marketFlow.compat.test.ts
 
       - name: Install browser for Events and Storage desktop/mobile proof
         working-directory: frontend
