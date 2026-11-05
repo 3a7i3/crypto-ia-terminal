@@ -1,0 +1,47 @@
+{
+  "schema": "flux-pilot-collection-manifest/1",
+  "status": "TEMPLATE_NOT_APPROVED",
+  "_comment": "À compléter par l'opérateur pour UNE collecte. Ce gabarit ne vaut aucune autorisation : un manifeste n'est valable que si status=APPROVED, lié au package_digest exact, et accompagné de la variable d'environnement FLUX_PILOT_LIVE_GO égale au SHA-256 de ses octets. Aucun secret ni jwt ici.",
+  "package_digest": "<SHA-256 du paquet exact (python -c 'from observability.flux_collection_pilot.protocol import package_digest as d; print(d())')>",
+  "target": {
+    "provider": "coinbase_advanced",
+    "host": "advanced-trade-ws.coinbase.com",
+    "product": "BTC-USD",
+    "channels": ["level2", "market_trades", "heartbeats"]
+  },
+  "caps": {
+    "max_connections": 2,
+    "planned_cut_ns": 60000000000,
+    "max_duration_ns": 180000000000,
+    "max_messages": 100000,
+    "max_disk_bytes": 67108864,
+    "max_memory_bytes": 268435456,
+    "silence_ns": 5000000000,
+    "max_message_bytes": 512000,
+    "reserve_bytes": 4194304
+  },
+  "sequence_policy": "<PER_CHANNEL (défaut conservateur) | PER_PRODUCT | PER_CONNECTION : choix motivé par la lecture documentaire datée>",
+  "authorization": {
+    "issue_286_exception_ref": "<lien/ID de l'exception #286 distincte, épinglée au paquet et à ce manifeste>",
+    "approved_by": "<opérateur>",
+    "approved_at_utc": "<horodatage UTC>"
+  },
+  "admissibility": {
+    "region_evidence_ref": "<source officielle datée : admissibilité régionale de la machine d'exécution>",
+    "terms_evidence_ref": "<source officielle datée : conditions d'usage, conservation privée des données>"
+  },
+  "observer_clock": {
+    "before_check_ref": "<contrôle d'horloge observateur AVANT la collecte (outil, offset, incertitude, validité)>",
+    "after_check_ref": "<contrôle d'horloge observateur APRÈS la collecte>"
+  },
+  "storage": {
+    "root": "<chemin absolu privé, hors dépôt Git, hors Flux ; ex. dossier 0700 propre à la campagne>",
+    "retention": "<durée et sort des octets bruts ; aucune redistribution>"
+  },
+  "memory": {
+    "rlimit_data_bytes": 268435456,
+    "cgroup_memory_max_configured": "<true|false : MemoryMax du service, réglage opérateur hors paquet>"
+  },
+  "stop_policy": "<premier plafond, refus d'accès, silence heartbeat 5 s, perte locale ou anomalie L2 : clôture de la collecte, aucune reprise après arrêt de sécurité>",
+  "post_collection": "Résultat = LIVE_UNQUALIFIED. L'admission dans Flux exige un contrat de provenance réelle, des tests Python et TypeScript et un GO séparé ; le validateur Flux garde synthetic=true."
+}
