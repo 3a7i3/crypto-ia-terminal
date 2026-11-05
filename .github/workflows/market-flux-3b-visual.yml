@@ -1,0 +1,64 @@
+name: Market Flux 3B Visual Proof
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: market-flux-3b-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  market-flux-visual:
+    name: "MARKET FLUX 3B VISUAL PROOF"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Generate fixture through real passive producer and API
+        run: |
+          pip install fastapi httpx
+          python -m tests.cross_stack.generate_market_flow_fixture --out frontend/.cross-stack-fixtures
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend and Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          mkdir -p "$RUNNER_TEMP/playwright-tooling"
+          npm install --prefix "$RUNNER_TEMP/playwright-tooling" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          ln -s "$RUNNER_TEMP/playwright-tooling/node_modules/playwright" node_modules/playwright
+          node -e "const r=require.resolve('playwright');if(!r.startsWith(process.env.RUNNER_TEMP)){console.error('unexpected playwright',r);process.exit(1)}console.log('playwright resolved from',r)"
+          node "$RUNNER_TEMP/playwright-tooling/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Build and serve ephemeral Vite app
+        working-directory: frontend
+        run: |
+          npm run build
+          nohup npm run preview -- --host 127.0.0.1 --port 3000 --strictPort >/tmp/market-flux-3b-vite.log 2>&1 &
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/paper-live/market >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/paper-live/market >/dev/null
+      - name: Assert desktop/mobile Flux provenance, gaps and failure states
+        working-directory: frontend
+        run: node scripts/capture_market_flux_visual.mjs
+      - name: Upload Flux visual proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-unify-market-flux-visual-proof
+          path: frontend/artifacts/market-flux-3b/
+          if-no-files-found: error
+          retention-days: 14
