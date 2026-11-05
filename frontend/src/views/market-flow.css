@@ -1,0 +1,10 @@
+.flux-view { min-width: 0; overflow-wrap: anywhere; }
+.flux-view details { margin-block: .75rem; padding: .65rem; border: 1px solid currentColor; border-radius: .5rem; }
+.flux-view summary { cursor: pointer; font-weight: 600; }
+.flux-window { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-block: .5rem; }
+.flux-scroll { max-width: 100%; overflow-x: auto; margin-block: .5rem; }
+.flux-view table { border-collapse: collapse; width: 100%; }
+.flux-view th, .flux-view td { border: 1px solid currentColor; padding: .4rem; text-align: start; min-width: 6rem; max-width: 16rem; }
+.flux-view [data-flux-cell="observed"] { background: color-mix(in srgb, currentColor 15%, transparent); }
+.flux-view [data-flux-cell="unknown"] { background: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, currentColor 10%, transparent) 5px 7px); }
+.flux-chart { width: 100%; max-height: 12rem; }

@@ -1,3 +1,4 @@
+import { MarketFlowView } from "./MarketFlowView";
 import React, { useState, useEffect, useRef } from "react";
 import { useMarketSnapshot } from "../lib/marketClient";
 import { fr } from "../lib/presentationFr";
@@ -282,18 +283,27 @@ const MarketScanner: React.FC = () => {
 };
 
 
+const marketTabs = ["Scanner", "Comparaison des plateformes", "Flux"];
+
 export const MarketView: React.FC = () => {
   const [active, setActive] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const choose = (next: number) => { setActive(next); tabs.current[next]?.focus(); };
   return <div className="market-workspace" data-testid="market-workspace">
     <div className="market-workspace-tabs" role="tablist" aria-label="Vues du marché">
-      {["Scanner", "Comparaison des plateformes"].map((label, i) => <button key={label} type="button" role="tab" id={"market-tab-" + i} aria-controls={"market-panel-" + i} aria-selected={active === i} tabIndex={active === i ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => setActive(i)} onKeyDown={e => {
-        if (["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) { e.preventDefault(); choose(e.key === "Home" ? 0 : e.key === "End" ? 1 : 1 - i); }
+      {marketTabs.map((label, i) => <button key={label} type="button" role="tab" id={"market-tab-" + i} aria-controls={"market-panel-" + i} aria-selected={active === i} tabIndex={active === i ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => setActive(i)} onKeyDown={e => {
+        const next = {
+          Home: 0, End: marketTabs.length - 1,
+          ArrowRight: (i + 1) % marketTabs.length,
+          ArrowLeft: (i + marketTabs.length - 1) % marketTabs.length,
+        }[e.key];
+        if (typeof next === "number") { e.preventDefault(); choose(next); }
       }}>{label}</button>)}
     </div>
-    <div role="tabpanel" id={"market-panel-" + active} aria-labelledby={"market-tab-" + active}>
-      {active === 0 ? <MarketScanner/> : <MarketVenuesView/>}
-    </div>
+    {marketTabs.map((label, i) => {
+      return <div key={label} role="tabpanel" id={"market-panel-" + i} aria-labelledby={"market-tab-" + i} hidden={active !== i}>
+        {active === i && (i === 0 ? <MarketScanner/> : i === 1 ? <MarketVenuesView/> : <MarketFlowView/>)}
+      </div>;
+    })}
   </div>;
 };
