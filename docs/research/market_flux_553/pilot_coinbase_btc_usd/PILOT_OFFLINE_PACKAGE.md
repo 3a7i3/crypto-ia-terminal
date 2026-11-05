@@ -10,8 +10,9 @@ Le contrat Flux garde `synthetic=true` : une capture n'entre pas dans Flux (déc
 |---|---|
 | Base | `main@2009c62f94f053db4f170b6a13065cc018618b7a` |
 | Référence auditée (crypto-restore-01) | `2009c62f94f053db4f170b6a13065cc018618b7a` : **identique à main, aucun écart de source** |
-| Empreinte du paquet (`package_digest`) | `a44c5c83288a5873f28cf115d73c0006aa50a72b8aa587660be4d7258cf82538` |
+| Empreinte du paquet (`package_digest`) | `07468d7d4c13aa41cec84eb9103d2ee2e156d305662434e1ce25610558f8ca42` |
 | Commit de la branche | voir la PR (le SHA ne peut pas figurer dans le commit qu'il identifie) |
+| Révision | v2 : corrige deux constats de revue (§6 bis) ; v1 = `89f48eb3` |
 | Python | tests passés sous 3.13 (local) et 3.11 (cible CI) |
 
 `package_digest` = SHA-256 des octets de tous les `.py` de `observability/flux_collection_pilot/` (chemins triés) ;
@@ -37,7 +38,7 @@ d'ouvrir une connexion live autorisée). Dépendances de code : seulement `obser
 | `memory.py` | garde mémoire vérifiable |
 | `exactjson.py` | copies locales de 3 utilitaires Flux, épinglées par test (voir §3) |
 | `__main__.py` | CLI : `demo`, `replay`, `verify`, `live` (verrouillé) |
-| tests | `tests/flux_collection_pilot/` (113 tests) |
+| tests | `tests/flux_collection_pilot/` (134 tests) |
 | gabarits | `OPERATOR_COLLECTION_MANIFEST.template.json`, `SYNTHETIC_FINAL_RECEIPT_EXAMPLE.json` |
 
 ```
@@ -121,9 +122,20 @@ ne couvre pas un sous-processus (deux tests lancent un Python local qui n'import
 **Contrôles par mutation** : j'ai cassé volontairement six points (domaine de séquence, exclusion des conflits, ACK du
 verrou, ignorance des mises à jour sans snapshot, seuil de silence, réserve disque) ; chacun fait échouer la suite.
 
-Résultats : paquet 113 passés ; avec les régressions Flux (`tests/market_flow`, `tests/market_venues`, intégration
-cross-stack) **672 passés, 1 sauté** (le saut est préexistant : preuve Landlock sur VM cible, `test_public_us_sandbox.py:62`).
+Résultats : paquet 134 passés ; avec les régressions Flux (`tests/market_flow`, `tests/market_venues`, intégration
+cross-stack) **693 passés, 1 sauté** (le saut est préexistant : preuve Landlock sur VM cible, `test_public_us_sandbox.py:62`).
 Les suites TypeScript ne sont pas concernées (aucun changement frontend).
+
+## 6 bis. Corrections de revue (v2)
+
+1. **Reconnexion sans snapshot** : une session sans snapshot L2 exploitable rend la campagne **incomplète**
+   (`complete=false`, `incomplete_reasons=["SESSION_WITHOUT_SNAPSHOT:S02"]`), même au plafond de durée.
+2. **`verify_campaign` n'accepte plus `complete=true` sur parole** : `COMPLETE_VERIFIED` exige l'inventaire non vide,
+   `intent.json`, les deux fichiers bruts et les deux reçus de session **listés et présents**, les empreintes et tailles,
+   aucun fichier hors inventaire, et la cohérence des compteurs (lignes brutes = messages de session = total final,
+   2 connexions, `bytes_written`, fins de session, ≥ 1 snapshot par session, motif de fin complétant).
+   Tests : `test_completeness.py` (21 cas, dont chaque pièce manquante avec ou sans retrait de l'inventaire, et des
+   falsifications qui recalculent les empreintes de l'inventaire).
 
 ## 7. Reçus, replay, manifeste
 

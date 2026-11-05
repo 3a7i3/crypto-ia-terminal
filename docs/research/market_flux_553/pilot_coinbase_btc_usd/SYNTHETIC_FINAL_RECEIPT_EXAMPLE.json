@@ -28,7 +28,7 @@
     },
     "intent.json": {
       "bytes": 650,
-      "sha256": "c118793328202e9483eba9ff09c6e7cf5f3b369945d935ec33784b4c3b98364b"
+      "sha256": "4a63eda88a261497b954094ef355e2cd8ff1e099f56c9615cded6c5b7b528dc6"
     },
     "s01.receipt.json": {
       "bytes": 3799,
@@ -46,6 +46,7 @@
     "taker/maker convention",
     "sequence_num domain (see per-session hypotheses)"
   ],
+  "incomplete_reasons": [],
   "limits": {
     "connections": "ENFORCED_IN_CODE: ConnectionBudget refuses a third connection",
     "disk_bytes": "ENFORCED_IN_CODE: exact byte accounting with a reserve; no kernel quota is set by the package",
@@ -63,7 +64,7 @@
     "before": "SYNTHETIC"
   },
   "pilot": "coinbase-btc-usd",
-  "pilot_package_digest": "a44c5c83288a5873f28cf115d73c0006aa50a72b8aa587660be4d7258cf82538",
+  "pilot_package_digest": "07468d7d4c13aa41cec84eb9103d2ee2e156d305662434e1ce25610558f8ca42",
   "problems": [],
   "sequence_policy": "PER_CHANNEL",
   "started_mono_ns": 5000000000,

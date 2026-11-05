@@ -1,0 +1,112 @@
+"""Review findings on #564: a campaign is complete only with a usable snapshot per session,
+and the verifier never believes complete=true without the whole, consistent campaign."""
+
+import hashlib
+import json
+import shutil
+
+import pytest
+
+from observability.flux_collection_pilot import protocol as P
+from observability.flux_collection_pilot.store import REQUIRED_COMPLETE_FILES, verify_campaign
+from .helpers import final, healthy_items, run, script
+
+
+def nominal(tmp_path, cid="n"):
+    res, _, path = run(tmp_path, [script(healthy_items(62)), script(healthy_items(130))], cid=cid)
+    assert res.complete
+    return path
+
+
+def rewrite(path, name, mutate, relist=False):
+    p = path / name
+    doc = json.loads(p.read_bytes())
+    mutate(doc)
+    data = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    p.write_bytes(data)
+    if relist:  # a forger who also fixes the final inventory hashes
+        f = json.loads((path / "final.receipt.json").read_bytes())
+        f["files"][name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+        f["bytes_written"] = sum(m["bytes"] for m in f["files"].values())
+        (path / "final.receipt.json").write_bytes(json.dumps(f, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+
+
+# --- 1. reconnection without a snapshot is never a complete campaign ----------------------------------
+def test_reconnection_without_snapshot_is_incomplete_through_runner_receipt_and_verifier(tmp_path):
+    res, factory, path = run(tmp_path, [script(healthy_items(62)), script(healthy_items(130, snapshot=False))])
+    assert len(factory.built) == 2 and res.end_reason == P.DURATION_CAP  # the run did reach its duration cap...
+    assert res.complete is False                                        # ...but is NOT declared complete
+    f = final(path)
+    assert f["complete"] is False and f["incomplete_reasons"] == ["SESSION_WITHOUT_SNAPSHOT:S02"]
+    assert json.loads((path / "s02.receipt.json").read_bytes())["snapshots"] == 0
+    v = verify_campaign(path)
+    assert v["status"] == "INCOMPLETE_BY_RECEIPT" and v["status"] != "COMPLETE_VERIFIED"
+
+
+def test_a_forged_complete_flag_on_a_snapshotless_campaign_is_refused_by_the_verifier(tmp_path):
+    _, _, path = run(tmp_path, [script(healthy_items(62)), script(healthy_items(130, snapshot=False))])
+    rewrite(path, "final.receipt.json", lambda d: d.update(complete=True))
+    v = verify_campaign(path)
+    assert v["status"] == "INCOMPLETE" and "SESSION_WITHOUT_SNAPSHOT:S02" in v["problems"]
+
+
+def test_a_snapshot_in_each_session_keeps_the_nominal_campaign_complete(tmp_path):
+    path = nominal(tmp_path)
+    assert verify_campaign(path) == {**verify_campaign(path), "status": "COMPLETE_VERIFIED", "problems": []}
+    assert final(path)["incomplete_reasons"] == []
+
+
+# --- 2. the verifier demands the whole campaign -----------------------------------------------------------
+def test_an_empty_inventory_is_not_a_complete_campaign(tmp_path):
+    d = tmp_path / "forged"
+    d.mkdir()
+    (d / "final.receipt.json").write_text('{"complete":true,"files":{}}')
+    v = verify_campaign(d)
+    assert v["status"] == "INCOMPLETE" and v["sessions"] == {}
+    assert "FILE_INVENTORY_EMPTY" in v["problems"]
+    assert {"REQUIRED_FILE_NOT_LISTED:" + n for n in REQUIRED_COMPLETE_FILES} <= set(v["problems"])
+
+
+@pytest.mark.parametrize("name", REQUIRED_COMPLETE_FILES)
+def test_each_required_piece_missing_is_refused_whether_or_not_the_inventory_still_lists_it(tmp_path, name):
+    path = nominal(tmp_path)
+    (path / name).unlink()
+    assert "LISTED_FILE_MISSING:" + name in verify_campaign(path)["problems"]       # inventory still lists it
+    assert verify_campaign(path)["status"] != "COMPLETE_VERIFIED"
+    rewrite(path, "final.receipt.json", lambda d: d["files"].pop(name))              # forger removes the listing too
+    v = verify_campaign(path)
+    assert "REQUIRED_FILE_NOT_LISTED:" + name in v["problems"] and v["status"] != "COMPLETE_VERIFIED"
+
+
+@pytest.mark.parametrize("label, name, mutate, relist, expected", [
+    ("final message counter", "final.receipt.json", lambda d: d.update(messages=d["messages"] + 1), False, "MESSAGE_COUNT_MISMATCH"),
+    ("final connection counter", "final.receipt.json", lambda d: d.update(connections_opened=1), False, "CONNECTION_COUNT_MISMATCH"),
+    ("final bytes counter", "final.receipt.json", lambda d: d.update(bytes_written=d["bytes_written"] + 1), False, "BYTES_WRITTEN_MISMATCH"),
+    ("session message counter, hashes fixed", "s01.receipt.json", lambda d: d.update(messages=d["messages"] + 1), True, "SESSION_MESSAGE_COUNT_MISMATCH:S01"),
+    ("session raw digest, hashes fixed", "s02.receipt.json", lambda d: d["raw"].update(sha256="0" * 64), True, "SESSION_RAW_DIGEST_MISMATCH:S02"),
+    ("session raw line counter, hashes fixed", "s02.receipt.json", lambda d: d["raw"].update(lines=d["raw"]["lines"] - 1), True, "SESSION_MESSAGE_COUNT_MISMATCH:S02"),
+    ("session id", "s02.receipt.json", lambda d: d.update(session="S01"), True, "SESSION_ID_MISMATCH:S02"),
+    ("session end reason", "s01.receipt.json", lambda d: d.update(end_reason="DURATION_CAP"), True, "SESSION_END_REASON_MISMATCH"),
+    ("snapshot counter zeroed, hashes fixed", "s01.receipt.json", lambda d: d.update(snapshots=0), True, "SESSION_WITHOUT_SNAPSHOT:S01"),
+    ("non-completing end reason", "final.receipt.json", lambda d: d.update(end_reason="MESSAGE_CAP"), False, "END_REASON_NOT_COMPLETING"),
+])
+def test_inconsistent_counters_are_refused(tmp_path, label, name, mutate, relist, expected):
+    path = nominal(tmp_path)
+    assert verify_campaign(path)["status"] == "COMPLETE_VERIFIED"  # control: the same directory passes before the change
+    rewrite(path, name, mutate, relist=relist)
+    v = verify_campaign(path)
+    assert expected in v["problems"], (label, v["problems"])
+    assert v["status"] != "COMPLETE_VERIFIED"
+
+
+def test_an_unlisted_extra_file_is_refused(tmp_path):
+    path = nominal(tmp_path)
+    (path / "S03.raw.jsonl").write_bytes(b"")
+    assert "FILE_NOT_IN_INVENTORY:S03.raw.jsonl" in verify_campaign(path)["problems"]
+
+
+def test_a_copy_of_the_nominal_campaign_still_verifies(tmp_path):
+    path = nominal(tmp_path)
+    copy = tmp_path / "copy"
+    shutil.copytree(path, copy)
+    assert verify_campaign(copy)["status"] == "COMPLETE_VERIFIED"

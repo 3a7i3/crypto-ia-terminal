@@ -196,6 +196,77 @@ def read_raw_file(path):
     return records, problems, data
 
 
+REQUIRED_COMPLETE_FILES = ("intent.json", "S01.raw.jsonl", "S02.raw.jsonl", "s01.receipt.json", "s02.receipt.json")
+
+
+def _json_file(path):
+    try:
+        v = json.loads(Path(path).read_bytes())
+    except (OSError, ValueError):
+        return None
+    return v if isinstance(v, dict) else None
+
+
+def _completeness_problems(base, final, sessions):
+    """A receipt saying complete=true is only believed if the whole campaign shape is present and consistent.
+
+    Required: the intent receipt, both raw files and both session receipts, each LISTED in the final
+    inventory and matching it byte for byte; counters of the session receipts, raw files and final receipt
+    must agree; every session must hold a usable L2 snapshot; the run must end on a completing reason.
+    """
+    from . import protocol as P
+
+    out = []
+    listed = final.get("files") if isinstance(final.get("files"), dict) else {}
+    if not listed:
+        out.append("FILE_INVENTORY_EMPTY")
+    for name in REQUIRED_COMPLETE_FILES:
+        if name not in listed:
+            out.append("REQUIRED_FILE_NOT_LISTED:" + name)
+        elif not (base / name).exists():
+            out.append("REQUIRED_FILE_MISSING:" + name)
+    for p in sorted(base.iterdir()):
+        if p.name != "final.receipt.json" and not p.name.endswith(".tmp") and p.name not in listed:
+            out.append("FILE_NOT_IN_INVENTORY:" + p.name)
+    for name, meta in listed.items():
+        p = base / name
+        if p.exists() and isinstance(meta, dict) and meta.get("bytes") != p.stat().st_size:
+            out.append("SIZE_MISMATCH:" + name)
+    if final.get("end_reason") not in P.COMPLETE_REASONS:
+        out.append("END_REASON_NOT_COMPLETING")
+    if final.get("connections_opened") != 2:
+        out.append("CONNECTION_COUNT_MISMATCH")
+    if _json_file(base / "intent.json") is None:
+        out.append("INTENT_RECEIPT_UNREADABLE")
+    total = 0
+    for sid in ("S01", "S02"):
+        rec = _json_file(base / ("%s.receipt.json" % sid.lower()))
+        raw = sessions.get(sid)
+        if rec is None or raw is None:
+            out.append("SESSION_EVIDENCE_UNREADABLE:" + sid)
+            continue
+        rs = rec.get("raw") if isinstance(rec.get("raw"), dict) else {}
+        if rec.get("session") != sid:
+            out.append("SESSION_ID_MISMATCH:" + sid)
+        if rs.get("sha256") != raw["sha256"] or rs.get("bytes") != raw["bytes"]:
+            out.append("SESSION_RAW_DIGEST_MISMATCH:" + sid)
+        if rs.get("lines") != raw["complete_lines"] or rec.get("messages") != raw["complete_lines"]:
+            out.append("SESSION_MESSAGE_COUNT_MISMATCH:" + sid)
+        if not isinstance(rec.get("snapshots"), int) or rec["snapshots"] < 1:
+            out.append("SESSION_WITHOUT_SNAPSHOT:" + sid)
+        total += raw["complete_lines"]
+    s1 = _json_file(base / "s01.receipt.json") or {}
+    s2 = _json_file(base / "s02.receipt.json") or {}
+    if s1.get("end_reason") != P.PLANNED_CUT or s2.get("end_reason") != final.get("end_reason"):
+        out.append("SESSION_END_REASON_MISMATCH")
+    if final.get("messages") != total:
+        out.append("MESSAGE_COUNT_MISMATCH")
+    if isinstance(listed, dict) and final.get("bytes_written") != sum(
+            m.get("bytes", 0) for m in listed.values() if isinstance(m, dict)):
+        out.append("BYTES_WRITTEN_MISMATCH")
+    return out
+
+
 def verify_campaign(path):
     """Independent check of a campaign directory. Never raises on damage."""
     base = Path(path)
@@ -230,6 +301,8 @@ def verify_campaign(path):
                 problems.append("LISTED_FILE_MISSING:" + name)
             elif hashlib.sha256(p.read_bytes()).hexdigest() != meta["sha256"]:
                 problems.append("HASH_MISMATCH:" + name)
+    if final is not None and final.get("complete") is True:
+        problems += _completeness_problems(base, final, sessions)
     status = "INCOMPLETE" if final is None else ("COMPLETE_VERIFIED" if final.get("complete") is True else "INCOMPLETE_BY_RECEIPT")
     if any(p.startswith("HASH_MISMATCH") or "UNPARSABLE" in p for p in problems):
         status = "CORRUPT"

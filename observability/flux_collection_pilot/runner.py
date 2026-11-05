@@ -276,6 +276,12 @@ class CampaignRunner:
         c = self.cfg
         end = self.clock.sample()
         complete = reason in P.COMPLETE_REASONS and len(self.sessions) == 2 and not self.problems
+        incomplete_reasons = []
+        for info in self.sessions:
+            if info["snapshots"] < 1:  # a session without a usable L2 snapshot leaves no exploitable book
+                incomplete_reasons.append("SESSION_WITHOUT_SNAPSHOT:" + info["session"])
+        if incomplete_reasons:
+            complete = False
         session_ok = True
         for info in self.sessions:
             sid = info["session"]
@@ -294,7 +300,7 @@ class CampaignRunner:
             "started_utc_ns": self.t0.utc_ns, "started_mono_ns": self.t0.monotonic_ns,
             "ended_utc_ns": end.utc_ns, "ended_mono_ns": end.monotonic_ns,
             "observer_clock_checks": c.clock_checks if c.clock_checks is not None else "NOT_SUPPLIED",
-            "limits": LIMIT_STATUS, "problems": list(self.problems),
+            "limits": LIMIT_STATUS, "problems": list(self.problems), "incomplete_reasons": incomplete_reasons,
             "hypotheses_unproven": ["A-SNAP-FULL", "A-SEND-AS-OF", "provider clock offset", "taker/maker convention",
                                     "sequence_num domain (see per-session hypotheses)"],
             "manifest_sha256": c.manifest_sha256,
