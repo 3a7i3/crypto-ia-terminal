@@ -15,6 +15,7 @@ const errors = [], requests = [];
 try {
   for (const width of [1440, 390]) {
     for (const scenario of scenarios) {
+      console.log(`U3B scenario=${scenario} viewport=${width}`);
       const page = await browser.newPage({ viewport: { width, height: width === 390 ? 844 : 1000 } });
       page.on("pageerror", (error) => errors.push(String(error)));
       page.on("request", (request) => { if (new URL(request.url()).pathname.startsWith("/api/")) requests.push(`${request.method()} ${new URL(request.url()).pathname}`); });
@@ -44,11 +45,19 @@ try {
       const view = page.getByTestId("microstructure-view");
       await view.waitFor();
       if (["missing", "invalid", "network"].includes(scenario)) {
+        // Loading already says INCONNU: require the expected terminal error.
+        const expectedError = {
+          missing: "SOURCE INDISPONIBLE · HTTP 503 · MICROSTRUCTURE_MISSING",
+          invalid: "ERREUR TRANSPORT / CONTRAT · HTTP 200 invalide pour MarketMicrostructureSnapshot.",
+          network: "ERREUR TRANSPORT / CONTRAT · Source LMI indisponible, délai dépassé ou réponse JSON invalide.",
+        }[scenario];
+        await view.getByText(expectedError, { exact: true }).waitFor();
         assert((await view.innerText()).includes("INCONNU"), "Failure not explicit");
         assert(await page.getByTestId("microstructure-coverage").count() === 0, "Error fabricated coverage");
         await page.getByLabel("Recherche symbole", { exact: true }).fill("S25");
         assert((await page.getByTestId("market-view").innerText()).includes("S25/USDT"), "LMI failure hid searchable Scanner");
       } else {
+        await view.getByTestId("microstructure-coverage").waitFor();
         assert(await page.getByTestId("market-error").count() === 1, "Fixture did not exercise independent scanner error");
         assert((await view.innerText()).includes("Demandés"), "Coverage missing");
         if (scenario === "empty") assert((await view.innerText()).includes("Watchlist explicitement vide"), "Empty population missing");
