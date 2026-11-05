@@ -43,7 +43,7 @@ umask 077
 expected() { case "$1" in
 crypto-publish-runtime-service.service) echo 0ef373c474b380a03944d08a00c4b3666e8c0a3269039a9b2d704545dca0b1ad ;;
 crypto-publish-runtime-service.timer) echo d1c779f0d9ebe3c9315e1b1ea0e9ef6695e9e1278d8d37755222c0023b3e53bd ;;
-crypto-publish-storage.service) echo 72149a4174344f226063c4a714b690cddbc21a0e9dd91f2921a62271b6b0d4a1 ;;
+crypto-publish-storage.service) echo 54ed873681555d7eb8362a7bc390ca5531da559e0cb3132eda22781eeac242ac ;;
 crypto-publish-storage.timer) echo afeacf3ea6687980a7c19b012e1c6cc0b7be791d023a487be604e30bf68e18f4 ;;
 *) echo "" ;; esac; }
 UNITLIST=""
@@ -174,7 +174,8 @@ Type=oneshot
 SyslogIdentifier=crypto_publish_storage
 # Sub-second UTC stamp: a whole-second stamp is rejected as INVALID_METADATA whenever a
 # packet file was modified in the same second (latest_file_modified <= observed is required).
-ExecStart=/bin/sh -c 'exec /opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -m observability.storage_snapshot --out /home/mathieu/operator_presentation/storage_snapshot.json --source-directory /home/mathieu/crypto_ai_terminal/databases --generated-at-utc "$(date -u +%%Y-%%m-%%dT%%H:%%M:%%S.%%6NZ)"'
+# UTC microseconds from the pinned Python; independent of date provider (#559).
+ExecStart=/bin/sh -c 'exec /opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -m observability.storage_snapshot --out /home/mathieu/operator_presentation/storage_snapshot.json --source-directory /home/mathieu/crypto_ai_terminal/databases --generated-at-utc "$(/opt/crypto-ai-terminal/operator/staging-envs/1728b3ad952b87d903ccb7442579000da292b848/bin/python -c "from datetime import datetime, timezone; import sys; print(datetime.now(timezone.utc).isoformat(timespec=sys.argv[1]).replace(sys.argv[2], sys.argv[3]))" microseconds +00:00 Z)"'
 User=mathieu
 UMask=0077
 WorkingDirectory=/opt/crypto-ai-terminal/operator/staging-src/1728b3ad952b87d903ccb7442579000da292b848

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import shlex
@@ -309,6 +310,96 @@ def test_storage_publisher_does_not_touch_sources_and_writes_one_valid_file(mach
         StorageSnapshotReader(out / "storage_snapshot.json"), doc, boundary
     )
     assert served.ok and served.snapshot["freshness_classification"] == "FRESH", _clock_failure(diagnostic)
+
+
+def _unit_with_fixed_clock(name, out, rt, tmp_path, stamp=None):
+    """Freeze only the unit's clock subprocess; execute the real publisher."""
+    launcher = tmp_path / "clock-python"
+    launcher.write_text(
+        f"#!{sys.executable}\n"
+        "import datetime\nimport os\nimport sys\n"
+        'if sys.argv[1:2] == ["-c"]:\n'
+        f"    stamp = {stamp!r}\n"
+        "    if stamp is None:\n        sys.exit(73)\n"
+        '    fixed = datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00"))\n'
+        "    class Clock(datetime.datetime):\n"
+        "        @classmethod\n"
+        "        def now(cls, tz=None):\n"
+        "            return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)\n"
+        "    datetime.datetime = Clock\n"
+        "    code = sys.argv[2]\n"
+        '    sys.argv = ["-c", *sys.argv[3:]]\n'
+        '    exec(compile(code, "<unit-clock>", "exec"))\n'
+        "else:\n"
+        f"    os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])\n",
+        encoding="utf-8",
+    )
+    launcher.chmod(0o755)
+    return [token.replace(sys.executable, str(launcher)) for token in _command(name, out, rt)]
+
+
+@pytest.mark.parametrize("name", ("storage", "events"))
+@pytest.mark.parametrize("fraction", (
+    "000000000", "000000001", "000001000", "000556854", "005568540", "005685400",
+    "052749556", "055685400", "055685499", "055685500", "099999999", "100000000",
+    "105685400", "179994097", "556854000", "999999999",
+))
+def test_unit_stamp_preserves_fixed_utc_fractions_despite_a_corrupt_date(
+    machine, tmp_path, monkeypatch, name, fraction
+):
+    rt, out = machine
+    prefix = "2026-11-04T17:08:42."
+    expected = prefix + fraction[:6] + "Z"
+    generated = utc_seconds(expected)
+    # Recorded uutils 0.10.0 error: .055685400 becomes .556854. The unit
+    # must produce its own stamp even if PATH selects this corrupt provider.
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    date = fake_bin / "date"
+    date.write_text("#!/bin/sh\nprintf '2026-11-04T17:08:42.556854Z\\n'\n", encoding="utf-8")
+    date.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{fake_bin}:{os.environ.get('PATH', '/usr/bin:/bin')}")
+    alerts = rt / "cache" / "startup" / "alerts.jsonl"
+    alert = json.loads(alerts.read_text())
+    alert["ts"] = generated - 5
+    alerts.write_text(json.dumps(alert) + "\n", encoding="utf-8")
+    for item in rt.rglob("*"):
+        if item.is_file():
+            os.utime(item, (generated - 5, generated - 5))
+    before = _tree(rt)
+    argv = _unit_with_fixed_clock(name, out, rt, tmp_path, prefix + fraction + "Z")
+    result = _run(argv)
+    assert result.returncode == 0, result.stderr
+    assert _tree(rt) == before
+    path = out / ARTIFACT[name]
+    doc = json.loads(path.read_text())
+    assert doc["generated_at_utc"] == expected
+    reader_type = StorageSnapshotReader if name == "storage" else EventCenterReader
+    served = reader_type(path, now_fn=lambda: generated + 0.25).read()
+    assert served.ok and served.snapshot["freshness_classification"] == "FRESH"
+    if name == "storage":
+        assert doc["source_status"] == "PRESENT"
+    else:
+        assert doc["sources"][0]["status"] == "PRESENT"
+    assert reader_type(path, now_fn=lambda: generated).read().ok
+    previous = math.nextafter(generated, -math.inf)
+    refused = reader_type(path, now_fn=lambda: previous).read()
+    assert not refused.ok and refused.error_code == (
+        "STORAGE_FUTURE_TIMESTAMP" if name == "storage" else "EVENT_CENTER_FUTURE_TIMESTAMP"
+    )
+
+
+@pytest.mark.parametrize("name", ("storage", "events"))
+def test_unit_clock_failure_preserves_the_previous_artifact(machine, tmp_path, name):
+    rt, out = machine
+    assert _run(_command(name, out, rt)).returncode == 0
+    path = out / ARTIFACT[name]
+    previous = path.read_bytes()
+    before = _tree(rt)
+    result = _run(_unit_with_fixed_clock(name, out, rt, tmp_path))
+    assert result.returncode != 0
+    assert path.read_bytes() == previous and _tree(rt) == before
+    assert [item.name for item in out.iterdir()] == [ARTIFACT[name]]
 
 
 def test_whole_second_stamp_would_turn_a_live_packet_file_into_invalid_metadata(

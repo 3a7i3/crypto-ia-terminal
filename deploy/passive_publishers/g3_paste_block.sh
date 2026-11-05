@@ -3,7 +3,7 @@ case "$MODE" in plan|run) ;; *) echo "G3_MODE must be plan|run"; exit 2;; esac
 case "$PUB" in runtime-service|storage) ;; *) echo "G3_PUB must be runtime-service|storage (one per run)"; exit 2;; esac
 RUN='umask 077; if [ "$(id -u)" -eq 0 ]; then P=/run; else P="${TMPDIR:-/tmp}"; fi; R=$(mktemp -d "$P/g3priv.XXXXXX") || exit 1; cat > "$R/g3.sh" || { rm -rf "$R"; echo "COPY FAILED: not run"; exit 1; }; echo "$1  $R/g3.sh" | sha256sum -c - || { rm -rf "$R"; echo "HASH MISMATCH OF THE PROTECTED COPY: not run"; exit 1; }; sh "$R/g3.sh" "$2" "$3"; RC=$?; rm -rf "$R"; exit $RC'
 PRIV=""; case "$MODE" in run) PRIV=sudo;; esac
-$PRIV sh -c "$RUN" g3priv 19abde8d0bdde248a6ab9d4c5c023869482194488b745a73a376b542c28b55b9 "$MODE" "$PUB" <<'G3_SCRIPT_EOF'
+$PRIV sh -c "$RUN" g3priv 2b1d7507a62ef789e69bacf320481646d9c93ba03f4d6b4a54eca411decf692e "$MODE" "$PUB" <<'G3_SCRIPT_EOF'
 #!/bin/sh
 # G3 — one-shot systemd trials of ONE passive publisher (timers stay disabled).
 # Usage:  sh g3.sh plan <runtime-service|storage>      read-only, any user, nothing written
@@ -48,7 +48,7 @@ umask 077
 expected() { case "$1" in
 crypto-publish-runtime-service.service) echo 0ef373c474b380a03944d08a00c4b3666e8c0a3269039a9b2d704545dca0b1ad ;;
 crypto-publish-runtime-service.timer) echo d1c779f0d9ebe3c9315e1b1ea0e9ef6695e9e1278d8d37755222c0023b3e53bd ;;
-crypto-publish-storage.service) echo 72149a4174344f226063c4a714b690cddbc21a0e9dd91f2921a62271b6b0d4a1 ;;
+crypto-publish-storage.service) echo 54ed873681555d7eb8362a7bc390ca5531da559e0cb3132eda22781eeac242ac ;;
 crypto-publish-storage.timer) echo afeacf3ea6687980a7c19b012e1c6cc0b7be791d023a487be604e30bf68e18f4 ;;
 *) echo "" ;; esac; }
 
