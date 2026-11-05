@@ -63,7 +63,8 @@ def _sync_directory(path):
         os.close(fd)
 
 
-def publish(*, source_root, store_root, config_path, epoch, output_root, now_fn=time.time):
+def publish(*, source_root, store_root, config_path, epoch, output_root,
+            p12_alerts=None, supervision_alerts=None, now_fn=time.time):
     """Build and validate a generation before atomically replacing its pointer.
 
     API paths end in regular files under current/, a parent directory symlink.
@@ -74,6 +75,12 @@ def publish(*, source_root, store_root, config_path, epoch, output_root, now_fn=
     store = _no_links(store_root)
     config = _no_links(config_path)
     output = _no_links(output_root)
+    alerts = {}
+    for name, value in (("p12_alerts", p12_alerts), ("supervision_alerts", supervision_alerts)):
+        path = None if value is None else _no_links(value)
+        if path is not None and (not path.is_relative_to(source) or path.is_relative_to(output)):
+            raise BridgeError("ALERT_SOURCE_OUTSIDE_DECLARED_ROOT")
+        alerts[name] = path
     if not store.is_relative_to(source) or not config.is_relative_to(source):
         raise BridgeError("SOURCE_OUTSIDE_DECLARED_ROOT")
     if output.is_relative_to(source) or source.is_relative_to(output):
@@ -131,7 +138,7 @@ def publish(*, source_root, store_root, config_path, epoch, output_root, now_fn=
         if not BurnInStatusSnapshotReader(burn_path, now_fn=now_fn).read().ok:
             raise BridgeError("BURN_IN_READER_REJECTED")
         center = build_event_center(generated_at_utc=burn["generated_at_utc"],
-                                   ppl_lifecycles=burn_path)
+                                   ppl_lifecycles=burn_path, **alerts)
         if center["sources"][2]["status"] != "PRESENT":
             raise BridgeError("LIFECYCLE_SOURCE_REJECTED")
         center_path = stage / "event_center_snapshot.json"
@@ -147,7 +154,9 @@ def publish(*, source_root, store_root, config_path, epoch, output_root, now_fn=
                     "config_snapshot_hash": burn["config_snapshot_hash"],
                     "files": {"burn_in_status_snapshot.json": burn_hash,
                               "event_center_snapshot.json": center_hash},
-                    "alerts": "NOT_CONFIGURED", "runtime_deployment": "NOT_ATTESTED",
+                    "alerts": ("NOT_CONFIGURED" if all(path is None for path in alerts.values()) else
+                               {item["source_id"]: {**{key: item[key] for key in ("status", "source_sha256", "records_observed", "published_count")}, "coverage": item.get("coverage", "FULL" if item["status"] == "PRESENT" else None)}
+                                for item in center["sources"][:2]}), "runtime_deployment": "NOT_ATTESTED",
                     "cross_request_consistency": "NOT_GUARANTEED"}
         _write(stage / "manifest.json", manifest)
         _sync_directory(stage)
@@ -177,6 +186,8 @@ def main(argv=None):
     for name in ("source-root", "store-root", "config-path", "output-root"):
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--epoch", required=True)
+    parser.add_argument("--p12-alerts", type=Path)
+    parser.add_argument("--supervision-alerts", type=Path)
     args = parser.parse_args(argv)
     try:
         result = publish(**vars(args))
