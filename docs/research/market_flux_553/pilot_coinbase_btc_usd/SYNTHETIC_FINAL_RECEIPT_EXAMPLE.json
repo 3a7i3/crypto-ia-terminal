@@ -1,5 +1,5 @@
 {
-  "bytes_written": 134467,
+  "bytes_written": 134507,
   "caps": {
     "max_connections": 2,
     "max_disk_bytes": 67108864,
@@ -28,15 +28,15 @@
     },
     "intent.json": {
       "bytes": 650,
-      "sha256": "4a63eda88a261497b954094ef355e2cd8ff1e099f56c9615cded6c5b7b528dc6"
+      "sha256": "8184abb6e121e53ba44c9b12630e6f2b0587be0b3209c506cc91f53b221eee97"
     },
     "s01.receipt.json": {
-      "bytes": 3799,
-      "sha256": "1bcd43e1c5c8cddb1ce60554896b6ecf6ec8c432e3361088d5429df600e33f58"
+      "bytes": 3819,
+      "sha256": "c3682d7075a067d55b729c8f649e19b14060247be9484fca88791e5e929296fb"
     },
     "s02.receipt.json": {
-      "bytes": 6540,
-      "sha256": "140f08003bae1a24c6973ebca390dad0a7191d84451348f26f20b06c2789b8bb"
+      "bytes": 6560,
+      "sha256": "6ff31e0e57bdb7d0f1460c23d84d21884533671de1cb01a344b761682e2ef5ed"
     }
   },
   "hypotheses_unproven": [
@@ -64,7 +64,7 @@
     "before": "SYNTHETIC"
   },
   "pilot": "coinbase-btc-usd",
-  "pilot_package_digest": "07468d7d4c13aa41cec84eb9103d2ee2e156d305662434e1ce25610558f8ca42",
+  "pilot_package_digest": "00f0ab307317e4cfd3a0d11ce13db6e8c29dfe9278c001fe2e5c3034c5345e52",
   "problems": [],
   "sequence_policy": "PER_CHANNEL",
   "started_mono_ns": 5000000000,

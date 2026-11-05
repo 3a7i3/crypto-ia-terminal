@@ -56,6 +56,36 @@ def test_a_snapshot_in_each_session_keeps_the_nominal_campaign_complete(tmp_path
     assert final(path)["incomplete_reasons"] == []
 
 
+# --- 1 bis. an EMPTY or ONE-SIDED snapshot is not a usable snapshot --------------------------------------
+def _with_book(levels, seconds=130):
+    items = [it for it in healthy_items(seconds, snapshot=False)]
+    items.append((P.S // 10, lambda f: f.snapshot(levels)))
+    return script(items)
+
+
+@pytest.mark.parametrize("levels", [[], [("bid", "100", "1")], [("offer", "101", "1")]],
+                         ids=["empty", "bid-only", "offer-only"])
+def test_reconnection_followed_only_by_an_unusable_snapshot_is_never_complete(tmp_path, levels):
+    res, factory, path = run(tmp_path, [script(healthy_items(62)), _with_book(levels)])
+    assert len(factory.built) == 2 and res.end_reason == P.DURATION_CAP
+    assert res.complete is False
+    f = final(path)
+    assert f["complete"] is False and f["incomplete_reasons"] == ["SESSION_WITHOUT_SNAPSHOT:S02"]
+    r2 = json.loads((path / "s02.receipt.json").read_bytes())
+    assert r2["snapshots"] == 0 and r2["snapshot_events"] == 1  # the event is labelled, not counted as usable
+    v = verify_campaign(path)
+    assert v["status"] != "COMPLETE_VERIFIED"
+
+
+def test_a_forged_complete_flag_and_forged_counter_do_not_make_an_empty_snapshot_usable(tmp_path):
+    _, _, path = run(tmp_path, [script(healthy_items(62)), _with_book([])])
+    rewrite(path, "s02.receipt.json", lambda d: d.update(snapshots=1), relist=True)
+    rewrite(path, "final.receipt.json", lambda d: d.update(complete=True))
+    v = verify_campaign(path)
+    assert v["status"] == "INCOMPLETE"
+    assert "SESSION_SNAPSHOT_COUNT_MISMATCH:S02" in v["problems"] or "SESSION_WITHOUT_SNAPSHOT:S02" in v["problems"]
+
+
 # --- 2. the verifier demands the whole campaign -----------------------------------------------------------
 def test_an_empty_inventory_is_not_a_complete_campaign(tmp_path):
     d = tmp_path / "forged"
@@ -87,7 +117,7 @@ def test_each_required_piece_missing_is_refused_whether_or_not_the_inventory_sti
     ("session raw line counter, hashes fixed", "s02.receipt.json", lambda d: d["raw"].update(lines=d["raw"]["lines"] - 1), True, "SESSION_MESSAGE_COUNT_MISMATCH:S02"),
     ("session id", "s02.receipt.json", lambda d: d.update(session="S01"), True, "SESSION_ID_MISMATCH:S02"),
     ("session end reason", "s01.receipt.json", lambda d: d.update(end_reason="DURATION_CAP"), True, "SESSION_END_REASON_MISMATCH"),
-    ("snapshot counter zeroed, hashes fixed", "s01.receipt.json", lambda d: d.update(snapshots=0), True, "SESSION_WITHOUT_SNAPSHOT:S01"),
+    ("snapshot counter zeroed, hashes fixed", "s01.receipt.json", lambda d: d.update(snapshots=0), True, "SESSION_SNAPSHOT_COUNT_MISMATCH:S01"),
     ("non-completing end reason", "final.receipt.json", lambda d: d.update(end_reason="MESSAGE_CAP"), False, "END_REASON_NOT_COMPLETING"),
 ])
 def test_inconsistent_counters_are_refused(tmp_path, label, name, mutate, relist, expected):

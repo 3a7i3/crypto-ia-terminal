@@ -74,8 +74,15 @@ class Parsed:
     error_text: object = None
 
     @property
-    def snapshots(self):
+    def snapshot_events(self):
+        """Events LABELLED snapshot, whatever they contain (presence proves nothing)."""
         return sum(1 for e in self.l2_events if e[0] == "snapshot")
+
+    @property
+    def snapshots(self):
+        """USABLE snapshots: a book can be built from them (at least one bid AND one offer level)."""
+        return sum(1 for e in self.l2_events if e[0] == "snapshot"
+                   and {u[0] for u in e[2]} >= set(xj.SIDES))
 
 
 def parse_message(raw):

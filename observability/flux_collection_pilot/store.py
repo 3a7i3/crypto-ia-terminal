@@ -207,6 +207,18 @@ def _json_file(path):
     return v if isinstance(v, dict) else None
 
 
+def _usable_snapshots(raw_path):
+    from .messages import MessageRefusal, parse_message
+
+    n = 0
+    for rec in read_raw_file(raw_path)[0]:
+        try:
+            n += parse_message(record_bytes(rec)).snapshots
+        except MessageRefusal:
+            continue
+    return n
+
+
 def _completeness_problems(base, final, sessions):
     """A receipt saying complete=true is only believed if the whole campaign shape is present and consistent.
 
@@ -252,7 +264,11 @@ def _completeness_problems(base, final, sessions):
             out.append("SESSION_RAW_DIGEST_MISMATCH:" + sid)
         if rs.get("lines") != raw["complete_lines"] or rec.get("messages") != raw["complete_lines"]:
             out.append("SESSION_MESSAGE_COUNT_MISMATCH:" + sid)
-        if not isinstance(rec.get("snapshots"), int) or rec["snapshots"] < 1:
+        # never trust the counter: recount usable snapshots from the raw messages themselves
+        actual = _usable_snapshots(base / ("%s.raw.jsonl" % sid))
+        if rec.get("snapshots") != actual:
+            out.append("SESSION_SNAPSHOT_COUNT_MISMATCH:" + sid)
+        if actual < 1:
             out.append("SESSION_WITHOUT_SNAPSHOT:" + sid)
         total += raw["complete_lines"]
     s1 = _json_file(base / "s01.receipt.json") or {}

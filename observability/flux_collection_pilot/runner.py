@@ -131,7 +131,7 @@ class CampaignRunner:
     def _session(self, n):
         c = self.cfg
         sid = "S%02d" % n
-        info = {"session": sid, "connection_ordinal": n, "messages": 0, "heartbeats": 0, "snapshots": 0,
+        info = {"session": sid, "connection_ordinal": n, "messages": 0, "heartbeats": 0, "snapshots": 0, "snapshot_events": 0,
                 "channels": {}, "end_reason": None}
         self.sessions.append(info)
         self.store.open_raw(sid)
@@ -243,7 +243,8 @@ class CampaignRunner:
             if msg.channel == P.HEARTBEAT_CHANNEL:
                 info["heartbeats"] += 1
                 last_hb = rcv.monotonic_ns
-            info["snapshots"] += msg.snapshots
+            info["snapshots"] += msg.snapshots  # usable snapshots only
+            info["snapshot_events"] += msg.snapshot_events
             if self.msgs >= caps.max_messages:
                 raise _Stop(P.MESSAGE_CAP, idx=this, stored=True)
             if self.mem and self.msgs % CHECK_EVERY == 0:

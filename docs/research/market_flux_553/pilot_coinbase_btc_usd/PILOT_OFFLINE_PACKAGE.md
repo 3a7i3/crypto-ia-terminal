@@ -10,7 +10,7 @@ Le contrat Flux garde `synthetic=true` : une capture n'entre pas dans Flux (déc
 |---|---|
 | Base | `main@2009c62f94f053db4f170b6a13065cc018618b7a` |
 | Référence auditée (crypto-restore-01) | `2009c62f94f053db4f170b6a13065cc018618b7a` : **identique à main, aucun écart de source** |
-| Empreinte du paquet (`package_digest`) | `07468d7d4c13aa41cec84eb9103d2ee2e156d305662434e1ce25610558f8ca42` |
+| Empreinte du paquet (`package_digest`) | `00f0ab307317e4cfd3a0d11ce13db6e8c29dfe9278c001fe2e5c3034c5345e52` |
 | Commit de la branche | voir la PR (le SHA ne peut pas figurer dans le commit qu'il identifie) |
 | Révision | v2 : corrige deux constats de revue (§6 bis) ; v1 = `89f48eb3` |
 | Python | tests passés sous 3.13 (local) et 3.11 (cible CI) |
@@ -38,7 +38,7 @@ d'ouvrir une connexion live autorisée). Dépendances de code : seulement `obser
 | `memory.py` | garde mémoire vérifiable |
 | `exactjson.py` | copies locales de 3 utilitaires Flux, épinglées par test (voir §3) |
 | `__main__.py` | CLI : `demo`, `replay`, `verify`, `live` (verrouillé) |
-| tests | `tests/flux_collection_pilot/` (134 tests) |
+| tests | `tests/flux_collection_pilot/` (138 tests) |
 | gabarits | `OPERATOR_COLLECTION_MANIFEST.template.json`, `SYNTHETIC_FINAL_RECEIPT_EXAMPLE.json` |
 
 ```
@@ -122,8 +122,8 @@ ne couvre pas un sous-processus (deux tests lancent un Python local qui n'import
 **Contrôles par mutation** : j'ai cassé volontairement six points (domaine de séquence, exclusion des conflits, ACK du
 verrou, ignorance des mises à jour sans snapshot, seuil de silence, réserve disque) ; chacun fait échouer la suite.
 
-Résultats : paquet 134 passés ; avec les régressions Flux (`tests/market_flow`, `tests/market_venues`, intégration
-cross-stack) **693 passés, 1 sauté** (le saut est préexistant : preuve Landlock sur VM cible, `test_public_us_sandbox.py:62`).
+Résultats : paquet 138 passés ; avec les régressions Flux (`tests/market_flow`, `tests/market_venues`, intégration
+cross-stack) **697 passés, 1 sauté** (le saut est préexistant : preuve Landlock sur VM cible, `test_public_us_sandbox.py:62`).
 Les suites TypeScript ne sont pas concernées (aucun changement frontend).
 
 ## 6 bis. Corrections de revue (v2)
@@ -134,8 +134,15 @@ Les suites TypeScript ne sont pas concernées (aucun changement frontend).
    `intent.json`, les deux fichiers bruts et les deux reçus de session **listés et présents**, les empreintes et tailles,
    aucun fichier hors inventaire, et la cohérence des compteurs (lignes brutes = messages de session = total final,
    2 connexions, `bytes_written`, fins de session, ≥ 1 snapshot par session, motif de fin complétant).
-   Tests : `test_completeness.py` (21 cas, dont chaque pièce manquante avec ou sans retrait de l'inventaire, et des
+   Tests : `test_completeness.py` (25 cas, dont chaque pièce manquante avec ou sans retrait de l'inventaire, et des
    falsifications qui recalculent les empreintes de l'inventaire).
+
+3. **Snapshot vide ou unilatéral** : un snapshot compte comme *exploitable* seulement s'il porte au moins un niveau
+   `bid` et un niveau `offer`. Le reçu de session distingue `snapshots` (exploitables) et `snapshot_events`
+   (événements étiquetés snapshot). Le vérificateur recompte les snapshots exploitables à partir du brut, sans croire le
+   compteur du reçu (`SESSION_SNAPSHOT_COUNT_MISMATCH`, `SESSION_WITHOUT_SNAPSHOT`). Régression de bout en bout :
+   reconnexion suivie d'un snapshot `updates: []` (et bid seul / offer seul) → runner, reçu et vérificateur refusent
+   « complet » ; faux compteur + faux `complete=true` refusés.
 
 ## 7. Reçus, replay, manifeste
 
