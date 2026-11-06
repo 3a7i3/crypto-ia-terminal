@@ -144,9 +144,9 @@ Les suites TypeScript ne sont pas concernées (aucun changement frontend).
    reconnexion suivie d'un snapshot `updates: []` (et bid seul / offer seul) → runner, reçu et vérificateur refusent
    « complet » ; faux compteur + faux `complete=true` refusés.
 
-4. **Critère unique de snapshot exploitable** (, appelé par le runner, le vérificateur et le
+4. **Critère unique de snapshot exploitable** (`messages.snapshot_defect`, appelé par le runner, le vérificateur et le
    replay) : au moins un niveau bid et un niveau offer, meilleur bid strictement sous le meilleur offer. Sinon
-   ,  ou . Le replay laisse alors la session sans carnet
+   `SNAPSHOT_EMPTY`, `SNAPSHOT_ONE_SIDED` ou `SNAPSHOT_CROSSED_OR_LOCKED`. Le replay laisse alors la session sans carnet
    (INVALID, 0 publication, snapshot non compté), les mises à jour suivantes attendent un snapshot valide, qui
    rétablit le carnet. Régressions de bout en bout : vide, bid seul, offer seul, croisé, verrouillé, plus reprise après
    snapshot valide.
