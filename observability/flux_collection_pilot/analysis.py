@@ -25,7 +25,7 @@ from pathlib import Path
 
 from .exactjson import EXACT, exact  # noqa: F401
 from . import protocol as P
-from .messages import MessageRefusal, SENTINEL, MISSING, INVALID, OK, after_cut, parse_message
+from .messages import snapshot_defect, MessageRefusal, SENTINEL, MISSING, INVALID, OK, after_cut, parse_message
 from .sequence import GAP, REPEAT, REWIND, SequenceTracker
 from .store import read_raw_file, record_bytes
 
@@ -93,6 +93,12 @@ class _Book:
         """Stage on copies; a refused message leaves the book untouched and invalid."""
         if kind == "snapshot":
             was_invalid = self.state == "INVALID"
+            defect = snapshot_defect(ups)
+            if defect is not None:  # same criterion as runner/verifier: no usable book, later updates wait
+                self.bids, self.asks = {}, {}
+                self.state, self.reason = "INVALID", defect
+                self.invalidations.append({"idx": idx, "reason": defect, "state_after": "INVALID"})
+                return
             bids, asks = {}, {}
             for side, price, ptxt, qty, qtxt, _t in ups:
                 (bids if side == "bid" else asks)[price] = (ptxt, qtxt)

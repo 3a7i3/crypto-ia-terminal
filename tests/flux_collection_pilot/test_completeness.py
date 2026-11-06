@@ -7,7 +7,8 @@ import shutil
 
 import pytest
 
-from observability.flux_collection_pilot import protocol as P
+from observability.flux_collection_pilot import analysis, protocol as P
+from observability.flux_collection_pilot.simulated import BOOK0
 from observability.flux_collection_pilot.store import REQUIRED_COMPLETE_FILES, verify_campaign
 from .helpers import final, healthy_items, run, script
 
@@ -75,6 +76,39 @@ def test_reconnection_followed_only_by_an_unusable_snapshot_is_never_complete(tm
     assert r2["snapshots"] == 0 and r2["snapshot_events"] == 1  # the event is labelled, not counted as usable
     v = verify_campaign(path)
     assert v["status"] != "COMPLETE_VERIFIED"
+
+
+def _replay_book(path, sid):
+    return analysis.analyze(path)["sessions"][sid]["book"]
+
+
+@pytest.mark.parametrize("levels,reason", [
+    ([], "SNAPSHOT_EMPTY"),
+    ([("bid", "100", "1")], "SNAPSHOT_ONE_SIDED"),
+    ([("offer", "101", "1")], "SNAPSHOT_ONE_SIDED"),
+    ([("bid", "102", "1"), ("offer", "101", "1")], "SNAPSHOT_CROSSED_OR_LOCKED"),
+    ([("bid", "101", "1"), ("offer", "101", "1")], "SNAPSHOT_CROSSED_OR_LOCKED"),
+], ids=["empty", "bid-only", "offer-only", "crossed", "locked"])
+def test_runner_verifier_and_replay_share_one_snapshot_criterion(tmp_path, levels, reason):
+    """Reconnection followed by an unusable snapshot, THEN L2 updates: all three layers agree."""
+    res, _, path = run(tmp_path, [script(healthy_items(62)), _with_book(levels)])
+    assert res.complete is False
+    assert final(path)["incomplete_reasons"] == ["SESSION_WITHOUT_SNAPSHOT:S02"]
+    assert verify_campaign(path)["status"] != "COMPLETE_VERIFIED"
+    book = _replay_book(path, "S02")
+    assert book["final_state"] == "INVALID" and book["final_reason"] == reason
+    assert book["publications"] == 0 and book["snapshots_applied"] == 0      # updates waited, nothing published
+    assert book["updates_ignored_without_valid_book"] > 0
+    assert _replay_book(path, "S01")["final_state"] == "LIVE"                # the healthy session is untouched
+
+
+def test_a_valid_snapshot_after_an_unusable_one_restores_the_book(tmp_path):
+    items = healthy_items(130, snapshot=False)
+    items.append((P.S // 10, lambda f: f.snapshot([])))
+    items.append((P.S // 10 + 5, lambda f: f.snapshot(BOOK0)))
+    res, _, path = run(tmp_path, [script(healthy_items(62)), script(items)])
+    assert res.complete is True and verify_campaign(path)["status"] == "COMPLETE_VERIFIED"
+    assert _replay_book(path, "S02")["final_state"] == "LIVE"
 
 
 def test_a_forged_complete_flag_and_forged_counter_do_not_make_an_empty_snapshot_usable(tmp_path):

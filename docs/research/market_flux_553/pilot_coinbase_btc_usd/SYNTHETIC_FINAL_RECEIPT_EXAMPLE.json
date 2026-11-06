@@ -28,7 +28,7 @@
     },
     "intent.json": {
       "bytes": 650,
-      "sha256": "8184abb6e121e53ba44c9b12630e6f2b0587be0b3209c506cc91f53b221eee97"
+      "sha256": "eec80dac9961acf7ba06431e211871dd877d7aa3ca39b81c11749af6aa328a15"
     },
     "s01.receipt.json": {
       "bytes": 3819,
@@ -64,7 +64,7 @@
     "before": "SYNTHETIC"
   },
   "pilot": "coinbase-btc-usd",
-  "pilot_package_digest": "00f0ab307317e4cfd3a0d11ce13db6e8c29dfe9278c001fe2e5c3034c5345e52",
+  "pilot_package_digest": "5a9b9fde5041552c89f0d72cf42f430305063f173fac62994aa95f04a7c1927d",
   "problems": [],
   "sequence_policy": "PER_CHANNEL",
   "started_mono_ns": 5000000000,

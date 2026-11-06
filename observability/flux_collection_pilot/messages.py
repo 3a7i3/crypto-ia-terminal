@@ -81,8 +81,24 @@ class Parsed:
     @property
     def snapshots(self):
         """USABLE snapshots: a book can be built from them (at least one bid AND one offer level)."""
-        return sum(1 for e in self.l2_events if e[0] == "snapshot"
-                   and {u[0] for u in e[2]} >= set(xj.SIDES))
+        return sum(1 for e in self.l2_events if e[0] == "snapshot" and snapshot_defect(e[2]) is None)
+
+
+def snapshot_defect(levels):
+    """THE single usable-snapshot criterion (runner, verifier and replay all call this).
+
+    None when a book can be built: at least one bid AND one offer level, best bid strictly below best offer.
+    Otherwise the reason: SNAPSHOT_EMPTY, SNAPSHOT_ONE_SIDED or SNAPSHOT_CROSSED_OR_LOCKED.
+    `levels` = parsed tuples (side, price(Decimal), ...)."""
+    bids = [u[1] for u in levels if u[0] == "bid"]
+    asks = [u[1] for u in levels if u[0] == "offer"]
+    if not bids and not asks:
+        return "SNAPSHOT_EMPTY"
+    if not bids or not asks:
+        return "SNAPSHOT_ONE_SIDED"
+    if max(bids) >= min(asks):
+        return "SNAPSHOT_CROSSED_OR_LOCKED"
+    return None
 
 
 def parse_message(raw):
