@@ -45,13 +45,16 @@ from paper_trading.ppl_recovery import (
 _TRANSITION_MANIFEST_SCHEMA_VERSION = 1
 _EXPERIMENT_MANIFEST_SCHEMA_VERSION = 2
 _BURN_IN_MANIFEST_SCHEMA_VERSION = 3
+_SUCCESSOR_MANIFEST_SCHEMA_VERSION = 4
 _PPL_EVENT_SCHEMA_VERSION = 2
 _TRANSITION_EPOCH_ROLE = "PPL_AUTHORITY_TRANSITION"
 _EXPERIMENT_EPOCH_ROLE = "F00_EXPERIMENT"
 _BURN_IN_EPOCH_ROLE = "BURN_IN_EXPERIMENT"
+_SUCCESSOR_EPOCH_ROLE = "BURN_IN_SUCCESSOR_AFTER_INTERRUPTION"
 _TRANSITION_EVENT_DOMAIN = "PPL-02E-R4-AUTHORITY-V1"
 _EXPERIMENT_EVENT_DOMAIN = "F00-EPOCH-AUTHORITY-V1"
 _BURN_IN_EVENT_DOMAIN = "BURN-IN-EPOCH-AUTHORITY-V1"
+_SUCCESSOR_EVENT_DOMAIN = "BURN-IN-SUCCESSOR-AUTHORITY-V1"
 
 _MANIFEST_COMMON_FIELDS = frozenset(
     {
@@ -75,6 +78,12 @@ _EXPERIMENT_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
 }
 _BURN_IN_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
     "predecessor_authority_epoch_id"
+}
+# PPL-SUCCESSION-01: distinct role for a successor of an interrupted,
+# documentarily closed predecessor.  Existing roles/field sets are untouched.
+_SUCCESSOR_MANIFEST_FIELDS = _MANIFEST_COMMON_FIELDS | {
+    "predecessor_authority_epoch_id",
+    "interruption_succession_sha256",
 }
 
 
@@ -110,6 +119,7 @@ class AuthorityEpochManifest:
     epoch_role: str = _TRANSITION_EPOCH_ROLE
     ppl_event_schema_version: int = _PPL_EVENT_SCHEMA_VERSION
     manifest_schema_version: int = _TRANSITION_MANIFEST_SCHEMA_VERSION
+    interruption_succession_sha256: str = ""
 
     def __post_init__(self) -> None:
         for name in (
@@ -125,9 +135,18 @@ class AuthorityEpochManifest:
         for name in (
             "predecessor_shadow_epoch_id",
             "predecessor_authority_epoch_id",
+            "interruption_succession_sha256",
         ):
             if not isinstance(getattr(self, name), str):
                 raise ValueError(f"{name} must be a string")
+        if (
+            self.epoch_role != _SUCCESSOR_EPOCH_ROLE
+            and self.interruption_succession_sha256
+        ):
+            raise ValueError(
+                "interruption_succession_sha256 is reserved for the "
+                "interrupted-predecessor successor role"
+            )
 
         if self.epoch_role == _TRANSITION_EPOCH_ROLE:
             if self.manifest_schema_version != _TRANSITION_MANIFEST_SCHEMA_VERSION:
@@ -178,11 +197,33 @@ class AuthorityEpochManifest:
                 raise ValueError(
                     "burn-in epoch must differ from predecessor authority epoch"
                 )
+        elif self.epoch_role == _SUCCESSOR_EPOCH_ROLE:
+            if self.manifest_schema_version != _SUCCESSOR_MANIFEST_SCHEMA_VERSION:
+                raise ValueError("successor authority manifest must use schema v4")
+            if self.predecessor_shadow_epoch_id:
+                raise ValueError(
+                    "successor authority manifest must not carry "
+                    "predecessor_shadow_epoch_id"
+                )
+            if not self.predecessor_authority_epoch_id.strip():
+                raise ValueError(
+                    "successor authority manifest requires "
+                    "predecessor_authority_epoch_id"
+                )
+            if self.predecessor_authority_epoch_id == self.paper_epoch_id:
+                raise ValueError(
+                    "successor epoch must differ from predecessor authority epoch"
+                )
+            digest = self.interruption_succession_sha256
+            if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+                raise ValueError(
+                    "interruption_succession_sha256 must be a lowercase sha256"
+                )
         else:
             raise ValueError(
                 "unsupported epoch_role; expected "
                 f"{_TRANSITION_EPOCH_ROLE!r}, {_EXPERIMENT_EPOCH_ROLE!r}, "
-                f"or {_BURN_IN_EPOCH_ROLE!r}"
+                f"{_BURN_IN_EPOCH_ROLE!r} or {_SUCCESSOR_EPOCH_ROLE!r}"
             )
 
         if self.ppl_event_schema_version != _PPL_EVENT_SCHEMA_VERSION:
@@ -356,6 +397,24 @@ def write_authority_manifest(
 
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    encoded = _manifest_bytes(manifest)
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "wb", closefd=True) as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except Exception:
+        try:
+            target.unlink()
+        except OSError:
+            pass
+        raise
+
+
+def _manifest_bytes(manifest: AuthorityEpochManifest) -> bytes:
+    """Exact bytes ``write_authority_manifest`` persists for ``manifest``."""
+
     payload = {
         "manifest_schema_version": manifest.manifest_schema_version,
         "paper_epoch_id": manifest.paper_epoch_id,
@@ -380,27 +439,28 @@ def write_authority_manifest(
         payload["predecessor_authority_epoch_id"] = (
             manifest.predecessor_authority_epoch_id
         )
+    elif manifest.epoch_role == _SUCCESSOR_EPOCH_ROLE:
+        payload["predecessor_authority_epoch_id"] = (
+            manifest.predecessor_authority_epoch_id
+        )
+        payload["interruption_succession_sha256"] = (
+            manifest.interruption_succession_sha256
+        )
     else:  # Defensive: AuthorityEpochManifest already rejects this.
         raise AuthorityManifestError(
             f"unsupported authority manifest role: {manifest.epoch_role!r}"
         )
 
-    encoded = (
+    return (
         json.dumps(payload, ensure_ascii=False, allow_nan=False, sort_keys=True)
         + "\n"
     ).encode("utf-8")
-    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    try:
-        with os.fdopen(fd, "wb", closefd=True) as stream:
-            stream.write(encoded)
-            stream.flush()
-            os.fsync(stream.fileno())
-    except Exception:
-        try:
-            target.unlink()
-        except OSError:
-            pass
-        raise
+
+
+def authority_manifest_sha256(manifest: AuthorityEpochManifest) -> str:
+    """SHA-256 of the exact serialized manifest bytes (identity of the file)."""
+
+    return hashlib.sha256(_manifest_bytes(manifest)).hexdigest()
 
 
 def load_authority_manifest(path: os.PathLike[str] | str) -> AuthorityEpochManifest:
@@ -450,6 +510,19 @@ def load_authority_manifest(path: os.PathLike[str] | str) -> AuthorityEpochManif
                 "predecessor_authority_epoch_id", ""
             )
         }
+    elif (
+        role == _SUCCESSOR_EPOCH_ROLE
+        and manifest_schema == _SUCCESSOR_MANIFEST_SCHEMA_VERSION
+    ):
+        expected_fields = _SUCCESSOR_MANIFEST_FIELDS
+        predecessor_kwargs = {
+            "predecessor_authority_epoch_id": data.get(
+                "predecessor_authority_epoch_id", ""
+            ),
+            "interruption_succession_sha256": data.get(
+                "interruption_succession_sha256", ""
+            ),
+        }
     else:
         raise AuthorityManifestError(
             "unsupported authority manifest role/schema combination"
@@ -485,6 +558,8 @@ def _event_domain_and_prefix(
         return _EXPERIMENT_EVENT_DOMAIN, "f00"
     if manifest.epoch_role == _BURN_IN_EPOCH_ROLE:
         return _BURN_IN_EVENT_DOMAIN, "burnin"
+    if manifest.epoch_role == _SUCCESSOR_EPOCH_ROLE:
+        return _SUCCESSOR_EVENT_DOMAIN, "burnsucc"
     raise PPLAuthorityRuntimeError(
         f"unsupported authority event domain for role={manifest.epoch_role!r}"
     )
@@ -511,8 +586,10 @@ class PPLAuthorityRuntime:
         manifest: AuthorityEpochManifest,
         store: DurableEventStore,
         compatibility_path: str | Path | None = None,
+        activation_clearance: object | None = None,
     ) -> None:
         self.manifest = manifest
+        self._activation_clearance = activation_clearance
         self.store = store
         self.compatibility_path = (
             Path(compatibility_path) if compatibility_path else None
@@ -579,9 +656,62 @@ class PPLAuthorityRuntime:
         self._events = events
         self._projection = state
 
+    def _require_activation_clearance(self, now: float) -> None:
+        """Fail closed: a successor-after-interruption epoch needs a clearance.
+
+        The clearance is validated *here*, where it is consumed (not by type or
+        by duck-typed attributes): authenticity seal, exact epoch, manifest
+        bytes, succession record, successor store root, and, at first
+        bootstrap only, freshness and an empty store.  A resume (the birth
+        event already exists in the store) keeps the identity bindings but has
+        no freshness requirement and never creates the birth event.  Other
+        roles are unaffected.
+        """
+
+        if self.manifest.epoch_role != _SUCCESSOR_EPOCH_ROLE:
+            return
+        from paper_trading.ppl_interrupted_succession import (
+            SuccessionRefusal,
+            validate_clearance_for_use,
+        )
+
+        root = getattr(self.store, "_root", None)
+        if root is None:
+            raise AuthorityManifestError(
+                "successor epoch requires a store with an explicit root"
+            )
+        try:
+            existing = self.store.load_epoch(self.manifest.paper_epoch_id)
+            resume = True
+        except EpochNotFoundError:
+            existing = ()
+            resume = False
+        if resume and (
+            not existing
+            or existing[0].event_id
+            != _event_id(self.manifest, LedgerEventType.EPOCH_CREATED, "epoch")
+        ):
+            raise AuthorityManifestError(
+                "successor store does not start with this manifest's birth event"
+            )
+        try:
+            validate_clearance_for_use(
+                self._activation_clearance,
+                manifest=self.manifest,
+                store_root=root,
+                now=now,
+                resume=resume,
+            )
+        except SuccessionRefusal as exc:
+            raise AuthorityManifestError(
+                "successor-after-interruption epoch requires a valid activation "
+                f"clearance: {exc}"
+            ) from exc
+
     def bind(self, *, now: float) -> PaperPortfolioState:
         """Create/replay the explicit authority epoch and resolve expired recovery."""
 
+        self._require_activation_clearance(now)
         with self._lock:
             try:
                 try:
@@ -812,6 +942,7 @@ __all__ = [
     "configured_rollback_disposition",
     "build_cutover_manifest",
     "build_experiment_manifest",
+    "authority_manifest_sha256",
     "load_authority_manifest",
     "write_authority_manifest",
 ]
