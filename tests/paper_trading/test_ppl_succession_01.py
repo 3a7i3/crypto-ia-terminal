@@ -11,7 +11,6 @@ import fcntl
 import hashlib
 import json
 import math
-import multiprocessing
 import os
 import stat
 import subprocess
@@ -1231,12 +1230,8 @@ def _run_child(workdir: Path, mode: str):
     )
 
 
-def test_r1_two_successive_processes_birth_then_resume(tmp_path, bundle):
-    """A real restart: process A bootstraps and exits; process B (new interpreter,
-    new HMAC key) resumes with a RESUME clearance.  One birth, events untouched."""
-    record = bundle.record()
-    manifest = _manifest(record)
-    ex = Exclusivity(tmp_path, bundle, record, manifest)
+def _prepare_workdir(tmp_path: Path, bundle, ex, resume_now: float) -> Path:
+    """Write every input of a succession as plain files for fresh interpreters."""
     work = tmp_path / "work"
     (work / "dataset" / "authoritative").mkdir(parents=True)
     (work / "artifacts").mkdir()
@@ -1249,9 +1244,9 @@ def test_r1_two_successive_processes_birth_then_resume(tmp_path, bundle):
     (work / "ledger").write_bytes(bundle.ledger)
     (work / "decision.json").write_bytes(_js(bundle.decision))
     (work / "capital.json").write_bytes(_js(bundle.capital))
-    write_authority_manifest(work / "manifest.json", manifest)
+    write_authority_manifest(work / "manifest.json", ex.manifest)
     (work / "child.py").write_text(_CHILD)
-    resume_now = NOW + 7200
+    (work / "gate_child.py").write_text(_GATE_CHILD)
     proof_b, arts_b = ex.build("BOOTSTRAP", NOW)
     proof_r, arts_r = ex.build("RESUME", resume_now)
     (work / "proof-bootstrap.json").write_bytes(_js(proof_b))
@@ -1268,11 +1263,22 @@ def test_r1_two_successive_processes_birth_then_resume(tmp_path, bundle):
                 "succ": SUCC_EPOCH,
                 "succ_root": str(ex.succ_root.resolve()),
                 "pred_root": str(ex.pred_root.resolve()),
+                "gate_path": str((tmp_path / "gate.jsonl").resolve()),
                 "now": {"bootstrap": NOW, "resume": resume_now},
                 "obs": {"bootstrap": sorted(arts_b), "resume": sorted(arts_r)},
             }
         )
     )
+    return work
+
+
+def test_r1_two_successive_processes_birth_then_resume(tmp_path, bundle):
+    """A real restart: process A bootstraps and exits; process B (new interpreter,
+    new HMAC key) resumes with a RESUME clearance.  One birth, events untouched."""
+    record = bundle.record()
+    manifest = _manifest(record)
+    ex = Exclusivity(tmp_path, bundle, record, manifest)
+    work = _prepare_workdir(tmp_path, bundle, ex, NOW + 7200)
 
     first = _run_child(work, "bootstrap")
     assert first.returncode == 0, first.stderr
@@ -1346,57 +1352,116 @@ def test_r2_marker_beats_an_open_journal(tmp_path, bundle):
     assert _gate(tmp_path, msha).state() == "CLOSED"
 
 
-_MP = {}
+_GATE_CHILD = """
+import json, sys, time
+from pathlib import Path
+from paper_trading.ppl_admission_gate import AdmissionGate, AdmissionGateRefusal
+from paper_trading.ppl_authority_runtime import load_authority_manifest
+from paper_trading.ppl_interrupted_succession import (
+    issue_activation_clearance, verify_interruption_evidence)
 
-
-def _mp_open(index):
-    gate = _MP["gate"](index)
+d = Path(sys.argv[1]); action = sys.argv[2]; index = sys.argv[3]
+cfg = json.loads((d / "cfg.json").read_text())
+rb = lambda *p: d.joinpath(*p).read_bytes()
+record = verify_interruption_evidence(
+    ledger_bytes=rb("ledger"),
+    dataset_files={r: rb("dataset", r) for r in cfg["dataset_rels"]},
+    operator_decision_bytes=rb("decision.json"),
+    evidence_artifacts={k: rb("artifacts", k) for k in cfg["artifact_roles"]},
+    successor_paper_epoch_id=cfg["succ"],
+    capital_decision_bytes=rb("capital.json"))
+manifest = load_authority_manifest(d / "manifest.json")
+clearance = issue_activation_clearance(
+    manifest=manifest, record=record, proof_bytes=rb("proof-bootstrap.json"),
+    observation_artifacts={k: rb("obs-bootstrap", k) for k in cfg["obs"]["bootstrap"]},
+    predecessor_ledger_bytes_now=rb("ledger"),
+    predecessor_store_root=cfg["pred_root"], successor_store_root=cfg["succ_root"],
+    now=cfg["now"]["bootstrap"])
+gate = AdmissionGate(
+    cfg["gate_path"], paper_epoch_id=cfg["succ"], manifest_sha256=clearance.manifest_sha256)
+print("READY", flush=True)
+deadline = time.monotonic() + 60
+while not (d / "go").exists():  # start barrier: all children release together
+    if time.monotonic() > deadline:
+        sys.exit("barrier timeout")
+    time.sleep(0.002)
+if action == "open":
     try:
-        gate.open(
-            decision_bytes=_MP["decision"], clearance=_MP["clearance"], now=NOW
-        )
-        return "OPENED"
+        gate.open(decision_bytes=rb("open-decision.json"), clearance=clearance,
+                  now=cfg["now"]["bootstrap"])
+        print("OPENED")
     except AdmissionGateRefusal:
-        return "REFUSED"
+        print("REFUSED")
+else:
+    print("CLOSED" if gate.close(decided_by="p" + index, reason="race") else "CLOSED-NOT-DURABLE")
+"""
 
 
-def _mp_close(index):
-    _MP["gate"](index).close(decided_by=f"p{index}", reason="race")
-    return "CLOSED"
+def _race(tmp_path: Path, bundle, actions: list[str]) -> list[str]:
+    """Run one fresh interpreter per action, released together by a start file.
+
+    Fresh interpreters (not ``fork``) so the test never inherits locks or
+    threads from a large pytest session, and every wait is bounded."""
+    record = bundle.record()
+    ex = Exclusivity(tmp_path, bundle, record, _manifest(record))
+    work = _prepare_workdir(tmp_path, bundle, ex, NOW + 7200)
+    proof_sha = _sha((work / "proof-bootstrap.json").read_bytes())
+    (work / "open-decision.json").write_bytes(
+        _js(
+            {
+                "schema": OPEN_DECISION_SCHEMA,
+                "paper_epoch_id": SUCC_EPOCH,
+                "manifest_sha256": authority_manifest_sha256(ex.manifest),
+                "clearance_proof_sha256": proof_sha,
+                "decided_by": "operator",
+                "decided_at_utc": "2026-11-08T00:00:00Z",
+            }
+        )
+    )
+    repo = Path(__file__).resolve().parents[2]
+    env = {"PYTHONPATH": str(repo), "PATH": os.environ.get("PATH", "")}
+    procs = [
+        subprocess.Popen(
+            [sys.executable, str(work / "gate_child.py"), str(work), action, str(i)],
+            cwd=repo,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        for i, action in enumerate(actions)
+    ]
+    try:
+        for proc in procs:  # every child is imported and waiting at the barrier
+            assert proc.stdout.readline().strip() == "READY", proc.stderr.read()
+        (work / "go").write_text("go")
+        results = []
+        for proc in procs:
+            out, err = proc.communicate(timeout=90)
+            assert proc.returncode == 0, err
+            results.append(out.strip().splitlines()[-1])
+        return results
+    finally:
+        for proc in procs:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait()
 
 
 def test_r2_concurrent_processes_open_exactly_once(tmp_path, bundle):
-    _, clearance = _clearance_for(tmp_path, bundle)
-    msha = clearance.manifest_sha256
-    _MP.update(
-        gate=lambda i: _gate(tmp_path, msha),
-        decision=_open_decision(msha, clearance),
-        clearance=clearance,
-    )
-    ctx = multiprocessing.get_context("fork")
-    with ctx.Pool(8) as pool:
-        results = pool.map(_mp_open, range(8))
-    assert results.count("OPENED") == 1 and results.count("REFUSED") == 7
-    gate = _gate(tmp_path, msha)
+    results = _race(tmp_path, bundle, ["open"] * 6)
+    assert results.count("OPENED") == 1 and results.count("REFUSED") == 5
+    gate = _gate(tmp_path, authority_manifest_sha256(_manifest(bundle.record())))
     assert gate.is_open()
     assert len(gate._records()) == 1  # valid chain, a single OPEN
 
 
 def test_r2_close_wins_a_race_with_open(tmp_path, bundle):
-    _, clearance = _clearance_for(tmp_path, bundle)
-    msha = clearance.manifest_sha256
-    _MP.update(
-        gate=lambda i: _gate(tmp_path, msha),
-        decision=_open_decision(msha, clearance),
-        clearance=clearance,
-    )
-    ctx = multiprocessing.get_context("fork")
-    with ctx.Pool(8) as pool:
-        jobs = [pool.apply_async(_mp_open if i % 2 == 0 else _mp_close, (i,)) for i in range(8)]
-        [j.get(timeout=30) for j in jobs]
-    gate = _gate(tmp_path, msha)
-    assert gate.state() == "CLOSED"
-    assert gate._records() is not None  # chain stayed valid whatever the order
+    results = _race(tmp_path, bundle, ["open", "close", "open", "close", "open", "close"])
+    assert results.count("CLOSED") == 3  # every close was durable
+    gate = _gate(tmp_path, authority_manifest_sha256(_manifest(bundle.record())))
+    assert gate.state() == "CLOSED"  # whatever the interleaving, close wins
+    assert gate._records() is not None  # and the chain stayed valid
 
 
 def test_r2_lock_timeout_leaves_gate_closed(tmp_path, bundle, monkeypatch):
