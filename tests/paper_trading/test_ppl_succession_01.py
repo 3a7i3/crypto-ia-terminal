@@ -15,7 +15,9 @@ import os
 import stat
 import subprocess
 import sys
+import time
 from pathlib import Path
+from typing import Self
 from unittest import mock
 
 import pytest
@@ -1361,6 +1363,10 @@ from paper_trading.ppl_interrupted_succession import (
     issue_activation_clearance, verify_interruption_evidence)
 
 d = Path(sys.argv[1]); action = sys.argv[2]; index = sys.argv[3]
+if action == "hang":  # fault injection: blocked before READY
+    time.sleep(3600)
+if action == "exit":  # fault injection: dies before READY
+    sys.exit("injected early exit")
 cfg = json.loads((d / "cfg.json").read_text())
 rb = lambda *p: d.joinpath(*p).read_bytes()
 record = verify_interruption_evidence(
@@ -1379,12 +1385,14 @@ clearance = issue_activation_clearance(
     now=cfg["now"]["bootstrap"])
 gate = AdmissionGate(
     cfg["gate_path"], paper_epoch_id=cfg["succ"], manifest_sha256=clearance.manifest_sha256)
-print("READY", flush=True)
+(d / ("ready-" + index)).write_text("ready")  # file barrier: parent never blocks on a pipe
 deadline = time.monotonic() + 60
 while not (d / "go").exists():  # start barrier: all children release together
     if time.monotonic() > deadline:
         sys.exit("barrier timeout")
     time.sleep(0.002)
+if action == "stall":  # fault injection: blocked after the barrier
+    time.sleep(3600)
 if action == "open":
     try:
         gate.open(decision_bytes=rb("open-decision.json"), clearance=clearance,
@@ -1397,11 +1405,90 @@ else:
 """
 
 
-def _race(tmp_path: Path, bundle, actions: list[str]) -> list[str]:
+class RaceFailure(AssertionError):
+    """A multi-process scenario failed to start, synchronise or finish in time."""
+
+
+def _read_bounded(path: Path, limit: int = 16384) -> str:
+    try:
+        with path.open("rb") as handle:
+            return handle.read(limit).decode("utf-8", "replace")
+    except OSError:
+        return ""
+
+
+class _Fleet:
+    """Every child is registered the moment it exists; leaving the block always
+    kills and reaps them all (bounded), even after a partial launch or a failure."""
+
+    def __init__(self, workdir: Path, spawn, *, reap_timeout: float = 10.0):
+        self.workdir = workdir
+        self.spawn = spawn
+        self.reap_timeout = reap_timeout
+        self.procs: list[subprocess.Popen] = []
+        self.pids: list[int] = []
+        self._files: list = []
+
+    def launch(self, index: int, argv: list[str], **kwargs) -> subprocess.Popen:
+        out = (self.workdir / f"out-{index}.txt").open("wb")
+        err = (self.workdir / f"err-{index}.txt").open("wb")
+        self._files += [out, err]
+        proc = self.spawn(argv, stdout=out, stderr=err, **kwargs)
+        self.procs.append(proc)
+        self.pids.append(proc.pid)
+        return proc
+
+    def stderr(self, index: int) -> str:
+        return _read_bounded(self.workdir / f"err-{index}.txt")
+
+    def stdout(self, index: int) -> str:
+        return _read_bounded(self.workdir / f"out-{index}.txt")
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        for proc in self.procs:
+            if proc.poll() is None:
+                try:
+                    proc.kill()
+                except OSError:
+                    pass
+        deadline = time.monotonic() + self.reap_timeout
+        for proc in self.procs:
+            try:
+                proc.wait(timeout=max(0.1, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                pass
+        for handle in self._files:
+            handle.close()
+
+
+def _wait_for(predicate, deadline: float, failure) -> None:
+    while not predicate():
+        failure()  # raises early when a child already died
+        if time.monotonic() > deadline:
+            raise RaceFailure("global deadline exceeded")
+        time.sleep(0.005)
+
+
+def _race(
+    tmp_path: Path,
+    bundle,
+    actions: list[str],
+    *,
+    ready_timeout: float = 60.0,
+    finish_timeout: float = 60.0,
+    spawn=subprocess.Popen,
+    pids_out: list | None = None,
+) -> list[str]:
     """Run one fresh interpreter per action, released together by a start file.
 
     Fresh interpreters (not ``fork``) so the test never inherits locks or
-    threads from a large pytest session, and every wait is bounded."""
+    threads from a large pytest session.  No call can block without a bound:
+    readiness is a file polled against one global deadline, output goes to
+    files read with a size cap, and the fleet is killed and reaped on any exit
+    (including a partial launch)."""
     record = bundle.record()
     ex = Exclusivity(tmp_path, bundle, record, _manifest(record))
     work = _prepare_workdir(tmp_path, bundle, ex, NOW + 7200)
@@ -1420,32 +1507,47 @@ def _race(tmp_path: Path, bundle, actions: list[str]) -> list[str]:
     )
     repo = Path(__file__).resolve().parents[2]
     env = {"PYTHONPATH": str(repo), "PATH": os.environ.get("PATH", "")}
-    procs = [
-        subprocess.Popen(
-            [sys.executable, str(work / "gate_child.py"), str(work), action, str(i)],
-            cwd=repo,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        for i, action in enumerate(actions)
-    ]
-    try:
-        for proc in procs:  # every child is imported and waiting at the barrier
-            assert proc.stdout.readline().strip() == "READY", proc.stderr.read()
-        (work / "go").write_text("go")
-        results = []
-        for proc in procs:
-            out, err = proc.communicate(timeout=90)
-            assert proc.returncode == 0, err
-            results.append(out.strip().splitlines()[-1])
-        return results
-    finally:
-        for proc in procs:
-            if proc.poll() is None:
-                proc.kill()
-                proc.wait()
+    with _Fleet(work, spawn) as fleet:
+        try:
+            for i, action in enumerate(actions):
+                fleet.launch(
+                    i,
+                    [sys.executable, str(work / "gate_child.py"), str(work), action, str(i)],
+                    cwd=repo,
+                    env=env,
+                )
+            if pids_out is not None:
+                pids_out.extend(fleet.pids)
+
+            def early_exit():
+                for i, proc in enumerate(fleet.procs):
+                    if proc.poll() is not None and not (work / f"ready-{i}").exists():
+                        raise RaceFailure(
+                            f"child {i} exited ({proc.returncode}) before READY: "
+                            f"{fleet.stderr(i)[-400:]}"
+                        )
+
+            ready_deadline = time.monotonic() + ready_timeout
+            _wait_for(
+                lambda: all((work / f"ready-{i}").exists() for i in range(len(actions))),
+                ready_deadline,
+                early_exit,
+            )
+            (work / "go").write_text("go")
+            _wait_for(
+                lambda: all(proc.poll() is not None for proc in fleet.procs),
+                time.monotonic() + finish_timeout,
+                lambda: None,
+            )
+            results = []
+            for i, proc in enumerate(fleet.procs):
+                if proc.returncode != 0:
+                    raise RaceFailure(f"child {i} failed: {fleet.stderr(i)[-400:]}")
+                results.append(fleet.stdout(i).strip().splitlines()[-1])
+            return results
+        finally:
+            if pids_out is not None:
+                pids_out[:] = fleet.pids
 
 
 def test_r2_concurrent_processes_open_exactly_once(tmp_path, bundle):
@@ -1462,6 +1564,72 @@ def test_r2_close_wins_a_race_with_open(tmp_path, bundle):
     gate = _gate(tmp_path, authority_manifest_sha256(_manifest(bundle.record())))
     assert gate.state() == "CLOSED"  # whatever the interleaving, close wins
     assert gate._records() is not None  # and the chain stayed valid
+
+
+def _all_dead(pids: list[int]) -> bool:
+    for pid in pids:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            continue
+        except PermissionError:
+            return False
+        return False
+    return True
+
+
+def test_race_child_blocked_before_ready_fails_fast_and_is_reaped(tmp_path, bundle):
+    pids: list[int] = []
+    started = time.monotonic()
+    with pytest.raises(RaceFailure, match="deadline"):
+        _race(tmp_path, bundle, ["open", "hang", "open"], ready_timeout=5.0, pids_out=pids)
+    assert time.monotonic() - started < 40  # fails on the global deadline, never hangs
+    assert len(pids) == 3 and _all_dead(pids)  # including the blocked child
+    assert not (tmp_path / "work" / "go").exists()  # nobody was released
+
+
+def test_race_child_dying_before_ready_fails_immediately(tmp_path, bundle):
+    pids: list[int] = []
+    started = time.monotonic()
+    with pytest.raises(RaceFailure, match="before READY"):
+        _race(tmp_path, bundle, ["open", "exit", "open"], ready_timeout=60.0, pids_out=pids)
+    assert time.monotonic() - started < 30  # does not wait for the 60 s deadline
+    assert _all_dead(pids)
+
+
+def test_race_partial_launch_failure_recovers_started_children(tmp_path, bundle):
+    calls = {"n": 0}
+
+    def flaky_spawn(argv, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 3:
+            raise OSError("injected spawn failure")
+        return subprocess.Popen(argv, **kwargs)
+
+    pids: list[int] = []
+    with pytest.raises(OSError, match="injected spawn failure"):
+        _race(tmp_path, bundle, ["hang", "hang", "hang", "hang"], spawn=flaky_spawn, pids_out=pids)
+    assert len(pids) == 2  # the two children launched before the failure
+    assert _all_dead(pids)
+
+
+def test_race_child_stalled_after_barrier_fails_fast_and_is_reaped(tmp_path, bundle):
+    pids: list[int] = []
+    started = time.monotonic()
+    with pytest.raises(RaceFailure, match="deadline"):
+        _race(
+            tmp_path, bundle, ["open", "stall"],
+            ready_timeout=60.0, finish_timeout=3.0, pids_out=pids,
+        )
+    assert time.monotonic() - started < 60
+    assert _all_dead(pids)
+
+
+def test_race_output_collection_is_bounded(tmp_path):
+    big = tmp_path / "big.txt"
+    big.write_bytes(b"x" * 10_000_000)
+    assert len(_read_bounded(big, 1000)) == 1000
+    assert _read_bounded(tmp_path / "missing.txt") == ""
 
 
 def test_r2_lock_timeout_leaves_gate_closed(tmp_path, bundle, monkeypatch):
