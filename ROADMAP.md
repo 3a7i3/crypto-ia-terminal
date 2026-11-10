@@ -1,8 +1,9 @@
 # Chronologie — Crypto AI Terminal
 
 Ce fichier est un **historique humain**, sans autorité de priorisation, état
-runtime ou autorisation de déploiement. La roadmap active est
-[#285 — MASTER ROADMAP II](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+runtime ou autorisation de déploiement. La roadmap active est désignée par la
+ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568) ; tant qu'elle indique
+`PUBLISHED_PENDING_CUTOVER`, c'est [#285 — MASTER ROADMAP II](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
 [#148](https://github.com/3a7i3/crypto-ia-terminal/issues/148) est l'archive canonique
 de la phase précédente. Le travail courant se retrouve depuis
 [CURRENT_TASK.md](CURRENT_TASK.md), les règles dans [CLAUDE.md](CLAUDE.md).

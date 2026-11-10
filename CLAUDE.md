@@ -2,7 +2,9 @@
 
 Lire d'abord [docs/DEVELOPER_ENTRYPOINT.md](docs/DEVELOPER_ENTRYPOINT.md).
 Ce fichier porte les invariants et la méthode, pas l'état opérationnel courant.
-La priorisation vit dans [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285),
+La priorisation est désignée par la ligne de statut de [#568](https://github.com/3a7i3/crypto-ia-terminal/issues/568)
+(MASTER ROADMAP III) ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, elle vit
+dans [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285),
 la mission dans [CURRENT_TASK.md](CURRENT_TASK.md), les observations dans leurs
 preuves GitHub datées. Une documentation ancienne ne constitue jamais une
 permission de déployer, calibrer ou modifier une expérience.

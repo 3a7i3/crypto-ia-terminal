@@ -1,5 +1,7 @@
 # EXECUTION ROUTER — Plan de refactor post-burn-in
 
+> **ARCHIVE_HISTORICAL** (ROADMAP-RECONCILIATION-01, gate B7). Document historique conservé intact ; il ne donne aucune autorisation active (testnet, live, watchdog, capital, déploiement). Priorisation : la ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568) fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, l'autorité reste [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+
 > **Statut :** EN ATTENTE — déployer uniquement après `closed_trades >= 100` (ALPHA_DISCOVERY_100)
 > **Rédigé :** 2026-06-04
 > **Objectif :** Brancher `ExecutionSimulator` comme seul moteur d'exécution pour backtest, paper et live.

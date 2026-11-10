@@ -26,7 +26,7 @@ et ses preuves depuis une app, sans confondre présentation et autorité.
 | [README](../README.md) | découvrir le projet et trouver les entrées |
 | [CLAUDE](../CLAUDE.md) | invariants et méthode de travail |
 | [CURRENT_TASK](../CURRENT_TASK.md) | petit pointeur de tranche ; vérifier l'état GitHub |
-| [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) | priorisation actuelle |
+| [#568](https://github.com/3a7i3/crypto-ia-terminal/issues/568) (MASTER ROADMAP III), [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) (MASTER ROADMAP II) | priorisation : la ligne de statut de #568 fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, #285 reste l'autorité |
 | [#148](https://github.com/3a7i3/crypto-ia-terminal/issues/148), [ROADMAP](../ROADMAP.md) | archive / chronologie, pas priorisation actuelle |
 | [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323) | cockpit unifié et séquence source/UI |
 | [#282](https://github.com/3a7i3/crypto-ia-terminal/issues/282), [#286](https://github.com/3a7i3/crypto-ia-terminal/issues/286) | observations burn-in datées / garde-fou |
@@ -111,7 +111,9 @@ Ne pas refactoriser les trois arbres runtime ou le monolithe Advisor comme
 
 ## 7. Choisir la mission et préserver le travail existant
 
-Lire #285, le scope du parent et les sous-gates. La frontière formelle est
+Lire l'autorité de priorisation désignée par la ligne de statut de #568 (#285
+tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`), le scope du parent et les
+sous-gates. La frontière formelle est
 **L3**, effective via son certificat sur main et la chaîne L0 → L1 v2 → L2 → L3.
 Le snapshot est synchronisé (#392) ; ne pas refaire les certifications L2/L3.
 U7 est historiquement certifié en source (#383) ; L4 et U8 runtime ne sont pas

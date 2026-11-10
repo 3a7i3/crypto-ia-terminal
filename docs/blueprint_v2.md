@@ -1,4 +1,7 @@
 # Blueprint V2 — crypto_ai_terminal
+
+> **PROPOSAL_ONLY** (ROADMAP-RECONCILIATION-01, gate B7). La nomenclature L1–L7 de ce document n'est pas l'échelle Machine Maturity L0–L4 ; ce document n'est ni une référence normative active ni une autorisation. Priorisation : la ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568) fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, l'autorité reste [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+
 # Architecture institutionnelle en 7 niveaux + couche L3.5
 #
 # Référence normative pour toutes les sessions.

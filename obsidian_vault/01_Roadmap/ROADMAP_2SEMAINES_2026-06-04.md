@@ -1,5 +1,7 @@
 # Roadmap 2 semaines — à partir du 2026-06-04
 
+> **ARCHIVE_HISTORICAL** (ROADMAP-RECONCILIATION-01, gate B7). Document historique conservé intact ; il ne donne aucune autorisation active (testnet, live, watchdog, capital, déploiement). Priorisation : la ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568) fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, l'autorité reste [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+
 > Plan approximatif. L'ordre peut changer selon les signaux du burn-in.
 > Règle : ne pas toucher à l'architecture principale avant 100 trades fermés.
 
