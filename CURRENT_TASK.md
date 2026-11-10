@@ -1,11 +1,14 @@
 # Reprise canonique — lot 2, 2026-11-04 UTC
 
+> **Mission datée (lot 2, 2026-11-04 UTC).** Les preuves et l'historique ci-dessous sont conservés. Cette mission ne constitue plus une autorisation opérationnelle actuelle ; toute nouvelle mission requiert une décision explicite de l'opérateur.
+
 Objectif : terminer la V0 Flux en source et rendre son suivi vérifiable.
 Base : `main@9433c18b5077cc957bfdf2c8bd707070dc5c67d1`.
 Lire le [checkpoint et journal de décisions du lot 2](docs/handoffs/LOT2_TRACKING_RECONCILIATION_20261104.md)
 et le [handoff Flux](docs/research/market_flux_553/HANDOFF.md).
-Roadmap : [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) ;
-cockpit : [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323).
+Priorisation : la ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568)
+fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, l'autorité reste
+[#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285) ; cockpit : [#323](https://github.com/3a7i3/crypto-ia-terminal/issues/323).
 
 - Lot 1 : #556 fusionnée ; 19 workflows / 24 check-runs SUCCESS au commit de
   fusion cité, résultat non transposable à une autre PR.

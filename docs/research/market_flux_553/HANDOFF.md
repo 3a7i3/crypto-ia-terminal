@@ -1,5 +1,7 @@
 # Passation CryptoRadar Flux (#551/#553) — 2026-11-05 UTC (lot 3A)
 
+> **Relevé historique daté (2026-11-04/05)** (ROADMAP-RECONCILIATION-01, gate B7). Contenu conservé intact ; il ne décrit pas l'état courant. Priorisation : la ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568) fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, l'autorité reste [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+
 Base source du relevé du 2026-11-04 : `main@9433c18b5077cc957bfdf2c8bd707070dc5c67d1`.
 Mise à jour du lot 3A faite sur `main@dfb6b9b1840c7353f8d1fdc35869081fffac4718`
 (tree `3f02691ea03bcf46f3fc20980bf4add3edb4c10e`) ; elle ne porte pas son propre

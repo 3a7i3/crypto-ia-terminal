@@ -1,5 +1,7 @@
 # Lot 2 — réconciliation du suivi et des anciennes PR
 
+> **Relevé historique daté (2026-11-04/05)** (ROADMAP-RECONCILIATION-01, gate B7). Contenu conservé intact ; il ne décrit pas l'état courant. Priorisation : la ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568) fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, l'autorité reste [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+
 Relevé source : **2026-11-04 UTC**, suite au plan du 2026-11-03.
 Base : `main@9433c18b5077cc957bfdf2c8bd707070dc5c67d1`, tree
 `d35af63af38f33d0f67c50d981026716ac701e51`.

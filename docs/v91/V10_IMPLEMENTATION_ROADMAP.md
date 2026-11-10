@@ -1,5 +1,7 @@
 # 🚀 V10 IMPLEMENTATION ROADMAP
 
+> **ARCHIVE_HISTORICAL** (ROADMAP-RECONCILIATION-01, gate B7). Document historique conservé intact ; il ne donne aucune autorisation active (testnet, live, watchdog, capital, déploiement). Priorisation : la ligne de statut de [#568 — MASTER ROADMAP III](https://github.com/3a7i3/crypto-ia-terminal/issues/568) fait foi ; tant qu'elle indique `PUBLISHED_PENDING_CUTOVER`, l'autorité reste [#285](https://github.com/3a7i3/crypto-ia-terminal/issues/285).
+
 ## Overview
 
 V10 takes V9.1 and adds **real market data** + **API integration** + **live risk management**.
