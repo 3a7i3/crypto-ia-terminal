@@ -365,6 +365,8 @@ def test_purity_imports_and_no_external_calls():
                                      "physical_evidence"},
             "_population_core.py": {"colony_lab", "colony_lab.a1_identity", "colony_registrar",
                                     "_attestation_core", "attestation_evidence", "physical_evidence"},
+            "_pc2_profile.py": {"colony_lab", "colony_lab.a1_identity", "_attestation_core",
+                                "_attestation_statement"},
         }.get(path.name, set())
         permitted = allowed | extra
         tree = ast.parse(path.read_text())
@@ -376,7 +378,7 @@ def test_purity_imports_and_no_external_calls():
                     assert node.level == 1
                     if path.name in {"attestation_evidence.py", "_population_core.py", "_population_preflight.py",
                                      "_population_proof.py", "_population_counts.py",
-                                     "_population_faults.py"}:
+                                     "_population_faults.py", "_pc2_profile.py"}:
                         assert all(alias.name in permitted for alias in node.names)
                     else:
                         assert [alias.name for alias in node.names] == ["formats"]
