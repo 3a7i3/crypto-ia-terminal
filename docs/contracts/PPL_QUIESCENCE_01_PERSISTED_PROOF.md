@@ -1,6 +1,6 @@
-# PPL-QUIESCENCE-01 — Preuve persistée de quiescence (contrat v1.2, lot A)
+# PPL-QUIESCENCE-01 — Preuve persistée de quiescence (contrat v1.3, lot A)
 
-Statut : **contrat source + module pur + tests isolés.** Exception #286 limitée à la source et aux tests (décision de l'opérateur, 2026-11-09). Aucun câblage : ni `mexc_simulator.py`, ni `advisor_loop.py`, ni VPS, ni installation, ni activation, ni epoch, ni modification de l'autorité #282. Les lots B (témoin exécutable) et C (câblage) sont distincts.
+Statut : **contrat source + module pur + tests isolés.** Exception #286 limitée à la source et aux tests (décision de l'opérateur, 2026-11-09). Aucun câblage : ni `mexc_simulator.py`, ni `advisor_loop.py`, ni VPS, ni installation, ni activation, ni epoch, ni modification de l'autorité #282. Les lots B (témoin exécutable) et C (câblage) sont distincts. La v1.3 (§12) n'ajoute que la lecture des compteurs dédiés du lot C1a ; elle ne change aucune règle d'`assess`, aucun champ requis ni aucun format de preuve.
 
 Module : `paper_trading/ppl_quiescence_proof.py` · Tests : `tests/paper_trading/test_ppl_quiescence_01.py`.
 
@@ -65,7 +65,7 @@ Tous les champs requis doivent être `OBSERVED`, sinon le verdict est dégradé 
 
 `runtime_consults_gate` n'est jamais déduit. Il vient d'une déclaration `ppl_gate_wiring_v1` exposée par le simulateur (`protocol == PPL-GATE-WIRING-V1`, `code_sha` égal au manifeste, booléen `consults_gate_under_lock`), enregistrée avec la provenance `RUNTIME_DECLARATION:PPL-GATE-WIRING-V1@<code_sha>`. Le runtime actuel n'expose aucune déclaration (et ne référence pas `ppl_admission_gate`, audit de `main@3ce529fc`) : la valeur est `UNKNOWN`. Une déclaration d'un autre `code_sha` ou malformée est `UNRESOLVED`. Une déclaration est une affirmation du code testé, pas une preuve indépendante : limite assumée, c'est le lot C qui devra la rendre vérifiable.
 
-`lifecycle_transitions_in_flight` est `NOT_APPLICABLE` sous PPL_AUTHORITY : le compteur legacy n'y est jamais incrémenté (tout se passe sous `simulator._lock`) et sa valeur `0` n'est jamais lue. Tant qu'un compteur dédié n'existe pas, `quiescent` reste faux et l'adaptateur `EpochRotationQuiescence` refuse (`QuiescenceRefusal`) au lieu de fabriquer un zéro.
+`lifecycle_transitions_in_flight` est `NOT_APPLICABLE` sous PPL_AUTHORITY tant que le simulateur n'expose pas de déclaration valide nommant `PPL-QUIESCENCE-COUNTERS-V1` (v1.3, §12) : le compteur legacy n'y est jamais incrémenté (tout se passe sous `simulator._lock`) et sa valeur `0` n'est jamais lue. Tant qu'un compteur dédié n'existe pas, `quiescent` reste faux et l'adaptateur `EpochRotationQuiescence` refuse (`QuiescenceRefusal`) au lieu de fabriquer un zéro.
 
 Ordre de verrous de l'observation O : `simulator._lock` puis `runtime._lock` (ordre de l'OPEN/CLOSE autoritaire). Lecture seule : aucune fermeture, aucun redémarrage, aucun écrit dans le store d'autorité.
 
@@ -137,3 +137,13 @@ R1 (P1) : `admissions_in_flight` n'était pas contrôlé à zéro → exigé com
 ## 11. Hors périmètre (lots B et C et décisions opérateur)
 
 Exécution du témoin (VPS), détention du verrou pendant le scellement, lecture de la gate sous `_lock` dans `_fill_market_ppl_authority`, écriture de la sentinelle à l'arrêt, compteur de transitions réel, déclaration de câblage vérifiable, répertoire de preuve de production, installation, epoch, activation, levée de #286.
+
+## 12. v1.3 — lecture des compteurs dédiés (lot C1a, contrat `PPL_QUIESCENCE_01_LOT_C1.md` v0.3)
+
+- `observe_runtime` publie `admissions_in_flight` et `lifecycle_transitions_in_flight` en `OBSERVED` **uniquement** si `runtime_consults_gate` est `OBSERVED true` et que la déclaration porte `counters_protocol == "PPL-QUIESCENCE-COUNTERS-V1"`. Sinon, les valeurs v1.2 sont inchangées (`UNKNOWN`, `NOT_APPLICABLE`).
+- `admissions_in_flight` = `simulator._ppl_admissions_in_flight`, lu sous `simulator._lock`, `int` strict ≥ 0 (sinon `UNRESOLVED`).
+- `lifecycle_transitions_in_flight` = `len(simulator._ppl_started_transitions)` : nombre de transitions PPL **inachevées** (commencées, mise à jour mémoire non terminée, y compris interrompues par une exception). Lu sous `simulator._lock`, **sans aucune lecture durable**.
+- `lifecycle_transitions_detail` (informatif, non requis) : classification par clé (`NOT_APPLIED`, `APPLIED_DURABLE_NOT_MEMORY`, `UNRESOLVED`) issue de la comparaison durable/mémoire après validation de la chaîne. Elle ne modifie jamais la valeur ci-dessus.
+- `code_sha_provenance` et `module_sha256` (informatifs) : copiés de la déclaration. Configuration, jamais attestation.
+- **Uniquement avec une déclaration de compteurs valide** : une vue d'autorité illisible ne lève plus d'exception dans `observe_runtime` ; `durable_open_positions`, `durable_unresolved_positions` et `memory_matches_durable` deviennent `UNRESOLVED` (fail-closed, verdict dégradé par les champs requis), et les compteurs restent lisibles. **Sans déclaration** (C1a non câblé), le comportement v1.2 est conservé à l'identique : l'exception de `consistent_view()` se propage (contre-revue C1a D-02, 2026-11-12).
+- Inchangés : règles d'`assess`, champs requis par verdict, adaptateur `to_epoch_rotation_quiescence`, `historical_unknowns` d'`INTERRUPTED`, format de preuve.

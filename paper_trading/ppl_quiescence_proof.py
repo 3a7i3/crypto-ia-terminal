@@ -39,6 +39,11 @@ from typing import Any
 
 SCHEMA = "PPL-QUIESCENCE-OBSERVATION-V1"
 GATE_WIRING_PROTOCOL = "PPL-GATE-WIRING-V1"
+# Lot A v1.3 (C1a): the declaration may name the dedicated counters protocol.
+COUNTERS_PROTOCOL = "PPL-QUIESCENCE-COUNTERS-V1"
+TRANSITION_NOT_APPLIED = "NOT_APPLIED"
+TRANSITION_APPLIED_DURABLE_NOT_MEMORY = "APPLIED_DURABLE_NOT_MEMORY"
+TRANSITION_UNRESOLVED = "UNRESOLVED"
 GENESIS = "0" * 64
 
 OBSERVED = "OBSERVED"
@@ -586,6 +591,54 @@ def gate_wiring_value(simulator: Any, code_sha: str) -> dict[str, Any]:
     )
 
 
+def _published_counters_declaration(simulator: Any, code_sha: str) -> Mapping[str, Any] | None:
+    """Lot A v1.3: the wiring declaration, only if it is valid AND names the
+    dedicated counters protocol (contract C1 D-C1a-5).  Otherwise ``None`` and
+    the observer keeps the v1.2 values (NOT_APPLICABLE / UNKNOWN)."""
+
+    wiring = gate_wiring_value(simulator, code_sha)
+    if wiring["status"] != OBSERVED or wiring["value"] is not True:
+        return None
+    declaration = simulator.ppl_gate_wiring_v1
+    if declaration.get("counters_protocol") != COUNTERS_PROTOCOL:
+        return None
+    return declaration
+
+
+def _strict_count(value: Any) -> int | None:
+    return value if type(value) is int and value >= 0 else None
+
+
+def _transition_detail(
+    started: Any, events: Any, memory_ids: list[str], chain_valid: bool
+) -> list[dict[str, str]]:
+    """Diagnostic only (contract C1 v0.3 §5.2): never changes the counter."""
+
+    opened = {
+        ev.trade_id for ev in events if getattr(ev, "event_type", None) == "POSITION_OPENED"
+    }
+    closed = {
+        ev.trade_id for ev in events if getattr(ev, "event_type", None) == "POSITION_CLOSED"
+    }
+    memory = set(memory_ids)
+    detail = []
+    for kind, trade_id in sorted(started):
+        if not chain_valid:
+            cls = TRANSITION_UNRESOLVED
+        elif kind == "OPEN" and trade_id not in opened and trade_id not in memory:
+            cls = TRANSITION_NOT_APPLIED
+        elif kind == "OPEN" and trade_id in opened and trade_id not in memory:
+            cls = TRANSITION_APPLIED_DURABLE_NOT_MEMORY
+        elif kind == "CLOSE" and trade_id not in closed and trade_id in memory:
+            cls = TRANSITION_NOT_APPLIED
+        elif kind == "CLOSE" and trade_id in closed and trade_id in memory:
+            cls = TRANSITION_APPLIED_DURABLE_NOT_MEMORY
+        else:
+            cls = TRANSITION_UNRESOLVED
+        detail.append({"kind": str(kind), "trade_id": str(trade_id), "class": cls})
+    return detail
+
+
 def observe_runtime(
     simulator: Any,
     runtime: Any,
@@ -606,14 +659,71 @@ def observe_runtime(
     if not getattr(authority, "ppl_is_authoritative", False):
         raise QuiescenceRefusal("observer requires a PPL_AUTHORITY simulator")
     epoch_id = manifest.paper_epoch_id
+    declaration = _published_counters_declaration(simulator, manifest.code_sha)
+    counters: dict[str, dict[str, Any]] = {}
     with simulator._lock, runtime._lock:  # order: simulator -> runtime
-        view = runtime.consistent_view()
+        if declaration is not None:
+            # Lot A v1.3: authoritative values read under simulator._lock,
+            # independent of any durable read (contract C1 v0.3 §5, §9).
+            prov = f"simulator counter under sim._lock ({COUNTERS_PROTOCOL})"
+            admissions = _strict_count(
+                getattr(simulator, "_ppl_admissions_in_flight", None)
+            )
+            started_raw = getattr(simulator, "_ppl_started_transitions", None)
+            started = set(started_raw) if isinstance(started_raw, set) else None
+            counters["admissions_in_flight"] = (
+                observed(admissions, prov)
+                if admissions is not None
+                else unresolved("admissions counter missing or not a strict int")
+            )
+            counters["lifecycle_transitions_in_flight"] = (
+                observed(
+                    len(started),
+                    f"len(simulator._ppl_started_transitions) under sim._lock "
+                    f"({COUNTERS_PROTOCOL})",
+                )
+                if started is not None
+                else unresolved("started transitions set missing")
+            )
+        if declaration is None:
+            # v1.2 behaviour preserved without a counters declaration: an
+            # unreadable authority view propagates (contract A v1.3 §12).
+            view = runtime.consistent_view()
+        else:
+            try:
+                view = runtime.consistent_view()
+            except Exception:  # noqa: BLE001 - recorded as UNRESOLVED below
+                view = None
         ledger = _fingerprint_from(runtime.store, epoch_id)
-        durable_open = sorted(view.projection.open_positions.keys())
-        unresolved_pos = sorted(
-            getattr(view.projection, "unresolved_positions", {}).keys()
-        )
+        if view is not None:
+            durable_open = sorted(view.projection.open_positions.keys())
+            unresolved_pos = sorted(
+                getattr(view.projection, "unresolved_positions", {}).keys()
+            )
+        else:
+            durable_open = unresolved_pos = None
         memory_open = sorted(str(p.pos_id) for p in simulator._positions.values())
+        if declaration is not None:
+            started_now = getattr(simulator, "_ppl_started_transitions", None)
+            chain_valid = view is not None and is_observed(ledger, "ledger_sha256")
+            counters["lifecycle_transitions_detail"] = observed(
+                _transition_detail(
+                    started_now if isinstance(started_now, set) else set(),
+                    view.events if view is not None else (),
+                    memory_open,
+                    chain_valid,
+                ),
+                "diagnostic only: durable/memory comparison per started key "
+                "(never changes lifecycle_transitions_in_flight)",
+            )
+            counters["code_sha_provenance"] = observed(
+                str(declaration.get("code_sha_provenance")),
+                f"{GATE_WIRING_PROTOCOL} declaration (configuration, not attestation)",
+            )
+            counters["module_sha256"] = observed(
+                declaration.get("module_sha256"),
+                str(declaration.get("module_sha256_provenance")),
+            )
         generation = getattr(simulator, "_legacy_generation", None)
         orders = getattr(simulator, "_orders", None)
         if isinstance(orders, dict):
@@ -646,7 +756,7 @@ def observe_runtime(
             gate_value = unresolved("gate state unreadable")
             marker_value = unresolved("gate marker unreadable")
     prov_mem = "set equality under sim._lock then runtime._lock"
-    if is_observed(ledger, "ledger_sha256"):
+    if view is not None and is_observed(ledger, "ledger_sha256"):
         matches = observed(memory_open == durable_open, prov_mem)
     else:
         matches = unresolved("ledger unreadable: memory/durable comparison not trusted")
@@ -664,10 +774,14 @@ def observe_runtime(
         **ledger,
         "durable_open_positions": observed(
             durable_open, "consistent_view().projection.open_positions"
-        ),
+        )
+        if durable_open is not None
+        else unresolved("authority view unreadable"),
         "durable_unresolved_positions": observed(
             unresolved_pos, "consistent_view().projection.unresolved_positions"
-        ),
+        )
+        if unresolved_pos is not None
+        else unresolved("authority view unreadable"),
         "memory_open_positions": observed(
             memory_open, "simulator._positions under lock"
         ),
@@ -689,6 +803,7 @@ def observe_runtime(
         if type(generation) is int
         else unknown("simulator generation unavailable"),
     }
+    body.update(counters)  # lot A v1.3: only with a valid counters declaration
     for name in PROCESS_FIELDS:
         body[name] = (
             dict(identity[name])
