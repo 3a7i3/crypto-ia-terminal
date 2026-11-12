@@ -93,6 +93,9 @@ class WriteResult(str, Enum):
     REJECTED_STALE = "REJECTED_STALE"
     REJECTED_ADMISSION = "REJECTED_ADMISSION"
     REJECTED_FROZEN = "REJECTED_FROZEN"
+    # PPL-QUIESCENCE-01 C1a — refused by the persisted admission gate;
+    # the typed gate code is carried in ``anomaly``.  Additive value.
+    REJECTED_GATE_CLOSED = "REJECTED_GATE_CLOSED"
 
 
 class MissingAdmissionVerdict(Exception):

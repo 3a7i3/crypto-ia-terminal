@@ -16,8 +16,11 @@ Variables d'env :
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
 import math
 import os
+import re
 import threading
 import time
 import uuid
@@ -64,6 +67,32 @@ _RESTORE_MAX_AGE_S = float(os.getenv("SIM_RESTORE_MAX_AGE_H", "4")) * 3600
 _MAX_POSITION_AGE_H = float(os.getenv("MEXC_SIM_MAX_AGE_H", "8.0"))
 
 _LEGACY_ADMISSION_FREEZE_ENV = "PAPER_LEGACY_ADMISSIONS_FROZEN"
+
+# PPL-QUIESCENCE-01 lot C1a (contract v0.3).  Constants, never read from the
+# environment: the admission gate only bounds how long an OPEN may wait for the
+# gate journal flock; it never changes strategy, sizing, fees or capital.
+_GATE_LOCK_TIMEOUT_S = 0.25
+GATE_WIRING_PROTOCOL = "PPL-GATE-WIRING-V1"
+COUNTERS_PROTOCOL = "PPL-QUIESCENCE-COUNTERS-V1"
+_CODE_SHA_RE = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})")
+
+
+class GateWiringRefusal(ValueError):
+    """An admission gate cannot be wired into this simulator (fail at construction)."""
+
+
+def _module_file_sha256(path: Optional[str]) -> Optional[str]:
+    """Informative only: bytes of the file on disk at construction time.
+
+    Not an attestation of the code actually imported (contract C1 §6).
+    """
+    if not path:
+        return None
+    try:
+        with open(path, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+    except OSError:
+        return None
 
 
 def _legacy_admissions_frozen_from_env() -> bool:
@@ -129,6 +158,9 @@ class MexcOrder:
     # PPL-02D — explicit decision provenance (DecisionPacket.packet_id when
     # an actual packet exists). Never a trace_id/cycle_id/order_id alias.
     decision_id: Optional[str] = None
+    # PPL-QUIESCENCE-01 C1a — typed refusal code of the admission gate
+    # (``ppl_admission_gate.GATE_*``); ``None`` for every other outcome.
+    reject_code: Optional[str] = None
 
 
 @dataclass
@@ -290,6 +322,8 @@ class MexcSimulator:
         shadow_observer=None,
         lifecycle_authority=None,
         authority_runtime=None,
+        admission_gate=None,
+        gate_wiring_code_sha: Optional[str] = None,
     ) -> None:
         from paper_trading.paper_authority import (
             PaperLifecycleAuthority,
@@ -344,6 +378,61 @@ class MexcSimulator:
                 raise ValueError("PPL_AUTHORITY cannot run with PPL SHADOW observer")
             if self._authority_runtime is None:
                 raise ValueError("PPL_AUTHORITY requires an authority_runtime")
+        # PPL-QUIESCENCE-01 C1a — dedicated counters, mutated and read only
+        # under self._lock (contract §5).  Maintained in PPL_AUTHORITY mode with
+        # or without a gate; published by the observer only with a valid
+        # PPL-GATE-WIRING-V1 declaration.
+        self._ppl_admissions_in_flight: int = 0
+        self._ppl_started_transitions: set[tuple[str, str]] = set()
+        self._admission_gate = None
+        self._wire_admission_gate(admission_gate, gate_wiring_code_sha)
+
+    def _wire_admission_gate(self, gate, code_sha: Optional[str]) -> None:
+        """Validate and bind an optional admission gate (contract C1 §3)."""
+        if gate is None:
+            if code_sha is not None:
+                raise GateWiringRefusal("gate_wiring_code_sha given without a gate")
+            return
+        if not self._lifecycle_authority.ppl_is_authoritative:
+            raise GateWiringRefusal("an admission gate requires PPL_AUTHORITY")
+        if self._authority_runtime is None:
+            raise GateWiringRefusal("an admission gate requires an authority_runtime")
+        from paper_trading.ppl_authority_runtime import authority_manifest_sha256
+
+        manifest = self._authority_runtime.manifest
+        if getattr(gate, "paper_epoch_id", None) != manifest.paper_epoch_id:
+            raise GateWiringRefusal("admission gate is bound to another epoch")
+        if getattr(gate, "manifest_sha256", None) != authority_manifest_sha256(
+            manifest
+        ):
+            raise GateWiringRefusal("admission gate is bound to another manifest")
+        if not callable(getattr(gate, "admission_hold", None)):
+            raise GateWiringRefusal("admission gate exposes no admission_hold")
+        if code_sha is not None and (
+            not isinstance(code_sha, str) or not _CODE_SHA_RE.fullmatch(code_sha)
+        ):
+            raise GateWiringRefusal("gate_wiring_code_sha must be 40 or 64 lowercase hex")
+        self._admission_gate = gate
+        if code_sha is None:
+            return  # no declaration: the observer keeps UNKNOWN
+        import paper_trading.ppl_admission_gate as _gate_module
+
+        # A configuration declaration, never an attestation (contract §6):
+        # code_sha comes from the caller and is never copied from the manifest.
+        self.ppl_gate_wiring_v1 = {
+            "protocol": GATE_WIRING_PROTOCOL,
+            "code_sha": code_sha,
+            "code_sha_provenance": "CONSTRUCTOR_DECLARED",
+            "consults_gate_under_lock": True,
+            "counters_protocol": COUNTERS_PROTOCOL,
+            "module_sha256": {
+                "paper_trading/mexc_simulator.py": _module_file_sha256(__file__),
+                "paper_trading/ppl_admission_gate.py": _module_file_sha256(
+                    getattr(_gate_module, "__file__", None)
+                ),
+            },
+            "module_sha256_provenance": "FILE_BYTES_AT_CONSTRUCTION",
+        }
 
     # ── Démarrage ─────────────────────────────────────────────────────────────
 
@@ -796,7 +885,11 @@ class MexcSimulator:
         elif order.status == OrderStatus.REJECTED:
             # Distingue duplicate (position déjà présente) vs autres rejets
             # (capital insuffisant, prix indisponible, écart OHLCV/ticker).
-            if order.symbol in self._positions and ctx.n_before == n_after:
+            if order.reject_code is not None:
+                # PPL-QUIESCENCE-01 C1a — admission gate refusal, typed.
+                write_result = WriteResult.REJECTED_GATE_CLOSED
+                anomaly = order.reject_code
+            elif order.symbol in self._positions and ctx.n_before == n_after:
                 write_result = WriteResult.REJECTED_DUPLICATE
                 anomaly = ""
             else:
@@ -883,7 +976,47 @@ class MexcSimulator:
         _freeze_reject = self._reject_legacy_admission_if_frozen(symbol, "MARKET")
         if _freeze_reject is not None:
             return _freeze_reject
+        _args = (
+            symbol,
+            side,
+            qty_usd,
+            tp_pct,
+            sl_pct,
+            score,
+            personality,
+            current_price,
+            regime,
+            admission,
+            cycle_id,
+            decision_id,
+        )
+        if not self._lifecycle_authority.ppl_is_authoritative:
+            return self._place_market_order_admitted(*_args)
+        # PPL-QUIESCENCE-01 C1a §5.1 — admissions_in_flight covers every exit
+        # path below (returns and any exception, BaseException included).
+        with self._lock:
+            self._ppl_admissions_in_flight += 1
+        try:
+            return self._place_market_order_admitted(*_args)
+        finally:
+            with self._lock:
+                self._ppl_admissions_in_flight -= 1
 
+    def _place_market_order_admitted(
+        self,
+        symbol: str,
+        side: str,
+        qty_usd: float,
+        tp_pct: float,
+        sl_pct: float,
+        score: int,
+        personality: str,
+        current_price: float,
+        regime: str,
+        admission: "Optional[AdmissionVerdict]",
+        cycle_id: str,
+        decision_id: Optional[str],
+    ) -> Optional[MexcOrder]:
         # ── Enveloppe admission (Phase 5.2.5) ─────────────────────────────
         _adm_ctx = self._enter_admission(symbol, admission, cycle_id)
         if _adm_ctx is not None and _adm_ctx.short_circuit_order is not None:
@@ -1082,17 +1215,41 @@ class MexcSimulator:
                 recovery_eligible_until=recovery_until,
                 decision_id=order.decision_id,
             )
-            try:
-                self._authority_runtime.commit_open(**facts)
-            except OSError:
-                if order.order_id not in (
-                    self._authority_runtime.consistent_view().projection.open_positions
-                ):
-                    raise
-                # The OPEN is visible but its durability was not confirmed
-                # (e.g. fsync). Retry the exact same fact once: the store's
-                # idempotence re-confirms it, or the error propagates again.
-                self._authority_runtime.commit_open(**facts)
+            # PPL-QUIESCENCE-01 C1a §4.2 — with a gate, the OPEN is admitted
+            # only if the gate check returns GATE_OPEN, and the gate flock is
+            # held until commit_open has returned (or raised).  Body exceptions
+            # are never intercepted by the gate (contract v0.2 C-01).
+            transition = ("OPEN", order.order_id)
+            gate = self._admission_gate
+            hold = (
+                gate.admission_hold(lock_timeout_s=_GATE_LOCK_TIMEOUT_S)
+                if gate is not None
+                else contextlib.nullcontext(None)
+            )
+            refused_code: Optional[str] = None
+            with hold as check:
+                if check is not None and not check.permitted:
+                    refused_code = check.code
+                else:
+                    self._ppl_started_transitions.add(transition)
+                    try:
+                        self._authority_runtime.commit_open(**facts)
+                    except OSError:
+                        if order.order_id not in (
+                            self._authority_runtime.consistent_view().projection.open_positions
+                        ):
+                            raise
+                        # The OPEN is visible but its durability was not confirmed
+                        # (e.g. fsync). Retry the exact same fact once: the store's
+                        # idempotence re-confirms it, or the error propagates again.
+                        self._authority_runtime.commit_open(**facts)
+            if refused_code is not None:
+                order.status = OrderStatus.REJECTED
+                order.reject_code = refused_code
+                self._notify(
+                    f"[SIM] REJETE {order.symbol} — gate d'admission {refused_code}"
+                )
+                return order
             authority_state = self._authority_runtime.consistent_view().projection
             pos = MexcPosition(
                 pos_id=order.order_id,
@@ -1117,6 +1274,8 @@ class MexcSimulator:
             order.fill_ts = opened_at
             order.status = OrderStatus.FILLED
             self._legacy_generation += 1
+            # C1a §5.2 — transition finished: memory updated for this key.
+            self._ppl_started_transitions.discard(transition)
         try:
             self._authority_runtime.sync_compatibility()
         except Exception as exc:
@@ -1383,6 +1542,9 @@ class MexcSimulator:
                 fee = float(durable.payload["exit_fee"])
                 closed_at = float(durable.timestamp)
                 decision_id = durable.decision_id
+            # C1a §5.2 — CLOSE is never gated; only the transition is tracked.
+            transition = ("CLOSE", pos.pos_id)
+            self._ppl_started_transitions.add(transition)
             self._authority_runtime.commit_close(
                 trade_id=pos.pos_id,
                 exit_price=fill,
@@ -1405,6 +1567,7 @@ class MexcSimulator:
             self._closed.append(pos)
             self._capital = authority_state.available_cash
             self._legacy_generation += 1
+            self._ppl_started_transitions.discard(transition)
         try:
             self._authority_runtime.sync_compatibility()
         except Exception as exc:
