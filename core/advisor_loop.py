@@ -3470,7 +3470,7 @@ def main(
     _sleep=time.sleep,
 ) -> None:
     _acquire_instance_lock()
-    _check_critical_deps()
+    _c1b_prepared = _c1b_check_deps_and_prepare()  # C1b §7.1 (None without C1b)
 
     runtime = runtime or load_advisor_runtime()
 
@@ -3671,8 +3671,8 @@ def main(
         "yes",
     }
 
-    _paper_lifecycle_authority, _ppl_authority_runtime = (
-        _bootstrap_paper_lifecycle_authority(_paper_trading_enabled)
+    _paper_lifecycle_authority, _ppl_authority_runtime, _c1b_wiring = (
+        _c1b_bootstrap(_paper_trading_enabled, _c1b_prepared)  # C1b §7.2
     )
     startup_light = advisor_only and ADVISOR_STARTUP_LIGHT
     prewarm_1h_enabled = ADVISOR_PREWARM_1H
@@ -5770,6 +5770,7 @@ def main(
                 shadow_observer=_ppl_shadow_observer,
                 lifecycle_authority=_paper_lifecycle_authority,
                 authority_runtime=_ppl_authority_runtime,
+                **(_c1b_wiring.simulator_kwargs() if _c1b_wiring is not None else {}),
             )
             _virtual_portfolio.start()
             log.info("[SIM] MexcSimulator initialise")
@@ -5916,6 +5917,14 @@ def main(
         _fin02_runtime_writer = None
 
     while True:
+        if _c1b_wiring is not None and _c1b_wiring.stop_requested:
+            # C1b: a started cycle always completes; the stop is taken here.
+            log.info("[C1b] arrêt demandé (signal %s)", _c1b_wiring.stop_signum)
+            _stop_runtime_services()
+            if _c1b_wiring.stop_by_sigint:
+                _telegram("Crypto AI Terminal arrete manuellement.")
+            _clean_exit = True
+            break
         cycle += 1
         cycle_completed = False
         shed_optional_work = cycle <= shed_optional_until_cycle
@@ -5947,7 +5956,11 @@ def main(
             # code source pour ce chemin).
             # Intervalle 0.5s pour une reprise quasi-immédiate après la levée.
             while kill_switch.is_halted() or _halt_requested.is_set():
+                if _c1b_wiring is not None and _c1b_wiring.stop_requested:
+                    break
                 time.sleep(0.5)
+            if _c1b_wiring is not None and _c1b_wiring.stop_requested:
+                continue  # C1b: orderly stop handled at the top of the loop
             log.info("[main] Kill switch levé — reprise boucle")
             _telegram("Kill Switch leve — reprise du cycle normal.")
             # Réinitialise l'état d'urgence P10-F une fois _halt_requested
@@ -8734,12 +8747,91 @@ def main(
             _start_healer()
 
         log.info("Prochain cycle dans %ds...", interval)
-        _sleep(interval)
+        if _c1b_wiring is not None:
+            _c1b_wiring.wait_stop(interval)  # C1b: interruptible by SIGTERM/SIGINT
+        else:
+            _sleep(interval)
+
+    if _c1b_wiring is not None and _clean_exit:
+        _c1b_shutdown_or_exit(  # C1b §6: O then SENTINEL; sys.exit(3) unless SEALED
+            _c1b_wiring, _virtual_portfolio, _ppl_authority_runtime, _op_process_instance_id
+        )
 
     if not _clean_exit:
         log.critical("[main] Sortie anormale — sys.exit(1)")
         sys.exit(1)
 
+
+
+_C1B_ENV_VARS = (
+    "PPL_ADMISSION_GATE_JOURNAL",
+    "PPL_QUIESCENCE_PROOF_DIR",
+    "PPL_ADVISOR_IDENTITY_LOCK",
+)
+
+
+def _c1b_check_deps_and_prepare():
+    """PPL-QUIESCENCE-01 lot C1b (contract C1b v0 §7.1, opt-in).
+
+    Runs the existing ``_check_critical_deps()`` then, only when a C1b variable
+    is non-empty, imports the C1b module, validates the configuration without
+    creating anything, takes the identity lock and installs the flag-only
+    SIGTERM/SIGINT handlers: before any service and before the authority
+    bootstrap.  Without C1b: no import, returns ``None``.  Any refusal is fatal.
+    The C1b helpers are defined after ``main()`` so that the line numbers of
+    ``main()`` cited by the documentation and tests stay unchanged.
+    """
+    _check_critical_deps()
+    if not any(os.getenv(name, "").strip() for name in _C1B_ENV_VARS):
+        return None
+    from paper_trading import ppl_quiescence_c1b as c1b
+
+    try:
+        return c1b.prepare_from_env(os.environ, legacy_lock_path=_LOCK_FILE)
+    except c1b.C1bRefusal as exc:
+        log.critical("[C1b] refus au démarrage: %s", exc)
+        raise SystemExit(f"[C1b] refus au démarrage: {exc}") from exc
+
+
+def _c1b_bootstrap(paper_trading_enabled: bool, prepared):
+    """Authority bootstrap (body unchanged), then C1b wiring (contract §7.2)."""
+    authority, authority_runtime = _bootstrap_paper_lifecycle_authority(
+        paper_trading_enabled
+    )
+    if prepared is None:
+        return authority, authority_runtime, None
+    from observability.source_evidence import capture_source_evidence
+    from paper_trading import ppl_quiescence_c1b as c1b
+
+    try:
+        wiring = c1b.bind_wiring(
+            prepared, authority, authority_runtime, capture_fn=capture_source_evidence
+        )
+    except c1b.C1bRefusal as exc:
+        log.critical("[C1b] refus au démarrage: %s", exc)
+        raise SystemExit(f"[C1b] refus au démarrage: {exc}") from exc
+    return authority, authority_runtime, wiring
+
+
+def _c1b_shutdown_or_exit(wiring, simulator, authority_runtime, process_instance_id):
+    """C1b §6: OBSERVATION then SENTINEL.  Returns only when SEALED, otherwise
+    ``sys.exit(3)``.  Even SEALED is never an attested stop: only the external
+    witness and ``assess`` can conclude (at best ``SEALED_THEN_STOPPED``)."""
+    from paper_trading import ppl_quiescence_c1b as c1b
+
+    outcome = c1b.shutdown_proof(
+        wiring,
+        simulator,
+        authority_runtime,
+        process_instance_id=process_instance_id,
+    )
+    if not outcome.sealed:
+        log.critical(
+            "[C1b] preuve d'arrêt non scellée (%s) — sys.exit(%d)",
+            outcome.status,
+            outcome.exit_code,
+        )
+        sys.exit(outcome.exit_code)
 
 
 def _bootstrap_paper_lifecycle_authority(paper_trading_enabled: bool):
