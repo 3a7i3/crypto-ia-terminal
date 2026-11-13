@@ -1455,23 +1455,45 @@ def test_b11a_journal_of_another_epoch_reads_invalid_and_refuses_open(layout):
 # ------------------------------------------------------------- L6: stress
 
 
-def test_l6_stress_no_deadlock_no_torn_transition(layout):
-    """OPEN in a loop, monitor-like CLOSE, concurrent observations and a burst
-    of SIGTERM delivered while commits run: no blocking (bounded joins), the
-    handler only sets the flag, counters return to zero and the ledger stays
-    consistent (every OPEN is either still open or closed exactly once)."""
-    world = World(layout)
+# L6 liveness oracle.  A deadlock is the absence of progress, not a slow run:
+# the stress workload re-reads the whole ledger on every OPEN, CLOSE and
+# observation (cost O(n) per step, O(n^2) per run), so its wall-clock time
+# depends on the host and on tracing (pytest --cov).  The oracle therefore
+# fails when the opener completes no iteration for L6_STALL_S seconds, or when
+# a thread is still alive L6_JOIN_S seconds after stop.  Both windows are an
+# order of magnitude above the longest single step observed under coverage.
+L6_OPENS = 200
+L6_STALL_S = 20.0
+L6_JOIN_S = 20.0
+
+
+def _l6_run(
+    world,
+    layout,
+    *,
+    observe=None,
+    stall_s=L6_STALL_S,
+    join_s=L6_JOIN_S,
+    release_on_stall=None,
+):
     stop = threading.Event()
     errors: list[BaseException] = []
     iterations = {"open": 0, "observe": 0, "signals": 0}
+    last_progress = [time.monotonic()]
+    max_gap = [0.0]
 
     def opener():
         try:
-            for i in range(200):
+            for i in range(L6_OPENS):
+                if stop.is_set():
+                    break
                 world.sim.place_market_order(
                     "BTC/USDT", "BUY", 1.0, current_price=100.0 + (i % 3)
                 )
                 iterations["open"] += 1
+                now = time.monotonic()
+                max_gap[0] = max(max_gap[0], now - last_progress[0])
+                last_progress[0] = now
         except BaseException as exc:  # noqa: BLE001
             errors.append(exc)
         finally:
@@ -1486,22 +1508,25 @@ def test_l6_stress_no_deadlock_no_torn_transition(layout):
         except BaseException as exc:  # noqa: BLE001
             errors.append(exc)
 
+    def observe_once():
+        qp.observe_runtime(
+            world.sim,
+            world.runtime,
+            manifest=world.manifest,
+            manifest_sha256=world.manifest_sha,
+            gate=world.wiring.gate,
+            identity=qp.current_process_identity(
+                process_instance_id="stress",
+                lock_path=str(layout.identity_lock),
+                lock_fd=world.prepared.identity_lock.fd,
+            ),
+            source_sha=CODE,
+        )
+
     def observer():
         try:
             while not stop.is_set():
-                qp.observe_runtime(
-                    world.sim,
-                    world.runtime,
-                    manifest=world.manifest,
-                    manifest_sha256=world.manifest_sha,
-                    gate=world.wiring.gate,
-                    identity=qp.current_process_identity(
-                        process_instance_id="stress",
-                        lock_path=str(layout.identity_lock),
-                        lock_fd=world.prepared.identity_lock.fd,
-                    ),
-                    source_sha=CODE,
-                )
+                (observe or observe_once)()
                 iterations["observe"] += 1
         except BaseException as exc:  # noqa: BLE001
             errors.append(exc)
@@ -1512,16 +1537,44 @@ def test_l6_stress_no_deadlock_no_torn_transition(layout):
     started = time.monotonic()
     for th in threads:
         th.start()
-    while not stop.is_set() and time.monotonic() - started < 60:
+    stalled = False
+    while not stop.is_set():
+        if time.monotonic() - last_progress[0] > stall_s:
+            stalled = True
+            stop.set()
+            break
         os.kill(os.getpid(), signal.SIGTERM)  # handled by the main thread: flag only
         iterations["signals"] += 1
         time.sleep(0.001)
+    # Unblock a deliberately wedged worker before reaping it.  Even on stall,
+    # a single shared deadline covers all joins (no 3 × timeout budget).
+    if stalled and release_on_stall is not None:
+        release_on_stall.set()
+    deadline = time.monotonic() + join_s
     for th in threads:
-        th.join(60)
-        assert not th.is_alive(), "deadlock"
-    assert errors == []
-    assert time.monotonic() - started < 60
-    assert iterations["open"] == 200 and iterations["signals"] > 0
+        th.join(max(0.0, deadline - time.monotonic()))
+    return SimpleNamespace(
+        stalled=stalled,
+        alive=[th for th in threads if th.is_alive()],
+        errors=errors,
+        iterations=iterations,
+        elapsed=time.monotonic() - started,
+        max_gap=max_gap[0],
+    )
+
+
+def test_l6_stress_no_deadlock_no_torn_transition(layout):
+    """OPEN in a loop, monitor-like CLOSE, concurrent observations and a burst
+    of SIGTERM delivered while commits run: no blocking (progress oracle and
+    bounded joins), the handler only sets the flag, counters return to zero
+    and the ledger stays consistent (every OPEN is either still open or closed
+    exactly once)."""
+    world = World(layout)
+    run = _l6_run(world, layout)
+    assert not run.stalled, f"deadlock: no OPEN progress for {L6_STALL_S}s"
+    assert run.alive == [], "deadlock"
+    assert run.errors == []
+    assert run.iterations["open"] == L6_OPENS and run.iterations["signals"] > 0
     assert world.prepared.signals.requested is True
     assert world.sim._ppl_admissions_in_flight == 0
     assert (
@@ -1536,3 +1589,108 @@ def test_l6_stress_no_deadlock_no_torn_transition(layout):
     assert len(opened) - len(closed) == len(world.sim._positions)
     out = world.shutdown()
     assert out.status == c1b.SEALED
+
+
+def test_l6_oracle_detects_a_wedged_lock(layout):
+    """A lock owner verified before OPEN starts must be detected as a stall.
+
+    The oracle releases the obstruction and reaps *all* workers before the
+    fixture cleanup; a failed assertion cannot strand workers in pytest.
+    """
+    world = World(layout)
+    held = threading.Event()
+    release = threading.Event()
+    attempted = threading.Event()
+
+    def hold_lock():
+        with world.sim._lock:
+            held.set()
+            release.wait()
+
+    owner = threading.Thread(target=hold_lock, daemon=True)
+    owner.start()
+    assert held.wait(timeout=10), "lock owner failed to start"
+    original_place = world.sim.place_market_order
+
+    def attempted_place(*args, **kwargs):
+        attempted.set()
+        return original_place(*args, **kwargs)
+
+    world.sim.place_market_order = attempted_place
+    try:
+        run = _l6_run(
+            world,
+            layout,
+            stall_s=2.0,
+            join_s=20.0,
+            release_on_stall=release,
+        )
+    finally:
+        release.set()
+        owner.join(timeout=20)
+    assert not owner.is_alive(), "lock owner leaked"
+    assert attempted.is_set(), "OPEN did not attempt to acquire the lock"
+    assert run.stalled is True
+    assert run.alive == [], "worker leaked after stall"
+    assert run.errors == []
+    assert run.iterations["open"] < L6_OPENS
+
+
+def test_l6_oracle_detects_abba_deadlock_in_isolated_process():
+    """True lock-order inversion is contained in a bounded child process.
+
+    A worker deadlocked on a non-interruptible threading.Lock cannot be
+    safely killed from another Python thread; the subprocess is the cleanup
+    boundary.  No deadlocked worker can escape into pytest's next test.
+    """
+    result = _py(
+        r"""
+import os
+import tempfile
+import threading
+from pathlib import Path
+from tests.paper_trading.test_ppl_quiescence_c1b import Layout, World, _l6_run, L6_OPENS
+
+with tempfile.TemporaryDirectory(prefix="c1b-l6-abba-") as tmp:
+    os.environ["PAPER_ADMISSION_LEDGER"] = str(Path(tmp) / "admission.jsonl")
+    layout = Layout(Path(tmp))
+    world = World(layout)
+    opener_has_sim = threading.Event()
+    observer_has_runtime = threading.Event()
+    place = world.sim.place_market_order
+
+    def reversed_observer():
+        with world.runtime._lock:
+            observer_has_runtime.set()
+            if not opener_has_sim.wait(timeout=10):
+                raise RuntimeError("OPEN did not acquire simulator lock")
+            with world.sim._lock:
+                pass
+
+    def hooked_place(*args, **kwargs):
+        # simulator -> runtime: the inverse of reversed_observer.  The
+        # simulator lock is a plain Lock, so it must not be held across the
+        # real OPEN (that would be a self-deadlock, not an ABBA).
+        with world.sim._lock:
+            opener_has_sim.set()
+            if not observer_has_runtime.wait(timeout=10):
+                raise RuntimeError("observer did not acquire runtime lock")
+            with world.runtime._lock:
+                pass
+        return place(*args, **kwargs)
+
+    world.sim.place_market_order = hooked_place
+    run = _l6_run(world, layout, observe=reversed_observer, stall_s=3.0, join_s=0.1)
+    assert opener_has_sim.is_set() and observer_has_runtime.is_set()
+    assert run.stalled and run.iterations["open"] < L6_OPENS
+    assert run.alive, "ABBA unexpectedly resolved"
+    assert run.errors == []
+    print("ABBA_STALL_DETECTED", flush=True)
+""",
+        timeout=25.0,
+    )
+    assert result.returncode == 0, (
+        f"ABBA subprocess failed (rc={result.returncode}): "
+        f"stdout={result.stdout[-1000:]}, stderr={result.stderr[-1000:]}"
+    )
+    assert "ABBA_STALL_DETECTED" in result.stdout
