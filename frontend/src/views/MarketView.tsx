@@ -1,3 +1,5 @@
+import { SpotRadarMap } from "./SpotRadarMap";
+import { IntradayBubbleMap } from "./IntradayBubbleMap";
 import { MarketFlowView } from "./MarketFlowView";
 import React, { useState, useEffect, useRef } from "react";
 import { useMarketSnapshot } from "../lib/marketClient";
@@ -286,6 +288,8 @@ const MarketScanner: React.FC = () => {
 const marketTabs = ["Scanner", "Comparaison des plateformes", "Flux"];
 
 export const MarketView: React.FC = () => {
+  const [radar, setRadar] = useState(() => new URLSearchParams(window.location.search).get("radar") !== "0" && new URLSearchParams(window.location.search).get("intraday") !== "1");
+  const [intraday, setIntraday] = useState(() => new URLSearchParams(window.location.search).get("intraday") === "1");
   const [active, setActive] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const choose = (next: number) => { setActive(next); tabs.current[next]?.focus(); };
@@ -302,7 +306,7 @@ export const MarketView: React.FC = () => {
     </div>
     {marketTabs.map((label, i) => {
       return <div key={label} role="tabpanel" id={"market-panel-" + i} aria-labelledby={"market-tab-" + i} hidden={active !== i}>
-        {active === i && (i === 0 ? <MarketScanner/> : i === 1 ? <MarketVenuesView/> : <MarketFlowView/>)}
+        {active === i && (i === 0 ? <><div className="market-display-choice" role="group" aria-label="Produit du scanner"><button type="button" aria-pressed={radar} onClick={()=>setRadar(true)}>Radar Spot MEXC</button><button type="button" aria-pressed={intraday&&!radar} onClick={()=>{setRadar(false);setIntraday(true);}}>Bulles Intraday</button><button type="button" aria-pressed={!intraday&&!radar} onClick={()=>{setRadar(false);setIntraday(false);}}>CryptoRadar historique</button></div>{radar ? <SpotRadarMap/> : intraday ? <IntradayBubbleMap/> : <MarketScanner/>}</> : i === 1 ? <MarketVenuesView/> : <MarketFlowView/>)}
       </div>;
     })}
   </div>;

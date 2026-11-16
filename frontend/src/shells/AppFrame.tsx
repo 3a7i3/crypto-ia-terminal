@@ -2,9 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { AppIcon } from "../components/AppIcon";
 import { AppearanceSettings } from "../components/AppearanceSettings";
+import { useDisplayLayout } from "../lib/useDisplayLayout";
 import { MODULES } from "../lib/moduleNavigation";
 
 export const AppFrame: React.FC = () => {
+  useDisplayLayout();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);

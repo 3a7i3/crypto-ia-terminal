@@ -5,6 +5,7 @@ import "./operator.css";
 import "./clarity.css";
 import "./mobile-operator.css";
 import "./workspace.css";
+import "./radar-polish.css";
 import { AppFrame } from "./shells/AppFrame";
 import { DirectionShell } from "./shells/DirectionShell";
 import { PaperLiveShell } from "./shells/PaperLiveShell";
@@ -17,7 +18,7 @@ import {
   PortfolioRoute,
   SystemRoute,
 } from "./router/PaperLiveRoutes";
-import { ModuleHome } from "./views/ModuleHome";
+
 import { MachineWorkboardView } from "./views/MachineWorkboardView";
 import { EventsView } from "./views/EventsView";
 import { NotFoundView } from "./views/NotFoundView";
@@ -28,12 +29,12 @@ const App: React.FC = () => (
   <BrowserRouter>
     <Routes>
       <Route element={<AppFrame />}>
-        <Route path="/" element={<Navigate to="/direction" replace />} />
+        <Route path="/" element={<Navigate to="/paper-live/market" replace />} />
         <Route path="/paper-live" element={<PaperLiveShell />}>
-          <Route index element={<Navigate to="/direction" replace />} />
+          <Route index element={<Navigate to="/paper-live/market" replace />} />
           <Route
             path="overview"
-            element={<Navigate to="/direction" replace />}
+            element={<Navigate to="/paper-live/market" replace />}
           />
           <Route path="market" element={<MarketRoute />} />
           <Route path="portfolio" element={<PortfolioRoute />} />
@@ -52,7 +53,7 @@ const App: React.FC = () => (
           />
         </Route>
         <Route path="/direction" element={<DirectionShell />}>
-          <Route index element={<ModuleHome />} />
+          <Route index element={<Navigate to="/paper-live/market" replace />} />
           <Route path="travaux" element={<MachineWorkboardView />} />
         </Route>
         <Route path="/research" element={<ResearchShell />}>

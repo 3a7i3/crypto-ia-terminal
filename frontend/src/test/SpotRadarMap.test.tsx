@@ -1,0 +1,17 @@
+import {beforeEach,afterEach,it,expect,vi} from "vitest";
+import {render,screen,fireEvent,act,cleanup} from "@testing-library/react";
+import {SpotRadarMap} from "../views/SpotRadarMap";
+import {fetchRadar,RadarError} from "../lib/spotRadarClient";
+import fixture from "./fixtures/spotRadar-scanner.json";
+import history from "./fixtures/spotRadar-ohlcv.json";
+vi.mock("../lib/spotRadarClient",async original=>({...await original<typeof import("../lib/spotRadarClient")>(),fetchRadar:vi.fn()}));
+let data:typeof fixture;
+beforeEach(()=>{data=structuredClone(fixture);vi.spyOn(Date,"now").mockReturnValue(Number(data.server_time_ms));vi.mocked(fetchRadar).mockImplementation(async kind=>(kind==="ohlcv"?history:data) as never);});
+afterEach(()=>{cleanup();vi.restoreAllMocks();vi.clearAllMocks();});
+it("shows observed population and bounded collector",async()=>{render(<SpotRadarMap/>);await screen.findByText("Market Radar · MEXC Spot");await screen.findByText("30 / 30");expect(screen.getByText("Observation uniquement",{exact:false})).toBeTruthy();});
+it("filters symbols and exposes a list alternative",async()=>{render(<SpotRadarMap/>);await screen.findByText("30 / 30");fireEvent.change(screen.getByLabelText("Rechercher un symbole Radar"),{target:{value:"BTC"}});expect(screen.getAllByRole("button",{name:/MEXC Spot/})).toHaveLength(1);fireEvent.click(screen.getByRole("button",{name:"≡ Liste"}));expect(document.querySelector(".intraday-list")).toBeTruthy();});
+it("opens detail, loads history on demand, Escape restores focus",async()=>{render(<SpotRadarMap/>);const b=await screen.findByRole("button",{name:/BTC\/USDT · MEXC Spot/});b.focus();fireEvent.click(b);await screen.findByRole("dialog");await screen.findByText("Dernières bougies M5 · valeurs exactes");expect(fetchRadar).toHaveBeenCalledWith("ohlcv",{symbol:"BTCUSDT",timeframe:"M5"},expect.any(AbortSignal));fireEvent.keyDown(screen.getByRole("dialog"),{key:"Escape"});expect(screen.queryByRole("dialog")).toBeNull();expect(document.activeElement).toBe(b);});
+it("never labels a synthetic fixture LIVE",async()=>{data.evidence_kind="SYNTHETIC";data.rows.forEach(r=>r.freshness.state="SYNTHETIC");render(<SpotRadarMap/>);await screen.findByText("◆ SYNTHETIC");expect(screen.queryByText("● LIVE qualifié")).toBeNull();});
+it("retains observed values as DISCONNECTED after transport failure",async()=>{render(<SpotRadarMap/>);await screen.findByText("30 / 30");vi.mocked(fetchRadar).mockRejectedValueOnce(new RadarError("TRANSPORT_ERROR"));fireEvent.click(screen.getByRole("button",{name:"Actualiser"}));await screen.findByRole("alert");expect(screen.getAllByRole("button",{name:/MEXC Spot · DISCONNECTED/})).toHaveLength(30);});
+it("renders unavailable and empty states",async()=>{vi.mocked(fetchRadar).mockRejectedValueOnce(new RadarError("HTTP_503",503));const v=render(<SpotRadarMap/>);await screen.findByRole("alert");v.unmount();data.rows=[];data.observed_instruments=0;render(<SpotRadarMap/>);await screen.findByText("Aucun instrument pour ces filtres.");});
+it("polls automatically without opening a producer",async()=>{vi.useFakeTimers();try{render(<SpotRadarMap/>);await act(async()=>{await vi.advanceTimersByTimeAsync(0);});expect(fetchRadar).toHaveBeenCalledTimes(1);await act(async()=>{await vi.advanceTimersByTimeAsync(15_000);});expect(fetchRadar).toHaveBeenCalledTimes(2);}finally{cleanup();vi.useRealTimers();}});

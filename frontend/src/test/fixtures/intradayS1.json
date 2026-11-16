@@ -1,0 +1,217 @@
+{
+  "health": {
+    "collector_status": "NOT_ATTESTED",
+    "counts": {
+      "admitted": 3,
+      "conflicts": 0,
+      "duplicates": 0,
+      "input": 3,
+      "rejected": 0
+    },
+    "distinct_instruments": 3,
+    "evidence_kind": "SYNTHETIC",
+    "io": {
+      "bytes_read": 256,
+      "pages_read": 0,
+      "validated_rows": 0
+    },
+    "population": "OBSERVATIONS",
+    "provenance": {
+      "as_of_epoch_s": "200",
+      "coverage": "UNRESOLVED_EXPECTED_SCHEDULE_NOT_SUPPLIED",
+      "inputs": [
+        {
+          "compressed_bytes": 167,
+          "compressed_sha256": "fed64d05601e35d158c227145d950ae443e4cbff82a092daf25fbc6cdb010e80",
+          "content_sha256": "d5612f850e2382aacb0ce9590b6f459a8e34f7745a547f39d0d0d079a0e38251",
+          "decompressed_bytes": 316
+        }
+      ],
+      "producer_sha": "87155f3aacb11d266ae45ffb95810f698c0db3cf",
+      "published_at_utc": "2026-11-13T04:00:00Z",
+      "qualification_version": "legacy-mexc-0.2.0"
+    },
+    "schema_version": "0.2.0",
+    "serving": {
+      "freshness": "NOT_ASSESSED_SYNTHETIC",
+      "observation_age_s": 1794622273.530953,
+      "source_freshness": "UNRESOLVED"
+    },
+    "snapshot_id": "168fbbeaa61a617efc9257ae17b93bab7991a99af50a49bd552a72a315865bce",
+    "validation_scope": "MANIFEST_ONLY"
+  },
+  "overview": {
+    "collector_status": "NOT_ATTESTED",
+    "counts": {
+      "admitted": 3,
+      "conflicts": 0,
+      "duplicates": 0,
+      "input": 3,
+      "rejected": 0
+    },
+    "distinct_instruments": 3,
+    "evidence_kind": "SYNTHETIC",
+    "io": {
+      "bytes_read": 256,
+      "pages_read": 0,
+      "validated_rows": 0
+    },
+    "population": "OBSERVATIONS",
+    "provenance": {
+      "as_of_epoch_s": "200",
+      "coverage": "UNRESOLVED_EXPECTED_SCHEDULE_NOT_SUPPLIED",
+      "inputs": [
+        {
+          "compressed_bytes": 167,
+          "compressed_sha256": "fed64d05601e35d158c227145d950ae443e4cbff82a092daf25fbc6cdb010e80",
+          "content_sha256": "d5612f850e2382aacb0ce9590b6f459a8e34f7745a547f39d0d0d079a0e38251",
+          "decompressed_bytes": 316
+        }
+      ],
+      "producer_sha": "87155f3aacb11d266ae45ffb95810f698c0db3cf",
+      "published_at_utc": "2026-11-13T04:00:00Z",
+      "qualification_version": "legacy-mexc-0.2.0"
+    },
+    "schema_version": "0.2.0",
+    "serving": {
+      "freshness": "NOT_ASSESSED_SYNTHETIC",
+      "observation_age_s": 1794622273.523238,
+      "source_freshness": "UNRESOLVED"
+    },
+    "snapshot_id": "168fbbeaa61a617efc9257ae17b93bab7991a99af50a49bd552a72a315865bce",
+    "validation_scope": "MANIFEST_ONLY"
+  },
+  "scanner": {
+    "complete": true,
+    "distinct_instruments": 3,
+    "evidence_kind": "SYNTHETIC",
+    "io": {
+      "bytes_read": 2062,
+      "pages_read": 1,
+      "validated_rows": 3
+    },
+    "matched_observations": 3,
+    "next_cursor": null,
+    "population": "OBSERVATIONS",
+    "provenance": {
+      "as_of_epoch_s": "200",
+      "coverage": "UNRESOLVED_EXPECTED_SCHEDULE_NOT_SUPPLIED",
+      "inputs": [
+        {
+          "compressed_bytes": 167,
+          "compressed_sha256": "fed64d05601e35d158c227145d950ae443e4cbff82a092daf25fbc6cdb010e80",
+          "content_sha256": "d5612f850e2382aacb0ce9590b6f459a8e34f7745a547f39d0d0d079a0e38251",
+          "decompressed_bytes": 316
+        }
+      ],
+      "producer_sha": "87155f3aacb11d266ae45ffb95810f698c0db3cf",
+      "published_at_utc": "2026-11-13T04:00:00Z",
+      "qualification_version": "legacy-mexc-0.2.0"
+    },
+    "returned_count": 3,
+    "rows": [
+      {
+        "capture_epoch_s": "100",
+        "contract_status": "UNRESOLVED",
+        "exchange_origin": "EXPLICIT",
+        "field_states": {
+          "ask": "VALUE",
+          "bid": "VALUE",
+          "chg": "VALUE",
+          "last": "VALUE",
+          "qv": "VALUE",
+          "sp": "LEGACY_ZERO_AMBIGUOUS"
+        },
+        "identity": {
+          "market": "spot",
+          "native_symbol": "DOGE/USDT",
+          "venue": "mexc"
+        },
+        "instrument_id": "547b7123c32c23eccd960b5e745f23374f9ec800699418af16f52b87acb58986",
+        "quote_volume_origin": "LEGACY_NATIVE_OR_ESTIMATED_UNRESOLVED",
+        "source_freshness": "UNRESOLVED",
+        "source_timestamp": null,
+        "timestamp_kind": "LOCAL_CYCLE_START",
+        "values": {
+          "ask": "11",
+          "bid": "9",
+          "chg": "1",
+          "last": "10",
+          "qv": "120",
+          "sp": "0"
+        }
+      },
+      {
+        "capture_epoch_s": "101",
+        "contract_status": "UNRESOLVED",
+        "exchange_origin": "EXPLICIT",
+        "field_states": {
+          "ask": "VALUE",
+          "bid": "VALUE",
+          "chg": "VALUE",
+          "last": "VALUE",
+          "qv": "VALUE",
+          "sp": "LEGACY_ZERO_AMBIGUOUS"
+        },
+        "identity": {
+          "market": "swap",
+          "native_symbol": "ATOM/USDT",
+          "venue": "mexc"
+        },
+        "instrument_id": "ca6d14ac28cbd497c50888d3c935ce7eedd941ae373ab5488212328635cac590",
+        "quote_volume_origin": "LEGACY_NATIVE_OR_ESTIMATED_UNRESOLVED",
+        "source_freshness": "UNRESOLVED",
+        "source_timestamp": null,
+        "timestamp_kind": "LOCAL_CYCLE_START",
+        "values": {
+          "ask": "21",
+          "bid": "19",
+          "chg": "2",
+          "last": "20",
+          "qv": "130",
+          "sp": "0"
+        }
+      },
+      {
+        "capture_epoch_s": "102",
+        "contract_status": "UNRESOLVED",
+        "exchange_origin": "EXPLICIT",
+        "field_states": {
+          "ask": "VALUE",
+          "bid": "VALUE",
+          "chg": "VALUE",
+          "last": "VALUE",
+          "qv": "VALUE",
+          "sp": "LEGACY_ZERO_AMBIGUOUS"
+        },
+        "identity": {
+          "market": "spot",
+          "native_symbol": "BTC/USDT",
+          "venue": "mexc"
+        },
+        "instrument_id": "effb33cb92e1d7e5e10eb401d211103a37505bd6972865328c3133fbfc53bbc6",
+        "quote_volume_origin": "LEGACY_NATIVE_OR_ESTIMATED_UNRESOLVED",
+        "source_freshness": "UNRESOLVED",
+        "source_timestamp": null,
+        "timestamp_kind": "LOCAL_CYCLE_START",
+        "values": {
+          "ask": "31",
+          "bid": "29",
+          "chg": "3",
+          "last": "30",
+          "qv": "140",
+          "sp": "0"
+        }
+      }
+    ],
+    "schema_version": "0.2.0",
+    "serving": {
+      "freshness": "NOT_ASSESSED_SYNTHETIC",
+      "observation_age_s": 1794622273.5389104,
+      "source_freshness": "UNRESOLVED"
+    },
+    "snapshot_id": "168fbbeaa61a617efc9257ae17b93bab7991a99af50a49bd552a72a315865bce",
+    "total_observations": 3,
+    "validation_scope": "MANIFEST_AND_CONSULTED_PAGES"
+  }
+}

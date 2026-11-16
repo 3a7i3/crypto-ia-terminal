@@ -1,0 +1,32 @@
+/* S2 additions scoped to the existing desk. Equal, deterministic grid bubbles. */
+.spot-radar .intraday-bubble{min-height:185px}
+.spot-radar .intraday-bubble strong small{font-size:12px;font-weight:500;color:#94a3b8}
+.radar-state{font-size:10px;letter-spacing:.015em;color:#e5eaf2;border-top:1px solid #64748b60;padding-top:5px}
+.radar-live{color:#7ce8bf}.radar-stale,.radar-unresolved{color:#ffd281}.radar-disconnected{color:#cbd5e1}.radar-synthetic{color:#9ecaff}
+.radar-timeframes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0}
+.radar-timeframes button{border:1px solid #64748b;border-radius:9px;background:#121a2b;color:#e5eaf2;padding:9px 4px}
+.radar-timeframes button[aria-pressed=true]{border-color:#60a5fa;background:#1c3150}
+.radar-timeframes small{display:block;font-size:10px;margin-top:5px}
+.radar-bars{overflow-x:auto;max-width:100%;border:1px solid #334155;border-radius:8px}
+.radar-bars table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:12px;text-align:left}
+.radar-bars th,.radar-bars td{padding:8px;border-bottom:1px solid #334155;white-space:nowrap}
+.radar-bars caption{padding:8px;text-align:left;color:#94a3b8}.radar-history-age{font-size:12px;color:#94a3b8}
+@media(max-width:600px){.spot-radar .intraday-bubble{min-height:160px}.radar-timeframes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.radar-chart{margin:18px 0;border:1px solid #334155;border-radius:12px;padding:12px;background:#0c1525}
+.radar-chart figcaption{font-size:14px;font-weight:600;color:#e5eaf2;margin-bottom:8px}
+.radar-chart svg{display:block;width:100%;height:auto}
+.radar-chart p{font-size:11px;line-height:1.5;color:#a6b4c9}
+.intraday-detail{width:min(760px,100%)}
+@media(max-width:760px){
+ .app-content{min-width:0!important;padding:12px!important}
+ .market-workspace,.spot-radar{min-width:0;max-width:100%}
+ .intraday-detail{width:100%;padding:16px}
+ .intraday-modal-backdrop{padding:0}
+ .intraday-detail dl{grid-template-columns:1fr;gap:5px}
+ .intraday-detail dd{margin-bottom:12px}
+ .intraday-list .intraday-bubble{grid-template-columns:1fr 1fr;min-height:90px!important}
+ .radar-chart{padding:8px;margin-inline:0}
+ .market-workspace-tabs{overflow:auto;max-width:100%}
+ button,input,select{touch-action:manipulation}
+}
