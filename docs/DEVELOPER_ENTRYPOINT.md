@@ -12,6 +12,10 @@ DOC-CANON-02 / #380 reste historique.
 La reconstruction DOC-CANON-01 / #340 du 2026-10-02 reste une référence
 historique. Aucune observation VPS n'est réalisée par cette page.
 
+## Dernière livraison observée — 16 novembre 2026
+
+Consulter d'abord [Operational Recovery](operations/operational-recovery-2026-11-16/README.md) et [#576](https://github.com/3a7i3/crypto-ia-terminal/issues/576) pour la consultation mobile réellement livrée. Le radar MEXC et ses chandeliers sont servis dans l'app habituelle sous mandat opérateur distinct ; code déployé encore à réconcilier avec main et CI. Le bilan inventorie les ajouts par rapport aux décisions V3.2 de #285 et les liens vers #568/#574/#323. Les restrictions et références historiques ci-dessous restent conservées ; aucune permission runtime nouvelle n'est accordée par cette mise à jour documentaire.
+
 ## 1. Ce qu'est le projet
 
 Une infrastructure quantitative expérimentale : observations marché,

@@ -1,3 +1,18 @@
+# Reprise — Operational Recovery, 16 novembre 2026
+
+**Consultation mobile disponible ; synchronisation source/GitHub en cours sous [#576](https://github.com/3a7i3/crypto-ia-terminal/issues/576).**
+
+Lire le [bilan et les écarts roadmap](docs/operations/operational-recovery-2026-11-16/README.md). La dernière livraison observée est le radar MEXC public dans l'application existante, services persistants, OHLCV/chandeliers et reprise après SIGKILL. Le mandat OR-03→OR-06 et l'intégration app ont été autorisés explicitement par l'opérateur en conversation ; les opérations sudo ont été exécutées par lui en SSH. Ce pointeur n'autorise aucun nouveau déploiement ni merge.
+
+- Dernier relevé : 2026-11-16T10:50:17Z, 30 LIVE, 120/120 références OHLCV, cinq unités actives/enabled. Preuve ponctuelle, pas certification globale.
+- Priorité produit : #574 ; décisions V3/V3.1/V3.2 dans #285, statut formel III conservé dans #568. Les formulations historiques concurrentes sont expliquées dans le bilan ; aucune obligation antérieure n'est clôturée artificiellement.
+- Ajouts hors ancien lot mobile : collecte continue par campagnes, corpus neuf/rétention, intégration même origine443 et identité PWA, chandeliers/volumes, correction permissions, frontend au boot.
+- Manques : lisibilité Samsung, réconciliation du code déployé avec main/CI, rechargements, rétention longue durée, qualification de fraîcheur des bougies. A2/S3 indicateurs et A9 non faits ; U8/L4/Gate O non certifiés par cette livraison.
+- M1 RC1 conserve PARTIAL ; M1-B.9→B.13 suspendus ; BR1/PPL FROZEN, NSS-SQ-01 SUSPENDU, ECC PARKED. Aucun Advisor, ordre automatique, nouvelle epoch ou mutation corpus historique.
+- Prochaine action unique proposée : corriger la lisibilité mobile après attribution du viewport/zoom/CSS ; pas de nouveau chantier lancé par cette synchronisation.
+
+## Reprises historiques conservées
+
 # Reprise canonique — lot 2, 2026-11-04 UTC
 
 > **Mission datée (lot 2, 2026-11-04 UTC).** Les preuves et l'historique ci-dessous sont conservés. Cette mission ne constitue plus une autorisation opérationnelle actuelle ; toute nouvelle mission requiert une décision explicite de l'opérateur.

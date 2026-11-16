@@ -1,0 +1,228 @@
+--- a/frontend/src/App.tsx
++++ b/frontend/src/App.tsx
+@@ -17,7 +17,7 @@
+   PortfolioRoute,
+   SystemRoute,
+ } from "./router/PaperLiveRoutes";
+-import { ModuleHome } from "./views/ModuleHome";
++
+ import { MachineWorkboardView } from "./views/MachineWorkboardView";
+ import { EventsView } from "./views/EventsView";
+ import { NotFoundView } from "./views/NotFoundView";
+@@ -28,12 +28,12 @@
+   <BrowserRouter>
+     <Routes>
+       <Route element={<AppFrame />}>
+-        <Route path="/" element={<Navigate to="/direction" replace />} />
++        <Route path="/" element={<Navigate to="/paper-live/market" replace />} />
+         <Route path="/paper-live" element={<PaperLiveShell />}>
+-          <Route index element={<Navigate to="/direction" replace />} />
++          <Route index element={<Navigate to="/paper-live/market" replace />} />
+           <Route
+             path="overview"
+-            element={<Navigate to="/direction" replace />}
++            element={<Navigate to="/paper-live/market" replace />}
+           />
+           <Route path="market" element={<MarketRoute />} />
+           <Route path="portfolio" element={<PortfolioRoute />} />
+@@ -52,7 +52,7 @@
+           />
+         </Route>
+         <Route path="/direction" element={<DirectionShell />}>
+-          <Route index element={<ModuleHome />} />
++          <Route index element={<Navigate to="/paper-live/market" replace />} />
+           <Route path="travaux" element={<MachineWorkboardView />} />
+         </Route>
+         <Route path="/research" element={<ResearchShell />}>
+--- a/frontend/src/views/MarketView.tsx
++++ b/frontend/src/views/MarketView.tsx
+@@ -288,7 +288,7 @@
+ const marketTabs = ["Scanner", "Comparaison des plateformes", "Flux"];
+ 
+ export const MarketView: React.FC = () => {
+-  const [radar, setRadar] = useState(() => new URLSearchParams(window.location.search).get("radar") === "1");
++  const [radar, setRadar] = useState(() => new URLSearchParams(window.location.search).get("radar") !== "0" && new URLSearchParams(window.location.search).get("intraday") !== "1");
+   const [intraday, setIntraday] = useState(() => new URLSearchParams(window.location.search).get("intraday") === "1");
+   const [active, setActive] = useState(0);
+   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+--- a/frontend/src/views/SpotRadarMap.tsx
++++ b/frontend/src/views/SpotRadarMap.tsx
+@@ -1,3 +1,4 @@
++import { RadarCandles } from "../components/RadarCandles";
+ import React,{useEffect,useRef,useState} from "react";
+ import {fetchRadar,RadarError,type RadarScanner,type RadarHistory,type RadarRow,type Timeframe,type Freshness} from "../lib/spotRadarClient";
+ import {decimalCompare} from "../lib/intradayClient";
+@@ -69,9 +70,9 @@
+     <p className="intraday-eyebrow">FICHE INSTRUMENT · {labels[stateOf(detail)]}</p><h3 id="radar-detail-title">{detail.display_symbol}</h3><p>MEXC · Spot · {detail.identity.native_symbol}</p>
+     <div className="intraday-detail-price">{detail.ticker.last_price}<small>USDT · dernier prix public</small></div>
+     <dl><dt>Variation 24 h déclarée</dt><dd>{detail.ticker.change_pct_24h??"Non qualifiée"} {detail.ticker.change_pct_24h!==null?"%":""}</dd><dt>Volume base / 24 h</dt><dd>{detail.ticker.base_volume_24h} {detail.base_asset}</dd><dt>Volume quote / 24 h</dt><dd>{detail.ticker.quote_volume_24h} USDT · natif</dd><dt>Bid / Ask</dt><dd>{detail.book.bid??"Absent"} / {detail.book.ask??"Absent"} · {detail.book.quality}</dd><dt>Timestamp source ticker</dt><dd>{utc(detail.ticker.source_close_ms)}</dd><dt>Réception ticker</dt><dd>{utc(detail.ticker.received_ms)}</dd><dt>Âge qualifié à la lecture</dt><dd>{detail.freshness.age_ms===null?"Inconnu":detail.freshness.age_ms+" ms"} · {detail.freshness.reason}</dd><dt>Identité complète</dt><dd>{detail.instrument_id}</dd><dt>Empreinte du ticker brut</dt><dd>{detail.ticker.raw_sha256}</dd></dl>
+-    <h4>Historique OHLCV · sans indicateur</h4>
++    <h4>Graphique et historique OHLCV</h4>
+     <div className="radar-timeframes">{(["M5","M15","H1","H4"] as Timeframe[]).map(t=>{const ref=detail.timeframes.find(x=>x.timeframe===t);return <button type="button" key={t} aria-pressed={tf===t} onClick={()=>setTf(t)}>{t}<small>{ref?ref.history_count+" bougies · "+ref.closed_count+" closes":"Non disponible"}</small></button>;})}</div>
+-    {historyError?<p role="status">Historique indisponible · {historyError}</p>:!history?<p role="status">Chargement à la demande…</p>:<><p>{history.history.history_count} bougies · {history.history.quality} · {history.history.gaps.length} trous · {history.history.rejected} rejets. Clôture confirmée après la borne + 2 s et nouvelle lecture.</p><p className="radar-history-age">Réception historique : {utc(history.history.received_ms)} · historique conservé, indépendamment de l’état LIVE du ticker.</p><div className="radar-bars"><table><caption>Dernières bougies {tf} · valeurs exactes</caption><thead><tr><th>Ouverture UTC</th><th>Clôture</th><th>Volume base</th><th>État observé</th></tr></thead><tbody>{history.history.rows.slice(-5).map(b=><tr key={b.open_ms}><td>{utc(b.open_ms)}</td><td>{b.close}</td><td>{b.base_volume}</td><td>{b.closed?"Clôturée":"Partielle"}</td></tr>)}</tbody></table></div></>}
++    {historyError?<p role="status">Historique indisponible · {historyError}</p>:!history?<p role="status">Chargement à la demande…</p>:<><p>{history.history.history_count} bougies · {history.history.quality} · {history.history.gaps.length} trous · {history.history.rejected} rejets. Clôture confirmée après la borne + 2 s et nouvelle lecture.</p><p className="radar-history-age">Réception historique : {utc(history.history.received_ms)} · historique conservé, indépendamment de l’état LIVE du ticker.</p><RadarCandles rows={history.history.rows} symbol={detail.display_symbol} timeframe={tf}/><div className="radar-bars"><table><caption>Dernières bougies {tf} · valeurs exactes</caption><thead><tr><th>Ouverture UTC</th><th>Clôture</th><th>Volume base</th><th>État observé</th></tr></thead><tbody>{history.history.rows.slice(-5).map(b=><tr key={b.open_ms}><td>{utc(b.open_ms)}</td><td>{b.close}</td><td>{b.base_volume}</td><td>{b.closed?"Clôturée":"Partielle"}</td></tr>)}</tbody></table></div></>}
+     <p>Aucun ADX, RSI, régime, score ou signal n’est calculé.</p>
+    </div></div>}
+   </>}
+--- a/frontend/src/spot-radar.css
++++ b/frontend/src/spot-radar.css
+@@ -12,3 +12,21 @@
+ .radar-bars th,.radar-bars td{padding:8px;border-bottom:1px solid #334155;white-space:nowrap}
+ .radar-bars caption{padding:8px;text-align:left;color:#94a3b8}.radar-history-age{font-size:12px;color:#94a3b8}
+ @media(max-width:600px){.spot-radar .intraday-bubble{min-height:160px}.radar-timeframes{grid-template-columns:repeat(2,minmax(0,1fr))}}
++
++.radar-chart{margin:18px 0;border:1px solid #334155;border-radius:12px;padding:12px;background:#0c1525}
++.radar-chart figcaption{font-size:14px;font-weight:600;color:#e5eaf2;margin-bottom:8px}
++.radar-chart svg{display:block;width:100%;height:auto}
++.radar-chart p{font-size:11px;line-height:1.5;color:#a6b4c9}
++.intraday-detail{width:min(760px,100%)}
++@media(max-width:760px){
++ .app-content{min-width:0!important;padding:12px!important}
++ .market-workspace,.spot-radar{min-width:0;max-width:100%}
++ .intraday-detail{width:100%;padding:16px}
++ .intraday-modal-backdrop{padding:0}
++ .intraday-detail dl{grid-template-columns:1fr;gap:5px}
++ .intraday-detail dd{margin-bottom:12px}
++ .intraday-list .intraday-bubble{grid-template-columns:1fr 1fr;min-height:90px!important}
++ .radar-chart{padding:8px;margin-inline:0}
++ .market-workspace-tabs{overflow:auto;max-width:100%}
++ button,input,select{touch-action:manipulation}
++}
+--- a/frontend/src/lib/pwaRegistration.ts
++++ b/frontend/src/lib/pwaRegistration.ts
+@@ -2,7 +2,7 @@
+ // Registration is production-only so the development server never acquires a
+ // persistent service worker that could obscure local frontend/API debugging.
+ export const PWA_SERVICE_WORKER_PATH = "/sw.js";
+-export const PWA_UPDATE_INTERVAL_MS = 15 * 60 * 1000;
++export const PWA_UPDATE_INTERVAL_MS = 3 * 60 * 1000;
+ 
+ export function canRegisterOperatorPwa(): boolean {
+   return (
+@@ -36,7 +36,7 @@
+     });
+ 
+     try {
+-      const registration = await navigator.serviceWorker.register(PWA_SERVICE_WORKER_PATH, { scope: "/" });
++      const registration = await navigator.serviceWorker.register(PWA_SERVICE_WORKER_PATH, { scope: "/", updateViaCache: "none" });
+ 
+       // Do not wait for a browser restart to discover a new shell version.
+       // The worker itself uses skipWaiting() and deletes only old shell caches.
+--- a/frontend/public/sw.js
++++ b/frontend/public/sw.js
+@@ -5,7 +5,7 @@
+ importScripts("/pwa-policy.js");
+ 
+ const SHELL_CACHE_PREFIX = "crypto-ai-operator-shell-";
+-const SHELL_CACHE = `${SHELL_CACHE_PREFIX}v1`;
++const SHELL_CACHE = `${SHELL_CACHE_PREFIX}or-unified-20261116-1`;
+ const PRECACHE_URLS = [
+   "/",
+   "/manifest.webmanifest",
+--- a/frontend/scripts/web01_local_frontend_server.mjs
++++ b/frontend/scripts/web01_local_frontend_server.mjs
+@@ -9,7 +9,7 @@
+ import { fileURLToPath } from "node:url";
+ 
+ export const LOOPBACK_HOST = "127.0.0.1";
+-export const FRONTEND_PORT = 8181;
++export const FRONTEND_PORT = Number(process.env.CAT_WEB_PORT || 8181);
+ export const OPERATOR_API_TARGET = "http://127.0.0.1:8090";
+ 
+ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+@@ -80,6 +80,7 @@
+       upstreamResponse.pipe(response);
+     }
+   });
++  upstream.setTimeout(10000, () => upstream.destroy(new Error("UPSTREAM_TIMEOUT")));
+   upstream.once("error", () => failRequest(response, 502, "OPERATOR_API_UNAVAILABLE", "Local Operator API is unavailable."));
+   request.pipe(upstream);
+ }
+@@ -104,6 +105,7 @@
+     "content-type": MIME_TYPES.get(ext) ?? "application/octet-stream",
+     "content-length": info.size,
+     "x-content-type-options": "nosniff",
++    "cache-control": "no-store",
+   };
+   if (basename === "sw.js" || basename === "pwa-policy.js" || ext === ".webmanifest") {
+     headers["cache-control"] = "no-cache";
+@@ -132,7 +134,10 @@
+         return failRequest(response, 400, "INVALID_REQUEST_URL", "Request target is not a valid URL.");
+       }
+       if (!methodAllowed(request)) return apiError(response, 405, "METHOD_NOT_ALLOWED", "WEB-01G accepts GET and HEAD only.");
+-      if (isApiPath(url.pathname)) return proxyToOperatorApi(request, response, target);
++      if (isApiPath(url.pathname)) {
++        const selected = url.pathname.startsWith("/api/operator/v1/spot-radar/") ? new URL("http://127.0.0.1:18906") : target;
++        return proxyToOperatorApi(request, response, selected);
++      }
+ 
+       const requested = await resolveStaticPath(distRoot, url.pathname);
+       // SPA fallback applies only to non-API frontend routes; API paths never
+--- /dev/null
++++ b/frontend/src/components/RadarCandles.tsx
+@@ -0,0 +1,35 @@
++import React from "react";
++import type { Bar, Timeframe } from "../lib/spotRadarClient";
++
++/** Visual scaling only; original decimal strings remain in title and source table. */
++export const RadarCandles: React.FC<{ rows: Bar[]; symbol: string; timeframe: Timeframe }> = ({rows,symbol,timeframe}) => {
++ const bars=rows.slice(-60);
++ if(!bars.length)return <p>Pas de bougies disponibles.</p>;
++ const W=720,H=380,left=14,right=126,top=28,bottom=265;
++ const low=Math.min(...bars.map(b=>Number(b.low))), high=Math.max(...bars.map(b=>Number(b.high)));
++ if(!Number.isFinite(low)||!Number.isFinite(high))return <p>Échelle du graphique indisponible ; valeurs exactes dans le tableau.</p>;
++ const padding=Math.max((high-low)*.06,Math.abs(high)*.00001,Number.MIN_VALUE);
++ const min=low-padding,max=high+padding,span=max-min;
++ if(!Number.isFinite(span)||span<=0)return <p>Échelle du graphique indisponible ; valeurs exactes dans le tableau.</p>;
++ const y=(n:string)=>bottom-(Number(n)-min)/span*(bottom-top);
++ const width=(W-left-right)/bars.length,body=Math.max(1,width*.65);
++ const maxVolume=Math.max(...bars.map(b=>Number(b.base_volume)),1e-100);
++ const stamp=(b:Bar)=>new Date(Number(b.open_ms)).toISOString().slice(11,16);
++ const price=(n:number)=>n.toLocaleString("fr-FR",{maximumSignificantDigits:8});
++ return <figure className="radar-chart">
++  <figcaption>{symbol} · {timeframe} · {bars.length} dernières bougies</figcaption>
++  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Graphique en chandeliers ${symbol} ${timeframe}, ${bars.length} bougies ; volumes base sous les prix`}>
++   <title>{symbol} {timeframe} — OHLCV MEXC public ; dernière bougie éventuellement partielle</title>
++   {[0,.25,.5,.75,1].map(f=>{const yy=top+f*(bottom-top);return <g key={f}><line x1={left} y1={yy} x2={W-right} y2={yy} stroke="#334155"/><text x={W-right+9} y={yy+6} fill="#cbd5e1" fontSize="18">{price(max-f*span)}</text></g>;})}
++   {bars.map((b,i)=>{const x=left+(i+.5)*width,open=y(b.open),close=y(b.close),up=Number(b.close)>=Number(b.open),color=up?"#63dbb0":"#fb9292";return <g key={b.open_ms}>
++    <title>{stamp(b)} UTC · O {b.open} · H {b.high} · L {b.low} · C {b.close} · Volume {b.base_volume} · {b.closed?"clôturée":"partielle"}</title>
++    <line x1={x} x2={x} y1={y(b.high)} y2={y(b.low)} stroke={color} strokeWidth="1.5"/>
++    <rect x={x-body/2} y={Math.min(open,close)} width={body} height={Math.max(1.5,Math.abs(open-close))} fill={b.closed?color:"#152239"} stroke={color}/>
++    <rect x={x-body/2} y={330-Number(b.base_volume)/maxVolume*45} width={body} height={Math.max(.5,Number(b.base_volume)/maxVolume*45)} fill={color} opacity=".65"/>
++   </g>;})}
++   <text x={left} y="358" fill="#cbd5e1" fontSize="19">{stamp(bars[0])} UTC</text>
++   <text x={W-right} y="358" fill="#cbd5e1" fontSize="19" textAnchor="end">{stamp(bars[bars.length-1])} UTC</text>
++  </svg>
++  <p>Vert : clôture ≥ ouverture · rouge : clôture &lt; ouverture · contour vide : bougie partielle. Volumes en unité de base. Les valeurs exactes restent dans le tableau.</p>
++ </figure>;
++};
+--- /dev/null
++++ b/frontend/src/test/RadarCandles.test.tsx
+@@ -0,0 +1,12 @@
++import React from "react";
++import { describe, it, expect } from "vitest";
++import { render, screen, cleanup } from "@testing-library/react";
++import { RadarCandles } from "../components/RadarCandles";
++import type { Bar } from "../lib/spotRadarClient";
++const bar={open_ms:"1794820800000",open:"100",high:"103",low:"98",close:"102",base_volume:"12.5",closed:false} as Bar;
++describe("RadarCandles operational chart",()=>{
++ it("renders OHLC and volume without replacing native decimals",()=>{render(<RadarCandles rows={[bar]} symbol="BTC/USDT" timeframe="M5"/>);expect(screen.getByRole("img").getAttribute("aria-label")).toContain("BTC/USDT M5");expect(document.querySelector("svg")?.textContent).toContain("O 100 · H 103 · L 98 · C 102");cleanup();});
++ it("handles a flat candle and zero volume",()=>{render(<RadarCandles rows={[{...bar,open:"1",close:"1",low:"1",high:"1",base_volume:"0"}]} symbol="A/USDT" timeframe="H1"/>);expect(document.querySelector("svg")?.outerHTML).not.toMatch(/NaN|Infinity/);cleanup();});
++ it("does not invent candles when empty",()=>{render(<RadarCandles rows={[]} symbol="BTC/USDT" timeframe="M5"/>);expect(screen.queryByRole("img")).toBeNull();expect(screen.getByText("Pas de bougies disponibles.")).toBeTruthy();cleanup();});
++ it("refuses nonfinite chart scaling",()=>{render(<RadarCandles rows={[{...bar,high:"invalid"}]} symbol="BTC/USDT" timeframe="M5"/>);expect(screen.queryByRole("img")).toBeNull();cleanup();});
++});
+--- /dev/null
++++ b/frontend/src/test/UnifiedLanding.test.tsx
+@@ -0,0 +1,12 @@
++import React from 'react';
++import {it,expect,vi,afterEach} from 'vitest';
++import {render,screen,cleanup} from '@testing-library/react';
++import App from '../App';
++afterEach(()=>{cleanup();vi.unstubAllGlobals();});
++for(const path of ['/','/direction'])it('opens live radar from '+path,async()=>{
++ vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('offline test')));
++ window.history.replaceState({},'',path);
++ render(<App/>);
++ expect(await screen.findByRole('heading',{name:'Market Radar · MEXC Spot'})).toBeTruthy();
++ expect(window.location.pathname).toBe('/paper-live/market');
++});
