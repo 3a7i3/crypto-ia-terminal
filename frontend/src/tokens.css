@@ -116,3 +116,38 @@ button, input, select, textarea { font: inherit; }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeIn 0.15s ease-out; }
+
+/* M1-B — Market cockpit design tokens (presentation only).
+   The Radar Spot desk keeps the dark Intraday surface in both themes; these
+   tokens name the colours it already used so Radar rules share one source.
+   Values are unchanged from the 16/11 release unless noted in the M1-B report. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --touch-min: 44px;
+
+  --radar-surface:        #0c1525;
+  --radar-surface-raised: #121a2b;
+  --radar-surface-active: #1c3150;
+  --radar-border:         #334155;
+  --radar-border-strong:  #64748b;
+  --radar-border-accent:  #405578;
+  --radar-focus:          #60a5fa;
+  --radar-text:           #e5eaf2;
+  --radar-text-soft:      #dfeaff;
+  --radar-text-control:   #cbd5e1;
+  --radar-text-muted:     #b5c3d7;
+  --radar-text-dim:       #94a3b8;
+
+  --radar-live:         #7ce8bf;
+  --radar-stale:        #ffd281;
+  --radar-disconnected: #cbd5e1;
+  --radar-synthetic:    #9ecaff;
+
+  --radar-r-tile:    22px;
+  --radar-r-panel:   12px;
+  --radar-r-control: 9px;
+}

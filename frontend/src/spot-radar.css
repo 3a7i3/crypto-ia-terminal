@@ -1,22 +1,27 @@
-/* S2 additions scoped to the existing desk. Equal, deterministic grid bubbles. */
-.spot-radar .intraday-bubble{min-height:185px}
-.spot-radar .intraday-bubble strong small{font-size:12px;font-weight:500;color:#94a3b8}
-.radar-state{font-size:10px;letter-spacing:.015em;color:#e5eaf2;border-top:1px solid #64748b60;padding-top:5px}
-.radar-live{color:#7ce8bf}.radar-stale,.radar-unresolved{color:#ffd281}.radar-disconnected{color:#cbd5e1}.radar-synthetic{color:#9ecaff}
-.radar-timeframes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0}
-.radar-timeframes button{border:1px solid #64748b;border-radius:9px;background:#121a2b;color:#e5eaf2;padding:9px 4px}
-.radar-timeframes button[aria-pressed=true]{border-color:#60a5fa;background:#1c3150}
-.radar-timeframes small{display:block;font-size:10px;margin-top:5px}
-.radar-bars{overflow-x:auto;max-width:100%;border:1px solid #334155;border-radius:8px}
-.radar-bars table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:12px;text-align:left}
-.radar-bars th,.radar-bars td{padding:8px;border-bottom:1px solid #334155;white-space:nowrap}
-.radar-bars caption{padding:8px;text-align:left;color:#94a3b8}.radar-history-age{font-size:12px;color:#94a3b8}
-@media(max-width:600px){.spot-radar .intraday-bubble{min-height:160px}.radar-timeframes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* S2 additions scoped to the existing desk. Equal, deterministic grid bubbles.
+   M1-B: single owner of the Radar Spot presentation (tiles, states, timeframes,
+   chart, bars, controls). Colours come from the --radar-* tokens (tokens.css).
+   intraday.css is untouched; this file loads after it. */
+.radar-state{font-size:10px;letter-spacing:.015em;color:var(--radar-text);border-top:1px solid #64748b60;padding-top:5px}
+.radar-live{color:var(--radar-live)}.radar-stale,.radar-unresolved{color:var(--radar-stale)}.radar-disconnected{color:var(--radar-disconnected)}.radar-synthetic{color:var(--radar-synthetic)}
 
-.radar-chart{margin:18px 0;border:1px solid #334155;border-radius:12px;padding:12px;background:#0c1525}
-.radar-chart figcaption{font-size:14px;font-weight:600;color:#e5eaf2;margin-bottom:8px}
+/* Timeframes (consolidated from radar-polish.css + spot-radar.css; sticky under the detail toolbar). */
+.radar-timeframes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0;position:sticky;top:61px;background:var(--radar-surface-raised);z-index:1;padding-block:var(--space-2)}
+.radar-timeframes button{min-height:48px;font-size:15px;border:1px solid var(--radar-border-strong);border-radius:var(--radar-r-control);background:var(--radar-surface-raised);color:var(--radar-text);padding:9px 4px}
+.radar-timeframes button[aria-pressed=true]{border-color:var(--radar-focus);background:var(--radar-surface-active)}
+.radar-timeframes small{display:block;font-size:11px;margin-top:5px}
+.radar-bars{overflow-x:auto;max-width:100%;border:1px solid var(--radar-border);border-radius:8px}
+.radar-bars table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:12px;text-align:left}
+.radar-bars th,.radar-bars td{padding:8px;border-bottom:1px solid var(--radar-border);white-space:nowrap}
+.radar-bars caption{padding:8px;text-align:left;color:var(--radar-text-dim)}.radar-history-age{font-size:12px;color:var(--radar-text-dim)}
+@media(max-width:600px){.radar-timeframes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Chart (consolidated: one definition instead of two competing ones). */
+.radar-chart{margin:18px 0;border:1px solid var(--radar-border);border-radius:var(--radar-r-panel);padding:12px;background:var(--radar-surface)}
+.radar-chart figcaption{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:600;color:var(--radar-text);margin-bottom:8px}
+.radar-chart figcaption span{color:var(--radar-text-muted)}
 .radar-chart svg{display:block;width:100%;height:auto}
-.radar-chart p{font-size:11px;line-height:1.5;color:#a6b4c9}
+.radar-chart p{font-size:12px;line-height:1.5;color:var(--radar-text-muted)}
 .intraday-detail{width:min(760px,100%)}
 @media(max-width:760px){
  .app-content{min-width:0!important;padding:12px!important}
@@ -30,3 +35,34 @@
  .market-workspace-tabs{overflow:auto;max-width:100%}
  button,input,select{touch-action:manipulation}
 }
+
+/* F1-B (12a8c01, reused under M1-B) — Spot Radar tiles (single source for Spot Radar tile geometry).
+   Equal-width rounded tiles whose height follows their content: symbols and
+   prices wrap on controlled breaks and are never truncated, ellipsed or
+   squeezed. intraday.css is untouched; Intraday keeps its circular bubbles.
+   Exact source strings are rendered unchanged (no rounding, no abbreviation). */
+.spot-radar .intraday-bubbles{grid-template-columns:repeat(auto-fill,minmax(min(100%,168px),1fr));align-items:stretch;justify-items:stretch}
+.spot-radar .intraday-bubble{width:100%;max-width:none;height:auto;min-height:0;aspect-ratio:auto;border-radius:var(--radar-r-tile);padding:14px 12px;gap:6px;justify-content:flex-start;text-align:center;transform:none}
+.spot-radar .intraday-bubbles .intraday-bubble:nth-child(even){transform:none}
+.spot-radar .intraday-bubble>*{flex-shrink:0;max-width:100%}
+.spot-radar .intraday-bubble strong,.spot-radar .intraday-bubble-price{width:100%;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.25}
+.spot-radar .intraday-bubble strong{font-size:18px}
+.spot-radar .intraday-bubble strong small{display:block;margin-top:2px;font-size:12px;font-weight:500;letter-spacing:0;color:var(--radar-text-dim)}
+.spot-radar .intraday-bubble-price{font-size:15px;font-variant-numeric:tabular-nums}
+.spot-radar .radar-state{width:100%;margin-top:auto;font-size:12px;line-height:1.35}
+.spot-radar .intraday-list .intraday-bubble{border-radius:var(--radar-r-panel);min-height:88px;grid-template-columns:1.2fr 1.2fr 1fr;align-items:center;gap:8px 16px;text-align:left}
+.spot-radar .intraday-list .intraday-bubble-market{display:none}
+.spot-radar .intraday-list .radar-state{grid-column:1/-1;border:0;padding:0;margin-top:0}
+@media(max-width:360px){.spot-radar .intraday-bubble{padding:12px 8px}}
+/* M1-B — Mobile layout: at least two tiles per row on phones in portrait, and as many
+   136 px tiles as fit in landscape instead of two stretched tiles (Intraday keeps
+   its own two-column rule from radar-polish.css). */
+html[data-layout=mobile] .spot-radar .intraday-bubbles{grid-template-columns:repeat(auto-fill,minmax(min(100%,136px),1fr))}
+
+/* M1-B — Radar controls reach the 44 px touch minimum in every layout
+   (the shared desk sets 42 px inputs; Intraday itself is left unchanged). */
+.spot-radar input,.spot-radar select{min-height:var(--touch-min)}
+
+/* M1-B — the detail title and price wrap instead of overflowing the dialog
+   (measured: 1000000MOGCOIN/USDT at 28 px overflowed by 25 px at 360 px). */
+.spot-radar .intraday-detail h3,.spot-radar .intraday-detail-price{overflow-wrap:anywhere;min-width:0}

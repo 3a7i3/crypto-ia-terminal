@@ -1,28 +1,19 @@
-/* Approved presentation-only polish: does not change market contracts or calculations. */
-.radar-chart{margin:16px 0;padding:10px;border-radius:14px;background:#0c1525;border:1px solid #334155}
-.radar-chart figcaption{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px;color:#e5eaf2;margin-bottom:8px}
-.radar-chart figcaption span{color:#b5c3d7}.radar-chart svg{width:100%;height:auto;display:block}
-.radar-chart p{font-size:12px;line-height:1.5;color:#b5c3d7}
-.radar-detail-body{min-width:0}.radar-detail-facts{border-top:1px solid #334155;padding-block:16px}
+/* Approved presentation-only polish: does not change market contracts or calculations.
+   M1-B: Radar tile, timeframe and chart rules moved to spot-radar.css (single owner);
+   remaining Radar colours use the --radar-* tokens of tokens.css. */
+.radar-detail-body{min-width:0}.radar-detail-facts{border-top:1px solid var(--radar-border);padding-block:16px}
 .intraday-detail .radar-essential{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
-.radar-essential span{padding:8px 10px;border:1px solid #405578;border-radius:9px;font-size:14px;color:#dfeaff}
-.radar-detail-proof{margin-top:18px;border-top:1px solid #334155;padding-top:10px}
-.radar-detail-proof summary,.radar-detail-facts summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:14px;color:#cbd5e1}
-.radar-detail-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:-1px;background:#121a2b;z-index:2;padding-block:8px;border-bottom:1px solid #334155}
-.radar-detail-toolbar .intraday-close{float:none;min-height:44px}.radar-detail-toolbar .intraday-eyebrow{padding:0;margin:0!important;letter-spacing:.5px;font-size:12px}
+.radar-essential span{padding:8px 10px;border:1px solid var(--radar-border-accent);border-radius:var(--radar-r-control);font-size:14px;color:var(--radar-text-soft)}
+.radar-detail-proof{margin-top:18px;border-top:1px solid var(--radar-border);padding-top:10px}
+.radar-detail-proof summary,.radar-detail-facts summary{min-height:var(--touch-min);display:flex;align-items:center;cursor:pointer;font-size:14px;color:var(--radar-text-control)}
+.radar-detail-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:-1px;background:var(--radar-surface-raised);z-index:2;padding-block:8px;border-bottom:1px solid var(--radar-border)}
+.radar-detail-toolbar .intraday-close{float:none;min-height:var(--touch-min)}.radar-detail-toolbar .intraday-eyebrow{padding:0;margin:0!important;letter-spacing:.5px;font-size:12px}
 .intraday-detail .intraday-detail-price{padding:16px 0;font-size:34px}
 .intraday-detail h3{margin-top:16px;font-size:28px}
-.radar-timeframes{position:sticky;top:61px;background:#121a2b;z-index:1;padding-block:8px;grid-template-columns:repeat(4,minmax(0,1fr))}
-.radar-timeframes button{min-height:48px;font-size:15px}
-.radar-timeframes small{font-size:11px}
 .intraday-detail{overscroll-behavior:contain;max-height:calc(100dvh - 32px)}
-.radar-bars{overflow-x:auto}.radar-bars td,.radar-bars th{font-size:13px}
-.spot-radar .intraday-bubble{aspect-ratio:1;height:auto;min-height:160px;width:160px;gap:8px}
-.spot-radar .intraday-bubble strong{font-size:18px}.spot-radar .intraday-bubble-price{font-size:15px}.spot-radar .radar-state{font-size:12px}
-.spot-radar .intraday-list .intraday-bubble{aspect-ratio:auto;width:100%;min-height:88px;grid-template-columns:1.2fr 1.2fr 1fr;align-items:center;gap:8px 16px}
-.spot-radar .intraday-list .intraday-bubble-market{display:none}.spot-radar .intraday-list .radar-state{grid-column:1/-1;border:0;padding:0}
+.radar-bars td,.radar-bars th{font-size:13px}
 .radar-display-options{display:flex;flex-wrap:wrap;gap:8px;margin-block:12px}
-.radar-display-options button{min-height:44px;padding:8px 12px;border:1px solid var(--bg-border);border-radius:8px;background:var(--bg-card);color:var(--text-pri)}
+.radar-display-options button{min-height:var(--touch-min);padding:8px 12px;border:1px solid var(--bg-border);border-radius:8px;background:var(--bg-card);color:var(--text-pri)}
 .radar-display-options button[aria-pressed=true]{border-color:var(--accent);font-weight:700}
 html[data-layout=mobile] .app-frame{display:block;min-width:0}
 html[data-layout=mobile] .app-topbar{min-height:64px;padding:10px 12px;gap:10px}
@@ -61,9 +52,6 @@ html[data-layout=mobile] .intraday-map-head{align-items:flex-start;flex-directio
 html[data-layout=mobile] .intraday-map-head h3{font-size:18px}
 html[data-layout=mobile] .intraday-map-head>span,html[data-layout=mobile] .intraday-coverage{font-size:13px;line-height:1.6}
 html[data-layout=mobile] .intraday-bubbles{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:16px 8px}
-html[data-layout=mobile] .spot-radar .intraday-bubble{width:100%;min-height:150px;max-width:200px;padding:12px;transform:none}
-html[data-layout=mobile] .spot-radar .intraday-bubble strong{font-size:18px}
-html[data-layout=mobile] .spot-radar .intraday-bubble strong small{font-size:12px}
 html[data-layout=mobile] .intraday-bubble-price,html[data-layout=mobile] .intraday-bubble-change{font-size:14px}
 html[data-layout=mobile] .intraday-list .intraday-bubble{max-width:none;min-height:100px;grid-template-columns:1fr 1fr;border-radius:12px;aspect-ratio:auto}
 html[data-layout=mobile] .intraday-list .radar-state{grid-column:auto;font-size:12px}
@@ -73,7 +61,11 @@ html[data-layout=mobile] .intraday-detail dl{grid-template-columns:1fr;gap:5px;f
 html[data-layout=mobile] .intraday-detail dd{margin-bottom:12px}
 html[data-layout=mobile] .radar-chart{padding:8px;margin:12px 0}
 html[data-layout=mobile] .appearance-panel{position:absolute;right:0;width:min(340px,calc(100vw - 24px));max-height:80dvh;overflow:auto}
-@media(max-width:360px){html[data-layout=mobile] .intraday-bubbles{gap:8px;padding:12px 4px}html[data-layout=mobile] .spot-radar .intraday-bubble{min-height:138px;padding:8px}}
+@media(max-width:360px){html[data-layout=mobile] .intraday-bubbles{gap:8px;padding:12px 4px}}
 
 html[data-layout=mobile] .intraday-detail{max-height:calc(100dvh / var(--cat-display-zoom,1))}
 html[data-layout=mobile] .appearance-panel{max-height:calc(80dvh / var(--cat-display-zoom,1))}
+
+/* M1-B — shell touch targets (all modules): brand link and settings close button reach 44 px. */
+.app-brand{min-height:var(--touch-min)}
+.appearance-heading .icon-button{min-width:var(--touch-min);min-height:var(--touch-min)}
