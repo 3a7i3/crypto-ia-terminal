@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { AppIcon } from "../components/AppIcon";
 import { AppearanceSettings } from "../components/AppearanceSettings";
 import { useDisplayLayout } from "../lib/useDisplayLayout";
-import { MODULES } from "../lib/moduleNavigation";
+import { MARKET_RADAR_PATH, MODULES } from "../lib/moduleNavigation";
 
 export const AppFrame: React.FC = () => {
   useDisplayLayout();
@@ -14,9 +14,11 @@ export const AppFrame: React.FC = () => {
     setMenuOpen(false);
     document.getElementById("app-content")?.focus({ preventScroll: true });
   }, [pathname]);
+  // The Accueil shortcut (D-C5) points into Market and never claims the active state.
   const active = MODULES.find(
     (m) =>
-      m.to === pathname ||
+      (m.testId !== "tab-overview" && m.to === pathname) ||
+      (m.testId === "tab-market" && pathname.startsWith("/paper-live/market/")) ||
       (m.to === "/research" && pathname.startsWith("/research/")) ||
       (m.to.endsWith("/portfolio") && pathname.endsWith("/lifecycle")),
   );
@@ -44,7 +46,7 @@ export const AppFrame: React.FC = () => {
         >
           <AppIcon name={menuOpen ? "close" : "menu"} />
         </button>
-        <Link className="app-brand" to="/direction">
+        <Link className="app-brand" to={MARKET_RADAR_PATH}>
           <span className="app-brand-symbol" aria-hidden="true">
             <img src="/icons/operator-agents-5f8e38bca670-192.png" width={38} height={38} alt="" />
           </span>
@@ -70,10 +72,11 @@ export const AppFrame: React.FC = () => {
             <NavLink
               key={m.to}
               to={m.to}
-              end={m.to === "/direction"}
+              end={m.testId === "tab-overview"}
               data-testid={m.testId}
+              aria-current={m.testId === "tab-overview" ? false : "page"}
               className={({ isActive }) =>
-                `module-link ${isActive || (m.to.endsWith("/portfolio") && pathname.endsWith("/lifecycle")) ? "is-active" : ""}`
+                `module-link ${(isActive && m.testId !== "tab-overview") || (m.to.endsWith("/portfolio") && pathname.endsWith("/lifecycle")) ? "is-active" : ""}`
               }
             >
               <AppIcon name={m.icon} />

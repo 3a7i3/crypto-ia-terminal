@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import "./tokens.css";
 import "./operator.css";
 import "./clarity.css";
@@ -24,19 +24,25 @@ import { EventsView } from "./views/EventsView";
 import { NotFoundView } from "./views/NotFoundView";
 import { ResearchStrategyBoardView } from "./views/ResearchStrategyBoardView";
 import { ResearchLabView } from "./views/ResearchLabView";
+import { MARKET_RADAR_PATH } from "./lib/moduleNavigation";
+
+// M1-C1 (EO-022, D-C5): Market stays the home during M1. Former entry points land
+// on the canonical Radar route with replace, keeping their query so historical
+// bookmarks (?radar=0, ?intraday=1) keep their meaning.
+const HomeRedirect: React.FC = () => {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: MARKET_RADAR_PATH, search }} replace />;
+};
 
 const App: React.FC = () => (
   <BrowserRouter>
     <Routes>
       <Route element={<AppFrame />}>
-        <Route path="/" element={<Navigate to="/paper-live/market" replace />} />
+        <Route path="/" element={<HomeRedirect />} />
         <Route path="/paper-live" element={<PaperLiveShell />}>
-          <Route index element={<Navigate to="/paper-live/market" replace />} />
-          <Route
-            path="overview"
-            element={<Navigate to="/paper-live/market" replace />}
-          />
-          <Route path="market" element={<MarketRoute />} />
+          <Route index element={<HomeRedirect />} />
+          <Route path="overview" element={<HomeRedirect />} />
+          <Route path="market/*" element={<MarketRoute />} />
           <Route path="portfolio" element={<PortfolioRoute />} />
           <Route
             path="burn-in"
@@ -53,7 +59,7 @@ const App: React.FC = () => (
           />
         </Route>
         <Route path="/direction" element={<DirectionShell />}>
-          <Route index element={<Navigate to="/paper-live/market" replace />} />
+          <Route index element={<HomeRedirect />} />
           <Route path="travaux" element={<MachineWorkboardView />} />
         </Route>
         <Route path="/research" element={<ResearchShell />}>

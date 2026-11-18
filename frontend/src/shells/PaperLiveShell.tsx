@@ -41,9 +41,13 @@ const CanonicalOutlet: React.FC = () => {
 };
 export const PaperLiveShell: React.FC = () => {
   const { pathname } = useLocation();
-  const key = pathname.split("/").at(-1) ?? "";
+  // Market deep routes (/paper-live/market/{radar,flow,venues,lmi}) share one heading.
+  const key =
+    pathname === "/paper-live/market" || pathname.startsWith("/paper-live/market/")
+      ? "market"
+      : (pathname.split("/").at(-1) ?? "");
   const headings: Record<string, [string, string]> = {
-    market: ["Marché", "Scanner CryptoRadar et contexte de liquidité publié."],
+    market: ["Marché", "Radar Spot, flux, plateformes et microstructure"],
     decisions: [
       "Décisions",
       "Signaux observés, motifs de refus et traces de décision.",

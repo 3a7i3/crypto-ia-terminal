@@ -2,12 +2,16 @@ import { SpotRadarMap } from "./SpotRadarMap";
 import { IntradayBubbleMap } from "./IntradayBubbleMap";
 import { MarketFlowView } from "./MarketFlowView";
 import React, { useState, useEffect, useRef } from "react";
+import { Link, MemoryRouter, Navigate, Route, Routes, useInRouterContext, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { MarketMicrostructureView } from "./MarketMicrostructureView";
+import { MARKET_BASE, MARKET_RADAR_PATH } from "../lib/moduleNavigation";
 import { useMarketSnapshot } from "../lib/marketClient";
 import { fr } from "../lib/presentationFr";
 import type { MarketOpportunity } from "../lib/marketTypes";
 import { PublicationStamp } from "../components/PublicationStamp";
 import "../market-catalogue.css";
 import "../market-venues.css";
+import "../market-navigation.css";
 import { MarketVenuesView } from "./MarketVenuesView";
 
 function formatUtc(value: string | null): string {
@@ -285,29 +289,130 @@ const MarketScanner: React.FC = () => {
 };
 
 
-const marketTabs = ["Scanner", "Comparaison des plateformes", "Flux"];
+// M1-C1 (EO-022): addressable Market navigation. Each existing view gets its own
+// deep route under /paper-live/market; only the active route is mounted, so an
+// inactive view never fetches. Views, clients and API contracts are unchanged.
+// Tab order and labels are kept from 36024a9; Microstructure (D-C4) is appended.
+export const MARKET_VIEWS = [
+  { slug: "radar", label: "Scanner" },
+  { slug: "venues", label: "Comparaison des plateformes" },
+  { slug: "flow", label: "Flux" },
+  { slug: "lmi", label: "Microstructure" },
+] as const;
 
-export const MarketView: React.FC = () => {
-  const [radar, setRadar] = useState(() => new URLSearchParams(window.location.search).get("radar") !== "0" && new URLSearchParams(window.location.search).get("intraday") !== "1");
-  const [intraday, setIntraday] = useState(() => new URLSearchParams(window.location.search).get("intraday") === "1");
-  const [active, setActive] = useState(0);
-  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
-  const choose = (next: number) => { setActive(next); tabs.current[next]?.focus(); };
-  return <div className="market-workspace" data-testid="market-workspace">
-    <div className="market-workspace-tabs" role="tablist" aria-label="Vues du marché">
-      {marketTabs.map((label, i) => <button key={label} type="button" role="tab" id={"market-tab-" + i} aria-controls={"market-panel-" + i} aria-selected={active === i} tabIndex={active === i ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => setActive(i)} onKeyDown={e => {
-        const next = {
-          Home: 0, End: marketTabs.length - 1,
-          ArrowRight: (i + 1) % marketTabs.length,
-          ArrowLeft: (i + marketTabs.length - 1) % marketTabs.length,
-        }[e.key];
-        if (typeof next === "number") { e.preventDefault(); choose(next); }
-      }}>{label}</button>)}
+export type MarketProduct = "spot" | "intraday" | "historical";
+// Effective priority inherited from 36024a9 (D-C3, documented, not changed):
+// `intraday=1` wins over `radar=0`; `radar=0` alone selects CryptoRadar historique;
+// anything else shows Radar Spot MEXC. `product=intraday` (D-C2) is an alias of
+// `intraday=1` and therefore shares its priority.
+export function marketProduct(params: URLSearchParams): MarketProduct {
+  if (params.get("intraday") === "1" || params.get("product") === "intraday") return "intraday";
+  if (params.get("radar") === "0") return "historical";
+  return "spot";
+}
+
+const RadarPanel: React.FC = () => {
+  const [params, setParams] = useSearchParams();
+  const product = marketProduct(params);
+  // Product choice is a sub-view of Radar: written to the URL with replace so it
+  // survives a reload without adding history entries (same as the former local state).
+  const select = (next: MarketProduct) => {
+    const query = new URLSearchParams(params);
+    query.delete("radar"); query.delete("intraday"); query.delete("product");
+    if (next === "intraday") query.set("product", "intraday");
+    if (next === "historical") query.set("radar", "0");
+    setParams(query, { replace: true });
+  };
+  return <>
+    <div className="market-display-choice" role="group" aria-label="Produit du scanner">
+      <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Radar Spot MEXC</button>
+      <button type="button" aria-pressed={product === "intraday"} onClick={() => select("intraday")}>Bulles Intraday</button>
+      <button type="button" aria-pressed={product === "historical"} onClick={() => select("historical")}>CryptoRadar historique</button>
     </div>
-    {marketTabs.map((label, i) => {
-      return <div key={label} role="tabpanel" id={"market-panel-" + i} aria-labelledby={"market-tab-" + i} hidden={active !== i}>
-        {active === i && (i === 0 ? <><div className="market-display-choice" role="group" aria-label="Produit du scanner"><button type="button" aria-pressed={radar} onClick={()=>setRadar(true)}>Radar Spot MEXC</button><button type="button" aria-pressed={intraday&&!radar} onClick={()=>{setRadar(false);setIntraday(true);}}>Bulles Intraday</button><button type="button" aria-pressed={!intraday&&!radar} onClick={()=>{setRadar(false);setIntraday(false);}}>CryptoRadar historique</button></div>{radar ? <SpotRadarMap/> : intraday ? <IntradayBubbleMap/> : <MarketScanner/>}</> : i === 1 ? <MarketVenuesView/> : <MarketFlowView/>)}
-      </div>;
-    })}
+    {product === "spot" ? <SpotRadarMap /> : product === "intraday" ? <IntradayBubbleMap /> : <MarketScanner />}
+  </>;
+};
+
+const UnknownMarketView: React.FC = () => {
+  const { pathname } = useLocation();
+  return <section className="market-panel" data-testid="market-unknown-view">
+    <p><strong>Vue Marché inconnue</strong> : <code>{pathname}</code>.</p>
+    <p>Aucune donnée n’est chargée pour cette adresse. Choisir une des vues du marché ci-dessus.</p>
+  </section>;
+};
+
+const MarketWorkspace: React.FC = () => {
+  const { pathname, search } = useLocation();
+  const navigate = useNavigate();
+  const slug = pathname.startsWith(MARKET_BASE + "/") ? pathname.slice(MARKET_BASE.length + 1).replace(/\/$/, "") : "";
+  const active = MARKET_VIEWS.findIndex((v) => v.slug === slug);
+  // Remember the Radar sub-view query while another view is open, as the former
+  // always-mounted MarketView kept its product state across tabs.
+  const radarSearch = useRef("");
+  useEffect(() => { if (slug === "radar") radarSearch.current = search; }, [slug, search]);
+  const hrefOf = (i: number) => MARKET_BASE + "/" + MARKET_VIEWS[i].slug +
+    (MARKET_VIEWS[i].slug === "radar" ? (slug === "radar" ? search : radarSearch.current) : "");
+  const tabs = useRef<(HTMLAnchorElement | null)[]>([]);
+  // The app frame moves focus to the content on every path change; a tab chosen
+  // from the tab list gets its focus back once that has happened.
+  const pendingFocus = useRef<number | null>(null);
+  useEffect(() => {
+    const i = pendingFocus.current;
+    pendingFocus.current = null;
+    if (i === null) return;
+    const timer = window.setTimeout(() => tabs.current[i]?.focus());
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
+  const go = (i: number) => {
+    tabs.current[i]?.focus();
+    if (i === active) return;
+    pendingFocus.current = i;
+    navigate(hrefOf(i));
+  };
+  const focusable = active < 0 ? 0 : active;
+  return <div className="market-workspace" data-testid="market-workspace">
+    {/* Real links: the existing link sub-navigation style (.module-subnav, as for the
+        Positions views) is reused, so no stylesheet changes in M1-C1. */}
+    <div className="market-workspace-tabs module-subnav" role="tablist" aria-label="Vues du marché">
+      {MARKET_VIEWS.map((view, i) => <Link key={view.slug} to={hrefOf(i)} role="tab" id={"market-tab-" + view.slug}
+        data-testid={"market-tab-" + view.slug} className={active === i ? "active" : undefined}
+        aria-selected={active === i} aria-current={active === i ? "page" : undefined}
+        aria-controls={active === i ? "market-panel" : undefined} tabIndex={focusable === i ? 0 : -1}
+        ref={(el) => { tabs.current[i] = el; }}
+        onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && i !== active) pendingFocus.current = i; }}
+        onKeyDown={(e) => {
+          const next = {
+            Home: 0, End: MARKET_VIEWS.length - 1,
+            ArrowRight: (i + 1) % MARKET_VIEWS.length,
+            ArrowLeft: (i + MARKET_VIEWS.length - 1) % MARKET_VIEWS.length,
+            " ": i,
+          }[e.key];
+          if (typeof next === "number") { e.preventDefault(); go(next); }
+        }}>{view.label}</Link>)}
+    </div>
+    <div id="market-panel" data-testid="market-panel" data-market-view={active < 0 ? "unknown" : slug}
+      role={active < 0 ? undefined : "tabpanel"} aria-labelledby={active < 0 ? undefined : "market-tab-" + slug}>
+      <Routes>
+        <Route index element={<Navigate to={{ pathname: MARKET_RADAR_PATH, search }} replace />} />
+        <Route path="radar" element={<RadarPanel />} />
+        <Route path="venues" element={<MarketVenuesView />} />
+        <Route path="flow" element={<MarketFlowView />} />
+        <Route path="lmi" element={<MarketMicrostructureView />} />
+        <Route path="*" element={<UnknownMarketView />} />
+      </Routes>
+    </div>
   </div>;
+};
+
+// Inside the application the workspace uses the app router. Rendered alone
+// (component tests), it gets its own in-memory router seeded from the current
+// address, so the same navigation code runs in both cases.
+export const MarketView: React.FC = () => {
+  const routed = useInRouterContext();
+  if (routed) return <MarketWorkspace />;
+  const { pathname, search } = window.location;
+  const start = (pathname === MARKET_BASE || pathname.startsWith(MARKET_BASE + "/") ? pathname : MARKET_RADAR_PATH) + search;
+  return <MemoryRouter initialEntries={[start]}>
+    <Routes><Route path={MARKET_BASE + "/*"} element={<MarketWorkspace />} /></Routes>
+  </MemoryRouter>;
 };

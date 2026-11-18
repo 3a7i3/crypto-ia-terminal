@@ -3,7 +3,6 @@ import { Link, useOutletContext } from "react-router-dom";
 import type { PaperLiveOutletContext } from "../shells/PaperLiveShell";
 import { DecisionsView } from "../views/DecisionsView";
 import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
-import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
 import { MarketView } from "../views/MarketView";
 import { PortfolioView } from "../views/PortfolioView";
 import { PplComparisonView } from "../views/PplComparisonView";
@@ -64,21 +63,9 @@ const CanonicalView: React.FC<{
     </>
   );
 };
-export const MarketRoute: React.FC = () => {
-  const [details, setDetails] = useState(false);
-  return (
-    <>
-      <MarketView />
-      <details
-        className="module-details"
-        onToggle={(e) => setDetails(e.currentTarget.open)}
-      >
-        <summary>Microstructure · flux et liquidité</summary>
-        {details && <MarketMicrostructureView />}
-      </details>
-    </>
-  );
-};
+// M1-C1 (EO-022, D-C4): Microstructure is a top-level Market destination
+// (/paper-live/market/lmi) instead of a <details> below every Market view.
+export const MarketRoute: React.FC = () => <MarketView />;
 export const PortfolioRoute: React.FC = () => (
   <CanonicalView>
     {(snapshot) => <PortfolioView snapshot={snapshot} />}

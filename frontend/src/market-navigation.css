@@ -1,0 +1,11 @@
+/* M1-C1-R1 (EO-023) — Market navigation only (the four tab links of MarketView).
+   Scoped to the Market tab list: no global selector, Positions (.module-subnav)
+   and Intraday are not affected. Colours, selected state and the shared focus
+   ring (3 px, offset 4 px) are unchanged.
+   1. Each tab is a 44 × 44 px minimum touch target (--touch-min, tokens.css)
+      in Auto, Mobile and Desktop layouts.
+   2. The tab list may scroll on narrow screens (overflow:auto, spot-radar.css);
+      its 8 px inner padding keeps the whole focus ring (3 + 4 = 7 px) inside
+      the scroll box, so the first and last tabs are never clipped. */
+.market-workspace-tabs[role=tablist]{padding:8px 8px 12px}
+.market-workspace-tabs[role=tablist]>a[role=tab]{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:var(--touch-min,44px);min-width:var(--touch-min,44px)}

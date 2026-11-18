@@ -17,18 +17,19 @@ describe("Module workspace routing", () => {
     vi.stubGlobal("fetch", fetchMock);
   });
   afterEach(() => vi.unstubAllGlobals());
+  // M1-C1 reconciliation (EO-022). Was: "/" opened the six-domain Direction home
+  // (ModuleHome, six cards). Decision D-C5: Market stays the home during M1 and
+  // the Direction home is not promoted (ModuleHome stays in the sources, unrouted).
+  // Preserved: one home, one primary navigation, no scores or burn-in surface.
   it("opens one home with six modules and one primary navigation", async () => {
     render(<App />);
-    await screen.findByTestId("module-home");
-    expect(window.location.pathname).toBe("/direction");
-    expect(
-      screen
-        .getByRole("navigation", { name: "Explorer les modules" })
-        .querySelectorAll("article"),
-    ).toHaveLength(6);
-    expect(
-      screen.getAllByRole("navigation", { name: "Modules de la machine" }),
-    ).toHaveLength(1);
+    await screen.findByTestId("market-workspace");
+    expect(window.location.pathname).toBe("/paper-live/market/radar");
+    expect(screen.queryByTestId("module-home")).toBeNull();
+    const primary = screen.getAllByRole("navigation", { name: "Modules de la machine" });
+    expect(primary).toHaveLength(1);
+    // Six modules plus the Accueil shortcut, which opens the Market home itself.
+    expect(within(primary[0]).getAllByRole("link")).toHaveLength(7);
     expect(screen.queryByText("Ordres & Burn-in")).toBeNull();
     expect(screen.queryByTestId("tab-scores")).toBeNull();
   });
@@ -42,50 +43,57 @@ describe("Module workspace routing", () => {
       method: "GET",
     });
   });
+  // M1-C1 reconciliation (EO-022). Was: the Direction home read five sources
+  // (snapshot, market, finance, research-lab, runtime-service). Decision D-C5: the
+  // home is Market Radar, which owns one source (Spot Radar). Preserved: the home
+  // reads only the sources it owns, never Advisor, finance or capital, never burn-in.
   it("home reads five sources, shares canonical metadata and never requests burn-in", async () => {
     render(<App />);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
     const urls = fetchMock.mock.calls.map((call) => String(call[0]));
-    expect(new Set(urls).size).toBe(5);
-    expect(urls).toEqual(
-      expect.arrayContaining([
-        "/api/operator/v1/snapshot",
-        "/api/operator/v1/market",
-        "/api/operator/v1/financial-reconciliation",
-        "/api/operator/v1/research-lab",
-        "/api/operator/v1/runtime-service",
-      ]),
-    );
+    expect(urls.length).toBeGreaterThan(0);
+    expect(urls.every((url) => url.startsWith("/api/operator/v1/spot-radar/"))).toBe(true);
     expect(urls).not.toContain("/api/operator/v1/burn-in");
-    expect(screen.getByTestId("module-home")).not.toHaveTextContent(
+    expect(urls).not.toContain("/api/operator/v1/snapshot");
+    expect(urls).not.toContain("/api/operator/v1/market");
+    expect(screen.getByTestId("market-workspace")).not.toHaveTextContent(
       "Capital disponible",
     );
-    expect(screen.getByTestId("module-home")).toHaveTextContent(
-      "ne certifie pas",
-    );
   });
+  // M1-C1 reconciliation (EO-022). Was: ten requests for five owners under StrictMode.
+  // Decision D-C5: one owner (Spot Radar) on the Market home. Preserved: StrictMode's
+  // repeated mount effects add no new source and at most one repeat per request.
   it("keeps five source owners when StrictMode repeats development mount effects", async () => {
     const { StrictMode } = await import("react");
     render(<StrictMode><App /></StrictMode>);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(10));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
     const urls = fetchMock.mock.calls.map(call => String(call[0]));
-    expect(new Set(urls).size).toBe(5);
-    expect(urls.filter(url => url === "/api/operator/v1/snapshot")).toHaveLength(2);
+    expect(new Set(urls)).toEqual(new Set(["/api/operator/v1/spot-radar/scanner"]));
+    expect(urls.length).toBeLessThanOrEqual(2);
   });
 
+  // M1-C1 reconciliation (EO-022). Was: a "Décisions" card of the Direction home.
+  // Decision D-C5: no Direction home during M1; the home reaches each owned source
+  // through the single primary navigation. Preserved: Décisions opens its own route.
   it("opens the owned source from a home card", async () => {
     render(<App />);
+    await screen.findByTestId("market-workspace");
     fireEvent.click(
       within(
-        screen.getByRole("navigation", { name: "Explorer les modules" }),
+        screen.getByRole("navigation", { name: "Modules de la machine" }),
       ).getByRole("link", { name: "Décisions" }),
     );
     await screen.findByTestId("decisions-view");
     expect(window.location.pathname).toBe("/paper-live/decisions");
   });
+  // M1-C1 reconciliation (EO-022). Was: obsolete /paper-live and /paper-live/overview
+  // -> /direction. Decisions D-C1/D-C5: they land on the canonical Market Radar route.
+  // Preserved: obsolete routes redirect and never request burn-in.
   it.each([
-    ["/paper-live", "/direction"],
-    ["/paper-live/overview", "/direction"],
+    ["/paper-live", "/paper-live/market/radar"],
+    ["/paper-live/overview", "/paper-live/market/radar"],
     ["/paper-live/burn-in", "/paper-live/portfolio"],
     ["/paper-live/scores", "/paper-live/system"],
   ])("redirects obsolete %s to %s", async (from, to) => {
