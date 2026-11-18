@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
 import { baseSnapshot } from "./fixtures";
+import spotRadarScanner from "./fixtures/spotRadar-scanner.json";
 
 function jsonResponse(body: unknown, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
@@ -107,6 +108,7 @@ describe("App", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks(); // M1-C4: Date.now spies of the Market tests
   });
 
   it("shares one canonical request across Positions and Decisions; System reads host separately", async () => {
@@ -131,25 +133,45 @@ describe("App", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/operator/v1/ppl-comparison", {method:"GET"});
   });
 
+  // M1-C4 (EO-024): the Market home has opened Radar Spot (spot-radar) since 36024a9 and
+  // CryptoRadar historique (/market) left the UI in M1-C3. Was: /market, market-freshness,
+  // market-view. Preserved: Market reads only its own source (one request, no Advisor
+  // snapshot, no /burn-in), Microstructure is read only when requested, and Market stays
+  // usable while the Advisor snapshot is missing. Radar answers are real Response objects
+  // because its client reads headers and a byte stream.
+  const radarResponse = () => new Response(JSON.stringify(spotRadarScanner), { status: 200, headers: { "content-type": "application/json" } });
+  const urls = () => fetchMock.mock.calls.map((call) => new URL(String(call[0]), "http://127.0.0.1").pathname);
+
   it("loads MARKET alone and exposes microstructure only when requested", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(Number(spotRadarScanner.server_time_ms));
+    const base = fetchMock.getMockImplementation() as (input: RequestInfo | URL) => Promise<Response>;
+    fetchMock.mockImplementation((input: RequestInfo | URL) => String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? Promise.resolve(radarResponse()) : base(input));
     window.history.replaceState({}, "", "/paper-live/market");
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
-    expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await screen.findByText("30 / 30");
+    expect(window.location.pathname).toBe("/paper-live/market/radar");
+    expect(screen.getByRole("heading", { name: "Market Radar · MEXC Spot" })).toBeInTheDocument();
+    expect(urls()).toEqual(["/api/operator/v1/spot-radar/scanner"]);
     expect(screen.queryByTestId("tab-scores")).toBeNull();
     expect(screen.queryByTestId("tab-burn-in")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Microstructure" }));
+    await waitFor(() => expect(urls()).toContain("/api/operator/v1/market-microstructure"));
+    expect(urls().filter((u) => u === "/api/operator/v1/market-microstructure")).toHaveLength(1);
+    expect(urls().some((u) => u.includes("burn-in") || u === "/api/operator/v1/snapshot" || u === "/api/operator/v1/market")).toBe(false);
   });
 
   it("keeps MARKET independent of missing Advisor and reports that absence on Positions", async () => {
-    fetchMock.mockImplementation((input: RequestInfo | URL) => Promise.resolve(String(input) === "/api/operator/v1/market" ? jsonResponse(baseMarketSnapshot()) : jsonResponse({error_code:"SNAPSHOT_MISSING",error_message:"canonical artifact absent"},503)));
+    vi.spyOn(Date, "now").mockReturnValue(Number(spotRadarScanner.server_time_ms));
+    fetchMock.mockImplementation((input: RequestInfo | URL) => Promise.resolve(String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? radarResponse() : jsonResponse({error_code:"SNAPSHOT_MISSING",error_message:"canonical artifact absent"},503)));
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
     fireEvent.click(screen.getByTestId("tab-market"));
-    await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
+    await screen.findByText("30 / 30");
+    expect(screen.getByRole("heading", { name: "Market Radar · MEXC Spot" })).toBeInTheDocument();
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
     expect(screen.queryByTestId("market-canonical-context")).toBeNull();
-    expect(screen.getByTestId("market-view")).toHaveTextContent("OBSERVATIONAL_TELEMETRY");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(urls().some((u) => u.includes("burn-in"))).toBe(false);
     fireEvent.click(screen.getByTestId("tab-paper"));
     await waitFor(() => expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu"));
   });
