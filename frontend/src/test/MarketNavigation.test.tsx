@@ -130,10 +130,14 @@ describe("M1-C1 browser history", () => {
 });
 
 describe("M1-C1 historical bookmarks and Radar sub-views", () => {
-  it("documents the inherited parameter priority (intraday=1 > radar=0 > Radar Spot)", () => {
+  // M1-C3 (EO-024): CryptoRadar historique is withdrawn from the Market UI.
+  // Was: radar=0 -> "historical" and the three bookmarks below stayed on it.
+  // Now: radar=0 is obsolete; it opens Radar Spot (Intraday if intraday=1 too),
+  // the parameter is dropped with replace and /api/operator/v1/market is not read.
+  it("documents the parameter priority after M1-C3 (intraday=1 / product=intraday > Radar Spot)", () => {
     const p = (q: string) => marketProduct(new URLSearchParams(q));
     expect(p("")).toBe("spot");
-    expect(p("radar=0")).toBe("historical");
+    expect(p("radar=0")).toBe("spot");
     expect(p("intraday=1")).toBe("intraday");
     expect(p("radar=0&intraday=1")).toBe("intraday");
     expect(p("product=intraday")).toBe("intraday");
@@ -142,13 +146,17 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
     expect(p("product=autre")).toBe("spot");
   });
 
-  it.each(["/paper-live/market?radar=0", "/?radar=0", "/direction?radar=0"])(
-    "keeps the %s bookmark on CryptoRadar historique after redirection", async (from) => {
+  it.each(["/paper-live/market?radar=0", "/?radar=0", "/direction?radar=0", RADAR + "?radar=0"])(
+    "opens Radar Spot from the old %s bookmark, without history entry or historical source", async (from) => {
       at(from);
+      const before = window.history.length;
       render(<App />);
-      await waitFor(() => expect(where()).toBe(RADAR + "?radar=0"));
-      expect(screen.getByRole("button", { name: "CryptoRadar historique" })).toHaveAttribute("aria-pressed", "true");
-      await waitFor(() => expect(families()).toEqual(["market"]));
+      await waitFor(() => expect(where()).toBe(RADAR));
+      expect(window.history.length).toBe(before);
+      expect(screen.queryByRole("button", { name: "CryptoRadar historique" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Radar Spot MEXC" })).toHaveAttribute("aria-pressed", "true");
+      await screen.findByRole("heading", { name: "Market Radar · MEXC Spot" });
+      await waitFor(() => expect(families()).toEqual(["spot-radar"]));
     });
 
   it.each(["/paper-live/market?intraday=1", RADAR + "?product=intraday", "/paper-live/market?radar=0&intraday=1"])(
@@ -161,27 +169,25 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
       expect(new URLSearchParams(window.location.search).get("radar") ?? "").not.toBe("1");
     });
 
-  it("selects CryptoRadar historique explicitly, keeps it across views, without new history entries", async () => {
+  it("offers only Radar Spot and Intraday, keeps the choice across views, without new history entries", async () => {
     at(RADAR);
     render(<App />);
     await screen.findByRole("heading", { name: "Market Radar · MEXC Spot" });
+    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Radar Spot MEXC", "Bulles Intraday"]);
     const before = window.history.length;
     fetchMock.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "CryptoRadar historique" }));
-    await waitFor(() => expect(where()).toBe(RADAR + "?radar=0"));
-    expect(window.history.length).toBe(before);
-    await waitFor(() => expect(families()).toEqual(["market"]));
     fireEvent.click(screen.getByRole("button", { name: "Bulles Intraday" }));
     await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
-    fireEvent.click(screen.getByRole("button", { name: "CryptoRadar historique" }));
+    expect(window.history.length).toBe(before);
+    await waitFor(() => expect(families()).toEqual(["intraday"]));
     fireEvent.click(tab("Flux"));
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));
-    expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?radar=0");
+    expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=intraday");
     fireEvent.click(tab("Scanner"));
-    await waitFor(() => expect(where()).toBe(RADAR + "?radar=0"));
-    expect(screen.getByRole("button", { name: "CryptoRadar historique" })).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
     fireEvent.click(screen.getByRole("button", { name: "Radar Spot MEXC" }));
     await waitFor(() => expect(where()).toBe(RADAR));
+    expect(families()).not.toContain("market");
   });
 
   it("keeps the Radar detail dialog without history entry, closes it with Escape and restores focus", async () => {

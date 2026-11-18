@@ -28,7 +28,8 @@ import { MARKET_RADAR_PATH } from "./lib/moduleNavigation";
 
 // M1-C1 (EO-022, D-C5): Market stays the home during M1. Former entry points land
 // on the canonical Radar route with replace, keeping their query so historical
-// bookmarks (?radar=0, ?intraday=1) keep their meaning.
+// bookmarks (?intraday=1) keep their meaning. Since M1-C3 (EO-024) an obsolete
+// ?radar=0 is dropped by the Radar view itself and opens Radar Spot.
 const HomeRedirect: React.FC = () => {
   const { search } = useLocation();
   return <Navigate to={{ pathname: MARKET_RADAR_PATH, search }} replace />;

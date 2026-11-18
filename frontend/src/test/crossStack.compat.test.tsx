@@ -22,7 +22,7 @@ import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
 import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
 import { validateFinancialReconciliationSnapshot } from "../lib/financialReconciliationValidation";
 import { validateMarketMicrostructureSnapshot } from "../lib/marketMicrostructureValidation";
-import { MarketView } from "../views/MarketView";
+import { MarketScanner } from "../views/MarketScanner";
 import { validateOperatorSnapshot } from "../lib/snapshotValidation";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
 import { validatePplComparisonSnapshot } from "../lib/pplComparisonValidation";
@@ -174,7 +174,7 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     expect(screen.queryByTestId("overview-view")).toBeNull();
   });
 
-  it("G MARKET: exact CryptoRadar producer/API JSON is admitted unchanged and rendered by MarketView", async () => {
+  it("G MARKET: exact CryptoRadar producer/API JSON is admitted unchanged and rendered by the CryptoRadar historique component", async () => {
     const canonical = loadFixture("A_minimal_canonical");
     const market = loadFixture("G_market");
     expect(canonical.http_status).toBe(200);
@@ -192,10 +192,11 @@ describe.skipIf(!HAS_FIXTURES)("cross-stack compatibility (real Python producer 
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    if (window.location.pathname === "/") window.history.replaceState({}, "", "/paper-live/portfolio");
-    render(<App />);
-    await waitFor(() => expect(screen.getByTestId("portfolio-view")).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId("tab-market"));
+    // M1-C3 (EO-024): CryptoRadar historique is no longer reachable from the Market
+    // tab (Radar Spot since 36024a9, UI entry removed in M1-C3). The producer/API
+    // JSON is still admitted unchanged and rendered by the unrouted component.
+    // Was: App -> Positions -> tab-market -> MarketView. Assertions unchanged.
+    render(<MarketScanner />);
 
     await waitFor(() => expect(screen.getByTestId("market-view")).toHaveTextContent("BTC/USDT"));
     expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente");
@@ -378,7 +379,7 @@ describe.skipIf(!HAS_FIXTURES)("U3a scanner real producer → API → React", ()
     expect(validateMarketRadarSnapshot(fixture.body)).toBe(true);
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(fixture.body, 200));
     vi.stubGlobal("fetch", fetchMock);
-    render(<MarketView />);
+    render(<MarketScanner />); // M1-C3 (EO-024): was <MarketView />; see G MARKET.
     await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(20));
     fireEvent.click(screen.getByRole("button", { name: "Page suivante" }));
     expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(20);

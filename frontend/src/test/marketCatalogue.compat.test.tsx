@@ -2,7 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MarketView } from "../views/MarketView";
+// M1-C3 (EO-024): renders the unrouted CryptoRadar historique component directly
+// (was: <MarketView />). Producer -> reader -> API -> React chain unchanged.
+import { MarketScanner } from "../views/MarketScanner";
 import { validateMarketRadarSnapshot } from "../lib/marketValidation";
 import type { MarketRadarSnapshot } from "../lib/marketTypes";
 
@@ -55,7 +57,7 @@ describe.skipIf(!available)("MARKET catalogue: Python producer → reader → AP
     const doc = fixture();
     const fetchMock = vi.fn().mockResolvedValue(response(doc));
     vi.stubGlobal("fetch", fetchMock);
-    render(<MarketView />);
+    render(<MarketScanner />);
     await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(20));
     expect(screen.getAllByTestId("market-opportunity-row").map((r) => r.textContent?.split("90.0")[0])[0]).toContain("COIN00/USDT");
     expect(screen.getByRole("button", { name: "Page précédente" })).toBeDisabled();
@@ -89,7 +91,7 @@ describe.skipIf(!available)("MARKET catalogue: Python producer → reader → AP
   it("uses one alternate heatmap with the same published order, values and accessible detail", async () => {
     const doc = fixture();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(doc)));
-    render(<MarketView />);
+    render(<MarketScanner />);
     await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(20));
     fireEvent.click(screen.getByRole("button", { name: "Carte des symboles" }));
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -128,7 +130,7 @@ describe.skipIf(!available)("MARKET catalogue: Python producer → reader → AP
       .mockResolvedValueOnce(response(first))
       .mockResolvedValueOnce(response(reduced))
       .mockResolvedValueOnce(response({ error_code: "MARKET_SNAPSHOT_MISSING" }, 503)));
-    render(<MarketView />);
+    render(<MarketScanner />);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     fireEvent.click(screen.getByRole("button", { name: "Page suivante" }));
     fireEvent.click(screen.getByRole("button", { name: "Page suivante" }));

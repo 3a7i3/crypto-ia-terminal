@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MarketView } from "../views/MarketView";
+// M1-C3 (EO-024): CryptoRadar historique left the Market UI; these tests now render
+// the unchanged, unrouted component directly (was: <MarketView />, whose Radar tab
+// has opened Radar Spot by default since 36024a9). Assertions are unchanged.
+import { MarketScanner } from "../views/MarketScanner";
 
 function jsonResponse(body: unknown, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
@@ -43,7 +46,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("MarketView", () => {
   it("renders the same CryptoRadar opportunity truth for desktop and mobile without execution levels", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot())));
-    render(<MarketView />);
+    render(<MarketScanner />);
 
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Publication récente"));
     const view = screen.getByTestId("market-view");
@@ -67,7 +70,7 @@ describe("MarketView", () => {
 
   it("renders stale evidence explicitly", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot("STALE"))));
-    render(<MarketView />);
+    render(<MarketScanner />);
 
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Ancien · périmé"));
     expect(screen.getByTestId("market-view")).toHaveTextContent("120s");
@@ -75,7 +78,7 @@ describe("MarketView", () => {
 
   it("keeps provenance inspectable without changing source values", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot())));
-    render(<MarketView />);
+    render(<MarketScanner />);
 
     await waitFor(() => expect(screen.getByText("Provenance et dates des sources")).toBeInTheDocument());
     const view = screen.getByTestId("market-view");
@@ -95,7 +98,7 @@ describe("MarketView", () => {
         ),
       ),
     );
-    render(<MarketView />);
+    render(<MarketScanner />);
 
     await waitFor(() => expect(screen.getByTestId("market-error")).toBeInTheDocument());
     expect(screen.getByTestId("market-view")).toHaveTextContent("MARKET_SNAPSHOT_MISSING");
@@ -118,7 +121,7 @@ describe("U3a scanner", () => {
   it("combines search and side filters without reranking or refetching, resets and distinguishes no match", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(scannerSnapshot()));
     vi.stubGlobal("fetch", fetchMock);
-    render(<MarketView />);
+    render(<MarketScanner />);
     await waitFor(() => expect(screen.getAllByTestId("market-opportunity-row")).toHaveLength(3));
     expect(screen.getByTestId("market-scanner-coverage")).toHaveTextContent("Couverture partielle");
     fireEvent.change(screen.getByLabelText("Biais dominant"), { target: { value: "SHORT" } });
@@ -144,7 +147,7 @@ describe("U3a scanner", () => {
 
   it("shows stale detail as historical and preserves explicit empty evidence", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(marketSnapshot("STALE"))));
-    render(<MarketView />);
+    render(<MarketScanner />);
     await waitFor(() => expect(screen.getByTestId("market-freshness")).toHaveTextContent("Ancien · périmé"));
     fireEvent.click(screen.getAllByRole("button", { name: "Détail BTC/USDT" })[0]);
     expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("Ancien · périmé · historique");
@@ -157,7 +160,7 @@ describe("U3a scanner", () => {
     const doc = scannerSnapshot();
     doc.actionable_count = 1;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(doc)));
-    render(<MarketView />);
+    render(<MarketScanner />);
     await waitFor(() => expect(screen.getByTestId("market-error")).toBeInTheDocument());
     expect(screen.queryByTestId("market-scanner-coverage")).not.toBeInTheDocument();
   });
@@ -175,7 +178,7 @@ it("resolves selected detail from replacement snapshots and hides it on polling 
       .mockResolvedValueOnce(jsonResponse(second))
       .mockResolvedValueOnce(jsonResponse({ error_code: "MARKET_SNAPSHOT_MISSING" }, 503));
     vi.stubGlobal("fetch", fetchMock);
-    render(<MarketView />);
+    render(<MarketScanner />);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     fireEvent.click(screen.getAllByRole("button", { name: "Détail BTC/USDT" })[0]);
     expect(screen.getByTestId("market-symbol-detail")).toHaveTextContent("75.0");
