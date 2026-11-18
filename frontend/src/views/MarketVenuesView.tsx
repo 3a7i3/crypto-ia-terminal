@@ -3,6 +3,8 @@ import { useVenueComparison } from "../lib/venueComparisonClient";
 import { PublicationStamp } from "../components/PublicationStamp";
 import type { VenueRow } from "../lib/venueComparison";
 import "../market-venues.css";
+import { MarketSourceNotice } from "../components/MarketSourceNotice";
+import { marketSourceSetup } from "../lib/marketSourceSetup";
 const names: Record<string, string> = { mexc: "MEXC", bybit: "Bybit", okx: "OKX", kraken: "Kraken", bitfinex: "Bitfinex", kucoin: "KuCoin", coinbase_exchange: "Coinbase Exchange", hyperliquid: "Hyperliquid" };
 const kinds: Record<string, string> = { SPOT: "Spot", PERPETUAL_LINEAR: "Perpétuel linéaire", PERPETUAL_INVERSE: "Perpétuel inverse", FUTURE_LINEAR: "Échéance linéaire", FUTURE_INVERSE: "Échéance inverse" };
 const time = (v: string | null) => v ? new Date(v).toISOString().replace("T", " ") : "Date non disponible";
@@ -28,6 +30,7 @@ export const MarketVenuesView: React.FC = () => {
   if (state.status === "loading") return <section className="market-panel venue-panel" data-testid="venue-comparison-view" role="status">Chargement de la comparaison des plateformes…</section>;
   if (state.status === "unavailable") return <section className="market-panel venue-panel" data-testid="venue-comparison-view">
     <h2>Comparaison des plateformes</h2><p role="status">Aucune publication de comparaison disponible.</p>
+    {marketSourceSetup(state.errorCode) && <MarketSourceNotice source="Comparaison des plateformes" setup={marketSourceSetup(state.errorCode)!} code={state.errorCode!} httpStatus={state.httpStatus}/>}
     <p>Les sources et prix ne sont pas déclarés vides. Leur disponibilité reste inconnue.</p>
     <details><summary>Source et diagnostic</summary><p>{state.diagnostic}</p></details>
   </section>;

@@ -4,6 +4,8 @@ import {fetchRadar,RadarError,type RadarScanner,type RadarHistory,type RadarRow,
 import {decimalCompare} from "../lib/intradayClient";
 import "../intraday.css";
 import "../spot-radar.css";
+import { MarketSourceNotice } from "../components/MarketSourceNotice";
+import { marketSourceSetup } from "../lib/marketSourceSetup";
 const labels:Record<Freshness,string>={LIVE:"LIVE qualifié",STALE:"STALE · périmée",DISCONNECTED:"DISCONNECTED · déconnecté",UNRESOLVED:"UNRESOLVED · non résolu",SYNTHETIC:"SYNTHETIC · fictif"};
 const utc=(s:string|null)=>s?new Date(Number(s)).toISOString().replace("T"," ").replace("Z"," UTC"):"Non disponible";
 export const SpotRadarMap:React.FC=()=>{
@@ -48,7 +50,7 @@ export const SpotRadarMap:React.FC=()=>{
    <button type="button" className="intraday-refresh" onClick={()=>setRefresh(n=>n+1)}>Actualiser</button>
   </div>
   {!data&&!error&&<div role="status" className="intraday-loading"><span className="intraday-skeleton"/>Connexion aux observations publiques…</div>}
-  {error&&<div role="alert" className="intraday-error">API indisponible · {error}. {data?"Dernières valeurs conservées, état DISCONNECTED.":"Aucune donnée présentée comme actuelle."}</div>}
+  {error&&(!data&&marketSourceSetup(error)?<MarketSourceNotice source="Radar Spot" setup={marketSourceSetup(error)!} code={error}/>:<div role="alert" className="intraday-error">API indisponible · {error}. {data?"Dernières valeurs conservées, état DISCONNECTED.":"Aucune donnée présentée comme actuelle."}</div>)}
   {data&&<>
    <div className="intraday-metrics" aria-label="Couverture Radar"><div><strong>{data.observed_instruments} / {data.selected_instruments}</strong><span>Instruments observés / sélectionnés</span></div><div><strong>{live}</strong><span>LIVE qualifiés</span></div><div><strong>{data.collector.state}</strong><span>Collecteur · {data.collector.reason}</span></div><div><strong>{data.rows.reduce((n,r)=>n+r.timeframes.length,0)} / {data.selected_instruments*4}</strong><span>Histoires OHLCV · cible 300 bougies</span></div></div>
    {data.collector.fault_injection&&<p role="status" className="intraday-error">Interruption simulée du laboratoire · aucune panne MEXC n’est affirmée.</p>}

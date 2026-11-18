@@ -21,7 +21,11 @@ it("active Flux au clavier et ne charge que l’onglet sélectionné", async () 
   const flux = screen.getByRole("tab", { name: "Flux" });
   expect(flux).toHaveFocus();
   expect(flux).toHaveAttribute("aria-selected", "true");
-  expect(await screen.findByRole("alert")).toHaveTextContent("HTTP 503 · MARKET_FLOW_NOT_CONFIGURED");
+  // M1-C2 (EO-024): a *_NOT_CONFIGURED source is now a status notice, distinct from a
+  // read failure (was: role=alert). Preserved: HTTP status and exact code stay visible.
+  const notice = await screen.findByTestId("market-source-not-configured");
+  expect(notice).toHaveTextContent("Source Flux non configurée sur ce serveur · HTTP 503 · MARKET_FLOW_NOT_CONFIGURED");
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(fetchFlow).toHaveBeenCalledTimes(1);
   fireEvent.keyDown(flux, { key: "ArrowRight" });
   expect(screen.getByRole("tab", { name: "Microstructure" })).toHaveFocus();

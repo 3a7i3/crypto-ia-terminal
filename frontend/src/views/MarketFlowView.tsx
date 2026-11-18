@@ -3,6 +3,8 @@ import { fetchMarketFlow, type MarketFlowState } from "../lib/marketFlowClient";
 import { decAdd, decCompare, parseDecimal, type ExactDecimal } from "../lib/marketFlowExact";
 import type { HeatmapColumn, MarketFlowHeatmap, MarketFlowPublication } from "../lib/marketFlowTypes";
 import "./market-flow.css";
+import { MarketSourceNotice } from "../components/MarketSourceNotice";
+import { marketSourceSetup } from "../lib/marketSourceSetup";
 
 const PAGE = 16;
 const unavailable = "Non disponible";
@@ -179,7 +181,7 @@ export function MarketFlowView() {
       setRequest(value => value + 1);
     }}>Rafraîchir Flux</button>
     {state.status === "loading" && <p role="status">Chargement de Flux…</p>}
-    {state.status === "api_error" && <p role="alert">Flux indisponible · HTTP {state.httpStatus}{state.errorCode && ` · ${state.errorCode}`}</p>}
+    {state.status === "api_error" && (marketSourceSetup(state.errorCode) ? <MarketSourceNotice source="Flux" setup={marketSourceSetup(state.errorCode)!} code={state.errorCode!} httpStatus={state.httpStatus}/> : <p role="alert">Flux indisponible · HTTP {state.httpStatus}{state.errorCode && ` · ${state.errorCode}`}</p>)}
     {state.status === "transport_error" && state.reason !== "ABORTED" && <p role="alert">Lecture de Flux impossible · {state.reason}{state.detail && ` · ${state.detail}`}</p>}
     {state.status === "success" && <Publication key={request} data={state.publication}/>}
   </section>;
