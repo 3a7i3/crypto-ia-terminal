@@ -61,9 +61,19 @@ try {
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: path.join(out, `system-${scenario.name}-${viewport.width}.png`), fullPage: true });
       if (scenario.name === "active") {
+        // M1-C5 (EO-026, D2): /direction opens the Market home (D-C5). The home
+        // stays independent of the host observation: it does not read it, does not
+        // repeat its diagnostics, and the System module stays one link away.
+        const before = requests.length;
         await page.goto(`${baseUrl}/direction`, {waitUntil:"networkidle"});
-        assert(await page.locator(".module-card").count()===6,"Home must expose module availability");
-        assert(!/MainPID|4321/.test(await page.getByTestId("module-home").innerText()),"Home duplicated host diagnostics");
+        await page.waitForURL(/\/paper-live\/market\/radar$/);
+        const home = page.getByTestId("market-workspace"); await home.waitFor();
+        assert(!requests.slice(before).some((r) => r.endsWith("/runtime-service")), "Home read the host observation");
+        assert(!/MainPID|4321/.test(await home.innerText()),"Home duplicated host diagnostics");
+        if (viewport.width <= 640) await page.getByRole("button",{name:"Ouvrir les modules"}).click();
+        const system = page.getByRole("navigation",{name:"Modules de la machine"}).getByRole("link",{name:/Système/});
+        assert(await system.count()===1 && new URL(await system.evaluate((a) => a.href)).pathname === "/paper-live/system","Home must expose the System module");
+        if (viewport.width <= 640) await page.keyboard.press("Escape");
 
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "Direction overflow");
         await page.evaluate(() => window.scrollTo(0, 0));

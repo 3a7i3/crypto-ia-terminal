@@ -55,8 +55,11 @@ try {
       });
     });
     for (const [name, route, testid] of [
-      ["machine", "/direction", "module-home"],
-      ["radar", "/paper-live/market", "market-view"],
+      // M1-C5 (EO-026, D2): /direction and /paper-live/market open the Market
+      // home (Radar Spot, D-C5); ModuleHome and CryptoRadar historique are no
+      // longer routed (their proofs: ModuleHome.invariants test, legacy page).
+      ["machine", "/direction", "market-workspace"],
+      ["radar", "/paper-live/market", "market-workspace"],
       ["portfolio", "/paper-live/portfolio", "portfolio-view"],
       ["finance", "/paper-live/finance", "financial-reconciliation-view"],
       ["research", "/research", "research-lab-view"],
@@ -67,6 +70,10 @@ try {
         `${name}: navigation failed`,
       );
       await page.getByTestId(testid).waitFor();
+      if (testid === "market-workspace") {
+        await page.waitForURL(/\/paper-live\/market\/radar$/);
+        assert(await page.getByTestId("module-home").count() === 0 && await page.getByTestId("market-view").count() === 0, `${name}: withdrawn view mounted`);
+      }
       if(width === 390) await page.getByRole("button",{name:"Ouvrir les modules"}).click();
       const modules=page.getByRole("navigation",{name:"Modules de la machine"});
       assert(await modules.getByRole("link").count()===7,"Missing module navigation");
