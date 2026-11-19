@@ -181,3 +181,91 @@ test("brand URLs carry content identity and agree across PWA, document, header a
   const frame = await readFile(path.join(SRC, "shells", "AppFrame.tsx"), "utf8");
   assert.ok(frame.includes('src="' + primary + '"'), "header must use the versioned PWA icon");
 });
+
+// M1-D2-PWA: release identity and upgrade/rollback lifecycle proof.
+// This identity must change whenever the deployed application shell changes.
+const TARGET_SHELL_CACHE = "crypto-ai-operator-shell-cat-market-m1d2-alpha-20261119";
+const PRIOR_SHELL_CACHE = "crypto-ai-operator-shell-or-radar-polish-20261116-1";
+
+async function createTransitionHarness(workerSource, buckets) {
+  const policySource = await readFile(path.join(PUBLIC, "pwa-policy.js"), "utf8");
+  const listeners = new Map();
+  const lifecycle = { skipWaiting: 0, claim: 0 };
+  const fakeCaches = {
+    async keys() { return [...buckets.keys()]; },
+    async delete(name) { return buckets.delete(name); },
+    async open(name) {
+      if (!buckets.has(name)) buckets.set(name, new Map());
+      const entries = buckets.get(name);
+      return {
+        async addAll(urls) { for (const url of urls) entries.set(url, "precached-static-shell"); },
+        async match(url) { return entries.get(typeof url === "string" ? url : new URL(url.url).pathname); },
+        async put(url, response) { entries.set(url, response); },
+      };
+    },
+  };
+  const self = {
+    location: { origin: "https://operator.private.example" },
+    clients: { async claim() { lifecycle.claim += 1; } },
+    async skipWaiting() { lifecycle.skipWaiting += 1; },
+    addEventListener(kind, handler) { listeners.set(kind, handler); },
+  };
+  const context = vm.createContext({
+    self, URL, Response, Promise, Object, console,
+    importScripts: () => undefined, caches: fakeCaches,
+    fetch: async () => new Response("static", { status: 200 }),
+  });
+  vm.runInContext(policySource, context, { filename: "pwa-policy.js" });
+  vm.runInContext(workerSource, context, { filename: "sw.js" });
+  async function dispatch(type) {
+    let completion;
+    listeners.get(type)({ waitUntil: (pending) => { completion = pending; } });
+    assert.ok(completion, type + " must call waitUntil");
+    await completion;
+  }
+  return { dispatch, listeners, lifecycle, self };
+}
+
+test("M1-D2 alpha updates the exact shell cache identity and cleans only CAT shell caches", async () => {
+  const workerSource = await readFile(path.join(PUBLIC, "sw.js"), "utf8");
+  assert.ok(workerSource.includes("cat-market-m1d2-alpha-20261119"),
+    "the new release must change sw.js bytes and its cache identity");
+  assert.ok(!workerSource.includes("or-radar-polish-20261116-1"),
+    "the previous release's cache identity must not be reused");
+  const buckets = new Map([
+    [PRIOR_SHELL_CACHE, new Map([["/", "old-shell"]])],
+    ["other-product-offline-cache", new Map([["/", "keep-this"]])],
+  ]);
+  const upgraded = await createTransitionHarness(workerSource, buckets);
+  await upgraded.dispatch("install");
+  assert.ok(buckets.has(TARGET_SHELL_CACHE), "new shell must be precached before activation");
+  assert.equal(upgraded.lifecycle.skipWaiting, 1, "updated worker should activate promptly");
+  await upgraded.dispatch("activate");
+  assert.equal(upgraded.lifecycle.claim, 1, "new worker should claim the open page");
+  assert.equal(buckets.has(PRIOR_SHELL_CACHE), false, "old CAT shell cache must be removed");
+  assert.ok(buckets.has(TARGET_SHELL_CACHE), "new CAT shell must survive activation");
+  assert.ok(buckets.has("other-product-offline-cache"), "unrelated caches must be preserved");
+
+  const fetchListener = upgraded.listeners.get("fetch");
+  for (const pathname of ["/api/operator/v1/spot-radar/scanner", "/api/operator/v1/market-flow", "/healthz"]) {
+    let intercepted = false;
+    fetchListener({
+      request: { method: "GET", mode: "cors", url: upgraded.self.location.origin + pathname },
+      respondWith() { intercepted = true; },
+    });
+    assert.equal(intercepted, false, pathname + " must remain network-only after update");
+  }
+
+  // Rollback simulation: the former release used this same worker logic and
+  // the old cache identity (read-only proof obtained at M1-D1).
+  const priorSource = workerSource.replace("cat-market-m1d2-alpha-20261119", "or-radar-polish-20261116-1");
+  assert.notEqual(priorSource, workerSource, "rollback must publish different service-worker bytes");
+  const rolledBack = await createTransitionHarness(priorSource, buckets);
+  await rolledBack.dispatch("install");
+  await rolledBack.dispatch("activate");
+  assert.equal(rolledBack.lifecycle.skipWaiting, 1);
+  assert.equal(rolledBack.lifecycle.claim, 1);
+  assert.equal(buckets.has(TARGET_SHELL_CACHE), false, "rollback must remove the new CAT shell cache");
+  assert.ok(buckets.has(PRIOR_SHELL_CACHE), "rollback must restore the former CAT shell cache");
+  assert.ok(buckets.has("other-product-offline-cache"), "rollback must preserve unrelated caches");
+});
