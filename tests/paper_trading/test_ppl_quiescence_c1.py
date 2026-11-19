@@ -1618,11 +1618,11 @@ def test_i7_marker_after_release_drains_immediately(world, monkeypatch, closer):
     pts, th, box = _admit_paused(world, monkeypatch, "P6")
     assert _flock_free_elsewhere(world.gate._lock_path)
     closing = _close_now(world, closer)
+    if closer == "thread":
+        _join(*closing)  # deterministic: close() fully returned (flock released)
     assert world.other_gate().drain_barrier(timeout_s=0).status == gm.DRAINED
     pts.release.set()
     assert _join(th, box).status is OrderStatus.FILLED
-    if closer == "thread":
-        _join(*closing)
 
 
 def _hold_flock_in_thread(world: World):
