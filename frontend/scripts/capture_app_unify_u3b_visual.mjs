@@ -5,7 +5,6 @@ import path from "node:path";
 const base = process.env.APP_UNIFY_U3B_VISUAL_BASE_URL || "http://127.0.0.1:3000";
 const out = process.env.APP_UNIFY_U3B_VISUAL_OUT_DIR || "artifacts/app-unify-u3b";
 const fixture = JSON.parse(await readFile(".cross-stack-fixtures/M_microstructure.json", "utf8"));
-const scanner = JSON.parse(await readFile(".cross-stack-fixtures/L_scanner.json", "utf8"));
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 assert(fixture.http_status === 200 && fixture._proof.source_unchanged, "Invalid actual producer fixture");
 await mkdir(out, { recursive: true });
@@ -18,10 +17,10 @@ try {
       console.log(`U3B scenario=${scenario} viewport=${width}`);
       const page = await browser.newPage({ viewport: { width, height: width === 390 ? 844 : 1000 } });
       page.on("pageerror", (error) => errors.push(String(error)));
-      page.on("request", (request) => { if (new URL(request.url()).pathname.startsWith("/api/")) requests.push(`${request.method()} ${new URL(request.url()).pathname}`); });
+      const pageRequests = [];
+      page.on("request", (request) => { if (new URL(request.url()).pathname.startsWith("/api/")) { const r = `${request.method()} ${new URL(request.url()).pathname}`; requests.push(r); pageRequests.push(r); } });
       await page.route("**/api/**", (route) => {
         const pathname = new URL(route.request().url()).pathname;
-        if (pathname === "/api/operator/v1/market" && ["missing", "invalid", "network"].includes(scenario)) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scanner.body) });
         if (pathname !== "/api/operator/v1/market-microstructure") return route.fulfill({ status: 503, contentType: "application/json", body: '{"error_code":"SOURCE_NOT_DEPLOYED"}' });
         if (scenario === "network") return route.abort();
         const body = structuredClone(fixture.body);
@@ -40,8 +39,10 @@ try {
         if (scenario === "invalid") body.rows[0].entry_price = 100;
         return route.fulfill({ status: scenario === "missing" ? 503 : 200, contentType: "application/json", body: JSON.stringify(scenario === "missing" ? { error_code: "MICROSTRUCTURE_MISSING" } : body) });
       });
-      assert((await page.goto(`${base}/paper-live/market`, { waitUntil: "networkidle" }))?.ok(), "Navigation failed");
-      await page.getByText("Microstructure · flux et liquidité", { exact: true }).click();
+      // M1-C5 (F4): Microstructure (LMI) is the addressable Market view
+      // /paper-live/market/lmi (M1-C1, D-C4), no longer a <details> under the Scanner.
+      assert((await page.goto(`${base}/paper-live/market/lmi`, { waitUntil: "networkidle" }))?.ok(), "Navigation failed");
+      assert(await page.getByRole("tab", { name: "Microstructure", exact: true }).getAttribute("aria-selected") === "true", "LMI tab not selected");
       const view = page.getByTestId("microstructure-view");
       await view.waitFor();
       if (["missing", "invalid", "network"].includes(scenario)) {
@@ -54,11 +55,18 @@ try {
         await view.getByText(expectedError, { exact: true }).waitFor();
         assert((await view.innerText()).includes("INCONNU"), "Failure not explicit");
         assert(await page.getByTestId("microstructure-coverage").count() === 0, "Error fabricated coverage");
-        await page.getByLabel("Recherche symbole", { exact: true }).fill("S25");
-        assert((await page.getByTestId("market-view").innerText()).includes("S25/USDT"), "LMI failure hid searchable Scanner");
+        // Independence: an LMI failure must not leak into the other Market views.
+        await page.getByRole("tab", { name: "Scanner", exact: true }).click();
+        await page.waitForURL(/\/paper-live\/market\/radar$/);
+        await page.getByTestId("market-source-not-configured").waitFor();
+        assert((await page.getByTestId("market-panel").innerText()).includes("SOURCE_NOT_DEPLOYED"), "Scanner state not its own");
+        assert(!(await page.getByTestId("market-panel").innerText()).includes("MICROSTRUCTURE_MISSING") && await page.getByTestId("microstructure-view").count() === 0, "LMI failure leaked into Scanner");
+        await page.getByRole("tab", { name: "Microstructure", exact: true }).click();
+        await view.getByText(expectedError, { exact: true }).waitFor();
       } else {
         await view.getByTestId("microstructure-coverage").waitFor();
-        assert(await page.getByTestId("market-error").count() === 1, "Fixture did not exercise independent scanner error");
+        // Every other source answers 503 here; the LMI view reads only its own source.
+        assert(pageRequests.length > 0 && pageRequests.every((r) => r === "GET /api/operator/v1/market-microstructure"), "LMI view read another source: " + pageRequests.join(", "));
         assert((await view.innerText()).includes("Demandés"), "Coverage missing");
         if (scenario === "empty") assert((await view.innerText()).includes("Watchlist explicitement vide"), "Empty population missing");
         else {

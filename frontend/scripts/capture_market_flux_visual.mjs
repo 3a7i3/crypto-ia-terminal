@@ -40,13 +40,28 @@ try {
         return route.continue();
       });
       try {
+        // M1-C5 (F4): Market is an addressable workspace of four views (Scanner =
+        // Radar Spot by default, Plateformes, Flux, Microstructure). Flux is reached
+        // by keyboard from the default view and must not be read before it opens.
         await page.goto(`${base}/paper-live/market`);
         const tabs = page.getByRole("tab");
-        assert.equal(await tabs.count(), 3);
+        await page.waitForURL(/\/paper-live\/market\/radar$/);
+        assert.deepEqual(await tabs.allInnerTexts(), ["Scanner", "Comparaison des plateformes", "Flux", "Microstructure"]);
+        assert.equal(await tabs.first().getAttribute("aria-selected"), "true");
         assert.equal(requests, 0);
         await tabs.first().focus();
         await page.keyboard.press("End");
+        await page.waitForURL(/\/paper-live\/market\/lmi$/);
+        await page.locator('[role="tab"][aria-selected="true"]', { hasText: "Microstructure" }).waitFor();
         assert.equal(await tabs.last().getAttribute("aria-selected"), "true");
+        assert.equal(requests, 0, "Microstructure view must not read the Flux source");
+        // Focus returns to the chosen tab once the route has changed (M1-C1).
+        await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "tab" && document.activeElement.textContent === "Microstructure");
+        await page.keyboard.press("ArrowLeft");
+        await page.waitForURL(/\/paper-live\/market\/flow$/);
+        await page.locator('[role="tab"][aria-selected="true"]', { hasText: "Flux" }).waitFor();
+        assert.equal(await page.getByRole("tab", { name: "Flux", exact: true }).getAttribute("aria-selected"), "true");
+        assert.equal(await page.getByRole("tabpanel").count(), 1);
         const flux = page.getByRole("region", { name: "Flux", exact: true });
         if (scenario.id === "no-snapshot") await flux.getByText("Carnet · meilleurs prix", { exact: true }).click();
         await flux.getByText(scenario.text, { exact: false }).last().waitFor();
@@ -67,6 +82,14 @@ try {
           await flux.locator('[data-flux-cell="unknown"]').first().waitFor();
         }
         assert.equal(requests, 1);
+        if (width === 1440 && theme === "light") {
+          // Direct address of the Flux view: same single read, same panel.
+          await page.goto(`${base}/paper-live/market/flow`);
+          if (scenario.id === "no-snapshot") await flux.getByText("Carnet · meilleurs prix", { exact: true }).click();
+          await flux.getByText(scenario.text, { exact: false }).last().waitFor();
+          assert.equal(await page.getByRole("tab", { name: "Flux", exact: true }).getAttribute("aria-selected"), "true");
+          assert.equal(requests, 2);
+        }
         assert.deepEqual(errors, []);
         assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Débordement horizontal de la page");
