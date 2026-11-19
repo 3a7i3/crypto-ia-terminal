@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- M1-C5 (EO-026, D3): CI-only compatibility proof page for the withdrawn
+     CryptoRadar historique scanner. Not an entry of the production build
+     (vite.config.ts builds index.html only; scripts/assert_no_legacy_proof_in_dist.mjs
+     checks it), not linked from the application, not offered in navigation. -->
+<html lang="fr" data-proof="legacy-market-scanner">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Preuve legacy · CryptoRadar historique</title>
+    <meta name="theme-color" content="#f3f7fc" />
+    <meta name="color-scheme" content="light dark" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/legacyProof/marketScannerProof.tsx"></script>
+  </body>
+</html>
