@@ -9,7 +9,9 @@
     "test": "vitest",
     "test:runtime": "node --test scripts/web01_local_frontend_server.node-test.mjs scripts/web01b_pwa_contract.node-test.mjs",
     "dev:demo": "vite --config vite.demo.config.ts",
-    "build:demo": "tsc && vite build --config vite.demo.config.ts"
+    "build:demo": "tsc && vite build --config vite.demo.config.ts",
+    "build:legacy-proof": "tsc && vite build --config vite.legacy-proof.config.ts",
+    "check:no-legacy-proof": "node scripts/assert_no_legacy_proof_in_dist.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

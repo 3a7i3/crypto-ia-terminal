@@ -58,17 +58,21 @@ describe("U3b LMI presentation", () => {
     expect(screen.getAllByTestId("microstructure-row")[0]).toHaveTextContent("état actuel INCONNU");
   });
 
+  // M1-C4 (EO-024): the former <details> "Microstructure · flux et liquidité" became the
+  // Microstructure tab in M1-C1 (D-C4) and the Scanner tab opens Radar Spot. Was: open
+  // the details beside an unavailable CryptoRadar scanner (market-error). Preserved:
+  // LMI stays usable while the Scanner source and the Advisor snapshot are unavailable,
+  // and each view reads only its own source.
   it("keeps LMI available when Scanner and Advisor are unavailable", async () => {
     window.history.replaceState({}, "", "/paper-live/market");
-    const fetchMock = vi.fn((url) => Promise.resolve(String(url).endsWith("/market-microstructure") ? jsonResponse(microstructureFixture()) : jsonResponse({ error_code: "SOURCE_NOT_DEPLOYED" }, 503)));
+    const fetchMock = vi.fn((url) => Promise.resolve(String(url).endsWith("/market-microstructure") ? jsonResponse(microstructureFixture()) : new Response(JSON.stringify({ error_code: "SOURCE_NOT_DEPLOYED" }), { status: 503, headers: { "content-type": "application/json" } })));
     vi.stubGlobal("fetch", fetchMock);
     render(<App />);
-    const details = screen.getByText("Microstructure · flux et liquidité").closest("details")!;
-    details.open = true; fireEvent(details, new Event("toggle"));
+    expect(await screen.findByTestId("market-source-not-configured")).toHaveTextContent("Source Radar Spot non déployée");
+    fireEvent.click(screen.getByRole("tab", { name: "Microstructure" }));
     await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
-    expect(screen.getByTestId("market-error")).toBeInTheDocument();
     expect(screen.queryByTestId("market-canonical-context")).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([u]) => String(u).replace(/\?.*$/, ""))).toEqual(["/api/operator/v1/spot-radar/scanner", "/api/operator/v1/market-microstructure"]);
   });
 
   it.each(["api", "invalid", "network"])("keeps %s failures explicit without zero coverage", async (kind) => {

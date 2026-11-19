@@ -45,13 +45,29 @@ try {
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(out, `research-${scenario}-${width}.png`), fullPage: true });
     if (["published", "missing"].includes(scenario)) {
+      // M1-C5 (EO-026, D2): /direction opens the Market home (D-C5). Research
+      // stays an independent module: reachable from the home's module
+      // navigation, keeping its own published/unavailable state, and the home
+      // never reads it.
+      const before = requests.length;
       await page.goto(`${base}/direction`, { waitUntil: "networkidle" });
-      const card = page.locator(".module-card").filter({has:page.getByRole("link",{name:"Laboratoire",exact:true})}); await card.waitFor();
-      assert((await card.innerText()).includes(scenario === "published" ? "Publication disponible" : "Source indisponible"), "Home hides independent Research");
+      await page.waitForURL(/\/paper-live\/market\/radar$/);
+      await page.getByTestId("market-workspace").waitFor();
+      assert(!requests.slice(before).some((r) => r.endsWith("/research-lab")), "Home read Research");
+      if (width <= 640) await page.getByRole("button", { name: "Ouvrir les modules" }).click();
+      const card = page.getByRole("navigation", { name: "Modules de la machine" }).getByRole("link", { name: /Laboratoire/ });
+      await card.waitFor();
+      await card.click();
+      await page.waitForURL(/\/research$/);
+      const lab = page.getByTestId("research-lab-view"); await lab.waitFor();
+      if (scenario === "missing") { await page.getByText("Source, dernière preuve et diagnostic",{exact:true}).click(); assert((await lab.innerText()).includes("indisponible"), "Home hides independent Research"); }
+      else assert((await lab.innerText()).includes("NON AUTORITAIRE") && await page.getByTestId("research-metric-card").count() > 0, "Home hides independent Research");
+      await lab.screenshot({ path: path.join(out, `direction-research-${scenario}-${width}.png`), style: ".operator-header, .direction-header { visibility: hidden !important; }" });
+      await page.goto(`${base}/direction`, { waitUntil: "networkidle" });
+      await page.waitForURL(/\/paper-live\/market\/radar$/);
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "Direction overflow");
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: path.join(out, `direction-full-${scenario}-${width}.png`), fullPage: true });
-      await card.screenshot({ path: path.join(out, `direction-research-${scenario}-${width}.png`), style: ".operator-header, .direction-header { visibility: hidden !important; }" });
     }
     await page.close();
   }

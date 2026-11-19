@@ -1,0 +1,69 @@
+/* Scoped research desk; does not replace the Operator theme. */
+.intraday-desk{--id-bg:#0b1020;--id-panel:#121a2b;--id-text:#e5eaf2;--id-muted:#a6b4c9;color:var(--id-text);background:var(--id-bg);border:1px solid #2d3b55;border-radius:20px;padding:28px;min-width:0;font-variant-numeric:tabular-nums}
+.intraday-desk *{box-sizing:border-box}
+.intraday-desk h2,.intraday-desk h3,.intraday-desk p{margin:0}
+.intraday-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.intraday-eyebrow{font-size:10px;letter-spacing:2.2px;color:#91add7;font-weight:700;margin-bottom:10px!important}
+.intraday-heading h2{font-size:clamp(24px,3vw,36px);letter-spacing:-1px;color:#f1f5fc;font-weight:650}
+.intraday-lead{color:var(--id-muted);font-size:14px;margin-top:8px!important}
+.intraday-proof{border:1px solid #82612c;border-radius:9px;background:#2d261c;color:#ffda8a;font-size:11px;padding:10px 13px;letter-spacing:.8px;white-space:nowrap}
+.intraday-proof small{display:block;font-size:10px;letter-spacing:0;margin-top:5px;color:#e8cfa4}
+.intraday-disclaimer{color:var(--id-muted);font-size:12px;padding:20px 0;border-bottom:1px solid #263249}
+.intraday-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;padding:22px 0}
+.intraday-controls label{display:grid;gap:7px;font-size:11px;color:var(--id-muted);font-weight:600}
+.intraday-controls label:first-child{flex:1;min-width:180px}
+.intraday-desk input,.intraday-desk select{background:#111c30;border:1px solid #364762;border-radius:8px;color:var(--id-text);padding:10px 12px;font:inherit;font-size:13px;min-height:42px;max-width:100%}
+.intraday-desk button{font:inherit;cursor:pointer}
+.intraday-desk button:focus-visible,.intraday-desk summary:focus-visible,.intraday-desk input:focus-visible,.intraday-desk select:focus-visible{outline:3px solid #93c5fd;outline-offset:4px}
+.intraday-desk button:disabled{opacity:.45;cursor:default}
+.intraday-switch{display:flex;background:#111c30;border:1px solid #364762;border-radius:8px;padding:3px}
+.intraday-switch button{background:transparent;color:#a6b4c9;border:0;border-radius:5px;padding:8px 13px;font-size:12px}
+.intraday-switch button[aria-pressed=true]{background:#2a4164;color:#f1f5fc}
+.intraday-refresh,.intraday-pagination button,.intraday-close{background:#1c2b43;color:#dfebff;border:1px solid #405578;border-radius:8px;padding:11px 14px;font-size:12px!important}
+.intraday-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#2a364b;border:1px solid #2a364b;border-radius:12px;overflow:hidden}
+.intraday-metrics>div{background:var(--id-panel);padding:18px 20px;display:grid;gap:7px}
+.intraday-metrics strong{font-size:24px;font-weight:600;letter-spacing:-.4px}
+.intraday-metrics>div:last-child strong{font-size:15px;line-height:29px}
+.intraday-metrics span{font-size:11px;color:var(--id-muted)}
+.intraday-map-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding-top:28px}
+.intraday-map-head h3{color:#e5eaf2;font-size:15px;font-weight:600}
+.intraday-map-head>span{color:var(--id-muted);font-size:11px}
+.intraday-coverage{color:var(--id-muted);font-size:11px;line-height:1.6;padding-top:8px}
+.intraday-bubbles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));align-items:center;justify-items:center;gap:28px 15px;padding:36px 18px 46px;margin-top:16px;border:1px solid #23324c;border-radius:14px;background:radial-gradient(ellipse at 50% 40%,#192b3e66,transparent 70%),radial-gradient(#34455a70 .65px,transparent .65px);background-size:auto,20px 20px;min-height:300px}
+.intraday-bubble{width:140px;height:140px;border-radius:50%;border:1.5px solid #52627a;background:#1d2b42;color:#e5eaf2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0;box-shadow:inset 0 0 24px #ffffff06,0 8px 25px #0002;padding:13px}
+.intraday-bubbles .intraday-bubble:nth-child(even){transform:translateY(12px)}
+.intraday-up{background:radial-gradient(circle at 35% 25%,#1c5949,#102b2e 75%);border-color:#48d6a6;color:#baf4df}
+.intraday-down{background:radial-gradient(circle at 35% 25%,#643336,#301d2a 75%);border-color:#f89999;color:#ffd2ce}
+.intraday-bubble strong{font-size:15px;letter-spacing:-.4px;max-width:100%;overflow-wrap:anywhere;line-height:1.2}
+.intraday-bubble-market{font-size:8px;letter-spacing:1px;opacity:.9}
+.intraday-bubble-price{font-size:13px;max-width:100%;overflow-wrap:anywhere}
+.intraday-bubble-change{font-size:12px;font-weight:650}
+.intraday-bubble-change small{display:block;font-size:8px;font-weight:400;opacity:.85;margin-top:3px}
+.intraday-list{display:grid;gap:8px;margin-top:20px}
+.intraday-list .intraday-bubble{border-radius:10px;width:100%;height:auto;min-height:65px;display:grid;grid-template-columns:1fr 2fr 1fr 1fr;text-align:left;gap:12px;padding:14px 18px}
+.intraday-legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:10px;color:var(--id-muted);padding:20px 0}
+.intraday-legend span:last-child{flex:1;text-align:right}
+.intraday-pagination{display:flex;justify-content:flex-end;gap:14px;align-items:center;font-size:12px;border-top:1px solid #263249;padding:18px 0}
+.intraday-provenance{font-size:12px;border-top:1px solid #263249;padding-top:18px;color:var(--id-muted)}
+.intraday-provenance summary{cursor:pointer;color:#a8c9f7}
+.intraday-provenance p{line-height:1.7;margin-top:12px}
+.intraday-desk dl{display:grid;grid-template-columns:160px minmax(0,1fr);gap:12px;margin-top:20px;font-size:12px}
+.intraday-desk dt{color:var(--id-muted)}
+.intraday-desk dd{margin:0;overflow-wrap:anywhere;color:#e5eaf2}
+.intraday-loading,.intraday-error,.intraday-empty{min-height:260px;display:flex;gap:20px;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;color:var(--id-muted);font-size:13px}
+.intraday-error{border:1px solid #915c4e;border-radius:12px;background:#2a2024}
+.intraday-error h3{color:#ffd2ce}
+.intraday-skeleton{display:block;width:95px;height:95px;border-radius:50%;background:#25334b}
+.intraday-modal-backdrop{position:fixed;inset:0;background:#050b17c9;z-index:1000;display:flex;justify-content:flex-end;padding:20px}
+.intraday-detail{width:min(480px,100%);background:#121a2b;color:#e5eaf2;border:1px solid #405578;border-radius:16px;padding:26px;overflow:auto;box-shadow:0 20px 70px #0008}
+.intraday-close{float:right}
+.intraday-detail>.intraday-eyebrow{padding-top:60px}
+.intraday-detail h3{font-size:30px;letter-spacing:-1px;clear:both;color:#f1f5fc}
+.intraday-detail>p:not(.intraday-eyebrow){font-size:12px;color:var(--id-muted);line-height:1.7;margin-top:12px}
+.intraday-detail-price{font-size:32px;font-weight:600;overflow-wrap:anywhere;padding:24px 0;border-bottom:1px solid #2e3d55}
+.intraday-detail-price small{display:block;font-size:11px;font-weight:400;color:var(--id-muted);margin-top:6px}
+@media(max-width:600px){.intraday-desk{padding:16px;border-radius:12px}.intraday-heading{flex-direction:column;gap:16px}.intraday-proof{white-space:normal;width:100%}.intraday-controls{gap:12px}.intraday-controls label:first-child{min-width:100%}.intraday-controls label:nth-child(2){flex:1}.intraday-refresh{width:100%}.intraday-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.intraday-metrics>div{padding:14px 12px}.intraday-metrics strong{font-size:22px}.intraday-map-head{align-items:flex-start;flex-direction:column;gap:8px}.intraday-bubbles{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 6px;padding:26px 4px 38px}.intraday-bubble{width:114px;height:114px;padding:9px;gap:5px}.intraday-bubble strong{font-size:12px}.intraday-bubble-market{font-size:7px}.intraday-bubble-price{font-size:11px}.intraday-legend span:last-child{text-align:left;flex-basis:100%}.intraday-pagination{justify-content:space-between;gap:6px;font-size:10px}.intraday-pagination button{padding:9px 7px;font-size:10px!important}.intraday-list .intraday-bubble{grid-template-columns:1fr 1fr;gap:8px;padding:12px}.intraday-desk dl{grid-template-columns:1fr;gap:5px}.intraday-desk dd{margin-bottom:12px}.intraday-modal-backdrop{padding:0}.intraday-detail{width:100%;border-radius:0;padding:20px}}
+@media(prefers-reduced-motion:reduce){.intraday-desk *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Long native symbols/prices remain complete in the accessible detail. */
+.intraday-bubble strong,.intraday-bubble-price{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}

@@ -82,4 +82,5 @@ databases/strategy_ranking.json
 # Local frontend review captures and isolated synthetic preview builds
 /frontend/artifacts/
 /frontend/dist-demo/
+/frontend/dist-legacy-proof/
 /artifacts/ux-fr/

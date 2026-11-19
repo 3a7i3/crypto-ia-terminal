@@ -53,6 +53,8 @@ jobs:
         run: npm run test:runtime
       - name: Production build
         run: npm run build
+      - name: Production build excludes the CI-only legacy proof page (M1-C5)
+        run: npm run check:no-legacy-proof
       - name: Diff hygiene (pull request)
         if: github.event_name == 'pull_request'
         working-directory: ${{ github.workspace }}

@@ -3,6 +3,8 @@ import { useMarketMicrostructure } from "../lib/marketMicrostructureClient";
 import type { MicrostructureRow } from "../lib/marketMicrostructureTypes";
 
 import { detailLabels, type DetailName } from "../lib/marketMicrostructureDetail";
+import { MarketSourceNotice } from "../components/MarketSourceNotice";
+import { marketSourceSetup } from "../lib/marketSourceSetup";
 
 const value = (v: number | null, suffix = "") => v === null ? "NOT_AVAILABLE" : `${v.toLocaleString("fr-FR", { maximumSignificantDigits: 10 })}${suffix}`;
 const Metrics: React.FC<{ row: MicrostructureRow }> = ({ row }) => <dl className="microstructure-metrics">
@@ -49,7 +51,7 @@ export const MarketMicrostructureView: React.FC = () => {
   if (state.status !== "success") return <section className="market-panel microstructure-panel" data-testid="microstructure-view">
     <h2>Microstructure · LMI</h2>
     <p data-testid="microstructure-status">ÉTAT ACTUEL · INCONNU</p>
-    <p>{state.status === "loading" ? "Chargement de la source indépendante…" : state.status === "api_error" ? `SOURCE INDISPONIBLE · HTTP ${state.httpStatus} · ${state.errorCode}` : `ERREUR TRANSPORT / CONTRAT · ${state.message}`}</p>
+    {state.status === "api_error" && marketSourceSetup(state.errorCode) ? <MarketSourceNotice source="Microstructure" setup={marketSourceSetup(state.errorCode)!} code={state.errorCode} httpStatus={state.httpStatus}/> : <p>{state.status === "loading" ? "Chargement de la source indépendante…" : state.status === "api_error" ? `SOURCE INDISPONIBLE · HTTP ${state.httpStatus} · ${state.errorCode}` : `ERREUR TRANSPORT / CONTRAT · ${state.message}`}</p>}
     <p>Observation passive · aucune autorité d’exécution.</p>
   </section>;
   const m = state.snapshot;

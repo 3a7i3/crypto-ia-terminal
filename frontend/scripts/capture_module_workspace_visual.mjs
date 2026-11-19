@@ -14,8 +14,12 @@ for (const [key, file] of Object.entries({
   "research-lab":"N_research_publication", "research-strategies":"O_research_strategies",
   "runtime-service":"K_runtime_service", storage:"N_storage", events:"L_events",
 })) fixtures[key] = JSON.parse(await readFile(path.join(fixtureDir,file+".json"),"utf8"));
+// M1-C5 (EO-026, D2/D3): /direction and /paper-live/market open the Market home
+// (Radar Spot, D-C5). CryptoRadar historique is proven on the CI-only legacy
+// proof page; ModuleHome invariants are kept by ModuleHome.invariants.test.tsx.
 const routes = [
-  ["home","/direction","module-home"], ["market","/paper-live/market","market-view"],
+  ["home","/direction","market-workspace"], ["market","/paper-live/market","market-workspace"],
+  ["legacy-scanner","/legacy-proof/market-scanner.html","market-view"],
   ["decisions","/paper-live/decisions","decisions-view"], ["positions","/paper-live/portfolio","portfolio-view"],
   ["ppl","/paper-live/lifecycle","ppl-comparison-view"], ["finance","/paper-live/finance","financial-reconciliation-view"],
   ["research","/research","research-lab-view"], ["strategies","/research/strategies","strategy-board-view"],
@@ -49,7 +53,7 @@ async function intercept(context, scenario) {
     if (!dist) return route.continue();
     const requested=path.resolve(dist,"."+url.pathname);
     assert(requested === dist || requested.startsWith(dist+path.sep),"Preview path escapes dist");
-    const target = req.isNavigationRequest() ? path.join(dist,"index.html") : requested;
+    const target = req.isNavigationRequest() && !url.pathname.endsWith(".html") ? path.join(dist,"index.html") : requested;
     try {return route.fulfill({status:200,contentType:mime[path.extname(target)] || "application/octet-stream",body:await readFile(target)});}
     catch {return route.fulfill({status:404,body:"Preview asset absent"});}
   });
@@ -72,21 +76,25 @@ try {
     page.on("pageerror",e=>errors.push(String(e)));
     page.on("request",r=>{if(new URL(r.url()).pathname.startsWith("/api/"))requests.push(r.method()+" "+new URL(r.url()).pathname);});
     for(const [name,route,marker] of routes) {
-      if(scenario === "stale" && !["home","market","ppl","finance","system"].includes(name))continue;
+      if(scenario === "stale" && !["home","market","legacy-scanner","ppl","finance","system"].includes(name))continue;
       await page.goto(base+route,{waitUntil:"domcontentloaded"});
       if(scenario === "missing" && ["positions","decisions"].includes(name)) await page.getByTestId("no-snapshot").waitFor();
       else await page.getByTestId(marker).waitFor();
       await page.waitForTimeout(120);
       const label=[theme,width,scenario,name].join("-");
       assert(await page.locator("html").getAttribute("data-theme") === theme,label+": wrong theme");
+      if(name === "home" || name === "market") assert(/\/paper-live\/market\/radar$/.test(new URL(page.url()).pathname),label+": not the Market home");
       if(name === "home") {
-        assert(await page.locator(".module-card").count()===6,"Home module ownership missing");
+        if(width===390)await page.getByRole("button",{name:"Ouvrir les modules"}).click();
+        assert(await page.getByRole("navigation",{name:"Modules de la machine"}).getByRole("link").count()===7,"Home module ownership missing");
+        if(width===390)await page.keyboard.press("Escape");
         assert(!/Burn-in|Capital disponible|Positions ouvertes/.test(await page.getByTestId(marker).innerText()),"Home repeats detailed metrics");
       }
-      if(scenario === "stale" && ["market","ppl","finance"].includes(name)) {
+      if(name === "legacy-scanner") assert(await page.getByTestId("legacy-proof-banner").isVisible(),label+": legacy proof page not identified");
+      if(scenario === "stale" && ["legacy-scanner","ppl","finance"].includes(name)) {
         assert(/périm|STALE|historique/i.test(await page.getByTestId(marker).innerText()),label+": historical warning missing");
       }
-      if(name === "market" && scenario === "loaded") {
+      if(name === "legacy-scanner" && scenario === "loaded") {
         assert(await page.locator(".market-table-desktop").isVisible(),label+": scanner table hidden");
         assert(await page.getByTestId("market-opportunity-row").count()>0,label+": scanner rows missing");
         await page.getByLabel("Recherche symbole",{exact:true}).fill("S25");
@@ -118,7 +126,7 @@ try {
   for(const scenario of ["invalid","network"]) {
     const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:"block"});await intercept(context,scenario);
     const page=await context.newPage();page.on("pageerror",e=>errors.push(String(e)));
-    for(const [name,route]of routes.filter(r=>["market","finance","research","positions"].includes(r[0]))) {
+    for(const [name,route]of routes.filter(r=>["market","legacy-scanner","finance","research","positions"].includes(r[0]))) {
       await page.goto(base+route,{waitUntil:"domcontentloaded"});await page.waitForTimeout(200);
       assert(!await page.getByTestId("market-opportunity-row").count(),"Invalid source fabricated rows");
       assert(!await page.getByTestId("open-position-row").count(),"Invalid source fabricated positions");

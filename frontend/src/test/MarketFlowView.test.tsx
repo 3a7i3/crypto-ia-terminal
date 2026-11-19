@@ -13,14 +13,22 @@ it("active Flux au clavier et ne charge que l’onglet sélectionné", async () 
   fetchFlow.mockResolvedValue({ status: "api_error", httpStatus: 503, errorCode: "MARKET_FLOW_NOT_CONFIGURED" });
   render(<MarketView/>);
   expect(fetchFlow).not.toHaveBeenCalled();
+  // M1-C1 (EO-022, D-C4): Microstructure is appended as the 4th Market tab, so End
+  // now reaches it and Flux sits just before it. Was: End -> Flux, ArrowRight -> Scanner.
+  // Preserved: keyboard activation of Flux, a single fetch, abort when Flux is left.
   fireEvent.keyDown(screen.getByRole("tab", { name: "Scanner" }), { key: "End" });
+  fireEvent.keyDown(screen.getByRole("tab", { name: "Microstructure" }), { key: "ArrowLeft" });
   const flux = screen.getByRole("tab", { name: "Flux" });
   expect(flux).toHaveFocus();
   expect(flux).toHaveAttribute("aria-selected", "true");
-  expect(await screen.findByRole("alert")).toHaveTextContent("HTTP 503 · MARKET_FLOW_NOT_CONFIGURED");
+  // M1-C2 (EO-024): a *_NOT_CONFIGURED source is now a status notice, distinct from a
+  // read failure (was: role=alert). Preserved: HTTP status and exact code stay visible.
+  const notice = await screen.findByTestId("market-source-not-configured");
+  expect(notice).toHaveTextContent("Source Flux non configurée sur ce serveur · HTTP 503 · MARKET_FLOW_NOT_CONFIGURED");
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(fetchFlow).toHaveBeenCalledTimes(1);
   fireEvent.keyDown(flux, { key: "ArrowRight" });
-  expect(screen.getByRole("tab", { name: "Scanner" })).toHaveFocus();
+  expect(screen.getByRole("tab", { name: "Microstructure" })).toHaveFocus();
   expect(fetchFlow.mock.calls[0][0]?.signal?.aborted).toBe(true);
 });
 

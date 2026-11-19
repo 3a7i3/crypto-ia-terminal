@@ -2,7 +2,7 @@
 // Registration is production-only so the development server never acquires a
 // persistent service worker that could obscure local frontend/API debugging.
 export const PWA_SERVICE_WORKER_PATH = "/sw.js";
-export const PWA_UPDATE_INTERVAL_MS = 15 * 60 * 1000;
+export const PWA_UPDATE_INTERVAL_MS = 3 * 60 * 1000;
 
 export function canRegisterOperatorPwa(): boolean {
   return (
@@ -36,7 +36,7 @@ export function registerOperatorPwa(): void {
     });
 
     try {
-      const registration = await navigator.serviceWorker.register(PWA_SERVICE_WORKER_PATH, { scope: "/" });
+      const registration = await navigator.serviceWorker.register(PWA_SERVICE_WORKER_PATH, { scope: "/", updateViaCache: "none" });
 
       // Do not wait for a browser restart to discover a new shell version.
       // The worker itself uses skipWaiting() and deletes only old shell caches.

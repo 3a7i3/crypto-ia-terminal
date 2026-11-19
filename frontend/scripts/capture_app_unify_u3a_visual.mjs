@@ -32,7 +32,10 @@ try {
         if (scenario === "invalid") body.top_opportunities[0].entry = 100;
         return route.fulfill({ status: scenario === "missing" ? 503 : 200, contentType: "application/json", body: JSON.stringify(scenario === "missing" ? { error_code: "MARKET_SNAPSHOT_MISSING" } : body) });
       });
-      assert((await page.goto(`${base}/paper-live/market`, { waitUntil: "networkidle" }))?.ok(), "Navigation failed");
+      // M1-C5 (EO-026, D3): the historical scanner is no longer in the
+      // application; its proof runs on the CI-only legacy proof page.
+      assert((await page.goto(`${base}/legacy-proof/market-scanner.html`, { waitUntil: "networkidle" }))?.ok(), "Navigation failed");
+      assert(await page.getByTestId("legacy-proof-banner").isVisible(), "Legacy proof banner missing");
       const view = page.getByTestId("market-view");
       if (["fresh", "stale"].includes(scenario)) {
         await page.getByTestId("market-scanner-coverage").waitFor();

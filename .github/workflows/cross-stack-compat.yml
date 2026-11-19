@@ -117,6 +117,10 @@ jobs:
           CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
         run: |
           npm run build
+          # M1-C5 (EO-026, D3): the CI-only CryptoRadar historique proof page
+          # must stay out of the production build; it has its own build.
+          node scripts/assert_no_legacy_proof_in_dist.mjs
+          npm run build:legacy-proof
           node scripts/capture_market_catalogue_visual.mjs
           node scripts/capture_venue_comparison_visual.mjs
 

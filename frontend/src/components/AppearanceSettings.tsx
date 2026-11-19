@@ -8,8 +8,11 @@ import {
   type Theme,
 } from "../lib/theme";
 
+import { readDisplayLayout, applyDisplayLayout, DISPLAY_KEY, type DisplayLayout } from "../lib/displayLayout";
+
 export const AppearanceSettings: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(readTheme);
+  const [display, setDisplay] = useState<DisplayLayout>(readDisplayLayout);
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(true);
   const root = useRef<HTMLDivElement>(null);
@@ -20,6 +23,7 @@ export const AppearanceSettings: React.FC = () => {
   useEffect(() => {
     const sync = (event: StorageEvent) => {
       if (event.key === THEME_KEY || event.key === null) setTheme(readTheme());
+      if (event.key === DISPLAY_KEY || event.key === null) setDisplay(readDisplayLayout());
     };
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
@@ -79,6 +83,7 @@ export const AppearanceSettings: React.FC = () => {
             </button>
           </div>
           <p>Ton espace de recherche, à ton rythme.</p>
+          <fieldset><legend>Affichage</legend><div className="radar-display-options">{(["auto","mobile","desktop"] as DisplayLayout[]).map(value=><button type="button" key={value} aria-pressed={display===value} onClick={()=>{setDisplay(value);applyDisplayLayout(value);try{localStorage.setItem(DISPLAY_KEY,value);setSaved(true);}catch{setSaved(false);}window.dispatchEvent(new CustomEvent("cat-display-layout",{detail:value}));}}>{value==="auto"?"Auto":value==="mobile"?"Mobile":"Bureau"}</button>)}</div></fieldset>
           <fieldset>
             <legend>Thème de l’application</legend>
             {(["light", "dark"] as const).map((value) => (

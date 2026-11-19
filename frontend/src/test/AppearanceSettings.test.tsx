@@ -8,6 +8,9 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   delete document.documentElement.dataset.theme;
+  delete document.documentElement.dataset.layout;
+  document.documentElement.style.zoom="";
+  document.documentElement.style.removeProperty("--cat-display-zoom");
 });
 function open() {
   fireEvent.click(
@@ -88,4 +91,23 @@ describe("Appearance is local and accessible", () => {
     expect(meta.content).toBe("#f4f6f8");
     meta.remove();
   });
+});
+
+it("persists manual display choice across remounts without network access",()=>{
+ const fetchMock=vi.fn();vi.stubGlobal("fetch",fetchMock);
+ render(<AppearanceSettings/>);open();
+ fireEvent.click(screen.getByRole("button",{name:"Mobile"}));
+ expect(document.documentElement.dataset.layout).toBe("mobile");
+ cleanup();render(<AppearanceSettings/>);open();
+ expect(screen.getByRole("button",{name:"Mobile"})).toHaveAttribute("aria-pressed","true");
+ fireEvent.click(screen.getByRole("button",{name:"Bureau"}));
+ expect(document.documentElement.dataset.layout).toBe("desktop");
+ expect(fetchMock).not.toHaveBeenCalled();
+});
+it("reports a display choice as session-only when storage is blocked",()=>{
+ vi.spyOn(Storage.prototype,"setItem").mockImplementation(()=>{throw Error("denied")});
+ render(<AppearanceSettings/>);open();
+ fireEvent.click(screen.getByRole("button",{name:"Mobile"}));
+ expect(document.documentElement.dataset.layout).toBe("mobile");
+ expect(screen.getByRole("status")).toHaveTextContent("cette session");
 });

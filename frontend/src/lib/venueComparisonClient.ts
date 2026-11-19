@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { validateVenuePublication, type VenuePublication } from "./venueComparison";
 export const VENUE_ENDPOINT = "/api/operator/v1/venue-comparison";
-export type VenueState = { status: "loading" } | { status: "success"; publication: VenuePublication } | { status: "unavailable"; diagnostic: string };
+export type VenueState = { status: "loading" } | { status: "success"; publication: VenuePublication } | { status: "unavailable"; diagnostic: string; httpStatus?: number; errorCode?: string };
 
 // Only presentation age/expiry is projected. Prices, source order and metrics retain their published values.
 export function elapsedVenuePublication(publication: VenuePublication, elapsedMs: number): VenuePublication | undefined {
@@ -54,7 +54,7 @@ export function useVenueComparison(): VenueState {
         const body: unknown = await response.json();
         if (!response.ok) {
           const code = typeof body === "object" && body && "error_code" in body ? String(body.error_code) : "SOURCE_UNAVAILABLE";
-          next = { status: "unavailable", diagnostic: "HTTP " + response.status + " · " + code };
+          next = { status: "unavailable", diagnostic: "HTTP " + response.status + " · " + code, httpStatus: response.status, errorCode: code };
         } else if (validateVenuePublication(body)) {
           if (!alive) return;
           current = { publication: body, mono, wall, elapsed: 0, clockRefused: false };

@@ -10,7 +10,24 @@ import { fileURLToPath } from "node:url";
 
 export const LOOPBACK_HOST = "127.0.0.1";
 export const FRONTEND_PORT = 8181;
+export const FRONTEND_PORT_ENV = "CAT_WEB_PORT";
 export const OPERATOR_API_TARGET = "http://127.0.0.1:8090";
+// Radar Spot read API (loopback only). Only this exact path prefix is routed
+// there; every other API path keeps the Operator API target.
+export const SPOT_RADAR_API_PREFIX = "/api/operator/v1/spot-radar/";
+export const SPOT_RADAR_API_TARGET = "http://127.0.0.1:18906";
+export const UPSTREAM_TIMEOUT_MS = 10000;
+
+// The contractual port is FRONTEND_PORT. An explicit CAT_WEB_PORT may select
+// another unprivileged port; anything else (empty, signed, decimal, leading
+// zero, out of 1024-65535) is refused rather than silently replaced.
+export function resolveFrontendPort(raw = process.env[FRONTEND_PORT_ENV]) {
+  if (raw === undefined) return FRONTEND_PORT;
+  if (typeof raw !== "string" || !/^[1-9][0-9]{3,4}$/.test(raw)) throw new Error("INVALID_CAT_WEB_PORT");
+  const port = Number(raw);
+  if (port < 1024 || port > 65535) throw new Error("INVALID_CAT_WEB_PORT");
+  return port;
+}
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_DIST_ROOT = path.join(ROOT, "dist");
@@ -80,6 +97,7 @@ function proxyToOperatorApi(request, response, target) {
       upstreamResponse.pipe(response);
     }
   });
+  upstream.setTimeout(UPSTREAM_TIMEOUT_MS, () => upstream.destroy(new Error("UPSTREAM_TIMEOUT")));
   upstream.once("error", () => failRequest(response, 502, "OPERATOR_API_UNAVAILABLE", "Local Operator API is unavailable."));
   request.pipe(upstream);
 }
@@ -104,6 +122,7 @@ async function serveFile(response, filename, method) {
     "content-type": MIME_TYPES.get(ext) ?? "application/octet-stream",
     "content-length": info.size,
     "x-content-type-options": "nosniff",
+    "cache-control": "no-store",
   };
   if (basename === "sw.js" || basename === "pwa-policy.js" || ext === ".webmanifest") {
     headers["cache-control"] = "no-cache";
@@ -123,8 +142,9 @@ function failRequest(response, status, code, message) {
   else apiError(response, status, code, message);
 }
 
-export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET } = {}) {
+export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET, spotRadarTarget = SPOT_RADAR_API_TARGET } = {}) {
   const target = new URL(apiTarget);
+  const spotRadar = new URL(spotRadarTarget);
   return http.createServer(async (request, response) => {
     try {
       let url;
@@ -132,7 +152,10 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
         return failRequest(response, 400, "INVALID_REQUEST_URL", "Request target is not a valid URL.");
       }
       if (!methodAllowed(request)) return apiError(response, 405, "METHOD_NOT_ALLOWED", "WEB-01G accepts GET and HEAD only.");
-      if (isApiPath(url.pathname)) return proxyToOperatorApi(request, response, target);
+      if (isApiPath(url.pathname)) {
+        const selected = url.pathname.startsWith(SPOT_RADAR_API_PREFIX) ? spotRadar : target;
+        return proxyToOperatorApi(request, response, selected);
+      }
 
       const requested = await resolveStaticPath(distRoot, url.pathname);
       // SPA fallback applies only to non-API frontend routes; API paths never
@@ -145,5 +168,10 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
 }
 
 if (isMainEntrypoint()) {
-  createServer().on("listening", () => console.log(`WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${FRONTEND_PORT}`));
+  let port;
+  try { port = resolveFrontendPort(); } catch (error) {
+    console.error(`WEB_01G_CONFIG_REFUSED=${error.message}`);
+    process.exit(2);
+  }
+  createServer({ port }).on("listening", () => console.log(`WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${port}`));
 }

@@ -34,14 +34,21 @@ try{
    return route.fulfill({status:200,contentType:mime[path.extname(target)]||"application/octet-stream",body:await readFile(target)});
   });
   const page=await context.newPage();page.setDefaultTimeout(10000);page.on("pageerror",e=>errors.push(String(e)));
+  // M1-C5 (F4): /paper-live/market opens the Scanner view (Radar Spot, M1-C3);
+  // the comparison is the addressable view /paper-live/market/venues.
   await page.goto(origin+"/paper-live/market",{waitUntil:"domcontentloaded"});
-  await page.getByTestId("market-opportunity-row").first().waitFor();
+  await page.waitForURL(/\/paper-live\/market\/radar$/);
   assert(await page.getByRole("tab",{name:"Scanner",exact:true}).getAttribute("aria-selected")==="true","scanner remains default");
+  assert(comparisonRequests===0,"inactive comparison view is not read");
   await page.getByRole("tab",{name:"Comparaison des plateformes",exact:true}).click();
+  await page.waitForURL(/\/paper-live\/market\/venues$/);
   if(name==="missing"||name==="invalid"){
    await page.getByText("Aucune publication de comparaison disponible.",{exact:true}).waitFor();
    assert(await page.getByRole("table").count()===0,"unavailable is not empty numeric table");
    assert((await page.getByTestId("venue-comparison-view").innerText()).includes("disponibilité reste inconnue"),"unknown not zero");
+   // M1-C2: an unconfigured source is shown apart from a contract failure.
+   if(name==="missing")assert((await page.getByTestId("market-source-not-configured").innerText()).includes("VENUE_COMPARISON_NOT_CONFIGURED"),"unconfigured source distinct");
+   else assert(await page.getByTestId("market-source-not-configured").count()===0,"contract failure is not unconfigured");
   }else{
    await page.getByTestId("venue-synthetic").waitFor();
    assert(await page.getByTestId("market-opportunity-row").count()===0,"comparison does not duplicate scanner");
@@ -84,8 +91,38 @@ try{
   views.push({label,...geometry});
   await context.close();
  }
+ // M1-C5 (F4): the four active Market routes, addressed directly. Each selects
+ // its own tab, mounts one panel and reads only its own source; CryptoRadar
+ // historique is offered nowhere, including through the obsolete ?radar=0.
+ const ROUTES=[["radar","Scanner",p=>p.startsWith("/api/operator/v1/spot-radar/")],["venues","Comparaison des plateformes",p=>p==="/api/operator/v1/venue-comparison"],["flow","Flux",p=>p==="/api/operator/v1/market-flow"],["lmi","Microstructure",p=>p==="/api/operator/v1/market-microstructure"]];
+ const routeChecks=[];
+ for(const [slug,label,own] of ROUTES)for(const suffix of ["",...(slug==="radar"?["?radar=0"]:[])]){
+  const context=await browser.newContext({viewport:{width:1440,height:900},locale:"fr-FR",serviceWorkers:"block"});
+  const read=[];
+  await context.route("**/*",async route=>{
+   const q=route.request(),u=new URL(q.url());
+   if(u.origin!==origin||!["GET","HEAD"].includes(q.method())){blocked.push(q.method()+" "+u.href);return route.abort();}
+   if(u.pathname.startsWith("/api/")){read.push(u.pathname);requests.push(q.method()+" "+u.pathname);return route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error_code:"SYNTHETIC_NOT_AVAILABLE"})});}
+   const target=q.isNavigationRequest()?path.join(root,"index.html"):path.resolve(root,"."+u.pathname);
+   assert(target.startsWith(root+path.sep),"static path remains in build");
+   const mime={".html":"text/html",".js":"text/javascript",".css":"text/css",".png":"image/png",".webmanifest":"application/manifest+json"};
+   return route.fulfill({status:200,contentType:mime[path.extname(target)]||"application/octet-stream",body:await readFile(target)});
+  });
+  const page=await context.newPage();page.setDefaultTimeout(10000);page.on("pageerror",e=>errors.push(String(e)));
+  await page.goto(origin+"/paper-live/market/"+slug+suffix,{waitUntil:"networkidle"});
+  assert(await page.getByTestId("market-panel").getAttribute("data-market-view")===slug,slug+": wrong panel");
+  assert(await page.getByRole("tabpanel").count()===1,slug+": one mounted panel");
+  for(const [other,otherLabel] of ROUTES)assert(await page.getByRole("tab",{name:otherLabel,exact:true}).getAttribute("aria-selected")===String(other===slug),slug+": tab state "+other);
+  assert(read.length>0&&read.every(own),slug+": reads only its own source: "+read.join(", "));
+  const text=await page.locator("body").innerText();
+  assert(!/CryptoRadar historique/i.test(text),slug+suffix+": historical CryptoRadar offered");
+  assert(await page.getByTestId("market-scanner-coverage").count()===0&&await page.getByTestId("market-view").count()===0,slug+suffix+": historical scanner mounted");
+  if(suffix)assert(!page.url().includes("radar=0"),"obsolete ?radar=0 dropped");
+  routeChecks.push({route:"/paper-live/market/"+slug+suffix,reads:[...new Set(read)]});
+  await context.close();
+ }
  assert(!errors.length&&!blocked.length,"no page errors or external/mutation requests");
  assert(requests.every(r=>r.startsWith("GET /api/operator/v1/")),"GET-only artifact reads");
- await writeFile(path.join(out,"checks.json"),JSON.stringify({disposition:"SOURCE_ONLY_SYNTHETIC_VENUE_UI_PASS",assertions,views,errors,blocked,requests:[...new Set(requests)],fixtures_used:true,sandbox:true,service_workers:"blocked",active_api_reached:false,server_started:false},null,2)+"\n");
+ await writeFile(path.join(out,"checks.json"),JSON.stringify({disposition:"SOURCE_ONLY_SYNTHETIC_VENUE_UI_PASS",assertions,views,market_routes:routeChecks,errors,blocked,requests:[...new Set(requests)],fixtures_used:true,sandbox:true,service_workers:"blocked",active_api_reached:false,server_started:false},null,2)+"\n");
  console.log("VENUE_COMPARISON_BROWSER_PASS",assertions,views.length);
 }catch(error){await writeFile(path.join(out,"checks.json"),JSON.stringify({disposition:"SOURCE_ONLY_SYNTHETIC_VENUE_UI_FAIL",assertions,views,errors,blocked,error:String(error)},null,2)+"\n");throw error;}finally{await browser.close();}

@@ -31,6 +31,20 @@ def test_server_is_fixed_loopback_get_head_proxy_without_runtime_artifact_access
     text = _text(SERVER)
     assert 'LOOPBACK_HOST = "127.0.0.1"' in text
     assert "FRONTEND_PORT = 8181" in text
+    # M1-C5 F1-b: 8181 stays the contractual default; an explicit override is
+    # strictly validated and refused otherwise, never silently replaced.
+    assert "export const FRONTEND_PORT = 8181;" in text
+    assert 'FRONTEND_PORT_ENV = "CAT_WEB_PORT"' in text
+    assert "/^[1-9][0-9]{3,4}$/" in text
+    assert "port < 1024 || port > 65535" in text
+    assert 'throw new Error("INVALID_CAT_WEB_PORT")' in text
+    assert "WEB_01G_CONFIG_REFUSED" in text and "process.exit(2)" in text
+    assert "process.env.CAT_WEB_PORT ||" not in text and "Number(process.env" not in text
+    assert 'SPOT_RADAR_API_PREFIX = "/api/operator/v1/spot-radar/"' in text
+    assert 'SPOT_RADAR_API_TARGET = "http://127.0.0.1:18906"' in text
+    assert "UPSTREAM_TIMEOUT_MS = 10000" in text
+    assert text.index("if (!methodAllowed(request))") < text.index("url.pathname.startsWith(SPOT_RADAR_API_PREFIX)")
+    assert 'headers["cache-control"] = "no-store";' in text
     assert 'OPERATOR_API_TARGET = "http://127.0.0.1:8090"' in text
     assert "0.0.0.0" not in text and "[::]" not in text
     assert 'request.method === "GET" || request.method === "HEAD"' in text

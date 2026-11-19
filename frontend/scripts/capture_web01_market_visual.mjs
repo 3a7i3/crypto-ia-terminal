@@ -7,6 +7,14 @@ const outDir = process.env.WEB01_VISUAL_OUT_DIR || "artifacts";
 const desktopPath = path.join(outDir, "web01-market.png");
 const tabletPath = path.join(outDir, "web01-market-tablet.png");
 const mobilePath = path.join(outDir, "web01-market-mobile.png");
+const shellDesktopPath = path.join(outDir, "web01-app-shell-desktop.png");
+const shellMobilePath = path.join(outDir, "web01-app-shell-mobile.png");
+// M1-C5 (EO-026, D3): CryptoRadar historique is withdrawn from the application
+// (M1-C3). The real-path proof is kept on the CI-only legacy proof page, served
+// by the same Vite dev server and therefore through the same loopback proxy to
+// the Operator API on 127.0.0.1:8090 (GET /api/operator/v1/market). The
+// application shell is checked separately on its actual Market route.
+const LEGACY_PAGE = "/legacy-proof/market-scanner.html";
 
 await mkdir(outDir, { recursive: true });
 
@@ -28,12 +36,19 @@ async function assertNoPageOverflow(page, label) {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const response = await page.goto(`${baseUrl}/paper-live/market`, { waitUntil: "networkidle" });
+  const marketResponses = [];
+  page.on("response", (r) => { const u = new URL(r.url()); if (u.pathname === "/api/operator/v1/market") marketResponses.push({ origin: u.origin, method: r.request().method(), status: r.status() }); });
+  const response = await page.goto(`${baseUrl}${LEGACY_PAGE}`, { waitUntil: "networkidle" });
   if (!response || !response.ok()) {
-    throw new Error(`frontend navigation failed: ${response?.status() ?? "no-response"}`);
+    throw new Error(`legacy proof navigation failed: ${response?.status() ?? "no-response"}`);
   }
+  assert(await page.locator("html").getAttribute("data-proof") === "legacy-market-scanner", "legacy proof page not identified");
+  assert((await page.getByTestId("legacy-proof-banner").innerText()).includes("composant legacy non exposé"), "legacy proof banner missing");
 
   await page.getByTestId("market-view").waitFor({ state: "visible" });
+  // Real path: the browser read /market from the dev server origin (Vite proxy
+  // to the loopback Operator API), GET only, HTTP 200 from the generated artifact.
+  assert(marketResponses.length > 0 && marketResponses.every((r) => r.origin === new URL(baseUrl).origin && r.method === "GET" && r.status === 200), "MARKET not read through the local proxy: " + JSON.stringify(marketResponses));
   await page.getByTestId("market-opportunity-row").first().waitFor({ state: "visible" });
 
   await page.getByText("Provenance et dates des sources").click();
@@ -45,6 +60,7 @@ try {
     "MARKET authority provenance missing from MarketView",
   );
   assert(!marketText.includes("NOT_EXPOSED"), "MarketView still reports NOT_EXPOSED");
+  assert(!/\bLIVE\b/.test(marketText), "generated artifact presented as LIVE");
   for (const forbidden of ["Entry", "Stop Loss", "Take Profit"]) {
     assert(!marketText.includes(forbidden), `forbidden execution presentation leaked: ${forbidden}`);
   }
@@ -77,8 +93,6 @@ try {
     assert(headerBoxes[i].x > headerBoxes[i - 1].x + 25, "MARKET table columns visually collapsed");
   }
 
-  const activeMarketTab = await page.getByTestId("tab-market").boundingBox();
-  assert(activeMarketTab !== null && activeMarketTab.width >= 65, "MARKET nav tab lacks usable spacing");
   await assertNoPageOverflow(page, "desktop");
   await page.screenshot({ path: desktopPath, fullPage: true });
 
@@ -114,14 +128,33 @@ try {
   for (const label of ["Symbole", "Score moyen", "Score maximal", "Dominance", "Signaux", "Régime"]) assert((await tableHeaders.allTextContents()).includes(label), `mobile table missing column ${label}`);
   const freshnessBox = await page.getByTestId("market-freshness").boundingBox();
   assert(freshnessBox !== null && freshnessBox.y < 844, "phone freshness state is not visible above the initial fold");
-  const navBox = await page.locator(".app-topbar").boundingBox();
-  assert(navBox !== null && navBox.width <= 390, "phone navigation exceeds viewport width");
   await assertNoPageOverflow(page, "phone");
   await page.screenshot({ path: mobilePath, fullPage: true });
+
+  // Application shell on the actual Market route (Radar Spot by default): the
+  // Market module tab keeps usable spacing and the phone navigation fits.
+  const app = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const appResponse = await app.goto(`${baseUrl}/paper-live/market`, { waitUntil: "networkidle" });
+  assert(appResponse?.ok(), "application Market navigation failed");
+  await app.waitForURL(/\/paper-live\/market\/radar$/);
+  await app.getByTestId("market-workspace").waitFor();
+  assert(await app.getByTestId("market-view").count() === 0, "CryptoRadar historique mounted in the application");
+  const activeMarketTab = await app.getByTestId("tab-market").boundingBox();
+  assert(activeMarketTab !== null && activeMarketTab.width >= 65, "MARKET nav tab lacks usable spacing");
+  await assertNoPageOverflow(app, "app desktop");
+  await app.screenshot({ path: shellDesktopPath, fullPage: true });
+  await app.setViewportSize({ width: 390, height: 844 });
+  await app.waitForTimeout(100);
+  const navBox = await app.locator(".app-topbar").boundingBox();
+  assert(navBox !== null && navBox.width <= 390, "phone navigation exceeds viewport width");
+  await assertNoPageOverflow(app, "app phone");
+  await app.screenshot({ path: shellMobilePath, fullPage: true });
 
   console.log(`WEB01_MARKET_VISUAL_PROOF_DESKTOP=${desktopPath}`);
   console.log(`WEB01_MARKET_VISUAL_PROOF_TABLET=${tabletPath}`);
   console.log(`WEB01_MARKET_VISUAL_PROOF_MOBILE=${mobilePath}`);
+  console.log(`WEB01_APP_SHELL_PROOF=${shellDesktopPath},${shellMobilePath}`);
+  console.log("WEB01_MARKET_REAL_PROXY_8090_LEGACY_PROOF_PAGE=PASS");
   console.log("WEB01_MARKET_VISUAL_ASSERTIONS=PASS");
 } finally {
   await browser.close();

@@ -1,5 +1,10 @@
 import type { IconName } from "../components/AppIcon";
 
+// M1-C1 (EO-022): Market deep routes. Kept in this style-free module so that the
+// shell can link to them without changing the stylesheet order of the bundle.
+export const MARKET_BASE = "/paper-live/market";
+export const MARKET_RADAR_PATH = MARKET_BASE + "/radar";
+
 export const MODULES: {
   to: string;
   label: string;
@@ -8,7 +13,9 @@ export const MODULES: {
   testId: string;
 }[] = [
   {
-    to: "/direction",
+    // M1-C1 (EO-022, D-C5): Market is the home during M1; the Accueil shortcut opens
+    // the canonical Radar route directly. Market keeps the active state.
+    to: "/paper-live/market/radar",
     label: "Accueil",
     description: "Les sources de ton infrastructure",
     icon: "home",

@@ -4,7 +4,10 @@ import { chromium } from "playwright";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const dist = path.resolve(process.env.UI_PREVIEW_DIST || "dist");
+// M1-C5 (EO-026, D3): the withdrawn CryptoRadar historique scanner is proven on
+// the CI-only legacy proof build (npm run build:legacy-proof), never on dist/.
+const dist = path.resolve(process.env.UI_PREVIEW_DIST || "dist-legacy-proof");
+const PROOF_PAGE = "/legacy-proof/market-scanner.html";
 const fixtureDir = process.env.CROSS_STACK_FIXTURES_DIR || ".cross-stack-fixtures";
 const out = process.env.MARKET_CATALOGUE_VISUAL_OUT_DIR || "artifacts/market-catalogue";
 const origin = "http://127.0.0.1:4173";
@@ -41,7 +44,7 @@ try {
           const body = scenario === "invalid" ? { ...fixture.body, catalogue: {} } : scenario === "missing" ? { error_code: "MARKET_SNAPSHOT_MISSING" } : fixture.body;
           return route.fulfill({ status: scenario === "missing" ? 503 : 200, contentType: "application/json", body: JSON.stringify(body) });
         }
-        const target = request.isNavigationRequest() ? path.join(dist, "index.html") : path.resolve(dist, "." + url.pathname);
+        const target = request.isNavigationRequest() && !url.pathname.endsWith(".html") ? path.join(dist, "index.html") : path.resolve(dist, "." + url.pathname);
         assert(target.startsWith(dist + path.sep), "Static path outside preview");
         return route.fulfill({ status: 200, contentType: mime[path.extname(target)] || "application/octet-stream", body: await readFile(target) });
       });
@@ -66,8 +69,9 @@ try {
         await page.evaluate(() => window.scrollTo(0, 0));
         await page.screenshot({ path: path.join(out, label + suffix + ".png"), fullPage: true });
       }
-      await page.goto(origin + "/paper-live/market", { waitUntil: "domcontentloaded" });
+      await page.goto(origin + PROOF_PAGE, { waitUntil: "domcontentloaded" });
       await page.getByTestId("market-view").waitFor();
+      assert(await page.locator("html").getAttribute("data-proof") === "legacy-market-scanner" && await page.getByTestId("legacy-proof-banner").isVisible(), "Legacy proof page not identified");
       assert(await page.locator("html").getAttribute("data-theme") === theme, "Theme mismatch");
       if (["catalogue", "legacy", "empty"].includes(scenario)) {
         await page.getByTestId("market-venue-provenance").waitFor({ state: "attached" });
