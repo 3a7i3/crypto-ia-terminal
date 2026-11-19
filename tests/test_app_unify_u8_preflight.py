@@ -104,3 +104,38 @@ def test_u8_preflight_rejects_lock_that_drifts_from_direct_pins(tmp_path):
         error.startswith("LOCK_DOES_NOT_PIN_DIRECT_DEPENDENCY:fastapi")
         for error in validate_source_contract(tmp_path)
     )
+
+
+def test_u8_preflight_rejects_unvalidated_web_port_override(tmp_path):
+    # M1-C5 F1-b: the pre-reconciliation form `Number(process.env.CAT_WEB_PORT || 8181)`
+    # must be refused, as must a server without the Radar Spot loopback target.
+    import shutil
+
+    for relative in (
+        "deploy/app_unify_u8/crypto-operator-api.service",
+        "deploy/app_unify_u8/crypto-operator-web.service",
+        "deploy/app_unify_u8/requirements-operator-api.txt",
+        "deploy/app_unify_u8/requirements-operator-api.lock.txt",
+        "frontend/scripts/web01_local_frontend_server.mjs",
+        "observability/operator_api/runtime_service_reader.py",
+        "observability/operator_api/market_microstructure_reader.py",
+        "observability/operator_api/research_lab_reader.py",
+        "observability/operator_api/research_strategy_board_reader.py",
+    ):
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / relative, target)
+    assert validate_source_contract(tmp_path) == []
+    server = tmp_path / "frontend/scripts/web01_local_frontend_server.mjs"
+    text = server.read_text(encoding="utf-8")
+    server.write_text(
+        text.replace(
+            "export const FRONTEND_PORT = 8181;",
+            "export const FRONTEND_PORT = Number(process.env.CAT_WEB_PORT || 8181);",
+        ).replace('SPOT_RADAR_API_TARGET = "http://127.0.0.1:18906"', 'SPOT_RADAR_API_TARGET = "http://10.0.0.1:18906"'),
+        encoding="utf-8",
+    )
+    errors = validate_source_contract(tmp_path)
+    assert "WEB_PORT_CONTRACT_MISSING" in errors
+    assert "WEB_PORT_OVERRIDE_VALIDATION_MISSING" in errors
+    assert "WEB_SPOT_RADAR_TARGET_CONTRACT_MISSING" in errors

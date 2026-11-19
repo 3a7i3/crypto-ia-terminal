@@ -132,6 +132,14 @@ def validate_source_contract(root: Path) -> list[str]:
         errors.append("WEB_LOOPBACK_CONTRACT_MISSING")
     if "FRONTEND_PORT = 8181" not in frontend:
         errors.append("WEB_PORT_CONTRACT_MISSING")
+    if (
+        "/^[1-9][0-9]{3,4}$/" not in frontend
+        or "port < 1024 || port > 65535" not in frontend
+        or "Number(process.env" in frontend
+    ):
+        errors.append("WEB_PORT_OVERRIDE_VALIDATION_MISSING")
+    if 'SPOT_RADAR_API_TARGET = "http://127.0.0.1:18906"' not in frontend:
+        errors.append("WEB_SPOT_RADAR_TARGET_CONTRACT_MISSING")
     if 'OPERATOR_API_TARGET = "http://127.0.0.1:8090"' not in frontend:
         errors.append("WEB_API_TARGET_CONTRACT_MISSING")
     if 'request.method === "GET" || request.method === "HEAD"' not in frontend:

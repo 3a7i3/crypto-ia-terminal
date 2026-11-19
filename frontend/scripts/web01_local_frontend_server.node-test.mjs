@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createServer, isMainEntrypoint } from "./web01_local_frontend_server.mjs";
+import { createServer, isMainEntrypoint, resolveFrontendPort, FRONTEND_PORT, LOOPBACK_HOST, SPOT_RADAR_API_PREFIX, SPOT_RADAR_API_TARGET, UPSTREAM_TIMEOUT_MS } from "./web01_local_frontend_server.mjs";
 
 function listen(server) { return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port))); }
 function close(server) { return new Promise((resolve) => server.close(resolve)); }
@@ -247,4 +247,71 @@ test("HEAD on a failing bundle yields the same governed 503 without a body", { t
   const r = await raw(h.port, "HEAD /");
   assert.equal(statusOf(r), 503);
   await h.stillServing();
+});
+
+test("WEB-01G port contract: 8181 by default, explicit override strictly validated (M1-C5 F1-b)", () => {
+  assert.equal(FRONTEND_PORT, 8181);
+  assert.equal(resolveFrontendPort(undefined), 8181);
+  for (const ok of [["1024", 1024], ["8182", 8182], ["65535", 65535]]) assert.equal(resolveFrontendPort(ok[0]), ok[1]);
+  for (const bad of ["", " ", "0", "80", "1023", "65536", "99999", "-8181", "+8181", "8181.0", "8.181e3", "0x1ff5", "08181", "8181 ", " 8181", "abc", "NaN", "Infinity", "123456"]) {
+    assert.throws(() => resolveFrontendPort(bad), /INVALID_CAT_WEB_PORT/, `must refuse ${JSON.stringify(bad)}`);
+  }
+});
+
+test("WEB-01G entrypoint refuses an invalid CAT_WEB_PORT before listening", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const entry = fileURLToPath(new URL("./web01_local_frontend_server.mjs", import.meta.url));
+  for (const bad of ["0", "70000", "abc", ""]) {
+    const run = spawnSync(process.execPath, [entry], { env: { ...process.env, CAT_WEB_PORT: bad }, encoding: "utf8", timeout: 5000 });
+    assert.equal(run.status, 2, `exit code for ${JSON.stringify(bad)}`);
+    assert.match(run.stderr, /WEB_01G_CONFIG_REFUSED=INVALID_CAT_WEB_PORT/);
+    assert.doesNotMatch(run.stdout, /LISTENING/);
+  }
+});
+
+test("WEB-01G binds loopback only and keeps the declared Radar Spot target and timeout", () => {
+  assert.equal(LOOPBACK_HOST, "127.0.0.1");
+  assert.equal(SPOT_RADAR_API_PREFIX, "/api/operator/v1/spot-radar/");
+  const target = new URL(SPOT_RADAR_API_TARGET);
+  assert.equal(target.hostname, "127.0.0.1"); assert.equal(target.port, "18906"); assert.equal(target.protocol, "http:");
+  assert.equal(UPSTREAM_TIMEOUT_MS, 10000);
+});
+
+test("routes only the Radar Spot prefix to its loopback target, GET/HEAD only, non-cacheable", async (t) => {
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
+  await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
+  const seen = { operator: [], radar: [] };
+  const operator = http.createServer((req, res) => { seen.operator.push(`${req.method} ${req.url}`); res.writeHead(200, { "cache-control": "max-age=600" }); res.end('{"from":"operator"}'); });
+  const radar = http.createServer((req, res) => { seen.radar.push(`${req.method} ${req.url}`); res.writeHead(200, { "cache-control": "public, max-age=600" }); res.end('{"from":"radar"}'); });
+  const operatorPort = await listen(operator); const radarPort = await listen(radar);
+  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${operatorPort}`, spotRadarTarget: `http://127.0.0.1:${radarPort}` });
+  await new Promise((resolve) => app.once("listening", resolve));
+  assert.equal(app.address().address, "127.0.0.1", "listener must stay on loopback");
+  const appPort = app.address().port;
+  t.after(async () => { await close(app); await close(operator); await close(radar); });
+
+  const scanner = await request(appPort, "/api/operator/v1/spot-radar/scanner");
+  assert.equal(scanner.text, '{"from":"radar"}'); assert.equal(scanner.cacheControl, "no-store");
+  const head = await request(appPort, "/api/operator/v1/spot-radar/scanner", "HEAD");
+  assert.equal(head.status, 200); assert.equal(head.text, "");
+  for (const lookalike of ["/api/operator/v1/spot-radar", "/api/operator/v1/spot-radarX/scanner", "/api/operator/v1/market"]) {
+    const other = await request(appPort, lookalike);
+    assert.equal(other.text, '{"from":"operator"}', `${lookalike} must stay on the Operator API`);
+  }
+  for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+    const refused = await request(appPort, "/api/operator/v1/spot-radar/scanner", method);
+    assert.equal(refused.status, 405); assert.match(refused.text, /METHOD_NOT_ALLOWED/); assert.equal(refused.cacheControl, "no-store");
+  }
+  assert.deepEqual(seen.radar, ["GET /api/operator/v1/spot-radar/scanner", "HEAD /api/operator/v1/spot-radar/scanner"], "mutations never reach the Radar Spot API");
+  assert.ok(seen.operator.every((line) => line.startsWith("GET ")), "mutations never reach the Operator API");
+});
+
+test("Radar Spot transport failure is explicit and non-cacheable", async (t) => {
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
+  await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
+  const app = createServer({ port: 0, distRoot, apiTarget: "http://127.0.0.1:1", spotRadarTarget: "http://127.0.0.1:1" });
+  await new Promise((resolve) => app.once("listening", resolve));
+  t.after(() => close(app));
+  const failed = await request(app.address().port, "/api/operator/v1/spot-radar/scanner");
+  assert.equal(failed.status, 502); assert.match(failed.text, /OPERATOR_API_UNAVAILABLE/); assert.equal(failed.cacheControl, "no-store");
 });
