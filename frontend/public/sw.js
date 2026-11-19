@@ -5,7 +5,7 @@
 importScripts("/pwa-policy.js");
 
 const SHELL_CACHE_PREFIX = "crypto-ai-operator-shell-";
-const SHELL_CACHE = `${SHELL_CACHE_PREFIX}or-radar-polish-20261116-1`;
+const SHELL_CACHE = `${SHELL_CACHE_PREFIX}cat-market-m1d2-alpha-20261119`;
 const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",
