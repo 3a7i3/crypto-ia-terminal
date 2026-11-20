@@ -44,7 +44,7 @@ try{
   await page.waitForURL(/\/paper-live\/market\/venues$/);
   if(name==="missing"||name==="invalid"){
    await page.getByText("Aucune publication de comparaison disponible.",{exact:true}).waitFor();
-   assert(await page.getByRole("table").count()===0,"unavailable is not empty numeric table");
+   assert(await page.getByTestId("venue-comparison-view").getByRole("table").count()===0,"unavailable is not empty numeric table");
    assert((await page.getByTestId("venue-comparison-view").innerText()).includes("disponibilité reste inconnue"),"unknown not zero");
    // M1-C2: an unconfigured source is shown apart from a contract failure.
    if(name==="missing")assert((await page.getByTestId("market-source-not-configured").innerText()).includes("VENUE_COMPARISON_NOT_CONFIGURED"),"unconfigured source distinct");
@@ -57,16 +57,16 @@ try{
    if(name==="expired-between-polls"){
     const before=await page.getByTestId("venue-comparison-view").innerText();
     assert(before.includes("29.97002997 bp"),"exact published metrics present before expiry");
-    assert((await page.getByRole("status").innerText()).includes("Publication récente"),"fixture initially fresh");
-    await page.waitForFunction(()=>[...document.querySelectorAll('[role="status"]')].some(e=>e.textContent.includes("périmée")));
+    assert((await page.getByTestId("venue-comparison-view").getByRole("status").innerText()).includes("Publication récente"),"fixture initially fresh");
+    await page.waitForFunction(()=>[...document.querySelectorAll('[data-testid="venue-comparison-view"] [role="status"]')].some(e=>e.textContent.includes("périmée")));
     assert(comparisonRequests===1,"expiry happens before any second API response");
     assert((await page.getByTestId("venue-comparison-view").innerText()).includes("29.97002997 bp"),"expiry keeps the original published exact value with its stale state");
    }
    if(name==="pilot"){
     assert((await page.getByTestId("venue-comparison-view").innerText()).includes("29.97002997 bp"),"bounded synthetic pilot reaches the app unchanged");
    }
-   if(name==="stale")assert((await page.getByRole("status").innerText()).includes("périmée"),"stale visible");
-   if(name==="unresolved")assert((await page.getByRole("status").innerText()).includes("indisponible"),"unresolved visible");
+   if(name==="stale")assert((await page.getByTestId("venue-comparison-view").getByRole("status").innerText()).includes("périmée"),"stale visible");
+   if(name==="unresolved")assert((await page.getByTestId("venue-comparison-view").getByRole("status").innerText()).includes("indisponible"),"unresolved visible");
    if(name==="synthetic"){
     assert((await page.getByTestId("venue-comparison-view").innerText()).includes("29.97002997 bp"),"published basis visible");
     await page.getByRole("button",{name:"Détail source MEXC",exact:true}).click();
