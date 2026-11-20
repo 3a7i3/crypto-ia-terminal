@@ -43,7 +43,8 @@ test("keeps 1/7/30-day periods, prunes beyond 30 days and survives a restart", a
   saved.push({ at: now - 0.2 * DAY, value: 1, id: hex(50), epoch: "PAPER-OTHER" });
   saved.sort((a, b) => a.at - b.at);
   await writeFile(path.join(dir, "observations.json"), JSON.stringify(saved));
-  const api = fakeFin02(1234.5); const apiPort = await listen(api);
+  // FIN02 réel : montant en chaîne décimale (constaté sur crypto-restore-01).
+  const api = fakeFin02("1234.50"); const apiPort = await listen(api);
   t.after(() => close(api));
 
   const history = startPaperBalanceHistory(dir, `http://127.0.0.1:${apiPort}`);
@@ -64,6 +65,19 @@ test("keeps 1/7/30-day periods, prunes beyond 30 days and survives a restart", a
   const after = await waitFor(() => restarted(30), (h) => h.points.length > 0);
   assert.equal(after.points.length, 4);
   assert.equal(after.status, "UNAVAILABLE", "an unreachable FIN02 is reported, not hidden");
+});
+
+test("refuses non-decimal FIN02 amounts instead of guessing", async (t) => {
+  for (const bad of ["1e3", "1 000,0", "", null, "NaN"]) {
+    const dir = await mkdtemp(path.join(tmpdir(), "paper-balance-bad-"));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const api = fakeFin02(bad); const port = await listen(api);
+    const history = startPaperBalanceHistory(dir, `http://127.0.0.1:${port}`);
+    await new Promise((r) => setTimeout(r, 150));
+    assert.equal(history(30).points.length, 0, `amount ${JSON.stringify(bad)} must be refused`);
+    assert.equal(history(30).status, "UNAVAILABLE");
+    await close(api);
+  }
 });
 
 test("serves only GET/HEAD periods 1, 7 and 30 on the history route", async (t) => {

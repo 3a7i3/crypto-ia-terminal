@@ -33,7 +33,7 @@ const api = http.createServer((req, res) => {
   if (req.url === "/api/operator/v1/financial-reconciliation") {
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify({ product: "FIN02FinancialCockpit", authority: "FINANCIAL_OBSERVATION", asset: "USDT", paper_epoch_id: EPOCH,
-      financial_snapshot_id: hex(77), generated_at_utc: new Date(Date.now() - 5000).toISOString(), freshness_classification: "FRESH", financial: { cash_available: 10_090 } }));
+      financial_snapshot_id: hex(77), generated_at_utc: new Date(Date.now() - 5000).toISOString(), freshness_classification: "FRESH", financial: { cash_available: "10090.00" } }));
   }
   res.writeHead(503, { "content-type": "application/json" }); res.end('{"error_code":"SOURCE_NOT_DEPLOYED"}');
 });

@@ -6,7 +6,11 @@ const maxPoints = 43_201;
 
 function pointFrom(snapshot, now) {
   const at = Date.parse(snapshot?.generated_at_utc);
-  const value = snapshot?.financial?.cash_available;
+  // FIN02 publie les montants en chaînes décimales (« 1000.0 ») ; un nombre
+  // JSON reste accepté. Toute autre forme est refusée, jamais devinée.
+  const raw = snapshot?.financial?.cash_available;
+  const value = typeof raw === "number" ? raw
+    : typeof raw === "string" && /^-?\d+(\.\d+)?$/.test(raw) ? Number(raw) : NaN;
   if (snapshot?.product !== "FIN02FinancialCockpit" || snapshot.authority !== "FINANCIAL_OBSERVATION"
     || snapshot.asset !== "USDT" || !/^PAPER-[\w-]+$/.test(snapshot.paper_epoch_id ?? "")
     || !/^[a-f0-9]{64}$/.test(snapshot.financial_snapshot_id ?? "")
