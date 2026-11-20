@@ -36,16 +36,25 @@ export interface FootprintTrade {
   side: AggressorSide;
 }
 
-type RejectReason = 'not_object' | 'bad_ts' | 'bad_price' | 'bad_qty' | 'bad_side';
+type RejectReason = 'not_object' | 'bad_ts' | 'bad_price' | 'bad_qty' | 'bad_side' | 'bad_session';
 export type ImbalanceMinimum = 'dominant' | 'weak';
 
 type SessionKey = (timestamp: number) => number | string;
 export interface FootprintOptions {
   tickSize: number;
   tfMs: number;
+  /**
+   * Clé de session. Une clé personnalisée exige `sessionStartMs` : sans le début
+   * de session, une bougie pourrait chevaucher la remise à zéro de DltaDay.
+   */
   sessionKey?: SessionKey;
   /** Beginning of the first interval known to be covered by the source. */
   coverageFromMs?: number;
+  /**
+   * Début (ms) de la session qui contient `timestamp`. Une bougie qui chevauche
+   * ce début est découpée à la frontière : la partie postérieure forme une
+   * nouvelle bougie, ancrée sur le début de session.
+   */
   sessionStartMs?: (timestamp: number) => number;
   /** Whole oldest bars are evicted when either budget is exceeded. */
   maxBars?: number;
@@ -94,6 +103,9 @@ export function validateTrade(input: unknown): RejectReason | null {
 
 // Clé de session : la journée UTC décalée de `startHourUTC` (ex. 18 pour une session qui ouvre à 18:00 UTC).
 export const utcSessionKey = (startHourUTC = 0) => (ts: number) => Math.floor((ts - startHourUTC * 3600000) / 86400000);
+// Début (ms) de la session UTC décalée de `startHourUTC` qui contient `ts` ; à utiliser avec `utcSessionKey`.
+export const utcSessionStart = (startHourUTC = 0) => (ts: number) =>
+  utcSessionKey(startHourUTC)(ts) * 86400000 + startHourUTC * 3600000;
 
 // Imbalance : le côté dominant `a` doit atteindre `pct` % de l'autre côté `b` (150 → au moins 1,5 × b)
 // et au moins `min` unités. Si b vaut 0, le déséquilibre est total.
@@ -151,7 +163,7 @@ export class FootprintBuilder {
   private readonly maxBars: number;
   private readonly maxLevels: number;
   private readonly coverageFromMs?: number;
-  private readonly sessionStartMs?: (timestamp: number) => number;
+  private readonly sessionStartMs: (timestamp: number) => number;
   private firstTradeMs = Infinity;
   private readonly barTimes: number[] = [];
   private levelCount = 0;
@@ -173,12 +185,19 @@ export class FootprintBuilder {
   constructor(options?: FootprintOptions) {
     const tickSize = options?.tickSize ?? 0;
     const tfMs = options?.tfMs ?? 0;
-    if (!(tickSize > 0)) throw new Error('tickSize doit être > 0');
+    if (typeof tickSize !== 'number' || !Number.isFinite(tickSize) || tickSize <= 0) {
+      throw new Error('tickSize doit être un nombre fini > 0');
+    }
     if (!Number.isInteger(tfMs) || tfMs <= 0) throw new Error('tfMs doit être un entier > 0 (ms)');
     this.tickSize = tickSize;
     this.tfMs = tfMs;
+    if (options?.sessionKey && !options.sessionStartMs) {
+      // Configuration incompatible : sans début de session, impossible de découper
+      // une bougie à la remise à zéro de DltaDay.
+      throw new Error('sessionStartMs est requis avec une sessionKey personnalisée');
+    }
     this.sessionKey = options?.sessionKey ?? utcSessionKey(0);
-    this.sessionStartMs = options?.sessionStartMs ?? (options?.sessionKey ? undefined : (ts) => Math.floor(ts / 86400000) * 86400000);
+    this.sessionStartMs = options?.sessionStartMs ?? utcSessionStart(0);
     this.coverageFromMs = options?.coverageFromMs;
     this.maxBars = options?.maxBars ?? 10_000;
     this.maxLevels = options?.maxLevels ?? 100_000;
@@ -191,10 +210,17 @@ export class FootprintBuilder {
     const reason = validateTrade(input);
     if (reason) { this.rejected[reason] = (this.rejected[reason] || 0) + 1; return false; }
     const t = input as FootprintTrade;
+    // Une bougie ne chevauche jamais deux sessions : elle commence au plus tôt au début
+    // de la session de la transaction (découpage à la frontière de remise à zéro).
+    const sessionStart = this.sessionStartMs(t.ts);
+    if (!Number.isFinite(sessionStart) || sessionStart > t.ts || this.sessionKey(sessionStart) !== this.sessionKey(t.ts)) {
+      this.rejected.bad_session = (this.rejected.bad_session || 0) + 1;
+      return false;
+    }
+    const t0 = Math.max(Math.floor(t.ts / this.tfMs) * this.tfMs, sessionStart);
     const ratio = t.price / this.tickSize;
     const idx = Math.round(ratio);
     if (Math.abs(ratio - idx) > 1e-6) this.offTick += 1; // accepté, mais signalé dans la qualité
-    const t0 = Math.floor(t.ts / this.tfMs) * this.tfMs;
     this.accepted += 1;
     this.firstTradeMs = Math.min(this.firstTradeMs, t.ts);
     if (t0 <= this.evictedThrough) {
@@ -260,9 +286,7 @@ export class FootprintBuilder {
         deltaChg: prevDelta === null ? null : r9(delta - prevDelta),
         dltaDay: day,
         sessionPartial:
-          (this.sessionStartMs
-            ? coverageFrom > this.sessionStartMs(t0)
-            : this.sessionKey(coverageFrom) === key) ||
+          coverageFrom > this.sessionStartMs(t0) ||
           (Number.isFinite(this.evictedThrough) && this.sessionKey(this.evictedThrough) === key),
       });
       prevDelta = delta;

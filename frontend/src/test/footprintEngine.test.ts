@@ -1,6 +1,6 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { FootprintBuilder, validateTrade, profileOf, utcSessionKey, INDICATORS, CHANNELS } from '../lib/footprintEngine';
+import { FootprintBuilder, validateTrade, profileOf, utcSessionKey, utcSessionStart, INDICATORS, CHANNELS } from '../lib/footprintEngine';
 
 const MIN = 60000;
 const BASE = Date.UTC(2026, 0, 5, 10, 0, 0); // 10:00 UTC, jour fixe
@@ -207,4 +207,49 @@ test('le calcul incrémental reproduit un rejeu intégral avec prix décimaux et
     assert.deepEqual(b.snapshot(), build(trades.slice(0, i + 1), opts).snapshot());
   }
   assert.equal(b.snapshot().bars[0].close, 10.2);
+});
+
+test('régression : une bougie de 7 h est découpée à minuit UTC et DltaDay ne mélange pas deux sessions', () => {
+  const HOUR = 3600000;
+  const midnight = Date.UTC(2026, 0, 6);
+  assert.equal(midnight % (7 * HOUR), HOUR); // sur la grille de 7 h, minuit tombe dans la bougie 23:00 → 06:00
+  const b = new FootprintBuilder({ tickSize: 1, tfMs: 7 * HOUR });
+  b.push(tr(midnight - 1000, 100, 5, 'buy'));  // 23:59:59 UTC
+  b.push(tr(midnight + 1000, 100, 3, 'buy'));  // 00:00:01 UTC
+  b.push(tr(midnight + 2 * HOUR, 100, 1, 'sell'));
+  const s = b.snapshot();
+  assert.deepEqual(s.bars.map((x) => x.t0), [midnight - HOUR, midnight]);
+  assert.deepEqual(s.bars.map((x) => x.delta), [5, 2]);
+  assert.deepEqual(s.bars.map((x) => x.dltaDay), [5, 2]);   // avant correction : une seule bougie, DltaDay = 8
+  assert.deepEqual(s.bars.map((x) => x.volume), [5, 4]);
+  assert.equal(s.quality.accepted, 3);
+  // La bougie suivante reprend la grille normale (06:00) dans la nouvelle session.
+  b.push(tr(midnight + 6 * HOUR, 100, 2, 'buy'));
+  const next = b.snapshot().bars;
+  assert.equal(next.at(-1)?.t0, midnight + 6 * HOUR);
+  assert.equal(next.at(-1)?.dltaDay, 4);
+});
+
+test('régression : découpage à une session personnalisée (18:00 UTC) et configuration incompatible refusée', () => {
+  const HOUR = 3600000;
+  const open18 = Date.UTC(2026, 0, 5, 18);
+  const b = new FootprintBuilder({ tickSize: 1, tfMs: 7 * HOUR, sessionKey: utcSessionKey(18), sessionStartMs: utcSessionStart(18) });
+  b.push(tr(open18 - 1000, 100, 5, 'buy'));
+  b.push(tr(open18 + 1000, 100, 3, 'sell'));
+  assert.deepEqual(b.snapshot().bars.map((x) => [x.t0, x.dltaDay]), [[Date.UTC(2026, 0, 5, 16), 5], [open18, -3]]);
+  // Une clé de session sans début de session ne permet pas de découper : refus explicite.
+  assert.throws(() => new FootprintBuilder({ tickSize: 1, tfMs: 7 * HOUR, sessionKey: utcSessionKey(18) }), /sessionStartMs/);
+  // Des fonctions de session incohérentes rejettent la transaction au lieu de mélanger deux sessions.
+  const bad = new FootprintBuilder({ tickSize: 1, tfMs: HOUR, sessionKey: utcSessionKey(18), sessionStartMs: utcSessionStart(0) });
+  assert.equal(bad.push(tr(Date.UTC(2026, 0, 5, 20), 100, 1, 'buy')), false);
+  assert.deepEqual(bad.snapshot().quality.rejected, { bad_session: 1 });
+  assert.equal(bad.snapshot().bars.length, 0);
+});
+
+test('régression : tickSize doit être un nombre fini et strictement positif', () => {
+  for (const tickSize of [Infinity, -Infinity, NaN, 0, -0.5, '1' as unknown as number]) {
+    assert.throws(() => new FootprintBuilder({ tickSize, tfMs: 5 * MIN }), /tickSize/, String(tickSize));
+  }
+  const s = build([tr(BASE, 100, 1, 'buy')], { tickSize: 0.01 }).snapshot();
+  assert.ok([s.bars[0].open, s.bars[0].close, ...s.bars[0].levels.map((l) => l.price)].every(Number.isFinite));
 });
