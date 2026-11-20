@@ -158,3 +158,53 @@ test('contrat : paramètres invalides refusés, canaux déconnectés par défaut
   assert.ok(CHANNELS.every((c) => c.status === 'disconnected'));
   assert.ok(INDICATORS.some((i) => i.status === 'todo'));
 });
+
+test('le minimum distingue les côtés dominant et faible', () => {
+  const b = build([tr(BASE, 10, 20, 'sell'), tr(BASE, 11, 180, 'buy')]);
+  assert.equal(b.snapshot({ imbMinSide: 'dominant' }).bars[0].levels[1].buyImb, true);
+  assert.equal(b.snapshot({ imbMinSide: 'weak' }).bars[0].levels[1].buyImb, false);
+  assert.equal(b.snapshot({ imbMinSide: 'dominant' }).bars[0].levels[1].buyImb, true);
+});
+
+test('couverture partielle puis nouveau cumul à la session suivante', () => {
+  const midnight = BASE - 10 * 60 * MIN;
+  const trades = [tr(BASE, 10, 3, 'buy'), tr(midnight + 86400000, 10, 8, 'sell')];
+  assert.deepEqual(build(trades).snapshot().bars.map(b => b.sessionPartial), [true, false]);
+  assert.deepEqual(build(trades, { coverageFromMs: midnight }).snapshot().bars.map(b => b.sessionPartial), [false, false]);
+});
+
+test('éviction par bougie avec seuil de niveaux et refus de réintroduire une bougie évincée', () => {
+  const b = build([tr(BASE, 10, 1, 'buy'), tr(BASE + 5 * MIN, 11, 2, 'buy')], {
+    coverageFromMs: BASE - 10 * 60 * MIN,
+    maxBars: 2,
+    maxLevels: 2,
+  });
+  b.push(tr(BASE + 5 * MIN, 12, 3, 'sell'));
+  b.push(tr(BASE + 1, 10, 100, 'buy'));
+  const s = b.snapshot();
+  assert.equal(s.quality.evictedTrades, 2);
+  assert.equal(s.bars.length, 1);
+  assert.equal(s.bars[0].sessionPartial, true);
+  assert.equal(s.bars[0].dltaDay, -1);
+  const oneBar = build([], { maxBars: 1 });
+  oneBar.push(tr(BASE, 10, 1, 'buy'));
+  oneBar.push(tr(BASE + 5 * MIN, 10, 1, 'buy'));
+  assert.equal(oneBar.snapshot().quality.evictedTrades, 1);
+});
+
+test('le calcul incrémental reproduit un rejeu intégral avec prix décimaux et horodatages égaux', () => {
+  const opts = { tickSize: 0.1 };
+  const b = build([], opts);
+  const trades = [
+    tr(BASE + 5 * MIN, 10.1, 1 / 3, 'sell'),
+    tr(BASE + 2, 10.1, 1 / 3, 'buy'),
+    tr(BASE + 2, 10.2, 1 / 3, 'buy'),
+    tr(BASE + 1, 10.3, 1 / 3, null),
+    tr(BASE + 5 * MIN, 10.3, 1 / 3, 'buy'),
+  ];
+  for (const [i, trade] of trades.entries()) {
+    b.push(trade);
+    assert.deepEqual(b.snapshot(), build(trades.slice(0, i + 1), opts).snapshot());
+  }
+  assert.equal(b.snapshot().bars[0].close, 10.2);
+});
