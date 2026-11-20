@@ -34,6 +34,7 @@ const signed = (v: number) => `${v > 0 ? "+" : ""}${fmt(v)}`;
 const utc = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16);
 const duration = (ms: number) => {
+  if (ms < 60_000) return `${(Math.round(ms / 100) / 10).toLocaleString("fr-FR")} s`;
   const h = Math.floor(ms / 3_600_000); const m = Math.round((ms % 3_600_000) / 60_000);
   return h > 0 ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`;
 };
