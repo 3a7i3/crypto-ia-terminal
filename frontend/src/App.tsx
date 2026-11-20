@@ -61,7 +61,10 @@ const App: React.FC = () => (
         </Route>
         <Route path="/direction" element={<DirectionShell />}>
           <Route index element={<HomeRedirect />} />
-          <Route path="travaux" element={<MachineWorkboardView />} />
+          <Route
+            path="travaux"
+            element={import.meta.env.DEV ? <MachineWorkboardView /> : <HomeRedirect />}
+          />
         </Route>
         <Route path="/research" element={<ResearchShell />}>
           <Route index element={<ResearchLabView />} />
