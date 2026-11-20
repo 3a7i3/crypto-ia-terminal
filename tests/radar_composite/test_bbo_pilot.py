@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import socket
+import sys
 import tempfile
 import threading
 import time
@@ -519,7 +520,9 @@ class PublicPreflight(NoNetwork):
             self.assertLessEqual(m["elapsed_ms"], bp.PROBE["max_seconds"] * 1000)
             for key, used in m["rest_used"].items():
                 self.assertLessEqual(used, m["budget"]["rest"][key])
-            self.assertEqual(r["observations"]["python_3_10"]["status"], "NOT_REQUIRED_SYNTHETIC")
+            # A synthetic run does not require 3.10, but reports it when it is there.
+            expected = "OBSERVED" if sys.version_info[:2] == (3, 10) else "NOT_REQUIRED_SYNTHETIC"
+            self.assertEqual(r["observations"]["python_3_10"]["status"], expected)
             self.assertEqual(r["observations"]["kraken_heartbeat"]["status"], "NOT_OBSERVED")
             self.assertGreaterEqual(r["mexc"]["diffs_after_join_contiguous"], 1)
             self.assertIn("no composite viability conclusion", r["scope"])
