@@ -4,6 +4,8 @@ import type { PaperLiveOutletContext } from "../shells/PaperLiveShell";
 import { DecisionsView } from "../views/DecisionsView";
 import { FinancialReconciliationView } from "../views/FinancialReconciliationView";
 import { MarketView } from "../views/MarketView";
+import { PaperPositionArchive } from "../views/PaperPositionArchive";
+import { PaperOrderRegisterView } from "../views/PaperOrderRegisterView";
 import { PortfolioView } from "../views/PortfolioView";
 import { PplComparisonView } from "../views/PplComparisonView";
 import { SystemView } from "../views/SystemView";
@@ -67,9 +69,13 @@ const CanonicalView: React.FC<{
 // (/paper-live/market/lmi) instead of a <details> below every Market view.
 export const MarketRoute: React.FC = () => <MarketView />;
 export const PortfolioRoute: React.FC = () => (
-  <CanonicalView>
-    {(snapshot) => <PortfolioView snapshot={snapshot} />}
-  </CanonicalView>
+  <>
+    <CanonicalView>
+      {(snapshot) => <PortfolioView snapshot={snapshot} />}
+    </CanonicalView>
+    {import.meta.env.DEV && <PaperOrderRegisterView />}
+    <PaperPositionArchive />
+  </>
 );
 export const DecisionsRoute: React.FC = () => (
   <CanonicalView>
