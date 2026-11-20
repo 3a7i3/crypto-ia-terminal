@@ -37,11 +37,19 @@ export interface FootprintTrade {
 }
 
 type RejectReason = 'not_object' | 'bad_ts' | 'bad_price' | 'bad_qty' | 'bad_side';
+export type ImbalanceMinimum = 'dominant' | 'weak';
+
 type SessionKey = (timestamp: number) => number | string;
 export interface FootprintOptions {
   tickSize: number;
   tfMs: number;
   sessionKey?: SessionKey;
+  /** Beginning of the first interval known to be covered by the source. */
+  coverageFromMs?: number;
+  sessionStartMs?: (timestamp: number) => number;
+  /** Whole oldest bars are evicted when either budget is exceeded. */
+  maxBars?: number;
+  maxLevels?: number;
 }
 
 interface Quantities {
@@ -67,6 +75,8 @@ interface PendingBar {
   closeIdx: number;
   hiIdx: number;
   loIdx: number;
+  tradeCount: number;
+  summary?: ReturnType<typeof summarizeBar>;
 }
 
 const r9 = (v: number) => Math.round(v * 1e9) / 1e9;
@@ -88,17 +98,17 @@ export const utcSessionKey = (startHourUTC = 0) => (ts: number) => Math.floor((t
 // Imbalance : le côté dominant `a` doit atteindre `pct` % de l'autre côté `b` (150 → au moins 1,5 × b)
 // et au moins `min` unités. Si b vaut 0, le déséquilibre est total.
 // Hypothèse à confirmer avec la plateforme de référence : la lecture exacte de « IMB % ».
-const dominates = (a: number, b: number, pct: number, min: number) => a > 0 && a >= min && (b === 0 || a * 100 >= b * pct);
+const dominates = (a: number, b: number, pct: number, min: number, mode: ImbalanceMinimum) => a > 0 && (mode === 'weak' ? b : a) >= min && (b === 0 || a * 100 >= b * pct);
 
-function flagImbalances(levels: Level[], pct: number, min: number, stackN: number) {
+function flagImbalances(levels: Level[], pct: number, min: number, stackN: number, mode: ImbalanceMinimum) {
   const byIdx = new Map(levels.map((l) => [l.idx, l]));
   for (const l of levels) {
     const below = byIdx.get(l.idx - 1);
     const above = byIdx.get(l.idx + 1);
     // Comparaison diagonale : Ask du niveau p contre Bid du niveau p-1, Bid de p contre Ask de p+1.
     // Sans niveau voisin dans la bougie, aucune comparaison n'est faite.
-    l.buyImb = !!below && dominates(l.ask, below.bid, pct, min);
-    l.sellImb = !!above && dominates(l.bid, above.ask, pct, min);
+    l.buyImb = !!below && dominates(l.ask, below.bid, pct, min, mode);
+    l.sellImb = !!above && dominates(l.bid, above.ask, pct, min, mode);
     l.stackedBuy = false;
     l.stackedSell = false;
   }
@@ -113,6 +123,22 @@ function flagImbalances(levels: Level[], pct: number, min: number, stackN: numbe
   }
 }
 
+function summarizeBar(
+  b: PendingBar, tickSize: number, imbPct: number, imbMin: number,
+  stackN: number, imbMinSide: ImbalanceMinimum,
+) {
+  const levels: Level[] = [...b.levels.entries()]
+    .sort((x, y) => x[0] - y[0])
+    .map(([idx, v]) => ({ idx, price: r9(idx * tickSize), bid: r9(v.bid), ask: r9(v.ask), unc: r9(v.unc) }));
+  flagImbalances(levels, imbPct, imbMin, stackN, imbMinSide);
+  let bid = 0; let ask = 0; let unc = 0;
+  for (const l of levels) { bid += l.bid; ask += l.ask; unc += l.unc; }
+  const delta = r9(ask - bid);
+  const volume = r9(bid + ask + unc);
+  for (const level of levels) Object.freeze(level);
+  return { levels: Object.freeze(levels), bid: r9(bid), ask: r9(ask), unc, volume, delta };
+}
+
 export class FootprintBuilder {
   readonly tickSize: number;
   readonly tfMs: number;
@@ -122,6 +148,27 @@ export class FootprintBuilder {
   private accepted = 0;
   private offTick = 0;
   private seq = 0;
+  private readonly maxBars: number;
+  private readonly maxLevels: number;
+  private readonly coverageFromMs?: number;
+  private readonly sessionStartMs?: (timestamp: number) => number;
+  private firstTradeMs = Infinity;
+  private readonly barTimes: number[] = [];
+  private levelCount = 0;
+  private evictedThrough = -Infinity;
+  private evictedTrades = 0;
+  private summarySettings = '';
+
+  private enforceRetention() {
+    while (this.bars.size > this.maxBars || this.levelCount > this.maxLevels) {
+      const oldest = this.barTimes.shift()!;
+      const bar = this.bars.get(oldest)!;
+      this.levelCount -= bar.levels.size;
+      this.evictedTrades += bar.tradeCount;
+      this.evictedThrough = oldest;
+      this.bars.delete(oldest);
+    }
+  }
 
   constructor(options?: FootprintOptions) {
     const tickSize = options?.tickSize ?? 0;
@@ -130,7 +177,14 @@ export class FootprintBuilder {
     if (!Number.isInteger(tfMs) || tfMs <= 0) throw new Error('tfMs doit être un entier > 0 (ms)');
     this.tickSize = tickSize;
     this.tfMs = tfMs;
-    this.sessionKey = options?.sessionKey || utcSessionKey(0);
+    this.sessionKey = options?.sessionKey ?? utcSessionKey(0);
+    this.sessionStartMs = options?.sessionStartMs ?? (options?.sessionKey ? undefined : (ts) => Math.floor(ts / 86400000) * 86400000);
+    this.coverageFromMs = options?.coverageFromMs;
+    this.maxBars = options?.maxBars ?? 10_000;
+    this.maxLevels = options?.maxLevels ?? 100_000;
+    if (![this.maxBars, this.maxLevels].every((n) => Number.isSafeInteger(n) && n > 0)) {
+      throw new Error('Les limites de rétention doivent être des entiers positifs');
+    }
   }
 
   push(input: unknown) {
@@ -141,10 +195,21 @@ export class FootprintBuilder {
     const idx = Math.round(ratio);
     if (Math.abs(ratio - idx) > 1e-6) this.offTick += 1; // accepté, mais signalé dans la qualité
     const t0 = Math.floor(t.ts / this.tfMs) * this.tfMs;
+    this.accepted += 1;
+    this.firstTradeMs = Math.min(this.firstTradeMs, t.ts);
+    if (t0 <= this.evictedThrough) {
+      this.evictedTrades += 1;
+      return true;
+    }
     let bar = this.bars.get(t0);
     if (!bar) {
-      bar = { levels: new Map(), openKey: null, closeKey: null, openIdx: idx, closeIdx: idx, hiIdx: idx, loIdx: idx };
+      bar = { levels: new Map(), openKey: null, closeKey: null, openIdx: idx, closeIdx: idx, hiIdx: idx, loIdx: idx, tradeCount: 0 };
       this.bars.set(t0, bar);
+      if (t0 > (this.barTimes.at(-1) ?? -Infinity)) this.barTimes.push(t0);
+      else {
+        const next = this.barTimes.findIndex((time) => time > t0);
+        this.barTimes.splice(next, 0, t0);
+      }
     }
     const seq = (this.seq += 1);
     // Ouverture et clôture suivent l'horodatage de la transaction, pas l'ordre d'arrivée.
@@ -153,30 +218,33 @@ export class FootprintBuilder {
     bar.hiIdx = Math.max(bar.hiIdx, idx);
     bar.loIdx = Math.min(bar.loIdx, idx);
     let lvl = bar.levels.get(idx);
-    if (!lvl) { lvl = { bid: 0, ask: 0, unc: 0 }; bar.levels.set(idx, lvl); }
+    if (!lvl) { lvl = { bid: 0, ask: 0, unc: 0 }; bar.levels.set(idx, lvl); this.levelCount += 1; }
     if (t.side === 'buy') lvl.ask += t.qty;
     else if (t.side === 'sell') lvl.bid += t.qty;
     else lvl.unc += t.qty;
-    this.accepted += 1;
+    bar.tradeCount += 1;
+    bar.summary = undefined;
+    this.enforceRetention();
     return true;
   }
 
-  snapshot({ imbPct = 150, imbMin = 50, stackN = 3 } = {}) {
+  snapshot({ imbPct = 150, imbMin = 50, stackN = 3, imbMinSide = 'dominant' as ImbalanceMinimum } = {}) {
+    const settings = [imbPct, imbMin, stackN, imbMinSide].join(':');
+    if (settings !== this.summarySettings) {
+      for (const bar of this.bars.values()) bar.summary = undefined;
+      this.summarySettings = settings;
+    }
     const bars = [];
     let prevDelta: number | null = null;
     let day = 0;
     let prevKey: ReturnType<SessionKey> | null = null;
+    const coverageFrom = this.coverageFromMs ?? this.firstTradeMs;
     let totalVolume = 0;
     let uncVolume = 0;
-    for (const [t0, b] of [...this.bars.entries()].sort(([a], [b]) => a - b)) {
-      const levels: Level[] = [...b.levels.entries()]
-        .sort((x, y) => x[0] - y[0])
-        .map(([idx, v]) => ({ idx, price: r9(idx * this.tickSize), bid: r9(v.bid), ask: r9(v.ask), unc: r9(v.unc) }));
-      flagImbalances(levels, imbPct, imbMin, stackN);
-      let bid = 0; let ask = 0; let unc = 0;
-      for (const l of levels) { bid += l.bid; ask += l.ask; unc += l.unc; }
-      const delta = r9(ask - bid);
-      const volume = r9(bid + ask + unc);
+    for (const t0 of this.barTimes) {
+      const b = this.bars.get(t0)!;
+      const { levels, bid, ask, unc, volume, delta } =
+        b.summary ??= summarizeBar(b, this.tickSize, imbPct, imbMin, stackN, imbMinSide);
       const key = this.sessionKey(t0);
       if (key !== prevKey) { day = 0; prevKey = key; }
       day = r9(day + delta);
@@ -191,16 +259,22 @@ export class FootprintBuilder {
         volume, delta,
         deltaChg: prevDelta === null ? null : r9(delta - prevDelta),
         dltaDay: day,
+        sessionPartial:
+          (this.sessionStartMs
+            ? coverageFrom > this.sessionStartMs(t0)
+            : this.sessionKey(coverageFrom) === key) ||
+          (Number.isFinite(this.evictedThrough) && this.sessionKey(this.evictedThrough) === key),
       });
       prevDelta = delta;
     }
     return {
       bars,
-      params: { imbPct, imbMin, stackN, tickSize: this.tickSize, tfMs: this.tfMs },
+      params: { imbPct, imbMin, stackN, imbMinSide, tickSize: this.tickSize, tfMs: this.tfMs },
       quality: {
         accepted: this.accepted,
         rejected: { ...this.rejected },
         offTick: this.offTick,
+        evictedTrades: this.evictedTrades,
         totalVolume: r9(totalVolume),
         unclassifiedVolume: r9(uncVolume),
         unclassifiedRatio: totalVolume > 0 ? uncVolume / totalVolume : 0,
