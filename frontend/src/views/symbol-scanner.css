@@ -1,0 +1,28 @@
+.symbol-scanner { padding: clamp(.7rem, 3vw, 1.5rem); border: 1px solid #77879a66; border-radius: 1rem; min-width: 0; }
+.symbol-scanner header p, .symbol-summary { opacity: .8; }
+.symbol-tools { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; }
+.symbol-tools label { flex: 1 1 12rem; }
+.symbol-scanner input { display: block; width: 100%; box-sizing: border-box; }
+.symbol-scanner button, .symbol-scanner input, .symbol-detail button { min-height: 44px; border-radius: .45rem; }
+.symbol-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .85rem; color: #172334; background: #eff1f3; }
+.symbol-table th, .symbol-table td { padding: .3rem; border-bottom: 1px solid #cbd2da; overflow-wrap: anywhere; text-align: left; }
+.symbol-table th { background: #dde3e9; }
+.symbol-table th:first-child { width: 14%; }
+.symbol-table th:nth-child(2) { width: 32%; }
+.symbol-table small { display: block; }
+.symbol-table td:first-child span { display: inline-block; padding: .24rem; border-radius: .35rem; font-weight: 700; }
+.symbol-table button { background: transparent; color: #14534e; border: 0; font-weight: 700; text-decoration: underline; padding: 0; max-width: 100%; overflow-wrap: anywhere; }
+.symbol-table .gold { background: #f2cd62; }
+.symbol-table .silver { background: #cbd4df; }
+.symbol-table .bronze { background: #f3ad78; }
+.symbol-bubbles { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .55rem; padding: .9rem .4rem; background: #101827; border-radius: .8rem; }
+.symbol-bubbles button { border: 1px solid currentColor; border-radius: 50%; display: grid; align-content: center; justify-items: center; line-height: 1.2; overflow-wrap: anywhere; padding: .22rem; font-size: .72rem; }
+.symbol-bubbles .up { background: #12352f; color: #8bf1be; }
+.symbol-bubbles .down { background: #421f30; color: #ffb1bd; }
+.symbol-bubbles .neutral { background: #273344; color: #e2eaf4; }
+.symbol-detail { box-sizing: border-box; width: min(32rem, calc(100% - 1.5rem)); max-height: 85dvh; overflow: auto; border: 1px solid #6e829c; border-radius: 1rem; padding: 1rem; background: #121d2f; color: #edf4ff; }
+.symbol-detail::backdrop { background: #080e18b0; }
+.symbol-detail form { text-align: right; }
+.symbol-detail dt { color: #acd0ed; margin-top: .5rem; }
+.symbol-detail dd { margin: .15rem 0; overflow-wrap: anywhere; }
+.symbol-detail a { display: block; padding: .75rem 0; color: #a5e7ef; }

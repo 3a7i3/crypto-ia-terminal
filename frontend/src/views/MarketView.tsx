@@ -1,7 +1,8 @@
+import { MarketBookObservation } from "./MarketBookObservation";
 import { SpotRadarMap } from "./SpotRadarMap";
-import { IntradayBubbleMap } from "./IntradayBubbleMap";
+import { SymbolScanner } from "./SymbolScanner";
 import { MarketFlowView } from "./MarketFlowView";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, MemoryRouter, Navigate, Route, Routes, useInRouterContext, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MarketMicrostructureView } from "./MarketMicrostructureView";
 import { MARKET_BASE, MARKET_RADAR_PATH } from "../lib/moduleNavigation";
@@ -21,19 +22,24 @@ export const MARKET_VIEWS = [
   { slug: "lmi", label: "Microstructure" },
 ] as const;
 
-export type MarketProduct = "spot" | "intraday";
+export type MarketProduct = "spot" | "intraday" | "spot-radar";
 // `intraday=1` or its alias `product=intraday` (D-C2) selects Bulles Intraday;
-// anything else shows Radar Spot MEXC. M1-C3 (EO-024): CryptoRadar historique is
+// anything else shows the ranked Scanner. M1-C3 (EO-024): CryptoRadar historique is
 // no longer offered; an old `?radar=0` bookmark opens Radar Spot (or Intraday when
 // it also carries intraday=1) and the obsolete parameter is dropped with replace.
 export function marketProduct(params: URLSearchParams): MarketProduct {
   if (params.get("intraday") === "1" || params.get("product") === "intraday") return "intraday";
+  if (params.get("product") === "spot-radar") return "spot-radar";
   return "spot";
 }
 
 const RadarPanel: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const product = marketProduct(params);
+  const [selection, setSelection] = useState<string[]>([]);
+  const toggleSelection = (id: string) => setSelection(previous =>
+    previous.includes(id) ? previous.filter(item => item !== id) : [...previous, id]);
+  const scanner = <SymbolScanner bubbles={product === "intraday"} selection={selection} onSelect={toggleSelection} />;
   const legacy = params.has("radar");
   useEffect(() => {
     if (!legacy) return;
@@ -46,15 +52,16 @@ const RadarPanel: React.FC = () => {
   const select = (next: MarketProduct) => {
     const query = new URLSearchParams(params);
     query.delete("radar"); query.delete("intraday"); query.delete("product");
-    if (next === "intraday") query.set("product", "intraday");
+    if (next !== "spot") query.set("product", next);
     setParams(query, { replace: true });
   };
   return <>
     <div className="market-display-choice" role="group" aria-label="Produit du scanner">
-      <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Radar Spot MEXC</button>
+      <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Scanner classé</button>
       <button type="button" aria-pressed={product === "intraday"} onClick={() => select("intraday")}>Bulles Intraday</button>
+      <button type="button" aria-pressed={product === "spot-radar"} onClick={() => select("spot-radar")}>Radar Spot</button>
     </div>
-    {legacy ? null : product === "spot" ? <SpotRadarMap /> : <IntradayBubbleMap />}
+    {legacy ? null : product === "spot-radar" ? <SpotRadarMap /> : scanner}
   </>;
 };
 
@@ -120,8 +127,8 @@ const MarketWorkspace: React.FC = () => {
       <Routes>
         <Route index element={<Navigate to={{ pathname: MARKET_RADAR_PATH, search }} replace />} />
         <Route path="radar" element={<RadarPanel />} />
-        <Route path="venues" element={<MarketVenuesView />} />
-        <Route path="flow" element={<MarketFlowView />} />
+        <Route path="venues" element={<><MarketBookObservation mode="comparison" /><MarketVenuesView /></>} />
+        <Route path="flow" element={<><MarketBookObservation mode="flow" /><MarketFlowView /></>} />
         <Route path="lmi" element={<MarketMicrostructureView />} />
         <Route path="*" element={<UnknownMarketView />} />
       </Routes>

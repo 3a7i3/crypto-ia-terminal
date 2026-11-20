@@ -16,6 +16,7 @@ import {
   LifecycleRoute,
   MarketRoute,
   PortfolioRoute,
+  PaperOrderHistoryRoute,
   SystemRoute,
 } from "./router/PaperLiveRoutes";
 
@@ -45,6 +46,7 @@ const App: React.FC = () => (
           <Route path="overview" element={<HomeRedirect />} />
           <Route path="market/*" element={<MarketRoute />} />
           <Route path="portfolio" element={<PortfolioRoute />} />
+          <Route path="order-history" element={<PaperOrderHistoryRoute />} />
           <Route
             path="burn-in"
             element={<Navigate to="/paper-live/portfolio" replace />}

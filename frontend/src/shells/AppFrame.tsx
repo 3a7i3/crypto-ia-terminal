@@ -20,7 +20,7 @@ export const AppFrame: React.FC = () => {
       (m.testId !== "tab-overview" && m.to === pathname) ||
       (m.testId === "tab-market" && pathname.startsWith("/paper-live/market/")) ||
       (m.to === "/research" && pathname.startsWith("/research/")) ||
-      (m.to.endsWith("/portfolio") && pathname.endsWith("/lifecycle")),
+      (m.to.endsWith("/portfolio") && (pathname.endsWith("/lifecycle") || pathname.endsWith("/order-history"))),
   );
   return (
     <div
@@ -75,7 +75,7 @@ export const AppFrame: React.FC = () => {
               data-testid={m.testId}
               aria-current={m.testId === "tab-overview" ? false : "page"}
               className={({ isActive }) =>
-                `module-link ${(isActive && m.testId !== "tab-overview") || (m.to.endsWith("/portfolio") && pathname.endsWith("/lifecycle")) ? "is-active" : ""}`
+                `module-link ${(isActive && m.testId !== "tab-overview") || (m.to.endsWith("/portfolio") && (pathname.endsWith("/lifecycle") || pathname.endsWith("/order-history"))) ? "is-active" : ""}`
               }
             >
               <AppIcon name={m.icon} />

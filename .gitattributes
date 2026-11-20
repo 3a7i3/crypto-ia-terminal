@@ -36,3 +36,6 @@
 *.sqlite binary
 *.db    binary
 *.pkl   binary
+
+# Observation BTC/ATOM livrée avec Finance V6 : octets exacts.
+frontend/public/observations/btc-atom-book-v1.json -text
