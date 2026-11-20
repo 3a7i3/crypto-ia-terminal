@@ -1,0 +1,607 @@
+{
+  "version": 1,
+  "kind": "SYNTHETIC",
+  "start_ms": 1795128000000,
+  "observations": [
+    {
+      "slot_ms": 1795128000000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62000",
+      "trade_ms": 1795127999300,
+      "received_ms": 1795127999900
+    },
+    {
+      "slot_ms": 1795128000000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795127999298,
+      "received_ms": 1795127999900
+    },
+    {
+      "slot_ms": 1795128010000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62001",
+      "trade_ms": 1795128009300,
+      "received_ms": 1795128009900
+    },
+    {
+      "slot_ms": 1795128010000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128009298,
+      "received_ms": 1795128009900
+    },
+    {
+      "slot_ms": 1795128020000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128019300,
+      "received_ms": 1795128019900
+    },
+    {
+      "slot_ms": 1795128020000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128019298,
+      "received_ms": 1795128019900
+    },
+    {
+      "slot_ms": 1795128030000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128029300,
+      "received_ms": 1795128029900
+    },
+    {
+      "slot_ms": 1795128030000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128029298,
+      "received_ms": 1795128029900
+    },
+    {
+      "slot_ms": 1795128040000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128039300,
+      "received_ms": 1795128039900
+    },
+    {
+      "slot_ms": 1795128040000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128039298,
+      "received_ms": 1795128039900
+    },
+    {
+      "slot_ms": 1795128050000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128049300,
+      "received_ms": 1795128049900
+    },
+    {
+      "slot_ms": 1795128050000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62007",
+      "trade_ms": 1795128049298,
+      "received_ms": 1795128049900
+    },
+    {
+      "slot_ms": 1795128060000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128059300,
+      "received_ms": 1795128059900
+    },
+    {
+      "slot_ms": 1795128060000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62008",
+      "trade_ms": 1795128059298,
+      "received_ms": 1795128059900
+    },
+    {
+      "slot_ms": 1795128070000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62000",
+      "trade_ms": 1795128069300,
+      "received_ms": 1795128069900
+    },
+    {
+      "slot_ms": 1795128070000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128069298,
+      "received_ms": 1795128069900
+    },
+    {
+      "slot_ms": 1795128080000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62001",
+      "trade_ms": 1795128079300,
+      "received_ms": 1795128079900
+    },
+    {
+      "slot_ms": 1795128080000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128079298,
+      "received_ms": 1795128079900
+    },
+    {
+      "slot_ms": 1795128090000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128089300,
+      "received_ms": 1795128089900
+    },
+    {
+      "slot_ms": 1795128090000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128089298,
+      "received_ms": 1795128089900
+    },
+    {
+      "slot_ms": 1795128100000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128099300,
+      "received_ms": 1795128099900
+    },
+    {
+      "slot_ms": 1795128100000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128099298,
+      "received_ms": 1795128099900
+    },
+    {
+      "slot_ms": 1795128110000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128109300,
+      "received_ms": 1795128109900
+    },
+    {
+      "slot_ms": 1795128110000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128109298,
+      "received_ms": 1795128109900
+    },
+    {
+      "slot_ms": 1795128120000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128119300,
+      "received_ms": 1795128119900
+    },
+    {
+      "slot_ms": 1795128120000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62007",
+      "trade_ms": 1795128119298,
+      "received_ms": 1795128119900
+    },
+    {
+      "slot_ms": 1795128130000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128129300,
+      "received_ms": 1795128129900
+    },
+    {
+      "slot_ms": 1795128130000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62008",
+      "trade_ms": 1795128129298,
+      "received_ms": 1795128129900
+    },
+    {
+      "slot_ms": 1795128140000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62000",
+      "trade_ms": 1795128139300,
+      "received_ms": 1795128139900
+    },
+    {
+      "slot_ms": 1795128140000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128139298,
+      "received_ms": 1795128139900
+    },
+    {
+      "slot_ms": 1795128150000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62001",
+      "trade_ms": 1795128149300,
+      "received_ms": 1795128149900
+    },
+    {
+      "slot_ms": 1795128150000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128149298,
+      "received_ms": 1795128149900
+    },
+    {
+      "slot_ms": 1795128160000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128159300,
+      "received_ms": 1795128159900
+    },
+    {
+      "slot_ms": 1795128160000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128159298,
+      "received_ms": 1795128159900
+    },
+    {
+      "slot_ms": 1795128170000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128169300,
+      "received_ms": 1795128169900
+    },
+    {
+      "slot_ms": 1795128170000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128169298,
+      "received_ms": 1795128169900
+    },
+    {
+      "slot_ms": 1795128180000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128179300,
+      "received_ms": 1795128179900
+    },
+    {
+      "slot_ms": 1795128180000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128179298,
+      "received_ms": 1795128179900
+    },
+    {
+      "slot_ms": 1795128190000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128189300,
+      "received_ms": 1795128189900
+    },
+    {
+      "slot_ms": 1795128190000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62007",
+      "trade_ms": 1795128189298,
+      "received_ms": 1795128189900
+    },
+    {
+      "slot_ms": 1795128200000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128199300,
+      "received_ms": 1795128199900
+    },
+    {
+      "slot_ms": 1795128200000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62008",
+      "trade_ms": 1795128199298,
+      "received_ms": 1795128199900
+    },
+    {
+      "slot_ms": 1795128210000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62000",
+      "trade_ms": 1795128209300,
+      "received_ms": 1795128209900
+    },
+    {
+      "slot_ms": 1795128210000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128209298,
+      "received_ms": 1795128209900
+    },
+    {
+      "slot_ms": 1795128220000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62001",
+      "trade_ms": 1795128219300,
+      "received_ms": 1795128219900
+    },
+    {
+      "slot_ms": 1795128220000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128219298,
+      "received_ms": 1795128219900
+    },
+    {
+      "slot_ms": 1795128230000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128229300,
+      "received_ms": 1795128229900
+    },
+    {
+      "slot_ms": 1795128230000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128229298,
+      "received_ms": 1795128229900
+    },
+    {
+      "slot_ms": 1795128240000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128239300,
+      "received_ms": 1795128239900
+    },
+    {
+      "slot_ms": 1795128240000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128239298,
+      "received_ms": 1795128239900
+    },
+    {
+      "slot_ms": 1795128250000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62004",
+      "trade_ms": 1795128249300,
+      "received_ms": 1795128249900
+    },
+    {
+      "slot_ms": 1795128250000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128249298,
+      "received_ms": 1795128249900
+    },
+    {
+      "slot_ms": 1795128260000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62005",
+      "trade_ms": 1795128259300,
+      "received_ms": 1795128259900
+    },
+    {
+      "slot_ms": 1795128260000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62007",
+      "trade_ms": 1795128259298,
+      "received_ms": 1795128259900
+    },
+    {
+      "slot_ms": 1795128270000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62006",
+      "trade_ms": 1795128269300,
+      "received_ms": 1795128269900
+    },
+    {
+      "slot_ms": 1795128270000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62008",
+      "trade_ms": 1795128269298,
+      "received_ms": 1795128269900
+    },
+    {
+      "slot_ms": 1795128280000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62000",
+      "trade_ms": 1795128279300,
+      "received_ms": 1795128279900
+    },
+    {
+      "slot_ms": 1795128280000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62002",
+      "trade_ms": 1795128279298,
+      "received_ms": 1795128279900
+    },
+    {
+      "slot_ms": 1795128290000,
+      "venue": "mexc",
+      "symbol": "BTCUSDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62001",
+      "trade_ms": 1795128289300,
+      "received_ms": 1795128289900
+    },
+    {
+      "slot_ms": 1795128290000,
+      "venue": "okx",
+      "symbol": "BTC-USDT",
+      "market": "spot",
+      "price_kind": "last_trade",
+      "price": "62003",
+      "trade_ms": 1795128289298,
+      "received_ms": 1795128289900
+    }
+  ]
+}
