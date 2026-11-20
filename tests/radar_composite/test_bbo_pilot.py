@@ -461,9 +461,11 @@ class LocalTransport(unittest.TestCase):
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
         self._serve_handshake().join(2)
         conn = bp.WsConnection(bp.KRAKEN_WS, timeout_s=1.0)
+        # 512 KB is far beyond the ~8 KB the shrunk buffers can hold, so the send
+        # blocks; a larger payload only adds pure-Python masking time to the clock.
         started = time.monotonic()
         with self.assertRaises(wire.WireError) as ctx:
-            conn.send_text("x" * 4_000_000, timeout_s=0.3)
+            conn.send_text("x" * 512_000, timeout_s=0.3)
         self.assertEqual(ctx.exception.code, "SEND_TIMEOUT")
         self.assertLess(time.monotonic() - started, 2)
 
