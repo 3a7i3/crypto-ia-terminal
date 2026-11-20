@@ -56,7 +56,8 @@ export const AppFrame: React.FC = () => {
           </span>
         </Link>
         <span className="app-current">
-          {active?.label ?? "Exploration"}
+          {active?.label ??
+            (pathname === "/direction/travaux" ? "Projet" : "Exploration")}
         </span>
         <span className="app-readonly">Lecture seule</span>
         <AppearanceSettings />
@@ -83,6 +84,18 @@ export const AppFrame: React.FC = () => {
             </NavLink>
           ))}
         </nav>
+        <div className="sidebar-project">
+          <span className="sidebar-label">PROJET</span>
+          <NavLink
+            to="/direction/travaux"
+            className={({ isActive }) =>
+              `module-link ${isActive ? "is-active" : ""}`
+            }
+          >
+            <AppIcon name="project" />
+            <span>Travaux et roadmap</span>
+          </NavLink>
+        </div>
         <div className="sidebar-foot">
           <span>Observer. Comprendre. Rechercher.</span>
           <small>Les sources gardent leur propre date et leur autorité.</small>
