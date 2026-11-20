@@ -91,3 +91,6 @@ Une prochaine tranche doit encore décider, avant toute collecte/publication : b
 [#539](https://github.com/3a7i3/crypto-ia-terminal/issues/539) prépare un pilote réseau fermé Bybit/OKX en source et ses simulations :
 [contrat et gates](MARKET_MULTI_VENUE_PILOT_539.md).
 Cette extension ne rend pas les huit décodeurs collecteurs actifs et ne configure pas le lecteur déployé.
+
+Le stress du levier (prime, base, funding, OI) et la périodicité des transactions sont préparés séparément par
+[MARKET-DERIVATIVES-STRESS-01](MARKET_DERIVATIVES_STRESS_01.md), produit frère aux mêmes frontières (source seule, lecteur non configuré par défaut).

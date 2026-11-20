@@ -44,8 +44,8 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("M1-C1 deep Market routes", () => {
   const views = [
     ["radar", "Scanner", ["spot-radar"]],
-    ["venues", "Comparaison des plateformes", ["venue-comparison"]],
-    ["flow", "Flux", ["market-flow"]],
+    ["venues", "Comparaison des plateformes", ["derivatives-stress", "venue-comparison"]],
+    ["flow", "Flux", ["derivatives-stress", "market-flow"]],
     ["lmi", "Microstructure", ["market-microstructure"]],
   ] as const;
 
@@ -112,7 +112,7 @@ describe("M1-C1 browser history", () => {
     fireEvent.click(tab("Flux"));
     await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
     expect(window.history.length).toBe(start + 1);
-    await waitFor(() => expect(families()).toEqual(["market-flow"]));
+    await waitFor(() => expect(families()).toEqual(["derivatives-stress", "market-flow"]));
     fetchMock.mockClear();
     fireEvent.click(tab("Microstructure"));
     await waitFor(() => expect(families()).toEqual(["market-microstructure"]));
