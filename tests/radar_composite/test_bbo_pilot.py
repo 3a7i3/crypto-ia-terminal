@@ -2,12 +2,18 @@
 import copy
 import hashlib
 import json
+import re
+import socket
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from observability.radar_composite import bbo_book as bk
 from observability.radar_composite import bbo_pilot as bp
+from observability.radar_composite import bbo_wire as wire
 from observability.radar_composite import pilot as l3
 from observability.radar_composite.bbo_schema import validate_bbo
 from tests.radar_composite.test_bbo_wire import NoNetwork
@@ -297,3 +303,267 @@ class RuntimeLock(NoNetwork):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------- runtime-preparation fixes
+
+
+
+def sizes(out):
+    return sum((out / n).stat().st_size for n in ("frames.bin", "events.jsonl", "manifest.json"))
+
+
+class StorageCap(NoNetwork):
+    def test_stop_before_exceeding_and_sealed(self):
+        cap = 400_000
+        tmp, out, _pilot, code = dry("BTC", caps={"max_storage_bytes": cap})
+        with tmp:
+            m = json.loads((out / "manifest.json").read_text())
+            self.assertEqual((code, m["status"], m["stop_code"], m["stop_class"]),
+                             (2, "STOPPED", "BUDGET_STORAGE_EXHAUSTED", "BUDGET"))
+            self.assertLessEqual(sizes(out), cap)
+            self.assertEqual(m["sealed"]["storage_cap_bytes"], cap)
+            self.assertIn("refused_bytes", m["stop_detail"])
+            stop = json.loads((out / "events.jsonl").read_text().splitlines()[-1])
+            self.assertEqual((stop["kind"], stop["stop_detail"]["refused_kind"]),
+                             ("stop", m["stop_detail"]["refused_kind"]))
+            s = bp.replay(out)
+            self.assertEqual(s["stop_class"], "BUDGET")
+
+    def test_reserve_is_kept_for_final_records(self):
+        with tempfile.TemporaryDirectory() as d:
+            ev = bp.Evidence(Path(d) / "e", l3.FakeClock(0), 120_000)
+            with self.assertRaises(l3.Stop) as ctx:
+                for _ in range(1000):
+                    ev.record("mexc", "ws_message", bytes(5_000))
+            self.assertEqual(ctx.exception.code, "BUDGET_STORAGE_EXHAUSTED")
+            used = ev.used()
+            self.assertLessEqual(used, 120_000 - bp.MANIFEST_MAX_BYTES - bp.STORAGE_RESERVE_BYTES)
+            ev.record("pilot", "stop", b"BUDGET_STORAGE_EXHAUSTED", final=True)
+            self.assertGreater(ev.used(), used)
+            seal = ev.seal()
+            self.assertLessEqual(seal["frames_bytes"] + seal["events_bytes"], 120_000 - bp.MANIFEST_MAX_BYTES)
+
+    def test_cap_smaller_than_reserve_refused(self):
+        with tempfile.TemporaryDirectory() as d, self.assertRaises(l3.Refused):
+            bp.Evidence(Path(d) / "e", l3.FakeClock(0), bp.STORAGE_RESERVE_BYTES)
+
+
+class BoundedOperations(NoNetwork):
+    def test_timeouts_never_exceed_caps_or_remaining_budget(self):
+        seen = []
+
+        class Recording(bp.FakeVenues):
+            def open(self, venue, timeout_s=None):
+                seen.append(("open", timeout_s))
+                return super().open(venue, timeout_s)
+
+            def send_text(self, venue, text, timeout_s=None):
+                seen.append(("send", timeout_s))
+                return super().send_text(venue, text, timeout_s)
+
+        tmp, _out, pilot, code = dry("BTC", session_cls=Recording)
+        with tmp:
+            self.assertEqual(code, 0)
+            self.assertTrue(all(0 < t <= bp.CONNECT_TIMEOUT_S for k, t in seen if k == "open"))
+            self.assertTrue(all(0 < t <= bp.SEND_TIMEOUT_S for k, t in seen if k == "send"))
+            pilot.t0 = pilot.clock.mono_ms() - (pilot.max_seconds * 1000 - 500)
+            self.assertAlmostEqual(pilot._bounded(bp.SEND_TIMEOUT_S), 0.5)
+            with self.assertRaises(l3.Stop) as ctx:
+                pilot.get("mexc", "depth", purpose="late")
+            self.assertEqual(ctx.exception.code, "BUDGET_DURATION_INSUFFICIENT_FOR_REST")
+            pilot.t0 -= 1000
+            with self.assertRaises(l3.Stop):
+                pilot._bounded(bp.SEND_TIMEOUT_S)
+
+    def test_blocked_send_is_an_explicit_sealed_stop(self):
+        class Blocking(bp.FakeVenues):
+            pings = 0
+
+            def send_text(self, venue, text, timeout_s=None):
+                if venue == "kraken" and '"ping"' in text:
+                    Blocking.pings += 1
+                    if Blocking.pings == 5:
+                        raise wire.WireError("SEND_TIMEOUT", "0/40")
+                return super().send_text(venue, text, timeout_s)
+
+        tmp, out, _pilot, code = dry("BTC", session_cls=Blocking)
+        with tmp:
+            m = json.loads((out / "manifest.json").read_text())
+            self.assertEqual((code, m["status"], m["stop_code"], m["stop_class"]),
+                             (2, "STOPPED", "WS_SEND_TIMEOUT_KRAKEN", "TRANSPORT"))
+            self.assertEqual(m["stop_detail"]["detail"], "SEND_TIMEOUT")
+            self.assertTrue(m["sealed"]["events_sha256"])
+            kinds = [json.loads(x)["kind"] for x in (out / "events.jsonl").read_text().splitlines()]
+            self.assertEqual(kinds[-1], "stop")
+            self.assertIn("send_failed", kinds)
+            self.assertEqual(bp.replay(out)["status"], "STOPPED")
+
+    def test_watchdog_interrupts_an_operation_that_ignores_its_timeout(self):
+        class Hanging(bp.FakeVenues):
+            def send_text(self, venue, text, timeout_s=None):
+                if venue == "kraken" and '"ping"' in text:
+                    time.sleep(5)  # a call that never honours its timeout
+                return super().send_text(venue, text, timeout_s)
+
+        started = time.monotonic()
+        tmp, out, _pilot, code = dry("BTC", session_cls=Hanging, watchdog_s=0.5)
+        with tmp:
+            self.assertLess(time.monotonic() - started, 3)
+            m = json.loads((out / "manifest.json").read_text())
+            self.assertEqual((code, m["stop_code"], m["stop_class"], m["status"]),
+                             (2, "WATCHDOG_DEADLINE", "BUDGET", "STOPPED"))
+            self.assertEqual(m["watchdog"], "ARMED_0.5s")
+            bp.replay(out)
+
+
+class LocalTransport(unittest.TestCase):
+    """Real WsConnection code over a local socketpair: no DNS, no TLS, no exchange."""
+
+    def setUp(self):
+        self.client, self.server = socket.socketpair()
+        self.addCleanup(self.client.close)
+        self.addCleanup(self.server.close)
+
+        class Ctx:
+            def wrap_socket(self, raw, server_hostname=None):
+                return raw
+
+        for target, kw in (("socket.create_connection", {"return_value": self.client}),
+                           ("ssl.create_default_context", {"return_value": Ctx()}),
+                           ("socket.getaddrinfo", {"side_effect": AssertionError("DNS attempted")})):
+            p = mock.patch(target, **kw)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _serve_handshake(self):
+        def run():
+            head = b""
+            while b"\r\n\r\n" not in head:
+                head += self.server.recv(4096)
+            key = re.search(rb"Sec-WebSocket-Key: (\S+)", head).group(1).decode()
+            self.server.sendall(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n"
+                                 f"Connection: Upgrade\r\nSec-WebSocket-Accept: {wire.accept_for(key)}\r\n\r\n").encode())
+        t = threading.Thread(target=run, daemon=True)
+        t.start()
+        return t
+
+    def test_handshake_without_answer_times_out(self):
+        started = time.monotonic()
+        with self.assertRaises(wire.WireError) as ctx:
+            bp.WsConnection(bp.KRAKEN_WS, timeout_s=0.3)
+        self.assertEqual(ctx.exception.code, "HANDSHAKE_TIMEOUT")
+        self.assertLess(time.monotonic() - started, 2)
+
+    def test_send_to_a_peer_that_stops_reading_times_out(self):
+        self.client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 4096)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
+        self._serve_handshake().join(2)
+        conn = bp.WsConnection(bp.KRAKEN_WS, timeout_s=1.0)
+        started = time.monotonic()
+        with self.assertRaises(wire.WireError) as ctx:
+            conn.send_text("x" * 4_000_000, timeout_s=0.3)
+        self.assertEqual(ctx.exception.code, "SEND_TIMEOUT")
+        self.assertLess(time.monotonic() - started, 2)
+
+
+class KrakenChecksumDiagnostics(NoNetwork):
+    def test_mismatch_keeps_raw_message_and_comparison(self):
+        tmp, out, _pilot, _code = dry("BTC")
+        with tmp:
+            s = bp.replay(out)
+            audit = s["kraken_checksum_audit"]
+            self.assertEqual(len(audit["mismatches"]), 1)
+            m = audit["mismatches"][0]
+            self.assertEqual((m["diagnosis"], m["cause"], m["message_type"], m["instrument"]),
+                             ("CHECKSUM_MISMATCH", "UNKNOWN", "update", "BTC/USDT"))
+            self.assertNotEqual(m["checksum_received"], m["checksum_computed"])
+            self.assertEqual(bk.kraken_checksum([tuple(x) for x in m["top10_asks"]],
+                                                [tuple(x) for x in m["top10_bids"]]), m["checksum_computed"])
+            events = bp.load(out)[1]
+            frame = next(e for e in events if e["seq"] == m["frame_seq"])
+            diag = next(e for e in events if e["kind"] == "checksum_mismatch")
+            self.assertEqual(diag["payload"], frame["payload"])
+            self.assertEqual((diag["checksum_received"], diag["checksum_computed"]),
+                             (m["checksum_received"], m["checksum_computed"]))
+
+    def test_trailing_zeros_are_never_normalised_to_admit_a_book(self):
+        class Trimmed(bp.FakeVenues):
+            def _kraken_msg(self, kind, diff=None, corrupt=False):
+                raw = super()._kraken_msg(kind, diff, corrupt).decode()
+                return re.sub(r'"qty":(\d+\.\d*?)0+([,}])', r'"qty":\1\2', raw).encode()
+
+        with tempfile.TemporaryDirectory() as d:
+            pilot, code = bp.dry_run_probe(Path(d) / "p", session_cls=Trimmed)
+            r = bp.replay(Path(d) / "p")
+            self.assertEqual((code, pilot.stop_code), (2, "KRAKEN_RESYNC_BUDGET_EXHAUSTED"))
+            self.assertEqual(r["observations"]["kraken_snapshot_checksum"]["status"], "CHECKSUM_MISMATCH")
+            self.assertEqual(r["verdict"], "PROBE_STOPPED")
+            self.assertEqual(r["kraken"]["checked_by_type"], {"snapshot": {"match": 0, "mismatch": 2}})
+            self.assertTrue(all(x["diagnosis"] == "CHECKSUM_MISMATCH" for x in r["kraken"]["mismatches"]))
+            self.assertNotIn("SYNCED", [b.get("resolved_at_ms") and "SYNCED" for b in r["kraken"]["breaks"]])
+
+
+class PublicPreflight(NoNetwork):
+    def test_synthetic_probe_qualifies_transport_and_formats(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "p"
+            _pilot, code = bp.dry_run_probe(out)
+            m = json.loads((out / "manifest.json").read_text())
+            r = bp.replay(out)
+            first = (out / "replay" / "probe_report.json").read_bytes()
+            bp.replay(out)
+            self.assertEqual(first, (out / "replay" / "probe_report.json").read_bytes())
+            self.assertEqual((code, m["status"], m["mode"], r["verdict"], r["missing_required"]),
+                             (0, "COMPLETED", "probe", "PROBE_QUALIFIED", []))
+            self.assertLessEqual(m["elapsed_ms"], bp.PROBE["max_seconds"] * 1000)
+            for key, used in m["rest_used"].items():
+                self.assertLessEqual(used, m["budget"]["rest"][key])
+            self.assertEqual(r["observations"]["python_3_10"]["status"], "NOT_REQUIRED_SYNTHETIC")
+            self.assertEqual(r["observations"]["kraken_heartbeat"]["status"], "NOT_OBSERVED")
+            self.assertGreaterEqual(r["mexc"]["diffs_after_join_contiguous"], 1)
+            self.assertIn("no composite viability conclusion", r["scope"])
+
+    def test_missing_observation_is_explicit(self):
+        class TwoDiffs(bp.FakeVenues):
+            diffs = 0
+
+            def _emit_tick(self, venue, at):
+                if venue == "mexc":
+                    TwoDiffs.diffs += 1
+                    if TwoDiffs.diffs > 2:
+                        self.next_tick["mexc"] = None
+                        return None
+                return super()._emit_tick(venue, at)
+
+        with tempfile.TemporaryDirectory() as d:
+            _pilot, code = bp.dry_run_probe(Path(d) / "p", session_cls=TwoDiffs)
+            r = bp.replay(Path(d) / "p")
+            self.assertEqual(code, 5)
+            self.assertEqual(r["verdict"], "PROBE_INCOMPLETE")
+            self.assertEqual(r["observations"]["mexc_join"]["status"], "OBSERVED")
+            self.assertEqual(r["missing_required"], ["mexc_continuity_after_join"])
+
+    def test_observation_run_requires_python_3_10(self):
+        clock = l3.FakeClock(bp.DRY_RUN_START_MS)
+        prof = copy.deepcopy(bp.SIM_PROFILES["BTC"])
+        prof["faults"] = []
+        with tempfile.TemporaryDirectory() as d:
+            p = bp.BboPilot("BTC", Path(d) / "p", bp.FakeVenues("BTC", clock, profile=prof), clock,
+                            evidence_kind="OBSERVATION", mode="probe")
+            with mock.patch("platform.python_version", return_value="3.13.18"):
+                code = p.run()
+            r = bp.replay(Path(d) / "p")
+            self.assertEqual(code, 5)
+            self.assertEqual(r["observations"]["python_3_10"]["status"], "MISSING")
+            self.assertIn("python_3_10", r["missing_required"])
+
+    def test_probe_is_btc_only_and_locked(self):
+        clock = l3.FakeClock(0)
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(l3.Refused):
+                bp.BboPilot("ATOM", Path(d) / "p", bp.FakeVenues("ATOM", clock), clock, mode="probe")
+            code = bp.main(["probe", "--out", str(Path(d) / "q"), "--radar-collector", "/nonexistent",
+                            "--radar-collector-sha256", "0" * 64, "--confirm-public-collection", "BBO-PILOT"])
+            self.assertEqual(code, 4)
+            self.assertFalse((Path(d) / "q").exists())

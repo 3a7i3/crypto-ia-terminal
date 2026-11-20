@@ -90,6 +90,12 @@ Une quantité `0` supprime le niveau. Les niveaux au-delà des 5 000 du snapshot
   conservateur : `CHECKSUM_MISMATCH`, carnet retiré, désabonnement puis réabonnement avec snapshot.
   Les mises à jour reçues entre-temps sont ignorées. Un snapshot n'est réadmis que si son propre
   checksum concorde.
+- Diagnostic : chaque divergence écrit un événement `checksum_mismatch` qui recopie le message
+  brut et donne l'instrument, le type de message, le checksum reçu, le checksum calculé et les
+  textes exacts des 10 niveaux utilisés (`frame_seq` pointe la trame d'origine). Le diagnostic reste
+  `CHECKSUM_MISMATCH`, cause `UNKNOWN`. Aucune normalisation des littéraux (zéros finaux ou autre)
+  n'est essayée pour admettre un carnet. Le rejeu recalcule ces diagnostics et refuse la preuve s'ils
+  diffèrent de ceux écrits en direct.
 
 ## Vie, mise à jour et continuité : trois faits séparés
 
@@ -172,12 +178,42 @@ Lecture séparée des résultats :
 
 ## Arrêts et budgets (transport réel)
 
+**Délais bornés.** Chaque opération réseau a son propre plafond, ramené au budget restant du run :
+connexion TCP + TLS + poignée de main 6 s (une seule échéance pour les trois), envoi d'une trame 2 s
+(échéance sur le message entier, pas sur chaque `send`), fermeture 1 s, REST 4 s par opération
+(transport L3) et refus d'une requête REST s'il reste moins de 5 s. Un envoi bloqué donne
+`WS_SEND_TIMEOUT_<VENUE>` ; la connexion est alors réputée inutilisable. Un chien de garde
+(`SIGALRM`, durée = budget du run) interrompt une opération qui ignorerait son délai, comme la
+résolution DNS : arrêt `WATCHDOG_DEADLINE`. Le manifeste distingue `COMPLETED` de `STOPPED` et
+porte `stop_code`, `stop_class` (`PREFLIGHT`, `REST`, `TRANSPORT`, `BUDGET`, `PROVIDER`,
+`CONTINUITY`), `stop_detail` et `exit_code`. Il est scellé dans tous les cas.
+
+**Stockage.** Le plafond couvre `frames.bin + events.jsonl + manifest.json` d'un run ; `replay/`
+est exclu. Le budget est vérifié avant toute écriture : un événement ordinaire ne peut dépasser
+`plafond − 32 Kio (manifeste) − 64 Kio (réserve)`. La réserve sert à l'événement d'arrêt et aux
+fermetures, la place du manifeste au scellement. L'événement d'arrêt garde la taille et le sha256
+de ce qui a été refusé.
+
 HTTP 403/418/429/451 ; refus de poignée de main WebSocket ; erreur fournisseur (`code ≠ 0` MEXC,
 `error` Kraken) ; abonnement refusé ; plus de 3 resynchronisations par source ; plus de
 3 reconnexions par plateforme ; budgets REST par endpoint ; 200 000 trames, 512 Kio par message,
 300 Mo ; durée ; preflight d'identité et d'horloge repris de L3 ; marge MEXC non établie.
 Le transport réel n'accepte que deux URL WebSocket et six URL REST, et ne démarre qu'avec `run`,
 `--confirm-public-collection BBO-PILOT` et la vérification du collecteur Radar.
+
+## Préflight public (mode `probe`, BTC seulement)
+
+Étape distincte, avec son propre GO, avant toute collecte. Il qualifie le transport et les formats ;
+**il ne conclut rien sur la viabilité du composite**. Plafonds : 150 s, observation de 15 à 90 s,
+aucune reconnexion, 1 resynchronisation par source, REST 9 au plus (MEXC depth 2, exchangeInfo 1,
+time 2 ; Kraken AssetPairs 1, Assets 1, Time 2), 20 000 trames, 20 Mo.
+Observations requises, chacune `OBSERVED` ou explicitement `MISSING` (ou `CHECKSUM_MISMATCH`) :
+Python 3.10, identité et horloges REST, ouverture des deux WebSocket, accusé d'abonnement MEXC,
+diff protobuf décodé, écho du symbole MEXC, jonction `JOINED`, diff contigu appliqué après la
+jonction, PONG MEXC, abonnement Kraken accepté, écho du symbole Kraken, checksum concordant sur
+un snapshot puis sur une mise à jour, PONG Kraken. Le heartbeat Kraken est informatif.
+Sortie : 0 `PROBE_QUALIFIED`, 5 `PROBE_INCOMPLETE`, 2 ou 3 `PROBE_STOPPED`.
+Rapport rejouable : `replay/probe_report.json`.
 
 ## À qualifier au runtime
 

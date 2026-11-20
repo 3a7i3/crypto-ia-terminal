@@ -16,6 +16,7 @@ import base64
 import hashlib
 import os
 import struct
+import time
 
 # ---------------------------------------------------------------- RFC 6455
 
@@ -395,3 +396,41 @@ def encode_mexc_push(channel, symbol, body, *, send_time=None, create_time=None,
     if send_time is not None:
         out += _key(6, VARINT) + _varint(send_time)
     return bytes(out)
+
+
+# ---------------------------------------------------------------- bounded send
+
+def send_all_bounded(sock, data, timeout_s, *, monotonic=None):
+    """Send every byte before an absolute deadline, or raise ``SEND_TIMEOUT``.
+
+    ``socket.sendall`` on a TLS socket applies its timeout to each underlying
+    send, so a peer that drains slowly could hold it for longer than the
+    budget. Here the deadline covers the whole message. After a timeout the
+    stream may hold a partial frame: the caller must treat the connection as
+    unusable.
+    """
+    now = monotonic or time.monotonic
+    if timeout_s is None or timeout_s <= 0:
+        raise WireError("SEND_TIMEOUT", "no budget left")
+    deadline = now() + timeout_s
+    view = memoryview(data)
+    sent = 0
+    try:
+        while sent < len(view):
+            remaining = deadline - now()
+            if remaining <= 0:
+                raise WireError("SEND_TIMEOUT", f"{sent}/{len(view)}")
+            sock.settimeout(remaining)
+            try:
+                n = sock.send(view[sent:])
+            except TimeoutError as exc:  # socket.timeout is TimeoutError on 3.10+
+                raise WireError("SEND_TIMEOUT", f"{sent}/{len(view)}") from exc
+            if n == 0:
+                raise WireError("SEND_CONNECTION_CLOSED")
+            sent += n
+    finally:
+        try:
+            sock.setblocking(False)
+        except OSError:
+            pass
+    return sent

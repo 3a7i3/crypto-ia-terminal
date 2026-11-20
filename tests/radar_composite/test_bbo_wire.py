@@ -197,3 +197,53 @@ class Protobuf(NoNetwork):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BoundedSend(NoNetwork):
+    class Sock:
+        def __init__(self, chunk, clock, step=0.0, raise_timeout=False):
+            self.chunk, self.clock, self.step = chunk, clock, step
+            self.raise_timeout = raise_timeout
+            self.got = b""
+            self.timeouts = []
+
+        def settimeout(self, t):
+            self.timeouts.append(t)
+
+        def setblocking(self, flag):
+            pass
+
+        def send(self, data):
+            self.clock[0] += self.step
+            if self.raise_timeout:
+                raise TimeoutError
+            n = min(self.chunk, len(data))
+            self.got += bytes(data[:n])
+            return n
+
+    def test_success_and_deadline_shrinks(self):
+        clock = [0.0]
+        sock = self.Sock(4, clock, step=0.1)
+        self.assertEqual(wire.send_all_bounded(sock, b"0123456789", 1.0, monotonic=lambda: clock[0]), 10)
+        self.assertEqual(sock.got, b"0123456789")
+        self.assertEqual(sock.timeouts, sorted(sock.timeouts, reverse=True))  # remaining time only
+
+    def test_slow_peer_hits_the_whole_message_deadline(self):
+        clock = [0.0]
+        sock = self.Sock(1, clock, step=0.3)
+        with self.assertRaises(wire.WireError) as ctx:
+            wire.send_all_bounded(sock, b"0123456789", 1.0, monotonic=lambda: clock[0])
+        self.assertEqual(ctx.exception.code, "SEND_TIMEOUT")
+        self.assertLess(len(sock.got), 10)
+
+    def test_socket_timeout_and_closed_peer(self):
+        clock = [0.0]
+        with self.assertRaises(wire.WireError) as ctx:
+            wire.send_all_bounded(self.Sock(4, clock, raise_timeout=True), b"x", 1.0, monotonic=lambda: clock[0])
+        self.assertEqual(ctx.exception.code, "SEND_TIMEOUT")
+        with self.assertRaises(wire.WireError) as ctx:
+            wire.send_all_bounded(self.Sock(0, clock), b"x", 1.0, monotonic=lambda: clock[0])
+        self.assertEqual(ctx.exception.code, "SEND_CONNECTION_CLOSED")
+        with self.assertRaises(wire.WireError) as ctx:
+            wire.send_all_bounded(self.Sock(4, clock), b"x", 0, monotonic=lambda: clock[0])
+        self.assertEqual(ctx.exception.code, "SEND_TIMEOUT")
