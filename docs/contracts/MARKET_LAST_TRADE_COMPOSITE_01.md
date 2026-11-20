@@ -112,3 +112,42 @@ ce n'est pas la bougie native de la plateforme.
   transcription ont été conservés. Une nouvelle matrice rejouable exige une lecture conservant les octets.
 - Les seuils sont des hypothèses ; le pilote borné doit mesurer leur effet avant toute décision.
 - Pas de lecteur API, pas de vue, pas de collecteur : lots ultérieurs, GO distincts.
+
+## Pilote L3 borné (préparation, `observability/radar_composite/pilot.py`)
+
+Préparé hors réseau ; **son exécution exige un GO L3 explicite**. Lecture publique uniquement,
+liste fermée d'URLs GET, aucune clé, aucun compte, aucun service, aucune unité systemd.
+
+| Paire | Fenêtres M5 | Requêtes prévues / budget | Durée prévue / budget |
+|---|---|---|---|
+| BTC/USDT (`BTCUSDT`, `XBTUSDT`) | 2 | 129 / 150 | ≈ 635 s / 720 s |
+| ATOM/USDT (`ATOMUSDT`, `ATOMUSDT`) | 3 | 189 / 220 | ≈ 935 s / 1 020 s |
+
+- Requêtes : 5 de pré-vol (heure MEXC, `exchangeInfo`, heure Kraken, `AssetPairs`, `Assets`),
+  une lecture `trades` (limite 10) par plateforme et par instant, plus un instant de préchauffage,
+  puis 2 lectures d'heure de fin. Le budget compte toutes ces requêtes.
+- Grille : départ sur la prochaine frontière M5 UTC située au moins 60 s plus tard ; pré-vol à −45 s ;
+  chaque lecture part 1,5 s avant son instant (MEXC puis Kraken) ; une lecture en retard de plus de 5 s
+  est sautée, jamais rattrapée en rafale. Un trade reçu après l'instant ne compte pas pour cet instant.
+- Arrêts : HTTP 403, 418 ou 429 ; erreur Kraken de limitation ; 3 échecs consécutifs ; budget de requêtes
+  ou de durée atteint ; identité ou horloge refusée au pré-vol (MEXC ±1 s, Kraken ±2 s, résolution 1 s) ;
+  marge MEXC non établie. Pas de nouvel essai automatique. BTC puis ATOM sont lancés par `&&` :
+  ATOM ne démarre que si BTC se termine avec le code 0.
+- Marge MEXC : la documentation publique donne une limite indépendante de 500 par 10 s pour chaque
+  endpoint limité par IP et ne documente aucun en-tête de poids consommé. Le pilote est le seul appelant
+  de `/api/v3/trades` si le collecteur Radar déployé est le fichier audité (SHA-256 vérifié au lancement)
+  et n'appelle pas cet endpoint ; sinon le pilote s'arrête avant toute requête.
+- Preuves : répertoire neuf ; `requests.jsonl` (endpoint, URL, paire, statut, heures d'envoi et de
+  réception, en-têtes non sensibles, SHA-256 du corps), `raw/NNNNNN.bin`, `manifest.json`
+  (paramètres, budgets, grille, critères, SHA du code, hôte, Python).
+- Rejeu hors ligne : `python3 -m observability.radar_composite.pilot replay DIR` vérifie les hash,
+  décode avec L1, calcule chaque fenêtre et écrit `replay/summary.json`.
+- Un instant est **évalué** si le pilote s'est terminé, ou si sa lecture a été tentée sur les deux
+  plateformes avant l'arrêt ; sinon il est **planifié sans observation**. Chaque instant n'est compté
+  qu'une fois : `COMPARABLE`, `SOURCE_EXCLUDED`, `EVENTS_NOT_SYNCHRONIZED` ou `NOT_EVALUATED`.
+- Seuil principal : âge 5 s (prototype M5 v1, `MAX_AGE`) et écart entre trades 5 s (hypothèse L1).
+  Sensibilité sur les mêmes observations : (a) l'âge varie à 5/10/30/60 s, l'écart reste à 5 s ;
+  (b) l'écart varie à 5/10/30/60 s, l'âge reste à 60 s pour que l'écart soit la contrainte active ;
+  (c) grille complète 4 × 4.
+- Lecture fixée avant observation : ≥ 80 % d'instants comparables parmi les évalués
+  `COMPOSITE_VIABLE_AT_PRIMARY` ; 50–80 % `PARTIAL_AT_PRIMARY` ; < 50 % `NOT_VIABLE_AT_PRIMARY`.
