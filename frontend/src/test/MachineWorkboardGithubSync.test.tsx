@@ -28,6 +28,19 @@ describe("Workboard GitHub sync UI", () => {
   beforeEach(() => window.localStorage.clear());
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+  it("links the canonical roadmap and dates revised missions separately", () => {
+    open();
+    for (const name of ["Roadmap III · #568 ↗", "roadmap active #568"]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", expect.stringMatching(/issues\/568$/));
+    }
+    expect(screen.getByText(/Base historique du/, { selector: ".wb-meta span" }).querySelector("time"))
+      .toHaveAttribute("datetime", "2026-10-15T22:30:00Z");
+    expect(within(row("CVMO")).getByText(/11 paires classées communes/)).toBeInTheDocument();
+    expect(within(row("CVMO")).getByText("2026-11-20 UTC")).toBeInTheDocument();
+    expect(within(row("BURNIN")).getByRole("link", { name: "Classification publiée" }))
+      .toHaveAttribute("href", expect.stringMatching(/282#issuecomment-6804203928$/));
+  });
+
   it("does nothing on open and shows four separate tracks without a snapshot", () => {
     const fake = open();
     expect(fake.calls).toHaveLength(0);
