@@ -88,13 +88,18 @@ suite("Venue publication through real offline producer/reader/API", () => {
   it("comparison tab is accessible independently from missing scanner data",async()=>{
     const fetchMock=vi.fn(async(input:RequestInfo|URL)=>String(input).endsWith("/venue-comparison")?response(fixture()):new Response(JSON.stringify({error_code:"MARKET_SNAPSHOT_MISSING"}),{status:503,headers:{"content-type":"application/json"}}));
     vi.stubGlobal("fetch",fetchMock);render(<MarketView/>);
-    expect(await screen.findByRole("alert")).toHaveTextContent("API indisponible · MARKET_SNAPSHOT_MISSING");
+    // Finance V6 (release servie CAT-WORKBOARD-582-FINANCE-V6) : l'onglet Scanner ouvre
+    // le Scanner classé, dont l'alerte dit « Source indisponible ». Le code d'erreur
+    // reste affiché et la comparaison reste accessible (ce que ce test protège).
+    expect(await screen.findByRole("alert")).toHaveTextContent("Source indisponible · MARKET_SNAPSHOT_MISSING");
     const tab=screen.getByRole("tab",{name:"Comparaison des plateformes"});
     fireEvent.keyDown(screen.getByRole("tab",{name:"Scanner"}),{key:"ArrowRight"});
     await screen.findByTestId("venue-synthetic");expect(tab).toHaveFocus();expect(tab).toHaveAttribute("aria-selected","true");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(fetchMock.mock.calls.every(([u])=>String(u).startsWith("/api/operator/v1/"))).toBe(true);
+    // Seules sources admises : l'Operator API et, depuis Finance V6, le fichier statique
+    // d'observation BTC/ATOM servi par le build (même origine, aucune bourse appelée).
+    expect(fetchMock.mock.calls.every(([u])=>String(u).startsWith("/api/operator/v1/")||String(u)==="/observations/btc-atom-book-v1.json")).toBe(true);
     fireEvent.keyDown(tab,{key:"Home"});expect(screen.getByRole("tab",{name:"Scanner"})).toHaveAttribute("aria-selected","true");
-    expect(await screen.findByRole("alert")).toHaveTextContent("API indisponible · MARKET_SNAPSHOT_MISSING");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Source indisponible · MARKET_SNAPSHOT_MISSING");
   });
 });

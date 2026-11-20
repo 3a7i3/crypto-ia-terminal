@@ -184,8 +184,8 @@ test("brand URLs carry content identity and agree across PWA, document, header a
 
 // M1-D2-PWA: release identity and upgrade/rollback lifecycle proof.
 // This identity must change whenever the deployed application shell changes.
-const TARGET_SHELL_CACHE = "crypto-ai-operator-shell-cat-market-m1d2-alpha-20261119";
-const PRIOR_SHELL_CACHE = "crypto-ai-operator-shell-or-radar-polish-20261116-1";
+const TARGET_SHELL_CACHE = "crypto-ai-operator-shell-cat-footprint-finance-v6-rc1";
+const PRIOR_SHELL_CACHE = "crypto-ai-operator-shell-cat-workboard-582-finance-v6";
 
 async function createTransitionHarness(workerSource, buckets) {
   const policySource = await readFile(path.join(PUBLIC, "pwa-policy.js"), "utf8");
@@ -226,11 +226,11 @@ async function createTransitionHarness(workerSource, buckets) {
   return { dispatch, listeners, lifecycle, self };
 }
 
-test("M1-D2 alpha updates the exact shell cache identity and cleans only CAT shell caches", async () => {
+test("Workboard scanner updates the exact shell cache identity and cleans only CAT shell caches", async () => {
   const workerSource = await readFile(path.join(PUBLIC, "sw.js"), "utf8");
-  assert.ok(workerSource.includes("cat-market-m1d2-alpha-20261119"),
+  assert.ok(workerSource.includes("cat-footprint-finance-v6-rc1"),
     "the new release must change sw.js bytes and its cache identity");
-  assert.ok(!workerSource.includes("or-radar-polish-20261116-1"),
+  assert.ok(!workerSource.includes("cat-workboard-582-finance-v6"),
     "the previous release's cache identity must not be reused");
   const buckets = new Map([
     [PRIOR_SHELL_CACHE, new Map([["/", "old-shell"]])],
@@ -258,7 +258,7 @@ test("M1-D2 alpha updates the exact shell cache identity and cleans only CAT she
 
   // Rollback simulation: the former release used this same worker logic and
   // the old cache identity (read-only proof obtained at M1-D1).
-  const priorSource = workerSource.replace("cat-market-m1d2-alpha-20261119", "or-radar-polish-20261116-1");
+  const priorSource = workerSource.replace("cat-footprint-finance-v6-rc1", "cat-workboard-582-finance-v6");
   assert.notEqual(priorSource, workerSource, "rollback must publish different service-worker bytes");
   const rolledBack = await createTransitionHarness(priorSource, buckets);
   await rolledBack.dispatch("install");

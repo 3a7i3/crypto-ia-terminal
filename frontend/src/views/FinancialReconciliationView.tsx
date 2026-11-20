@@ -1,3 +1,4 @@
+import { PaperBalanceChart } from "./PaperBalanceChart";
 import React from "react";
 import { ageFr, fr, utcStampFr } from "../lib/presentationFr";
 import { FinancialHistory } from "../components/FinancialHistory";
@@ -250,4 +251,4 @@ const FinancialReconciliationContent: React.FC = () => {
   );
 };
 
-export const FinancialReconciliationView: React.FC = () => <div className="fin-stack"><p className="source-date">Deux sources indépendantes : l’historique comptable est une capture PPL; les montants FIN ont leur propre date, unité et fraîcheur. Une nouvelle capture PPL ne rafraîchit pas FIN et ne certifie pas leur concordance.</p><FinancialHistory /><FinancialReconciliationContent /></div>;
+export const FinancialReconciliationView: React.FC = () => <div className="fin-stack"><PaperBalanceChart /><p className="source-date">Deux sources indépendantes : l’historique comptable est une capture PPL; les montants FIN ont leur propre date, unité et fraîcheur. Une nouvelle capture PPL ne rafraîchit pas FIN et ne certifie pas leur concordance.</p><FinancialHistory /><FinancialReconciliationContent /></div>;
