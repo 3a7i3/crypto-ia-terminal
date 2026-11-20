@@ -54,6 +54,20 @@ jobs:
       - name: Assert desktop/mobile independent microstructure source, per-symbol freshness and failure states
         working-directory: frontend
         run: node scripts/capture_app_unify_u3b_visual.mjs
+      - name: Assert Footprint panel mobile layout without page horizontal scroll (synthetic replay)
+        working-directory: frontend
+        env:
+          FOOTPRINT_VISUAL_BASE_URL: http://127.0.0.1:3000
+          FOOTPRINT_VISUAL_OUT_DIR: artifacts/footprint-mobile
+        run: node scripts/capture_footprint_mobile_visual.mjs
+      - name: Upload Footprint mobile visual proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: footprint-mobile-visual-proof
+          path: frontend/artifacts/footprint-mobile/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload microstructure visual proof
         if: always()
         uses: actions/upload-artifact@v4

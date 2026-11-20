@@ -36,3 +36,6 @@
 *.sqlite binary
 *.db    binary
 *.pkl   binary
+
+# Rejeu Footprint : octets exacts (SHA-256 vérifié), jamais de conversion CRLF.
+frontend/public/observations/footprint/*.json -text

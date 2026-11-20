@@ -1,0 +1,73 @@
+/* Panneau Footprint : thème propre au panneau, clair par défaut, indépendant du thème global. */
+.footprint-panel[data-footprint-theme="light"] {
+  --fp-bg: #ffffff; --fp-bg-soft: #f4f7fb; --fp-text: #18324f; --fp-text-sec: #3d5169; --fp-border: #d9e4f0;
+  --fp-buy: #0f7a3d; --fp-buy-bg: rgba(21, 128, 61, 0.16); --fp-sell: #b91c1c; --fp-sell-bg: rgba(185, 28, 28, 0.14);
+  --fp-up: rgba(21, 128, 61, 0.07); --fp-down: rgba(185, 28, 28, 0.07); --fp-poc: rgba(37, 99, 235, 0.10);
+  --fp-warn: #8a5a00; --fp-warn-bg: #fdf3c8; --fp-accent: #2563eb;
+  color-scheme: light;
+}
+.footprint-panel[data-footprint-theme="dark"] {
+  --fp-bg: #101820; --fp-bg-soft: #17222d; --fp-text: #e6edf5; --fp-text-sec: #a9b8c8; --fp-border: #2c3b4b;
+  --fp-buy: #4ade80; --fp-buy-bg: rgba(74, 222, 128, 0.18); --fp-sell: #f87171; --fp-sell-bg: rgba(248, 113, 113, 0.18);
+  --fp-up: rgba(74, 222, 128, 0.07); --fp-down: rgba(248, 113, 113, 0.07); --fp-poc: rgba(96, 165, 250, 0.16);
+  --fp-warn: #fcd34d; --fp-warn-bg: rgba(252, 211, 77, 0.14); --fp-accent: #60a5fa;
+  color-scheme: dark;
+}
+.footprint-panel {
+  margin-top: 16px; padding: 16px; min-width: 0; max-width: 100%; box-sizing: border-box;
+  background: var(--fp-bg); color: var(--fp-text); border: 1px solid var(--fp-border); border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.footprint-panel h2 { font-size: 18px; margin: 6px 0; color: var(--fp-text); }
+.footprint-panel p, .footprint-panel li { font-size: 13px; line-height: 1.6; color: var(--fp-text-sec); }
+.footprint-panel button, .footprint-panel select {
+  min-height: 40px; padding: 6px 12px; border-radius: 6px; font: inherit; font-size: 14px;
+  border: 1px solid var(--fp-border); background: var(--fp-bg-soft); color: var(--fp-text);
+}
+.footprint-panel button[aria-checked="true"], .footprint-panel button[aria-pressed="true"] { border-color: var(--fp-accent); box-shadow: inset 0 0 0 1px var(--fp-accent); }
+.footprint-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.footprint-head > div { min-width: 0; }
+.footprint-actions, .footprint-modes, .footprint-controls, .footprint-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.footprint-controls { margin: 12px 0 4px; }
+.footprint-controls label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fp-text-sec); }
+.footprint-notice { margin: 12px 0; padding: 12px; border: 1px solid var(--fp-border); border-radius: 6px; background: var(--fp-bg-soft); }
+.footprint-notice ul { margin: 4px 0; padding-left: 20px; }
+.footprint-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--fp-border); background: var(--fp-bg-soft); }
+.footprint-badge-warn { color: var(--fp-warn); background: var(--fp-warn-bg); border-color: var(--fp-warn); }
+.footprint-provenance { margin-top: 12px; }
+.footprint-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 8px; margin: 10px 0 0; }
+.footprint-facts div { min-width: 0; padding: 8px; border: 1px solid var(--fp-border); border-radius: 6px; }
+.footprint-facts dt { font-size: 12px; color: var(--fp-text-sec); }
+.footprint-facts dd { margin: 2px 0 0; font-size: 13px; }
+.footprint-hash { word-break: break-all; font-family: ui-monospace, monospace; font-size: 12px !important; }
+/* Le défilement horizontal reste confiné au tableau, jamais à la page. */
+.footprint-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--fp-border); border-radius: 6px; margin-top: 8px; }
+.footprint-table { border-collapse: collapse; font-family: ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+.footprint-table th, .footprint-table td { padding: 2px 6px; border-bottom: 1px solid var(--fp-border); white-space: nowrap; text-align: center; }
+.footprint-table thead th { position: sticky; top: 0; background: var(--fp-bg-soft); z-index: 1; font-weight: 600; }
+.footprint-table .footprint-price { position: sticky; left: 0; background: var(--fp-bg-soft); text-align: right; z-index: 2; }
+.footprint-table tfoot th, .footprint-table tfoot td { background: var(--fp-bg-soft); font-weight: 600; }
+.footprint-body-up { background: var(--fp-up); }
+.footprint-body-down { background: var(--fp-down); }
+.footprint-poc-row td.footprint-profile { background: var(--fp-poc); }
+.footprint-x { margin: 0 3px; color: var(--fp-text-sec); }
+.footprint-imb-buy { color: var(--fp-buy); background: var(--fp-buy-bg); font-weight: 700; padding: 0 2px; border-radius: 3px; }
+.footprint-imb-sell { color: var(--fp-sell); background: var(--fp-sell-bg); font-weight: 700; padding: 0 2px; border-radius: 3px; }
+.footprint-stacked { outline: 1px solid currentColor; }
+.footprint-flag { color: var(--fp-warn); font-weight: 600; }
+.footprint-profile { min-width: 72px; text-align: left !important; }
+.footprint-profile-bar { display: block; height: 10px; border-radius: 2px; background: var(--fp-text-sec); opacity: 0.55; }
+.footprint-profile-bar[data-delta-sign="1"] { background: var(--fp-buy); }
+.footprint-profile-bar[data-delta-sign="-1"] { background: var(--fp-sell); }
+.footprint-legend { font-size: 12px !important; }
+/* Repli plein écran (API Fullscreen absente ou refusée). */
+.footprint-panel.footprint-fullscreen, .footprint-panel:fullscreen {
+  position: fixed; inset: 0; z-index: 1000; margin: 0; border-radius: 0; overflow-y: auto; width: 100%; height: 100%;
+}
+@media (max-width: 480px) {
+  .footprint-panel { padding: 12px; }
+  .footprint-actions > button, .footprint-modes { flex: 1 1 auto; }
+}
+.footprint-coverage-line { margin: 8px 0 0; font-size: 13px !important; color: var(--fp-text) !important; }
+.footprint-details { margin-top: 6px; }
+.footprint-details summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-size: 14px; color: var(--fp-accent); }
