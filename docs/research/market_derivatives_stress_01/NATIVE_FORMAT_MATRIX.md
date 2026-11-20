@@ -35,11 +35,11 @@ la lecture publique.
 | | MEXC Spot | Kraken Spot | MEXC perpétuel | Kraken Futures |
 |---|---|---|---|---|
 | **BTC** | `BTCUSDT` | REST `XBTUSDT` (alias XBT↔BTC, déjà gardé par preuve de catalogue), WS `BTC/USDT` | `BTC_USDT` **[DOC]** (exemple `…SWAP`, base BTC, cote et règlement USDT) | **[PARTIEL]** exemples `PF_BTCUSD`, `PF_XBTUSD`, `PI_XBTUSD` : trois graphies selon la page ; cote **USD** dans toute la doc lue |
-| **ATOM** | `ATOMUSDT` | `ATOMUSDT` / `ATOM/USDT` | `ATOM_USDT` **[NON DOC]** : jamais cité ; existence à lire dans `contract/detail` | **[NON DOC]** `PF_ATOMUSD` jamais cité ; à lire dans `GET /instruments` |
+| **ATOM** | `ATOMUSDT` | `ATOMUSDT` / `ATOM/USDT` | `ATOM_USDT` : absent de la doc, **présent au catalogue du 2026-11-20** | `PF_ATOMUSD` : absent de la doc, **présent au catalogue du 2026-11-20** |
 
 Les symboles spot viennent des liaisons déjà revues du dépôt (`observability/radar_composite/pilot.py`,
-MARKET_BBO_COMPOSITE_01). Le catalogue d'instruments est le seul moyen **gouverné** de confirmer
-les dérivés : il demande une lecture de catalogue séparément autorisée.
+MARKET_BBO_COMPOSITE_01). La lecture de catalogue du 2026-11-20 (autorisée séparément) a confirmé les dérivés et leurs tailles de
+contrat : voir [CATALOGUE_FICHES_20261120](CATALOGUE_FICHES_20261120.md). Elle ne remplace pas les unités d'OI ni l'intervalle de funding.
 
 ## 3. Prix, carnet et prix de marque
 
@@ -105,7 +105,7 @@ jamais. « Qualifiable » signifie : la documentation définit l'événement dat
 | Perpétuel MEXC `BTC_USDT` ↔ Spot MEXC `BTCUSDT` (base) | **VALIDE SOUS CONDITION** | même cote USDT. Condition : fixer ce que vaut la date de `fairPrice` (UNRESOLVED) ; ne pas lire la base contre l'**indice**, composé d'autres plateformes |
 | Prime (marque − indice) MEXC | **VALIDE SOUS CONDITION** | `fairPrice` et `indexPrice` arrivent dans le **même** ticker : une seule date, mais son sens est vague (« transaction timestamp ») |
 | Perpétuel Kraken Futures ↔ Spot Kraken **BTC/USDT** | **BLOQUÉ** | dérivé coté **USD**, spot suivi coté **USDT** : le dépôt ne fusionne jamais USD et USDT. Levée : ajouter Kraken spot **BTC/USD** comme jambe de référence (non suivie aujourd'hui) |
-| Kraken Futures ↔ MEXC perpétuel (écart de prix) | **BLOQUÉ** | cotes USD et USDT, indices distincts. Levée : décision explicite sur le traitement de la base USD/USDT (hors périmètre de l'interface) |
+| Kraken Futures ↔ MEXC perpétuel (écart de prix) | **BLOQUÉ (structurel)** | cotes USD et USDT, indices distincts ; le catalogue Kraken ne contient **aucun** contrat USDT (218 instruments, tous USD). Levée : décision explicite sur le traitement de la base USD/USDT (hors périmètre de l'interface) |
 | Funding MEXC ↔ Kraken (équivalent 8 h) | **BLOQUÉ** | intervalle Kraken **[NON DOC]** ; `collectCycle` sans unité ; taux absolu vs relatif. Le builder exige un intervalle entier explicite et refuse sinon (`FUNDING_INTERVAL_UNKNOWN`) : correct, pas à contourner. Levée : intervalle attesté + usage du taux **relatif** |
 | Open interest MEXC ↔ Kraken, total multi-plateformes | **BLOQUÉ** | unités non écrites des deux côtés (contrats, base ou cote ?). Le total n'est publié qu'en couverture complète ; sans unité exacte, aucune somme. Levée : unité attestée + `contractSize` d'unité attestée |
 | Variations prix/OI sur 1 h, 4 h, 24 h | **POSSIBLE APRÈS CAPTURE** | aucune API documentée ici ne donne l'historique d'OI ; il faut des échantillons capturés par le producteur (mêmes nature de prix et unité d'OI) |
@@ -128,7 +128,7 @@ jamais. « Qualifiable » signifie : la documentation définit l'événement dat
 |---|---|---|
 | Journal et base de l'API Futures MEXC (2026), `apiAllowed` | relecture par un humain de `www.mexc.com/api-docs/futures` | aucune (lecture de page) |
 | Pages Kraken non lues : limites de débit, WebSocket unifié, orderbook REST, WS `book` v2 | lecture documentaire | aucune |
-| Existence de `ATOM_USDT` (MEXC) et d'un dérivé ATOM (Kraken) | lecture de catalogue (`contract/detail`, `GET /instruments`) | oui : appel d'endpoint séparé |
+| ~~Existence de `ATOM_USDT` (MEXC) et d'un dérivé ATOM (Kraken)~~ | **LEVÉ le 2026-11-20** : lecture de catalogue autorisée et réalisée ([fiches](CATALOGUE_FICHES_20261120.md)) | — |
 | Unité exacte de `holdVol`, `openInterest`, `contractSize`, quantités | recoupement d'une capture bornée avec la valeur affichée par la plateforme | oui : capture bornée |
 | Intervalle de funding Kraken | doc complémentaire ou capture de `fundingRate` sur plusieurs périodes | doc : non ; capture : oui |
 
