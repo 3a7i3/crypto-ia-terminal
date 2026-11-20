@@ -66,3 +66,25 @@ html[data-layout=mobile] .spot-radar .intraday-bubbles{grid-template-columns:rep
 /* M1-B — the detail title and price wrap instead of overflowing the dialog
    (measured: 1000000MOGCOIN/USDT at 28 px overflowed by 25 px at 360 px). */
 .spot-radar .intraday-detail h3,.spot-radar .intraday-detail-price{overflow-wrap:anywhere;min-width:0}
+/* BBO composite history preview (read-only, opt-in). */
+.radar-mode{width:max-content;max-width:100%;margin:0 0 12px}
+.radar-mode button,.bbo-pairs button{min-height:var(--touch-min,44px);font-size:14px}
+.bbo-pairs{width:max-content;max-width:100%;margin:12px 0}
+.bbo-window-utc{font-size:14px;line-height:1.5;color:var(--radar-text-soft,var(--radar-text))}
+.bbo-notice{border:1px solid var(--radar-stale);border-radius:var(--radar-r-control,8px);padding:10px 12px;font-size:14px;color:var(--radar-text)}
+.bbo-windows{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px;margin:12px 0}
+.bbo-window{border:1px solid var(--radar-border);border-radius:var(--radar-r-panel,10px);padding:12px;background:var(--radar-surface);min-width:0}
+.bbo-window h4{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px;font-size:15px}
+.bbo-window dl,.bbo-provenance dl{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr);gap:4px 10px;font-size:13px;margin:8px 0}
+.bbo-window dt,.bbo-provenance dt{color:var(--radar-text-dim)}.bbo-window dd,.bbo-provenance dd{margin:0;overflow-wrap:anywhere}
+.bbo-ohlc{font-variant-numeric:tabular-nums;font-size:14px;overflow-wrap:anywhere}
+.bbo-tag{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--radar-border-strong)}
+.bbo-complete{color:var(--radar-live)}.bbo-incomplete{color:var(--radar-stale)}
+.bbo-provenance code{font-size:11px;overflow-wrap:anywhere;word-break:break-all}
+.bbo-aorder,.bbo-sensitivity{border-top:1px solid var(--radar-border);padding-top:8px;margin-top:8px}
+.bbo-aorder h5,.bbo-sensitivity h5{margin:4px 0;font-size:14px}
+.bbo-highlight{font-size:14px}.bbo-sensitivity td,.bbo-sensitivity th{text-align:right}
+.bbo-col10{background:var(--radar-surface-active);font-weight:700}
+.bbo-limits{font-size:13px;line-height:1.5;padding-left:18px}
+@media(max-width:600px){.bbo-window dl,.bbo-provenance dl{grid-template-columns:1fr}.bbo-window dt,.bbo-provenance dt{margin-top:4px}}
+.bbo-history .intraday-metrics strong{white-space:normal;overflow-wrap:anywhere;word-break:break-word}

@@ -1,4 +1,5 @@
 import { RadarCandles } from "../components/RadarCandles";
+import { BboCompositeHistory } from "./BboCompositeHistory";
 import React,{useEffect,useRef,useState} from "react";
 import {fetchRadar,RadarError,type RadarScanner,type RadarHistory,type RadarRow,type Timeframe,type Freshness} from "../lib/spotRadarClient";
 import {decimalCompare} from "../lib/intradayClient";
@@ -8,7 +9,16 @@ import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 const labels:Record<Freshness,string>={LIVE:"LIVE qualifié",STALE:"STALE · périmée",DISCONNECTED:"DISCONNECTED · déconnecté",UNRESOLVED:"UNRESOLVED · non résolu",SYNTHETIC:"SYNTHETIC · fictif"};
 const utc=(s:string|null)=>s?new Date(Number(s)).toISOString().replace("T"," ").replace("Z"," UTC"):"Non disponible";
+type RadarMode="current"|"bbo-history";
+/** The current Radar stays the default view; the BBO composite history is an opt-in, read-only preview. */
 export const SpotRadarMap:React.FC=()=>{
+ const [mode,setMode]=useState<RadarMode>("current");
+ return <>
+  <div className="intraday-switch radar-mode" role="group" aria-label="Vue Radar"><button type="button" aria-pressed={mode==="current"} onClick={()=>setMode("current")}>Radar courant</button><button type="button" aria-pressed={mode==="bbo-history"} onClick={()=>setMode("bbo-history")}>Composite historique</button></div>
+  {mode==="current"?<SpotRadarCurrent/>:<BboCompositeHistory/>}
+ </>;
+};
+const SpotRadarCurrent:React.FC=()=>{
  const [data,setData]=useState<RadarScanner|null>(null),[error,setError]=useState<string|null>(null),[refresh,setRefresh]=useState(0);
  const [query,setQuery]=useState(""),[filter,setFilter]=useState<"ALL"|Freshness>("ALL"),[list,setList]=useState(false),[selected,setSelected]=useState<string|null>(null);
  const [tf,setTf]=useState<Timeframe>("M5"),[history,setHistory]=useState<RadarHistory|null>(null),[historyError,setHistoryError]=useState<string|null>(null),[now,setNow]=useState(Date.now());

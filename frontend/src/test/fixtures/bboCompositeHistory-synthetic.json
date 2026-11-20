@@ -1,0 +1,657 @@
+{
+ "evidence_kind": "SYNTHETIC",
+ "generated_at_utc": "2026-11-20T08:00:00Z",
+ "label": "Composite de milieux de carnet · Spot · Historique",
+ "limits": [
+  "NOT_LIVE",
+  "SAMPLED_BOOK_MIDS_NOT_TRADES",
+  "SINGLE_SHORT_SESSION_PER_PAIR",
+  "MEXC_MARGIN_ESTIMATE_ONLY",
+  "NO_SIGNAL_NO_DECISION"
+ ],
+ "pairs": [
+  {
+   "coverage": {
+    "candles": 2,
+    "complete_composite_candles": 1,
+    "composite": 59,
+    "evaluated": 60,
+    "planned": 60,
+    "verdict_pre_registered": "COMPOSITE_VIABLE_AT_PRIMARY"
+   },
+   "display_symbol": "BTC/USDT",
+   "evidence_kind": "SYNTHETIC",
+   "flux": {
+    "kraken": {
+     "eligible": 59,
+     "evaluated": 60,
+     "unchanged_verified": 0,
+     "unresolved_breaks": 0,
+     "verdict": "FLUX_VIABLE"
+    },
+    "mexc": {
+     "eligible": 60,
+     "evaluated": 60,
+     "unchanged_verified": 0,
+     "unresolved_breaks": 0,
+     "verdict": "FLUX_VIABLE"
+    }
+   },
+   "hypotheses": {
+    "A_ORDER": {
+     "majority_unchanged_verified": false,
+     "statement": "the server sends on one connection in order: a PONG received after earlier diffs proves those diffs were delivered (hypothesis, not qualified at runtime)"
+    }
+   },
+   "kraken_checksums": {
+    "match": 1294,
+    "mismatch": 1
+   },
+   "market_type": "SPOT",
+   "pair": "BTC",
+   "provenance": {
+    "archive_name": "BBO-BTC-DRY.tar.gz",
+    "archive_sha256": "8abecf7321768eb24ab5b7090d1722d4c03829d744a3fdd5cf6d8622031a7e79",
+    "collection_commit": "05872243c4e726d6ec8a599fb1149fae311a5dbf",
+    "ended_utc_ms": 1795128591240,
+    "events": 7171,
+    "events_sha256": "e0ad1a561f20b9d1e7293b1e424b12fbe8df4c46c3d6893a18422ab22b6801ea",
+    "exit_code": 0,
+    "frames": 5851,
+    "frames_sha256": "3e199eaab718b9cbe6e26b7f23ad4f57c38bf52adbef86e49c9bdda3c0f58bb0",
+    "host": "synthetic",
+    "pilot": "CAT-RADAR-KRAKEN-MEXC-01/BBO",
+    "reconnects": {
+     "kraken": 0,
+     "mexc": 0
+    },
+    "replay": "DOUBLE_REPLAY_IDENTICAL",
+    "rest_used": {
+     "kraken.assetPairs": 1,
+     "kraken.assets": 1,
+     "kraken.time": 2,
+     "mexc.depth": 2,
+     "mexc.exchangeInfo": 1,
+     "mexc.time": 2
+    },
+    "resyncs": {
+     "kraken": 1,
+     "mexc": 1
+    },
+    "run_status": "COMPLETED",
+    "started_utc_ms": 1795127880000,
+    "summary_sha256": "46c677c05d88e12a87232897974bc6b5684c32249fa6e0f2867f0ecf2d995620",
+    "window_sha256": [
+     "b54aca3a8628910047a86236d7bf5fa5706e6c68ddad328d0647a2be64018001",
+     "edf6c854ebabe975fd4930ce084df7772befaaf7ff3b08f961ddb996c03a116b"
+    ]
+   },
+   "sensitivity_composite_totals": {
+    "L10s_G100bps": 60,
+    "L10s_G10bps": 60,
+    "L10s_G25bps": 60,
+    "L10s_G50bps": 60,
+    "L1s_G100bps": 59,
+    "L1s_G10bps": 59,
+    "L1s_G25bps": 59,
+    "L1s_G50bps": 59,
+    "L2s_G100bps": 59,
+    "L2s_G10bps": 59,
+    "L2s_G25bps": 59,
+    "L2s_G50bps": 59,
+    "L5s_G100bps": 60,
+    "L5s_G10bps": 60,
+    "L5s_G25bps": 60,
+    "L5s_G50bps": 60
+   },
+   "thresholds": {
+    "gap_boundary": "CLOSED",
+    "gap_max_bps": "50",
+    "liveness_max_ms": 2000,
+    "points_per_window": 30,
+    "reference_venue": "mexc",
+    "step_ms": 10000,
+    "weights": "EQUAL"
+   },
+   "venues": [
+    {
+     "feed": "aggre.depth protobuf 100 ms + REST depth",
+     "native_symbol": "BTCUSDT",
+     "venue": "mexc"
+    },
+    {
+     "feed": "book v2 depth 10 + CRC32",
+     "native_symbol": "BTC/USDT",
+     "venue": "kraken"
+    }
+   ],
+   "window_utc": {
+    "end_ms": 1795128600000,
+    "start_ms": 1795128000000
+   },
+   "windows": [
+    {
+     "by_category": {
+      "COMPOSITE": 30,
+      "EXCESSIVE_GAP": 0,
+      "NOT_EVALUATED": 0,
+      "SINGLE_SOURCE": 0,
+      "SOURCE_EXCLUDED": 0
+     },
+     "by_source_state": {
+      "kraken": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 0,
+       "VALID": 30
+      },
+      "mexc": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 0,
+       "VALID": 30
+      }
+     },
+     "candle": {
+      "close": "62006.18",
+      "high": "62051.485",
+      "low": "62002.445",
+      "open": "62024.79",
+      "points": 30,
+      "status": "COMPLETE"
+     },
+     "composite": 30,
+     "end_ms": 1795128300000,
+     "evaluated": 30,
+     "index": 0,
+     "planned": 30,
+     "sensitivity_composite": {
+      "L10s_G100bps": 30,
+      "L10s_G10bps": 30,
+      "L10s_G25bps": 30,
+      "L10s_G50bps": 30,
+      "L1s_G100bps": 30,
+      "L1s_G10bps": 30,
+      "L1s_G25bps": 30,
+      "L1s_G50bps": 30,
+      "L2s_G100bps": 30,
+      "L2s_G10bps": 30,
+      "L2s_G25bps": 30,
+      "L2s_G50bps": 30,
+      "L5s_G100bps": 30,
+      "L5s_G10bps": 30,
+      "L5s_G25bps": 30,
+      "L5s_G50bps": 30
+     },
+     "start_ms": 1795128000000,
+     "venue_candles": {
+      "kraken": {
+       "close": "62016.1",
+       "high": "62060.8",
+       "low": "62011.1",
+       "open": "62034.7",
+       "points": 30,
+       "status": "COMPLETE"
+      },
+      "mexc": {
+       "close": "61996.26",
+       "high": "62042.17",
+       "low": "61993.79",
+       "open": "62014.88",
+       "points": 30,
+       "status": "COMPLETE"
+      }
+     }
+    },
+    {
+     "by_category": {
+      "COMPOSITE": 29,
+      "EXCESSIVE_GAP": 0,
+      "NOT_EVALUATED": 0,
+      "SINGLE_SOURCE": 1,
+      "SOURCE_EXCLUDED": 0
+     },
+     "by_source_state": {
+      "kraken": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 1,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 0,
+       "VALID": 29
+      },
+      "mexc": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 0,
+       "VALID": 30
+      }
+     },
+     "candle": {
+      "close": null,
+      "high": null,
+      "low": null,
+      "open": null,
+      "points": 29,
+      "status": "INCOMPLETE"
+     },
+     "composite": 29,
+     "end_ms": 1795128600000,
+     "evaluated": 30,
+     "index": 1,
+     "planned": 30,
+     "sensitivity_composite": {
+      "L10s_G100bps": 30,
+      "L10s_G10bps": 30,
+      "L10s_G25bps": 30,
+      "L10s_G50bps": 30,
+      "L1s_G100bps": 29,
+      "L1s_G10bps": 29,
+      "L1s_G25bps": 29,
+      "L1s_G50bps": 29,
+      "L2s_G100bps": 29,
+      "L2s_G10bps": 29,
+      "L2s_G25bps": 29,
+      "L2s_G50bps": 29,
+      "L5s_G100bps": 30,
+      "L5s_G10bps": 30,
+      "L5s_G25bps": 30,
+      "L5s_G50bps": 30
+     },
+     "start_ms": 1795128300000,
+     "venue_candles": {
+      "kraken": {
+       "close": null,
+       "high": null,
+       "low": null,
+       "open": null,
+       "points": 29,
+       "status": "INCOMPLETE"
+      },
+      "mexc": {
+       "close": "61955.35",
+       "high": "62008.66",
+       "low": "61940.48",
+       "open": "62001.22",
+       "points": 30,
+       "status": "COMPLETE"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "coverage": {
+    "candles": 3,
+    "complete_composite_candles": 2,
+    "composite": 61,
+    "evaluated": 90,
+    "planned": 90,
+    "verdict_pre_registered": "PARTIAL_AT_PRIMARY"
+   },
+   "display_symbol": "ATOM/USDT",
+   "evidence_kind": "SYNTHETIC",
+   "flux": {
+    "kraken": {
+     "eligible": 90,
+     "evaluated": 90,
+     "unchanged_verified": 90,
+     "unresolved_breaks": 0,
+     "verdict": "FLUX_VIABLE"
+    },
+    "mexc": {
+     "eligible": 90,
+     "evaluated": 90,
+     "unchanged_verified": 0,
+     "unresolved_breaks": 0,
+     "verdict": "FLUX_VIABLE"
+    }
+   },
+   "hypotheses": {
+    "A_ORDER": {
+     "majority_unchanged_verified": true,
+     "statement": "the server sends on one connection in order: a PONG received after earlier diffs proves those diffs were delivered (hypothesis, not qualified at runtime)"
+    }
+   },
+   "kraken_checksums": {
+    "match": 64,
+    "mismatch": 0
+   },
+   "market_type": "SPOT",
+   "pair": "ATOM",
+   "provenance": {
+    "archive_name": "BBO-ATOM-DRY.tar.gz",
+    "archive_sha256": "338b7ca2b1caa7a68c14aa00e536d53d01b2dbce1fa8e04fc325561b71a40e3f",
+    "collection_commit": "05872243c4e726d6ec8a599fb1149fae311a5dbf",
+    "ended_utc_ms": 1795128891240,
+    "events": 5790,
+    "events_sha256": "47ed0912839942296d4c787068ed22776f94e4c516bc36bdc5c81632a5e333df",
+    "exit_code": 0,
+    "frames": 3870,
+    "frames_sha256": "f6568a12463085c22549b446a6a634f7124a94c3fb4b6c5522742ba1cffde9d2",
+    "host": "synthetic",
+    "pilot": "CAT-RADAR-KRAKEN-MEXC-01/BBO",
+    "reconnects": {
+     "kraken": 0,
+     "mexc": 1
+    },
+    "replay": "DOUBLE_REPLAY_IDENTICAL",
+    "rest_used": {
+     "kraken.assetPairs": 1,
+     "kraken.assets": 1,
+     "kraken.time": 2,
+     "mexc.depth": 2,
+     "mexc.exchangeInfo": 1,
+     "mexc.time": 2
+    },
+    "resyncs": {
+     "kraken": 0,
+     "mexc": 1
+    },
+    "run_status": "COMPLETED",
+    "started_utc_ms": 1795127880000,
+    "summary_sha256": "2e1ffbb71f42a67c2356c3210aa2b2f0e99e2035f92131c9049273446e3278bd",
+    "window_sha256": [
+     "3271dbea5e96935d7379261eee898772bd712079195bec6ebbaef17b5e554d55",
+     "63529b1ee21b886310ee909ec82ec24b09b4229423eb1d9d667a5677e1e77f04",
+     "5b8690ae9b984efc12fd288d242f6eeb57aecc5bfc8a8a64d36407c149a7ced1"
+    ]
+   },
+   "sensitivity_composite_totals": {
+    "L10s_G100bps": 90,
+    "L10s_G10bps": 0,
+    "L10s_G25bps": 61,
+    "L10s_G50bps": 61,
+    "L1s_G100bps": 90,
+    "L1s_G10bps": 0,
+    "L1s_G25bps": 61,
+    "L1s_G50bps": 61,
+    "L2s_G100bps": 90,
+    "L2s_G10bps": 0,
+    "L2s_G25bps": 61,
+    "L2s_G50bps": 61,
+    "L5s_G100bps": 90,
+    "L5s_G10bps": 0,
+    "L5s_G25bps": 61,
+    "L5s_G50bps": 61
+   },
+   "thresholds": {
+    "gap_boundary": "CLOSED",
+    "gap_max_bps": "50",
+    "liveness_max_ms": 2000,
+    "points_per_window": 30,
+    "reference_venue": "mexc",
+    "step_ms": 10000,
+    "weights": "EQUAL"
+   },
+   "venues": [
+    {
+     "feed": "aggre.depth protobuf 100 ms + REST depth",
+     "native_symbol": "ATOMUSDT",
+     "venue": "mexc"
+    },
+    {
+     "feed": "book v2 depth 10 + CRC32",
+     "native_symbol": "ATOM/USDT",
+     "venue": "kraken"
+    }
+   ],
+   "window_utc": {
+    "end_ms": 1795128900000,
+    "start_ms": 1795128000000
+   },
+   "windows": [
+    {
+     "by_category": {
+      "COMPOSITE": 30,
+      "EXCESSIVE_GAP": 0,
+      "NOT_EVALUATED": 0,
+      "SINGLE_SOURCE": 0,
+      "SOURCE_EXCLUDED": 0
+     },
+     "by_source_state": {
+      "kraken": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 30,
+       "VALID": 0
+      },
+      "mexc": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 0,
+       "VALID": 30
+      }
+     },
+     "candle": {
+      "close": "8.00825",
+      "high": "8.0090",
+      "low": "8.0068",
+      "open": "8.0079",
+      "points": 30,
+      "status": "COMPLETE"
+     },
+     "composite": 30,
+     "end_ms": 1795128300000,
+     "evaluated": 30,
+     "index": 0,
+     "planned": 30,
+     "sensitivity_composite": {
+      "L10s_G100bps": 30,
+      "L10s_G10bps": 0,
+      "L10s_G25bps": 30,
+      "L10s_G50bps": 30,
+      "L1s_G100bps": 30,
+      "L1s_G10bps": 0,
+      "L1s_G25bps": 30,
+      "L1s_G50bps": 30,
+      "L2s_G100bps": 30,
+      "L2s_G10bps": 0,
+      "L2s_G25bps": 30,
+      "L2s_G50bps": 30,
+      "L5s_G100bps": 30,
+      "L5s_G10bps": 0,
+      "L5s_G25bps": 30,
+      "L5s_G50bps": 30
+     },
+     "start_ms": 1795128000000,
+     "venue_candles": {
+      "kraken": {
+       "close": "8.0165",
+       "high": "8.0170",
+       "low": "8.0146",
+       "open": "8.0158",
+       "points": 30,
+       "status": "COMPLETE"
+      },
+      "mexc": {
+       "close": "8.000",
+       "high": "8.001",
+       "low": "7.999",
+       "open": "8.000",
+       "points": 30,
+       "status": "COMPLETE"
+      }
+     }
+    },
+    {
+     "by_category": {
+      "COMPOSITE": 30,
+      "EXCESSIVE_GAP": 0,
+      "NOT_EVALUATED": 0,
+      "SINGLE_SOURCE": 0,
+      "SOURCE_EXCLUDED": 0
+     },
+     "by_source_state": {
+      "kraken": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 30,
+       "VALID": 0
+      },
+      "mexc": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 0,
+       "VALID": 30
+      }
+     },
+     "candle": {
+      "close": "8.0089",
+      "high": "8.0103",
+      "low": "8.0076",
+      "open": "8.00875",
+      "points": 30,
+      "status": "COMPLETE"
+     },
+     "composite": 30,
+     "end_ms": 1795128600000,
+     "evaluated": 30,
+     "index": 1,
+     "planned": 30,
+     "sensitivity_composite": {
+      "L10s_G100bps": 30,
+      "L10s_G10bps": 0,
+      "L10s_G25bps": 30,
+      "L10s_G50bps": 30,
+      "L1s_G100bps": 30,
+      "L1s_G10bps": 0,
+      "L1s_G25bps": 30,
+      "L1s_G50bps": 30,
+      "L2s_G100bps": 30,
+      "L2s_G10bps": 0,
+      "L2s_G25bps": 30,
+      "L2s_G50bps": 30,
+      "L5s_G100bps": 30,
+      "L5s_G10bps": 0,
+      "L5s_G25bps": 30,
+      "L5s_G50bps": 30
+     },
+     "start_ms": 1795128300000,
+     "venue_candles": {
+      "kraken": {
+       "close": "8.0168",
+       "high": "8.0186",
+       "low": "8.0154",
+       "open": "8.0165",
+       "points": 30,
+       "status": "COMPLETE"
+      },
+      "mexc": {
+       "close": "8.001",
+       "high": "8.003",
+       "low": "7.999",
+       "open": "8.001",
+       "points": 30,
+       "status": "COMPLETE"
+      }
+     }
+    },
+    {
+     "by_category": {
+      "COMPOSITE": 1,
+      "EXCESSIVE_GAP": 29,
+      "NOT_EVALUATED": 0,
+      "SINGLE_SOURCE": 0,
+      "SOURCE_EXCLUDED": 0
+     },
+     "by_source_state": {
+      "kraken": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 30,
+       "VALID": 0
+      },
+      "mexc": {
+       "BOOK_INVALID": 0,
+       "CONTINUITY_LOST": 0,
+       "FRESHNESS_UNKNOWN": 0,
+       "NOT_INITIALIZED": 0,
+       "SOURCE_UNAVAILABLE": 0,
+       "UNCHANGED_VERIFIED": 0,
+       "VALID": 30
+      }
+     },
+     "candle": {
+      "close": null,
+      "high": null,
+      "low": null,
+      "open": null,
+      "points": 1,
+      "status": "INCOMPLETE"
+     },
+     "composite": 1,
+     "end_ms": 1795128900000,
+     "evaluated": 30,
+     "index": 2,
+     "planned": 30,
+     "sensitivity_composite": {
+      "L10s_G100bps": 30,
+      "L10s_G10bps": 0,
+      "L10s_G25bps": 1,
+      "L10s_G50bps": 1,
+      "L1s_G100bps": 30,
+      "L1s_G10bps": 0,
+      "L1s_G25bps": 1,
+      "L1s_G50bps": 1,
+      "L2s_G100bps": 30,
+      "L2s_G10bps": 0,
+      "L2s_G25bps": 1,
+      "L2s_G50bps": 1,
+      "L5s_G100bps": 30,
+      "L5s_G10bps": 0,
+      "L5s_G25bps": 1,
+      "L5s_G50bps": 1
+     },
+     "start_ms": 1795128600000,
+     "venue_candles": {
+      "kraken": {
+       "close": "8.0576",
+       "high": "8.0584",
+       "low": "8.0168",
+       "open": "8.0168",
+       "points": 30,
+       "status": "COMPLETE"
+      },
+      "mexc": {
+       "close": "8.002",
+       "high": "8.003",
+       "low": "8.000",
+       "open": "8.001",
+       "points": 30,
+       "status": "COMPLETE"
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "report": "SYNTHETIC_DRY_RUN_FIXTURE",
+ "schema_version": "bbo-composite-history/1.0.0",
+ "scope": "HISTORICAL_PREVIEW_READ_ONLY"
+}
