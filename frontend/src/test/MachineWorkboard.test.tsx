@@ -10,7 +10,7 @@ describe("Machine workboard governance boundary", () => {
     window.history.replaceState({}, "", "/direction/travaux");
     render(<App />);
     expect(screen.getByTestId("machine-workboard")).toBeInTheDocument();
-    expect(screen.getByText(/changements GitHub ultérieurs/)).toBeInTheDocument();
+    expect(screen.getByText(/Les missions révisées portent leur date de revue/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Rechercher"), {target:{value:"U8"}});
     expect(screen.getByText("U8 · non certifié")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Rechercher"), {target:{value:"D1-E"}});
