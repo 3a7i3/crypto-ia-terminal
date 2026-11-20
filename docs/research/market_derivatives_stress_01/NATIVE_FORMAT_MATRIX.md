@@ -133,3 +133,66 @@ jamais. « Qualifiable » signifie : la documentation définit l'événement dat
 | Intervalle de funding Kraken | doc complémentaire ou capture de `fundingRate` sur plusieurs périodes | doc : non ; capture : oui |
 
 Aucune de ces étapes n'est autorisée par ce document. Il ne modifie ni runtime, ni epoch, ni #286.
+
+## 10. Source complémentaire Kraken pour marque, indice, funding et OI (2026-11-20)
+
+Décision de l'opérateur : prioriser cette source avant tout code d'adaptateur. Ce chapitre sépare ce
+que la documentation officielle confirme, ce que l'opérateur rapporte, et la lecture publique
+proposée, **non autorisée à ce jour** (les quatre GET de catalogue déjà autorisés sont terminés).
+
+### Ce que la documentation officielle confirme (relue le 2026-11-20)
+
+| Besoin | Source | Constat |
+|---|---|---|
+| Marque, indice, OI, funding actuel | REST `GET /tickers` (`futures.kraken.com/derivatives/api/v3`) | `markPrice`, `indexPrice` et `openInterest` présents ; `fundingRate` (absolu) et `relativeFundingRate` « when available » (perpétuels) ; `lastTime` date le dernier fill ; `serverTime` date la réponse (§3-§5) |
+| Historique d'OI et de funding | **`GET /analytics/{symbol}/{analytics_type}`**, base `https://futures.kraken.com/api/charts/v1` (« Market Analytics », « Analytics data divided into time buckets ») | `analytics_type` ∈ `open-interest`, `funding`, `future-basis`, `cvd`, `long-short-ratio`, `liquidation-volume`, `aggressor-differential`, `trade-volume`, `trade-count`, … ; `since` **requis**, « epoch time in seconds » ; `interval` **requis**, en secondes : 60, 300, 900, 1800, **3600, 14400, 86400**, 43200, 604800 ; `to` optionnel (« default now ») ; réponse `{timestamp[], data, more}` avec `more` = « True if there are more candles in time range » (la pagination est donc à gérer) |
+| Funding historique par bucket | analytique `funding` | `data.rate` et `data.relativeRate` : séries de quadruplets **OHLC** (ouverture, plus haut, plus bas, clôture) |
+
+### Ce que la documentation ne dit pas (à lever par la lecture proposée)
+
+- **Unité et signification des points `open-interest`** : le schéma accepte, pour `data`, des nombres, des
+  décimaux en chaîne ou des quadruplets OHLC ; la page ne précise ni lequel s'applique à `open-interest`,
+  ni son unité (contrats, base, USD), ni si le point est une valeur de fin de bucket.
+- **Unité des `timestamp`** de la réponse (le paramètre `since` est en secondes ; la réponse n'est pas
+  décrite) et **sens de l'instant** (début ou fin de bucket).
+- **Définition de `fundingRate` absolu** (unité de cote) et rapport avec `relativeFundingRate`.
+- **Intervalle de funding** : voir ci-dessous.
+
+### Rapporté par l'opérateur, non revérifié ici
+
+- Les spécifications Kraken des perpétuels linéaires multi-collatéral indiqueraient un **règlement de funding
+  horaire** et distingueraient taux relatif et absolu. Cette source (page de spécifications) n'est **pas
+  lue** : elle n'est pas dans la documentation d'API et son hôte n'est pas autorisé. Tant qu'elle n'est pas
+  lue, l'intervalle Kraken reste **UNRESOLVED dans la matrice** : le builder continue de refuser
+  (`FUNDING_INTERVAL_UNKNOWN`) et ne reçoit jamais un 1 h supposé.
+- Le comparatif de funding avec MEXC exige en plus l'unité de `collectCycle` MEXC et la présence du taux
+  relatif Kraken.
+
+Dans les catalogues déjà lus, `fundingRateCoefficient=8` figure sur `PF_XBTUSD` et `PF_ATOMUSD` ; ce champ
+n'est pas défini et **ne tranche pas** l'intervalle.
+
+### Lecture publique proposée (NON AUTORISÉE, NON EXÉCUTÉE)
+
+Périmètre soumis à l'opérateur : GET publics, sans clé, une fois chacun, sur `PF_XBTUSD` uniquement,
+réponses brutes hors dépôt avec empreintes, heure de requête UTC enregistrée.
+
+| # | Requête | Objet |
+|---|---|---|
+| 1 | `GET futures.kraken.com/derivatives/api/v3/tickers?symbol=PF_XBTUSD` | instantané : `markPrice`, `indexPrice`, `fundingRate`, `relativeFundingRate`, `openInterest`, `lastTime`, `serverTime` |
+| 2 | `GET futures.kraken.com/api/charts/v1/analytics/PF_XBTUSD/open-interest?since=<T−26 h>&to=<T>&interval=3600` | série d'OI couvrant ≥ 24 h au pas d'1 h |
+| 3 | même route, `interval=14400` | série au pas de 4 h, pour recouper les fenêtres 4 h et 24 h |
+
+Options à inclure **seulement sur demande explicite** : `analytics/PF_XBTUSD/funding?interval=3600` et
+`GET …/historical-funding-rates?symbol=PF_XBTUSD`, qui montreraient empiriquement la période de funding.
+Aucune requête sur ATOM, aucun autre produit, aucun polling.
+
+**Critère d'acceptation** (celui de l'opérateur) : pouvoir rattacher chaque valeur à son instrument, à son
+unité et à un horodatage dont le sens est explicite. Contrôles prévus : (a) le dernier point de la série
+d'OI se recoupe avec `openInterest` du ticker (même unité, écart borné) ; (b) l'ordre de grandeur
+`openInterest × contractSize × markPrice` est comparé à une valeur indépendante si une est documentée,
+sinon l'unité reste UNRESOLVED ; (c) les `timestamp` sont ramenés à une heure UTC avec un sens écrit
+(début ou fin de bucket) établi par recoupement avec `since`, `interval` et l'heure de requête ; (d) la
+pagination (`more`) est observée sur la fenêtre demandée.
+
+Cette lecture ne remplace ni la qualification d'heure ni la revue de binding ; elle ne modifie ni
+runtime, ni epoch, ni #286.
