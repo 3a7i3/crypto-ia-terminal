@@ -39,3 +39,5 @@
 
 # Observation BTC/ATOM livrée avec Finance V6 : octets exacts.
 frontend/public/observations/btc-atom-book-v1.json -text
+# Rejeu Footprint : octets exacts (SHA-256 vérifié), jamais de conversion CRLF.
+frontend/public/observations/footprint/*.json -text

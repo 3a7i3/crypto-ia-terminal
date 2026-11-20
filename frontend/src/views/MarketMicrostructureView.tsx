@@ -5,6 +5,7 @@ import type { MicrostructureRow } from "../lib/marketMicrostructureTypes";
 import { detailLabels, type DetailName } from "../lib/marketMicrostructureDetail";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
+import { FootprintPanel } from "../components/FootprintPanel";
 
 const value = (v: number | null, suffix = "") => v === null ? "NOT_AVAILABLE" : `${v.toLocaleString("fr-FR", { maximumSignificantDigits: 10 })}${suffix}`;
 const Metrics: React.FC<{ row: MicrostructureRow }> = ({ row }) => <dl className="microstructure-metrics">
@@ -44,7 +45,7 @@ const LmiDetail: React.FC<{ row: MicrostructureRow }> = ({ row }) => {
   </details>;
 };
 
-export const MarketMicrostructureView: React.FC = () => {
+const LmiView: React.FC = () => {
   const state = useMarketMicrostructure();
   const [query, setQuery] = useState("");
   const [notableOnly, setNotableOnly] = useState(false);
@@ -88,3 +89,9 @@ export const MarketMicrostructureView: React.FC = () => {
     <p>Microstructure non autoritaire · aucun signal d’entrée, aucun ordre, aucune permission de trading. Scanner et LMI sont deux captures indépendantes.</p>
   </section>;
 };
+
+// Le panneau Footprint est indépendant de la source LMI : il reste visible quel que soit l’état LMI.
+export const MarketMicrostructureView: React.FC = () => <>
+  <LmiView />
+  <FootprintPanel />
+</>;
