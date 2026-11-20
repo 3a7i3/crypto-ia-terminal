@@ -145,7 +145,8 @@ Limites à ne pas effacer :
 
 ## Prochaines décisions (non autorisées ici)
 
-1. Revue des formats natifs MEXC (contrats) et Kraken (futures), bindings et unités d'OI.
+1. Revue des formats natifs MEXC (contrats) et Kraken (futures), bindings et unités d'OI : matrice documentaire
+   dans [NATIVE_FORMAT_MATRIX](../research/market_derivatives_stress_01/NATIVE_FORMAT_MATRIX.md) (comparaisons valides, bloquées et leurs conditions de levée).
 2. Univers indépendant, accès, rate limits, coûts, horloges, custody de la capture.
 3. Capture bornée, publication passive et rollback, chacun sous sa gate runtime.
 4. Éventuel indicateur composite de stress : protocole pré-enregistré par Research, jamais par l'interface.
