@@ -4,6 +4,9 @@ import {SpotRadarMap} from "../views/SpotRadarMap";
 import {fetchRadar,RadarError} from "../lib/spotRadarClient";
 import fixture from "./fixtures/spotRadar-scanner.json";
 import history from "./fixtures/spotRadar-ohlcv.json";
+import {fetchBboHistory} from "../lib/bboHistoryClient";
+import bbo from "./fixtures/bboCompositeHistory-synthetic.json";
+vi.mock("../lib/bboHistoryClient",async original=>({...await original<typeof import("../lib/bboHistoryClient")>(),fetchBboHistory:vi.fn()}));
 vi.mock("../lib/spotRadarClient",async original=>({...await original<typeof import("../lib/spotRadarClient")>(),fetchRadar:vi.fn()}));
 let data:typeof fixture;
 beforeEach(()=>{data=structuredClone(fixture);vi.spyOn(Date,"now").mockReturnValue(Number(data.server_time_ms));vi.mocked(fetchRadar).mockImplementation(async kind=>(kind==="ohlcv"?history:data) as never);});
@@ -15,3 +18,4 @@ it("never labels a synthetic fixture LIVE",async()=>{data.evidence_kind="SYNTHET
 it("retains observed values as DISCONNECTED after transport failure",async()=>{render(<SpotRadarMap/>);await screen.findByText("30 / 30");vi.mocked(fetchRadar).mockRejectedValueOnce(new RadarError("TRANSPORT_ERROR"));fireEvent.click(screen.getByRole("button",{name:"Actualiser"}));await screen.findByRole("alert");expect(screen.getAllByRole("button",{name:/MEXC Spot · DISCONNECTED/})).toHaveLength(30);});
 it("renders unavailable and empty states",async()=>{vi.mocked(fetchRadar).mockRejectedValueOnce(new RadarError("HTTP_503",503));const v=render(<SpotRadarMap/>);await screen.findByRole("alert");v.unmount();data.rows=[];data.observed_instruments=0;render(<SpotRadarMap/>);await screen.findByText("Aucun instrument pour ces filtres.");});
 it("polls automatically without opening a producer",async()=>{vi.useFakeTimers();try{render(<SpotRadarMap/>);await act(async()=>{await vi.advanceTimersByTimeAsync(0);});expect(fetchRadar).toHaveBeenCalledTimes(1);await act(async()=>{await vi.advanceTimersByTimeAsync(15_000);});expect(fetchRadar).toHaveBeenCalledTimes(2);}finally{cleanup();vi.useRealTimers();}});
+it("keeps the current Radar as default and opens the BBO history only on request",async()=>{vi.mocked(fetchBboHistory).mockResolvedValue({...structuredClone(bbo),serving:{freshness_classification:"HISTORICAL_NOT_LIVE"}} as never);render(<SpotRadarMap/>);await screen.findByText("30 / 30");expect(screen.getByRole("button",{name:"Radar courant"}).getAttribute("aria-pressed")).toBe("true");expect(fetchBboHistory).not.toHaveBeenCalled();fireEvent.click(screen.getByRole("button",{name:"Composite historique"}));await screen.findByText("Composite de milieux de carnet · Spot · Historique");expect(screen.queryByText("Market Radar · MEXC Spot")).toBeNull();fireEvent.click(screen.getByRole("button",{name:"Radar courant"}));await screen.findByText("Market Radar · MEXC Spot");});
