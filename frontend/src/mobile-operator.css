@@ -53,3 +53,42 @@
 .burnin-history-pagination { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .burnin-history-pagination button { min-height: 44px; padding: 8px 16px; }
 .burnin-provenance-grid code { overflow-wrap: anywhere; }
+
+.decision-table {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--bg-border);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+.decision-table table {
+  width: 100%;
+  min-width: max-content;
+  border-spacing: 0;
+  text-align: left;
+}
+.decision-table th, .decision-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bg-border);
+  white-space: nowrap;
+}
+.decision-table thead th {
+  background: var(--bg-card-soft);
+  color: var(--text-pri);
+  font-size: 0.875rem;
+}
+.decision-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--bg-card-soft);
+  box-shadow: 1px 0 var(--bg-border);
+}
+.decision-table [role="status"] {
+  position: sticky;
+  left: 16px;
+  white-space: normal;
+  display: inline-block;
+  max-width: min(230px, 65vw);
+}
+.decision-scroll-hint { color: var(--text-sec); font-size: 0.875rem; }
+.decisions-stack .decision-mobile-cards { margin-top: 16px; }

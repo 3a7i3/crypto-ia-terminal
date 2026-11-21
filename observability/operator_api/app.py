@@ -28,6 +28,7 @@ from fastapi.responses import JSONResponse
 from observability.operator_api.event_center_reader import EventCenterReader
 from observability.operator_api.storage_reader import StorageSnapshotReader
 from observability.operator_api.venue_comparison_reader import VenueComparisonReader
+from observability.operator_api.derivatives_stress_reader import DerivativesStressReader
 from observability.operator_api.market_flow_reader import MarketFlowReader
 from observability.operator_api.bbo_history_reader import BboHistoryReader
 
@@ -614,6 +615,22 @@ def configure_venue_comparison_reader(path=None, *, now_fn=None):
 @app.get("/api/operator/v1/venue-comparison")
 def get_venue_comparison():
     result = _venue_comparison_reader.read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
+
+
+# MARKET-DERIVATIVES-STRESS-01: separate artifact, no on-demand collection or calculation.
+_derivatives_stress_reader = DerivativesStressReader()
+
+def configure_derivatives_stress_reader(path=None, *, now_fn=None):
+    global _derivatives_stress_reader
+    _derivatives_stress_reader = DerivativesStressReader(path, **({} if now_fn is None else {"now_fn": now_fn}))
+    return _derivatives_stress_reader
+
+@app.get("/api/operator/v1/derivatives-stress")
+def get_derivatives_stress():
+    result = _derivatives_stress_reader.read()
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
     return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})

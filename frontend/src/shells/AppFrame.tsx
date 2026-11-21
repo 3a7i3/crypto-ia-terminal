@@ -20,7 +20,7 @@ export const AppFrame: React.FC = () => {
       (m.testId !== "tab-overview" && m.to === pathname) ||
       (m.testId === "tab-market" && pathname.startsWith("/paper-live/market/")) ||
       (m.to === "/research" && pathname.startsWith("/research/")) ||
-      (m.to.endsWith("/portfolio") && pathname.endsWith("/lifecycle")),
+      (m.to.endsWith("/portfolio") && (pathname.endsWith("/lifecycle") || pathname.endsWith("/order-history"))),
   );
   return (
     <div
@@ -56,7 +56,8 @@ export const AppFrame: React.FC = () => {
           </span>
         </Link>
         <span className="app-current">
-          {active?.label ?? "Exploration"}
+          {active?.label ??
+            (pathname === "/direction/travaux" ? "Projet" : "Exploration")}
         </span>
         <span className="app-readonly">Lecture seule</span>
         <AppearanceSettings />
@@ -75,7 +76,7 @@ export const AppFrame: React.FC = () => {
               data-testid={m.testId}
               aria-current={m.testId === "tab-overview" ? false : "page"}
               className={({ isActive }) =>
-                `module-link ${(isActive && m.testId !== "tab-overview") || (m.to.endsWith("/portfolio") && pathname.endsWith("/lifecycle")) ? "is-active" : ""}`
+                `module-link ${(isActive && m.testId !== "tab-overview") || (m.to.endsWith("/portfolio") && (pathname.endsWith("/lifecycle") || pathname.endsWith("/order-history"))) ? "is-active" : ""}`
               }
             >
               <AppIcon name={m.icon} />
@@ -83,6 +84,18 @@ export const AppFrame: React.FC = () => {
             </NavLink>
           ))}
         </nav>
+        <div className="sidebar-project">
+          <span className="sidebar-label">PROJET</span>
+          <NavLink
+            to="/direction/travaux"
+            className={({ isActive }) =>
+              `module-link ${isActive ? "is-active" : ""}`
+            }
+          >
+            <AppIcon name="project" />
+            <span>Travaux et roadmap</span>
+          </NavLink>
+        </div>
         <div className="sidebar-foot">
           <span>Observer. Comprendre. Rechercher.</span>
           <small>Les sources gardent leur propre date et leur autorité.</small>

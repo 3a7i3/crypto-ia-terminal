@@ -5,6 +5,7 @@ import type { HeatmapColumn, MarketFlowHeatmap, MarketFlowPublication } from "..
 import "./market-flow.css";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
+import { TradeTimingPanel } from "../components/TradeTimingPanel";
 
 const PAGE = 16;
 const unavailable = "Non disponible";
@@ -184,5 +185,6 @@ export function MarketFlowView() {
     {state.status === "api_error" && (marketSourceSetup(state.errorCode) ? <MarketSourceNotice source="Flux" setup={marketSourceSetup(state.errorCode)!} code={state.errorCode!} httpStatus={state.httpStatus}/> : <p role="alert">Flux indisponible · HTTP {state.httpStatus}{state.errorCode && ` · ${state.errorCode}`}</p>)}
     {state.status === "transport_error" && state.reason !== "ABORTED" && <p role="alert">Lecture de Flux impossible · {state.reason}{state.detail && ` · ${state.detail}`}</p>}
     {state.status === "success" && <Publication key={request} data={state.publication}/>}
+    <TradeTimingPanel/>
   </section>;
 }

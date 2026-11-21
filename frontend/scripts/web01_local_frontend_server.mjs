@@ -6,6 +6,7 @@ import { stat } from "node:fs/promises";
 import http from "node:http";
 import https from "node:https";
 import path from "node:path";
+import { startPaperBalanceHistory } from "./paper-balance-history.mjs";
 import { fileURLToPath } from "node:url";
 
 export const LOOPBACK_HOST = "127.0.0.1";
@@ -142,7 +143,7 @@ function failRequest(response, status, code, message) {
   else apiError(response, status, code, message);
 }
 
-export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET, spotRadarTarget = SPOT_RADAR_API_TARGET } = {}) {
+export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET, spotRadarTarget = SPOT_RADAR_API_TARGET, balanceHistory } = {}) {
   const target = new URL(apiTarget);
   const spotRadar = new URL(spotRadarTarget);
   return http.createServer(async (request, response) => {
@@ -152,6 +153,13 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
         return failRequest(response, 400, "INVALID_REQUEST_URL", "Request target is not a valid URL.");
       }
       if (!methodAllowed(request)) return apiError(response, 405, "METHOD_NOT_ALLOWED", "WEB-01G accepts GET and HEAD only.");
+      if (balanceHistory && url.pathname === "/api/operator/v1/paper-balance-history") {
+        const period = url.searchParams.get("days") ?? "1";
+        if (!["1", "7", "30"].includes(period)) return apiError(response, 400, "INVALID_PERIOD", "Expected 1, 7 or 30 days.");
+        response.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+        response.end(request.method === "HEAD" ? undefined : JSON.stringify(balanceHistory(Number(period))));
+        return;
+      }
       if (isApiPath(url.pathname)) {
         const selected = url.pathname.startsWith(SPOT_RADAR_API_PREFIX) ? spotRadar : target;
         return proxyToOperatorApi(request, response, selected);
@@ -173,5 +181,7 @@ if (isMainEntrypoint()) {
     console.error(`WEB_01G_CONFIG_REFUSED=${error.message}`);
     process.exit(2);
   }
-  createServer({ port }).on("listening", () => console.log(`WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${port}`));
+  const stateDirectory = process.env.STATE_DIRECTORY;
+  const balanceHistory = stateDirectory ? startPaperBalanceHistory(stateDirectory, OPERATOR_API_TARGET) : undefined;
+  createServer({ port, balanceHistory }).on("listening", () => console.log(`WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${port}`));
 }

@@ -5,6 +5,7 @@ import type { VenueRow } from "../lib/venueComparison";
 import "../market-venues.css";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
+import { DerivativesStressPanel } from "../components/DerivativesStressPanel";
 const names: Record<string, string> = { mexc: "MEXC", bybit: "Bybit", okx: "OKX", kraken: "Kraken", bitfinex: "Bitfinex", kucoin: "KuCoin", coinbase_exchange: "Coinbase Exchange", hyperliquid: "Hyperliquid" };
 const kinds: Record<string, string> = { SPOT: "Spot", PERPETUAL_LINEAR: "Perpétuel linéaire", PERPETUAL_INVERSE: "Perpétuel inverse", FUTURE_LINEAR: "Échéance linéaire", FUTURE_INVERSE: "Échéance inverse" };
 const time = (v: string | null) => v ? new Date(v).toISOString().replace("T", " ") : "Date non disponible";
@@ -17,7 +18,7 @@ function reason(row: VenueRow): string {
   if (row.reason === "CROSSED_BOOK") return "Carnet croisé";
   return "Qualité indisponible";
 }
-export const MarketVenuesView: React.FC = () => {
+const VenueComparisonPanel: React.FC = () => {
   const state = useVenueComparison();
   const [instrumentId, setInstrumentId] = useState("");
   const [reference, setReference] = useState("");
@@ -95,3 +96,9 @@ export const MarketVenuesView: React.FC = () => {
     </details>
   </div>;
 };
+
+// Two independent sources share this tab: one unavailable never hides the other.
+export const MarketVenuesView: React.FC = () => <div className="venue-tab">
+  <VenueComparisonPanel/>
+  <DerivativesStressPanel/>
+</div>;
