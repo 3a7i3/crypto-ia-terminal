@@ -530,7 +530,7 @@ describe("Machine regroupée — synthèse fidèle aux sources", () => {
     expect(fact("Résultat réalisé")).toHaveTextContent("Non disponible");
     expect(fact("Résultat latent")).toHaveTextContent("Non disponible");
     expect(fact("Frais payés")).toHaveTextContent(/^0/);
-    expect(section).toHaveTextContent("Les courbes et leurs preuves sont dans Finance");
+    expect(section).toHaveTextContent("Les courbes et leurs preuves sont dans Wallet");
     expect(screen.queryByTestId("ppl-accounting-history")).toBeNull();
     expect(section.querySelector("svg")).toBeNull();
     expect(section).not.toHaveTextContent("Illustration fictive");

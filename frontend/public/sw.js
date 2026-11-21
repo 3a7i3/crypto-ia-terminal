@@ -5,7 +5,7 @@
 importScripts("/pwa-policy.js");
 
 const SHELL_CACHE_PREFIX = "crypto-ai-operator-shell-";
-const SHELL_CACHE = `${SHELL_CACHE_PREFIX}cat-footprint-v3-l2-graphique`;
+const SHELL_CACHE = `${SHELL_CACHE_PREFIX}cat-market-two-views-wallet-595`;
 const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",

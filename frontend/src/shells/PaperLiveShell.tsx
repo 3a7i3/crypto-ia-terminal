@@ -41,13 +41,13 @@ const CanonicalOutlet: React.FC = () => {
 };
 export const PaperLiveShell: React.FC = () => {
   const { pathname } = useLocation();
-  // Market deep routes (/paper-live/market/{radar,flow,venues,lmi}) share one heading.
+  // Old venues/flow bookmarks redirect to radar.
   const key =
     pathname === "/paper-live/market" || pathname.startsWith("/paper-live/market/")
       ? "market"
       : (pathname.split("/").at(-1) ?? "");
   const headings: Record<string, [string, string]> = {
-    market: ["Marché", "Radar Spot, flux, plateformes et microstructure"],
+    market: ["Marché", "Scanner et microstructure"],
     decisions: [
       "Décisions",
       "Signaux observés, motifs de refus et traces de décision.",
@@ -62,7 +62,7 @@ export const PaperLiveShell: React.FC = () => {
       "Comparaison publiée entre simulateur et PPL ; autorités distinctes.",
     ],
     finance: [
-      "Finance",
+      "Wallet",
       "Montants FIN, frais et rapprochements. Historique PPL séparé.",
     ],
     events: [
