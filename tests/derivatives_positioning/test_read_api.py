@@ -98,3 +98,46 @@ def test_route_is_get_only_no_store_and_503(tmp_path, monkeypatch):
     with TestClient(api.app) as client:
         r = client.get(ROUTE)
         assert r.status_code == 503 and r.json() == {"error_code": "DERIVATIVES_POSITIONING_NOT_CONFIGURED"}
+
+
+_CRASHED_WRITER = """
+import os, sys
+from datetime import timedelta
+from observability.derivatives_positioning import PositioningStore
+from tests.derivatives_positioning.positioning_fixture import AS_OF_MS
+from tests.derivatives_positioning.support import T0, obs_a
+store = PositioningStore(sys.argv[1], now_ms=lambda: AS_OF_MS)
+assert store.ingest_batch([obs_a(T0 + timedelta(seconds=15), oi="1199999", mark="65000.5")]).ok
+os._exit(0)  # no close, no checkpoint: the committed row lives only in the WAL
+"""
+
+
+def test_cold_read_after_clean_shutdown_and_after_writer_crash(tmp_path):
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    data, roster = build(tmp_path / "state", tmp_path / "roster.json")
+    db = data / "positioning.sqlite3"
+    # Clean shutdown: WAL folded into the base, no -wal/-shm left: a truly cold base.
+    assert not (data / "positioning.sqlite3-wal").exists() and not (data / "positioning.sqlite3-shm").exists()
+    before = hashlib.sha256(db.read_bytes()).hexdigest()
+    cold = DerivativesPositioningReader(str(data), str(roster), now_fn=lambda: AS_OF_MS / 1000).read()
+    assert cold.ok and legs(cold.snapshot)["exchange_a"]["latest"]["observation"]["measures"]["open_interest"]["value"] \
+        == str(1_200_000 + 100 * 150)
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before
+    # Fresh process, as the API after a restart: same document.
+    again = DerivativesPositioningReader(str(data), str(roster), now_fn=lambda: AS_OF_MS / 1000).read()
+    assert again.snapshot == cold.snapshot
+
+    # Writer killed before checkpoint: the committed row sits in a non-empty WAL; the
+    # read-only reader must see it without writing the base.
+    root = Path(__file__).resolve().parents[2]
+    subprocess.run([sys.executable, "-c", _CRASHED_WRITER, str(data)], check=True, cwd=root)
+    assert (data / "positioning.sqlite3-wal").stat().st_size > 0
+    before = hashlib.sha256(db.read_bytes()).hexdigest()
+    after = DerivativesPositioningReader(str(data), str(roster), now_fn=lambda: AS_OF_MS / 1000).read()
+    assert after.ok
+    latest = legs(after.snapshot)["exchange_a"]["latest"]["observation"]
+    assert latest["measures"]["open_interest"]["value"] == "1199999"
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before

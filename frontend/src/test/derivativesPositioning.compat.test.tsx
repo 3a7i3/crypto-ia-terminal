@@ -31,6 +31,9 @@ suite("Derivatives positioning through the real store, projection and API", () =
     expect(oi).toHaveTextContent("Source");
     expect(screen.getByTestId("pos-card-funding")).toHaveTextContent("par 8 h");
     expect(screen.getByTestId("pos-chart")).toBeInTheDocument();
+    // Two distinct curves: OI turns down while price keeps rising.
+    expect(screen.getByTestId("pos-line-price").getAttribute("d")).not.toBe(screen.getByTestId("pos-line-oi").getAttribute("d"));
+    expect(screen.getByTestId("pos-leg-kind")).toHaveTextContent("Perpétuel linéaire");
   });
 
   it("states partial coverage and missing fields instead of zeros", async () => {

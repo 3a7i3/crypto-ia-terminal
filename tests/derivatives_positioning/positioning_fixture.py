@@ -50,7 +50,8 @@ def build(data_dir, roster_path=None):
     for k in range(STEPS + 1):
         at = T0 - timedelta(seconds=(STEPS - k) * CADENCE_S)
         mark = "%d.%d" % (64_000 + k * 3, k % 10)
-        docs.append(obs_a(at, oi=str(1_200_000 + k * 150), mark=mark))
+        # OI rises then falls while price keeps rising: the two chart bands must differ.
+        docs.append(obs_a(at, oi=str(1_200_000 + (k if k <= 200 else 400 - k) * 150), mark=mark))
         if not 3 <= STEPS - k <= 10:  # 40 min hole in the last hour
             docs.append(obs_b(at, oi="%d.%d" % (120 + k // 10, k % 10), mark=mark))
         changed = STEPS - k <= 36  # last 3 h use the new contract size

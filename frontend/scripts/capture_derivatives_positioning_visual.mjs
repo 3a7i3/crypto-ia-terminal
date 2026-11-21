@@ -52,8 +52,14 @@ try {
       for (const k of legs) {
         await panel.getByLabel("Plateforme et contrat").selectOption(LEGS[k]);
         const text = await panel.innerText();
+        const sel = await panel.getByLabel("Plateforme et contrat").evaluate(e => ({ sw: e.scrollWidth, cw: e.clientWidth }));
+        assert(sel.sw <= sel.cw + 1, k + ": selector label not truncated");
         if (k !== "d") for (const id of ["pos-card-oi", "pos-card-oi-change", "pos-card-funding", "pos-card-premium-basis"]) assert(await panel.getByTestId(id).count() === 1, k + ": card " + id);
-        if (k === "a") { assert(await panel.getByTestId("pos-chart").count() === 1, "a: comparable series drawn"); assert(text.includes("contrats"), "a: OI unit"); assert(text.includes(name === "stale" ? "Périmée" : "Récente"), "freshness"); }
+        if (k === "a") { assert(await panel.getByTestId("pos-chart").count() === 1, "a: comparable series drawn");
+          const [dp, doi] = [await panel.getByTestId("pos-line-price").getAttribute("d"), await panel.getByTestId("pos-line-oi").getAttribute("d")];
+          assert(dp !== doi, "a: price and OI curves are distinct");
+          const [cp, co] = await page.evaluate(() => ["pos-line-price", "pos-line-oi"].map(id => getComputedStyle(document.querySelector(`[data-testid=${id}]`)).stroke));
+          assert(cp !== co, "a: price and OI strokes differ"); assert(text.includes("contrats"), "a: OI unit"); assert(text.includes(name === "stale" ? "Périmée" : "Récente"), "freshness"); }
         if (k === "b") { assert(text.includes("INSUFFICIENT_COVERAGE"), "b: partial coverage stated"); assert(text.includes("unités de base"), "b: OI unit"); }
         if (k === "c") { assert(await panel.getByTestId("pos-chart").count() === 0, "c: non-comparable not drawn"); assert(text.includes("CONTRACT_SIZES_DIFFER") || text.includes("Tailles de contrat différentes"), "c: reason"); }
         if (k === "d") { assert(await panel.getByTestId("pos-chart").count() === 0, "d: nothing drawn"); assert(text.includes("Aucune observation enregistrée"), "d: reason"); }

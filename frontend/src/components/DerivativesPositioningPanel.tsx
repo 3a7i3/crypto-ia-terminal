@@ -51,20 +51,27 @@ function Cards({ leg }: { leg: Leg }) {
 }
 
 function Chart({ s, window_s }: { s: Series; window_s: number }) {
-  const W = 360, H = 180, P = 28;
+  // Two stacked bands, one per measure: price and OI never share a vertical scale.
+  const W = 360, BAND = 96, GAP = 18, P = 28, H = 2 * BAND + GAP + 8;
   const ts = s.points.map(p => Date.parse(p.t)), price = s.points.map(p => Number(p.price)), oi = s.points.map(p => Number(p.oi));
   const t0 = Math.min(...ts), t1 = Math.max(...ts);
-  const scale = (vals: number[]) => { const lo = Math.min(...vals), hi = Math.max(...vals); return (v: number) => H - P - (hi === lo ? 0.5 : (v - lo) / (hi - lo)) * (H - 2 * P); };
   const x = (t: number) => P + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * (W - 2 * P);
-  const line = (vals: number[]) => { const y = scale(vals); return vals.map((v, i) => (i ? "L" : "M") + x(ts[i]).toFixed(1) + " " + y(v).toFixed(1)).join(" "); };
+  const band = (vals: number[], top: number) => { const lo = Math.min(...vals), hi = Math.max(...vals); return (v: number) => top + BAND - 6 - (hi === lo ? 0.5 : (v - lo) / (hi - lo)) * (BAND - 12); };
+  const line = (vals: number[], top: number) => { const y = band(vals, top); return vals.map((v, i) => (i ? "L" : "M") + x(ts[i]).toFixed(1) + " " + y(v).toFixed(1)).join(" "); };
+  const first = s.points[0], last = s.points[s.points.length - 1];
+  const oiUnit = `${OI_UNIT[s.oi_unit!] ?? s.oi_unit}${s.contract_size_base ? ` × ${s.contract_size_base}` : ""}`;
   return <figure className="pos-chart" data-testid="pos-chart">
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Prix de marque et open interest sur ${windowLabel(window_s)}, axes séparés`}>
-      <line x1={P} x2={W - P} y1={H - P} y2={H - P} className="pos-axis"/>
-      <path d={line(price)} className="pos-line-price"/><path d={line(oi)} className="pos-line-oi"/>
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Prix de marque et open interest sur ${windowLabel(window_s)}, deux bandes et deux échelles séparées`}>
+      <text x={P} y={11} className="pos-band-label pos-band-price">Prix</text>
+      <line x1={P} x2={W - P} y1={BAND} y2={BAND} className="pos-axis"/>
+      <path d={line(price, 0)} className="pos-line-price" data-testid="pos-line-price"/>
+      <text x={P} y={BAND + GAP + 11} className="pos-band-label pos-band-oi">OI</text>
+      <line x1={P} x2={W - P} y1={2 * BAND + GAP} y2={2 * BAND + GAP} className="pos-axis"/>
+      <path d={line(oi, BAND + GAP)} className="pos-line-oi" data-testid="pos-line-oi"/>
     </svg>
-    <figcaption><span className="pos-key-price">Prix de marque ({s.price_unit}) {Math.min(...price)} → {Math.max(...price)}</span>
-      <span className="pos-key-oi">OI ({OI_UNIT[s.oi_unit!] ?? s.oi_unit}{s.contract_size_base ? ` × ${s.contract_size_base}` : ""}) {Math.min(...oi)} → {Math.max(...oi)}</span>
-      <span>{s.points.length} points · cadence {s.cadence_s} s · couverture {s.coverage} · axes séparés, échelles min–max</span></figcaption>
+    <figcaption><span className="pos-key-price">Prix de marque ({s.price_unit}) : {first.price} → {last.price}</span>
+      <span className="pos-key-oi">OI ({oiUnit}) : {first.oi} → {last.oi}</span>
+      <span>Valeurs exactes du premier et du dernier point · {s.points.length} points · cadence {s.cadence_s} s · couverture {s.coverage} · échelles min–max par bande</span></figcaption>
   </figure>;
 }
 
@@ -103,8 +110,8 @@ export const DerivativesPositioningPanel: React.FC = () => {
     {doc.evidence_kind === "SYNTHETIC" && <p className="venue-evidence" data-testid="pos-synthetic">Exemple synthétique · aucune connexion attestée</p>}
     <p className="pos-sub">Lecture de l’historique local au {time(doc.generated_at_utc)}. Aucun score ni signal ; aucune autorité de trading.</p>
     <label className="pos-select">Plateforme et contrat<select aria-label="Plateforme et contrat" value={leg.leg_id} onChange={e => setLegId(e.target.value)}>
-      {doc.legs.map(l => <option key={l.leg_id} value={l.leg_id}>{legName(l)} · {marketKindLabel[l.contract_type] ?? l.contract_type}{l.latest.status !== "AVAILABLE" ? " · sans observation" : ""}</option>)}
-    </select></label>
+      {doc.legs.map(l => <option key={l.leg_id} value={l.leg_id}>{legName(l)}{l.latest.status !== "AVAILABLE" ? " · sans observation" : ""}</option>)}
+    </select><span className="pos-sub" data-testid="pos-leg-kind">{legName(leg)} · {marketKindLabel[leg.contract_type] ?? leg.contract_type}</span></label>
     <Cards leg={leg}/>
     <ChartBlock doc={doc} legId={leg.leg_id}/>
     <Pairs doc={doc}/>

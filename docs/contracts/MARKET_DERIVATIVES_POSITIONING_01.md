@@ -207,11 +207,18 @@ couverture minimale, et partage cadence et base temporelle avec la première sé
 série est listée avec son motif (`INSUFFICIENT_COVERAGE`, `CONTRACT_SIZES_DIFFER`,
 `OPEN_INTEREST_UNITS_DIFFER`, `TIME_BASES_DIFFER`, `POINTS_OFF_CADENCE_GRID`,
 `NOT_ALIGNED_WITH_REFERENCE_LEG`, `NO_OBSERVATION`, …) et aucun point. Prix et OI restent en unités
-natives sur des axes séparés.
+natives, dans deux bandes superposées à échelles séparées (prix en haut, OI en bas) ; la légende
+donne les valeurs exactes du premier et du dernier point.
 
 Note d'exploitation : une ouverture `mode=ro` d'une base WAL a besoin du fichier `-shm` ; le
 processus lecteur doit pouvoir le créer dans le répertoire ou un écrivain doit être actif. Les octets
 de la base ne changent pas (vérifié par empreinte dans les tests).
+
+Lecture à froid (testée) : après un arrêt propre de l'écrivain (aucun `-wal`/`-shm`), un nouveau
+processus lecteur rend le même document ; après un arrêt brutal de l'écrivain avant checkpoint
+(WAL non vide), le lecteur voit les lignes validées sans modifier la base. Un répertoire en
+lecture seule sans `-shm` existant n'est pas couvert (tests exécutés en root) : le lecteur
+répond alors une erreur de stockage typée, jamais une population vide.
 
 Preuves : `tests/derivatives_positioning/test_read_api.py` (fixtures synthétiques : couverture
 partielle, contrats non comparables, jambe sans observation),
