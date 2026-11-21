@@ -1,7 +1,5 @@
-import { MarketBookObservation } from "./MarketBookObservation";
 import { SpotRadarMap } from "./SpotRadarMap";
 import { SymbolScanner } from "./SymbolScanner";
-import { MarketFlowView } from "./MarketFlowView";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, MemoryRouter, Navigate, Route, Routes, useInRouterContext, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MarketMicrostructureView } from "./MarketMicrostructureView";
@@ -9,16 +7,11 @@ import { MARKET_BASE, MARKET_RADAR_PATH } from "../lib/moduleNavigation";
 import "../market-catalogue.css";
 import "../market-venues.css";
 import "../market-navigation.css";
-import { MarketVenuesView } from "./MarketVenuesView";
 
-// M1-C1 (EO-022): addressable Market navigation. Each existing view gets its own
-// deep route under /paper-live/market; only the active route is mounted, so an
-// inactive view never fetches. Views, clients and API contracts are unchanged.
-// Tab order and labels are kept from 36024a9; Microstructure (D-C4) is appended.
+// Only the scanner and microstructure are mounted. Retired view bookmarks
+// redirect to the scanner; their source modules and contracts remain in Git.
 export const MARKET_VIEWS = [
   { slug: "radar", label: "Scanner" },
-  { slug: "venues", label: "Comparaison des plateformes" },
-  { slug: "flow", label: "Flux" },
   { slug: "lmi", label: "Microstructure" },
 ] as const;
 
@@ -127,8 +120,8 @@ const MarketWorkspace: React.FC = () => {
       <Routes>
         <Route index element={<Navigate to={{ pathname: MARKET_RADAR_PATH, search }} replace />} />
         <Route path="radar" element={<RadarPanel />} />
-        <Route path="venues" element={<><MarketBookObservation mode="comparison" /><MarketVenuesView /></>} />
-        <Route path="flow" element={<><MarketBookObservation mode="flow" /><MarketFlowView /></>} />
+        <Route path="venues" element={<Navigate to={MARKET_RADAR_PATH} replace />} />
+        <Route path="flow" element={<Navigate to={MARKET_RADAR_PATH} replace />} />
         <Route path="lmi" element={<MarketMicrostructureView />} />
         <Route path="*" element={<UnknownMarketView />} />
       </Routes>

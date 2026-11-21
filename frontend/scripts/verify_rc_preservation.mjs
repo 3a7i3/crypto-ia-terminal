@@ -92,15 +92,9 @@ try {
     await shot("positions-ordres");
 
     await page.goto(`${base}/paper-live/market/flow`, { waitUntil: "load" });
-    await page.getByRole("heading", { name: "Flux de carnet · historique" }).waitFor();
-    const bookTable = page.getByRole("region", { name: "Observations par plateforme" });
-    await page.getByText("Capture historique · BTC/USDT").waitFor();
-    const btc = await bookTable.textContent();
-    await page.getByLabel("Instrument de la capture").selectOption("ATOM");
-    await page.getByText("Capture historique · ATOM/USDT").waitFor();
-    const atom = await bookTable.textContent();
-    check(`${vp.name} observation carnet BTC/ATOM`, /60 \/ 60/.test(btc) && /90 \/ 90/.test(atom) && await noHScroll());
-    await shot("flux-carnet");
+    await page.waitForURL(`${base}/paper-live/market/radar`);
+    check(`${vp.name} ancien lien Flux redirigé vers Scanner`, await page.getByRole("tab", { name: "Scanner" }).isVisible() && await noHScroll());
+    await shot("scanner-apres-flux");
 
     await page.goto(`${base}/paper-live/market/radar?product=spot-radar`, { waitUntil: "load" });
     await page.getByRole("button", { name: "Composite historique" }).click();

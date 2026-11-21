@@ -45,8 +45,6 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("M1-C1 deep Market routes", () => {
   const views = [
     ["radar", "Scanner", ["spot-radar"]],
-    ["venues", "Comparaison des plateformes", ["observations", "venue-comparison"]],
-    ["flow", "Flux", ["market-flow", "observations"]],
     ["lmi", "Microstructure", ["footprint-capture", "market-microstructure"]],
   ] as const;
 
@@ -62,7 +60,7 @@ describe("M1-C1 deep Market routes", () => {
     expect(window.location.pathname).toBe("/paper-live/market/" + slug);
     expect(families()).toEqual([...family]);
     expect(urls().some((u) => u.includes("/burn-in"))).toBe(false);
-    expect(screen.getByText("Radar Spot, flux, plateformes et microstructure")).toBeInTheDocument();
+    expect(screen.getByText("Scanner et microstructure")).toBeInTheDocument();
   });
 
   it.each(["/", "/direction", "/paper-live", "/paper-live/overview", "/paper-live/market", "/paper-live/market/"])(
@@ -103,30 +101,31 @@ describe("M1-C1 deep Market routes", () => {
 });
 
 describe("M1-C1 browser history", () => {
-  it("moves between views with real links, Back and Forward, and leaves inactive views silent", async () => {
+  it("moves between Scanner and Microstructure with browser history, without mounting retired views", async () => {
     at(RADAR);
     render(<App />);
     await screen.findByRole("heading", { name: "Scanner classé" });
     const start = window.history.length;
-    expect(tab("Flux")).toHaveAttribute("href", "/paper-live/market/flow");
-    fetchMock.mockClear();
-    fireEvent.click(tab("Flux"));
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
-    expect(window.history.length).toBe(start + 1);
-    await waitFor(() => expect(families()).toEqual(["market-flow", "observations"]));
     fetchMock.mockClear();
     fireEvent.click(tab("Microstructure"));
+    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "lmi"));
+    expect(window.history.length).toBe(start + 1);
     await waitFor(() => expect(families()).toEqual(["footprint-capture", "market-microstructure"]));
-    expect(window.location.pathname).toBe("/paper-live/market/lmi");
     act(() => window.history.back());
-    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
-    expect(tab("Flux")).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "radar"));
     act(() => window.history.forward());
     await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "lmi"));
-    act(() => window.history.go(-2));
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "radar"));
-    expect(urls().some((u) => u.includes("/burn-in"))).toBe(false);
+  });
+
+  it.each(["venues", "flow"])("redirects the retired %s bookmark without requesting its sources", async (slug) => {
+    at("/paper-live/market/" + slug);
+    const before = window.history.length;
+    render(<App />);
+    await waitFor(() => expect(window.location.pathname).toBe(RADAR));
+    expect(window.history.length).toBe(before);
+    await screen.findByRole("heading", { name: "Scanner classé" });
+    expect(families()).toEqual(["spot-radar"]);
+    expect(screen.queryByRole("tab", { name: /Flux|Comparaison des plateformes/ })).toBeNull();
   });
 });
 
@@ -180,8 +179,8 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
     await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
     expect(window.history.length).toBe(before);
     await waitFor(() => expect(families()).toEqual(["spot-radar"]));
-    fireEvent.click(tab("Flux"));
-    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));
+    fireEvent.click(tab("Microstructure"));
+    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
     expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=intraday");
     fireEvent.click(tab("Scanner"));
     await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
@@ -226,15 +225,15 @@ describe("M1-C1 keyboard and links", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Scanner classé" });
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Comparaison des plateformes", "Flux", "Microstructure"]);
-    expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1"]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Microstructure"]);
+    expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1"]);
     expect(screen.getByRole("tablist", { name: "Vues du marché" })).toBeInTheDocument();
     tab("Scanner").focus();
     fireEvent.keyDown(tab("Scanner"), { key: "ArrowRight" });
-    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/venues"));
-    await waitFor(() => expect(tab("Comparaison des plateformes")).toHaveFocus());
-    expect(tab("Comparaison des plateformes")).toHaveAttribute("tabindex", "0");
-    fireEvent.keyDown(tab("Comparaison des plateformes"), { key: "End" });
+    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
+    await waitFor(() => expect(tab("Microstructure")).toHaveFocus());
+    expect(tab("Microstructure")).toHaveAttribute("tabindex", "0");
+    fireEvent.keyDown(tab("Microstructure"), { key: "End" });
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
     await waitFor(() => expect(tab("Microstructure")).toHaveFocus());
     fireEvent.keyDown(tab("Microstructure"), { key: "ArrowRight" });
@@ -253,9 +252,9 @@ describe("M1-C1 keyboard and links", () => {
   });
 
   it("points Accueil and the brand at the canonical Radar route; Marché keeps the active state", async () => {
-    at("/paper-live/market/flow");
+    at("/paper-live/market/lmi");
     render(<App />);
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
+    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "lmi"));
     const nav = screen.getByRole("navigation", { name: "Modules de la machine" });
     const home = within(nav).getByRole("link", { name: "Accueil" });
     expect(home).toHaveAttribute("href", RADAR);

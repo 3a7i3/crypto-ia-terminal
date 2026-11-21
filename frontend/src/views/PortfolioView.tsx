@@ -184,7 +184,7 @@ export const PortfolioView: React.FC<{ snapshot?: OperatorSnapshot }> = ({ snaps
           <ObservedValueView ov={p.paper_open_positions_count} />
         </Field>
         <details className="portfolio-snapshot-amounts"><summary>Montants de cette capture opérateur · diagnostic</summary>
-        <p className="source-date">Ces observations du snapshot ne remplacent pas la publication FIN du module Finance.</p>
+        <p className="source-date">Ces observations du snapshot ne remplacent pas la publication FIN du module Wallet.</p>
         <Field label="paper_equity_usd">
           <ObservedValueView ov={p.paper_equity_usd} render={fmtUsd} />
         </Field>

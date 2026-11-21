@@ -1,4 +1,4 @@
-name: Market Flux 3B Visual Proof
+name: Market Navigation Retirement Proof
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   market-flux-visual:
-    name: "MARKET FLUX 3B VISUAL PROOF"
+    name: "MARKET NAVIGATION RETIREMENT PROOF"
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -51,14 +51,14 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:3000/paper-live/market >/dev/null
-      - name: Assert desktop/mobile Flux provenance, gaps and failure states
+      - name: Assert retired bookmarks and mobile navigation
         working-directory: frontend
-        run: node scripts/capture_market_flux_visual.mjs
+        run: node scripts/capture_market_retirement_visual.mjs
       - name: Upload Flux visual proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-unify-market-flux-visual-proof
-          path: frontend/artifacts/market-flux-3b/
+          name: market-navigation-retirement-proof
+          path: frontend/artifacts/market-retirement/
           if-no-files-found: error
           retention-days: 14
