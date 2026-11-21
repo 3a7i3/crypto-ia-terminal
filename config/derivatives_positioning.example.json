@@ -1,0 +1,11 @@
+{
+  "_comment": "Exemple. Valeurs initiales de TEST, non validées scientifiquement. Aucune purge n'existe dans ce lot : budget et rétention sont seulement rapportés.",
+  "late_after_ms": 120000,
+  "min_coverage": "0.8",
+  "min_tolerance_ms": 60000,
+  "max_age_ms": 600000,
+  "history_max_rows": 10000,
+  "disk_budget_bytes": 5000000000,
+  "retention_days": 365,
+  "purge_enabled": false
+}
