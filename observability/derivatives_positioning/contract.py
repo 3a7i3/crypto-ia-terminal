@@ -247,4 +247,3 @@ def normalize(raw) -> NormalizedObservation:
     content = digest(document)
     return NormalizedObservation(key, content, venue, native, contract_type, quote, base, source_ms,
                                  received_ms, capture_id, payload, {**document, "collector_run_id": run_id})
-
