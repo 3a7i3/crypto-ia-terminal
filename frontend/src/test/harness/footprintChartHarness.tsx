@@ -10,10 +10,12 @@ import { syntheticTwentyBars } from "../footprintSyntheticTwentyBars";
 
 const params = new URLSearchParams(window.location.search);
 const theme = params.get("theme") === "dark" ? "dark" : "light";
+// ?plein-ecran=1 : même règle CSS de plein écran que le panneau (cadrage identique aux captures du rejeu).
+const fullscreen = params.get("plein-ecran") === "1";
 const model = buildFootprintModel(syntheticTwentyBars(), 60_000, 1, 24);
 document.body.style.margin = "0";
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <section className="market-panel footprint-panel" data-testid="footprint-panel" data-footprint-theme={theme} aria-label="Footprint SYNTHETIC">
+  <section className={`market-panel footprint-panel${fullscreen ? " footprint-fullscreen" : ""}`} data-testid="footprint-panel" data-footprint-theme={theme} aria-label="Footprint SYNTHETIC">
     <p className="footprint-badge footprint-badge-warn" data-testid="synthetic-banner">SYNTHETIC · fixture de test, aucune donnée réelle · 20 bougies M1</p>
     <FootprintChart model={model} step={1} />
   </section>,

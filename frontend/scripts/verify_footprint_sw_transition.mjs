@@ -108,7 +108,7 @@ const state = (page) => page.evaluate(async () => ({
       new_entry_loaded: after.entry[0] === NEW.js,
       new_worker_served: sha(swNow) === NEW.sw,
       chart_rendered: after.chart,
-      delta_profile_header: /Ask − Bid/.test(after.profileHeader ?? ""),
+      delta_profile_header: /Ask−Bid/.test(after.profileHeader ?? ""),
       live_unavailable_visible: /Temps réel indisponible/.test(after.liveStatus ?? ""),
       aggressor_origin_visible: after.aggressorOrigin,
     };

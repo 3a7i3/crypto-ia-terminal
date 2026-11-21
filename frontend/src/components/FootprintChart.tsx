@@ -1,21 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { FootprintModel } from "../lib/footprintModel";
 
-// Graphique Footprint : axe des prix à gauche, bougies (mèche jusqu'aux extrêmes observés,
-// corps entre ouverture et clôture) avec une cellule Bid × Ask à chaque prix négocié,
-// profil Delta (Δ = Ask − Bid, barres signées autour de zéro) ou Volume (POC) à droite sur
-// la même échelle de prix, puis DeltaChg / Delta / DltaDay / Volume et l'heure UTC sous
-// chaque bougie. Rendu seul : toutes les valeurs viennent du modèle partagé avec
-// « Valeurs exactes » ; aucun recalcul.
+// Graphique Footprint (maquette) : bougies dessinées comme des boîtes (corps entre ouverture
+// et clôture, cadre vert si haussière, rouge si baissière, pointillé si la fenêtre est
+// partielle) et mèches fines jusqu'aux extrêmes observés, avec une cellule Bid × Ask à chaque
+// prix négocié. À droite, collés : l'axe des prix puis le profil Delta (Δ = Ask − Bid, barres
+// signées autour de zéro) ou Volume (POC) sur la même échelle. Sous les bougies : DeltaChg,
+// Delta, DltaDay, Volume et l'heure UTC, colorés par signe. Rendu seul : toutes les valeurs
+// viennent du modèle partagé avec « Valeurs exactes » ; aucun recalcul.
 
 const num = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 8 });
 const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16);
 /** Lignes sous les bougies, dans l'ordre de la maquette, puis l'heure UTC d'ouverture. */
 export const STAT_ROWS = ["DeltaChg", "Delta", "DltaDay", "Volume", "UTC"] as const;
 
-export function FootprintChart({ model, step }: { model: FootprintModel; step: number }) {
+export type ProfileKind = "delta" | "volume";
+const sign = (v: number | null) => v == null ? undefined : v > 0 ? "pos" : v < 0 ? "neg" : "zero";
+
+/** `profileKind` fourni : profil piloté par la rangée de réglages du panneau ; sinon menu local. */
+export function FootprintChart({ model, step, profileKind: controlled }: { model: FootprintModel; step: number; profileKind?: ProfileKind }) {
   const { bars, profile, partial } = model;
-  const [profileKind, setProfileKind] = useState<"delta" | "volume">("delta");
+  const [localKind, setLocalKind] = useState<ProfileKind>("delta");
+  const profileKind = controlled ?? localKind;
   const [selected, setSelected] = useState<{ bar: number; idx: number }>();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(false);
@@ -42,33 +48,39 @@ export function FootprintChart({ model, step }: { model: FootprintModel; step: n
   const selectedBar = bars.findIndex((b) => b.t0 === selected?.bar);
   const selectedLevel = selected && byBar[selectedBar]?.get(selected.idx);
   return <section aria-label="Graphique Footprint" data-testid="footprint-chart">
-    <label className="fp-profile-choice">Profil <select value={profileKind} onChange={(e) => setProfileKind(e.target.value as "delta" | "volume")}>
+    {controlled == null && <label className="fp-profile-choice">Profil <select value={profileKind} onChange={(e) => setLocalKind(e.target.value === "volume" ? "volume" : "delta")}>
       <option value="delta">Delta (Ask − Bid)</option>
       <option value="volume">Volume</option>
-    </select></label>
+    </select></label>}
     {overflow && <nav aria-label="Navigation des bougies">
       <button type="button" onClick={() => page(-1)} aria-label="Bougies précédentes">‹</button>
       <button type="button" onClick={() => page(1)} aria-label="Bougies suivantes">›</button>
       <button type="button" onClick={() => scrollRef.current?.scrollTo({ left: scrollRef.current.scrollWidth })}>Dernière</button>
     </nav>}
     <div className="fp-chart-scroll" tabIndex={0} ref={scrollRef} data-testid="footprint-chart-scroll" aria-label="Graphique Footprint : déplacement horizontal et vertical">
-      <div className="fp-chart-grid" style={{ gridTemplateColumns: `max-content repeat(${bars.length}, minmax(max-content,1fr)) 76px` }}>
-        <b className="fp-head">Prix</b>
+      <div className="fp-chart-grid" style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(max-content,1fr)) max-content 76px` }}>
         {bars.map((b, i) => <strong key={b.t0} className="fp-head" data-bar={b.t0} data-open={b.open} data-high={b.high} data-low={b.low} data-close={b.close}
           title={`O ${b.open} · H ${b.high} · B ${b.low} · C ${b.close} · extrêmes observés sur la capture`}>{hhmm(b.t0)}{partial[i] && " · partiel"}</strong>)}
-        <b className="fp-head fp-right" data-profile={profileKind}>{profileKind === "delta" ? "Δ Ask − Bid" : "Volume"}</b>
+        <b className="fp-head fp-price">Prix</b>
+        <b className="fp-head fp-right" data-profile={profileKind}>{profileKind === "delta" ? "Δ Ask−Bid" : "Volume"}</b>
         {Array.from({ length: hiIdx - loIdx + 1 }, (_, k) => {
           const idx = hiIdx - k;
           const value = profileByIdx.get(idx)?.[profileKind] ?? 0;
           return <React.Fragment key={idx}>
-            <b>{num.format(idx * step)}</b>
             {bars.map((b, i) => {
               const level = byBar[i].get(idx);
               const inRange = idx >= b.loIdx && idx <= b.hiIdx;
-              const inBody = idx >= Math.min(b.openIdx, b.closeIdx) && idx <= Math.max(b.openIdx, b.closeIdx);
+              const bodyTop = Math.max(b.openIdx, b.closeIdx);
+              const bodyBottom = Math.min(b.openIdx, b.closeIdx);
+              const inBody = idx >= bodyBottom && idx <= bodyTop;
+              const part = !inRange ? undefined : inBody ? "body" : "wick";
+              const up = b.closeIdx >= b.openIdx;
               return <div key={b.t0} className="fp-chart-cell" data-active={selectedBar === i || selected?.idx === idx}
-                data-bar={b.t0} data-idx={idx} data-bid={level?.bid} data-ask={level?.ask} data-unc={level?.unc}>
-                {inRange && <i className={inBody ? "fp-body" : ""} data-partial={partial[i]} data-up={b.closeIdx >= b.openIdx} />}
+                data-bar={b.t0} data-idx={idx} data-bid={level?.bid} data-ask={level?.ask} data-unc={level?.unc}
+                data-part={part} data-up={inRange ? up : undefined} data-partial={inRange ? partial[i] : undefined}
+                data-edge={inBody ? [idx === bodyTop && "top", idx === bodyBottom && "bottom"].filter(Boolean).join(" ") || undefined : undefined}>
+                {inRange && <i className="fp-wick" data-end={idx === b.hiIdx && idx === b.loIdx ? "both" : idx === b.hiIdx ? "high" : idx === b.loIdx ? "low" : undefined} />}
+                {inBody && <i className="fp-body" />}
                 {level && <button type="button" onClick={() => setSelected({ bar: b.t0, idx })}
                   aria-label={`${hhmm(b.t0)} · ${idx * step} · Bid ${level.bid} · Ask ${level.ask} · non classé ${level.unc}`}>
                   <span style={{ backgroundColor: `color-mix(in srgb,var(--fp-sell) ${10 + 35 * Math.sqrt(level.bid / maxCell)}%,transparent)` }}
@@ -79,6 +91,7 @@ export function FootprintChart({ model, step }: { model: FootprintModel; step: n
                 </button>}
               </div>;
             })}
+            <b className="fp-price" data-idx={idx}>{num.format(idx * step)}</b>
             <b data-idx={idx} data-volume={profileByIdx.get(idx)?.volume} data-delta={profileByIdx.get(idx)?.delta} data-poc={profile.pocVolume?.idx === idx}
               data-profile={profileKind} className="fp-profile-track" title={profileByIdx.get(idx) ? `Δ ${profileByIdx.get(idx)!.delta} · Volume ${profileByIdx.get(idx)!.volume}` : undefined}>
               <i style={{
@@ -92,12 +105,12 @@ export function FootprintChart({ model, step }: { model: FootprintModel; step: n
           </React.Fragment>;
         })}
         {STAT_ROWS.map((label, r) => <React.Fragment key={label}>
-          <b className="fp-stat" data-stat={label} style={{ bottom: (STAT_ROWS.length - 1 - r) * 20 }}>{label}</b>
           {bars.map((b) => {
             const value = r === 4 ? null : [b.deltaChg, b.delta, b.dltaDay, b.volume][r];
-            return <strong key={b.t0} className="fp-stat" data-stat={label} data-bar={b.t0} data-value={value ?? undefined} style={{ bottom: (STAT_ROWS.length - 1 - r) * 20 }}>
+            return <strong key={b.t0} className="fp-stat" data-stat={label} data-bar={b.t0} data-value={value ?? undefined} data-sign={r < 3 ? sign(value) : undefined} style={{ bottom: (STAT_ROWS.length - 1 - r) * 20 }}>
               {r === 4 ? hhmm(b.t0) : value == null ? "—" : num.format(value)}{r === 2 && b.sessionPartial && " *"}</strong>;
           })}
+          <b className="fp-stat fp-price" data-stat={label} style={{ bottom: (STAT_ROWS.length - 1 - r) * 20 }}>{label}</b>
           <b className="fp-stat fp-right" style={{ bottom: (STAT_ROWS.length - 1 - r) * 20 }} />
         </React.Fragment>)}
       </div>

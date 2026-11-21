@@ -20,6 +20,16 @@ describe("graphique Footprint", () => {
     expect(stat(container, "DeltaChg")).toEqual(["—", "-24 105"]);
     expect(stat(container, "DltaDay")).toEqual(["8 960 *", "-6 185 *"]);
     expect(stat(container, "UTC")).toEqual(["20:25", "20:30"]);
+    const signs = (label: string) => [...container.querySelectorAll<HTMLElement>(`strong.fp-stat[data-stat="${label}"]`)].map((e) => e.dataset.sign);
+    expect(signs("Delta")).toEqual(["pos", "neg"]);
+    expect(signs("DeltaChg")).toEqual([undefined, "neg"]);
+    expect(signs("DltaDay")).toEqual(["pos", "neg"]);
+    // Axe des prix à droite, juste avant le profil, sur chaque ligne de prix.
+    const grid = container.querySelector(".fp-chart-grid")!;
+    for (const price of grid.querySelectorAll<HTMLElement>("b.fp-price[data-idx]")) {
+      expect(price.nextElementSibling?.classList.contains("fp-profile-track")).toBe(true);
+      expect(price.textContent!.replace(/[\u202f\u00a0]/g, " ")).toBe(new Intl.NumberFormat("fr-FR").format(Number(price.dataset.idx)).replace(/[\u202f\u00a0]/g, " "));
+    }
     expect(screen.getByText("* DltaDay cumulé depuis le début de la capture.")).toBeInTheDocument();
     expect(container.querySelectorAll(".fp-head[data-bar]")).toHaveLength(2);
     expect([...container.querySelectorAll(".fp-head[data-bar]")].map((h) => h.textContent)).toEqual(["20:25 · partiel", "20:30 · partiel"]);
@@ -34,11 +44,16 @@ describe("graphique Footprint", () => {
     for (const c of cells(container)) {
       const bar = model.bars.find((b) => String(b.t0) === c.dataset.bar)!;
       const idx = Number(c.dataset.idx);
-      const lane = c.querySelector("i");
-      // Mèche jusqu'aux extrêmes observés, corps entre ouverture et clôture.
-      expect(!!lane).toBe(idx >= bar.loIdx && idx <= bar.hiIdx);
-      if (lane) expect(lane.classList.contains("fp-body")).toBe(idx >= Math.min(bar.openIdx, bar.closeIdx) && idx <= Math.max(bar.openIdx, bar.closeIdx));
-      if (lane) expect(lane.dataset.partial).toBe("true");
+      const inRange = idx >= bar.loIdx && idx <= bar.hiIdx;
+      const inBody = idx >= Math.min(bar.openIdx, bar.closeIdx) && idx <= Math.max(bar.openIdx, bar.closeIdx);
+      // Mèche jusqu'aux extrêmes observés, corps (boîte) entre ouverture et clôture.
+      expect(!!c.querySelector(".fp-wick")).toBe(inRange);
+      expect(!!c.querySelector(".fp-body")).toBe(inBody);
+      expect(c.dataset.part).toBe(inRange ? (inBody ? "body" : "wick") : undefined);
+      if (inRange) expect(c.dataset.up).toBe(String(bar.closeIdx >= bar.openIdx));
+      if (inRange) expect(c.dataset.partial).toBe("true");
+      if (idx === bar.hiIdx) expect(c.querySelector(".fp-wick")!.getAttribute("data-end")).toMatch(/high|both/);
+      if (idx === bar.loIdx) expect(c.querySelector(".fp-wick")!.getAttribute("data-end")).toMatch(/low|both/);
     }
   });
 
@@ -63,7 +78,7 @@ describe("graphique Footprint", () => {
     const { container } = render(<FootprintChart model={model} step={1} />);
     const tracks = () => [...container.querySelectorAll<HTMLElement>(".fp-profile-track")];
     expect(tracks().every((t) => t.dataset.profile === "delta")).toBe(true);
-    expect(container.querySelector(".fp-head[data-profile]")).toHaveTextContent("Δ Ask − Bid");
+    expect(container.querySelector(".fp-head[data-profile]")).toHaveTextContent("Δ Ask−Bid");
     for (const t of tracks()) {
       const l = model.profile.levels.find((x) => String(x.idx) === t.dataset.idx);
       // Convention affichée : Δ = Ask − Bid, valeur exacte du modèle sur la fenêtre affichée.

@@ -35,7 +35,7 @@ try {
         const widths = firstRow.map((c) => Math.round(c.getBoundingClientRect().width));
         const sr = scroller.getBoundingClientRect();
         scroller.scrollLeft = scroller.scrollWidth;
-        const axisAfter = grid.querySelector("b").getBoundingClientRect().left;
+        const axisAfter = grid.querySelector("b.fp-price[data-idx]").getBoundingClientRect().left;
         const profAfter = grid.querySelector(".fp-profile-track").getBoundingClientRect().right;
         const lastCellRight = firstRow.at(-1).getBoundingClientRect().right;
         const ok = {
@@ -46,7 +46,7 @@ try {
           espacementRegulier: Math.max(...widths) - Math.min(...widths) <= 1 && Math.min(...widths) >= 82,
           axeVisibleApresDeplacement: axisAfter >= sr.left - 1,
           profilVisibleApresDeplacement: profAfter <= sr.right + 1,
-          derniereBougieAtteignable: lastCellRight <= sr.right + 1,
+          derniereBougieAtteignable: lastCellRight <= axisAfter + 1,
           banniereSynthetic: document.querySelector('[data-testid="synthetic-banner"]').textContent.startsWith("SYNTHETIC"),
         };
         scroller.scrollLeft = 0;

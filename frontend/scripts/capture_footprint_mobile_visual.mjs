@@ -15,7 +15,7 @@ const base = process.env.FOOTPRINT_VISUAL_BASE_URL || "http://127.0.0.1:4173";
 const out = process.env.FOOTPRINT_VISUAL_OUT_DIR || "artifacts/footprint-mobile";
 const REPLAY = "/observations/footprint/mexc-btc_usdt-perp-replay-v1.json";
 // Commandes du panneau (hors cellules du graphique, qui défilent dans leur propre zone).
-const CONTROLS = ".footprint-actions button, .footprint-actions select, .footprint-controls select, .fp-profile-choice select, [data-testid=footprint-chart] nav button";
+const CONTROLS = ".footprint-actions button, .footprint-actions select, .footprint-controls select, [data-testid=footprint-chart] nav button";
 const REPLAY_SHA256 = "a41c608814c02a10e5a9369b11806196b770ad578db0d5037368413c4cce391f";
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 
@@ -89,17 +89,31 @@ async function chartChecks(page) {
       const s = [...grid.querySelectorAll(`strong.fp-stat[data-stat="${label}"]`)];
       return s.length === firstBarCells.length && s.every((e, i) => near(e.getBoundingClientRect().left, firstBarCells[i].getBoundingClientRect().left));
     });
-    const before = { axis: grid.querySelector("b").getBoundingClientRect().left, prof: grid.querySelector(".fp-profile-track").getBoundingClientRect().right };
-    scroller.scrollLeft = scroller.scrollWidth;
+    const axisEl = () => grid.querySelector("b.fp-price[data-idx]");
+    const before = { axis: axisEl().getBoundingClientRect().left, prof: grid.querySelector(".fp-profile-track").getBoundingClientRect().right };
     const sr = scroller.getBoundingClientRect();
-    const after = { axis: grid.querySelector("b").getBoundingClientRect().left, prof: grid.querySelector(".fp-profile-track").getBoundingClientRect().right };
-    scroller.scrollLeft = 0;
+    const rect = (sel) => grid.querySelector(sel).getBoundingClientRect();
+    const allCells = [...grid.querySelectorAll(".fp-chart-cell")];
+    const lastBarCell = allCells.filter((c) => c.dataset.bar === allCells.at(-1).dataset.bar)[0];
+    const lowestRow = allCells.at(-1);
+    // Extrémités du défilement : début, fin horizontale et basse, aucune bougie masquée
+    // par l'axe, le profil, l'en-tête ou les statistiques collés.
+    scroller.scrollLeft = 0; scroller.scrollTop = 0;
+    const startOk = allCells[0].getBoundingClientRect().left >= sr.left - 1 && allCells[0].getBoundingClientRect().top >= rect(".fp-head").bottom - 1;
+    scroller.scrollLeft = scroller.scrollWidth; scroller.scrollTop = scroller.scrollHeight;
+    const after = { axis: axisEl().getBoundingClientRect().left, prof: grid.querySelector(".fp-profile-track").getBoundingClientRect().right };
+    const endOk = lastBarCell.getBoundingClientRect().right <= after.axis + 1 && lowestRow.getBoundingClientRect().bottom <= rect("strong.fp-stat").top + 1
+      && after.axis >= sr.left - 1 && after.prof <= sr.right + 1;
+    scroller.scrollLeft = 0; scroller.scrollTop = 0;
     const fontPx = parseFloat(getComputedStyle(grid).fontSize);
     return {
       pasDeDebordementPage: doc.scrollWidth <= doc.clientWidth,
       profilAligneSurPrix: rowTops.length === profTops.length && rowTops.every((t, i) => near(t, profTops[i])),
       statistiquesSousBougies: statsAligned,
-      axeEtProfilVisibles: near(before.axis, after.axis) && after.axis >= sr.left - 1 && after.prof <= sr.right + 1,
+      axeEtProfilVisibles: near(before.axis, after.axis) && near(before.prof, after.prof) && after.axis >= sr.left - 1 && after.prof <= sr.right + 1,
+      axePrixADroiteContreProfil: near(axisEl().getBoundingClientRect().right, grid.querySelector(".fp-profile-track").getBoundingClientRect().left),
+      debutDuDefilement: startOk,
+      finDuDefilement: endOk,
       chiffresLisibles: fontPx >= 11,
     };
   });

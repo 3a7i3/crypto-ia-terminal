@@ -45,9 +45,14 @@ describe("panneau Footprint · vue unique BTC_USDT", () => {
     expect(screen.getByTestId("footprint-row-Delta")).toHaveTextContent(/\+400.*-50.*-70/);
     expect(screen.getByTestId("footprint-row-DltaDay")).toHaveTextContent(/\+400 \*.*\+350 \*.*\+280 \*/);
     expect(screen.getByTestId("footprint-profile-summary")).toHaveTextContent("DltaDay partiel");
-    // Réglages compacts : période, pas et nombre de bougies dans un même groupe.
+    // Réglages compacts : période, pas, nombre de bougies et profil dans une même rangée.
     const controls = screen.getByRole("group", { name: "Réglages du tableau" });
-    expect(within(controls).getAllByRole("combobox")).toHaveLength(3);
+    expect(within(controls).getAllByRole("combobox")).toHaveLength(4);
+    // Le profil du graphique est piloté depuis cette rangée (aucun menu en double dans le graphique).
+    expect(within(screen.getByTestId("footprint-chart")).queryByRole("combobox")).toBeNull();
+    fireEvent.change(within(controls).getByRole("combobox", { name: "Profil" }), { target: { value: "volume" } });
+    expect(screen.getByTestId("footprint-chart").querySelector(".fp-head[data-profile]")).toHaveTextContent("Volume");
+    fireEvent.change(within(controls).getByRole("combobox", { name: "Profil" }), { target: { value: "delta" } });
     fireEvent.change(screen.getByLabelText("Pas des niveaux"), { target: { value: "10" } });
     expect(screen.getByTestId("footprint-row-Delta")).toHaveTextContent(/\+400.*-50.*-70/);
     expect(fetchImpl).toHaveBeenCalledTimes(1);

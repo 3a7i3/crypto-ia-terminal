@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { validateTrade } from "../lib/footprintEngine";
 import { IMB, buildFootprintModel } from "../lib/footprintModel";
-import { FootprintChart } from "./FootprintChart";
+import { FootprintChart, type ProfileKind } from "./FootprintChart";
 import { FOOTPRINT_REPLAY_SHA256, loadFootprintReplay, type FootprintReplay, type FootprintReplayState } from "../lib/footprintReplay";
 import "../footprint.css";
 
@@ -51,7 +51,7 @@ export function autoStepMultiplier(tick: number, lo: number, hi: number, targetR
   return STEP_MULTIPLIERS.find((m) => (hi - lo) / (tick * m) <= targetRows) ?? STEP_MULTIPLIERS[STEP_MULTIPLIERS.length - 1];
 }
 
-const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; visible: number }> = ({ replay, tfMs, step, visible }) => {
+const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; visible: number; profileKind: ProfileKind }> = ({ replay, tfMs, step, visible, profileKind }) => {
   const model = useMemo(() => buildFootprintModel(replay, tfMs, step, visible), [replay, tfMs, step, visible]);
   const { snap, bars, gaps, profile } = model;
   if (bars.length === 0) return <p data-testid="footprint-empty">Aucune bougie : aucune transaction valide dans le rejeu.</p>;
@@ -64,7 +64,7 @@ const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; vi
   const priceDigits = Math.max(0, -Math.floor(Math.log10(step)) + 1);
   const priceOf = (idx: number) => (idx * step).toLocaleString("fr-FR", { minimumFractionDigits: Math.min(priceDigits, 8), maximumFractionDigits: Math.min(priceDigits, 8) });
   return <>
-    {rows <= MAX_LADDER_ROWS && <FootprintChart model={model} step={step} />}
+    {rows <= MAX_LADDER_ROWS && <FootprintChart model={model} step={step} profileKind={profileKind} />}
     <details open={rows > MAX_LADDER_ROWS || undefined}>
     <summary>Valeurs exactes</summary>
     <div className="footprint-scroll" data-testid="footprint-scroll" tabIndex={0} aria-label="Footprint Bid × Ask par niveau">
@@ -138,6 +138,7 @@ const CaptureView: React.FC<{ state: FootprintReplayState; onRetry: () => void }
   const [tfMs, setTfMs] = useState(PERIODS[1].ms);
   const [stepChoice, setStepChoice] = useState<"auto" | number>("auto");
   const [visible, setVisible] = useState(12);
+  const [profileKind, setProfileKind] = useState<ProfileKind>("delta");
   const replay = state.status === "ready" ? state.replay : null;
   const quality = useMemo(() => replay ? nativeQuality(replay) : null, [replay]);
   if (state.status === "idle" || state.status === "loading") {
@@ -187,8 +188,12 @@ const CaptureView: React.FC<{ state: FootprintReplayState; onRetry: () => void }
         {STEP_MULTIPLIERS.map((m) => <option key={m} value={m}>{fmt(r.tick_size * m, 8)}</option>)}
       </select></label>
       <label>Bougies<select value={visible} onChange={(e) => setVisible(Number(e.target.value))}>{VISIBLE_COUNTS.map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
+      <label>Profil<select value={profileKind} onChange={(e) => setProfileKind(e.target.value === "volume" ? "volume" : "delta")}>
+        <option value="delta">Delta (Ask − Bid)</option>
+        <option value="volume">Volume</option>
+      </select></label>
     </div>
-    <Ladder replay={r} tfMs={tfMs} step={step} visible={visible} />
+    <Ladder replay={r} tfMs={tfMs} step={step} visible={visible} profileKind={profileKind} />
   </>;
 };
 

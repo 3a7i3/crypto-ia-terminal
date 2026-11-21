@@ -81,34 +81,52 @@
 .footprint-coverage-line { margin: 4px 0 0; font-size: 12px !important; line-height: 1.5 !important; color: var(--fp-text) !important; }
 .footprint-details { margin-top: 2px; }
 .footprint-details summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-size: 14px; color: var(--fp-accent); }
-/* Graphique Footprint : axe des prix et profil collés, statistiques collées en bas. */
-.fp-chart-scroll { max-height: 70vh; margin-block: .5rem; overflow: auto; }
-.fp-chart-grid { font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; font: 11px/1.4 monospace; display: grid; }
-.fp-chart-grid > * { border-bottom: 1px solid var(--fp-border); min-height: 18px; }
-.fp-chart-grid b { z-index: 1; background: var(--fp-bg); padding-inline: 3px; position: sticky; left: 0; }
+/* Graphique Footprint (maquette) : bougies en boîtes, axe des prix à droite collé au profil,
+   statistiques collées en bas. Le déplacement reste confiné au graphique. */
+.fp-chart-scroll { max-height: 70vh; margin-block: .5rem; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--fp-border); border-radius: 6px; }
+.fp-chart-grid { --fp-profile-w: 76px; font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; font: 11px/1.4 monospace; display: grid; }
+.fp-chart-grid > * { border-bottom: 1px solid color-mix(in srgb, var(--fp-border) 60%, transparent); min-height: 18px; }
+.fp-chart-grid b { z-index: 1; background: var(--fp-bg); padding-inline: 4px; position: sticky; }
 .fp-chart-grid strong { text-align: center; }
-.fp-chart-cell { text-align: center; padding-left: 8px; position: relative; }
-/* Mèche (1 px) et corps OHLC (5 px), en teintes neutres distinctes du rouge/vert des volumes. */
-.fp-chart-cell i { left: 4px; border-left: 1px solid #778696; position: absolute; inset-block: 0; }
-.fp-chart-cell .fp-body { border-width: 5px; }
-.fp-chart-cell i[data-up=false] { border-color: #94796e; }
-.fp-chart-cell i[data-partial=true] { border-left-style: dashed; }
-.fp-chart-cell button { font: inherit; color: inherit; cursor: pointer; background: 0 0; border: 0; padding: 1px 3px; }
+/* Axe des prix : colonne collée à droite, juste avant le profil. */
+.fp-chart-grid .fp-price { right: var(--fp-profile-w); text-align: right; color: var(--fp-text-sec); font-weight: 600; border-left: 1px solid var(--fp-border); white-space: nowrap; }
+.fp-chart-grid .fp-profile-track, .fp-chart-grid .fp-right { right: 0; }
+.fp-chart-grid .fp-right { border-left: 1px solid var(--fp-border); }
+/* Bougie : mèche fine (2 px) avec butées aux extrêmes, corps encadré entre ouverture et clôture. */
+.fp-chart-cell { min-width: 82px; text-align: center; padding-inline: 10px; position: relative; }
+.fp-chart-cell[data-up=true] { --fp-candle: var(--fp-buy); }
+.fp-chart-cell[data-up=false] { --fp-candle: var(--fp-sell); }
+.fp-chart-cell .fp-wick { position: absolute; left: 50%; width: 2px; margin-left: -1px; inset-block: 0 -1px; background: var(--fp-candle); }
+.fp-chart-cell .fp-wick[data-end=high] { top: 50%; }
+.fp-chart-cell .fp-wick[data-end=low] { bottom: 50%; }
+.fp-chart-cell .fp-wick[data-end=both] { top: 50%; bottom: 50%; }
+.fp-chart-cell .fp-wick[data-end]::before { content: ""; position: absolute; left: -6px; width: 14px; height: 2px; background: var(--fp-candle); }
+.fp-chart-cell .fp-wick[data-end=high]::before, .fp-chart-cell .fp-wick[data-end=both]::before { top: -1px; }
+.fp-chart-cell .fp-wick[data-end=low]::before { bottom: -1px; }
+.fp-chart-cell .fp-body { position: absolute; inset-block: 0 -1px; inset-inline: max(4px, calc(50% - 50px)); background: color-mix(in srgb, var(--fp-candle) 10%, var(--fp-bg)); border-inline: 2px solid var(--fp-candle); }
+.fp-chart-cell[data-edge~=top] .fp-body { top: 2px; border-top: 2px solid var(--fp-candle); border-radius: 3px 3px 0 0; }
+.fp-chart-cell[data-edge~=bottom] .fp-body { bottom: 2px; border-bottom: 2px solid var(--fp-candle); border-radius: 0 0 3px 3px; }
+.fp-chart-cell[data-edge="top bottom"] .fp-body { border-radius: 3px; }
+/* Fenêtre partielle : signalée dans l'en-tête de la bougie ; le corps garde un trait plein. */
+.fp-chart-cell button { position: relative; z-index: 1; font: inherit; color: inherit; cursor: pointer; background: 0 0; border: 0; border-radius: 3px; padding: 1px 3px; white-space: nowrap; min-height: 18px; }
+/* Cellule posée sur la mèche : pastille opaque cerclée de la couleur de la bougie. */
+.fp-chart-cell[data-part=wick] button { background: var(--fp-bg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fp-candle) 70%, transparent); min-height: 14px; line-height: 12px; margin-block: 2px; }
 .fp-chart-cell button span:first-child { background: color-mix(in srgb,var(--fp-sell) 16%,transparent); }
 .fp-chart-cell button span:last-child { background: color-mix(in srgb,var(--fp-buy) 16%,transparent); }
-.fp-chart-grid .fp-profile-track { left: auto; right: 0; }
 .fp-profile-track i { height: 60%; position: absolute; top: 20%; }
-.fp-chart-cell button { white-space: nowrap; min-height: 18px; }
-.fp-chart-cell[data-active=true], .fp-profile-track[data-poc=true] { background: var(--fp-poc); }
-.fp-chart-cell span[data-stacked=true] { outline: 2px solid; }
+.fp-chart-cell[data-active=true] { box-shadow: inset 0 0 0 999px var(--fp-poc); }
+.fp-profile-track[data-poc=true] { background: var(--fp-poc); }
 .fp-chart-grid .fp-stat, .fp-chart-grid .fp-head { background: var(--fp-bg-soft); z-index: 2; position: sticky; }
-.fp-chart-grid .fp-head { top: 0; }
+.fp-chart-grid .fp-head { top: 0; white-space: nowrap; }
+.fp-chart-grid b.fp-head, .fp-chart-grid b.fp-stat { z-index: 3; }
 .fp-chart-grid .fp-stat { height: 20px; }
-.fp-chart-grid .fp-right { left: auto; right: 0; }
-.fp-chart-cell { min-width: 82px; }
-.fp-chart-grid .fp-head { white-space: nowrap; }
+/* Statistiques colorées par signe ; Volume en teinte neutre. */
+.fp-chart-grid strong.fp-stat[data-sign=pos] { color: var(--fp-buy); background: color-mix(in srgb, var(--fp-buy) 12%, var(--fp-bg-soft)); }
+.fp-chart-grid strong.fp-stat[data-sign=neg] { color: var(--fp-sell); background: color-mix(in srgb, var(--fp-sell) 12%, var(--fp-bg-soft)); }
+.fp-chart-grid .fp-stat[data-stat=Volume] { background: color-mix(in srgb, var(--fp-accent) 10%, var(--fp-bg-soft)); }
+.fp-chart-grid b.fp-stat { color: var(--fp-text); text-align: left; }
 .fp-chart-scroll:focus-visible, .fp-chart-cell button:focus-visible { outline: 2px solid var(--fp-accent); }
-/* Lot graphique : imbalances encadrées côté marqué par le moteur, empilées en trait double. */
+/* Imbalances encadrées côté marqué par le moteur, empilées en trait double. */
 .fp-chart-cell span[data-imb] { outline: 1px solid currentColor; outline-offset: -1px; border-radius: 2px; }
 .fp-chart-cell span[data-imb][data-stacked=true] { outline: 3px double currentColor; outline-offset: -3px; }
 /* Profil Delta : barres signées autour de l'axe zéro ; profil Volume : POC identifié. */
@@ -116,7 +134,7 @@
 .fp-poc-tag { position: absolute; right: 2px; top: 0; font-size: 10px; font-weight: 700; color: var(--fp-accent); }
 .fp-chart-grid .fp-head[data-profile] { text-align: center; }
 .fp-profile-choice { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fp-text-sec); }
-.footprint-panel [data-testid=footprint-chart] nav { display: inline-flex; gap: 6px; margin-left: 8px; }
+.footprint-panel [data-testid=footprint-chart] nav { display: inline-flex; gap: 6px; margin-top: 6px; }
 .footprint-live { margin: 6px 0 0; font-size: 12px !important; }
 /* Plein écran : le graphique occupe la hauteur disponible, le déplacement reste interne. */
 .footprint-panel.footprint-fullscreen .fp-chart-scroll, .footprint-panel:fullscreen .fp-chart-scroll { max-height: max(240px, calc(100dvh - 72px)); }
