@@ -5,11 +5,15 @@ import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
 import { microstructureFixture } from "./marketMicrostructureFixtures";
 
 const jsonResponse = (body: unknown, status = 200) => ({ ok: status === 200, status, json: async () => body } as Response);
+// Le panneau Footprint lit sa capture figée (fichier statique) à l'ouverture ; ces tests
+// portent sur la source LMI seule : la capture est routée à part et reste en attente.
+const lmiOnly = (mock: (url: RequestInfo | URL, init?: RequestInit) => Promise<unknown>) =>
+  vi.fn((url: RequestInfo | URL, init?: RequestInit) => String(url).startsWith("/observations/footprint/") ? new Promise<Response>(() => undefined) : mock(url, init) as Promise<Response>);
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("U3b LMI presentation", () => {
   it("distinguishes real zero, missing measures, source freshness and per-symbol freshness", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(microstructureFixture())));
+    vi.stubGlobal("fetch", lmiOnly(vi.fn().mockResolvedValue(jsonResponse(microstructureFixture()))));
     render(<MarketMicrostructureView />);
     await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
     const [btc, eth, unavailable] = screen.getAllByTestId("microstructure-row");
@@ -26,7 +30,7 @@ describe("U3b LMI presentation", () => {
 
   it("preserves a positive tiny price in display rather than rounding it to zero", async () => {
     const doc = microstructureFixture(); doc.rows[0].price = 0.00000001;
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(doc)));
+    vi.stubGlobal("fetch", lmiOnly(vi.fn().mockResolvedValue(jsonResponse(doc))));
     render(<MarketMicrostructureView />);
     await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
     expect(within(screen.getAllByTestId("microstructure-row")[0]).getByText("Prix observé").nextElementSibling).toHaveTextContent("0,00000001");
@@ -34,7 +38,7 @@ describe("U3b LMI presentation", () => {
 
   it("filters literal symbols and notable observations without refetch or recomputation", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(microstructureFixture()));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", lmiOnly(fetchMock));
     render(<MarketMicrostructureView />);
     await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
     fireEvent.click(screen.getByRole("checkbox"));
@@ -52,7 +56,7 @@ describe("U3b LMI presentation", () => {
     const doc = microstructureFixture();
     doc.unit_contract_source = "fallback"; doc.unit_contract_degraded = true;
     doc.rows[0].observed_at_utc = null; doc.rows[0].observation_age_s = null; doc.rows[0].freshness_classification = "UNKNOWN";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(doc)));
+    vi.stubGlobal("fetch", lmiOnly(vi.fn().mockResolvedValue(jsonResponse(doc))));
     render(<MarketMicrostructureView />);
     await waitFor(() => expect(screen.getByTestId("microstructure-units")).toHaveTextContent("DÉGRADÉES"));
     expect(screen.getAllByTestId("microstructure-row")[0]).toHaveTextContent("état actuel INCONNU");
@@ -66,7 +70,7 @@ describe("U3b LMI presentation", () => {
   it("keeps LMI available when Scanner and Advisor are unavailable", async () => {
     window.history.replaceState({}, "", "/paper-live/market");
     const fetchMock = vi.fn((url) => Promise.resolve(String(url).endsWith("/market-microstructure") ? jsonResponse(microstructureFixture()) : new Response(JSON.stringify({ error_code: "SOURCE_NOT_DEPLOYED" }), { status: 503, headers: { "content-type": "application/json" } })));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", lmiOnly(fetchMock));
     render(<App />);
     expect(await screen.findByTestId("market-source-not-configured")).toHaveTextContent("Source Radar Spot non déployée");
     fireEvent.click(screen.getByRole("tab", { name: "Microstructure" }));
@@ -76,7 +80,7 @@ describe("U3b LMI presentation", () => {
   });
 
   it.each(["api", "invalid", "network"])("keeps %s failures explicit without zero coverage", async (kind) => {
-    vi.stubGlobal("fetch", kind === "network" ? vi.fn().mockRejectedValue(new Error("offline")) : vi.fn().mockResolvedValue(kind === "api" ? jsonResponse({ error_code: "MICROSTRUCTURE_MISSING" }, 503) : jsonResponse({ product: "MarketMicrostructureSnapshot" })));
+    vi.stubGlobal("fetch", lmiOnly(kind === "network" ? vi.fn().mockRejectedValue(new Error("offline")) : vi.fn().mockResolvedValue(kind === "api" ? jsonResponse({ error_code: "MICROSTRUCTURE_MISSING" }, 503) : jsonResponse({ product: "MarketMicrostructureSnapshot" }))));
     render(<MarketMicrostructureView />);
     await waitFor(() => expect(screen.getByTestId("microstructure-status")).toHaveTextContent("INCONNU"));
     await waitFor(() => expect(screen.getByTestId("microstructure-view")).not.toHaveTextContent("Chargement"));
@@ -87,7 +91,7 @@ describe("U3b LMI presentation", () => {
   it("replaces a success on polling failure and aborts/unsubscribes on unmount", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(microstructureFixture())).mockResolvedValue(jsonResponse({ error_code: "MICROSTRUCTURE_MISSING" }, 503));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", lmiOnly(fetchMock));
     const view = render(<MarketMicrostructureView />);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3);
@@ -104,7 +108,7 @@ describe("U3b LMI presentation", () => {
   it("bounds network wait and never overlaps polling requests", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn((_url, { signal }) => new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(new Error("aborted")))));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", lmiOnly(fetchMock));
     render(<MarketMicrostructureView />);
     await act(async () => { await vi.advanceTimersByTimeAsync(4_999); });
     expect(fetchMock).toHaveBeenCalledTimes(1);

@@ -1,24 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CHANNELS, FootprintBuilder, profileOf, validateTrade } from "../lib/footprintEngine";
-import { loadFootprintReplay, type FootprintReplay, type FootprintReplayState } from "../lib/footprintReplay";
+import { FootprintBuilder, profileOf, validateTrade } from "../lib/footprintEngine";
+import { FOOTPRINT_REPLAY_SHA256, loadFootprintReplay, type FootprintReplay, type FootprintReplayState } from "../lib/footprintReplay";
 import "../footprint.css";
 
-// Panneau Footprint de la vue Microstructure.
-// - Temps réel : « Panneau non alimenté » tant que le symbole n'est pas admis.
-//   Aucun flux n'est branché ici ; l'admission relève d'une décision gouvernée.
-// - Démo historique : rejeu d'un fichier statique de transactions, avec sa
-//   provenance et sa couverture partielle visibles.
+// Panneau Footprint de la vue Microstructure : vue unique BTC_USDT.
+// À l'ouverture, le panneau lit la capture MEXC figée livrée avec la release
+// (vérifiée par SHA-256) et affiche un seul tableau. Aucun flux temps réel n'est
+// branché ici ; un branchement futur relève d'une décision gouvernée distincte.
 // Observation passive : aucun signal, aucun ordre, aucune autorité.
 
 export const FOOTPRINT_SYMBOL_LABEL = "BTC_USDT · perpétuel · MEXC";
-/** Symboles admis au temps réel. Vide tant que les critères d'admission ne sont pas validés. */
-export const FOOTPRINT_ADMITTED_SYMBOLS: readonly string[] = Object.freeze([]);
-export const FOOTPRINT_PENDING_GATES = Object.freeze([
-  "Critères d'admission du symbole",
-  "Réglages IMB (pourcentage, minimum, empilement)",
-  "Session crypto (heure de remise à zéro de DltaDay)",
-  "Contrat du flux de transactions (côté agresseur, unités, lacunes)",
-]);
 // Réglages par défaut du moteur, affichés tels quels : ils ne sont pas validés.
 const IMB = Object.freeze({ imbPct: 150, imbMin: 50, stackN: 3, imbMinSide: "dominant" as const });
 const PERIODS = [
@@ -140,44 +131,49 @@ const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; vi
     </div>
     <p className="footprint-legend" data-testid="footprint-profile-summary">
       Bougies affichées : {bars.length} sur {snap.bars.length}. POC volume {profile.pocVolume ? priceOf(profile.pocVolume.idx) : "—"} · Delta extrême {profile.pocDelta ? `${priceOf(profile.pocDelta.idx)} (${signed(profile.pocDelta.delta)})` : "—"} · Delta cumulé affiché {signed(profile.totalDelta)}.
+      {" "}Niveaux au plancher du pas {fmt(step, 8)}.
       {bars.some((b) => b.sessionPartial) && " * DltaDay partiel : le cumul commence au début de la couverture, pas à l'ouverture de session (00:00 UTC)."}
     </p>
   </>;
 };
 
-const ReplayView: React.FC<{ state: FootprintReplayState; onRetry: () => void }> = ({ state, onRetry }) => {
+const UNAVAILABLE_DETAIL = (state: Exclude<FootprintReplayState, { status: "idle" | "loading" | "ready" }>) => {
+  if (state.status === "absent") return `Fichier non livré : ${state.detail}. Aucune donnée de remplacement n'est affichée.`;
+  if (state.status === "invalid") return `Fichier refusé : ${state.reason}. Rien n'est affiché à partir de ce fichier.`;
+  return `Lecture impossible : ${state.message}. Une panne de lecture n'est pas une absence de transactions.`;
+};
+
+const CaptureView: React.FC<{ state: FootprintReplayState; onRetry: () => void }> = ({ state, onRetry }) => {
   const [tfMs, setTfMs] = useState(PERIODS[1].ms);
   const [stepChoice, setStepChoice] = useState<"auto" | number>("auto");
   const [visible, setVisible] = useState(12);
   const replay = state.status === "ready" ? state.replay : null;
   const quality = useMemo(() => replay ? nativeQuality(replay) : null, [replay]);
-  if (state.status === "idle" || state.status === "loading") return <p role="status" data-testid="footprint-replay-status">Chargement du fichier de rejeu…</p>;
-  if (state.status === "absent") return <div className="footprint-notice" data-testid="footprint-replay-absent">
-    <strong>Démo historique indisponible · fichier de rejeu absent</strong>
-    <p>{state.detail}. Aucune donnée de remplacement n'est affichée.</p>
-  </div>;
-  if (state.status === "invalid") return <div className="footprint-notice" data-testid="footprint-replay-invalid">
-    <strong>Fichier de rejeu refusé · contrat invalide</strong><p>{state.reason}. Rien n'est affiché à partir de ce fichier.</p>
-  </div>;
-  if (state.status === "error") return <div className="footprint-notice" data-testid="footprint-replay-error">
-    <strong>Lecture du rejeu impossible</strong><p>{state.message}. Une panne de lecture n'est pas une absence de transactions.</p>
+  if (state.status === "idle" || state.status === "loading") {
+    return <p role="status" className="footprint-loading" data-testid="footprint-capture-loading">Chargement de la capture BTC_USDT…</p>;
+  }
+  if (state.status !== "ready") return <div className="footprint-notice" role="status" data-testid="footprint-capture-unavailable" data-reason={state.status}>
+    <strong>Capture indisponible</strong>
+    <p>{UNAVAILABLE_DETAIL(state)}</p>
     <button type="button" onClick={onRetry}>Réessayer</button>
   </div>;
-  const r = replay!; const q = quality!; const p = r.provenance;
+  const r = state.replay; const q = quality!; const p = r.provenance;
   const step = r.tick_size * (stepChoice === "auto" ? autoStepMultiplier(r.tick_size, q.lo, q.hi) : stepChoice);
   const from = Date.parse(p.coverage_from_utc); const to = Date.parse(p.coverage_to_utc);
   const rejectedTotal = Object.values(q.rejected).reduce((a, b) => a + b, 0);
   const sessionStart = Math.floor(from / 86_400_000) * 86_400_000;
   const partial = from > sessionStart || p.gaps.length > 0 || rejectedTotal > 0 || q.unclassifiedRatio > 0;
+  const unit = p.qty_unit === "contracts" ? "contrats" : "actif de base";
   return <>
     <div className="footprint-provenance" data-testid="footprint-provenance">
-      <div className="footprint-badges">
-        <span className="footprint-badge">DÉMO HISTORIQUE · REJEU</span>
-        <span className="footprint-badge">TRANSACTIONS {p.venue} · {p.symbol} · PERPÉTUEL</span>
-        {partial && <span className="footprint-badge footprint-badge-warn" data-testid="footprint-partial">COUVERTURE PARTIELLE</span>}
-      </div>
-      <p className="footprint-coverage-line" data-testid="footprint-coverage">Couverture {p.coverage_from_utc} → {p.coverage_to_utc} · {duration(to - from)} · {q.accepted.toLocaleString("fr-FR")} transactions · {p.gaps.length} lacune(s) déclarée(s)</p>
-      <details className="footprint-details"><summary>Provenance et qualité du rejeu</summary>
+      <p className="footprint-mention" data-testid="footprint-mention">
+        <span className="footprint-badge">Capture figée</span>
+        {partial && <> · <span className="footprint-badge footprint-badge-warn" data-testid="footprint-partial">Couverture partielle</span></>}
+      </p>
+      <p className="footprint-coverage-line" data-testid="footprint-coverage">
+        {p.venue} · {p.symbol} perpétuel · quantités en {unit} · {p.coverage_from_utc} → {p.coverage_to_utc} ({duration(to - from)}) · {q.accepted.toLocaleString("fr-FR")} transactions{p.gaps.length ? ` · ${p.gaps.length} lacune(s)` : ""}
+      </p>
+      <details className="footprint-details"><summary>Provenance et qualité</summary>
       <dl className="footprint-facts">
         <div><dt>Source</dt><dd>{p.source}</dd></div>
         <div><dt>Collecte</dt><dd>{p.collected_at_utc}</dd></div>
@@ -186,40 +182,38 @@ const ReplayView: React.FC<{ state: FootprintReplayState; onRetry: () => void }>
         <div><dt>Unité des quantités</dt><dd>{p.qty_unit === "contracts" ? "contrats (source)" : "actif de base"}</dd></div>
         <div><dt>Lacunes connues</dt><dd data-testid="footprint-gaps">{p.gaps.length === 0 ? "aucune déclarée" : p.gaps.map((g) => `${g.from_utc} → ${g.to_utc}`).join(" ; ")}</dd></div>
         <div><dt>Session DltaDay</dt><dd>00:00 UTC (provisoire){from > sessionStart ? ` · couverture commencée ${duration(from - sessionStart)} après l'ouverture` : ""}</dd></div>
-        <div><dt>Empreinte SHA-256</dt><dd className="footprint-hash" data-testid="footprint-sha256">{state.status === "ready" && state.sha256 ? state.sha256 : "NOT_AVAILABLE"} · {state.status === "ready" ? `${state.bytes.toLocaleString("fr-FR")} octets` : ""}</dd></div>
+        <div><dt>Empreinte SHA-256</dt><dd className="footprint-hash" data-testid="footprint-sha256">{state.sha256} · {state.bytes.toLocaleString("fr-FR")} octets · vérifiée</dd></div>
+        <div><dt>Réglages IMB</dt><dd>IMB {IMB.imbPct} % · MIN {IMB.imbMin} · empilement {IMB.stackN} · minimum côté dominant : réglages par défaut du moteur, non validés.</dd></div>
         {p.notes && <div><dt>Notes</dt><dd>{p.notes}</dd></div>}
       </dl>
       </details>
     </div>
-    <div className="footprint-controls">
+    <div className="footprint-controls" role="group" aria-label="Réglages du tableau">
       <label>Période<select value={tfMs} onChange={(e) => setTfMs(Number(e.target.value))}>{PERIODS.map((x) => <option key={x.ms} value={x.ms}>{x.label}</option>)}</select></label>
-      <label>Pas des niveaux<select aria-label="Pas des niveaux" value={String(stepChoice)} onChange={(e) => setStepChoice(e.target.value === "auto" ? "auto" : Number(e.target.value))}>
+      <label>Pas<select aria-label="Pas des niveaux" value={String(stepChoice)} onChange={(e) => setStepChoice(e.target.value === "auto" ? "auto" : Number(e.target.value))}>
         <option value="auto">Auto ({fmt(r.tick_size * autoStepMultiplier(r.tick_size, q.lo, q.hi), 8)})</option>
         {STEP_MULTIPLIERS.map((m) => <option key={m} value={m}>{fmt(r.tick_size * m, 8)}</option>)}
       </select></label>
       <label>Bougies<select value={visible} onChange={(e) => setVisible(Number(e.target.value))}>{VISIBLE_COUNTS.map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
     </div>
-    <p className="footprint-legend">IMB {IMB.imbPct} % · MIN {IMB.imbMin} · empilement {IMB.stackN} · minimum côté dominant : réglages par défaut du moteur, non validés. Niveaux au plancher du pas {fmt(step, 8)}.</p>
     <Ladder replay={r} tfMs={tfMs} step={step} visible={visible} />
   </>;
 };
 
-export const FootprintPanel: React.FC<{ fetchImpl?: typeof fetch }> = ({ fetchImpl }) => {
-  const [mode, setMode] = useState<"live" | "demo">("live");
+export const FootprintPanel: React.FC<{ fetchImpl?: typeof fetch; expectedSha256?: string | null }> = ({ fetchImpl, expectedSha256 = FOOTPRINT_REPLAY_SHA256 }) => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [fullscreen, setFullscreen] = useState(false);
   const [replayState, setReplayState] = useState<FootprintReplayState>({ status: "idle" });
   const ref = useRef<HTMLElement>(null);
-  const admitted = FOOTPRINT_ADMITTED_SYMBOLS.includes("MEXC:BTC_USDT:PERP");
 
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const load = useCallback(() => {
     setReplayState({ status: "loading" });
-    void loadFootprintReplay(fetchImpl ?? fetch).then((s) => { if (mounted.current) setReplayState(s); });
-  }, [fetchImpl]);
-  // Le rejeu n'est lu qu'à la demande : le mode temps réel ne fait aucune requête.
-  useEffect(() => { if (mode === "demo" && replayState.status === "idle") load(); }, [mode, replayState.status, load]);
+    void loadFootprintReplay(fetchImpl ?? fetch, undefined, expectedSha256).then((s) => { if (mounted.current) setReplayState(s); });
+  }, [fetchImpl, expectedSha256]);
+  // Une seule lecture à l'ouverture ; le thème et le plein écran ne la relancent pas.
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     const onChange = () => { if (!document.fullscreenElement) setFullscreen(false); };
@@ -244,10 +238,6 @@ export const FootprintPanel: React.FC<{ fetchImpl?: typeof fetch }> = ({ fetchIm
     <div className="footprint-head">
       <div><div className="market-eyebrow">FOOTPRINT · OBSERVATION PASSIVE</div><h2>Footprint · {FOOTPRINT_SYMBOL_LABEL}</h2></div>
       <div className="footprint-actions">
-        <div className="footprint-modes" role="radiogroup" aria-label="Mode du panneau">
-          <button type="button" role="radio" aria-checked={mode === "live"} onClick={() => setMode("live")}>Temps réel</button>
-          <button type="button" role="radio" aria-checked={mode === "demo"} onClick={() => setMode("demo")}>Démo historique</button>
-        </div>
         <label className="footprint-theme">
           <span>Thème</span>
           <select data-testid="footprint-theme-select" value={theme} onChange={(e) => setTheme(e.target.value === "dark" ? "dark" : "light")}>
@@ -258,15 +248,7 @@ export const FootprintPanel: React.FC<{ fetchImpl?: typeof fetch }> = ({ fetchIm
         <button type="button" aria-pressed={fullscreen} onClick={toggleFullscreen}>{fullscreen ? "Quitter le plein écran" : "Plein écran"}</button>
       </div>
     </div>
-    {mode === "live"
-      ? <div className="footprint-notice" data-testid="footprint-unfed">
-        <strong>Panneau non alimenté</strong>
-        <p>{admitted ? "Symbole admis." : `Symbole non admis : ${FOOTPRINT_SYMBOL_LABEL}. Aucun flux n'est branché sur ce panneau.`}</p>
-        <p>Le temps réel attend la validation de :</p>
-        <ul>{FOOTPRINT_PENDING_GATES.map((g) => <li key={g}>{g}</li>)}</ul>
-        <p>Canaux : {CHANNELS.map((c) => `${c.label} · ${c.status === "disconnected" ? "déconnecté" : c.status}`).join(" ; ")}.</p>
-      </div>
-      : <ReplayView state={replayState} onRetry={load} />}
+    <CaptureView state={replayState} onRetry={load} />
     <p className="footprint-legend">Footprint non autoritaire · aucun signal d'entrée, aucun ordre, aucune permission de trading.</p>
   </section>;
 };

@@ -29,7 +29,8 @@ const serve = (url: string): Response => {
 
 let fetchMock: ReturnType<typeof vi.fn>;
 const urls = () => fetchMock.mock.calls.map((call) => String(call[0]));
-const families = () => [...new Set(urls().map((u) => u.replace(/^\/api\/operator\/v1\//, "").replace(/^\//, "").replace(/[/?].*$/, "")))].sort();
+// La capture Footprint figée (fichier statique de Microstructure) est nommée à part.
+const families = () => [...new Set(urls().map((u) => u.replace(/^\/observations\/footprint\/.*/, "footprint-capture").replace(/^\/api\/operator\/v1\//, "").replace(/^\//, "").replace(/[/?].*$/, "")))].sort();
 const at = (path: string) => window.history.replaceState({}, "", path);
 const where = () => window.location.pathname + window.location.search;
 const tab = (name: string) => screen.getByRole("tab", { name });
@@ -46,7 +47,7 @@ describe("M1-C1 deep Market routes", () => {
     ["radar", "Scanner", ["spot-radar"]],
     ["venues", "Comparaison des plateformes", ["observations", "venue-comparison"]],
     ["flow", "Flux", ["market-flow", "observations"]],
-    ["lmi", "Microstructure", ["market-microstructure"]],
+    ["lmi", "Microstructure", ["footprint-capture", "market-microstructure"]],
   ] as const;
 
   it.each(views)("opens /paper-live/market/%s directly and only that view requests its source", async (slug, label, family) => {
@@ -115,7 +116,7 @@ describe("M1-C1 browser history", () => {
     await waitFor(() => expect(families()).toEqual(["market-flow", "observations"]));
     fetchMock.mockClear();
     fireEvent.click(tab("Microstructure"));
-    await waitFor(() => expect(families()).toEqual(["market-microstructure"]));
+    await waitFor(() => expect(families()).toEqual(["footprint-capture", "market-microstructure"]));
     expect(window.location.pathname).toBe("/paper-live/market/lmi");
     act(() => window.history.back());
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));

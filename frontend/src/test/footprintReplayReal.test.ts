@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseFootprintReplay } from "../lib/footprintReplay";
+import { FOOTPRINT_REPLAY_SHA256, parseFootprintReplay } from "../lib/footprintReplay";
 import { FootprintBuilder } from "../lib/footprintEngine";
 
 // Rejeu MEXC réel livré par l'opérateur (100 transactions, ~15 s, continuité non vérifiée).
@@ -14,6 +14,7 @@ describe("rejeu MEXC réel servi par le build", () => {
 
   it("conserve exactement le fichier livré", () => {
     expect(createHash("sha256").update(bytes).digest("hex")).toBe(EXPECTED_SHA256);
+    expect(FOOTPRINT_REPLAY_SHA256).toBe(EXPECTED_SHA256);
   });
 
   it("passe le contrat cat.footprint.replay.v1 sans être une fixture", () => {

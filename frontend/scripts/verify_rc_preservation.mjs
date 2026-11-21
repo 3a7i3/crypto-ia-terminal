@@ -108,12 +108,11 @@ try {
     await page.goto(`${base}/paper-live/market/lmi`, { waitUntil: "load" });
     const panel = page.getByTestId("footprint-panel");
     await panel.waitFor();
-    const unfed = (await panel.textContent()).includes("Panneau non alimenté") && footprintRequests.length === 0;
-    await page.getByRole("radio", { name: "Démo historique" }).click();
     await page.getByTestId("footprint-table").waitFor();
     const text = await panel.textContent();
-    check(`${vp.name} Footprint (non alimenté puis rejeu MEXC réel)`, unfed && /100 transactions/.test(text) && /contrats \(source\)/.test(text)
-      && /COUVERTURE PARTIELLE/.test(text) && /DltaDay partiel/.test(text) && await noHScroll(), { footprintRequests });
+    const single = (await panel.locator("table").count()) === 1 && !/Temps réel|Démo historique|Panneau non alimenté/.test(text);
+    check(`${vp.name} Footprint (vue unique, capture MEXC réelle sans clic)`, single && footprintRequests.length === 1 && /100 transactions/.test(text)
+      && /contrats \(source\)/.test(text) && /Capture figée · Couverture partielle/.test(text) && /DltaDay partiel/.test(text) && await noHScroll(), { footprintRequests });
     await shot("footprint-demo");
     check(`${vp.name} aucune requête externe`, external.filter((u) => !u.startsWith("https://api.github.com/")).length === 0, { external });
     await page.close();
