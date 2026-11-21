@@ -152,15 +152,27 @@ la migration 1) prouve qu'un redémarrage relit la même base.
 
 Changer une valeur change la lecture, jamais les données stockées.
 
-## Capacité mesurée (synthétique)
+## Budget et capacité
 
-`scripts/derivatives_positioning_capacity.py`, 60 instruments, cadence 300 s, 7 jours, lots de 60,
-Python 3.11.18 / SQLite local : 120 960 observations, base 183 218 176 octets après checkpoint,
-soit **≈ 1 515 octets par observation**, **≈ 26,2 Mo par jour**, **≈ 9,55 Go pour 365 jours**. WAL
-maximal observé 5 014 072 octets (auto-checkpoint SQLite), `-shm` 32 768 octets. L'estimation initiale
-(17 Mo/jour, 6,2 Go/an) était sous-évaluée ; le couple 5 Go / 365 jours ne tient pas à cette cadence
-et reste à arbitrer (cadence, nombre d'instruments, rétention ou compaction dans une migration future).
-Mesure locale synthétique, non transposable telle quelle au VPS (SQLite 3.53.1 y est installé).
+**Budget prévisionnel : 5 Go. Aucune purge active** (`purge_enabled=false`, toute autre valeur refusée).
+Le budget est seulement rapporté par `status` (`budget.used_ratio`), jamais appliqué.
+
+Mesure synthétique (`scripts/derivatives_positioning_capacity.py`, 60 instruments, cadence 300 s,
+7 jours, lots de 60, Python 3.11.18), base et WAL mesurés **séparément** :
+
+| Fichier | Avant checkpoint | Après checkpoint |
+|---|---|---|
+| base `positioning.sqlite3` | 183 132 160 o | 183 218 176 o |
+| WAL `positioning.sqlite3-wal` | 5 014 072 o (maximum observé pendant l'écriture) | 0 o |
+| `positioning.sqlite3-shm` | 32 768 o | 32 768 o |
+
+Soit ≈ 1 515 o par observation dans la base, ≈ 26,2 Mo/jour, ≈ 9,55 Go/365 jours ; le WAL reste borné
+par l'auto-checkpoint SQLite (≈ 5 Mo) et est replié à la fermeture. À cette cadence, le budget de 5 Go
+correspond à ≈ 190 jours ; cadence, nombre d'instruments ou rétention restent à arbitrer. Mesure locale
+synthétique, non transposable telle quelle au VPS.
+
+**Activation avec données réelles suspendue** tant qu'un compte GCP autorisé n'a pas vérifié que le
+volume retenu est exclu des snapshots et sauvegardes hors VPS.
 
 ## Limites
 

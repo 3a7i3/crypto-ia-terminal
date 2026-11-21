@@ -111,8 +111,9 @@ sqlite3 'file:/var/lib/cat-derivatives-positioning/positioning.sqlite3?mode=ro' 
 | redémarrage, même disque | historique retrouvé, nouvelles écritures acceptées |
 | perte ou suppression du disque | historique perdu (règle de conservation acceptée) |
 
-Aucune purge n'existe. Capacité mesurée (synthétique) : ≈ 26 Mo/jour pour 60 instruments à 300 s ;
-à réévaluer avant activation.
+Budget prévisionnel 5 Go, aucune purge active. Capacité mesurée (synthétique, 60 instruments à 300 s) :
+base ≈ 26 Mo/jour, WAL ≤ ≈ 5 Mo (replié à la fermeture) ; suivre `files_bytes` (base, WAL, shm séparés)
+dans `status`. À réévaluer avant activation.
 
 ## 6. Retour arrière applicatif (préserve les données)
 
