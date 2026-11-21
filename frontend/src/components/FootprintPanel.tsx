@@ -248,7 +248,13 @@ export const FootprintPanel: React.FC<{ fetchImpl?: typeof fetch }> = ({ fetchIm
           <button type="button" role="radio" aria-checked={mode === "live"} onClick={() => setMode("live")}>Temps réel</button>
           <button type="button" role="radio" aria-checked={mode === "demo"} onClick={() => setMode("demo")}>Démo historique</button>
         </div>
-        <button type="button" aria-pressed={theme === "dark"} onClick={() => setTheme(theme === "light" ? "dark" : "light")}>{theme === "light" ? "Thème sombre" : "Thème clair"}</button>
+        <label className="footprint-theme">
+          <span>Thème</span>
+          <select data-testid="footprint-theme-select" value={theme} onChange={(e) => setTheme(e.target.value === "dark" ? "dark" : "light")}>
+            <option value="light">Clair</option>
+            <option value="dark">Sombre</option>
+          </select>
+        </label>
         <button type="button" aria-pressed={fullscreen} onClick={toggleFullscreen}>{fullscreen ? "Quitter le plein écran" : "Plein écran"}</button>
       </div>
     </div>

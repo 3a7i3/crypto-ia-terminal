@@ -66,12 +66,39 @@ describe("panneau Footprint", () => {
     expect(await screen.findByTestId("footprint-table")).toBeInTheDocument();
   });
 
-  it("utilise le thème clair par défaut et bascule en sombre", () => {
+  it("propose un menu « Thème » Clair / Sombre, clair par défaut", () => {
     render(<FootprintPanel fetchImpl={vi.fn()} />);
     const panel = screen.getByTestId("footprint-panel");
+    const select = screen.getByRole("combobox", { name: "Thème" });
     expect(panel).toHaveAttribute("data-footprint-theme", "light");
-    fireEvent.click(screen.getByRole("button", { name: "Thème sombre" }));
+    expect(select).toHaveValue("light");
+    expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual(["Clair", "Sombre"]);
+    expect(screen.queryByRole("button", { name: /Thème/ })).not.toBeInTheDocument();
+    fireEvent.change(select, { target: { value: "dark" } });
     expect(panel).toHaveAttribute("data-footprint-theme", "dark");
+    fireEvent.change(select, { target: { value: "light" } });
+    expect(panel).toHaveAttribute("data-footprint-theme", "light");
+  });
+
+  it("garde le thème choisi en plein écran et entre les modes, sans requête", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(resp(JSON.stringify(syntheticReplay())));
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", { configurable: true, value: undefined });
+    render(<FootprintPanel fetchImpl={fetchImpl} />);
+    const panel = screen.getByTestId("footprint-panel");
+    const select = screen.getByRole("combobox", { name: "Thème" });
+    fireEvent.change(select, { target: { value: "dark" } });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Plein écran" }));
+    expect(panel).toHaveClass("footprint-fullscreen");
+    expect(panel).toHaveAttribute("data-footprint-theme", "dark");
+    fireEvent.click(screen.getByRole("button", { name: "Quitter le plein écran" }));
+    expect(panel).toHaveAttribute("data-footprint-theme", "dark");
+    fireEvent.click(screen.getByRole("radio", { name: "Démo historique" }));
+    expect(await screen.findByTestId("footprint-table")).toBeInTheDocument();
+    expect(panel).toHaveAttribute("data-footprint-theme", "dark");
+    fireEvent.click(screen.getByRole("radio", { name: "Temps réel" }));
+    expect(screen.getByTestId("footprint-unfed")).toBeInTheDocument();
+    expect(select).toHaveValue("dark");
   });
 
   it("passe en plein écran par l'API Fullscreen, avec repli CSS", () => {

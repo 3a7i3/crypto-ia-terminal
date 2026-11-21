@@ -27,6 +27,13 @@
 .footprint-panel button[aria-checked="true"], .footprint-panel button[aria-pressed="true"] { border-color: var(--fp-accent); box-shadow: inset 0 0 0 1px var(--fp-accent); }
 .footprint-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
 .footprint-head > div { min-width: 0; }
+/* Menu « Thème » : select natif, libellé visible, même hauteur tactile que les boutons. */
+.footprint-theme { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--fp-text); }
+/* Spécificité supérieure à .app-content :is(select, …) pour suivre le thème du panneau. */
+.footprint-panel[data-footprint-theme] .footprint-theme select {
+  min-width: 96px; cursor: pointer; background: var(--fp-bg-soft); color: var(--fp-text); border: 1px solid var(--fp-border);
+}
+.footprint-panel select:focus-visible, .footprint-panel button:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
 .footprint-actions, .footprint-modes, .footprint-controls, .footprint-badges { display: flex; flex-wrap: wrap; gap: 8px; }
 .footprint-controls { margin: 12px 0 4px; }
 .footprint-controls label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fp-text-sec); }
