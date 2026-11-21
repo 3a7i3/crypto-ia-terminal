@@ -1,0 +1,36 @@
+/* Registre des agents (Système). Thèmes : variables existantes uniquement. */
+.agent-registry { margin: 20px 0; min-width: 0; }
+.agent-registry-head h2 { margin: 0 0 8px; color: var(--heading); font-size: 18px; font-weight: 650; }
+.agent-registry-head p { margin: 0 0 8px; color: var(--text-sec); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.agent-registry-head .agent-registry-boundary { color: var(--text-muted); }
+.agent-family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 12px; align-items: start; }
+.agent-family-card, .agent-legacy { min-width: 0; border: 1px solid var(--bg-border); border-radius: var(--r-card); background: var(--bg-card); }
+.agent-legacy { margin-top: 12px; border-style: dashed; }
+.agent-family-card > summary, .agent-legacy > summary { display: grid; gap: 4px; min-height: 52px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.agent-family-card > summary::-webkit-details-marker, .agent-legacy > summary::-webkit-details-marker { display: none; }
+.agent-family-card > summary::after, .agent-legacy > summary::after { content: "Ouvrir les profils ▾"; color: var(--accent); font-size: 12px; margin-top: 4px; }
+.agent-family-card[open] > summary::after, .agent-legacy[open] > summary::after { content: "Fermer ▴"; }
+.agent-family-title { color: var(--heading); font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+.agent-family-count { color: var(--text-sec); font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
+.agent-family-summary { color: var(--text-muted); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.agent-profile-list { display: grid; gap: 10px; padding: 0 12px 12px; }
+.agent-profile { min-width: 0; padding: 12px; border: 1px solid var(--bg-border); border-radius: 10px; background: var(--bg-card-soft, var(--bg-card)); }
+.agent-profile h4 { margin: 0 0 4px; color: var(--text-pri); font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+.agent-mission { margin: 0 0 10px; color: var(--text-sec); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.agent-empty { margin: 0; padding: 0 16px 14px; color: var(--text-sec); font-size: 13px; line-height: 1.6; }
+.agent-light { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--bg-border); }
+.agent-light-dot { flex: 0 0 auto; width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; border: 2px solid currentColor; }
+.agent-light-text { display: grid; gap: 2px; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--text-sec); overflow-wrap: anywhere; }
+.agent-light-text strong { color: var(--text-pri); font-weight: 650; }
+.agent-light-green { color: var(--ok); }
+.agent-light-green .agent-light-dot { background: var(--ok); }
+.agent-light-red { color: var(--danger); }
+.agent-light-red .agent-light-dot { background: var(--danger); }
+.agent-light-gray { color: var(--neutral); }
+.agent-light-gray .agent-light-dot { background: transparent; }
+.agent-facts { display: grid; gap: 6px; margin: 10px 0 0; }
+.agent-facts > div { display: grid; gap: 2px; min-width: 0; }
+.agent-facts dt { color: var(--text-muted); font-size: 12px; }
+.agent-facts dd { margin: 0; color: var(--text-pri); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; word-break: break-word; }
+.agent-source-link { color: var(--accent); overflow-wrap: anywhere; word-break: break-all; }
+.agent-registry-foot { margin: 12px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.6; }

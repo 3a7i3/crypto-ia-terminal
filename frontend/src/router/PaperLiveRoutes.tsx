@@ -12,6 +12,7 @@ import { PplComparisonView } from "../views/PplComparisonView";
 import { SystemView } from "../views/SystemView";
 import { RuntimeServiceView } from "../views/RuntimeServiceView";
 import { StorageView } from "../views/StorageView";
+import { AgentRegistryView } from "../views/AgentRegistryView";
 import { SnapshotStatusBanner } from "../components/SnapshotStatusBanner";
 import { PublicationStamp } from "../components/PublicationStamp";
 import { useOperatorSnapshot } from "../lib/snapshotClient";
@@ -124,6 +125,7 @@ export const SystemRoute: React.FC = () => {
         <RuntimeServiceView />
         <StorageView />
       </div>
+      <AgentRegistryView />
       <details
         className="module-details"
         onToggle={(e) => setDiagnostics(e.currentTarget.open)}

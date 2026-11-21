@@ -184,8 +184,8 @@ test("brand URLs carry content identity and agree across PWA, document, header a
 
 // M1-D2-PWA: release identity and upgrade/rollback lifecycle proof.
 // This identity must change whenever the deployed application shell changes.
-const TARGET_SHELL_CACHE = "crypto-ai-operator-shell-cat-market-two-views-wallet-595";
-const PRIOR_SHELL_CACHE = "crypto-ai-operator-shell-cat-footprint-v3-l2-graphique";
+const TARGET_SHELL_CACHE = "crypto-ai-operator-shell-cat-system-agents-registry";
+const PRIOR_SHELL_CACHE = "crypto-ai-operator-shell-cat-market-two-views-wallet-595";
 
 async function createTransitionHarness(workerSource, buckets) {
   const policySource = await readFile(path.join(PUBLIC, "pwa-policy.js"), "utf8");
@@ -226,11 +226,11 @@ async function createTransitionHarness(workerSource, buckets) {
   return { dispatch, listeners, lifecycle, self };
 }
 
-test("Wallet release updates the exact shell cache identity and cleans only CAT shell caches", async () => {
+test("System agents registry release updates the exact shell cache identity and cleans only CAT shell caches", async () => {
   const workerSource = await readFile(path.join(PUBLIC, "sw.js"), "utf8");
-  assert.ok(workerSource.includes("cat-market-two-views-wallet-595"),
+  assert.ok(workerSource.includes("cat-system-agents-registry"),
     "the new release must change sw.js bytes and its cache identity");
-  assert.ok(!workerSource.includes("cat-footprint-v3-l2-graphique"),
+  assert.ok(!workerSource.includes("cat-market-two-views-wallet-595"),
     "the previous release's cache identity must not be reused");
   const buckets = new Map([
     [PRIOR_SHELL_CACHE, new Map([["/", "old-shell"]])],
@@ -258,7 +258,7 @@ test("Wallet release updates the exact shell cache identity and cleans only CAT 
 
   // Rollback simulation: the former release used this same worker logic and
   // the old cache identity (read-only proof obtained at M1-D1).
-  const priorSource = workerSource.replace("cat-market-two-views-wallet-595", "cat-footprint-v3-l2-graphique");
+  const priorSource = workerSource.replace("cat-system-agents-registry", "cat-market-two-views-wallet-595");
   assert.notEqual(priorSource, workerSource, "rollback must publish different service-worker bytes");
   const rolledBack = await createTransitionHarness(priorSource, buckets);
   await rolledBack.dispatch("install");
