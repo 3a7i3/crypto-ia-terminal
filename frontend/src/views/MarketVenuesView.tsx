@@ -6,6 +6,7 @@ import "../market-venues.css";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 import { DerivativesStressPanel } from "../components/DerivativesStressPanel";
+import { DerivativesPositioningPanel } from "../components/DerivativesPositioningPanel";
 const names: Record<string, string> = { mexc: "MEXC", bybit: "Bybit", okx: "OKX", kraken: "Kraken", bitfinex: "Bitfinex", kucoin: "KuCoin", coinbase_exchange: "Coinbase Exchange", hyperliquid: "Hyperliquid" };
 const kinds: Record<string, string> = { SPOT: "Spot", PERPETUAL_LINEAR: "Perpétuel linéaire", PERPETUAL_INVERSE: "Perpétuel inverse", FUTURE_LINEAR: "Échéance linéaire", FUTURE_INVERSE: "Échéance inverse" };
 const time = (v: string | null) => v ? new Date(v).toISOString().replace("T", " ") : "Date non disponible";
@@ -101,4 +102,5 @@ const VenueComparisonPanel: React.FC = () => {
 export const MarketVenuesView: React.FC = () => <div className="venue-tab">
   <VenueComparisonPanel/>
   <DerivativesStressPanel/>
+  <DerivativesPositioningPanel/>
 </div>;

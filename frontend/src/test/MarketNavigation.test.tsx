@@ -45,7 +45,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("M1-C1 deep Market routes", () => {
   const views = [
     ["radar", "Scanner", ["spot-radar"]],
-    ["venues", "Comparaison des plateformes", ["derivatives-stress", "observations", "venue-comparison"]],
+    ["venues", "Comparaison des plateformes", ["derivatives-positioning", "derivatives-stress", "observations", "venue-comparison"]],
     ["flow", "Flux", ["derivatives-stress", "market-flow", "observations"]],
     ["lmi", "Microstructure", ["footprint-capture", "market-microstructure"]],
   ] as const;

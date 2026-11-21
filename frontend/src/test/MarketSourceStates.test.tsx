@@ -56,7 +56,8 @@ describe.each(cases)("$name", ({ name, view, endpoint, also = [], code, label, o
     // The venue view keeps its pre-C2 sentence (asserted by venueComparison.compat).
     if (endpoint.endsWith("/venue-comparison")) expect(screen.getByText("Aucune publication de comparaison disponible.")).toBeInTheDocument();
     // Only this view's own sources are read (Footprint capture for Microstructure, derivatives stress for Flux and venues).
-    const stress = name === "Flux" || name === "Comparaison des plateformes" ? ["/api/operator/v1/derivatives-stress"] : [];
+    const stress = name === "Flux" ? ["/api/operator/v1/derivatives-stress"]
+      : name === "Comparaison des plateformes" ? ["/api/operator/v1/derivatives-stress", "/api/operator/v1/derivatives-positioning"] : [];
     expect(new Set(calls)).toEqual(new Set([endpoint, ...also, ...stress]));
   });
 

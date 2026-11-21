@@ -181,3 +181,39 @@ volume retenu est exclu des snapshots et sauvegardes hors VPS.
   avant toute écriture d'observation réelle : voir la procédure VPS.
 - Un seul processus écrivain prévu. Pas de route API : l'exposition au frontend viendra après
   qualification des sources et des historiques.
+
+## Lot 2 — API de lecture bornée et vue Comparaison
+
+Route `GET /api/operator/v1/derivatives-positioning` (Operator API, GET seul, `Cache-Control: no-store`).
+Le lecteur ouvre la base en lecture seule (`mode=ro`) et ne calcule rien que le stockage n'expose
+déjà (dernier relevé, variation d'OI, comparaisons) ; le graphique ne fait que **filtrer** des points
+stockés. Aucun score, signal ni autorité d'exécution (`execution_authority: false`).
+
+Configuration (aucune valeur par défaut ; absente → 503 `DERIVATIVES_POSITIONING_NOT_CONFIGURED`) :
+
+| Variable | Rôle |
+|---|---|
+| `OPERATOR_DERIVATIVES_POSITIONING_DIR` | répertoire de la base (lecture seule) |
+| `OPERATOR_DERIVATIVES_POSITIONING_ROSTER` | JSON déclarant les jambes affichées et leur cadence (`venue`, `native_symbol`, `contract_type`, `cadence_s`), `evidence_kind`, `chart_window_s` ∈ {3600, 14400, 86400}, 20 jambes au plus |
+| `OPERATOR_DERIVATIVES_POSITIONING_POLICY` | politique (facultatif, mêmes clés que le lot 1) |
+
+Erreurs typées : `DERIVATIVES_POSITIONING_INVALID_CONFIGURATION`, `…_INVALID_READER_CLOCK`, puis les
+codes du stockage préfixés (`…_STORAGE_DIRECTORY_MISSING`, etc.).
+
+Graphique Prix + OI : une série n'est tracée que si, sur toute la fenêtre, chaque point a un prix de
+marque et un OI dans l'unité, la taille de contrat et la base temporelle du dernier relevé, tombe sur
+la grille de sa cadence déclarée (tolérance de la politique, un point par créneau), atteint la
+couverture minimale, et partage cadence et base temporelle avec la première série admise. Sinon la
+série est listée avec son motif (`INSUFFICIENT_COVERAGE`, `CONTRACT_SIZES_DIFFER`,
+`OPEN_INTEREST_UNITS_DIFFER`, `TIME_BASES_DIFFER`, `POINTS_OFF_CADENCE_GRID`,
+`NOT_ALIGNED_WITH_REFERENCE_LEG`, `NO_OBSERVATION`, …) et aucun point. Prix et OI restent en unités
+natives sur des axes séparés.
+
+Note d'exploitation : une ouverture `mode=ro` d'une base WAL a besoin du fichier `-shm` ; le
+processus lecteur doit pouvoir le créer dans le répertoire ou un écrivain doit être actif. Les octets
+de la base ne changent pas (vérifié par empreinte dans les tests).
+
+Preuves : `tests/derivatives_positioning/test_read_api.py` (fixtures synthétiques : couverture
+partielle, contrats non comparables, jambe sans observation),
+`frontend/src/test/derivativesPositioning.compat.test.tsx`,
+`frontend/scripts/capture_derivatives_positioning_visual.mjs` (1440 et 384 px, clair et sombre).

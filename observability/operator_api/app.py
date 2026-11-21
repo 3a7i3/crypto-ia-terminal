@@ -29,6 +29,7 @@ from observability.operator_api.event_center_reader import EventCenterReader
 from observability.operator_api.storage_reader import StorageSnapshotReader
 from observability.operator_api.venue_comparison_reader import VenueComparisonReader
 from observability.operator_api.derivatives_stress_reader import DerivativesStressReader
+from observability.operator_api.derivatives_positioning_reader import DerivativesPositioningReader
 from observability.operator_api.market_flow_reader import MarketFlowReader
 from observability.operator_api.bbo_history_reader import BboHistoryReader
 
@@ -631,6 +632,23 @@ def configure_derivatives_stress_reader(path=None, *, now_fn=None):
 @app.get("/api/operator/v1/derivatives-stress")
 def get_derivatives_stress():
     result = _derivatives_stress_reader.read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
+
+
+# Plateformes & levier, lot 2: read-only projection of the local positioning store.
+_derivatives_positioning_reader = DerivativesPositioningReader()
+
+def configure_derivatives_positioning_reader(data_dir=None, roster=None, policy=None, *, now_fn=None):
+    global _derivatives_positioning_reader
+    _derivatives_positioning_reader = DerivativesPositioningReader(
+        data_dir, roster, policy, **({} if now_fn is None else {"now_fn": now_fn}))
+    return _derivatives_positioning_reader
+
+@app.get("/api/operator/v1/derivatives-positioning")
+def get_derivatives_positioning():
+    result = _derivatives_positioning_reader.read()
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
     return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
