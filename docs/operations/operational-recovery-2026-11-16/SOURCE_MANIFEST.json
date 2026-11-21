@@ -1,0 +1,163 @@
+{
+  "schema_version": "or-recovery-evidence/1",
+  "recorded_at_utc": "2026-11-16T10:50:17Z",
+  "recorded_at_mexico": "2026-11-16T04:50:17-06:00",
+  "github_base_sha": "2ee3b9319fec01e8a0c2dc7318458bf4da68eb1d",
+  "github_base_tree": "af54f86629689d499e474e452136da7cde3349d9",
+  "status": "OBSERVATION_MOBILE_AVAILABLE_SOURCE_RECONCILIATION_PENDING",
+  "source_authority": "D1-RC1 source archive plus isolated OR frontend delta; NOT main or formal certification",
+  "d1_rc1_archive": {
+    "name": "CAT_MARKET_SCANNER_D1_RC1.zip",
+    "bytes": 9625179,
+    "sha256": "97b55a944cdf77643508a926a074d9f36e47eb5f823e155998346ab05730aa77"
+  },
+  "source_delta_files": [
+    {
+      "path": "frontend/src/App.tsx",
+      "base_sha256": "b029ab8ce731d68a0143be9d467d1fcdb828513c196eaec0c8734eeeee6cb6ac",
+      "modified_sha256": "7b4c7c1e8dc85a19e10a027988724f7e1a0be035ad6ae61e8a659081774461fc"
+    },
+    {
+      "path": "frontend/src/views/MarketView.tsx",
+      "base_sha256": "f09da6e3126d011919a0296ef0d64d6fd6c1de50aa2cd5716866f950b83741f0",
+      "modified_sha256": "10821bc52b90918a4ddf60b482e175353cd72c5dd4d46cbd5ea1e112912670e8"
+    },
+    {
+      "path": "frontend/src/views/SpotRadarMap.tsx",
+      "base_sha256": "ed445cee65a0bf109608970497d4e6d0e0088a28c88515d461c1660f9d2beac6",
+      "modified_sha256": "aa310773258ce32c4e14ec05cd5c120c1c57f9d3a2c164f960769a95b0f8d127"
+    },
+    {
+      "path": "frontend/src/spot-radar.css",
+      "base_sha256": "c02d8759195a6bf7db180cdf6276f4e8ed72d2ec784b397382689efdfd4bc699",
+      "modified_sha256": "8c35b77583b493b0e809c0eebcfbf880245234c22793f1596220ddb7e816211d"
+    },
+    {
+      "path": "frontend/src/lib/pwaRegistration.ts",
+      "base_sha256": "87cfd604c23bc0825b3b29963bd0b19c00e2dba70b9519610f8e0c073e7ed48f",
+      "modified_sha256": "c53a7703b7171d50d2f4845286d548f453f823563bf5b2c022fdb6146a33ad00"
+    },
+    {
+      "path": "frontend/public/sw.js",
+      "base_sha256": "7c2497a4c13ec6faf75afca25676f6f097879ae47fe5f4e1ed0d7aec3c9d1c63",
+      "modified_sha256": "645b2eb4985470ced9456530fd68286cd98518bbbd7d0eeaef9289f542b6f40c"
+    },
+    {
+      "path": "frontend/scripts/web01_local_frontend_server.mjs",
+      "base_sha256": "bcf42a665192777bf041b1f1cf69074c96c3fde313ac74e13ee7d9fbc56f0798",
+      "modified_sha256": "00fd59c10fdae0d6c2963f8b7b69d6dd63e8c1c4792128d75b8e02f8d7559021"
+    },
+    {
+      "path": "frontend/src/components/RadarCandles.tsx",
+      "base_sha256": null,
+      "modified_sha256": "8d06145bc04e48b8fb58136cc92ebf397bf35ace360502b2d0750add5bc73852"
+    },
+    {
+      "path": "frontend/src/test/RadarCandles.test.tsx",
+      "base_sha256": null,
+      "modified_sha256": "bd6a8e25a09684dd32281eb3745a2e9ea3a573d91117d72ca18ee82efe312c08"
+    },
+    {
+      "path": "frontend/src/test/UnifiedLanding.test.tsx",
+      "base_sha256": null,
+      "modified_sha256": "69a57a63dc03f4d74e1f786687a76c3ac30a9444812bc46fd6621b19fabbad6d"
+    }
+  ],
+  "observed_deployed_files": [
+    {
+      "logical_path": "app/frontend/dist/index.html",
+      "sha256": "d939a47617a5057555c473b9d67eeacc7ce9dd8a46bc28e389def0c3613781a7"
+    },
+    {
+      "logical_path": "app/frontend/dist/assets/index-BBNlh3XG.js",
+      "sha256": "ba6674ee67269d8d9edbd58c8052b7c5829d338d437168b7bc25182039e7c719"
+    },
+    {
+      "logical_path": "app/frontend/scripts/web01_local_frontend_server.mjs",
+      "sha256": "00fd59c10fdae0d6c2963f8b7b69d6dd63e8c1c4792128d75b8e02f8d7559021"
+    },
+    {
+      "logical_path": "operational/maintenance.py",
+      "sha256": "9a7567534ac70484e38388f441d7c07f8475140e04a612050b974bfd05bce19b"
+    }
+  ],
+  "health": {
+    "evidence_kind": "PUBLIC_OBSERVED",
+    "snapshot_id": "7bd2625369307112fc5d5e361203a8cf15491d1aa9dffccbb7bacd16126dc3d9",
+    "observed_instruments": 30,
+    "selected_instruments": 30,
+    "states": {
+      "LIVE": 30,
+      "STALE": 0,
+      "DISCONNECTED": 0,
+      "UNRESOLVED": 0,
+      "SYNTHETIC": 0
+    },
+    "histories_available": 120,
+    "histories_expected": 120,
+    "collector_state": "RUNNING",
+    "cycles": 38,
+    "requests": 301,
+    "failures": 0
+  },
+  "pilot_result": {
+    "exit_code": 0,
+    "elapsed_ms": 900118,
+    "cycles": 60,
+    "requests": 427,
+    "failures": 0,
+    "history_count": 120,
+    "peak_rss_kib": 79220
+  },
+  "retention_observed": {
+    "timestamp_utc": "2026-11-16T10:40:51Z",
+    "retention_seconds": 3600,
+    "removed_unreferenced": 760,
+    "bytes": 328791632,
+    "scope": "new operational corpus only"
+  },
+  "custody": [
+    {
+      "name": "M1_PRIVATE_PUBLICATION_RC1.zip",
+      "url": "https://chatgpt.com/library?file_id=libfile_82d8fdd1aa148191860f1ead75d97fdb&account_id=personal",
+      "status": "PARTIAL_OFFLINE_ONLY"
+    },
+    {
+      "name": "OR06_STAGED_SOURCES.zip",
+      "url": "https://chatgpt.com/library?file_id=libfile_4504b8e1824081919008ab29c3c8b07c&account_id=personal"
+    },
+    {
+      "name": "OR_APP_INTEGRATION_STAGED.zip",
+      "url": "https://chatgpt.com/library?file_id=libfile_fdc32640dd8481918d0abded9a7812c2&account_id=personal",
+      "note": "updated after observed permission failure; root resume executed by operator"
+    },
+    {
+      "name": "Samsung BTC M15",
+      "url": "https://chatgpt.com/library?file_id=libfile_e907405c511c81918d465a55009051c7&account_id=personal"
+    },
+    {
+      "name": "Samsung BTC H4",
+      "url": "https://chatgpt.com/library?file_id=libfile_56f11e8669308191853c270cff369054&account_id=personal"
+    },
+    {
+      "name": "Samsung ASTER H4",
+      "url": "https://chatgpt.com/library?file_id=libfile_a6d4fa368f288191ac0bb65bbfae9165&account_id=personal"
+    },
+    {
+      "name": "Samsung ENA H4",
+      "url": "https://chatgpt.com/library?file_id=libfile_a2a7b84b1dcc81918690481916241408&account_id=personal"
+    }
+  ],
+  "privacy": "Public snapshot omits tailnet identity, IPs, private URL, login, machine IDs and private root script/corpus paths. Library evidence requires owner authorization.",
+  "not_claimed": [
+    "formal U8/L4/A9 certification",
+    "main source alignment",
+    "new CI run at documentation PR SHA",
+    "long-duration retention proof",
+    "reboot test",
+    "negative other-peer access test",
+    "indicator/signal availability",
+    "zero-gap collection",
+    "immutable Research dataset"
+  ]
+}

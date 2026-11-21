@@ -45,3 +45,7 @@ pendant le burn-in. TESTNET/LIVE et future epoch nécessitent une gate explicite
 Les preuves append-only et artifacts scientifiques restent dans leurs domaines.
 Rechercher la mission et sa preuve exacte plutôt qu'un état résumé dans une
 ancienne page racine. **SOURCE STATE ≠ DEPLOYED RUNTIME STATE.**
+
+## 16 novembre 2026 — Operational Recovery et intégration à l'app
+
+Mandat opérateur OR-03→OR-06, puis correction de l'entrée de l'application habituelle : pilote MEXC Spot réussi, collecte supervisée sur corpus neuf, publication privée, intégration443/PWA, chandeliers/volumes, reprise après SIGKILL et correction d'un échec de permissions avec rollback. [Bilan complet](docs/operations/operational-recovery-2026-11-16/README.md), [écarts à V3.2](docs/operations/operational-recovery-2026-11-16/ROADMAP_DELTA.md), suivi #576/#574/#323. Les décisions produit V3.2 sont consignées dans #285 ; #568 garde son statut formel III, avec les références historiques conservées. Cette ligne ne certifie pas A2–A9/U8/L4 et ne rouvre ni #286 ni les expériences. M1 RC1 reste PARTIAL ; M1-B.9→B.13 suspendus.

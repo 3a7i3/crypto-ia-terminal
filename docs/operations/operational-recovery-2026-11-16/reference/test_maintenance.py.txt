@@ -1,0 +1,25 @@
+import unittest,tempfile,json,os,time
+from pathlib import Path
+from maintenance import maintain
+from unittest.mock import patch
+from types import SimpleNamespace
+class T(unittest.TestCase):
+ @patch("maintenance.shutil.disk_usage",return_value=SimpleNamespace(free=10*1024**3))
+ def test_graph_retention(self,_disk):
+  with tempfile.TemporaryDirectory() as td:
+   r=Path(td)/'OR-LIVE-test';r.mkdir();(r/'OR_LIVE_MANAGED').touch();s=r/'live-store'
+   for k in ('generations','raw','candles'):(s/k).mkdir(parents=True,exist_ok=True)
+   g,c,raw,obsolete=('a'*64,'b'*64,'c'*64,'d'*64)
+   def put(kind,key,value):
+    p=s/kind/(key+'.json');p.write_text(json.dumps(value));os.utime(p,(1,1));return p
+   put('generations',g,{'candles':[c]});put('candles',c,{'raw_sha256':raw});put('raw',raw,{'data':[]});old=put('raw',obsolete,{'old':1})
+   (s/'current.json').write_text(json.dumps({'snapshot_id':g}))
+   maintain(r);self.assertFalse(old.exists());self.assertTrue((s/'raw'/(raw+'.json')).exists());maintain(r)
+ def test_unmanaged_rejected(self):
+  with tempfile.TemporaryDirectory() as td:
+   with self.assertRaises(ValueError):maintain(td)
+ def test_symlink_rejected(self):
+  with tempfile.TemporaryDirectory() as td:
+   r=Path(td)/'OR-LIVE-test';r.mkdir();(r/'OR_LIVE_MANAGED').touch();(r/'link').symlink_to('/tmp')
+   with self.assertRaises(ValueError):maintain(r)
+if __name__=='__main__':unittest.main(verbosity=2)
