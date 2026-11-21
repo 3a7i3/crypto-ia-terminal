@@ -1,0 +1,293 @@
+{
+  "authority": "OBSERVATIONAL_DOCUMENTATION",
+  "contracts": [
+    {
+      "base": "BTC",
+      "native": {
+        "amountScale": 4,
+        "apiAllowed": true,
+        "automaticDelivery": 0,
+        "baseCoin": "BTC",
+        "contractSize": 0.0001,
+        "createTime": 1591242684000,
+        "displayNameEn": "BTC_USDT PERPETUAL",
+        "futureType": 1,
+        "indexOrigin": [
+          "BITGET",
+          "BYBIT",
+          "BINANCE",
+          "HTX",
+          "UPBIT",
+          "OKX",
+          "MEXC",
+          "KUCOIN"
+        ],
+        "isHidden": false,
+        "maxLeverage": 500,
+        "maxVol": 400000,
+        "minVol": 1,
+        "positionOpenType": 3,
+        "priceScale": 1,
+        "priceUnit": 0.1,
+        "quoteCoin": "USDT",
+        "settleCoin": "USDT",
+        "state": 0,
+        "symbol": "BTC_USDT",
+        "type": 1,
+        "volScale": 0,
+        "volUnit": 1
+      },
+      "product": "perpetual",
+      "venue": "mexc"
+    },
+    {
+      "base": "ATOM",
+      "native": {
+        "amountScale": 4,
+        "apiAllowed": true,
+        "automaticDelivery": 0,
+        "baseCoin": "ATOM",
+        "contractSize": 0.1,
+        "createTime": 1592820787000,
+        "displayNameEn": "ATOM_USDT PERPETUAL",
+        "futureType": 1,
+        "indexOrigin": [
+          "BITGET",
+          "BYBIT",
+          "BINANCE",
+          "HTX",
+          "OKX",
+          "MEXC",
+          "KUCOIN"
+        ],
+        "isHidden": false,
+        "maxLeverage": 200,
+        "maxVol": 5000000,
+        "minVol": 1,
+        "positionOpenType": 3,
+        "priceScale": 3,
+        "priceUnit": 0.001,
+        "quoteCoin": "USDT",
+        "settleCoin": "USDT",
+        "state": 0,
+        "symbol": "ATOM_USDT",
+        "type": 1,
+        "volScale": 0,
+        "volUnit": 1
+      },
+      "product": "perpetual",
+      "venue": "mexc"
+    },
+    {
+      "base": "BTC",
+      "native": {
+        "baseAsset": "BTC",
+        "baseAssetPrecision": 8,
+        "baseSizePrecision": "0.000001",
+        "firstOpenTime": 1506787200000,
+        "isSpotTradingAllowed": true,
+        "makerCommission": "0",
+        "orderTypes": [
+          "LIMIT",
+          "MARKET",
+          "LIMIT_MAKER"
+        ],
+        "permissions": [
+          "SPOT"
+        ],
+        "quoteAmountPrecision": "1",
+        "quoteAsset": "USDT",
+        "quoteAssetPrecision": 2,
+        "quotePrecision": 2,
+        "status": "1",
+        "symbol": "BTCUSDT",
+        "takerCommission": "0.0005"
+      },
+      "product": "spot",
+      "venue": "mexc"
+    },
+    {
+      "base": "ATOM",
+      "native": {
+        "baseAsset": "ATOM",
+        "baseAssetPrecision": 2,
+        "baseSizePrecision": "0.001",
+        "firstOpenTime": null,
+        "isSpotTradingAllowed": true,
+        "makerCommission": "0",
+        "orderTypes": [
+          "LIMIT",
+          "MARKET",
+          "LIMIT_MAKER"
+        ],
+        "permissions": [
+          "SPOT"
+        ],
+        "quoteAmountPrecision": "1",
+        "quoteAsset": "USDT",
+        "quoteAssetPrecision": 3,
+        "quotePrecision": 3,
+        "status": "1",
+        "symbol": "ATOMUSDT",
+        "takerCommission": "0.0005"
+      },
+      "product": "spot",
+      "venue": "mexc"
+    },
+    {
+      "base": "BTC",
+      "native": {
+        "aclass_base": "currency",
+        "aclass_quote": "currency",
+        "altname": "XBTUSDT",
+        "base": "XXBT",
+        "cost_decimals": 5,
+        "costmin": "0.5",
+        "lot_decimals": 8,
+        "lot_multiplier": 1,
+        "ordermin": "0.00006",
+        "pair_decimals": 1,
+        "quote": "USDT",
+        "result_key": "XBTUSDT",
+        "status": "online",
+        "tick_size": "0.1",
+        "wsname": "XBT/USDT"
+      },
+      "product": "spot",
+      "venue": "kraken"
+    },
+    {
+      "base": "ATOM",
+      "native": {
+        "aclass_base": "currency",
+        "aclass_quote": "currency",
+        "altname": "ATOMUSDT",
+        "base": "ATOM",
+        "cost_decimals": 8,
+        "costmin": "0.5",
+        "lot_decimals": 8,
+        "lot_multiplier": 1,
+        "ordermin": "3.5",
+        "pair_decimals": 4,
+        "quote": "USDT",
+        "result_key": "ATOMUSDT",
+        "status": "online",
+        "tick_size": "0.0001",
+        "wsname": "ATOM/USDT"
+      },
+      "product": "spot",
+      "venue": "kraken"
+    },
+    {
+      "base": "BTC",
+      "native": {
+        "base": "BTC",
+        "category": "Layer 1",
+        "contractSize": 1,
+        "contractValueTradePrecision": 4,
+        "fundingRateCoefficient": 8,
+        "impactMidSize": 0.08,
+        "isExpired": false,
+        "lastTradingTime": null,
+        "maxOpenInterestUsd": null,
+        "maxPositionSize": 1200.0,
+        "maxRelativeFundingRate": 0.005,
+        "minRelativeFundingRate": null,
+        "openingDate": "2022-03-22T13:15:36Z",
+        "pair": "BTC:USD",
+        "postOnly": false,
+        "quote": "USD",
+        "suspended": false,
+        "symbol": "PF_XBTUSD",
+        "tickSize": 1,
+        "tradeable": true,
+        "type": "flexible_futures"
+      },
+      "product": "perpetual",
+      "venue": "kraken"
+    },
+    {
+      "base": "ATOM",
+      "native": {
+        "base": "ATOM",
+        "category": "DeFi",
+        "contractSize": 1,
+        "contractValueTradePrecision": 1,
+        "fundingRateCoefficient": 8,
+        "impactMidSize": 3500.0,
+        "isExpired": false,
+        "lastTradingTime": null,
+        "maxOpenInterestUsd": null,
+        "maxPositionSize": 1200000.0,
+        "maxRelativeFundingRate": 0.005,
+        "minRelativeFundingRate": null,
+        "openingDate": "2022-03-22T14:23:24Z",
+        "pair": "ATOM:USD",
+        "postOnly": false,
+        "quote": "USD",
+        "suspended": false,
+        "symbol": "PF_ATOMUSD",
+        "tickSize": 0.001,
+        "tradeable": true,
+        "type": "flexible_futures"
+      },
+      "product": "perpetual",
+      "venue": "kraken"
+    }
+  ],
+  "note": "Catalogue fields copied verbatim from one-off public reads; not a mapping certification, not a quote, not runtime proof.",
+  "observations": {
+    "kraken_futures_dated_btc": [
+      "FF_XBTUSD_261127",
+      "FF_XBTUSD_261225",
+      "FF_XBTUSD_270326",
+      "FF_XBTUSD_270625"
+    ],
+    "kraken_futures_quote_assets": {
+      "USD": 218
+    },
+    "kraken_futures_types": {
+      "flexible_futures": 218
+    },
+    "mexc_contract_api_allowed_counts": {
+      "false": 5,
+      "true": 1165
+    }
+  },
+  "read_at_utc": "2026-11-20T21:25Z",
+  "schema": "catalogue-sheets/1.0.0",
+  "sources": {
+    "kraken_assetpairs": {
+      "bytes": 1012,
+      "http_status": 200,
+      "requested_at_utc": "2026-11-20T21:25:00Z",
+      "sha256": "3236a8d797c512243a1154d9bf542902610ddb2455c88063acb055d4bad2f9c9",
+      "url": "https://api.kraken.com/0/public/AssetPairs?pair=XBTUSDT,ATOMUSDT"
+    },
+    "kraken_futures_instruments": {
+      "bytes": 822105,
+      "entries": 218,
+      "http_status": 200,
+      "requested_at_utc": "2026-11-20T21:25:01Z",
+      "server_time": "2026-11-20T21:25:02.708Z",
+      "sha256": "c5c58723cbc6976aded3e85bd076806dcd23a396390873709fa9eb93ea182eb8",
+      "url": "https://futures.kraken.com/derivatives/api/v3/instruments"
+    },
+    "mexc_contract_detail": {
+      "bytes": 2277760,
+      "entries": 1170,
+      "http_status": 200,
+      "requested_at_utc": "2026-11-20T21:25:02Z",
+      "sha256": "f676de48e2b83240e9a76c48a02d5f16caa39c79afcebafab9ad104d422a5ee9",
+      "url": "https://api.mexc.com/api/v1/contract/detail"
+    },
+    "mexc_spot_exchangeinfo": {
+      "bytes": 1661,
+      "http_status": 200,
+      "requested_at_utc": "2026-11-20T21:25:02Z",
+      "server_time_ms": 1795209902175,
+      "sha256": "3db48f71d54edc73b32c65456cb27a4ec177ef742b827b23a296d3e8b23c9747",
+      "url": "https://api.mexc.com/api/v3/exchangeInfo?symbols=BTCUSDT,ATOMUSDT"
+    }
+  }
+}

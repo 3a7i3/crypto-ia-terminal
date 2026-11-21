@@ -7,6 +7,7 @@ import { MarketView } from "../views/MarketView";
 import { PaperPositionArchive } from "../views/PaperPositionArchive";
 import { PaperOrderRegisterView } from "../views/PaperOrderRegisterView";
 import { PortfolioView } from "../views/PortfolioView";
+import { PendingPaperOrders } from "../views/PendingPaperOrders";
 import { PplComparisonView } from "../views/PplComparisonView";
 import { SystemView } from "../views/SystemView";
 import { RuntimeServiceView } from "../views/RuntimeServiceView";
@@ -15,16 +16,18 @@ import { SnapshotStatusBanner } from "../components/SnapshotStatusBanner";
 import { PublicationStamp } from "../components/PublicationStamp";
 import { useOperatorSnapshot } from "../lib/snapshotClient";
 const CanonicalView: React.FC<{
+  fallback?: React.ReactNode;
   children: (
     snapshot: NonNullable<PaperLiveOutletContext["activeSnapshot"]>,
   ) => React.ReactNode;
-}> = ({ children }) => {
+}> = ({ children, fallback }) => {
   const { snapshotState, activeSnapshot } =
     useOutletContext<PaperLiveOutletContext>();
   if (!activeSnapshot)
     return (
       <div data-testid="no-snapshot">
-        <SnapshotStatusBanner state={snapshotState} />
+        {fallback}
+        <details><summary>Diagnostic de la source</summary><SnapshotStatusBanner state={snapshotState} /></details>
       </div>
     );
   return (
@@ -70,17 +73,30 @@ const CanonicalView: React.FC<{
 export const MarketRoute: React.FC = () => <MarketView />;
 export const PortfolioRoute: React.FC = () => (
   <>
-    <CanonicalView>
-      {(snapshot) => <PortfolioView snapshot={snapshot} />}
+    <CanonicalView fallback={<><PortfolioView /><PendingPaperOrders /></>}>
+      {(snapshot) => <><PortfolioView snapshot={snapshot} /><PendingPaperOrders publication={snapshot.portfolio.pending_paper_orders} /></>}
     </CanonicalView>
     {import.meta.env.DEV && <PaperOrderRegisterView />}
     <PaperPositionArchive />
   </>
 );
 export const DecisionsRoute: React.FC = () => (
-  <CanonicalView>
+  <CanonicalView fallback={<DecisionsView />}>
     {(snapshot) => <DecisionsView snapshot={snapshot} />}
   </CanonicalView>
+);
+export const PaperOrderHistoryRoute: React.FC = () => (
+  <section className="mobile-panel">
+    <h2>Historique des ordres PAPER</h2>
+    <div className="technical-table" role="region" aria-label="Historique des ordres PAPER" tabIndex={0}>
+      <table>
+        <thead><tr>{["Date UTC", "Ordre", "Décision", "Position", "Symbole", "Sens", "État"].map(label =>
+          <th key={label} scope="col">{label}</th>
+        )}</tr></thead>
+        <tbody><tr><td colSpan={7}><span role="status">En attente d’une publication des ordres de la session.</span></td></tr></tbody>
+      </table>
+    </div>
+  </section>
 );
 export const LifecycleRoute: React.FC = () => <PplComparisonView />;
 export const FinanceRoute: React.FC = () => <FinancialReconciliationView />;

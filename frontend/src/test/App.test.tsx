@@ -148,9 +148,9 @@ describe("App", () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? Promise.resolve(radarResponse()) : base(input));
     window.history.replaceState({}, "", "/paper-live/market");
     render(<App />);
-    await screen.findByText("30 / 30");
+    await screen.findByText(/^30 \/ 30 instruments/);
     expect(window.location.pathname).toBe("/paper-live/market/radar");
-    expect(screen.getByRole("heading", { name: "Market Radar · MEXC Spot" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Scanner classé" })).toBeInTheDocument();
     expect(urls()).toEqual(["/api/operator/v1/spot-radar/scanner"]);
     expect(screen.queryByTestId("tab-scores")).toBeNull();
     expect(screen.queryByTestId("tab-burn-in")).toBeNull();
@@ -166,14 +166,21 @@ describe("App", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
     fireEvent.click(screen.getByTestId("tab-market"));
-    await screen.findByText("30 / 30");
-    expect(screen.getByRole("heading", { name: "Market Radar · MEXC Spot" })).toBeInTheDocument();
+    await screen.findByText(/^30 \/ 30 instruments/);
+    expect(screen.getByRole("heading", { name: "Scanner classé" })).toBeInTheDocument();
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
     expect(screen.queryByTestId("market-canonical-context")).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(urls().some((u) => u.includes("burn-in"))).toBe(false);
     fireEvent.click(screen.getByTestId("tab-paper"));
     await waitFor(() => expect(screen.getByTestId("no-snapshot")).toHaveTextContent("non résolu"));
+
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("link", { name: "Historique des ordres" }));
+    expect(await screen.findByRole("columnheader", { name: "Ordre" })).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("tab-decisions"));
+    expect(await screen.findByRole("columnheader", { name: "Symbole" })).toBeInTheDocument();
+
   });
 
   it("renders the canonical portfolio mode without a PAPER fallback for UNKNOWN", async () => {

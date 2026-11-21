@@ -14,27 +14,38 @@
   color-scheme: dark;
 }
 .footprint-panel {
-  margin-top: 16px; padding: 16px; min-width: 0; max-width: 100%; box-sizing: border-box;
+  margin-top: 16px; padding: 12px; min-width: 0; max-width: 100%; box-sizing: border-box;
   background: var(--fp-bg); color: var(--fp-text); border: 1px solid var(--fp-border); border-radius: 8px;
   overflow-wrap: anywhere;
 }
-.footprint-panel h2 { font-size: 18px; margin: 6px 0; color: var(--fp-text); }
+.footprint-panel h2 { font-size: 16px; margin: 2px 0 0; color: var(--fp-text); }
 .footprint-panel p, .footprint-panel li { font-size: 13px; line-height: 1.6; color: var(--fp-text-sec); }
+/* Commandes compactes : largeur au contenu, zone tactile de 40 px conservée. */
 .footprint-panel button, .footprint-panel select {
-  min-height: 40px; padding: 6px 12px; border-radius: 6px; font: inherit; font-size: 14px;
+  min-height: 40px; padding: 4px 10px; border-radius: 6px; font: inherit; font-size: 14px; width: auto; flex: 0 0 auto;
   border: 1px solid var(--fp-border); background: var(--fp-bg-soft); color: var(--fp-text);
 }
-.footprint-panel button[aria-checked="true"], .footprint-panel button[aria-pressed="true"] { border-color: var(--fp-accent); box-shadow: inset 0 0 0 1px var(--fp-accent); }
-.footprint-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.footprint-panel button[aria-pressed="true"] { border-color: var(--fp-accent); box-shadow: inset 0 0 0 1px var(--fp-accent); }
+.footprint-head { display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: space-between; align-items: center; }
 .footprint-head > div { min-width: 0; }
-.footprint-actions, .footprint-modes, .footprint-controls, .footprint-badges { display: flex; flex-wrap: wrap; gap: 8px; }
-.footprint-controls { margin: 12px 0 4px; }
-.footprint-controls label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fp-text-sec); }
+/* Menu « Thème » : select natif, libellé visible, même hauteur tactile que les boutons. */
+.footprint-theme { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--fp-text); }
+/* Spécificité supérieure à .app-content :is(select, …) : tous les menus du panneau suivent son thème. */
+.footprint-panel[data-footprint-theme] :is(select, button) {
+  min-width: 0; cursor: pointer; background: var(--fp-bg-soft); color: var(--fp-text); border: 1px solid var(--fp-border);
+}
+.footprint-panel select:focus-visible, .footprint-panel button:focus-visible { outline: 2px solid var(--fp-accent); outline-offset: 2px; }
+.footprint-actions, .footprint-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Rangée de réglages : libellé et menu sur une ligne, repli naturel sur mobile. */
+.footprint-controls { margin: 8px 0 0; gap: 6px 12px; }
+.footprint-controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fp-text-sec); }
+.footprint-loading { margin: 10px 0 0; }
 .footprint-notice { margin: 12px 0; padding: 12px; border: 1px solid var(--fp-border); border-radius: 6px; background: var(--fp-bg-soft); }
 .footprint-notice ul { margin: 4px 0; padding-left: 20px; }
 .footprint-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--fp-border); background: var(--fp-bg-soft); }
 .footprint-badge-warn { color: var(--fp-warn); background: var(--fp-warn-bg); border-color: var(--fp-warn); }
-.footprint-provenance { margin-top: 12px; }
+.footprint-provenance { margin-top: 8px; }
+.footprint-mention { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .footprint-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 8px; margin: 10px 0 0; }
 .footprint-facts div { min-width: 0; padding: 8px; border: 1px solid var(--fp-border); border-radius: 6px; }
 .footprint-facts dt { font-size: 12px; color: var(--fp-text-sec); }
@@ -65,9 +76,65 @@
   position: fixed; inset: 0; z-index: 1000; margin: 0; border-radius: 0; overflow-y: auto; width: 100%; height: 100%;
 }
 @media (max-width: 480px) {
-  .footprint-panel { padding: 12px; }
-  .footprint-actions > button, .footprint-modes { flex: 1 1 auto; }
+  .footprint-panel { padding: 10px; }
 }
-.footprint-coverage-line { margin: 8px 0 0; font-size: 13px !important; color: var(--fp-text) !important; }
-.footprint-details { margin-top: 6px; }
+.footprint-coverage-line { margin: 4px 0 0; font-size: 12px !important; line-height: 1.5 !important; color: var(--fp-text) !important; }
+.footprint-details { margin-top: 2px; }
 .footprint-details summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-size: 14px; color: var(--fp-accent); }
+/* Graphique Footprint (maquette) : bougies en boîtes, axe des prix à droite collé au profil,
+   statistiques collées en bas. Le déplacement reste confiné au graphique. */
+.fp-chart-scroll { max-height: 70vh; margin-block: .5rem; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--fp-border); border-radius: 6px; }
+.fp-chart-grid { --fp-profile-w: 76px; font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; font: 11px/1.4 monospace; display: grid; }
+.fp-chart-grid > * { border-bottom: 1px solid color-mix(in srgb, var(--fp-border) 60%, transparent); min-height: 18px; }
+.fp-chart-grid b { z-index: 1; background: var(--fp-bg); padding-inline: 4px; position: sticky; }
+.fp-chart-grid strong { text-align: center; }
+/* Axe des prix : colonne collée à droite, juste avant le profil. */
+.fp-chart-grid .fp-price { right: var(--fp-profile-w); text-align: right; color: var(--fp-text-sec); font-weight: 600; border-left: 1px solid var(--fp-border); white-space: nowrap; }
+.fp-chart-grid .fp-profile-track, .fp-chart-grid .fp-right { right: 0; }
+.fp-chart-grid .fp-right { border-left: 1px solid var(--fp-border); }
+/* Bougie : mèche fine (2 px) avec butées aux extrêmes, corps encadré entre ouverture et clôture. */
+.fp-chart-cell { min-width: 82px; text-align: center; padding-inline: 10px; position: relative; }
+.fp-chart-cell[data-up=true] { --fp-candle: var(--fp-buy); }
+.fp-chart-cell[data-up=false] { --fp-candle: var(--fp-sell); }
+.fp-chart-cell .fp-wick { position: absolute; left: 50%; width: 2px; margin-left: -1px; inset-block: 0 -1px; background: var(--fp-candle); }
+.fp-chart-cell .fp-wick[data-end=high] { top: 50%; }
+.fp-chart-cell .fp-wick[data-end=low] { bottom: 50%; }
+.fp-chart-cell .fp-wick[data-end=both] { top: 50%; bottom: 50%; }
+.fp-chart-cell .fp-wick[data-end]::before { content: ""; position: absolute; left: -6px; width: 14px; height: 2px; background: var(--fp-candle); }
+.fp-chart-cell .fp-wick[data-end=high]::before, .fp-chart-cell .fp-wick[data-end=both]::before { top: -1px; }
+.fp-chart-cell .fp-wick[data-end=low]::before { bottom: -1px; }
+.fp-chart-cell .fp-body { position: absolute; inset-block: 0 -1px; inset-inline: max(4px, calc(50% - 50px)); background: color-mix(in srgb, var(--fp-candle) 10%, var(--fp-bg)); border-inline: 2px solid var(--fp-candle); }
+.fp-chart-cell[data-edge~=top] .fp-body { top: 2px; border-top: 2px solid var(--fp-candle); border-radius: 3px 3px 0 0; }
+.fp-chart-cell[data-edge~=bottom] .fp-body { bottom: 2px; border-bottom: 2px solid var(--fp-candle); border-radius: 0 0 3px 3px; }
+.fp-chart-cell[data-edge="top bottom"] .fp-body { border-radius: 3px; }
+/* Fenêtre partielle : signalée dans l'en-tête de la bougie ; le corps garde un trait plein. */
+.fp-chart-cell button { position: relative; z-index: 1; font: inherit; color: inherit; cursor: pointer; background: 0 0; border: 0; border-radius: 3px; padding: 1px 3px; white-space: nowrap; min-height: 18px; }
+/* Cellule posée sur la mèche : pastille opaque cerclée de la couleur de la bougie. */
+.fp-chart-cell[data-part=wick] button { background: var(--fp-bg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fp-candle) 70%, transparent); min-height: 14px; line-height: 12px; margin-block: 2px; }
+.fp-chart-cell button span:first-child { background: color-mix(in srgb,var(--fp-sell) 16%,transparent); }
+.fp-chart-cell button span:last-child { background: color-mix(in srgb,var(--fp-buy) 16%,transparent); }
+.fp-profile-track i { height: 60%; position: absolute; top: 20%; }
+.fp-chart-cell[data-active=true] { box-shadow: inset 0 0 0 999px var(--fp-poc); }
+.fp-profile-track[data-poc=true] { background: var(--fp-poc); }
+.fp-chart-grid .fp-stat, .fp-chart-grid .fp-head { background: var(--fp-bg-soft); z-index: 2; position: sticky; }
+.fp-chart-grid .fp-head { top: 0; white-space: nowrap; }
+.fp-chart-grid b.fp-head, .fp-chart-grid b.fp-stat { z-index: 3; }
+.fp-chart-grid .fp-stat { height: 20px; }
+/* Statistiques colorées par signe ; Volume en teinte neutre. */
+.fp-chart-grid strong.fp-stat[data-sign=pos] { color: var(--fp-buy); background: color-mix(in srgb, var(--fp-buy) 12%, var(--fp-bg-soft)); }
+.fp-chart-grid strong.fp-stat[data-sign=neg] { color: var(--fp-sell); background: color-mix(in srgb, var(--fp-sell) 12%, var(--fp-bg-soft)); }
+.fp-chart-grid .fp-stat[data-stat=Volume] { background: color-mix(in srgb, var(--fp-accent) 10%, var(--fp-bg-soft)); }
+.fp-chart-grid b.fp-stat { color: var(--fp-text); text-align: left; }
+.fp-chart-scroll:focus-visible, .fp-chart-cell button:focus-visible { outline: 2px solid var(--fp-accent); }
+/* Imbalances encadrées côté marqué par le moteur, empilées en trait double. */
+.fp-chart-cell span[data-imb] { outline: 1px solid currentColor; outline-offset: -1px; border-radius: 2px; }
+.fp-chart-cell span[data-imb][data-stacked=true] { outline: 3px double currentColor; outline-offset: -3px; }
+/* Profil Delta : barres signées autour de l'axe zéro ; profil Volume : POC identifié. */
+.fp-profile-track[data-profile=delta]::before { content: ""; position: absolute; left: 50%; inset-block: 0; border-left: 1px solid var(--fp-text-sec); opacity: .5; }
+.fp-poc-tag { position: absolute; right: 2px; top: 0; font-size: 10px; font-weight: 700; color: var(--fp-accent); }
+.fp-chart-grid .fp-head[data-profile] { text-align: center; }
+.fp-profile-choice { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fp-text-sec); }
+.footprint-panel [data-testid=footprint-chart] nav { display: inline-flex; gap: 6px; margin-top: 6px; }
+.footprint-live { margin: 6px 0 0; font-size: 12px !important; }
+/* Plein écran : le graphique occupe la hauteur disponible, le déplacement reste interne. */
+.footprint-panel.footprint-fullscreen .fp-chart-scroll, .footprint-panel:fullscreen .fp-chart-scroll { max-height: max(240px, calc(100dvh - 72px)); }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { FOOTPRINT_REPLAY_URL, FootprintReplayError, loadFootprintReplay, parseFootprintReplay } from "../lib/footprintReplay";
+import { createHash } from "node:crypto";
+import { FOOTPRINT_REPLAY_URL, FootprintReplayError, loadFootprintReplay, parseFootprintReplay, sha256HexSync } from "../lib/footprintReplay";
 import { syntheticReplay } from "./footprintReplayFixture";
 
 const resp = (body: string, status = 200, type = "application/json; charset=utf-8") =>
@@ -34,15 +35,26 @@ describe("contrat du rejeu Footprint", () => {
     expect((await loadFootprintReplay(vi.fn().mockResolvedValue(resp("<!doctype html>", 200, "text/html")))).status).toBe("absent");
     expect(await loadFootprintReplay(vi.fn().mockResolvedValue(resp("{}", 503)))).toEqual({ status: "error", message: "HTTP 503" });
     expect(await loadFootprintReplay(vi.fn().mockRejectedValue(new Error("offline")))).toEqual({ status: "error", message: "offline" });
-    expect(await loadFootprintReplay(vi.fn().mockResolvedValue(resp("{")))).toEqual({ status: "invalid", reason: "JSON illisible" });
+    expect(await loadFootprintReplay(vi.fn().mockResolvedValue(resp("{")), undefined, null)).toEqual({ status: "invalid", reason: "JSON illisible" });
     const body = JSON.stringify(syntheticReplay());
     const fetchImpl = vi.fn().mockResolvedValue(resp(body));
-    const ready = await loadFootprintReplay(fetchImpl);
+    const ready = await loadFootprintReplay(fetchImpl, undefined, null);
     expect(fetchImpl).toHaveBeenCalledWith(FOOTPRINT_REPLAY_URL, expect.objectContaining({ cache: "no-store" }));
     expect(ready.status).toBe("ready");
     if (ready.status === "ready") {
       expect(ready.sha256).toMatch(/^[0-9a-f]{64}$/);
       expect(ready.bytes).toBe(new TextEncoder().encode(body).length);
+    }
+    // Par défaut, seule la capture livrée (empreinte attendue) est acceptée.
+    const refused = await loadFootprintReplay(vi.fn().mockResolvedValue(resp(body)));
+    expect(refused.status).toBe("invalid");
+    if (refused.status === "invalid") expect(refused.reason).toMatch(/empreinte SHA-256/);
+  });
+
+  it("calcule le SHA-256 sans WebCrypto, identique à node:crypto", () => {
+    for (const n of [0, 1, 55, 56, 63, 64, 65, 1000]) {
+      const data = new Uint8Array(n).map((_, i) => (i * 31 + n) & 0xff);
+      expect(sha256HexSync(data)).toBe(createHash("sha256").update(data).digest("hex"));
     }
   });
 });

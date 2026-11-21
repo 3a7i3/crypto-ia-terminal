@@ -57,9 +57,9 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </div>
 );
 
-const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) => (
+const PositionsTable: React.FC<{ positions: OpenPosition[]; emptyMessage?: React.ReactNode }> = ({ positions, emptyMessage }) => (
   <>
-  <div className="portfolio-table-desktop" style={{ overflowX: "auto" }}>
+  <div className={positions.length ? "portfolio-table-desktop" : "technical-table"} style={{ overflowX: "auto" }}>
     <table className="w-full">
       <thead>
         <tr className="text-left" style={{ color: "var(--text-muted)" }}>
@@ -71,6 +71,7 @@ const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) 
         </tr>
       </thead>
       <tbody>
+        {emptyMessage && <tr><td colSpan={10}>{emptyMessage}</td></tr>}
         {positions.map((pos) => (
           <PositionRow key={pos.position_id || pos.symbol} pos={pos} />
         ))}
@@ -106,7 +107,7 @@ const PositionsTable: React.FC<{ positions: OpenPosition[] }> = ({ positions }) 
  * Never recomputes price, PnL, count, or exposure. */
 const OpenPositionsSection: React.FC<{ ov: unknown }> = ({ ov }) => {
   if (!isObservedValue(ov)) {
-    return <ObservedValueView ov={ov} />;
+    return <PositionsTable positions={[]} emptyMessage={<ObservedValueView ov={ov} />} />;
   }
 
   if (ov.semantics === "PRESENT" || ov.semantics === "STALE") {
@@ -124,9 +125,7 @@ const OpenPositionsSection: React.FC<{ ov: unknown }> = ({ ov }) => {
 
     if (positions.length === 0) {
       return (
-        <div className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
-          (vide — aucune position ouverte observée)
-        </div>
+        <PositionsTable positions={[]} emptyMessage="(vide — aucune position ouverte observée)" />
       );
     }
 
@@ -152,13 +151,15 @@ const OpenPositionsSection: React.FC<{ ov: unknown }> = ({ ov }) => {
 
   // UNKNOWN / UNAVAILABLE / NOT_APPLICABLE — no rows, explicit semantics only.
   return (
-    <div className="font-mono text-xs">
-      <ObservedValueView ov={ov} />
-    </div>
+    <PositionsTable positions={[]} emptyMessage={<ObservedValueView ov={ov} />} />
   );
 };
 
-export const PortfolioView: React.FC<{ snapshot: OperatorSnapshot }> = ({ snapshot }) => {
+export const PortfolioView: React.FC<{ snapshot?: OperatorSnapshot }> = ({ snapshot }) => {
+  if (!snapshot) return <section className="mobile-panel">
+    <h2>Positions ouvertes</h2>
+    <PositionsTable positions={[]} emptyMessage="En attente d’une publication des positions." />
+  </section>;
   const p = snapshot.portfolio;
 
   return (
