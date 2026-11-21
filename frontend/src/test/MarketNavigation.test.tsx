@@ -45,8 +45,8 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("M1-C1 deep Market routes", () => {
   const views = [
     ["radar", "Scanner", ["spot-radar"]],
-    ["venues", "Comparaison des plateformes", ["derivatives-positioning", "derivatives-stress", "observations", "venue-comparison"]],
-    ["flow", "Flux", ["derivatives-stress", "market-flow", "observations"]],
+    ["venues", "Plateformes & levier", ["derivatives-positioning", "derivatives-stress", "observations", "venue-comparison"]],
+    ["flow", "Flux & rythmes", ["derivatives-stress", "market-flow", "observations"]],
     ["lmi", "Microstructure", ["footprint-capture", "market-microstructure"]],
   ] as const;
 
@@ -108,9 +108,9 @@ describe("M1-C1 browser history", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Scanner classé" });
     const start = window.history.length;
-    expect(tab("Flux")).toHaveAttribute("href", "/paper-live/market/flow");
+    expect(tab("Flux & rythmes")).toHaveAttribute("href", "/paper-live/market/flow");
     fetchMock.mockClear();
-    fireEvent.click(tab("Flux"));
+    fireEvent.click(tab("Flux & rythmes"));
     await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
     expect(window.history.length).toBe(start + 1);
     await waitFor(() => expect(families()).toEqual(["derivatives-stress", "market-flow", "observations"]));
@@ -121,7 +121,7 @@ describe("M1-C1 browser history", () => {
     act(() => window.history.back());
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));
     await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
-    expect(tab("Flux")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Flux & rythmes")).toHaveAttribute("aria-selected", "true");
     act(() => window.history.forward());
     await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "lmi"));
     act(() => window.history.go(-2));
@@ -180,7 +180,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
     await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
     expect(window.history.length).toBe(before);
     await waitFor(() => expect(families()).toEqual(["spot-radar"]));
-    fireEvent.click(tab("Flux"));
+    fireEvent.click(tab("Flux & rythmes"));
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));
     expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=intraday");
     fireEvent.click(tab("Scanner"));
@@ -226,15 +226,15 @@ describe("M1-C1 keyboard and links", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Scanner classé" });
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Comparaison des plateformes", "Flux", "Microstructure"]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Plateformes & levier", "Flux & rythmes", "Microstructure"]);
     expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1"]);
     expect(screen.getByRole("tablist", { name: "Vues du marché" })).toBeInTheDocument();
     tab("Scanner").focus();
     fireEvent.keyDown(tab("Scanner"), { key: "ArrowRight" });
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/venues"));
-    await waitFor(() => expect(tab("Comparaison des plateformes")).toHaveFocus());
-    expect(tab("Comparaison des plateformes")).toHaveAttribute("tabindex", "0");
-    fireEvent.keyDown(tab("Comparaison des plateformes"), { key: "End" });
+    await waitFor(() => expect(tab("Plateformes & levier")).toHaveFocus());
+    expect(tab("Plateformes & levier")).toHaveAttribute("tabindex", "0");
+    fireEvent.keyDown(tab("Plateformes & levier"), { key: "End" });
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
     await waitFor(() => expect(tab("Microstructure")).toHaveFocus());
     fireEvent.keyDown(tab("Microstructure"), { key: "ArrowRight" });

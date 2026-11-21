@@ -96,6 +96,7 @@ try {
     const bookTable = page.getByRole("region", { name: "Observations par plateforme" });
     await page.getByText("Capture historique · BTC/USDT").waitFor();
     const btc = await bookTable.textContent();
+    await page.getByText("Comparaison spot et sources", { exact: true }).click();
     await page.getByLabel("Instrument de la capture").selectOption("ATOM");
     await page.getByText("Capture historique · ATOM/USDT").waitFor();
     const atom = await bookTable.textContent();

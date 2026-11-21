@@ -17,7 +17,7 @@ const cases = [
 let assertions = 0; const views = [], errors = [], blocked = [], requests = [];
 const assert = (ok, m) => { assertions++; if (!ok) throw Error(m); };
 await mkdir(out, { recursive: true });
-const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
+const browser = await chromium.launch({ headless: true, chromiumSandbox: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
 try {
   for (const theme of ["light", "dark"]) for (const width of [1440, 384]) for (const [name, fixture] of cases) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 2, locale: "fr-FR", serviceWorkers: "block" });
@@ -50,7 +50,10 @@ try {
       assert(await panel.getByTestId("pos-synthetic").count() === 1, "synthetic evidence is stated");
       const legs = name === "synthetic" ? ["a", "b", "c", "d"] : ["a"];
       for (const k of legs) {
+        if (k === "d") await panel.getByLabel("Instrument", { exact: true }).selectOption("BTCUSDT");
         await panel.getByLabel("Plateforme et contrat").selectOption(LEGS[k]);
+        if (k === "b") await panel.getByLabel("Période").selectOption("3600");
+        else await panel.getByLabel("Période").selectOption("86400");
         const text = await panel.innerText();
         const sel = await panel.getByLabel("Plateforme et contrat").evaluate(e => ({ sw: e.scrollWidth, cw: e.clientWidth }));
         assert(sel.sw <= sel.cw + 1, k + ": selector label not truncated");
@@ -60,14 +63,21 @@ try {
           assert(dp !== doi, "a: price and OI curves are distinct");
           const [cp, co] = await page.evaluate(() => ["pos-line-price", "pos-line-oi"].map(id => getComputedStyle(document.querySelector(`[data-testid=${id}]`)).stroke));
           assert(cp !== co, "a: price and OI strokes differ"); assert(text.includes("contrats"), "a: OI unit"); assert(text.includes(name === "stale" ? "Périmée" : "Récente"), "freshness"); }
-        if (k === "b") { assert(text.includes("INSUFFICIENT_COVERAGE"), "b: partial coverage stated"); assert(text.includes("unités de base"), "b: OI unit"); }
+        if (k === "b") { assert(/couverture insuffisante/i.test(text), "b: partial coverage stated"); assert(text.includes("unités de base"), "b: OI unit"); }
         if (k === "c") { assert(await panel.getByTestId("pos-chart").count() === 0, "c: non-comparable not drawn"); assert(text.includes("CONTRACT_SIZES_DIFFER") || text.includes("Tailles de contrat différentes"), "c: reason"); }
         if (k === "d") { assert(await panel.getByTestId("pos-chart").count() === 0, "d: nothing drawn"); assert(text.includes("Aucune observation enregistrée"), "d: reason"); }
         shots.push(name + "-" + k);
         const label = theme + "-" + width + "-" + name + "-" + k;
         // The app skip link is fixed chrome outside the panel; keep it out of panel crops.
         await page.addStyleTag({ content: ".app-skip{display:none!important}" });
-        await panel.screenshot({ path: path.join(out, label + ".png") });
+        if (k === "a") {
+          const chart = panel.getByRole("img", { name: /Prix et open interest/ });
+          const box = await chart.boundingBox();
+          assert(box && box.width > width * (width === 384 ? .65 : .35), "chart takes the available width");
+          await chart.click({ position: { x: box.width / 2, y: 35 } });
+          assert((await panel.locator("output").innerText()).includes(" UTC · Prix "), "point readout follows time");
+        }
+        await page.screenshot({ path: path.join(out, label + ".png"), fullPage: true });
       }
     }
     const geometry = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth }));

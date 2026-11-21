@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDerivativesPositioning } from "../lib/derivativesPositioningClient";
-import type { Leg, OiWindow, Positioning, Series } from "../lib/derivativesPositioning";
+import type { Leg, Positioning, Series } from "../lib/derivativesPositioning";
 import { MarketSourceNotice } from "./MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 import { venueName, marketKindLabel } from "../lib/venueNames";
@@ -13,73 +13,88 @@ const Missing: React.FC<{ reason: string | null }> = ({ reason }) =>
 const time = (v: string | null) => v ? v.replace("T", " ").replace(/\.\d+Z$/, " UTC") : "non disponible";
 const legName = (l: Leg) => `${venueName(l.venue)} · ${l.native_symbol}`;
 
-function Card({ title, testId, children, foot }: { title: string; testId: string; children: React.ReactNode; foot: React.ReactNode }) {
-  return <article className="pos-card" data-testid={testId}><h4>{title}</h4><div className="pos-card-body">{children}</div><footer>{foot}</footer></article>;
-}
+const compact = (value: string | number, digits = 4) =>
+  Number(value).toLocaleString("fr-FR", { maximumFractionDigits: digits });
 
-function Cards({ leg }: { leg: Leg }) {
-  if (leg.latest.status !== "AVAILABLE") return <div className="pos-cards"><Missing reason={leg.latest.reason}/></div>;
-  const o = leg.latest.observation, d = o.derived, oi = o.measures.open_interest, f = d.funding;
-  const prov = <>Source <code>{o.provenance.source}</code>{o.provenance.mapping_id && <> · mapping <code>{o.provenance.mapping_id}</code></>}</>;
-  const fresh = <span className={"pos-fresh pos-fresh-" + o.freshness.status}>{o.freshness.status === "FRESH" ? "Récente" : o.freshness.status === "STALE" ? "Périmée" : "Horloge incohérente"} · âge {Math.round(o.freshness.age_ms / 1000)} s</span>;
-  const foot = <>{fresh}<br/>{o.time_basis === "SOURCE" ? "Heure source " + time(o.source_time_utc) : "Heure de réception (source absente)"}<br/>{prov}</>;
+function Cards({ leg, period }: { leg: Leg; period: number }) {
+  if (leg.latest.status !== "AVAILABLE") return <Missing reason={leg.latest.reason}/>;
+  const o = leg.latest.observation;
+  const d = o.derived, oi = o.measures.open_interest, f = d.funding;
+  const w = leg.oi_change.find(row => row.window_s === period);
+  const basis = d.basis_vs_spot.status === "AVAILABLE";
+  const premium = basis ? d.basis_vs_spot : d.premium_to_index;
+  const cards = [
+    { id: "oi", title: "Open interest", value: oi.status === "AVAILABLE" ? compact(oi.value, 6) : null,
+      detail: oi.status === "AVAILABLE" ? OI_UNIT[oi.unit!] ?? oi.unit : positioningReason(oi.reason) },
+    { id: "oi-change", title: "Variation OI", value: w?.status === "AVAILABLE" && w.change_pct !== null ? compact(w.change_pct) + " %" : null,
+      detail: w?.status === "AVAILABLE" ? windowLabel(period) : positioningReason(w?.reason ?? null) },
+    { id: "funding", title: "Funding", value: f.status === "AVAILABLE" && f.rate !== null ? compact(Number(f.rate) * 100, 8) + " %" : null,
+      detail: f.status === "AVAILABLE" ? "Par " + f.interval_s! / 3600 + " h" : positioningReason(f.reason) },
+    { id: "premium-basis", title: basis ? "Basis" : "Prime futures", value: premium.bps === null ? null : compact(premium.bps) + " pb",
+      detail: premium.status === "AVAILABLE" ? (basis ? "Référence spot" : "Référence indice") : positioningReason(premium.reason) },
+  ];
   return <div className="pos-cards">
-    <Card title="Open interest" testId="pos-card-oi" foot={foot}>
-      {oi.status === "AVAILABLE" ? <><p className="pos-value">{oi.value} <span>{OI_UNIT[oi.unit!] ?? oi.unit}</span></p>
-        {oi.contract_size_base && <p className="pos-sub">Taille de contrat {oi.contract_size_base} {o.base_currency ?? "base"}</p>}
-        <p className="pos-sub">{d.open_interest_notional.notional_quote !== null ? <>Notionnel {d.open_interest_notional.notional_quote} {o.quote_currency} (prix de marque)</> : <>Notionnel indisponible · {positioningReason(d.open_interest_notional.reason)}</>}</p></>
-        : <Missing reason={oi.reason}/>}
-    </Card>
-    <Card title="Variation de l’OI" testId="pos-card-oi-change" foot={<>Cadence déclarée {leg.cadence_s ?? "inconnue"} s · tolérance {leg.tolerance_ms ?? "—"} ms<br/>Seuls des points de même unité, taille et base temporelle sont comparés.</>}>
-      <ul className="pos-windows">{leg.oi_change.map((w: OiWindow) => <li key={w.window_s} data-testid="pos-oi-window"><strong>{windowLabel(w.window_s)}</strong>{" "}
-        {w.status === "AVAILABLE" ? <>{w.change_pct} %<small>{w.start!.value} → {w.end!.value} {OI_UNIT[w.unit!] ?? w.unit} · couverture {w.coverage!.points}/{w.coverage!.expected}</small></>
-          : <span className="pos-missing">— {positioningReason(w.reason)} <code>{w.reason}</code>{w.coverage && <small>couverture {w.coverage.points}/{w.coverage.expected}</small>}</span>}</li>)}</ul>
-    </Card>
-    <Card title="Funding" testId="pos-card-funding" foot={foot}>
-      {f.status === "AVAILABLE" ? <><p className="pos-value">{f.rate} <span>par {f.interval_s! / 3600} h</span></p>
-        <p className="pos-sub">Équivalent 8 h {f.rate_8h_equivalent} · annualisé simple {f.annualized_simple_pct} % (conversion linéaire, affichage seulement)</p>
-        <p className="pos-sub">Prochain funding {time(f.next_funding_utc)}</p></> : <Missing reason={f.reason}/>}
-    </Card>
-    <Card title="Prime et basis" testId="pos-card-premium-basis" foot={foot}>
-      <p className="pos-sub"><strong>Prime vs indice</strong> (marque − indice) / indice</p>
-      {d.premium_to_index.status === "AVAILABLE" ? <p className="pos-value">{d.premium_to_index.bps} <span>bp</span></p> : <Missing reason={d.premium_to_index.reason}/>}
-      <p className="pos-sub"><strong>Basis dérivé / spot</strong> (marque − spot qualifié) / spot</p>
-      {d.basis_vs_spot.status === "AVAILABLE" ? <p className="pos-value">{d.basis_vs_spot.bps} <span>bp · contre {venueName(d.basis_vs_spot.against!.venue)} {d.basis_vs_spot.against!.native_symbol}</span></p> : <Missing reason={d.basis_vs_spot.reason}/>}
-    </Card>
-    {o.unavailable_fields.length > 0 && <p className="pos-sub pos-unavailable-list" data-testid="pos-unavailable">Champs indisponibles : {o.unavailable_fields.map(u => `${FIELD[u.field] ?? u.field} (${positioningReason(u.reason)})`).join(" · ")}</p>}
+    {cards.map(c => <article key={c.id} className="pos-card" data-testid={"pos-card-" + c.id}>
+      <h4>{c.title}</h4><p className="pos-value">{c.value ?? "—"}</p><p className="pos-sub">{c.detail}</p>
+    </article>)}
   </div>;
 }
 
 function Chart({ s, window_s }: { s: Series; window_s: number }) {
-  // Two stacked bands, one per measure: price and OI never share a vertical scale.
-  const W = 360, BAND = 96, GAP = 18, P = 28, H = 2 * BAND + GAP + 8;
-  const ts = s.points.map(p => Date.parse(p.t)), price = s.points.map(p => Number(p.price)), oi = s.points.map(p => Number(p.oi));
-  const t0 = Math.min(...ts), t1 = Math.max(...ts);
-  const x = (t: number) => P + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * (W - 2 * P);
-  const band = (vals: number[], top: number) => { const lo = Math.min(...vals), hi = Math.max(...vals); return (v: number) => top + BAND - 6 - (hi === lo ? 0.5 : (v - lo) / (hi - lo)) * (BAND - 12); };
-  const line = (vals: number[], top: number) => { const y = band(vals, top); return vals.map((v, i) => (i ? "L" : "M") + x(ts[i]).toFixed(1) + " " + y(v).toFixed(1)).join(" "); };
-  const first = s.points[0], last = s.points[s.points.length - 1];
-  const oiUnit = `${OI_UNIT[s.oi_unit!] ?? s.oi_unit}${s.contract_size_base ? ` × ${s.contract_size_base}` : ""}`;
+  const [active, setActive] = useState<number | null>(null);
+  const points = s.points;
+  const times = points.map(p => Date.parse(p.t));
+  const price = points.map(p => Number(p.price)), oi = points.map(p => Number(p.oi));
+  const width = 360, height = 190, left = 54, right = 306, top = 15, bottom = 157;
+  const begin = times[0], end = times[times.length - 1];
+  const x = (t: number) => left + (t - begin) / Math.max(1, end - begin) * (right - left);
+  const scale = (v: number[]) => {
+    const min = Math.min(...v), max = Math.max(...v);
+    const pad = (max - min || Math.abs(max) || 1) * .08;
+    return { low: min - pad, high: max + pad };
+  };
+  const a = scale(price), b = scale(oi);
+  const y = (v: number, axis: typeof a) => bottom - (v - axis.low) / (axis.high - axis.low) * (bottom - top);
+  const line = (vals: number[], axis: typeof a) => vals.map((v, i) => {
+    const gap = i > 0 && s.cadence_s !== null && times[i] - times[i - 1] > s.cadence_s * 1000;
+    return `${i === 0 || gap ? "M" : "L"}${x(times[i])} ${y(v, axis)}`;
+  }).join(" ");
+  const selected = active === null ? null : points[active];
+  const stamp = (t: number) => new Date(t).toISOString().slice(11, 16);
+  const axisLabel = (v: number) => v.toLocaleString("fr-FR", { notation: "compact", maximumFractionDigits: 2 });
+  const oiUnit = OI_UNIT[s.oi_unit!] ?? s.oi_unit;
   return <figure className="pos-chart" data-testid="pos-chart">
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Prix de marque et open interest sur ${windowLabel(window_s)}, deux bandes et deux échelles séparées`}>
-      <text x={P} y={11} className="pos-band-label pos-band-price">Prix</text>
-      <line x1={P} x2={W - P} y1={BAND} y2={BAND} className="pos-axis"/>
-      <path d={line(price, 0)} className="pos-line-price" data-testid="pos-line-price"/>
-      <text x={P} y={BAND + GAP + 11} className="pos-band-label pos-band-oi">OI</text>
-      <line x1={P} x2={W - P} y1={2 * BAND + GAP} y2={2 * BAND + GAP} className="pos-axis"/>
-      <path d={line(oi, BAND + GAP)} className="pos-line-oi" data-testid="pos-line-oi"/>
+    <figcaption><span className="pos-key-price">Prix ({s.price_unit})</span><span className="pos-key-oi">OI ({oiUnit})</span></figcaption>
+    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Prix et open interest sur ${windowLabel(window_s)}, axes séparés`}
+      onPointerDown={e => {
+        const box = e.currentTarget.getBoundingClientRect();
+        const cursor = (e.clientX - box.left) / box.width * width;
+        setActive(times.reduce((best, t, i) => Math.abs(x(t) - cursor) < Math.abs(x(times[best]) - cursor) ? i : best, 0));
+      }}>
+      {[0, .25, .5, .75, 1].map(f => {
+        const row = top + f * (bottom - top);
+        return <g key={f}><line x1={left} x2={right} y1={row} y2={row} className="pos-axis"/>
+          <text x={left - 5} y={row + 4} textAnchor="end" className="pos-band-price">{axisLabel(a.high - f * (a.high - a.low))}</text>
+          <text x={right + 5} y={row + 4} className="pos-band-oi">{axisLabel(b.high - f * (b.high - b.low))}</text></g>;
+      })}
+      {[0, .25, .5, .75, 1].map(f => <text key={f} x={left + f * (right - left)} y={179} textAnchor="middle">{stamp(begin + f * (end - begin))}</text>)}
+      <path d={line(price, a)} className="pos-line-price" data-testid="pos-line-price"/>
+      <path d={line(oi, b)} className="pos-line-oi" data-testid="pos-line-oi"/>
+      {active !== null && <line x1={x(times[active])} x2={x(times[active])} y1={top} y2={bottom} className="pos-cursor"/>}
     </svg>
-    <figcaption><span className="pos-key-price">Prix de marque ({s.price_unit}) : {first.price} → {last.price}</span>
-      <span className="pos-key-oi">OI ({oiUnit}) : {first.oi} → {last.oi}</span>
-      <span>Valeurs exactes du premier et du dernier point · {s.points.length} points · cadence {s.cadence_s} s · couverture {s.coverage} · échelles min–max par bande</span></figcaption>
+    {selected && <output className="pos-readout">{stamp(times[active!])} UTC · Prix {selected.price} {s.price_unit} · OI {selected.oi} {oiUnit}</output>}
+    <input className="pos-chart-slider" type="range" min={0} max={points.length - 1} value={active ?? points.length - 1}
+      aria-label="Parcourir les observations du graphique" onChange={e => setActive(Number(e.target.value))}/>
   </figure>;
 }
 
-function ChartBlock({ doc, legId }: { doc: Positioning; legId: string }) {
-  const s = doc.chart.series.find(x => x.leg_id === legId)!;
+function ChartBlock({ doc, legId, period }: { doc: Positioning; legId: string; period: number }) {
+  const source = doc.chart.series.find(x => x.leg_id === legId)!;
+  const cutoff = Date.parse(doc.chart.end_utc) - period * 1000;
+  const s = { ...source, points: source.points.filter(p => Date.parse(p.t) >= cutoff) };
   return <section className="pos-chart-block" aria-label="Graphique prix et open interest">
-    <h4>Prix + OI · {windowLabel(doc.chart.window_s)}</h4>
-    {s.status === "AVAILABLE" && s.points.length > 1 ? <Chart s={s} window_s={doc.chart.window_s}/> :
+    <h4>Prix + OI · {windowLabel(period)}</h4>
+    {s.status === "AVAILABLE" && s.points.length > 1 ? <Chart key={legId + period} s={s} window_s={period}/> :
       <div data-testid="pos-chart-unavailable"><p>Aucune série affichée : l’historique n’est pas comparable ou pas aligné dans le temps.</p><Missing reason={s.reason ?? "NO_OBSERVATION"}/></div>}
     <p className="pos-sub">Séries exclues : {doc.chart.series.filter(x => x.status !== "AVAILABLE").map(x => `${x.leg_id.split(":")[0]} (${positioningReason(x.reason)})`).join(" · ") || "aucune"}.</p>
   </section>;
@@ -97,23 +112,52 @@ function Pairs({ doc }: { doc: Positioning }) {
 export const DerivativesPositioningPanel: React.FC = () => {
   const state = useDerivativesPositioning();
   const [legId, setLegId] = useState("");
+  const [period, setPeriod] = useState(86400);
+  const [instrument, setInstrument] = useState("");
   if (state.status === "loading") return <section className="market-panel venue-panel pos-panel" data-testid="positioning-panel" role="status">Chargement du positionnement des dérivés…</section>;
   if (state.status === "unavailable") return <section className="market-panel venue-panel pos-panel" data-testid="positioning-panel">
-    <h3>Positionnement des dérivés</h3><p role="status">Aucune lecture de positionnement disponible.</p>
+    <h1>Plateformes & levier</h1><p role="status">Aucune lecture de positionnement disponible.</p>
     {marketSourceSetup(state.errorCode) && <MarketSourceNotice source="Positionnement des dérivés" setup={marketSourceSetup(state.errorCode)!} code={state.errorCode!} httpStatus={state.httpStatus}/>}
     <details><summary>Source et diagnostic</summary><p>{state.diagnostic}</p></details>
   </section>;
   const doc = state.doc;
-  const leg = doc.legs.find(l => l.leg_id === legId) ?? doc.legs[0];
+  const instrumentOf = (l: Leg) => l.latest.observation?.base_currency ?? l.native_symbol;
+  const instruments = [...new Set(doc.legs.map(instrumentOf))];
+  const chosen = instruments.includes(instrument) ? instrument : instruments[0];
+  const eligible = doc.legs.filter(l => instrumentOf(l) === chosen);
+  const leg = eligible.find(l => l.leg_id === legId) ?? eligible[0];
+  const observation = leg.latest.observation;
+  const window = leg.oi_change.find(w => w.window_s === period);
   return <section className="market-panel venue-panel pos-panel" data-testid="positioning-panel">
-    <h3>Positionnement des dérivés</h3>
-    {doc.evidence_kind === "SYNTHETIC" && <p className="venue-evidence" data-testid="pos-synthetic">Exemple synthétique · aucune connexion attestée</p>}
-    <p className="pos-sub">Lecture de l’historique local au {time(doc.generated_at_utc)}. Aucun score ni signal ; aucune autorité de trading.</p>
-    <label className="pos-select">Plateforme et contrat<select aria-label="Plateforme et contrat" value={leg.leg_id} onChange={e => setLegId(e.target.value)}>
-      {doc.legs.map(l => <option key={l.leg_id} value={l.leg_id}>{legName(l)}{l.latest.status !== "AVAILABLE" ? " · sans observation" : ""}</option>)}
-    </select><span className="pos-sub" data-testid="pos-leg-kind">{legName(leg)} · {marketKindLabel[leg.contract_type] ?? leg.contract_type}</span></label>
-    <Cards leg={leg}/>
-    <ChartBlock doc={doc} legId={leg.leg_id}/>
-    <Pairs doc={doc}/>
+    <header className="pos-heading"><h1>Plateformes & levier</h1><p>Positionnement des dérivés</p></header>
+    <div className="pos-filters">
+      <label className="pos-select">Instrument<select value={chosen} onChange={e => { setInstrument(e.target.value); setLegId(""); }}>
+        {instruments.map(name => <option key={name}>{name}</option>)}</select></label>
+      <label className="pos-select">Plateforme<select aria-label="Plateforme et contrat" value={leg.leg_id} onChange={e => setLegId(e.target.value)}>
+        {eligible.map(l => <option key={l.leg_id} value={l.leg_id}>{legName(l)}</option>)}</select></label>
+      <label className="pos-select">Période<select value={period} onChange={e => setPeriod(Number(e.target.value))}>
+        {[3600,14400,86400].map(seconds => <option key={seconds} value={seconds}>{windowLabel(seconds)}</option>)}</select></label>
+    </div>
+    <p className="pos-quality" data-testid={doc.evidence_kind === "SYNTHETIC" ? "pos-synthetic" : undefined}>
+      {doc.evidence_kind === "SYNTHETIC" && "Exemple synthétique · "}
+      {observation ? (observation.freshness.status === "FRESH" ? "Récente" : observation.freshness.status === "STALE" ? "Périmée" : "Horloge incohérente") : "Aucune observation"}
+      {window?.coverage && ` · couverture ${window.coverage.points}/${window.coverage.expected}`}
+    </p>
+    <p className="pos-sub" data-testid="pos-leg-kind">{legName(leg)} · {marketKindLabel[leg.contract_type] ?? leg.contract_type}</p>
+    <Cards leg={leg} period={period}/>
+    <ChartBlock doc={doc} legId={leg.leg_id} period={period}/>
+    <details className="pos-details"><summary>Qualité et provenance</summary>
+      <p>Lecture de l’historique local au {time(doc.generated_at_utc)}</p>
+      {observation && <><p>Source <code>{observation.provenance.source}</code> · {observation.provenance.mapping_id}</p>
+      <p>Horodatage {time(observation.effective_time_utc)} · cotation {observation.quote_currency}</p>
+      {observation.units.contract_size_base && <p>Taille du contrat · {observation.units.contract_size_base} {observation.base_currency}</p>}
+      {observation.derived.open_interest_notional.notional_quote !== null && <p>OI notionnel · {observation.derived.open_interest_notional.notional_quote} {observation.quote_currency}</p>}
+      <ul className="pos-windows">{leg.oi_change.map(w => <li key={w.window_s} data-testid="pos-oi-window">
+        {windowLabel(w.window_s)} · {w.change_pct === null ? positioningReason(w.reason) : w.change_pct + " %"}
+        {w.coverage && ` · couverture ${w.coverage.points}/${w.coverage.expected}`}
+      </li>)}</ul>
+      {observation.unavailable_fields.length > 0 && <div data-testid="pos-unavailable">{observation.unavailable_fields.map(u => <p key={u.field}>{FIELD[u.field] ?? u.field} · {positioningReason(u.reason)}</p>)}</div>}</>}
+      <Pairs doc={doc}/>
+    </details>
   </section>;
 };

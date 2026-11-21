@@ -40,8 +40,9 @@ try{
   await page.waitForURL(/\/paper-live\/market\/radar$/);
   assert(await page.getByRole("tab",{name:"Scanner",exact:true}).getAttribute("aria-selected")==="true","scanner remains default");
   assert(comparisonRequests===0,"inactive comparison view is not read");
-  await page.getByRole("tab",{name:"Comparaison des plateformes",exact:true}).click();
+  await page.getByRole("tab",{name:"Plateformes & levier",exact:true}).click();
   await page.waitForURL(/\/paper-live\/market\/venues$/);
+  await page.getByText("Comparaison spot et sources", {exact:true}).click();
   if(name==="missing"||name==="invalid"){
    await page.getByText("Aucune publication de comparaison disponible.",{exact:true}).waitFor();
    assert(await page.getByTestId("venue-comparison-view").getByRole("table").count()===0,"unavailable is not empty numeric table");
@@ -94,7 +95,7 @@ try{
  // M1-C5 (F4): the four active Market routes, addressed directly. Each selects
  // its own tab, mounts one panel and reads only its own source; CryptoRadar
  // historique is offered nowhere, including through the obsolete ?radar=0.
- const ROUTES=[["radar","Scanner",p=>p.startsWith("/api/operator/v1/spot-radar/")],["venues","Comparaison des plateformes",p=>p==="/api/operator/v1/venue-comparison"||p==="/api/operator/v1/derivatives-stress"||p==="/api/operator/v1/derivatives-positioning"],["flow","Flux",p=>p==="/api/operator/v1/market-flow"||p==="/api/operator/v1/derivatives-stress"],["lmi","Microstructure",p=>p==="/api/operator/v1/market-microstructure"]];
+ const ROUTES=[["radar","Scanner",p=>p.startsWith("/api/operator/v1/spot-radar/")],["venues","Plateformes & levier",p=>p==="/api/operator/v1/venue-comparison"||p==="/api/operator/v1/derivatives-stress"||p==="/api/operator/v1/derivatives-positioning"],["flow","Flux & rythmes",p=>p==="/api/operator/v1/market-flow"||p==="/api/operator/v1/derivatives-stress"],["lmi","Microstructure",p=>p==="/api/operator/v1/market-microstructure"]];
  const routeChecks=[];
  for(const [slug,label,own] of ROUTES)for(const suffix of ["",...(slug==="radar"?["?radar=0"]:[])]){
   const context=await browser.newContext({viewport:{width:1440,height:900},locale:"fr-FR",serviceWorkers:"block"});

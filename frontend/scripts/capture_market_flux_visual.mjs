@@ -46,7 +46,7 @@ try {
         await page.goto(`${base}/paper-live/market`);
         const tabs = page.getByRole("tab");
         await page.waitForURL(/\/paper-live\/market\/radar$/);
-        assert.deepEqual(await tabs.allInnerTexts(), ["Scanner", "Comparaison des plateformes", "Flux", "Microstructure"]);
+        assert.deepEqual(await tabs.allInnerTexts(), ["Scanner", "Plateformes & levier", "Flux & rythmes", "Microstructure"]);
         assert.equal(await tabs.first().getAttribute("aria-selected"), "true");
         assert.equal(requests, 0);
         await tabs.first().focus();
@@ -60,7 +60,7 @@ try {
         await page.keyboard.press("ArrowLeft");
         await page.waitForURL(/\/paper-live\/market\/flow$/);
         await page.locator('[role="tab"][aria-selected="true"]', { hasText: "Flux" }).waitFor();
-        assert.equal(await page.getByRole("tab", { name: "Flux", exact: true }).getAttribute("aria-selected"), "true");
+        assert.equal(await page.getByRole("tab", { name: "Flux & rythmes", exact: true }).getAttribute("aria-selected"), "true");
         assert.equal(await page.getByRole("tabpanel").count(), 1);
         const flux = page.getByRole("region", { name: "Flux", exact: true });
         if (scenario.id === "no-snapshot") await flux.getByText("Carnet · meilleurs prix", { exact: true }).click();
@@ -87,7 +87,7 @@ try {
           await page.goto(`${base}/paper-live/market/flow`);
           if (scenario.id === "no-snapshot") await flux.getByText("Carnet · meilleurs prix", { exact: true }).click();
           await flux.getByText(scenario.text, { exact: false }).last().waitFor();
-          assert.equal(await page.getByRole("tab", { name: "Flux", exact: true }).getAttribute("aria-selected"), "true");
+          assert.equal(await page.getByRole("tab", { name: "Flux & rythmes", exact: true }).getAttribute("aria-selected"), "true");
           assert.equal(requests, 2);
         }
         assert.deepEqual(errors, []);

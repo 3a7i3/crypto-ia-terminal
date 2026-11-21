@@ -32,3 +32,29 @@
 .pos-pairs { margin-top:12px; }
 .pos-pairs ul { padding-left:18px;margin:6px 0; }
 .pos-pairs li { overflow-wrap:anywhere;font-size:13px;margin-bottom:4px; }
+
+.positioning-workspace .pos-panel { display:grid; gap:12px; padding:clamp(12px, 3vw, 24px); }
+.pos-heading h1 { margin:0; font-size:clamp(24px, 5.5vw, 34px); letter-spacing:-.035em; }
+.pos-heading p { margin:4px 0 0; color:var(--text-sec); }
+.pos-filters { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1.45fr) minmax(0,.8fr); gap:8px; }
+.pos-filters .pos-select { margin:0; font-size:12px; }
+.pos-filters select { min-height:42px; }
+.pos-quality { margin:0; padding:9px 11px; border-radius:8px; background:color-mix(in srgb,#0da674 12%,transparent); font-size:13px; }
+.pos-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.pos-card { min-height:88px; padding:12px; }
+.pos-chart-block { border:1px solid var(--border,rgba(127,127,127,.3)); border-radius:12px; padding:12px; margin:0; }
+.pos-chart svg { max-height:none; font-size:11px; fill:currentColor; }
+.pos-chart figcaption { flex-direction:row; gap:12px; }
+.pos-chart { --pos-oi:#07865e; }
+[data-theme="dark"] .pos-chart { --pos-oi:#40d6a0; }
+.pos-cursor { stroke:currentColor; opacity:.6; }
+.pos-chart-slider { width:100%; }
+.pos-readout { display:block; min-height:2em; font-size:13px; }
+.pos-details { margin-top:8px; overflow-wrap:anywhere; }
+.pos-details > summary { cursor:pointer; font-weight:600; }
+@media (max-width:640px) {
+  .positioning-workspace { padding-bottom:72px; }
+  .positioning-workspace .market-workspace-tabs { position:fixed; inset:auto 0 0; z-index:8; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); background:var(--surface,#fff); padding:6px 4px max(6px,env(safe-area-inset-bottom)); gap:4px; }
+  .positioning-workspace .market-workspace-tabs a { white-space:normal; min-width:0; font-size:11px; justify-content:center; text-align:center; padding:8px 2px; }
+  [data-theme="dark"] .positioning-workspace .market-workspace-tabs { background:var(--surface,#16212b); }
+}

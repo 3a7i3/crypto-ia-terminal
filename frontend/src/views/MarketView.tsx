@@ -17,8 +17,8 @@ import { MarketVenuesView } from "./MarketVenuesView";
 // Tab order and labels are kept from 36024a9; Microstructure (D-C4) is appended.
 export const MARKET_VIEWS = [
   { slug: "radar", label: "Scanner" },
-  { slug: "venues", label: "Comparaison des plateformes" },
-  { slug: "flow", label: "Flux" },
+  { slug: "venues", label: "Plateformes & levier" },
+  { slug: "flow", label: "Flux & rythmes" },
   { slug: "lmi", label: "Microstructure" },
 ] as const;
 
@@ -102,7 +102,7 @@ const MarketWorkspace: React.FC = () => {
     navigate(hrefOf(i));
   };
   const focusable = active < 0 ? 0 : active;
-  return <div className="market-workspace" data-testid="market-workspace">
+  return <div className={slug === "venues" ? "market-workspace positioning-workspace" : "market-workspace"} data-testid="market-workspace">
     {/* Real links: the existing link sub-navigation style (.module-subnav, as for the
         Positions views) is reused, so no stylesheet changes in M1-C1. */}
     <div className="market-workspace-tabs module-subnav" role="tablist" aria-label="Vues du marché">
@@ -127,7 +127,7 @@ const MarketWorkspace: React.FC = () => {
       <Routes>
         <Route index element={<Navigate to={{ pathname: MARKET_RADAR_PATH, search }} replace />} />
         <Route path="radar" element={<RadarPanel />} />
-        <Route path="venues" element={<><MarketBookObservation mode="comparison" /><MarketVenuesView /></>} />
+        <Route path="venues" element={<MarketVenuesView />} />
         <Route path="flow" element={<><MarketBookObservation mode="flow" /><MarketFlowView /></>} />
         <Route path="lmi" element={<MarketMicrostructureView />} />
         <Route path="*" element={<UnknownMarketView />} />

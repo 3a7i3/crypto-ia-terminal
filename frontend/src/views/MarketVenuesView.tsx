@@ -1,3 +1,4 @@
+import { MarketBookObservation } from "./MarketBookObservation";
 import React, { useEffect, useRef, useState } from "react";
 import { useVenueComparison } from "../lib/venueComparisonClient";
 import { PublicationStamp } from "../components/PublicationStamp";
@@ -100,7 +101,10 @@ const VenueComparisonPanel: React.FC = () => {
 
 // Two independent sources share this tab: one unavailable never hides the other.
 export const MarketVenuesView: React.FC = () => <div className="venue-tab">
-  <VenueComparisonPanel/>
-  <DerivativesStressPanel/>
   <DerivativesPositioningPanel/>
+  <details className="market-panel pos-details"><summary>Comparaison spot et sources</summary>
+    <MarketBookObservation mode="comparison" />
+    <VenueComparisonPanel/>
+    <DerivativesStressPanel/>
+  </details>
 </div>;

@@ -37,7 +37,7 @@ describe("marketSourceSetup", () => {
 
 const cases: { name: string; view: () => JSX.Element; endpoint: string; also?: string[]; code: string; label: string; otherCode: string; otherText: RegExp }[] = [
   { name: "Flux", view: () => <MarketFlowView/>, endpoint: "/api/operator/v1/market-flow", code: "MARKET_FLOW_NOT_CONFIGURED", label: "Source Flux non configurée", otherCode: "MARKET_FLOW_UNREADABLE", otherText: /Flux indisponible · HTTP 503 · MARKET_FLOW_UNREADABLE/ },
-  { name: "Comparaison des plateformes", view: () => <MarketVenuesView/>, endpoint: "/api/operator/v1/venue-comparison", code: "VENUE_COMPARISON_NOT_CONFIGURED", label: "Source Comparaison des plateformes non configurée", otherCode: "VENUE_COMPARISON_MISSING", otherText: /Aucune publication de comparaison disponible/ },
+  { name: "Comparaison des plateformes", view: () => <MarketVenuesView/>, endpoint: "/api/operator/v1/venue-comparison", also: ["/observations/btc-atom-book-v1.json"], code: "VENUE_COMPARISON_NOT_CONFIGURED", label: "Source Comparaison des plateformes non configurée", otherCode: "VENUE_COMPARISON_MISSING", otherText: /Aucune publication de comparaison disponible/ },
   { name: "Microstructure", view: () => <MarketMicrostructureView/>, endpoint: "/api/operator/v1/market-microstructure", also: [FOOTPRINT_REPLAY_URL], code: "SOURCE_NOT_DEPLOYED", label: "Source Microstructure non déployée", otherCode: "MICROSTRUCTURE_MISSING", otherText: /SOURCE INDISPONIBLE · HTTP 503 · MICROSTRUCTURE_MISSING/ },
   { name: "Radar Spot", view: () => <SpotRadarMap/>, endpoint: "/api/operator/v1/spot-radar/scanner", code: "SPOT_RADAR_NOT_CONFIGURED", label: "Source Radar Spot non configurée", otherCode: "SPOT_RADAR_MISSING", otherText: /API indisponible · SPOT_RADAR_MISSING/ },
 ];

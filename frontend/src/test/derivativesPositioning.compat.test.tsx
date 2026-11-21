@@ -27,9 +27,9 @@ suite("Derivatives positioning through the real store, projection and API", () =
     for (const id of ["pos-card-oi", "pos-card-oi-change", "pos-card-funding", "pos-card-premium-basis"]) expect(screen.getByTestId(id)).toBeInTheDocument();
     const oi = screen.getByTestId("pos-card-oi");
     expect(oi).toHaveTextContent("contrats");
-    expect(oi).toHaveTextContent("Récente");
-    expect(oi).toHaveTextContent("Source");
-    expect(screen.getByTestId("pos-card-funding")).toHaveTextContent("par 8 h");
+    expect(screen.getByTestId("pos-synthetic")).toHaveTextContent("Récente");
+    expect(screen.getByText("synthetic:exchange_a/ticker")).toBeInTheDocument();
+    expect(screen.getByTestId("pos-card-funding")).toHaveTextContent("Par 8 h");
     expect(screen.getByTestId("pos-chart")).toBeInTheDocument();
     // Two distinct curves: OI turns down while price keeps rising.
     expect(screen.getByTestId("pos-line-price").getAttribute("d")).not.toBe(screen.getByTestId("pos-line-oi").getAttribute("d"));
@@ -40,11 +40,11 @@ suite("Derivatives positioning through the real store, projection and API", () =
     await mount(fixture());
     await screen.findByTestId("pos-card-oi");
     pick(B);
-    const windows = screen.getAllByTestId("pos-oi-window").map(w => w.textContent ?? "");
-    expect(windows.some(t => t.includes("INSUFFICIENT_COVERAGE"))).toBe(true);
+    fireEvent.change(screen.getByLabelText("Période"), { target: { value: "3600" } });
+    expect(screen.getByTestId("pos-card-oi-change")).toHaveTextContent(/couverture insuffisante/i);
     expect(screen.getByTestId("pos-card-oi")).toHaveTextContent("unités de base");
-    expect(screen.getByTestId("pos-card-funding")).toHaveTextContent("par 1 h");
-    expect(screen.getByTestId("pos-card-premium-basis")).toHaveTextContent("Référence spot non qualifiée");
+    expect(screen.getByTestId("pos-card-funding")).toHaveTextContent("Par 1 h");
+    expect(screen.getByTestId("pos-unavailable")).toHaveTextContent(/spot/i);
   });
 
   it("hides the chart of non-comparable contracts and of legs without observation", async () => {
@@ -54,7 +54,8 @@ suite("Derivatives positioning through the real store, projection and API", () =
     expect(screen.queryByTestId("pos-chart")).toBeNull();
     expect(screen.getByTestId("pos-chart-unavailable")).toHaveTextContent("Tailles de contrat différentes");
     expect(screen.getByTestId("pos-unavailable")).toHaveTextContent("Prix d’indice");
-    pick(D);
+    fireEvent.change(screen.getByLabelText("Instrument"), { target: { value: "BTCUSDT" } });
+    expect(screen.getByLabelText("Plateforme et contrat")).toHaveValue(D);
     expect(screen.getByTestId("pos-chart-unavailable")).toHaveTextContent("Aucune observation enregistrée");
     expect(screen.queryByTestId("pos-card-oi")).toBeNull();
     const pairs = screen.getAllByTestId("pos-pair").map(p => p.textContent ?? "").join("\n");
@@ -65,7 +66,7 @@ suite("Derivatives positioning through the real store, projection and API", () =
 
   it("marks a stale reading", async () => {
     await mount(fixture("S_derivatives_positioning_stale"));
-    expect(await screen.findByTestId("pos-card-oi")).toHaveTextContent("Périmée");
+    expect(await screen.findByTestId("pos-synthetic")).toHaveTextContent("Périmée");
   });
 
   it("keeps a 503 as an unavailable source", async () => {
