@@ -14,6 +14,8 @@ import { createHash } from "node:crypto";
 const base = process.env.FOOTPRINT_VISUAL_BASE_URL || "http://127.0.0.1:4173";
 const out = process.env.FOOTPRINT_VISUAL_OUT_DIR || "artifacts/footprint-mobile";
 const REPLAY = "/observations/footprint/mexc-btc_usdt-perp-replay-v1.json";
+// Commandes du panneau (hors cellules du graphique, qui défilent dans leur propre zone).
+const CONTROLS = ".footprint-actions button, .footprint-actions select, .footprint-controls select, [data-testid=footprint-chart] nav button";
 const REPLAY_SHA256 = "a41c608814c02a10e5a9369b11806196b770ad578db0d5037368413c4cce391f";
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 
@@ -48,7 +50,7 @@ async function open(vp, scenario) {
 }
 
 async function measure(page) {
-  return page.evaluate(() => {
+  return page.evaluate((CONTROLS) => {
     const doc = document.documentElement; const scroller = document.querySelector('[data-testid="footprint-scroll"]');
     const panel = document.querySelector('[data-testid="footprint-panel"]');
     const p = panel.getBoundingClientRect();
@@ -63,11 +65,59 @@ async function measure(page) {
       tables: panel.querySelectorAll("table").length,
       contracts: panel.textContent.includes("contrats (source)") && panel.textContent.includes("quantités en contrats"),
       dltaDayPartial: panel.textContent.includes("DltaDay partiel"),
-      oldModes: /Temps réel|Démo historique|Panneau non alimenté/.test(panel.textContent),
-      controlsFit: [...panel.querySelectorAll("button, select")].every((el) => { const r = el.getBoundingClientRect(); return r.width === 0 || (r.left >= 0 && r.right <= doc.clientWidth); }) };
-  });
+      oldModes: /Démo historique|Panneau non alimenté/.test(panel.textContent) || !!panel.querySelector('[role="radio"]'),
+      chart: panel.querySelectorAll('[data-testid="footprint-chart"]').length,
+      liveStatus: (panel.querySelector('[data-testid="footprint-live-status"]')?.textContent ?? "").includes("Temps réel indisponible"),
+      controlsFit: [...panel.querySelectorAll(CONTROLS)].every((el) => { const r = el.getBoundingClientRect(); return r.width === 0 || (r.left >= 0 && r.right <= doc.clientWidth); }) };
+  }, CONTROLS);
 }
 
+
+// Contrôles d'alignement du graphique : axe des prix et profil collés, lignes du profil au
+// même niveau que les lignes de prix, statistiques sous leurs bougies, page sans débordement.
+async function chartChecks(page) {
+  return page.evaluate(() => {
+    const doc = document.documentElement;
+    const scroller = document.querySelector('[data-testid="footprint-chart-scroll"]');
+    const grid = scroller.querySelector(".fp-chart-grid");
+    const near = (a, b) => Math.abs(a - b) <= 1;
+    const tops = (sel) => [...grid.querySelectorAll(sel)].map((e) => e.getBoundingClientRect().top);
+    const rowTops = [...grid.querySelectorAll(".fp-chart-cell")].filter((c, i, all) => i === 0 || c.dataset.idx !== all[i - 1].dataset.idx).map((c) => c.getBoundingClientRect().top);
+    const profTops = tops(".fp-profile-track");
+    const firstBarCells = [...grid.querySelectorAll(".fp-chart-cell")].filter((c) => c.dataset.idx === grid.querySelector(".fp-chart-cell").dataset.idx);
+    const statsAligned = ["DeltaChg", "Delta", "DltaDay", "Volume", "UTC"].every((label) => {
+      const s = [...grid.querySelectorAll(`strong.fp-stat[data-stat="${label}"]`)];
+      return s.length === firstBarCells.length && s.every((e, i) => near(e.getBoundingClientRect().left, firstBarCells[i].getBoundingClientRect().left));
+    });
+    const axisEl = () => grid.querySelector("b.fp-price[data-idx]");
+    const before = { axis: axisEl().getBoundingClientRect().left, prof: grid.querySelector(".fp-profile-track").getBoundingClientRect().right };
+    const sr = scroller.getBoundingClientRect();
+    const rect = (sel) => grid.querySelector(sel).getBoundingClientRect();
+    const allCells = [...grid.querySelectorAll(".fp-chart-cell")];
+    const lastBarCell = allCells.filter((c) => c.dataset.bar === allCells.at(-1).dataset.bar)[0];
+    const lowestRow = allCells.at(-1);
+    // Extrémités du défilement : début, fin horizontale et basse, aucune bougie masquée
+    // par l'axe, le profil, l'en-tête ou les statistiques collés.
+    scroller.scrollLeft = 0; scroller.scrollTop = 0;
+    const startOk = allCells[0].getBoundingClientRect().left >= sr.left - 1 && allCells[0].getBoundingClientRect().top >= rect(".fp-head").bottom - 1;
+    scroller.scrollLeft = scroller.scrollWidth; scroller.scrollTop = scroller.scrollHeight;
+    const after = { axis: axisEl().getBoundingClientRect().left, prof: grid.querySelector(".fp-profile-track").getBoundingClientRect().right };
+    const endOk = lastBarCell.getBoundingClientRect().right <= after.axis + 1 && lowestRow.getBoundingClientRect().bottom <= rect("strong.fp-stat").top + 1
+      && after.axis >= sr.left - 1 && after.prof <= sr.right + 1;
+    scroller.scrollLeft = 0; scroller.scrollTop = 0;
+    const fontPx = parseFloat(getComputedStyle(grid).fontSize);
+    return {
+      pasDeDebordementPage: doc.scrollWidth <= doc.clientWidth,
+      profilAligneSurPrix: rowTops.length === profTops.length && rowTops.every((t, i) => near(t, profTops[i])),
+      statistiquesSousBougies: statsAligned,
+      axeEtProfilVisibles: near(before.axis, after.axis) && near(before.prof, after.prof) && after.axis >= sr.left - 1 && after.prof <= sr.right + 1,
+      axePrixADroiteContreProfil: near(axisEl().getBoundingClientRect().right, grid.querySelector(".fp-profile-track").getBoundingClientRect().left),
+      debutDuDefilement: startOk,
+      finDuDefilement: endOk,
+      chiffresLisibles: fontPx >= 11,
+    };
+  });
+}
 // Requêtes externes ou temps réel : aucune n'est admise (le seul fichier lu est le rejeu statique).
 const liveRequests = (requests) => requests.filter((u) => !u.startsWith(origin) || /^wss?:/.test(u) || /api\.mexc|contract\/deals|footprint\/(live|stream)/i.test(u));
 
@@ -79,7 +129,7 @@ try {
       const panel = page.getByTestId("footprint-panel");
       await panel.waitFor();
       // Aucun clic : le tableau (ou « Capture indisponible ») doit apparaître seul.
-      await page.getByTestId(scenario === "absent" ? "footprint-capture-unavailable" : "footprint-table").waitFor();
+      await page.getByTestId(scenario === "absent" ? "footprint-capture-unavailable" : "footprint-chart").waitFor();
       if (scenario === "sombre") await page.getByRole("combobox", { name: "Thème" }).selectOption("dark");
       if (scenario === "plein-ecran") await page.getByRole("button", { name: "Plein écran" }).click();
       await page.waitForTimeout(150);
@@ -87,9 +137,9 @@ try {
       const live = liveRequests(requests);
       const replayReads = requests.filter((u) => u.includes(REPLAY)).length;
       let ok = m.pageScrollWidth <= m.viewport && m.panelLeft >= 0 && m.panelRight <= m.viewport && live.length === 0
-        && !m.oldModes && m.controlsFit && replayReads === 1;
+        && !m.oldModes && m.controlsFit && replayReads === 1 && m.liveStatus;
       if (scenario === "absent") ok &&= m.tables === 0 && (await panel.textContent()).includes("Capture indisponible");
-      else ok &&= m.tables === 1 && /^Capture figée · Couverture partielle$/.test((m.mention ?? "").trim()) && m.partialBadge && m.contracts
+      else ok &&= m.tables === 1 && m.chart === 1 && /^Capture figée · Couverture partielle$/.test((m.mention ?? "").trim()) && m.partialBadge && m.contracts
         && m.dltaDayPartial && /100 transactions/.test(m.coverage ?? "") && /\(15 s\)/.test(m.coverage ?? "");
       results.push({ ...m, viewport: vp.name, clientWidth: m.viewport, scenario, ok, replayReads, liveRequests: live });
       if (scenario !== "plein-ecran") await panel.scrollIntoViewIfNeeded();
@@ -112,7 +162,7 @@ try {
     await page.waitForURL("**/paper-live/market/lmi");
     const panel = page.getByTestId("footprint-panel");
     await panel.waitFor();
-    await page.getByTestId("footprint-table").waitFor();
+    await page.getByTestId("footprint-chart").waitFor();
     await page.screenshot({ path: `${out}/parcours-3-microstructure.png`, fullPage: true });
     await page.waitForTimeout(150);
     const m = await measure(page);
@@ -131,20 +181,21 @@ try {
     assert((await page.goto(`${base}/paper-live/market/lmi`, { waitUntil: "load" }))?.ok(), "navigation vue unique");
     const panel = page.getByTestId("footprint-panel");
     const table = page.getByTestId("footprint-table");
-    await table.waitFor();
+    await page.getByTestId("footprint-chart").waitFor();
+    await table.waitFor({ state: "attached" });
     const select = page.getByRole("combobox", { name: "Thème" });
     const themeOf = () => panel.getAttribute("data-footprint-theme");
     const tableHtml = () => table.innerHTML();
-    const fits = () => page.evaluate(() => {
+    const fits = () => page.evaluate((CONTROLS) => {
       const doc = document.documentElement; const panel = document.querySelector('[data-testid="footprint-panel"]');
-      const inside = [...panel.querySelectorAll("button, select")].every((el) => { const r = el.getBoundingClientRect(); return r.width === 0 || (r.left >= 0 && r.right <= window.innerWidth && r.height >= 40); });
+      const inside = [...panel.querySelectorAll(CONTROLS)].every((el) => { const r = el.getBoundingClientRect(); return r.width === 0 || (r.left >= 0 && r.right <= window.innerWidth && r.height >= 40); });
       return inside && doc.scrollWidth <= doc.clientWidth;
-    });
+    }, CONTROLS);
     const replayReads = () => requests.filter((u) => u.includes(REPLAY)).length;
     const steps = {};
     steps.tableSansClic = true;
     steps.unSeulTableau = (await panel.locator("table").count()) === 1;
-    steps.anciensModesRetires = !/Temps réel|Démo historique|Panneau non alimenté/.test(await panel.textContent()) && (await panel.getByRole("radio").count()) === 0;
+    steps.anciensModesRetires = !/Démo historique|Panneau non alimenté/.test(await panel.textContent()) && (await panel.getByRole("radio").count()) === 0;
     steps.mention = ((await page.getByTestId("footprint-mention").textContent()) ?? "").trim() === "Capture figée · Couverture partielle";
     steps.defaultClair = (await themeOf()) === "light" && (await select.locator("option:checked").textContent()) === "Clair";
     steps.options = JSON.stringify(await select.locator("option").allTextContents()) === JSON.stringify(["Clair", "Sombre"]);
@@ -187,6 +238,41 @@ try {
     steps.aucunFluxTempsReel = live.length === 0;
     const ok = Object.values(steps).every(Boolean);
     results.push({ viewport: vp.name, scenario: "vue-unique", ok, steps, liveRequests: live, requests: requests.filter((u) => !/\.(js|css|png|svg|webmanifest)$|\/$/.test(u)) });
+    await page.close();
+  }
+  // Graphique (maquette validée) sur le rejeu MEXC réel : alignements, plein écran portrait
+  // et paysage, thèmes ; le graphique et « Valeurs exactes » lisent le même modèle.
+  for (const vp of [{ name: "384x832", width: 384, height: 832 }, { name: "412x915", width: 412, height: 915 },
+    { name: "832x384-paysage", width: 832, height: 384 }, { name: "1440x900", width: 1440, height: 900 }]) {
+    const { page, requests } = await open(vp, "graphique");
+    assert((await page.goto(`${base}/paper-live/market/lmi`, { waitUntil: "load" }))?.ok(), "navigation graphique");
+    const panel = page.getByTestId("footprint-panel");
+    await page.getByTestId("footprint-chart").waitFor();
+    const steps = await chartChecks(page);
+    for (const theme of ["light", "dark"]) {
+      await page.getByRole("combobox", { name: "Thème" }).selectOption(theme);
+      await page.evaluate(() => document.activeElement?.blur());
+      if (vp.width < 800 && vp.width === 384) { await page.getByTestId("footprint-chart").scrollIntoViewIfNeeded(); await page.screenshot({ path: `${out}/graphique-${theme === "light" ? "clair" : "sombre"}-384.png` }); }
+      await page.getByRole("button", { name: "Plein écran" }).click();
+      await page.waitForTimeout(200);
+      const fs = await chartChecks(page);
+      steps[`pleinEcran-${theme}`] = Object.values(fs).every(Boolean) && await page.evaluate(() => {
+        const p = document.querySelector('[data-testid="footprint-panel"]');
+        return p.classList.contains("footprint-fullscreen") || document.fullscreenElement === p;
+      });
+      steps[`pleinEcranHauteur-${theme}`] = await page.evaluate(() => document.querySelector('[data-testid="footprint-chart-scroll"]').getBoundingClientRect().height >= Math.min(240, window.innerHeight * 0.5));
+      if (vp.width < 1000) {
+        await page.getByTestId("footprint-chart").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: `${out}/graphique-plein-ecran-${theme === "light" ? "clair" : "sombre"}-${vp.name}.png` });
+      }
+      await page.getByRole("button", { name: "Quitter le plein écran" }).click();
+      await page.waitForTimeout(150);
+      steps[`sortiePleinEcran-${theme}`] = !(await panel.getAttribute("class")).includes("footprint-fullscreen") && await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+    }
+    steps.uneSeuleLecture = requests.filter((u) => u.includes(REPLAY)).length === 1;
+    const live = liveRequests(requests);
+    steps.aucunFluxTempsReel = live.length === 0;
+    results.push({ viewport: vp.name, scenario: "graphique", ok: Object.values(steps).every(Boolean), steps, liveRequests: live });
     await page.close();
   }
 } finally { await browser.close(); }

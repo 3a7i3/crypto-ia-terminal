@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FootprintBuilder, profileOf, validateTrade } from "../lib/footprintEngine";
+import { validateTrade } from "../lib/footprintEngine";
+import { IMB, buildFootprintModel } from "../lib/footprintModel";
+import { FootprintChart, type ProfileKind } from "./FootprintChart";
 import { FOOTPRINT_REPLAY_SHA256, loadFootprintReplay, type FootprintReplay, type FootprintReplayState } from "../lib/footprintReplay";
 import "../footprint.css";
 
@@ -10,8 +12,6 @@ import "../footprint.css";
 // Observation passive : aucun signal, aucun ordre, aucune autorité.
 
 export const FOOTPRINT_SYMBOL_LABEL = "BTC_USDT · perpétuel · MEXC";
-// Réglages par défaut du moteur, affichés tels quels : ils ne sont pas validés.
-const IMB = Object.freeze({ imbPct: 150, imbMin: 50, stackN: 3, imbMinSide: "dominant" as const });
 const PERIODS = [
   { ms: 60_000, label: "1 min" }, { ms: 300_000, label: "5 min" },
   { ms: 900_000, label: "15 min" }, { ms: 3_600_000, label: "1 h" },
@@ -51,42 +51,32 @@ export function autoStepMultiplier(tick: number, lo: number, hi: number, targetR
   return STEP_MULTIPLIERS.find((m) => (hi - lo) / (tick * m) <= targetRows) ?? STEP_MULTIPLIERS[STEP_MULTIPLIERS.length - 1];
 }
 
-function buildFootprint(replay: FootprintReplay, tfMs: number, step: number) {
-  const coverageFromMs = Date.parse(replay.provenance.coverage_from_utc);
-  const builder = new FootprintBuilder({ tickSize: step, tfMs, coverageFromMs, maxBars: 100_000, maxLevels: 2_000_000 });
-  for (const t of replay.trades) {
-    if (validateTrade(t)) continue; // déjà comptée dans la qualité native
-    // Niveau = plancher du pas d'affichage : un prix appartient au niveau qui le contient.
-    builder.push({ ...t, price: Math.floor(t.price / step + 1e-9) * step });
-  }
-  return builder.snapshot(IMB);
-}
-
-const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; visible: number }> = ({ replay, tfMs, step, visible }) => {
-  const snap = useMemo(() => buildFootprint(replay, tfMs, step), [replay, tfMs, step]);
-  const bars = snap.bars.slice(-visible);
-  const gaps = replay.provenance.gaps.map((g) => [Date.parse(g.from_utc), Date.parse(g.to_utc)] as const);
+const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; visible: number; profileKind: ProfileKind }> = ({ replay, tfMs, step, visible, profileKind }) => {
+  const model = useMemo(() => buildFootprintModel(replay, tfMs, step, visible), [replay, tfMs, step, visible]);
+  const { snap, bars, gaps, profile } = model;
   if (bars.length === 0) return <p data-testid="footprint-empty">Aucune bougie : aucune transaction valide dans le rejeu.</p>;
   const hiIdx = Math.max(...bars.map((b) => b.hiIdx));
   const loIdx = Math.min(...bars.map((b) => b.loIdx));
   const rows = hiIdx - loIdx + 1;
-  const profile = profileOf(bars);
   const maxVol = Math.max(...profile.levels.map((l) => l.volume), 0);
   const profileByIdx = new Map(profile.levels.map((l) => [l.idx, l]));
   const byBar = bars.map((b) => new Map(b.levels.map((l) => [l.idx, l])));
   const priceDigits = Math.max(0, -Math.floor(Math.log10(step)) + 1);
   const priceOf = (idx: number) => (idx * step).toLocaleString("fr-FR", { minimumFractionDigits: Math.min(priceDigits, 8), maximumFractionDigits: Math.min(priceDigits, 8) });
   return <>
+    {rows <= MAX_LADDER_ROWS && <FootprintChart model={model} step={step} profileKind={profileKind} />}
+    <details open={rows > MAX_LADDER_ROWS || undefined}>
+    <summary>Valeurs exactes</summary>
     <div className="footprint-scroll" data-testid="footprint-scroll" tabIndex={0} aria-label="Footprint Bid × Ask par niveau">
       {rows > MAX_LADDER_ROWS
         ? <p data-testid="footprint-too-many-levels">{rows} niveaux à afficher : augmentez le pas des niveaux (limite {MAX_LADDER_ROWS}).</p>
         : <table className="footprint-table" data-testid="footprint-table">
           <thead><tr>
             <th scope="col" className="footprint-price">Prix</th>
-            {bars.map((b) => {
+            {bars.map((b, i) => {
               const inGap = gaps.some(([a, z]) => b.t0 < z && b.t0 + tfMs > a);
               return <th scope="col" key={b.t0} title={utc(b.t0)}>
-                {hhmm(b.t0)}{b.sessionPartial && <span className="footprint-flag" title="Session commencée avant la couverture du rejeu"> · partiel</span>}{inGap && <span className="footprint-flag"> · lacune</span>}
+                {hhmm(b.t0)}{model.partial[i] && <span className="footprint-flag" title="Session commencée avant la couverture du rejeu"> · partiel</span>}{inGap && <span className="footprint-flag"> · lacune</span>}
               </th>;
             })}
             <th scope="col">Profil vol.</th>
@@ -134,6 +124,7 @@ const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; vi
       {" "}Niveaux au plancher du pas {fmt(step, 8)}.
       {bars.some((b) => b.sessionPartial) && " * DltaDay partiel : le cumul commence au début de la couverture, pas à l'ouverture de session (00:00 UTC)."}
     </p>
+    </details>
   </>;
 };
 
@@ -147,6 +138,7 @@ const CaptureView: React.FC<{ state: FootprintReplayState; onRetry: () => void }
   const [tfMs, setTfMs] = useState(PERIODS[1].ms);
   const [stepChoice, setStepChoice] = useState<"auto" | number>("auto");
   const [visible, setVisible] = useState(12);
+  const [profileKind, setProfileKind] = useState<ProfileKind>("delta");
   const replay = state.status === "ready" ? state.replay : null;
   const quality = useMemo(() => replay ? nativeQuality(replay) : null, [replay]);
   if (state.status === "idle" || state.status === "loading") {
@@ -171,13 +163,14 @@ const CaptureView: React.FC<{ state: FootprintReplayState; onRetry: () => void }
         {partial && <> · <span className="footprint-badge footprint-badge-warn" data-testid="footprint-partial">Couverture partielle</span></>}
       </p>
       <p className="footprint-coverage-line" data-testid="footprint-coverage">
-        {p.venue} · {p.symbol} perpétuel · quantités en {unit} · {p.coverage_from_utc} → {p.coverage_to_utc} ({duration(to - from)}) · {q.accepted.toLocaleString("fr-FR")} transactions{p.gaps.length ? ` · ${p.gaps.length} lacune(s)` : ""}
+        {p.venue} · {p.symbol} perpétuel · quantités en {unit} · {p.coverage_from_utc} → {p.coverage_to_utc} ({duration(to - from)}) · {q.accepted.toLocaleString("fr-FR")} transactions{p.gaps.length ? ` · ${p.gaps.length} lacune(s)` : ""} · côté agresseur publié par {p.venue}
       </p>
       <details className="footprint-details"><summary>Provenance et qualité</summary>
       <dl className="footprint-facts">
         <div><dt>Source</dt><dd>{p.source}</dd></div>
         <div><dt>Collecte</dt><dd>{p.collected_at_utc}</dd></div>
         <div><dt>Transactions</dt><dd>{q.accepted.toLocaleString("fr-FR")} acceptées · {rejectedTotal} rejetées{rejectedTotal ? ` (${Object.entries(q.rejected).map(([k, v]) => `${k} ${v}`).join(", ")})` : ""} · {q.offTick} hors pas</dd></div>
+        <div><dt>Origine du côté agresseur</dt><dd data-testid="footprint-aggressor-origin">Publié par {p.venue} avec chaque transaction ({p.source}) ; jamais déduit du prix ni du carnet.</dd></div>
         <div><dt>Côté agresseur</dt><dd>{(q.unclassifiedRatio * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} % du volume non classé (jamais deviné)</dd></div>
         <div><dt>Unité des quantités</dt><dd>{p.qty_unit === "contracts" ? "contrats (source)" : "actif de base"}</dd></div>
         <div><dt>Lacunes connues</dt><dd data-testid="footprint-gaps">{p.gaps.length === 0 ? "aucune déclarée" : p.gaps.map((g) => `${g.from_utc} → ${g.to_utc}`).join(" ; ")}</dd></div>
@@ -195,8 +188,12 @@ const CaptureView: React.FC<{ state: FootprintReplayState; onRetry: () => void }
         {STEP_MULTIPLIERS.map((m) => <option key={m} value={m}>{fmt(r.tick_size * m, 8)}</option>)}
       </select></label>
       <label>Bougies<select value={visible} onChange={(e) => setVisible(Number(e.target.value))}>{VISIBLE_COUNTS.map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
+      <label>Profil<select value={profileKind} onChange={(e) => setProfileKind(e.target.value === "volume" ? "volume" : "delta")}>
+        <option value="delta">Delta (Ask − Bid)</option>
+        <option value="volume">Volume</option>
+      </select></label>
     </div>
-    <Ladder replay={r} tfMs={tfMs} step={step} visible={visible} />
+    <Ladder replay={r} tfMs={tfMs} step={step} visible={visible} profileKind={profileKind} />
   </>;
 };
 
@@ -248,6 +245,8 @@ export const FootprintPanel: React.FC<{ fetchImpl?: typeof fetch; expectedSha256
         <button type="button" aria-pressed={fullscreen} onClick={toggleFullscreen}>{fullscreen ? "Quitter le plein écran" : "Plein écran"}</button>
       </div>
     </div>
+    {/* Aucun flux n'est branché : l'indisponibilité du temps réel est affichée, sans requête. */}
+    <p className="footprint-live" data-testid="footprint-live-status">Temps réel indisponible · aucune source admise pour BTC_USDT, aucune connexion ouverte. Affichage : rejeu historique.</p>
     <CaptureView state={replayState} onRetry={load} />
     <p className="footprint-legend">Footprint non autoritaire · aucun signal d'entrée, aucun ordre, aucune permission de trading.</p>
   </section>;

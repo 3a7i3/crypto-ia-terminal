@@ -24,7 +24,8 @@ describe("panneau Footprint · vue unique BTC_USDT", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl).toHaveBeenCalledWith(FOOTPRINT_REPLAY_URL, expect.objectContaining({ cache: "no-store" }));
     expect(screen.getAllByRole("table")).toHaveLength(1);
-    for (const gone of [/Temps réel/, /Démo historique/, /Panneau non alimenté/]) expect(screen.queryByText(gone)).toBeNull();
+    expect(screen.queryByRole("radio", { name: /Temps réel/ })).toBeNull();
+    for (const gone of [/Démo historique/, /Panneau non alimenté/]) expect(screen.queryByText(gone)).toBeNull();
     expect(screen.queryByRole("radio")).toBeNull();
     expect(screen.getByTestId("footprint-mention")).toHaveTextContent("Capture figée · Couverture partielle");
     expect(screen.getByTestId("footprint-coverage")).toHaveTextContent(
@@ -32,13 +33,26 @@ describe("panneau Footprint · vue unique BTC_USDT", () => {
     expect(screen.getByTestId("footprint-provenance")).toHaveTextContent("FIXTURE SYNTHÉTIQUE DE TEST");
     expect(screen.getByTestId("footprint-provenance")).toHaveTextContent("6 acceptées · 0 rejetées · 0 hors pas");
     expect(screen.getByTestId("footprint-sha256")).toHaveTextContent(`${FIXTURE_SHA} · ${new TextEncoder().encode(FIXTURE).length} octets · vérifiée`);
-    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Prix", "10:00 · partiel", "10:05 · partiel", "10:10 · partiel", "Profil vol."]);
+    // V3 : « partiel » qualifie la fenêtre de la bougie (couverture ou lacune), pas la session.
+    // La fixture couvre 10:00 → 10:20 : les trois bougies de 5 min sont entières ; DltaDay reste partiel (*).
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Prix", "10:00", "10:05", "10:10", "Profil vol."]);
+    expect(screen.getByText("Valeurs exactes").closest("details")).toContainElement(table);
+    expect(screen.getByTestId("footprint-chart")).toBeInTheDocument();
+    // Temps réel : indisponibilité affichée, sans connexion ; provenance du côté agresseur.
+    expect(screen.getByTestId("footprint-live-status")).toHaveTextContent("Temps réel indisponible");
+    expect(screen.getByTestId("footprint-aggressor-origin")).toHaveTextContent("Publié par MEXC avec chaque transaction");
+    expect(screen.getByTestId("footprint-coverage")).toHaveTextContent("côté agresseur publié par MEXC");
     expect(screen.getByTestId("footprint-row-Delta")).toHaveTextContent(/\+400.*-50.*-70/);
     expect(screen.getByTestId("footprint-row-DltaDay")).toHaveTextContent(/\+400 \*.*\+350 \*.*\+280 \*/);
     expect(screen.getByTestId("footprint-profile-summary")).toHaveTextContent("DltaDay partiel");
-    // Réglages compacts : période, pas et nombre de bougies dans un même groupe.
+    // Réglages compacts : période, pas, nombre de bougies et profil dans une même rangée.
     const controls = screen.getByRole("group", { name: "Réglages du tableau" });
-    expect(within(controls).getAllByRole("combobox")).toHaveLength(3);
+    expect(within(controls).getAllByRole("combobox")).toHaveLength(4);
+    // Le profil du graphique est piloté depuis cette rangée (aucun menu en double dans le graphique).
+    expect(within(screen.getByTestId("footprint-chart")).queryByRole("combobox")).toBeNull();
+    fireEvent.change(within(controls).getByRole("combobox", { name: "Profil" }), { target: { value: "volume" } });
+    expect(screen.getByTestId("footprint-chart").querySelector(".fp-head[data-profile]")).toHaveTextContent("Volume");
+    fireEvent.change(within(controls).getByRole("combobox", { name: "Profil" }), { target: { value: "delta" } });
     fireEvent.change(screen.getByLabelText("Pas des niveaux"), { target: { value: "10" } });
     expect(screen.getByTestId("footprint-row-Delta")).toHaveTextContent(/\+400.*-50.*-70/);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
