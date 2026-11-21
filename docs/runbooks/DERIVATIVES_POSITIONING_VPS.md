@@ -125,6 +125,15 @@ dans `status`. À réévaluer avant activation.
 4. Une release plus ancienne refuse une base de schéma plus récent (`STORAGE_SCHEMA_NEWER`) au lieu de
    l'altérer : rester sur la version de code qui a migré, ou restaurer la release correspondante.
 
+## 6 bis. Lecteur de l'Operator API (lot 2, sans mise en service)
+
+Le lecteur s'active seulement si ces variables sont posées (sinon 503 `DERIVATIVES_POSITIONING_NOT_CONFIGURED`) :
+`OPERATOR_DERIVATIVES_POSITIONING_DIR=/var/lib/cat-derivatives-positioning`,
+`OPERATOR_DERIVATIVES_POSITIONING_ROSTER=<roster.json déclaré par l'opérateur>`, et facultativement
+`OPERATOR_DERIVATIVES_POSITIONING_POLICY`. Il ouvre la base en `mode=ro` et doit pouvoir créer le
+`-shm` dans le répertoire (même utilisateur `lecanada26`) ou trouver un écrivain actif. Il ne crée ni
+ne modifie aucune observation. Ne poser ces variables qu'avec le GO de mise en service.
+
 ## 7. Interdits
 
 Aucun export, copie, `scp`, `rsync`, artefact CI, télémétrie ou sauvegarde hors VPS. Une copie à
