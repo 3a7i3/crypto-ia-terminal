@@ -162,13 +162,14 @@ const CaptureView: React.FC<{ state: FootprintReplayState; onRetry: () => void }
         {partial && <> · <span className="footprint-badge footprint-badge-warn" data-testid="footprint-partial">Couverture partielle</span></>}
       </p>
       <p className="footprint-coverage-line" data-testid="footprint-coverage">
-        {p.venue} · {p.symbol} perpétuel · quantités en {unit} · {p.coverage_from_utc} → {p.coverage_to_utc} ({duration(to - from)}) · {q.accepted.toLocaleString("fr-FR")} transactions{p.gaps.length ? ` · ${p.gaps.length} lacune(s)` : ""}
+        {p.venue} · {p.symbol} perpétuel · quantités en {unit} · {p.coverage_from_utc} → {p.coverage_to_utc} ({duration(to - from)}) · {q.accepted.toLocaleString("fr-FR")} transactions{p.gaps.length ? ` · ${p.gaps.length} lacune(s)` : ""} · côté agresseur publié par {p.venue}
       </p>
       <details className="footprint-details"><summary>Provenance et qualité</summary>
       <dl className="footprint-facts">
         <div><dt>Source</dt><dd>{p.source}</dd></div>
         <div><dt>Collecte</dt><dd>{p.collected_at_utc}</dd></div>
         <div><dt>Transactions</dt><dd>{q.accepted.toLocaleString("fr-FR")} acceptées · {rejectedTotal} rejetées{rejectedTotal ? ` (${Object.entries(q.rejected).map(([k, v]) => `${k} ${v}`).join(", ")})` : ""} · {q.offTick} hors pas</dd></div>
+        <div><dt>Origine du côté agresseur</dt><dd data-testid="footprint-aggressor-origin">Publié par {p.venue} avec chaque transaction ({p.source}) ; jamais déduit du prix ni du carnet.</dd></div>
         <div><dt>Côté agresseur</dt><dd>{(q.unclassifiedRatio * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} % du volume non classé (jamais deviné)</dd></div>
         <div><dt>Unité des quantités</dt><dd>{p.qty_unit === "contracts" ? "contrats (source)" : "actif de base"}</dd></div>
         <div><dt>Lacunes connues</dt><dd data-testid="footprint-gaps">{p.gaps.length === 0 ? "aucune déclarée" : p.gaps.map((g) => `${g.from_utc} → ${g.to_utc}`).join(" ; ")}</dd></div>
@@ -239,6 +240,8 @@ export const FootprintPanel: React.FC<{ fetchImpl?: typeof fetch; expectedSha256
         <button type="button" aria-pressed={fullscreen} onClick={toggleFullscreen}>{fullscreen ? "Quitter le plein écran" : "Plein écran"}</button>
       </div>
     </div>
+    {/* Aucun flux n'est branché : l'indisponibilité du temps réel est affichée, sans requête. */}
+    <p className="footprint-live" data-testid="footprint-live-status">Temps réel indisponible · aucune source admise pour BTC_USDT, aucune connexion ouverte. Affichage : rejeu historique.</p>
     <CaptureView state={replayState} onRetry={load} />
     <p className="footprint-legend">Footprint non autoritaire · aucun signal d'entrée, aucun ordre, aucune permission de trading.</p>
   </section>;

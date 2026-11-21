@@ -108,3 +108,15 @@
 .fp-chart-cell { min-width: 82px; }
 .fp-chart-grid .fp-head { white-space: nowrap; }
 .fp-chart-scroll:focus-visible, .fp-chart-cell button:focus-visible { outline: 2px solid var(--fp-accent); }
+/* Lot graphique : imbalances encadrées côté marqué par le moteur, empilées en trait double. */
+.fp-chart-cell span[data-imb] { outline: 1px solid currentColor; outline-offset: -1px; border-radius: 2px; }
+.fp-chart-cell span[data-imb][data-stacked=true] { outline: 3px double currentColor; outline-offset: -3px; }
+/* Profil Delta : barres signées autour de l'axe zéro ; profil Volume : POC identifié. */
+.fp-profile-track[data-profile=delta]::before { content: ""; position: absolute; left: 50%; inset-block: 0; border-left: 1px solid var(--fp-text-sec); opacity: .5; }
+.fp-poc-tag { position: absolute; right: 2px; top: 0; font-size: 10px; font-weight: 700; color: var(--fp-accent); }
+.fp-chart-grid .fp-head[data-profile] { text-align: center; }
+.fp-profile-choice { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fp-text-sec); }
+.footprint-panel [data-testid=footprint-chart] nav { display: inline-flex; gap: 6px; margin-left: 8px; }
+.footprint-live { margin: 6px 0 0; font-size: 12px !important; }
+/* Plein écran : le graphique occupe la hauteur disponible, le déplacement reste interne. */
+.footprint-panel.footprint-fullscreen .fp-chart-scroll, .footprint-panel:fullscreen .fp-chart-scroll { max-height: max(240px, calc(100dvh - 72px)); }

@@ -24,7 +24,8 @@ describe("panneau Footprint · vue unique BTC_USDT", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl).toHaveBeenCalledWith(FOOTPRINT_REPLAY_URL, expect.objectContaining({ cache: "no-store" }));
     expect(screen.getAllByRole("table")).toHaveLength(1);
-    for (const gone of [/Temps réel/, /Démo historique/, /Panneau non alimenté/]) expect(screen.queryByText(gone)).toBeNull();
+    expect(screen.queryByRole("radio", { name: /Temps réel/ })).toBeNull();
+    for (const gone of [/Démo historique/, /Panneau non alimenté/]) expect(screen.queryByText(gone)).toBeNull();
     expect(screen.queryByRole("radio")).toBeNull();
     expect(screen.getByTestId("footprint-mention")).toHaveTextContent("Capture figée · Couverture partielle");
     expect(screen.getByTestId("footprint-coverage")).toHaveTextContent(
@@ -37,6 +38,10 @@ describe("panneau Footprint · vue unique BTC_USDT", () => {
     expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Prix", "10:00", "10:05", "10:10", "Profil vol."]);
     expect(screen.getByText("Valeurs exactes").closest("details")).toContainElement(table);
     expect(screen.getByTestId("footprint-chart")).toBeInTheDocument();
+    // Temps réel : indisponibilité affichée, sans connexion ; provenance du côté agresseur.
+    expect(screen.getByTestId("footprint-live-status")).toHaveTextContent("Temps réel indisponible");
+    expect(screen.getByTestId("footprint-aggressor-origin")).toHaveTextContent("Publié par MEXC avec chaque transaction");
+    expect(screen.getByTestId("footprint-coverage")).toHaveTextContent("côté agresseur publié par MEXC");
     expect(screen.getByTestId("footprint-row-Delta")).toHaveTextContent(/\+400.*-50.*-70/);
     expect(screen.getByTestId("footprint-row-DltaDay")).toHaveTextContent(/\+400 \*.*\+350 \*.*\+280 \*/);
     expect(screen.getByTestId("footprint-profile-summary")).toHaveTextContent("DltaDay partiel");
