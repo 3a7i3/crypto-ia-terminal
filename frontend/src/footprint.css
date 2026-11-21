@@ -81,3 +81,30 @@
 .footprint-coverage-line { margin: 4px 0 0; font-size: 12px !important; line-height: 1.5 !important; color: var(--fp-text) !important; }
 .footprint-details { margin-top: 2px; }
 .footprint-details summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-size: 14px; color: var(--fp-accent); }
+/* Graphique Footprint : axe des prix et profil collés, statistiques collées en bas. */
+.fp-chart-scroll { max-height: 70vh; margin-block: .5rem; overflow: auto; }
+.fp-chart-grid { font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; font: 11px/1.4 monospace; display: grid; }
+.fp-chart-grid > * { border-bottom: 1px solid var(--fp-border); min-height: 18px; }
+.fp-chart-grid b { z-index: 1; background: var(--fp-bg); padding-inline: 3px; position: sticky; left: 0; }
+.fp-chart-grid strong { text-align: center; }
+.fp-chart-cell { text-align: center; padding-left: 8px; position: relative; }
+/* Mèche (1 px) et corps OHLC (5 px), en teintes neutres distinctes du rouge/vert des volumes. */
+.fp-chart-cell i { left: 4px; border-left: 1px solid #778696; position: absolute; inset-block: 0; }
+.fp-chart-cell .fp-body { border-width: 5px; }
+.fp-chart-cell i[data-up=false] { border-color: #94796e; }
+.fp-chart-cell i[data-partial=true] { border-left-style: dashed; }
+.fp-chart-cell button { font: inherit; color: inherit; cursor: pointer; background: 0 0; border: 0; padding: 1px 3px; }
+.fp-chart-cell button span:first-child { background: color-mix(in srgb,var(--fp-sell) 16%,transparent); }
+.fp-chart-cell button span:last-child { background: color-mix(in srgb,var(--fp-buy) 16%,transparent); }
+.fp-chart-grid .fp-profile-track { left: auto; right: 0; }
+.fp-profile-track i { height: 60%; position: absolute; top: 20%; }
+.fp-chart-cell button { white-space: nowrap; min-height: 18px; }
+.fp-chart-cell[data-active=true], .fp-profile-track[data-poc=true] { background: var(--fp-poc); }
+.fp-chart-cell span[data-stacked=true] { outline: 2px solid; }
+.fp-chart-grid .fp-stat, .fp-chart-grid .fp-head { background: var(--fp-bg-soft); z-index: 2; position: sticky; }
+.fp-chart-grid .fp-head { top: 0; }
+.fp-chart-grid .fp-stat { height: 20px; }
+.fp-chart-grid .fp-right { left: auto; right: 0; }
+.fp-chart-cell { min-width: 82px; }
+.fp-chart-grid .fp-head { white-space: nowrap; }
+.fp-chart-scroll:focus-visible, .fp-chart-cell button:focus-visible { outline: 2px solid var(--fp-accent); }

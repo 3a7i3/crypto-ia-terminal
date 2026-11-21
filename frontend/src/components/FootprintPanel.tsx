@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FootprintBuilder, profileOf, validateTrade } from "../lib/footprintEngine";
+import { validateTrade } from "../lib/footprintEngine";
+import { IMB, buildFootprintModel } from "../lib/footprintModel";
+import { FootprintChart } from "./FootprintChart";
 import { FOOTPRINT_REPLAY_SHA256, loadFootprintReplay, type FootprintReplay, type FootprintReplayState } from "../lib/footprintReplay";
 import "../footprint.css";
 
@@ -10,8 +12,6 @@ import "../footprint.css";
 // Observation passive : aucun signal, aucun ordre, aucune autorité.
 
 export const FOOTPRINT_SYMBOL_LABEL = "BTC_USDT · perpétuel · MEXC";
-// Réglages par défaut du moteur, affichés tels quels : ils ne sont pas validés.
-const IMB = Object.freeze({ imbPct: 150, imbMin: 50, stackN: 3, imbMinSide: "dominant" as const });
 const PERIODS = [
   { ms: 60_000, label: "1 min" }, { ms: 300_000, label: "5 min" },
   { ms: 900_000, label: "15 min" }, { ms: 3_600_000, label: "1 h" },
@@ -51,42 +51,32 @@ export function autoStepMultiplier(tick: number, lo: number, hi: number, targetR
   return STEP_MULTIPLIERS.find((m) => (hi - lo) / (tick * m) <= targetRows) ?? STEP_MULTIPLIERS[STEP_MULTIPLIERS.length - 1];
 }
 
-function buildFootprint(replay: FootprintReplay, tfMs: number, step: number) {
-  const coverageFromMs = Date.parse(replay.provenance.coverage_from_utc);
-  const builder = new FootprintBuilder({ tickSize: step, tfMs, coverageFromMs, maxBars: 100_000, maxLevels: 2_000_000 });
-  for (const t of replay.trades) {
-    if (validateTrade(t)) continue; // déjà comptée dans la qualité native
-    // Niveau = plancher du pas d'affichage : un prix appartient au niveau qui le contient.
-    builder.push({ ...t, price: Math.floor(t.price / step + 1e-9) * step });
-  }
-  return builder.snapshot(IMB);
-}
-
 const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; visible: number }> = ({ replay, tfMs, step, visible }) => {
-  const snap = useMemo(() => buildFootprint(replay, tfMs, step), [replay, tfMs, step]);
-  const bars = snap.bars.slice(-visible);
-  const gaps = replay.provenance.gaps.map((g) => [Date.parse(g.from_utc), Date.parse(g.to_utc)] as const);
+  const model = useMemo(() => buildFootprintModel(replay, tfMs, step, visible), [replay, tfMs, step, visible]);
+  const { snap, bars, gaps, profile } = model;
   if (bars.length === 0) return <p data-testid="footprint-empty">Aucune bougie : aucune transaction valide dans le rejeu.</p>;
   const hiIdx = Math.max(...bars.map((b) => b.hiIdx));
   const loIdx = Math.min(...bars.map((b) => b.loIdx));
   const rows = hiIdx - loIdx + 1;
-  const profile = profileOf(bars);
   const maxVol = Math.max(...profile.levels.map((l) => l.volume), 0);
   const profileByIdx = new Map(profile.levels.map((l) => [l.idx, l]));
   const byBar = bars.map((b) => new Map(b.levels.map((l) => [l.idx, l])));
   const priceDigits = Math.max(0, -Math.floor(Math.log10(step)) + 1);
   const priceOf = (idx: number) => (idx * step).toLocaleString("fr-FR", { minimumFractionDigits: Math.min(priceDigits, 8), maximumFractionDigits: Math.min(priceDigits, 8) });
   return <>
+    {rows <= MAX_LADDER_ROWS && <FootprintChart model={model} step={step} />}
+    <details open={rows > MAX_LADDER_ROWS || undefined}>
+    <summary>Valeurs exactes</summary>
     <div className="footprint-scroll" data-testid="footprint-scroll" tabIndex={0} aria-label="Footprint Bid × Ask par niveau">
       {rows > MAX_LADDER_ROWS
         ? <p data-testid="footprint-too-many-levels">{rows} niveaux à afficher : augmentez le pas des niveaux (limite {MAX_LADDER_ROWS}).</p>
         : <table className="footprint-table" data-testid="footprint-table">
           <thead><tr>
             <th scope="col" className="footprint-price">Prix</th>
-            {bars.map((b) => {
+            {bars.map((b, i) => {
               const inGap = gaps.some(([a, z]) => b.t0 < z && b.t0 + tfMs > a);
               return <th scope="col" key={b.t0} title={utc(b.t0)}>
-                {hhmm(b.t0)}{b.sessionPartial && <span className="footprint-flag" title="Session commencée avant la couverture du rejeu"> · partiel</span>}{inGap && <span className="footprint-flag"> · lacune</span>}
+                {hhmm(b.t0)}{model.partial[i] && <span className="footprint-flag" title="Session commencée avant la couverture du rejeu"> · partiel</span>}{inGap && <span className="footprint-flag"> · lacune</span>}
               </th>;
             })}
             <th scope="col">Profil vol.</th>
@@ -134,6 +124,7 @@ const Ladder: React.FC<{ replay: FootprintReplay; tfMs: number; step: number; vi
       {" "}Niveaux au plancher du pas {fmt(step, 8)}.
       {bars.some((b) => b.sessionPartial) && " * DltaDay partiel : le cumul commence au début de la couverture, pas à l'ouverture de session (00:00 UTC)."}
     </p>
+    </details>
   </>;
 };
 

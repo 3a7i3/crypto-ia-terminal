@@ -6,7 +6,7 @@
 // rejeu MEXC sont ceux du build. Prouve la présence des six fonctions exigées.
 import { chromium } from "playwright";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import http from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -21,6 +21,7 @@ const EXPECTED = {
   "/observations/footprint/mexc-btc_usdt-perp-replay-v1.json": "a41c608814c02a10e5a9369b11806196b770ad578db0d5037368413c4cce391f",
   "/observations/btc-atom-book-v1.json": "0488e8390645d429a60fb43ae6adfe5a8fa4d1a31b43c538ff5e729d78f47bfe",
 };
+const FIN02_FIXTURE = JSON.parse(await readFile(new URL("./fixtures/fin02-local-test-fixture.json", import.meta.url), "utf8"));
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 const hex = (n) => n.toString(16).padStart(64, "0");
 const listen = (server, port, host = "127.0.0.1") => new Promise((resolve, reject) => server.once("error", reject).listen(port, host, resolve));
@@ -32,8 +33,10 @@ await writeFile(path.join(state, "observations.json"), JSON.stringify([20, 3, 0.
 const api = http.createServer((req, res) => {
   if (req.url === "/api/operator/v1/financial-reconciliation") {
     res.writeHead(200, { "content-type": "application/json" });
-    return res.end(JSON.stringify({ product: "FIN02FinancialCockpit", authority: "FINANCIAL_OBSERVATION", asset: "USDT", paper_epoch_id: EPOCH,
-      financial_snapshot_id: hex(77), generated_at_utc: new Date(Date.now() - 5000).toISOString(), freshness_classification: "FRESH", financial: { cash_available: "10090.00" } }));
+    // Contrat FIN02 complet (fixture de test locale) : l'historique PAPER et la réconciliation lisent la même réponse.
+    const { _note, ...fixture } = FIN02_FIXTURE;
+    return res.end(JSON.stringify({ ...fixture, paper_epoch_id: EPOCH, financial_snapshot_id: hex(77), generated_at_utc: new Date(Date.now() - 5000).toISOString(),
+      snapshot_age_s: 5, freshness_classification: "FRESH", financial: { ...fixture.financial, cash_available: "10090.00" } }));
   }
   res.writeHead(503, { "content-type": "application/json" }); res.end('{"error_code":"SOURCE_NOT_DEPLOYED"}');
 });
@@ -73,6 +76,12 @@ try {
     }
     check(`${vp.name} solde PAPER 1/7/30 j`, counts[1] === 2 && counts[7] === 3 && counts[30] === 4 && await noHScroll(), { counts });
     await shot("finance-solde-30j");
+    // Accès à la réconciliation financière (FIN02) depuis la même page Finance.
+    const fin = page.getByTestId("financial-reconciliation-view").last();
+    await fin.waitFor();
+    await page.getByRole("heading", { name: "Portefeuille et finances" }).waitFor();
+    const finText = (await fin.textContent()) ?? "";
+    check(`${vp.name} réconciliation financière accessible`, await fin.isVisible() && /10090\.00/.test(finText) && /Divergence/.test(finText) && await noHScroll(), { finText: ((await fin.textContent()) ?? "").slice(0, 160) });
 
     await page.goto(`${base}/paper-live/decisions`, { waitUntil: "load" });
     check(`${vp.name} tableau des décisions`, await page.getByRole("region", { name: "Tableau des décisions" }).isVisible() && await noHScroll());
@@ -108,10 +117,12 @@ try {
     await page.goto(`${base}/paper-live/market/lmi`, { waitUntil: "load" });
     const panel = page.getByTestId("footprint-panel");
     await panel.waitFor();
-    await page.getByTestId("footprint-table").waitFor();
+    // V3 : le graphique est le rendu principal ; le tableau reste dans « Valeurs exactes » (replié).
+    await page.getByTestId("footprint-chart").waitFor();
     const text = await panel.textContent();
-    const single = (await panel.locator("table").count()) === 1 && !/Temps réel|Démo historique|Panneau non alimenté/.test(text);
-    check(`${vp.name} Footprint (vue unique, capture MEXC réelle sans clic)`, single && footprintRequests.length === 1 && /100 transactions/.test(text)
+    const single = (await panel.locator("table").count()) === 1 && (await panel.getByTestId("footprint-chart").count()) === 1
+      && (await panel.locator("details > summary", { hasText: "Valeurs exactes" }).count()) === 1 && !/Démo historique|Panneau non alimenté/.test(text);
+    check(`${vp.name} Footprint (graphique + Valeurs exactes, capture MEXC réelle sans clic)`, single && footprintRequests.length === 1 && /100 transactions/.test(text)
       && /contrats \(source\)/.test(text) && /Capture figée · Couverture partielle/.test(text) && /DltaDay partiel/.test(text) && await noHScroll(), { footprintRequests });
     await shot("footprint-demo");
     check(`${vp.name} aucune requête externe`, external.filter((u) => !u.startsWith("https://api.github.com/")).length === 0, { external });

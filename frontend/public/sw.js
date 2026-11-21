@@ -5,7 +5,7 @@
 importScripts("/pwa-policy.js");
 
 const SHELL_CACHE_PREFIX = "crypto-ai-operator-shell-";
-const SHELL_CACHE = `${SHELL_CACHE_PREFIX}cat-footprint-finance-v6-rc1`;
+const SHELL_CACHE = `${SHELL_CACHE_PREFIX}cat-footprint-v3-l1-ab941c2`;
 const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",

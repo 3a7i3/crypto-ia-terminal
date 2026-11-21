@@ -32,7 +32,11 @@ describe("panneau Footprint · vue unique BTC_USDT", () => {
     expect(screen.getByTestId("footprint-provenance")).toHaveTextContent("FIXTURE SYNTHÉTIQUE DE TEST");
     expect(screen.getByTestId("footprint-provenance")).toHaveTextContent("6 acceptées · 0 rejetées · 0 hors pas");
     expect(screen.getByTestId("footprint-sha256")).toHaveTextContent(`${FIXTURE_SHA} · ${new TextEncoder().encode(FIXTURE).length} octets · vérifiée`);
-    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Prix", "10:00 · partiel", "10:05 · partiel", "10:10 · partiel", "Profil vol."]);
+    // V3 : « partiel » qualifie la fenêtre de la bougie (couverture ou lacune), pas la session.
+    // La fixture couvre 10:00 → 10:20 : les trois bougies de 5 min sont entières ; DltaDay reste partiel (*).
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Prix", "10:00", "10:05", "10:10", "Profil vol."]);
+    expect(screen.getByText("Valeurs exactes").closest("details")).toContainElement(table);
+    expect(screen.getByTestId("footprint-chart")).toBeInTheDocument();
     expect(screen.getByTestId("footprint-row-Delta")).toHaveTextContent(/\+400.*-50.*-70/);
     expect(screen.getByTestId("footprint-row-DltaDay")).toHaveTextContent(/\+400 \*.*\+350 \*.*\+280 \*/);
     expect(screen.getByTestId("footprint-profile-summary")).toHaveTextContent("DltaDay partiel");
