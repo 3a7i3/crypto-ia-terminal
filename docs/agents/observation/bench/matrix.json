@@ -1,0 +1,635 @@
+[
+  {
+    "case": "A_complete",
+    "content_sha256": "b8788e068b3742409cd5378e844d345aff71ed8f4e597c5ad79e6b5b33c3245a",
+    "expected": {
+      "distinct_observations": 7,
+      "expected_summary": "7 maillons PROVEN, source dans le seuil",
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "status": "COMPLETE",
+      "title": "Chaîne complète et cohérente"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "PRODUCER_IDENTIFIED",
+        "SOURCE_WITHIN_THRESHOLD",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "status": "COMPLETE"
+    },
+    "run": {
+      "bytes_read": 7649,
+      "duration_ms": 22.111,
+      "ended_utc": "2026-11-22T00:27:15.019Z",
+      "peak_traced_bytes": 439497,
+      "sources_read": 9,
+      "started_utc": "2026-11-22T00:27:14.997Z"
+    },
+    "title": "Chaîne complète et cohérente",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 0,
+      "justified_findings": 4,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "B_producer_absent",
+    "content_sha256": "125283a8cf394f1016f3b82d4464e08f333d9dc5f1eed1c9d12adcac5d54ac48",
+    "expected": {
+      "expected_summary": "producteur NOT_FOUND, aval prouvé conservé",
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "NOT_FOUND",
+        "PRODUCER_TO_STORAGE": "NOT_FOUND",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "NOT_FOUND",
+        "STORAGE_TO_READER": "INCONCLUSIVE"
+      },
+      "required_findings": [
+        "PRODUCER_NOT_FOUND",
+        "READER_WITHOUT_PROVEN_STORAGE_LINK",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "status": "PARTIAL",
+      "title": "Producteur absent"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "PRODUCER_NOT_FOUND",
+        "READER_WITHOUT_PROVEN_STORAGE_LINK",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "NOT_FOUND",
+        "PRODUCER_TO_STORAGE": "NOT_FOUND",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "NOT_FOUND",
+        "STORAGE_TO_READER": "INCONCLUSIVE"
+      },
+      "status": "PARTIAL"
+    },
+    "run": {
+      "bytes_read": 6953,
+      "duration_ms": 15.726,
+      "ended_utc": "2026-11-22T00:27:15.064Z",
+      "peak_traced_bytes": 425246,
+      "sources_read": 8,
+      "started_utc": "2026-11-22T00:27:15.049Z"
+    },
+    "title": "Producteur absent",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 5,
+      "justified_findings": 3,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "C_reader_unlinked",
+    "content_sha256": "9fcf5160c2b9c76a6b21c586068ec59e2733a25bbcdab65136952bca6f194d15",
+    "expected": {
+      "expected_summary": "STORAGE_TO_READER INCONCLUSIVE",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "INCONCLUSIVE"
+      },
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "READER_WITHOUT_PROVEN_STORAGE_LINK",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "status": "PARTIAL",
+      "title": "Lecteur sans lien prouvé avec le stockage"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "PRODUCER_IDENTIFIED",
+        "READER_WITHOUT_PROVEN_STORAGE_LINK",
+        "SOURCE_WITHIN_THRESHOLD",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "INCONCLUSIVE"
+      },
+      "status": "PARTIAL"
+    },
+    "run": {
+      "bytes_read": 7567,
+      "duration_ms": 16.716,
+      "ended_utc": "2026-11-22T00:27:15.098Z",
+      "peak_traced_bytes": 429903,
+      "sources_read": 9,
+      "started_utc": "2026-11-22T00:27:15.081Z"
+    },
+    "title": "Lecteur sans lien prouvé avec le stockage",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 1,
+      "justified_findings": 5,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "D_stale_recent_mtime",
+    "content_sha256": "57b51eacc4de3c553e9474dde88d6745e763c4f211d1bc875ad886dc805749a0",
+    "expected": {
+      "expected_summary": "SOURCE_STALE, mtime non utilisé comme preuve",
+      "freshness_verdict": "SOURCE_STALE",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "SOURCE_STALE",
+        "MTIME_RECENT_SOURCE_STALE"
+      ],
+      "status": "COMPLETE",
+      "title": "Timestamp source périmé malgré un mtime récent"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "MTIME_RECENT_SOURCE_STALE",
+        "PRODUCER_IDENTIFIED",
+        "SOURCE_STALE",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "SOURCE_STALE",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "status": "COMPLETE"
+    },
+    "run": {
+      "bytes_read": 7111,
+      "duration_ms": 20.579,
+      "ended_utc": "2026-11-22T00:27:15.146Z",
+      "peak_traced_bytes": 429875,
+      "sources_read": 9,
+      "started_utc": "2026-11-22T00:27:15.125Z"
+    },
+    "title": "Timestamp source périmé malgré un mtime récent",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 0,
+      "justified_findings": 5,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "E_join_contradiction",
+    "content_sha256": "89966559b60e24496e573ed507040d78e11e537c2e5083f18b10690913f43b27",
+    "expected": {
+      "expected_summary": "JOIN_KEY_CONTRADICTION (symbole/archive, points/empreintes)",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "JOIN_KEY_CONTRADICTION",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "status": "COMPLETE",
+      "title": "Identifiants de jointure contradictoires"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "JOIN_KEY_CONTRADICTION",
+        "PRODUCER_IDENTIFIED",
+        "SOURCE_WITHIN_THRESHOLD",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "status": "COMPLETE"
+    },
+    "run": {
+      "bytes_read": 7039,
+      "duration_ms": 12.648,
+      "ended_utc": "2026-11-22T00:27:15.190Z",
+      "peak_traced_bytes": 429755,
+      "sources_read": 9,
+      "started_utc": "2026-11-22T00:27:15.178Z"
+    },
+    "title": "Identifiants de jointure contradictoires",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 0,
+      "justified_findings": 6,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "F_unit_missing_incompatible",
+    "content_sha256": "8981e994e72001a890eccaafc89897feb945c7ae2f881e5407d6bbc56096f997",
+    "expected": {
+      "expected_summary": "UNIT_MISSING (spread_bps absent d'une série) ; UNIT_INCOMPATIBLE (horodatage en secondes, nombre au lieu de chaîne décimale)",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UNIT_MISSING",
+        "UNIT_INCOMPATIBLE",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "status": "COMPLETE",
+      "title": "Unité absente ou incompatible"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "PRODUCER_IDENTIFIED",
+        "SOURCE_WITHIN_THRESHOLD",
+        "UNIT_INCOMPATIBLE",
+        "UNIT_MISSING",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "status": "COMPLETE"
+    },
+    "run": {
+      "bytes_read": 7613,
+      "duration_ms": 16.365,
+      "ended_utc": "2026-11-22T00:27:15.227Z",
+      "peak_traced_bytes": 429723,
+      "sources_read": 9,
+      "started_utc": "2026-11-22T00:27:15.210Z"
+    },
+    "title": "Unité absente ou incompatible",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 0,
+      "justified_findings": 7,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "G_malformed_capture",
+    "content_sha256": "e5c8f3b4161c5d62ccfb42e11388fdf4a80774537cab7e151ca4ca5bf7874ec3",
+    "expected": {
+      "expected_summary": "CAPTURE_MALFORMED ; maillons prouvés conservés ; fraîcheur INCONCLUSIVE",
+      "freshness_verdict": "INCONCLUSIVE",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "required_errors": [
+        "CAPTURE_MALFORMED"
+      ],
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "CAPTURE_MALFORMED"
+      ],
+      "status": "PARTIAL",
+      "title": "Entrée malformée"
+    },
+    "obtained": {
+      "errors": [
+        "CAPTURE_MALFORMED"
+      ],
+      "findings": [
+        "CAPTURE_MALFORMED",
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "INCONCLUSIVE",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "status": "PARTIAL"
+    },
+    "run": {
+      "bytes_read": 6476,
+      "duration_ms": 18.616,
+      "ended_utc": "2026-11-22T00:27:15.275Z",
+      "peak_traced_bytes": 429663,
+      "sources_read": 9,
+      "started_utc": "2026-11-22T00:27:15.256Z"
+    },
+    "title": "Entrée malformée",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 0,
+      "justified_findings": 4,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "H1_env_path_in_scope",
+    "content_sha256": "8298bdbc18d412eebe2f294a429b48e48b5884865daf2e3aa74d52131724d7c4",
+    "expected": {
+      "expected_summary": "BLOCKED avant toute lecture",
+      "hops": {},
+      "never_read": [
+        "config/.env"
+      ],
+      "required_errors": [
+        "SECRET_PATH_REQUESTED"
+      ],
+      "required_findings": [],
+      "status": "BLOCKED",
+      "title": "Fichier .env demandé dans le périmètre"
+    },
+    "obtained": {
+      "errors": [
+        "SECRET_PATH_REQUESTED"
+      ],
+      "findings": [],
+      "freshness_verdict": null,
+      "hops": {},
+      "status": "BLOCKED"
+    },
+    "run": {
+      "bytes_read": 0,
+      "duration_ms": 0.27,
+      "ended_utc": "2026-11-22T00:27:15.303Z",
+      "peak_traced_bytes": 1643,
+      "sources_read": 0,
+      "started_utc": "2026-11-22T00:27:15.303Z"
+    },
+    "title": "Fichier .env demandé dans le périmètre",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 0,
+      "justified_findings": 0,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "H2_reader_out_of_scope",
+    "content_sha256": "008565b1607ffd6511fa0496ecaffc2998d3f6e92aa23e8ce35c08864c69cd20",
+    "expected": {
+      "expected_summary": "lecteur hors périmètre non lu ; .env ignoré ; PARTIAL",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "INCONCLUSIVE"
+      },
+      "never_read": [
+        "api/history_reader.py",
+        "web/.env"
+      ],
+      "refused_paths": {
+        "api/history_reader.py": "OUT_OF_SCOPE_NOT_READ",
+        "web/.env": "SKIPPED_SECRET_PATTERN"
+      },
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "READER_OUT_OF_SCOPE_NOT_READ",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "status": "PARTIAL",
+      "title": "Chemin hors périmètre et secret dans un dossier autorisé"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "PRODUCER_IDENTIFIED",
+        "READER_OUT_OF_SCOPE_NOT_READ",
+        "SOURCE_WITHIN_THRESHOLD",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "INCONCLUSIVE"
+      },
+      "status": "PARTIAL"
+    },
+    "run": {
+      "bytes_read": 7273,
+      "duration_ms": 18.275,
+      "ended_utc": "2026-11-22T00:27:15.333Z",
+      "peak_traced_bytes": 426842,
+      "sources_read": 8,
+      "started_utc": "2026-11-22T00:27:15.315Z"
+    },
+    "title": "Chemin hors périmètre et secret dans un dossier autorisé",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 1,
+      "justified_findings": 5,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  },
+  {
+    "case": "I_identical_replay",
+    "content_sha256": "1252264463fbb9c3e169af04cf37b73428df7033cf0ecb67f17af3642779cafa",
+    "expected": {
+      "distinct_observations": 4,
+      "expected_summary": "1 doublon compté une fois : 4 observations distinctes, pas 5",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "required_findings": [
+        "PRODUCER_IDENTIFIED",
+        "UPSTREAM_ENDPOINTS_DECLARED",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "IDENTICAL_REPLAY_COUNTED_ONCE",
+        "SOURCE_WITHIN_THRESHOLD"
+      ],
+      "status": "COMPLETE",
+      "title": "Rejeu identique"
+    },
+    "obtained": {
+      "errors": [],
+      "findings": [
+        "IDENTICAL_REPLAY_COUNTED_ONCE",
+        "PRODUCER_IDENTIFIED",
+        "SOURCE_WITHIN_THRESHOLD",
+        "UPSTREAM_APPEND_ONLY_LOG",
+        "UPSTREAM_ENDPOINTS_DECLARED"
+      ],
+      "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+      "hops": {
+        "API_TO_CLIENT": "PROVEN",
+        "CLIENT_TO_VIEW": "PROVEN",
+        "PRODUCER": "PROVEN",
+        "PRODUCER_TO_STORAGE": "PROVEN",
+        "READER_TO_API": "PROVEN",
+        "SOURCE_TO_PRODUCER": "PROVEN",
+        "STORAGE_TO_READER": "PROVEN"
+      },
+      "status": "COMPLETE"
+    },
+    "run": {
+      "bytes_read": 7245,
+      "duration_ms": 11.945,
+      "ended_utc": "2026-11-22T00:27:15.365Z",
+      "peak_traced_bytes": 430899,
+      "sources_read": 9,
+      "started_utc": "2026-11-22T00:27:15.353Z"
+    },
+    "title": "Rejeu identique",
+    "verdict": {
+      "false_findings": [],
+      "inconclusive": 0,
+      "justified_findings": 5,
+      "mismatches": [],
+      "passed": true,
+      "replay_identical": true,
+      "unjustified_findings": []
+    }
+  }
+]

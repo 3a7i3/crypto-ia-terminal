@@ -1,0 +1,20 @@
+{
+  "expected_summary": "producteur NOT_FOUND, aval prouvé conservé",
+  "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "NOT_FOUND",
+    "PRODUCER_TO_STORAGE": "NOT_FOUND",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "NOT_FOUND",
+    "STORAGE_TO_READER": "INCONCLUSIVE"
+  },
+  "required_findings": [
+    "PRODUCER_NOT_FOUND",
+    "READER_WITHOUT_PROVEN_STORAGE_LINK",
+    "SOURCE_WITHIN_THRESHOLD"
+  ],
+  "status": "PARTIAL",
+  "title": "Producteur absent"
+}

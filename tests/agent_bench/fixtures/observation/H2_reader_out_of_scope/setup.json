@@ -1,0 +1,8 @@
+{
+  "create_files": {
+    "web/.env": "FIX_TOKEN=fixture-not-a-secret\n"
+  },
+  "mtime_utc": {
+    "capture/history.json": "2026-11-21T23:59:30Z"
+  }
+}

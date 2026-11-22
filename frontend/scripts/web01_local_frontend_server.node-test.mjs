@@ -315,3 +315,27 @@ test("Radar Spot transport failure is explicit and non-cacheable", async (t) => 
   const failed = await request(app.address().port, "/api/operator/v1/spot-radar/scanner");
   assert.equal(failed.status, 502); assert.match(failed.text, /OPERATOR_API_UNAVAILABLE/); assert.equal(failed.cacheControl, "no-store");
 });
+
+test("exception unique : POST relayé seulement vers la route de rythme d'agent, corps borné, en-tête transmis", async (t) => {
+  const seen = [];
+  const api = http.createServer((req, res) => {
+    let b = ""; req.on("data", (c) => { b += c; });
+    req.on("end", () => { seen.push({ m: req.method, u: req.url, h: req.headers["x-cat-operator"], b }); res.writeHead(202, { "content-type": "application/json" }); res.end("{}"); });
+  }).listen(0, "127.0.0.1");
+  await new Promise((r) => api.once("listening", r));
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
+  await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
+  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${api.address().port}` });
+  await new Promise((resolve) => app.once("listening", resolve));
+  t.after(() => { close(app); api.close(); });
+  const base = `http://127.0.0.1:${app.address().port}/api/operator/v1/agent-invocations/repository-cartographer`;
+  const ok = await fetch(`${base}/schedule`, { method: "POST", headers: { "content-type": "application/json", "x-cat-operator": "schedule" }, body: '{"rhythm":"1h"}' });
+  assert.equal(ok.status, 202); assert.equal(ok.headers.get("cache-control"), "no-store");
+  assert.deepEqual(seen, [{ m: "POST", u: "/api/operator/v1/agent-invocations/repository-cartographer/schedule", h: "schedule", b: '{"rhythm":"1h"}' }]);
+  for (const p of [`${base}/history`, `${base}/schedule/x`, `${base}`]) {
+    assert.equal((await fetch(p, { method: "POST", body: "{}" })).status, 405);
+  }
+  assert.equal((await fetch(`${base}/schedule`, { method: "PUT", body: "{}" })).status, 405);
+  await fetch(`${base}/schedule`, { method: "POST", body: "x".repeat(1000) }).catch(() => null);
+  assert.equal(seen.length, 1);
+});

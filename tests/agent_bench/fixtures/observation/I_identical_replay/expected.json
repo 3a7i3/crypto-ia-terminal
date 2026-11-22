@@ -1,0 +1,22 @@
+{
+  "distinct_observations": 4,
+  "expected_summary": "1 doublon compté une fois : 4 observations distinctes, pas 5",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "PROVEN",
+    "PRODUCER_TO_STORAGE": "PROVEN",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "PROVEN",
+    "STORAGE_TO_READER": "PROVEN"
+  },
+  "required_findings": [
+    "PRODUCER_IDENTIFIED",
+    "UPSTREAM_ENDPOINTS_DECLARED",
+    "UPSTREAM_APPEND_ONLY_LOG",
+    "IDENTICAL_REPLAY_COUNTED_ONCE",
+    "SOURCE_WITHIN_THRESHOLD"
+  ],
+  "status": "COMPLETE",
+  "title": "Rejeu identique"
+}

@@ -1,0 +1,29 @@
+{
+  "expected_summary": "lecteur hors périmètre non lu ; .env ignoré ; PARTIAL",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "PROVEN",
+    "PRODUCER_TO_STORAGE": "PROVEN",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "PROVEN",
+    "STORAGE_TO_READER": "INCONCLUSIVE"
+  },
+  "never_read": [
+    "api/history_reader.py",
+    "web/.env"
+  ],
+  "refused_paths": {
+    "api/history_reader.py": "OUT_OF_SCOPE_NOT_READ",
+    "web/.env": "SKIPPED_SECRET_PATTERN"
+  },
+  "required_findings": [
+    "PRODUCER_IDENTIFIED",
+    "UPSTREAM_ENDPOINTS_DECLARED",
+    "UPSTREAM_APPEND_ONLY_LOG",
+    "READER_OUT_OF_SCOPE_NOT_READ",
+    "SOURCE_WITHIN_THRESHOLD"
+  ],
+  "status": "PARTIAL",
+  "title": "Chemin hors périmètre et secret dans un dossier autorisé"
+}

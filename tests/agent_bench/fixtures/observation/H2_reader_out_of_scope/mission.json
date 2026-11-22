@@ -1,0 +1,63 @@
+{
+  "agent_id": "data-provenance-auditor",
+  "analyzed_ref": {
+    "kind": "FIXTURE_TREE",
+    "sha": "08324ad5b7afb1abf7862c9b7cc0a9a49c869e0a40d85f41af6bdfe21a1426db"
+  },
+  "budget": {
+    "max_bytes": 400000,
+    "max_files": 40,
+    "max_wall_ms": 20000
+  },
+  "capture": {
+    "capture_id": "fix-history-capture",
+    "kind": "FIXTURE",
+    "path": "capture/history.json",
+    "sha256": "0bea9ad19a0af658da044f7c414cac0f9908a5307487bfec08e1c3d9652a4622"
+  },
+  "contract": "cat.observation.mission.v1",
+  "mission_id": "569797fa0a624a45628829c1ae96d5580bca69cfde468181feda5b1cf49ac230",
+  "profile": {
+    "blob_sha1": "45447863514be83fa0b5830f4e1491b35a9b24b1",
+    "source_path": ".github/agents/data-provenance-auditor.agent.md"
+  },
+  "question": {
+    "as_of_utc": "2026-11-22T00:00:00Z",
+    "dataset_id": "fix-history/1.0.0",
+    "join_checks": [
+      {
+        "left": "series[*].symbol",
+        "relation": "CONTAINED_IN",
+        "right": "series[*].archive"
+      },
+      {
+        "left": "series[*].points",
+        "relation": "SAME_LENGTH",
+        "right": "series[*].point_sha"
+      }
+    ],
+    "kind": "DATASET_PROVENANCE_CHAIN",
+    "max_source_age_ms": 600000,
+    "observation_key": [
+      "series[*].symbol",
+      "series[*].points[*].ts_ms"
+    ],
+    "source_ts": "series[*].points[*].ts_ms",
+    "text": "Établir la chaîne source → producteur → stockage → lecteur → API → client → affichage du dataset synthétique fix-history.",
+    "units": {
+      "generated_at_utc": "UTC_ISO_SECONDS",
+      "series[*].points[*].ts_ms": "EPOCH_MS",
+      "series[*].spread_bps": "DECIMAL_STRING_BPS"
+    },
+    "write_ts": "generated_at_utc"
+  },
+  "scope": {
+    "read_paths": [
+      "api/app.py",
+      "capture/history.json",
+      "collector/",
+      "pipeline/",
+      "web/"
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "agent_id": "data-provenance-auditor",
+  "analyzed_ref": {
+    "kind": "GIT_COMMIT",
+    "sha": "857404f8ebfbcf9df4a3f36052ab5357ea9b8d7b"
+  },
+  "budget": {
+    "max_bytes": 2000000,
+    "max_files": 50,
+    "max_wall_ms": 30000
+  },
+  "capture": {
+    "capture_id": "bbo-history-synthetic-fixture",
+    "kind": "COMMITTED_FIXTURE",
+    "path": "observability/radar_composite/fixtures/bbo_composite_history_synthetic.json",
+    "sha256": "9e1f02e0f3bbee3f683a75c8b64e99796a85d5b39077f47cdf7844212f476983"
+  },
+  "contract": "cat.observation.mission.v1",
+  "mission_id": "931a4de57a539d2655863c44ed159aa4bb39ed6f14e6a84e9827026ebadc2400",
+  "profile": {
+    "blob_sha1": "45447863514be83fa0b5830f4e1491b35a9b24b1",
+    "source_path": ".github/agents/data-provenance-auditor.agent.md"
+  },
+  "question": {
+    "as_of_utc": "2026-11-22T00:00:00Z",
+    "dataset_id": "bbo-composite-history/1.0.0",
+    "join_checks": [
+      {
+        "left": "pairs[*].pair",
+        "relation": "CONTAINED_IN",
+        "right": "pairs[*].provenance.archive_name"
+      },
+      {
+        "left": "pairs[*].windows",
+        "relation": "SAME_LENGTH",
+        "right": "pairs[*].provenance.window_sha256"
+      }
+    ],
+    "kind": "DATASET_PROVENANCE_CHAIN",
+    "max_source_age_ms": null,
+    "observation_key": [
+      "pairs[*].pair",
+      "pairs[*].windows[*].start_ms"
+    ],
+    "source_ts": "pairs[*].window_utc.end_ms",
+    "text": "Pour la publication historique du composite BBO Spot, établir la chaîne source → producteur → stockage → lecteur → API → client → affichage, avec identifiants de jointure, unités et horodatages.",
+    "units": {
+      "generated_at_utc": "UTC_ISO_SECONDS",
+      "pairs[*].thresholds.gap_max_bps": "DECIMAL_STRING_BPS",
+      "pairs[*].thresholds.liveness_max_ms": "DURATION_MS",
+      "pairs[*].thresholds.step_ms": "DURATION_MS",
+      "pairs[*].window_utc.end_ms": "EPOCH_MS",
+      "pairs[*].window_utc.start_ms": "EPOCH_MS",
+      "pairs[*].windows[*].end_ms": "EPOCH_MS",
+      "pairs[*].windows[*].start_ms": "EPOCH_MS"
+    },
+    "write_ts": "generated_at_utc"
+  },
+  "scope": {
+    "read_paths": [
+      "frontend/src/lib/bboHistoryClient.ts",
+      "frontend/src/views/BboCompositeHistory.tsx",
+      "frontend/src/views/SpotRadarMap.tsx",
+      "observability/operator_api/app.py",
+      "observability/operator_api/bbo_history_reader.py",
+      "observability/radar_composite/bbo_history.py",
+      "observability/radar_composite/bbo_pilot.py",
+      "observability/radar_composite/fixtures/bbo_composite_history_synthetic.json"
+    ]
+  }
+}

@@ -1,0 +1,526 @@
+{
+  "content": {
+    "agent_id": "data-provenance-auditor",
+    "analyzed_ref": {
+      "kind": "GIT_COMMIT",
+      "sha": "857404f8ebfbcf9df4a3f36052ab5357ea9b8d7b"
+    },
+    "auditor_version": "data-provenance-auditor.bench.v1",
+    "capture": {
+      "capture_id": "bbo-history-synthetic-fixture",
+      "kind": "COMMITTED_FIXTURE",
+      "parsed": true,
+      "path": "observability/radar_composite/fixtures/bbo_composite_history_synthetic.json"
+    },
+    "chain": [
+      {
+        "evidence": [
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 1045,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "replay"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 181,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "Evidence.__init__"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 182,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "Evidence.__init__"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 244,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "Evidence.manifest"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 994,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "replay"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 77,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "pair_entry"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 78,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "pair_entry"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 91,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "pair_entry"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 80,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "pair_entry"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 80,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "pair_entry"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 149,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "pair_entry"
+          }
+        ],
+        "hop": "SOURCE_TO_PRODUCER",
+        "level": "PROVEN",
+        "summary": "Fichiers écrits en amont puis lus par le producteur : events.jsonl, frames.bin, manifest.json, summary.json, window_{}_primary.json."
+      },
+      {
+        "evidence": [
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 31,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "<module>"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 308,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "main"
+          }
+        ],
+        "hop": "PRODUCER",
+        "level": "PROVEN",
+        "summary": "observability.radar_composite.bbo_history porte l'identifiant du dataset et écrit un fichier."
+      },
+      {
+        "evidence": [
+          {
+            "evidence_type": "CODE",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 298,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "main"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 308,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "main"
+          }
+        ],
+        "hop": "PRODUCER_TO_STORAGE",
+        "level": "PROVEN",
+        "summary": "Chemin écrit fourni par CLI:--out."
+      },
+      {
+        "evidence": [
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "44a3febae3710c5bbc8f77efcb01d463b8c31c5e7e70b931a09ea29281437938",
+            "line": 42,
+            "path": "observability/operator_api/bbo_history_reader.py",
+            "symbol": "BboHistoryReader.read"
+          },
+          {
+            "evidence_type": "IMPORT",
+            "file_sha256": "44a3febae3710c5bbc8f77efcb01d463b8c31c5e7e70b931a09ea29281437938",
+            "line": 16,
+            "path": "observability/operator_api/bbo_history_reader.py",
+            "symbol": "<module>"
+          }
+        ],
+        "hop": "STORAGE_TO_READER",
+        "level": "INFERRED",
+        "summary": "Le lecteur valide le même schéma mais lit ENV:OPERATOR_BBO_HISTORY_PATH alors que le producteur écrit via CLI:--out : le fichier commun n'est relié que par la configuration de déploiement."
+      },
+      {
+        "evidence": [
+          {
+            "evidence_type": "CODE",
+            "file_sha256": "555f3f88c7c34c1ccc2dad48588f35b0fd4da292621dc6c4b785ce06c6a0f977",
+            "line": 646,
+            "path": "observability/operator_api/app.py",
+            "symbol": "get_bbo_composite_history"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "555f3f88c7c34c1ccc2dad48588f35b0fd4da292621dc6c4b785ce06c6a0f977",
+            "line": 648,
+            "path": "observability/operator_api/app.py",
+            "symbol": "get_bbo_composite_history"
+          },
+          {
+            "evidence_type": "IMPORT",
+            "file_sha256": "555f3f88c7c34c1ccc2dad48588f35b0fd4da292621dc6c4b785ce06c6a0f977",
+            "line": 32,
+            "path": "observability/operator_api/app.py",
+            "symbol": "<module>"
+          }
+        ],
+        "hop": "READER_TO_API",
+        "level": "PROVEN",
+        "summary": "La route /api/operator/v1/bbo-composite-history (get_bbo_composite_history) appelle _bbo_history_reader, instance de BboHistoryReader importé de observability.operator_api.bbo_history_reader."
+      },
+      {
+        "evidence": [
+          {
+            "evidence_type": "CODE",
+            "file_sha256": "555f3f88c7c34c1ccc2dad48588f35b0fd4da292621dc6c4b785ce06c6a0f977",
+            "line": 646,
+            "path": "observability/operator_api/app.py",
+            "symbol": "get_bbo_composite_history"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "bfe7de88737530d0588fd77a91e1140e785fb8789c6e38a4e63ddc3e2a7dca90",
+            "line": 6,
+            "path": "frontend/src/lib/bboHistoryClient.ts",
+            "symbol": "<module>"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "bfe7de88737530d0588fd77a91e1140e785fb8789c6e38a4e63ddc3e2a7dca90",
+            "line": 43,
+            "path": "frontend/src/lib/bboHistoryClient.ts",
+            "symbol": "<module>"
+          }
+        ],
+        "hop": "API_TO_CLIENT",
+        "level": "PROVEN",
+        "summary": "Le client frontend/src/lib/bboHistoryClient.ts appelle /api/operator/v1/bbo-composite-history, servi par observability/operator_api/app.py."
+      },
+      {
+        "evidence": [
+          {
+            "evidence_type": "IMPORT",
+            "file_sha256": "024f9a06649bec4cb1d98c54ec214104377e7453e9b449a7b238e4e51a54ff35",
+            "line": 7,
+            "path": "frontend/src/views/BboCompositeHistory.tsx",
+            "symbol": "<module>"
+          },
+          {
+            "evidence_type": "IMPORT",
+            "file_sha256": "b88e165ee753a33f09e84d34bf5dfe1357563751d53d95ce71dc5049cc827b74",
+            "line": 2,
+            "path": "frontend/src/views/SpotRadarMap.tsx",
+            "symbol": "<module>"
+          }
+        ],
+        "hop": "CLIENT_TO_VIEW",
+        "level": "PROVEN",
+        "summary": "Vue(s) consommatrice(s) : frontend/src/views/BboCompositeHistory.tsx ; rendue(s) par frontend/src/views/SpotRadarMap.tsx."
+      }
+    ],
+    "contract": "cat.observation.report.v1",
+    "errors": [],
+    "findings": [
+      {
+        "category": "CHAIN",
+        "claim": "Producteur : observability.radar_composite.bbo_history (main).",
+        "code": "PRODUCER_IDENTIFIED",
+        "confidence": "HIGH",
+        "evidence": [
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 308,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "main"
+          }
+        ],
+        "finding_id": "8e8bda09d4a8b528",
+        "level": "PROVEN"
+      },
+      {
+        "category": "FRESHNESS",
+        "claim": "Heure source la plus récente 2026-11-19T22:55:00.000Z ; aucun seuil de fraîcheur n'est déclaré pour ce dataset.",
+        "code": "SOURCE_AGE_REPORTED",
+        "confidence": "HIGH",
+        "evidence": [
+          {
+            "evidence_type": "CAPTURE_FIELD",
+            "file_sha256": "9e1f02e0f3bbee3f683a75c8b64e99796a85d5b39077f47cdf7844212f476983",
+            "line": null,
+            "path": "observability/radar_composite/fixtures/bbo_composite_history_synthetic.json",
+            "symbol": "pairs[*].window_utc.end_ms"
+          }
+        ],
+        "finding_id": "aa9be5226ebf268f",
+        "level": "PROVEN"
+      },
+      {
+        "category": "REPLAY",
+        "claim": "Le validateur du producteur nomme un rejet de doublon.",
+        "code": "GUARD_DUPLICATE_REJECTED",
+        "confidence": "MEDIUM",
+        "evidence": [
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 213,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "validate_history"
+          }
+        ],
+        "finding_id": "a03914154755bb41",
+        "level": "SUPPORTED"
+      },
+      {
+        "category": "REPLAY",
+        "claim": "Le lecteur refuse un fichier modifié pendant sa lecture.",
+        "code": "READER_DETECTS_CHANGE_DURING_READ",
+        "confidence": "MEDIUM",
+        "evidence": [
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "44a3febae3710c5bbc8f77efcb01d463b8c31c5e7e70b931a09ea29281437938",
+            "line": 60,
+            "path": "observability/operator_api/bbo_history_reader.py",
+            "symbol": "BboHistoryReader.read"
+          }
+        ],
+        "finding_id": "db550bb2205fd7db",
+        "level": "SUPPORTED"
+      },
+      {
+        "category": "REPLAY",
+        "claim": "Le producteur écrase le fichier publié sans renommage atomique : un lecteur peut voir un fichier partiel.",
+        "code": "RISK_NON_ATOMIC_OVERWRITE",
+        "confidence": "HIGH",
+        "evidence": [
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 308,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "main"
+          }
+        ],
+        "finding_id": "b16c88820f0d9426",
+        "level": "PROVEN"
+      },
+      {
+        "category": "REPLAY",
+        "claim": "Le producteur lit l'horloge : deux constructions depuis la même preuve ne sont pas identiques à l'octet.",
+        "code": "RISK_WALLCLOCK_IN_PUBLICATION",
+        "confidence": "HIGH",
+        "evidence": [
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac",
+            "line": 161,
+            "path": "observability/radar_composite/bbo_history.py",
+            "symbol": "build"
+          }
+        ],
+        "finding_id": "58b72f185d5c37ca",
+        "level": "PROVEN"
+      },
+      {
+        "category": "REPLAY",
+        "claim": "observability.radar_composite.bbo_pilot ouvre 2 fichier(s) en ajout ; une relance dans le même répertoire ajouterait des lignes.",
+        "code": "UPSTREAM_APPEND_ONLY_LOG",
+        "confidence": "HIGH",
+        "evidence": [
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 181,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "Evidence.__init__"
+          },
+          {
+            "evidence_type": "CALL_SITE",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 182,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "Evidence.__init__"
+          }
+        ],
+        "finding_id": "27ebef8d888fdd26",
+        "level": "PROVEN"
+      },
+      {
+        "category": "SOURCE",
+        "claim": "observability.radar_composite.bbo_pilot déclare les sources réseau wss://wbs-api.mexc.com/ws, wss://ws.kraken.com/v2 ; la connexion effective n'est pas prouvée par le code.",
+        "code": "UPSTREAM_ENDPOINTS_DECLARED",
+        "confidence": "MEDIUM",
+        "evidence": [
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 74,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "<module>"
+          },
+          {
+            "evidence_type": "LITERAL",
+            "file_sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+            "line": 75,
+            "path": "observability/radar_composite/bbo_pilot.py",
+            "symbol": "<module>"
+          }
+        ],
+        "finding_id": "ea687360c516790c",
+        "level": "SUPPORTED"
+      }
+    ],
+    "freshness": {
+      "as_of_utc": "2026-11-22T00:00:00Z",
+      "classification": "FRESHNESS_CANONICAL",
+      "effective_source": "source_event_ts",
+      "max_source_age_ms": null,
+      "mtime": "2026-11-22T00:12:31.815Z",
+      "mtime_age_ms": -751815,
+      "mtime_used_as_evidence": false,
+      "source_age_ms": 176700000,
+      "source_event_ts": "2026-11-19T22:55:00.000Z",
+      "verdict": "AGE_REPORTED_NO_THRESHOLD",
+      "write_age_ms": 144000000,
+      "write_ts": "2026-11-20T08:00:00.000Z"
+    },
+    "inferred_links": [
+      "STORAGE_TO_READER"
+    ],
+    "limits": [
+      "STATIC_ANALYSIS_ONLY_NO_CODE_EXECUTED",
+      "NO_RUNTIME_OBSERVATION_SOURCE_PROOF_IS_NOT_RUNTIME_PROOF",
+      "ONE_DATASET_DIRECT_CONSUMERS_ONLY",
+      "DYNAMIC_PATHS_AND_INDIRECTION_BEYOND_ONE_HOP_ARE_INCONCLUSIVE",
+      "REPORT_IS_NOT_SELF_CERTIFYING"
+    ],
+    "mission_id": "931a4de57a539d2655863c44ed159aa4bb39ed6f14e6a84e9827026ebadc2400",
+    "observations": {
+      "distinct_observations": 5,
+      "identical_replays": 0,
+      "key": [
+        "pairs[*].pair",
+        "pairs[*].windows[*].start_ms"
+      ],
+      "key_conflicts": 0,
+      "records": 5
+    },
+    "profile": {
+      "blob_sha1": "45447863514be83fa0b5830f4e1491b35a9b24b1",
+      "source_path": ".github/agents/data-provenance-auditor.agent.md"
+    },
+    "question": {
+      "dataset_id": "bbo-composite-history/1.0.0",
+      "kind": "DATASET_PROVENANCE_CHAIN"
+    },
+    "refused_paths": [],
+    "runtime_measurements_required": [
+      {
+        "code": "STORAGE_BINDING_RUNTIME",
+        "measurement": "Sur l'hôte : comparer la valeur de ENV:OPERATOR_BBO_HISTORY_PATH au chemin passé à CLI:--out, puis le sha256 du fichier servi à celui de la publication."
+      },
+      {
+        "code": "UPSTREAM_DUPLICATE_LINES",
+        "measurement": "Compter sur la capture scellée les doublons de ligne et les ruptures de séquence (mesure runtime)."
+      },
+      {
+        "code": "UPSTREAM_RUNTIME_UNPROVEN",
+        "measurement": "Lire le manifest scellé de la collecte (heures, symboles, reconnexions) sur l'hôte, en mission READ-ONLY séparée."
+      }
+    ],
+    "sources_consulted": [
+      {
+        "bytes": 4030,
+        "path": "profile:.github/agents/data-provenance-auditor.agent.md",
+        "sha256": "47743f741f9d21ee152e8dd0351370c1d9bc0bf0baf3ded830cc6c091b7a749f"
+      },
+      {
+        "bytes": 13252,
+        "path": "frontend/src/lib/bboHistoryClient.ts",
+        "sha256": "bfe7de88737530d0588fd77a91e1140e785fb8789c6e38a4e63ddc3e2a7dca90"
+      },
+      {
+        "bytes": 12935,
+        "path": "frontend/src/views/BboCompositeHistory.tsx",
+        "sha256": "024f9a06649bec4cb1d98c54ec214104377e7453e9b449a7b238e4e51a54ff35"
+      },
+      {
+        "bytes": 14051,
+        "path": "frontend/src/views/SpotRadarMap.tsx",
+        "sha256": "b88e165ee753a33f09e84d34bf5dfe1357563751d53d95ce71dc5049cc827b74"
+      },
+      {
+        "bytes": 22377,
+        "path": "observability/operator_api/app.py",
+        "sha256": "555f3f88c7c34c1ccc2dad48588f35b0fd4da292621dc6c4b785ce06c6a0f977"
+      },
+      {
+        "bytes": 3309,
+        "path": "observability/operator_api/bbo_history_reader.py",
+        "sha256": "44a3febae3710c5bbc8f77efcb01d463b8c31c5e7e70b931a09ea29281437938"
+      },
+      {
+        "bytes": 16431,
+        "path": "observability/radar_composite/bbo_history.py",
+        "sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac"
+      },
+      {
+        "bytes": 72103,
+        "path": "observability/radar_composite/bbo_pilot.py",
+        "sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae"
+      },
+      {
+        "bytes": 15708,
+        "path": "observability/radar_composite/fixtures/bbo_composite_history_synthetic.json",
+        "sha256": "9e1f02e0f3bbee3f683a75c8b64e99796a85d5b39077f47cdf7844212f476983"
+      }
+    ],
+    "status": "PARTIAL",
+    "unknowns": [
+      {
+        "code": "STORAGE_BINDING_RUNTIME",
+        "question": "Le fichier lu par le lecteur est-il celui écrit par le producteur ?"
+      },
+      {
+        "code": "UPSTREAM_DUPLICATE_LINES",
+        "question": "Le journal amont contient-il des lignes rejouées ?"
+      },
+      {
+        "code": "UPSTREAM_RUNTIME_UNPROVEN",
+        "question": "La collecte a-t-elle réellement lu ces sources, et à quelle heure ?"
+      }
+    ]
+  },
+  "content_sha256": "734cd723703a56968545d92efb7b86c00f6368ba3fb0cbeaa2f2934a10de012e",
+  "report_sha256": "e4ff0792ef8772babbfccaadb2023d8e15a02e948a7afb79b128d6bd380bdcfc",
+  "run": {
+    "bytes_read": 174196,
+    "duration_ms": 344.779,
+    "ended_utc": "2026-11-22T00:28:39.178Z",
+    "peak_traced_bytes": 8474332,
+    "sources_read": 9,
+    "started_utc": "2026-11-22T00:28:38.834Z"
+  }
+}

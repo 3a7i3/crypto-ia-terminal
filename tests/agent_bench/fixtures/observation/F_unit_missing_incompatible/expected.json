@@ -1,0 +1,22 @@
+{
+  "expected_summary": "UNIT_MISSING (spread_bps absent d'une série) ; UNIT_INCOMPATIBLE (horodatage en secondes, nombre au lieu de chaîne décimale)",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "PROVEN",
+    "PRODUCER_TO_STORAGE": "PROVEN",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "PROVEN",
+    "STORAGE_TO_READER": "PROVEN"
+  },
+  "required_findings": [
+    "PRODUCER_IDENTIFIED",
+    "UPSTREAM_ENDPOINTS_DECLARED",
+    "UPSTREAM_APPEND_ONLY_LOG",
+    "UNIT_MISSING",
+    "UNIT_INCOMPATIBLE",
+    "SOURCE_WITHIN_THRESHOLD"
+  ],
+  "status": "COMPLETE",
+  "title": "Unité absente ou incompatible"
+}
