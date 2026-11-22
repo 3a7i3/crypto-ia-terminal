@@ -185,4 +185,3 @@ une fiche acceptée, des fixtures à résultat attendu prédéfini et une matric
 Ajoute deux types de question, sans changer les règles communes (§2–§7) :
 `METRIC_SURFACE_MAP` (observability-cartographer) et `CHANGE_IMPACT` (repo-architect). Champs,
 règles de preuve, matrices et dossiers de stockage : [AGENTS_V2_ET_STOCKAGE](../agents/observation/AGENTS_V2_ET_STOCKAGE.md).
-
