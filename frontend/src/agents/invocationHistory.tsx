@@ -146,9 +146,16 @@ export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightRea
   return (
     <section className="miniterm" data-testid="miniterm" aria-label="Mini terminal du Repository Cartographer">
       <header className="miniterm-hd">
-        <span className={`miniterm-giro miniterm-giro-${GIRO_CLASS[light]}`} data-testid="miniterm-giro" data-light={light} role="img" aria-label={`État : ${lightReason}`} title={lightReason}>
-          🚨
-        </span>
+        <img
+          className={`miniterm-giro miniterm-giro-${GIRO_CLASS[light]}`}
+          src={`${import.meta.env.BASE_URL}agents/giro-${GIRO_CLASS[light]}.png`}
+          width={36}
+          height={36}
+          data-testid="miniterm-giro"
+          data-light={light}
+          alt={`État : ${lightReason}`}
+          title={lightReason}
+        />
         <h3>Repository Cartographer</h3>
       </header>
       <div className="miniterm-rythme">

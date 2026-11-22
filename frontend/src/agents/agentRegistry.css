@@ -53,14 +53,14 @@
 .miniterm { margin: 1rem 0; border: 1px solid var(--bg-border); border-radius: 12px; background: var(--bg-card); color: var(--text-pri); overflow: hidden; }
 .miniterm-hd { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--bg-border); }
 .miniterm-hd h3 { margin: 0; font-size: 1rem; }
-.miniterm-giro { display: inline-block; font-size: 1.2rem; transition: filter 0.3s; }
-.miniterm-giro-red { filter: drop-shadow(0 0 6px #e5484d); }
-.miniterm-giro-green { filter: hue-rotate(110deg) saturate(1.4) drop-shadow(0 0 8px #30a46c); animation: miniterm-pulse 0.6s infinite alternate; }
-.miniterm-giro-gray { filter: grayscale(1) opacity(0.6); }
+.miniterm-giro { display: inline-block; width: 36px; height: 36px; object-fit: contain; }
+.miniterm-giro-red { filter: drop-shadow(0 0 4px rgba(229,72,77,0.5)); }
+.miniterm-giro-green { filter: drop-shadow(0 0 6px rgba(48,164,108,0.7)); animation: miniterm-pulse 0.6s infinite alternate; }
+.miniterm-giro-gray { opacity: 0.9; }
 @keyframes miniterm-pulse { to { transform: scale(1.15); } }
 @media (prefers-reduced-motion: reduce) { .miniterm-giro-green { animation: none; } }
 .miniterm-rythme { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--bg-border); font-size: 0.8rem; color: var(--text-sec, inherit); }
-.miniterm-clock { border: 1px solid var(--bg-border); border-radius: 8px; padding: 0.2rem 0.6rem; background: none; color: inherit; opacity: 0.6; }
+.miniterm-clock { border: 1px solid #f5a524; border-radius: 10px; padding: 0.3rem 0.7rem; background: #fff7e6; color: #1a1a1a; font-size: 1.3rem; line-height: 1; }
 .miniterm-term { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; max-height: 28rem; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; }
 .miniterm-day { align-self: center; font-size: 0.7rem; opacity: 0.7; }
 .miniterm-msg { background: var(--bg-elev, rgba(127,127,127,0.08)); border: 1px solid var(--bg-border); border-radius: 12px 12px 12px 4px; padding: 0.6rem 0.75rem; max-width: 94%; overflow-wrap: anywhere; }
