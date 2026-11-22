@@ -9,7 +9,7 @@ API_PREV=/home/lecanada26/crypto-install/releases/85376c5e-agent-invocation-e2fc
 API_NEW=/home/lecanada26/crypto-install/releases/85376c5e-agent-invocation-32f5ce0a
 API_TREE=7f009673bbf8f2e72df406c59158aaa750836e50
 DROPIN=/etc/systemd/system/crypto-operator-api.service.d/zzzzzz-agent-invocation-599.conf
-WEB_NEW=/opt/cat-app/releases/CAT-SYSTEM-AGENTS-599-16c5d07d
+WEB_NEW=/opt/cat-app/releases/CAT-SYSTEM-AGENTS-599-891e1865
 WEB_DIST=/opt/cat-app/releases/CAT-FOOTPRINT-FINANCE-V6-RC1/frontend/dist
 WEB_SRV=/opt/cat-app/releases/CAT-FOOTPRINT-FINANCE-V6-RC1/frontend/scripts/web01_local_frontend_server.mjs
 WEB_DROPIN=/etc/systemd/system/crypto-operator-web.service.d/zzzzzzzzzzzzzzzzzzz-system-agents-599.conf
@@ -77,14 +77,14 @@ api)
   ;;
 web)
   manifest() { (cd "$1" && find . -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1); }
-  [ "$(manifest $SRC/frontend/dist)" = "$(cat $P/web7.manifest)" ] || fail "dist construit != manifeste"
+  [ "$(manifest $SRC/frontend/dist)" = "$(cat $P/web8.manifest)" ] || fail "dist construit != manifeste"
   [ "$(sha256sum < $SRC/frontend/scripts/web01_local_frontend_server.mjs | cut -d' ' -f1)" = $SRV_SHA ] || fail "serveur web != empreinte"
   if [ ! -d $WEB_NEW/dist ]; then
     install -d -o root -g root -m 0755 $WEB_NEW $WEB_NEW/server && cp -a $SRC/frontend/dist $WEB_NEW/ \
       && install -o root -g root -m 0644 $SRC/frontend/scripts/web01_local_frontend_server.mjs $WEB_NEW/server/
     chown -R root:root $WEB_NEW; find $WEB_NEW -type d -exec chmod 0755 {} +; find $WEB_NEW -type f -exec chmod 0644 {} +
   fi
-  [ "$(manifest $WEB_NEW/dist)" = "$(cat $P/web7.manifest)" ] || fail "copie du dist"
+  [ "$(manifest $WEB_NEW/dist)" = "$(cat $P/web8.manifest)" ] || fail "copie du dist"
   [ -f $P/web-dropin.before-button ] || cp "$WEB_DROPIN" $P/web-dropin.before-button
   cp "$WEB_DROPIN" $P/web-dropin.prev
   printf '[Service]\nBindReadOnlyPaths=\nBindReadOnlyPaths=%s/dist:%s %s/server/web01_local_frontend_server.mjs:%s\n' "$WEB_NEW" "$WEB_DIST" "$WEB_NEW" "$WEB_SRV" > "$WEB_DROPIN"
@@ -93,7 +93,7 @@ web)
   systemctl daemon-reload && systemctl restart crypto-operator-web
   for _ in $(seq 1 30); do [ "$(code http://127.0.0.1:8181/)" = 200 ] && break; sleep 1; done
   M=/proc/$(systemctl show crypto-operator-web -p MainPID --value)/mountinfo
-  grep -q "CAT-SYSTEM-AGENTS-599-16c5d07d/dist" $M && grep -q "CAT-SYSTEM-AGENTS-599-16c5d07d/server" $M || { undo; fail "montages absents — retour arrière fait"; }
+  grep -q "CAT-SYSTEM-AGENTS-599-891e1865/dist" $M && grep -q "CAT-SYSTEM-AGENTS-599-891e1865/server" $M || { undo; fail "montages absents — retour arrière fait"; }
   W=http://127.0.0.1:8181/api/operator/v1/agent-invocations/repository-cartographer
   R1=$(code -X POST -H 'content-type: application/json' -H 'x-cat-operator: schedule' -d '{"rhythm":"x"}' $W/schedule)
   R2=$(code -X POST -d '{}' $W/history); R3=$(code -X POST -d '{}' http://127.0.0.1:8181/api/operator/v1/market)
