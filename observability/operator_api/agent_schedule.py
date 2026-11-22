@@ -19,6 +19,9 @@ RHYTHMS = ("10min", "1h", "off")
 TEST_RHYTHMS = ("1min",)
 SCHEDULABLE = ("repository-cartographer",)
 MAX_STATUS_BYTES = 4096
+# Rythmes calés sur l'horloge (OnCalendar *:0/10, hourly, *:*:00) : le prochain créneau se déduit
+# de l'heure courante, ce qui garde « prochain » à jour après chaque passage.
+SLOT_S = {"1min": 60, "10min": 600, "1h": 3600}
 
 
 def allowed_rhythms() -> tuple[str, ...]:
@@ -29,7 +32,12 @@ def _utc(ts: float) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
 
 
-def read_schedule(agent: str, *, control: Path | None = None) -> dict:
+def next_slot_utc(applied: str | None, now_ts: float) -> str | None:
+    p = SLOT_S.get(applied or "")
+    return _utc((int(now_ts) // p + 1) * p) if p else None
+
+
+def read_schedule(agent: str, *, control: Path | None = None, now_ts: float | None = None) -> dict:
     root = control or CONTROL_PATH
     out = {"agent_id": agent, "allowed": list(allowed_rhythms()), "requested": None,
            "requested_utc": None, "applied": None, "applied_utc": None, "next_utc": None,
@@ -49,6 +57,10 @@ def read_schedule(agent: str, *, control: Path | None = None) -> dict:
         for k in ("applied", "applied_utc", "next_utc"):
             v = s.get(k) if isinstance(s, dict) else None
             out[k] = v if isinstance(v, str) and len(v) <= 32 else None
+        if out["applied"] in SLOT_S:
+            out["next_utc"] = next_slot_utc(out["applied"], time.time() if now_ts is None else now_ts)
+        elif out["applied"] == "off":
+            out["next_utc"] = None
     except FileNotFoundError:
         out["reason"] = out["reason"] or "aucun état appliqué publié"
     except (OSError, ValueError) as exc:

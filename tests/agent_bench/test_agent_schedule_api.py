@@ -54,10 +54,22 @@ def test_applied_status_is_read_back(client):
     (d / "repository-cartographer.status.json").write_text(
         '{"applied":"1h","applied_utc":"2026-11-22T07:00:00Z","next_utc":"2026-11-22T08:00:00Z"}')
     b = c.get(URL).json()
-    assert b["applied"] == "1h" and b["next_utc"] == "2026-11-22T08:00:00Z"
+    assert b["applied"] == "1h" and b["next_utc"].endswith(":00:00Z")  # prochain créneau horaire, recalculé
 
 
 def test_only_this_route_mutates():
     mut = [(r.path, sorted(r.methods & {"POST", "PUT", "PATCH", "DELETE"}))
            for r in api.app.routes if (getattr(r, "methods", None) or set()) & {"POST", "PUT", "PATCH", "DELETE"}]
     assert mut == [("/api/operator/v1/agent-invocations/{agent_id}/schedule", ["POST"])]
+
+
+def test_next_slot_follows_the_clock_after_each_pass(tmp_path):
+    (tmp_path / "repository-cartographer.status.json").write_text(
+        '{"applied":"10min","applied_utc":"2026-11-22T08:24:00Z","next_utc":"2026-11-22T08:30:00Z"}')
+    at = lambda s: __import__("calendar").timegm(__import__("time").strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
+    assert sch.read_schedule("repository-cartographer", control=tmp_path, now_ts=at("2026-11-22T08:24:10Z"))["next_utc"] == "2026-11-22T08:30:00Z"
+    assert sch.read_schedule("repository-cartographer", control=tmp_path, now_ts=at("2026-11-22T08:30:01Z"))["next_utc"] == "2026-11-22T08:40:00Z"
+    (tmp_path / "repository-cartographer.status.json").write_text('{"applied":"1h"}')
+    assert sch.read_schedule("repository-cartographer", control=tmp_path, now_ts=at("2026-11-22T09:20:00Z"))["next_utc"] == "2026-11-22T10:00:00Z"
+    (tmp_path / "repository-cartographer.status.json").write_text('{"applied":"off","next_utc":"2026-11-22T10:00:00Z"}')
+    assert sch.read_schedule("repository-cartographer", control=tmp_path)["next_utc"] is None

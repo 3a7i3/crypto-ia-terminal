@@ -55,7 +55,11 @@ const SourceLink: React.FC<{ agent: AgentIdentity }> = ({ agent }) => (
   </a>
 );
 
-const AgentProfile: React.FC<{ agent: AgentIdentity; verdict: ActivityVerdict }> = ({ agent, verdict }) => (
+const AgentProfile: React.FC<{ agent: AgentIdentity; verdict: ActivityVerdict; children?: React.ReactNode }> = ({
+  agent,
+  verdict,
+  children,
+}) => (
   <article className="agent-profile" data-testid={`agent-profile-${agent.id}`}>
     <h4>{agent.display_name}</h4>
     <p className="agent-mission">{agent.mission}</p>
@@ -86,6 +90,7 @@ const AgentProfile: React.FC<{ agent: AgentIdentity; verdict: ActivityVerdict }>
         <dd data-testid="agent-last-proof">{verdict.last_proof_at_utc ?? "Aucune preuve disponible"}</dd>
       </div>
     </dl>
+    {children}
   </article>
 );
 
@@ -99,7 +104,9 @@ export const AgentRegistryPanel: React.FC<{
   registry: AgentRegistry;
   evidence: EvidenceSource;
   nowMs: number;
-}> = ({ registry, evidence, nowMs }) => {
+  /** Contenu supplémentaire affiché dans le bloc d'un agent (ex. mini terminal), par identifiant. */
+  slots?: Record<string, React.ReactNode>;
+}> = ({ registry, evidence, nowMs, slots }) => {
   const families = FAMILY_ORDER.map((id) => registry.families.find((f) => f.id === id)!);
   const legacy = legacyAgents(registry);
   return (
@@ -140,7 +147,9 @@ export const AgentRegistryPanel: React.FC<{
               ) : (
                 <div className="agent-profile-list">
                   {agents.map((a, i) => (
-                    <AgentProfile key={a.id} agent={a} verdict={verdicts[i]} />
+                    <AgentProfile key={a.id} agent={a} verdict={verdicts[i]}>
+                      {slots?.[a.id]}
+                    </AgentProfile>
                   ))}
                 </div>
               )}
@@ -296,17 +305,27 @@ export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs
   const off = sched.schedule?.applied === "off";
   return (
     <>
-      <AgentRegistryPanel registry={AGENT_REGISTRY} evidence={evidence} nowMs={nowMs} />
-      <CartographerMiniTerminal
-        light={off && verdict.light !== "GREEN" ? "GRAY" : verdict.light}
-        lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
-        history={history}
-        controls={<ScheduleControl schedule={sched.schedule} error={sched.error} sending={sched.sending} onPick={(v) => void sched.request(v)} />}
+      <AgentRegistryPanel
+        registry={AGENT_REGISTRY}
+        evidence={evidence}
+        nowMs={nowMs}
+        slots={{
+          "repository-cartographer": (
+            <>
+              <CartographerMiniTerminal
+                light={off && verdict.light !== "GREEN" ? "GRAY" : verdict.light}
+                lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
+                history={history}
+                controls={<ScheduleControl schedule={sched.schedule} error={sched.error} sending={sched.sending} onPick={(v) => void sched.request(v)} />}
+              />
+              <details className="invocation-details">
+                <summary>Détail de la preuve</summary>
+                <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
+              </details>
+            </>
+          ),
+        }}
       />
-      <details className="invocation-details">
-        <summary>Détail de la preuve</summary>
-        <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
-      </details>
     </>
   );
 };
