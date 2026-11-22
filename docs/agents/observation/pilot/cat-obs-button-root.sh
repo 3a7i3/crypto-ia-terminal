@@ -38,7 +38,8 @@ case "$PH" in
 control)
   [ -f /etc/systemd/system/cat-obs-cartographer.timer ] || fail "timer de base absent (phase hourly non faite)"
   install -d -o root -g cat-obs-read -m 2770 $C
-  install -o root -g root -m 0755 <(git -C $SRC show e2fc713bb74adcc830b0f35ecf5a3d362fb2dfb8:docs/agents/observation/pilot/cat-obs-schedule-apply.sh) $APPLY
+  T=$(mktemp); runuser -u lecanada26 -- git -C $SRC show e2fc713bb74adcc830b0f35ecf5a3d362fb2dfb8:docs/agents/observation/pilot/cat-obs-schedule-apply.sh > $T || fail "lecture applicateur"
+  install -o root -g root -m 0755 $T $APPLY; rm -f $T
   bash -n $APPLY || fail "applicateur invalide"
   printf '[Unit]\nDescription=Programmateur cartographe : appliquer une demande de rythme\n[Service]\nType=oneshot\nExecStart=%s\n' $APPLY > /etc/systemd/system/cat-obs-schedule.service
   printf '[Unit]\nDescription=Programmateur cartographe : surveiller les demandes\n[Path]\nPathChanged=%s/repository-cartographer.rhythm\n[Install]\nWantedBy=paths.target\n' $C > /etc/systemd/system/cat-obs-schedule.path
