@@ -1,7 +1,7 @@
 # Campagne de sept jours — Repository Cartographer (préparée, non démarrée)
 
 Statut : **préparée, non démarrée**. Aucun timer, cron ou service n'est créé. Démarrer la campagne
-demande une décision séparée de Mathieu, et une installation VPS distincte (voir INVOCATION_CONTRACT_V1 §5).
+demande une décision séparée de Mathieu, et une installation VPS distincte (voir CARTOGRAPHER_INSTALL_PROCEDURE.md).
 
 ## Objet
 
@@ -23,23 +23,26 @@ ni le branchement du registre.
 - durée (`started_utc` → `ended_utc`), mémoire maximale si mesurable, nombre de fichiers lus ;
 - issue : `state`, `result_status`, `exit_code` ;
 - empreinte : recalcul de `content_sha256` et `report_sha256` ;
-- absence : aucune invocation consignée dans les 36 h → Système affiche « Indéterminé », jamais « Actif » ;
+- absence : aucune invocation consignée depuis plus de 36 h → règle implémentée et testée : `mission_overdue`,
+  libellé rouge « … · aucune mission depuis plus de 36 h », jamais « Actif » ;
 - erreurs : tout `INVALID`, `INCOMPLETE`, `ACCESS_DENIED`, `UNREADABLE`, `ABANDONED` est un événement à noter.
 
 ## Exercices obligatoires
 
-1. **Interruption** (jour 3) : arrêt brutal pendant une invocation. Attendu : verrou resté à bail, puis
-   invocation suivante consigne `ABANDONED` (aucun état « en cours » au-delà du bail, soit 10 min).
+1. **Interruption** (jour 3) : arrêt brutal pendant une invocation. Attendu : le noyau libère le verrou
+   immédiatement, « en cours » disparaît à la lecture suivante (interface : ≤ 30 s + requête, au plus tard
+   90 s) ; l'invocation suivante consigne `ABANDONED`.
 2. **Reprise** (jour 3, après le bail) : invocation normale, `COMPLETED` / `PARTIAL`, activité `TERMINE`.
 3. **Collision de nom** : tentative de republier un fichier existant. Attendu : refus `NAME_EXISTS`, ancien fichier intact.
 4. **Empreinte altérée** (copie de travail uniquement, jamais sur le rapport réel) : Système affiche `INVALID`
    avec motif, gris.
-5. **Coupure API** pendant une page ouverte (jour 5) : ancien vert retiré dans le cycle de sondage (30 s).
+5. **Coupure API** pendant une page ouverte (jour 5) : vert retiré à l'abandon de la requête (≤ 40 s), au plus
+   tard à l'échéance locale (90 s).
 
 ## Critères de fin
 
 - 7 invocations consécutives PARTIAL (ou exercices inclus) sans écart d'empreinte non expliqué ;
-- aucune invocation « en cours » au-delà du bail ;
+- aucune invocation « en cours » sans verrou noyau tenu ;
 - aucune régression sur les autres vues ;
 - revue mobile clair/sombre refaite au jour 7.
 
@@ -47,12 +50,13 @@ Arrêt anticipé : toute exécution hors protocole, toute écriture hors `report
 
 ## Livrables attendus
 
-- journal des invocations (enveloppes JSON, expurgées pour GitHub) ;
+- journal des invocations : enveloppes JSON conservées sur le VPS, **non publiées dans GitHub** (même expurgées)
+  sans autorisation spécifique ; seul un résumé chiffré est rapporté ;
 - tableau durée / volume / erreurs ;
 - verdict : « stable sur la durée observée » ou liste des écarts.
 
 ## Décisions à prendre avant démarrage (Mathieu)
 
 1. Autoriser l'installation du lanceur sur l'hôte et la date de départ.
-2. Confirmer le compte de l'API et ses droits de lecture (voir audit, §1 de INVOCATION_CONTRACT_V1).
+2. Valider l'accès en lecture de l'API (`lecanada26`) à `runs/` et `locks/` (procédure d'installation, étape 4).
 3. Choisir si la campagne tourne de jour ou de nuit (heure UTC fixe recommandée).

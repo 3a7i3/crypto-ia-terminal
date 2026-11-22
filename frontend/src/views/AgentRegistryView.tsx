@@ -8,14 +8,14 @@ import React from "react";
 import "../agents/agentRegistry.css";
 import {
   INVOCATION_FLAG_ON,
+  localExpiryMs,
   useInvocationEvidence,
-  type InvocationSummary,
+  type PollState,
 } from "../agents/invocationEvidence";
 import {
   AGENT_REGISTRY,
   FAMILY_ORDER,
   GITHUB_SOURCE_BASE,
-  MAX_PROOF_AGE_S,
   RUNTIME_EVIDENCE_SOURCE,
   VALIDATION_LABEL,
   WIRING_LABEL,
@@ -194,12 +194,6 @@ const CONNECTION_LABEL: Record<string, string> = {
   INVALID: "Preuve invalide",
 };
 
-const ACTIVITY_LABEL: Record<string, string> = {
-  EN_COURS: "En cours",
-  TERMINE: "Terminé",
-  INDETERMINE: "Indéterminé",
-};
-
 const RESULT_LABEL: Record<string, string> = {
   COMPLETE: "COMPLETE",
   PARTIAL: "PARTIAL",
@@ -207,21 +201,29 @@ const RESULT_LABEL: Record<string, string> = {
   FAILED: "FAILED",
 };
 
-/** Trois états séparés : connexion et preuve, activité, dernier résultat. */
-export const InvocationProofCard: React.FC<{ summary: InvocationSummary | null; nowMs: number; unavailable?: boolean }> = ({
-  summary,
+const LIGHT_CLASS: Record<string, string> = { GREEN: "green", RED: "red", GRAY: "gray" };
+
+/**
+ * Trois états séparés : connexion et preuve, activité (voyant du contrat partagé, retiré à
+ * l'échéance locale), dernier résultat scientifique. `verdict` vient de `effectiveVerdict`.
+ */
+export const InvocationProofCard: React.FC<{ state: PollState; verdict: ActivityVerdict; nowMs: number }> = ({
+  state,
+  verdict,
   nowMs,
-  unavailable,
 }) => {
-  const observed = summary?.observed_at_utc ? Date.parse(summary.observed_at_utc) : NaN;
-  const stale = summary !== null && Number.isFinite(observed) && nowMs - observed > MAX_PROOF_AGE_S * 1000;
-  const connection = unavailable || !summary ? "Coupure API ou preuve non reçue" : CONNECTION_LABEL[summary.connection ?? ""] ?? "Inconnue";
-  const activityKey = summary && !stale ? summary.activity ?? "" : "";
-  const activity = stale ? "Preuve périmée : état non attesté" : ACTIVITY_LABEL[activityKey] ?? "Non attesté";
-  const greenAllowed = !stale && summary?.activity === "EN_COURS";
-  const failedEnd = !stale && summary?.activity === "TERMINE" && ["FAILED", "TIMEOUT", "INTERRUPTED", "ABANDONED"].includes(summary?.last_state ?? "");
-  // Vert : exécution en cours attestée. Rouge : inactivité attestée. Gris : non attestable.
-  const activityLight = greenAllowed ? "green" : summary?.activity === "TERMINE" && !stale ? "red" : "gray";
+  const s = state.status === "OK" ? state.received.summary : null;
+  const expiry = state.status === "OK" ? localExpiryMs(state.received) : null;
+  const connection =
+    state.status === "LOADING"
+      ? "Lecture en cours"
+      : state.status === "UNREACHABLE"
+        ? `Coupure API ou réponse refusée · ${state.reason}`
+        : CONNECTION_LABEL[s?.connection ?? ""] ?? "Inconnue";
+  // Échéance locale affichée en heure du navigateur ; la couleur s'éteint à cet instant.
+  const until = expiry !== null && verdict.light !== "GRAY" && expiry > nowMs
+    ? new Date(expiry).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : null;
   return (
     <section className="invocation-card" data-testid="invocation-card" aria-label="Preuve d'invocation du Repository Cartographer">
       <h3>Repository Cartographer · preuve d'invocation</h3>
@@ -230,23 +232,34 @@ export const InvocationProofCard: React.FC<{ summary: InvocationSummary | null; 
           <dt>Connexion et preuve</dt>
           <dd>
             {connection}
-            {summary?.connection_reason ? <span className="invocation-reason"> · {summary.connection_reason}</span> : null}
+            {s?.connection_reason ? <span className="invocation-reason"> · {s.connection_reason}</span> : null}
           </dd>
         </div>
-        <div data-testid="invocation-activity" data-green={greenAllowed ? "yes" : "no"}>
+        <div data-testid="invocation-activity" data-light={verdict.light} data-green={verdict.light === "GREEN" ? "yes" : "no"}>
           <dt>Activité</dt>
           <dd>
-            <span className={`invocation-light invocation-light-${activityLight}`} aria-hidden="true" />
-            {activity}
-            {failedEnd ? <span className="invocation-reason"> · échec ({summary?.last_state})</span> : null}
-            {summary?.last_activity_utc && !stale ? <span className="invocation-reason"> · {summary.last_activity_utc}</span> : null}
+            <span className={`invocation-light invocation-light-${LIGHT_CLASS[verdict.light]}`} aria-hidden="true" />
+            {verdict.label}
+            <span className="invocation-reason"> · {verdict.reason}</span>
+            {until !== null ? <span className="invocation-reason"> · couleur valable jusqu'à {until} sans nouvelle réponse</span> : null}
+          </dd>
+        </div>
+        <div data-testid="invocation-times">
+          <dt>Observation serveur / dernière mission</dt>
+          <dd>
+            {s ? s.server_observed_at_utc : "—"}
+            <span className="invocation-reason">
+              {" · dernière mission : "}
+              {s?.last_activity_utc ?? "aucune attestée"}
+              {s?.mission_overdue ? " · aucune mission depuis plus de 36 h" : ""}
+            </span>
           </dd>
         </div>
         <div data-testid="invocation-result">
           <dt>Dernier résultat</dt>
           <dd>
-            {summary?.last_result ? RESULT_LABEL[summary.last_result] ?? summary.last_result : "Aucun résultat attesté"}
-            {summary?.last_result === "PARTIAL" ? (
+            {s?.last_result ? RESULT_LABEL[s.last_result] ?? s.last_result : "Aucun résultat attesté"}
+            {s?.last_result === "PARTIAL" ? (
               <span className="invocation-reason"> · PARTIAL ne signifie pas une panne</span>
             ) : null}
           </dd>
@@ -254,18 +267,20 @@ export const InvocationProofCard: React.FC<{ summary: InvocationSummary | null; 
       </dl>
       <p className="invocation-foot">
         Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore.
-        Vert seulement pour une exécution en cours attestée par une preuve fraîche.
+        Vert seulement pour une exécution en cours attestée (verrou noyau tenu) ; la couleur s'éteint
+        d'elle-même à l'échéance si le serveur ne répond plus.
       </p>
     </section>
   );
 };
 
-const LiveAgentRegistryView: React.FC = () => {
-  const { evidence, nowMs, summary } = useInvocationEvidence(true);
+/** Vue branchée (drapeau actif) ; exportée pour les tests d'expiration. */
+export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs }) => {
+  const { evidence, nowMs, state, verdict } = useInvocationEvidence(true, { pollMs });
   return (
     <>
       <AgentRegistryPanel registry={AGENT_REGISTRY} evidence={evidence} nowMs={nowMs} />
-      <InvocationProofCard summary={summary} nowMs={nowMs} unavailable={evidence.status === "UNREACHABLE"} />
+      <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
     </>
   );
 };
@@ -275,4 +290,4 @@ const StaticAgentRegistryView: React.FC = () => (
 );
 
 export const AgentRegistryView: React.FC = () =>
-  INVOCATION_FLAG_ON ? <LiveAgentRegistryView /> : <StaticAgentRegistryView />;
+  INVOCATION_FLAG_ON ? <AgentRegistryLiveForTest /> : <StaticAgentRegistryView />;

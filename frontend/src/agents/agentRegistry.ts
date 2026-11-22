@@ -164,7 +164,9 @@ export type EvidenceSource =
   | { status: "LOADING" }
   | { status: "UNREACHABLE" }
   | { status: "API_ERROR"; code: string }
-  | { status: "OK"; records: ActivityEvidence[] };
+  | { status: "OK"; records: ActivityEvidence[] }
+  /** Verdict déjà décidé par le serveur (contrat `display`), filtré localement : jamais recalculé. */
+  | { status: "SERVER_VERDICT"; agent_id: string; runner_id: string; verdict: ActivityVerdict };
 
 /** Aucune source de preuve runtime n'existe à ce jour : état honnête par défaut. */
 export const RUNTIME_EVIDENCE_SOURCE: EvidenceSource = { status: "NOT_CONNECTED" };
@@ -221,6 +223,11 @@ export function classifyActivity(
       return gray("Serveur de preuves inaccessible.");
     case "API_ERROR":
       return gray(`Erreur de l'API de preuves (${source.code}).`);
+    case "SERVER_VERDICT":
+      if (source.agent_id !== agent.id) return gray("Aucune preuve serveur pour ce profil.");
+      if (source.runner_id !== agent.runner_id)
+        return gray("Preuve incohérente : runner différent du runner vérifié.");
+      return source.verdict;
     case "OK":
       break;
     default:

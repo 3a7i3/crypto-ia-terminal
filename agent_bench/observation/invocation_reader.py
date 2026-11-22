@@ -1,128 +1,249 @@
-"""Lecteur en lecture seule des preuves d'invocation (contrat v1).
+"""Lecteur strictement passif des preuves d'invocation (contrat v1).
 
-Renvoie trois états séparés pour Système :
-- connexion et preuve : AVAILABLE, ABSENT, ACCESS_DENIED, INCOMPLETE, INVALID, UNREADABLE ;
-- activité : EN_COURS (bail de verrou valide), TERMINE (dernière invocation terminée),
-  INDETERMINE (aucune preuve, ou verrou expiré) ;
-- dernier résultat : COMPLETE, PARTIAL, BLOCKED, FAILED, ou None.
+Passif : aucun fichier créé, modifié ou verrouillé. L'observation de vie lit `/proc/locks`
+(verrou noyau tenu sur l'inode du fichier de verrou) ; elle ne prend jamais de verrou, pour ne
+pas perturber l'exécuteur.
 
-Règles :
-- relire un ancien fichier ne rajeunit jamais son activité : last_activity_utc est la
-  fin de l'invocation consignée, pas la date de lecture ;
-- un fichier caché, un lien symbolique, un nom non conforme ou un fichier trop grand est
-  ignoré ou refusé, jamais interprété ;
-- l'invocation la plus récente qui est invalide rend l'état INVALID, sans repli silencieux
-  sur une invocation plus ancienne.
+Sortie, partagée avec l'interface (`display`) :
+- connexion et preuve : AVAILABLE, ABSENT, ACCESS_DENIED, UNREADABLE, INCOMPLETE, INVALID ;
+- activité : EN_COURS (verrou noyau tenu + contenu de verrou valide + bail non expiré),
+  TERMINE (dernière enveloppe valide), INDETERMINE (tout le reste) ;
+- dernier résultat scientifique, séparé ;
+- `display` : GREEN seulement si identité, preuve, observation de vie et fraîcheur sont valides ;
+  RED pour une fin attestée (« fin normale » ou « échec ») ; GRAY sinon ; `valid_until_utc` borne
+  la durée pendant laquelle l'interface peut afficher cette couleur sans nouvelle réponse.
+
+Relire un ancien rapport ne rajeunit jamais l'activité : `last_activity_utc` est la fin consignée.
 """
 from __future__ import annotations
 
+import errno
 import json
 import os
-import re
 import stat
 from pathlib import Path
 
 from agent_bench.observation import invocation as inv
 
-NAME_OK = re.compile(r"^(\d{8}T\d{6}Z)_([0-9a-f]{32})\.json$")
-MAX_LIST = inv.MAX_FILES_LISTED
+PROC_LOCKS = Path("/proc/locks")
 
 
-def _read_bounded(path: Path) -> bytes:
-    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+_TRAVERSE = getattr(os, "O_PATH", os.O_RDONLY)
+
+
+def _open_dir(root: Path, *parts):
+    """Ouvre root/parts… en refusant tout lien symbolique, à chaque niveau (racine comprise).
+
+    Les niveaux intermédiaires sont ouverts en `O_PATH` : le compte lecteur n'a besoin que du droit
+    de traverser (`x`) le dossier des rapports, pas de le lister. Seul le dernier niveau est ouvert
+    en lecture (énumération ou lecture des fichiers).
+    """
+    last = len(parts)
+    fd = os.open(root, (os.O_RDONLY if last == 0 else _TRAVERSE) | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for i, part in enumerate(parts, 1):
+            mode = os.O_RDONLY if i == last else _TRAVERSE
+            nfd = os.open(part, mode | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = nfd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _read_at(dfd, name):
+    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=dfd)
     try:
         st = os.fstat(fd)
         if not stat.S_ISREG(st.st_mode):
             raise ValueError("NOT_REGULAR")
         if st.st_size > inv.MAX_PROOF_BYTES:
             raise ValueError("TOO_LARGE")
-        return os.read(fd, inv.MAX_PROOF_BYTES + 1)
+        data = os.read(fd, inv.MAX_PROOF_BYTES + 1)
+        if len(data) > inv.MAX_PROOF_BYTES:
+            raise ValueError("TOO_LARGE")
+        return data, st
     finally:
         os.close(fd)
 
 
-def read_lock(reports: Path, runner_id: str, now_ts: float):
-    lock = reports / "locks" / f"{runner_id}.lock"
+def _err_kind(exc):
+    if isinstance(exc, PermissionError):
+        return "ACCESS_DENIED", "accès refusé"
+    if isinstance(exc, FileNotFoundError):
+        return "ABSENT", "absent"
+    if isinstance(exc, OSError) and exc.errno in (errno.ELOOP, errno.ENOTDIR):
+        return "UNREADABLE", "lien symbolique ou chemin non conforme refusé"
+    return "UNREADABLE", type(exc).__name__
+
+
+def flock_holders(st, proc_locks: Path = PROC_LOCKS):
+    """PIDs détenant un FLOCK WRITE sur l'inode `st`, d'après /proc/locks. None si illisible."""
     try:
-        data = json.loads(_read_bounded(lock).decode("utf-8"))
-    except FileNotFoundError:
-        return {"present": False, "activity": None}
-    except PermissionError:
-        return {"present": None, "activity": "INDETERMINE", "reason": "ACCESS_DENIED"}
-    except (ValueError, OSError):
-        return {"present": True, "activity": "INDETERMINE", "reason": "VERROU_ILLISIBLE"}
-    lease = inv.parse_utc(data.get("lease_until_utc"))
-    started = inv.parse_utc(data.get("started_utc"))
-    if lease is None or started is None:
-        return {"present": True, "activity": "INDETERMINE", "reason": "VERROU_INCOMPLET"}
-    if started > now_ts + inv.CLOCK_SKEW_S:
-        return {"present": True, "activity": "INDETERMINE", "reason": "DATE_FUTURE"}
-    if lease > now_ts:
-        return {"present": True, "activity": "EN_COURS", "reason": "bail valide",
-                "invocation_id": data.get("invocation_id"), "started_utc": data.get("started_utc"),
-                "lease_until_utc": data.get("lease_until_utc")}
-    return {"present": True, "activity": "INDETERMINE", "reason": "bail expiré : aucune exécution attestée"}
+        text = proc_locks.read_text(encoding="ascii", errors="replace")
+    except OSError:
+        return None
+    want = (os.major(st.st_dev), os.minor(st.st_dev), st.st_ino)
+    pids = set()
+    for line in text.splitlines():
+        parts = line.split()
+        if "->" in parts:      # verrou en attente, pas tenu
+            continue
+        if len(parts) < 6 or parts[1] != "FLOCK" or parts[3] != "WRITE":
+            continue
+        try:
+            maj, mnr, ino = parts[5].split(":")
+            key = (int(maj, 16), int(mnr, 16), int(ino))
+            pid = int(parts[4])
+        except ValueError:
+            continue
+        if key == want:
+            pids.add(pid)
+    return pids
 
 
-def read_status(reports: Path, *, mission_id: str, agent_id: str, runner_id: str, now_ts: float):
+def read_lock(reports: Path, *, agent_id, runner_id, mission_id, now_ts, proc_locks: Path = PROC_LOCKS):
+    """Activité en cours attestée ou non. Ne lève pas."""
+    try:
+        dfd = _open_dir(reports, "locks")
+    except OSError as exc:
+        kind, why = _err_kind(exc)
+        return {"activity": "INDETERMINE", "life_observed": False,
+                "reason": "aucun verrou" if kind == "ABSENT" else f"verrous illisibles ({why})"}
+    try:
+        try:
+            raw, st = _read_at(dfd, f"{runner_id}.lock")
+        except (OSError, ValueError) as exc:
+            if isinstance(exc, FileNotFoundError):
+                return {"activity": "INDETERMINE", "life_observed": False, "reason": "aucun verrou"}
+            return {"activity": "INDETERMINE", "life_observed": False, "reason": f"verrou illisible ({type(exc).__name__})"}
+    finally:
+        os.close(dfd)
+    holders = flock_holders(st, proc_locks)
+    if holders is None:
+        return {"activity": "INDETERMINE", "life_observed": False,
+                "reason": "vie du processus non attestable (/proc/locks illisible)"}
+    if not holders:
+        return {"activity": "INDETERMINE", "life_observed": False,
+                "reason": "aucun processus ne détient le verrou"}
+    try:
+        data = json.loads(raw.decode("utf-8")) if raw.strip() else None
+    except ValueError:
+        data = None
+    ok, why = inv.validate_lock(data, agent_id=agent_id, runner_id=runner_id, mission_id=mission_id,
+                                now_ts=now_ts)
+    if not ok:
+        return {"activity": "INDETERMINE", "life_observed": True, "reason": f"verrou tenu mais invalide : {why}"}
+    if data["pid"] not in holders:
+        return {"activity": "INDETERMINE", "life_observed": True,
+                "reason": "le processus détenteur n'est pas celui déclaré dans le verrou"}
+    return {"activity": "EN_COURS", "life_observed": True, "reason": "verrou noyau tenu, bail valide",
+            "invocation_id": data["invocation_id"], "started_utc": data["started_utc"],
+            "lease_until_utc": data["lease_until_utc"]}
+
+
+def _list_bounded(dfd):
+    """Énumère au plus MAX_DIR_ENTRIES entrées ; au-delà, refus explicite (pas de troncature muette)."""
+    names = []
+    with os.scandir(dfd) as it:
+        for e in it:
+            if len(names) >= inv.MAX_DIR_ENTRIES:
+                raise OverflowError
+            names.append(e.name)
+    return names
+
+
+def _display(out, now_ts):
+    """Contrat d'affichage partagé avec l'interface."""
+    ttl = inv.utc_iso(now_ts + inv.DISPLAY_TTL_S)
+    if out["activity"] == "EN_COURS" and out["life_observed"] and out["connection"] in ("AVAILABLE", "ABSENT"):
+        lease = inv.parse_utc(out["lease_until_utc"]) or now_ts
+        return {"light": "GREEN", "label": "Actif", "reason": "exécution en cours attestée",
+                "valid_until_utc": inv.utc_iso(min(lease, now_ts + inv.DISPLAY_TTL_S))}
+    if out["activity"] == "EN_COURS":
+        return {"light": "GRAY", "label": "Non attesté",
+                "reason": f"exécution signalée mais preuve {out['connection']}", "valid_until_utc": None}
+    if out["activity"] == "TERMINE":
+        failed = out["last_state"] in inv.FAILED_STATES
+        label = "Inactif · échec" if failed else "Inactif · fin normale"
+        if out["mission_overdue"]:
+            label += " · aucune mission depuis plus de 36 h"
+        return {"light": "RED", "label": label, "reason": f"dernière invocation {out['last_state']}",
+                "valid_until_utc": ttl}
+    return {"light": "GRAY", "label": "Non attesté",
+            "reason": out["activity_reason"] or out["connection_reason"] or "état non attestable",
+            "valid_until_utc": None}
+
+
+def read_status(reports: Path, *, mission_id: str, agent_id: str, runner_id: str, now_ts: float,
+                expected_profile_blob=None, proc_locks: Path = PROC_LOCKS):
     """Résumé pour Système. Ne lève pas : toute erreur devient un état explicite."""
     out = {"contract": inv.INVOCATION_CONTRACT, "agent_id": agent_id, "runner_id": runner_id,
-           "mission_id": mission_id, "observed_at_utc": inv.utc_now_iso(now_ts),
-           "connection": None, "connection_reason": None, "activity": "INDETERMINE",
-           "activity_reason": None, "last_activity_utc": None, "last_result": None,
-           "last_state": None, "invocation_id": None, "lock": None}
+           "mission_id": mission_id, "server_observed_at_utc": inv.utc_iso(now_ts),
+           "connection": None, "connection_reason": None,
+           "activity": "INDETERMINE", "activity_reason": None, "life_observed": False,
+           "lease_until_utc": None, "last_activity_utc": None, "last_mission_age_s": None,
+           "mission_overdue": False, "last_result": None, "last_state": None, "invocation_id": None,
+           "display": None}
 
-    lock = read_lock(reports, runner_id, now_ts)
-    out["lock"] = {k: v for k, v in lock.items() if k in ("present", "reason")}
-    if lock.get("activity") == "EN_COURS":
+    lock = read_lock(reports, agent_id=agent_id, runner_id=runner_id, mission_id=mission_id,
+                     now_ts=now_ts, proc_locks=proc_locks)
+    out["activity_reason"] = lock["reason"]
+    out["life_observed"] = lock["life_observed"]
+    if lock["activity"] == "EN_COURS":
         out["activity"] = "EN_COURS"
-        out["activity_reason"] = lock["reason"]
-        out["last_activity_utc"] = lock["started_utc"]  # début de l'exécution en cours
-    elif lock.get("present"):
-        out["activity_reason"] = lock.get("reason")
+        out["lease_until_utc"] = lock["lease_until_utc"]
+        out["last_activity_utc"] = lock["started_utc"]
+        out["invocation_id"] = lock["invocation_id"]
 
-    d = reports / "runs" / mission_id
+    def done(conn, why):
+        out["connection"], out["connection_reason"] = conn, why
+        out["display"] = _display(out, now_ts)
+        return out
+
     try:
-        if not d.is_dir():
-            out["connection"], out["connection_reason"] = "ABSENT", "aucun dossier de preuves"
-            return out
-        names = sorted(n for n in os.listdir(d) if not n.startswith("."))[-MAX_LIST:]
-    except PermissionError:
-        out["connection"], out["connection_reason"] = "ACCESS_DENIED", "lecture du dossier refusée"
-        return out
-    except OSError:
-        out["connection"], out["connection_reason"] = "UNREADABLE", "dossier illisible"
-        return out
-
-    candidates = [n for n in names if NAME_OK.match(n)]
-    if not candidates:
-        out["connection"], out["connection_reason"] = "ABSENT", "aucune invocation consignée"
-        return out
-
-    latest = candidates[-1]
+        dfd = _open_dir(reports, "runs", mission_id)
+    except OSError as exc:
+        kind, why = _err_kind(exc)
+        return done(kind, "aucune invocation consignée" if kind == "ABSENT" else f"dossier de preuves : {why}")
     try:
-        env = json.loads(_read_bounded(d / latest).decode("utf-8"))
-    except PermissionError:
-        out["connection"], out["connection_reason"] = "ACCESS_DENIED", "lecture refusée"
-        return out
-    except (ValueError, OSError) as exc:
-        out["connection"], out["connection_reason"] = "INVALID", f"fichier illisible ({exc.__class__.__name__})"
-        return out
+        try:
+            names = _list_bounded(dfd)
+        except OverflowError:
+            return done("UNREADABLE", f"plus de {inv.MAX_DIR_ENTRIES} entrées : énumération refusée")
+        except OSError as exc:
+            return done(*_err_kind(exc))
+        candidates = sorted(n for n in names if inv.NAME_RE.match(n))
+        if not candidates:
+            return done("ABSENT", "aucune invocation consignée")
+        latest = candidates[-1]
+        try:
+            raw, _ = _read_at(dfd, latest)
+            env = json.loads(raw.decode("utf-8"))
+        except (OSError, ValueError) as exc:
+            kind, why = _err_kind(exc) if isinstance(exc, OSError) else ("INVALID", f"fichier illisible ({exc})")
+            return done(kind if kind != "ABSENT" else "UNREADABLE", why)
+    finally:
+        os.close(dfd)
 
-    verdict = inv.classify_latest(env, now_ts, agent_id=agent_id, runner_id=runner_id, mission_id=mission_id)
-    out["invocation_id"] = env.get("invocation_id") if isinstance(env, dict) else None
-    out["last_state"] = env.get("state") if isinstance(env, dict) else None
-    if verdict["proof"] != "VALID":
-        out["connection"] = "INCOMPLETE" if verdict["proof"] == "INCOMPLETE" else "INVALID"
-        out["connection_reason"] = f"{verdict['proof']}: {verdict['reason']}"
-        out["activity"] = "EN_COURS" if out["activity"] == "EN_COURS" else "INDETERMINE"
-        return out
+    verdict, reason = inv.validate_envelope(env, agent_id=agent_id, runner_id=runner_id,
+                                            mission_id=mission_id, now_ts=now_ts,
+                                            expected_profile_blob=expected_profile_blob)
+    if verdict == "VALID" and inv.file_name(env) != latest:
+        verdict, reason = "INVALID", "nom de fichier incohérent avec l'enveloppe"
+    if verdict != "VALID":
+        out["last_state"] = None
+        return done("INCOMPLETE" if verdict == "INCOMPLETE" else "INVALID", f"{verdict}: {reason}")
 
-    out["connection"], out["connection_reason"] = "AVAILABLE", "dernière preuve valide"
-    out["last_result"] = verdict["result_status"]
+    out["last_state"] = env["state"]
+    out["last_result"] = env["result_status"]
+    ended = inv.parse_utc(env["ended_utc"])
+    out["last_mission_age_s"] = max(0, int(now_ts - ended))
+    out["mission_overdue"] = now_ts - ended > inv.ABSENCE_WINDOW_S
     if out["activity"] != "EN_COURS":
-        # Une invocation terminée ne prouve pas une activité en cours. Sa date est la fin consignée.
         out["activity"] = "TERMINE"
-        out["activity_reason"] = f"dernière invocation {env['state']}"
+        out["activity_reason"] = f"dernière invocation {env['state']} ({lock['reason']})"
         out["last_activity_utc"] = env["ended_utc"]
-    return out
+        out["invocation_id"] = env["invocation_id"]
+    return done("AVAILABLE", "dernière preuve valide")

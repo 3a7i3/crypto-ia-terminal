@@ -230,3 +230,110 @@ def test_access_guard_detects_an_outside_open():
         finally:
             _AUDIT["on"] = False
         assert str(outside) in _AUDIT["opens"]
+
+
+# --- Non-régression du pilote : périmètre figé + périmètre courant revu -----------------
+# Le test historique ci-dessus reste inchangé : il se saute dès qu'un fichier du périmètre a
+# changé depuis le SHA pilote. Les deux tests suivants rendent la preuve inconditionnelle.
+
+def _pilot_strip(content):
+    out = copy.deepcopy(content)
+    out["freshness"].pop("mtime")
+    out["freshness"].pop("mtime_age_ms")
+    return out
+
+
+def _require_commit(sha):
+    import subprocess
+    ok = subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=REPO, capture_output=True,
+                        check=False)
+    if ok.returncode != 0:
+        # Clone superficiel (CI fetch-depth 1) : saut explicite, jamais un succès silencieux.
+        pytest.skip(f"commit pilote {sha[:12]} absent du clone (historique superficiel)")
+
+
+def _extract_at(sha, paths, dest):
+    _require_commit(sha)
+    import io
+    import subprocess
+    import tarfile
+    tar = subprocess.run(["git", "archive", "--format=tar", sha, *paths], cwd=REPO, check=True,
+                         capture_output=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(tar)) as archive:
+        archive.extractall(dest, filter="data")
+
+
+def test_pilot_on_frozen_scope_reproduces_committed_report():
+    """Le périmètre extrait du SHA pilote (git archive) redonne exactement le rapport consigné."""
+    mission = json.loads(bench.PILOT_MISSION.read_text())
+    committed = json.loads((bench.PILOT_MISSION.parent / "pilot_report.json").read_text())
+    with tempfile.TemporaryDirectory() as tmp:
+        _extract_at(mission["analyzed_ref"]["sha"],
+                    mission["scope"]["read_paths"] + [mission["profile"]["source_path"]], tmp)
+        report = audit(mission, Path(tmp), Path(tmp))
+    assert _pilot_strip(report["content"]) == _pilot_strip(committed["content"])
+    assert report["content"]["status"] == "PARTIAL"
+
+
+def _flat(d, p=""):
+    out = {}
+    if isinstance(d, dict):
+        for k, v in d.items():
+            out.update(_flat(v, f"{p}.{k}"))
+    elif isinstance(d, list):
+        for i, v in enumerate(d):
+            out.update(_flat(v, f"{p}[{i}]"))
+    else:
+        out[p] = d
+    return out
+
+
+def test_pilot_on_current_scope_differs_only_by_reviewed_changes():
+    """Périmètre courant : écarts attendus revus, pas une simple mise à jour d'empreintes.
+
+    Revue : depuis le SHA pilote, seul `observability/operator_api/app.py` a changé (route de
+    lecture seule des preuves d'invocation). Attendu : statut et niveaux de chaîne identiques,
+    mêmes symboles, et les seuls écarts sont l'empreinte/la taille d'app.py et des numéros de
+    ligne qui correspondent exactement au déplacement calculé par diff entre les deux versions.
+    """
+    import difflib
+    import hashlib
+    import subprocess
+    mission = json.loads(bench.PILOT_MISSION.read_text())
+    committed = json.loads((bench.PILOT_MISSION.parent / "pilot_report.json").read_text())["content"]
+    sha = mission["analyzed_ref"]["sha"]
+    _require_commit(sha)
+    changed = {p for p in mission["scope"]["read_paths"]
+               if hashlib.sha256((REPO / p).read_bytes()).hexdigest()
+               != next(s["sha256"] for s in committed["sources_consulted"] if s["path"] == p)}
+    assert changed == {"observability/operator_api/app.py"}, changed
+
+    old = subprocess.run(["git", "show", f"{sha}:observability/operator_api/app.py"], cwd=REPO,
+                         check=True, capture_output=True).stdout.decode().splitlines()
+    new = (REPO / "observability/operator_api/app.py").read_text().splitlines()
+    moved = {}
+    for a, b, size in difflib.SequenceMatcher(None, old, new, autojunk=False).get_matching_blocks():
+        for i in range(size):
+            moved[a + i + 1] = b + i + 1
+
+    current = audit(mission, REPO, REPO)["content"]
+    assert current["status"] == committed["status"] == "PARTIAL"
+    assert [(h["hop"], h["level"]) for h in current["chain"]] == \
+        [(h["hop"], h["level"]) for h in committed["chain"]]
+    a, b = _flat(_pilot_strip(current)), _flat(_pilot_strip(committed))
+    assert set(a) == set(b)
+    diffs = {k for k in a if a[k] != b[k]}
+    assert diffs, "le périmètre a changé : un écart est attendu"
+    new_sha = hashlib.sha256((REPO / "observability/operator_api/app.py").read_bytes()).hexdigest()
+    for k in diffs:
+        parent = k.rsplit(".", 1)[0]
+        assert a.get(parent + ".path") == "observability/operator_api/app.py", k
+        field = k.rsplit(".", 1)[1]
+        if field in ("file_sha256", "sha256"):
+            assert a[k] == new_sha
+        elif field == "bytes":
+            assert a[k] == (REPO / "observability/operator_api/app.py").stat().st_size
+        elif field == "line":
+            assert moved.get(b[k]) == a[k], (k, b[k], a[k])
+        else:
+            raise AssertionError(f"écart non revu : {k}")
