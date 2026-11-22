@@ -103,8 +103,12 @@ def executed_module_files():
     return files
 
 
-def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission):
-    """Retourne le bloc `verification` ou lève Refused. Lecture seule."""
+def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission, analysed_tree: Path | None = None):
+    """Retourne le bloc `verification` ou lève Refused. Lecture seule.
+
+    `analysed_tree` : arbre distinct, extrait au SHA analysé (suivi de main). Sans lui, la zone
+    est lue dans le checkout de code, comme pour une mission figée.
+    """
     if not (checkout / ".git").exists():
         raise Refused("HEAD_UNVERIFIABLE", "checkout sans dépôt git")
     head = _git(checkout, "rev-parse", "--verify", "HEAD^{commit}")
@@ -113,20 +117,27 @@ def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission):
     head_sha = head.stdout.decode().strip()
     if head_sha != code_sha:
         raise Refused("CHECKOUT_SHA_MISMATCH", f"HEAD {head_sha} ≠ code {code_sha}")
-    if _git(checkout, "cat-file", "-e", f"{analysed_sha}^{{commit}}").returncode != 0:
+    zone = checkout
+    if analysed_tree is not None:
+        zone = Path(analysed_tree)
+        if not (zone / ".git").exists():
+            raise Refused("ANALYSED_TREE_UNVERIFIABLE", "arbre analysé sans dépôt git")
+        th = _git(zone, "rev-parse", "--verify", "HEAD^{commit}")
+        if th.returncode != 0 or th.stdout.decode().strip() != analysed_sha:
+            raise Refused("ANALYSED_TREE_SHA_MISMATCH", analysed_sha)
+    if _git(zone, "cat-file", "-e", f"{analysed_sha}^{{commit}}").returncode != 0:
         raise Refused("ANALYSED_SHA_UNAVAILABLE", analysed_sha)
-
     scope = {}
     for rel in mission["scope"]["read_paths"]:
         if rel.endswith("/"):
             raise Refused("SCOPE_DIRECTORY_UNSUPPORTED", rel)
-        expected = _blob_at(checkout, analysed_sha, rel)
-        path = checkout / rel
+        expected = _blob_at(zone, analysed_sha, rel)
+        path = zone / rel
         if expected is None:
             raise Refused("SCOPE_ABSENT_AT_ANALYSED_SHA", rel)
         if path.is_symlink() or not path.is_file():
             raise Refused("CHECKOUT_MODIFIED", f"{rel} absent ou lien")
-        if _hash_file(checkout, path) != expected:
+        if _hash_file(zone, path) != expected:
             raise Refused("CHECKOUT_MODIFIED", f"{rel} diffère du SHA analysé")
         scope[rel] = expected
 
@@ -296,7 +307,8 @@ def _abandoned_envelope(prev, *, agent_id, runner_id, now):
 # --- Invocation -----------------------------------------------------------------------------
 
 def run_once(*, mission, checkout: Path, reports: Path, runner_id, agent_id="repository-cartographer",
-             code_sha, analysed_sha, max_run_s=None, clock=time.time, lease_s=inv.MAX_LEASE_S):
+             code_sha, analysed_sha, max_run_s=None, clock=time.time, lease_s=inv.MAX_LEASE_S,
+             analysed_tree: Path | None = None):
     """Exécute une invocation et retourne (enveloppe, nom publié).
 
     Refus avant verrouillage : Refused, rien n'est publié.
@@ -322,7 +334,8 @@ def run_once(*, mission, checkout: Path, reports: Path, runner_id, agent_id="rep
     max_run_s = min(inv.MAX_RUN_S, budget_s, max_run_s if max_run_s is not None else inv.MAX_RUN_S)
     if max_run_s <= 0:
         raise Refused("LIMIT_INVALID")
-    verification = verify_checkout(checkout, code_sha=code_sha, analysed_sha=analysed_sha, mission=mission)
+    verification = verify_checkout(checkout, code_sha=code_sha, analysed_sha=analysed_sha, mission=mission,
+                                   analysed_tree=analysed_tree)
 
     lock = RunnerLock(reports, runner_id).acquire()
     try:
@@ -359,7 +372,7 @@ def run_once(*, mission, checkout: Path, reports: Path, runner_id, agent_id="rep
         old_term = signal.signal(signal.SIGTERM, _term)
         try:
             signal.setitimer(signal.ITIMER_REAL, max_run_s)
-            report = rc.audit_zone(mission, checkout, checkout, clock=lambda: int(clock() * 1e9))
+            report = rc.audit_zone(mission, analysed_tree or checkout, checkout, clock=lambda: int(clock() * 1e9))
             state, exit_code = "COMPLETED", 0
         except _Timeout:
             state, exit_code, reason = "TIMEOUT", None, f"durée > {max_run_s} s"
@@ -411,6 +424,7 @@ def main(argv=None):
     ap.add_argument("--runner-id", required=True)
     ap.add_argument("--code-sha", required=True)
     ap.add_argument("--analysed-sha", required=True)
+    ap.add_argument("--analysed-tree", default=None, help="arbre git extrait au SHA analysé (suivi de main)")
     ap.add_argument("--max-run-s", type=float, default=None, help=f"≤ {inv.MAX_RUN_S} (abaissement seulement)")
     a = ap.parse_args(argv)
     out = {"contract": inv.INVOCATION_CONTRACT}
@@ -420,7 +434,8 @@ def main(argv=None):
         _apply_rlimits(cap)
         env, name = run_once(mission=mission, checkout=Path(a.checkout), reports=Path(a.reports),
                              runner_id=a.runner_id, code_sha=a.code_sha, analysed_sha=a.analysed_sha,
-                             max_run_s=a.max_run_s)
+                             max_run_s=a.max_run_s,
+                             analysed_tree=Path(a.analysed_tree) if a.analysed_tree else None)
     except Refused as exc:
         out.update({"outcome": "REFUSED" if exc.code != "PUBLICATION_FAILED" else "PUBLICATION_FAILED",
                     "code": exc.code, "detail": exc.detail})

@@ -15,6 +15,9 @@ from agent_bench.observation import invocation as inv
 from agent_bench.observation import invocation_reader as rd
 
 DEFAULT_REPORTS_PATH = Path(os.getenv("AGENT_INVOCATION_REPORTS_PATH", "/srv/cat-obs/reports"))
+# Suivi de main (décision Mathieu 2026-11-22 10:28Z) : l'unité de suivi publie ici l'identifiant
+# de la mission courante. Absent ou illisible : mission figée par défaut.
+FOLLOW_PATH = Path(os.getenv("AGENT_INVOCATION_FOLLOW_PATH", "/srv/cat-obs/follow"))
 
 # Cibles autorisées : identité attendue, pas de chemin ni de nom libre.
 TARGETS = {
@@ -27,10 +30,20 @@ TARGETS = {
 }
 
 
+def _current(spec: dict, follow: Path | None = None) -> dict:
+    """Identité attendue, avec la mission courante publiée par le suivi de main si valide."""
+    try:
+        raw = ((follow or FOLLOW_PATH) / f"{spec['agent_id']}.mission").read_bytes()[:80]
+        mid = raw.decode("ascii").strip()
+    except (OSError, UnicodeDecodeError):
+        return spec
+    return {**spec, "mission_id": mid} if inv.HEX64.match(mid) else spec
+
+
 def read_agent_invocation(target: str, *, reports: Path | None = None, now_ts: float | None = None) -> dict:
-    spec = TARGETS.get(target)
-    if spec is None:
+    if target not in TARGETS:
         raise KeyError(target)
+    spec = _current(TARGETS[target])
     now = time.time() if now_ts is None else now_ts
     try:
         summary = rd.read_status(reports or DEFAULT_REPORTS_PATH, mission_id=spec["mission_id"],
@@ -51,9 +64,9 @@ def read_agent_invocation(target: str, *, reports: Path | None = None, now_ts: f
 
 
 def read_agent_history(target: str, *, reports: Path | None = None, now_ts: float | None = None) -> dict:
-    spec = TARGETS.get(target)
-    if spec is None:
+    if target not in TARGETS:
         raise KeyError(target)
+    spec = _current(TARGETS[target])
     now = time.time() if now_ts is None else now_ts
     try:
         out = rd.read_history(reports or DEFAULT_REPORTS_PATH, mission_id=spec["mission_id"],
