@@ -82,3 +82,5 @@
 .agent-profile-slotted > .miniterm { margin-top: 0; }
 .miniterm-info { padding: 0.6rem 1rem; border-bottom: 1px solid var(--bg-border); font-size: 0.85rem; }
 .miniterm-info .agent-mission { margin: 0 0 0.5rem; }
+.miniterm-footer{padding:.6rem 1rem;border-top:1px solid var(--bg-border)}
+.miniterm-footer .invocation-details{margin:0}

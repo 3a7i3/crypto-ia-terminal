@@ -334,11 +334,13 @@ export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs
                 lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
                 history={history}
                 controls={<ScheduleControl schedule={sched.schedule} error={sched.error} sending={sched.sending} onPick={(v) => void sched.request(v)} />}
+                footer={
+                  <details className="invocation-details">
+                    <summary>Détail de la preuve</summary>
+                    <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
+                  </details>
+                }
               />
-              <details className="invocation-details">
-                <summary>Détail de la preuve</summary>
-                <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
-              </details>
             </>
           ),
         }}
