@@ -3,11 +3,16 @@
 Statut : **à relire, non exécutée**. Chaque étape demande l'autorisation explicite de Mathieu ; les
 commandes `sudo` sont exécutées par lui. Configuration justifiée dans
 [`CARTOGRAPHER_INSTALL_REVIEW.md`](CARTOGRAPHER_INSTALL_REVIEW.md) (constats VPS du 2026-11-22).
-Aucun timer, aucune campagne ; le registre reste `NOT_WIRED`. Un contrôle en échec → étape 8.
+Périmètre du pilote : groupe et permissions, runner, correctif API minimal, redémarrage API contrôlé,
+**une** invocation manuelle, contrôle du rapport et de sa lecture par la route. **Hors pilote** : timer,
+campagne, activation du registre (`NOT_WIRED`), activation frontend (annexe A, décision séparée).
+L'installation **modifie le code exécuté par l'API** (7 fichiers, manifeste dans la revue §4 bis).
+Les contrôles marqués **[OBLIGATOIRE]** sont les critères d'acceptation (revue §5.2) : un échec →
+étape 8. Le vert réel n'est pas recherché : il reste « non vérifié » s'il n'est pas observé.
 
 Notations : `S=<SHA_RETENU>` (HEAD de #599 contenant ce document) ; `API_OLD=/home/lecanada26/crypto-install/releases/85376c5e7725c9fa45f8d05fb0051f25a127aba4` ;
 `API_NEW=/home/lecanada26/crypto-install/releases/85376c5e-agent-invocation-c1ecc3b4` ;
-`WEB_NEW=/opt/cat-app/releases/CAT-SYSTEM-AGENTS-599-${S:0:8}` ; `CK=/srv/cat-obs/checkout/$S`.
+`CK=/srv/cat-obs/checkout/$S`.
 `URL=http://127.0.0.1:8090/api/operator/v1/agent-invocations/repository-cartographer`.
 
 ## 1. Préconditions et SHA (lecture seule)
@@ -17,6 +22,8 @@ mkdir -p ~/cat-obs-pilot && cd ~/cat-obs-pilot              # traces locales, ja
 systemctl show crypto-operator-api -p MainPID -p WorkingDirectory > api.before   # attendu : API_OLD
 systemctl show crypto-operator-web -p MainPID -p BindReadOnlyPaths > web.before   # attendu : dist 597
 readlink /run/cat/current > paper.before                    # session PAPER à préserver
+sha256sum /run/cat/current/session.json > paper.sha.before
+ls -d /run/cat/PAPER-* > paper.sessions.before
 routes() { (cd "$1" && env -i HOME=/nonexistent $API_OLD/.venv/bin/python -B -c 'from observability.operator_api.app import app;print("\n".join(sorted(r.path for r in app.routes if r.path.startswith("/api"))))'); }
 routes $API_OLD > routes.before        # /openapi.json est désactivé (openapi_url=None) : liste tirée du code servi
 for p in $(cat routes.before | grep -v "{"); do echo "$p $(curl -s -o /dev/null -w '%{http_code}' 127.0.0.1:8090$p)"; done > codes.before
@@ -71,7 +78,9 @@ sudo -u cat-obs-ro env -i PATH=/usr/bin:/bin HOME=/nonexistent GIT_CONFIG_COUNT=
 ```
 git clone --no-hardlinks $API_OLD $API_NEW && git -C $API_NEW checkout --detach 85376c5e7725c9fa45f8d05fb0051f25a127aba4
 git -C $API_NEW apply --index ~/cat-obs-pilot/src/docs/agents/observation/pilot/api-85376c5e-agent-invocation.patch
-test "$(git -C $API_NEW write-tree)" = c1ecc3b436e8a9617004ca0c8f142ec9e7ff7012 && echo ARBRE_OK
+test "$(git -C $API_NEW write-tree)" = c1ecc3b436e8a9617004ca0c8f142ec9e7ff7012 && echo ARBRE_OK   # [OBLIGATOIRE]
+git -C $API_NEW diff --cached --name-status 85376c5e7725c9fa45f8d05fb0051f25a127aba4   # [OBLIGATOIRE] 7 lignes : 6 A + M app.py
+(cd $API_NEW && sha256sum agent_bench/__init__.py agent_bench/observation/*.py observability/operator_api/agent_invocation_reader.py observability/operator_api/app.py)   # = revue §4 bis
 chmod -R go-rwx $API_NEW
 ```
 
@@ -95,10 +104,96 @@ dont les modules `financial_institute`, `paper_trading`, `observability` sont ce
 
 ```
 sudo systemctl daemon-reload && sudo systemctl restart crypto-operator-api
-systemctl is-active crypto-operator-api; readlink /run/cat/current | diff - ~/cat-obs-pilot/paper.before && echo PAPER_INCHANGE
+systemctl is-active crypto-operator-api
+systemctl show crypto-operator-api -p WorkingDirectory                       # [OBLIGATOIRE] = API_NEW
+cd ~/cat-obs-pilot
+readlink /run/cat/current | diff - paper.before && echo PAPER_LIEN_INCHANGE   # [OBLIGATOIRE]
+sha256sum /run/cat/current/session.json | diff - paper.sha.before && echo PAPER_SESSION_INCHANGEE   # [OBLIGATOIRE]
+ls -d /run/cat/PAPER-* | diff - paper.sessions.before && echo AUCUNE_NOUVELLE_SESSION                # [OBLIGATOIRE]
 ```
 
-**Release frontend** (build avec drapeau, même base que la release servie) :
+Aucun redémarrage ni changement du service web dans le pilote (annexe A).
+
+## 4. Contrôle du lecteur dans le contexte réel de l'API (N3)
+
+```
+curl -s $URL | python3 -m json.tool
+```
+
+**[OBLIGATOIRE]** Attendu : `connection ABSENT` (« aucune invocation consignée »), `activity INDETERMINE`,
+`display.light GRAY`, `read_only true`, aucun chemin dans la réponse. `ACCESS_DENIED` ou `UNREADABLE` →
+étape 8. C'est la première preuve de lecture **sous les droits réels du service** ; rien avant
+l'installation ne la remplace.
+Cible inconnue : `curl -s -o /dev/null -w '%{http_code}' 127.0.0.1:8090/api/operator/v1/agent-invocations/x` → 404.
+
+## 5. Une invocation manuelle isolée
+
+Lancer **une** fois la commande `systemd-run` de la revue (§4), sortie conservée dans
+`~/cat-obs-pilot/invocation.out`. **[OBLIGATOIRE]** code 0, ligne `PUBLISHED`, `COMPLETED`, `PARTIAL`,
+`content_sha256 67bdcc05ec67e54013991028275d78ff4727c299fe2f9b6762c2b3da35a3fa4e`. Puis :
+
+```
+sudo stat -c '%a %U:%G %n' /srv/cat-obs/reports/runs/* /srv/cat-obs/reports/runs/*/* /srv/cat-obs/reports/locks/*
+# [OBLIGATOIRE] dossiers 2750, fichiers 640, groupe cat-obs-read
+sudo sha256sum /srv/cat-obs/reports/runs/*/*.json > ~/cat-obs-pilot/envelope.sha   # trace locale, jamais publiée
+sudo python3 -c 'import json,glob;[print(e["invocation_id"],e["result_status"],e["content_sha256"]) for e in map(lambda p:json.load(open(p)),glob.glob("/srv/cat-obs/reports/runs/*/*.json"))]' > ~/cat-obs-pilot/envelope.id
+# [OBLIGATOIRE] une seule ligne : <invocation_id> PARTIAL 67bdcc05…
+```
+
+Pas de deuxième invocation, pas de lecture en boucle pour chercher le vert, jamais de faux verrou :
+le vert réel reste **non vérifié** dans ce pilote.
+
+## 6. Rapport → route API
+
+```
+curl -s $URL | python3 -m json.tool
+```
+
+Attendu : `AVAILABLE`, `TERMINE`, `last_result PARTIAL`, `display RED « Inactif · fin normale »`,
+`activity_reason` contenant « aucun processus ne détient le verrou » (preuve que `/proc/locks` est lu
+dans le service ; « /proc/locks illisible » → étape 8), et `invocation_id` = celui de `envelope.id`.
+Tout est **[OBLIGATOIRE]**. `AVAILABLE` signifie que le lecteur du service a revalidé enveloppe ↔ rapport
+↔ identité attendue (l'empreinte n'est pas renvoyée par la route ; elle est contrôlée à l'étape 5).
+
+L'affichage dans l'application n'est pas contrôlé dans ce pilote : le frontend servi ne contient pas
+la carte (annexe A).
+
+## 7. Non-régression
+
+```
+routes $API_NEW > routes.after
+diff routes.before routes.after      # seule ligne ajoutée : /api/operator/v1/agent-invocations/{agent_id}
+for p in $(cat routes.before | grep -v "{"); do echo "$p $(curl -s -o /dev/null -w '%{http_code}' 127.0.0.1:8090$p)"; done > codes.after
+diff codes.before codes.after        # aucun écart
+readlink /run/cat/current | diff - paper.before && echo PAPER_INCHANGE
+sha256sum /run/cat/current/session.json | diff - paper.sha.before && echo PAPER_SESSION_INCHANGEE
+systemctl is-active crypto-operator-api crypto-operator-web cat-or-live-api cat-or-live-web cat-or-live-collector
+```
+
+Vues web : Accueil, Marché, Finance, Système chargées sans erreur ; aucun timer cartographe
+(`systemctl list-timers | grep -i cat-obs` vide).
+
+## 8. Retour arrière (si un contrôle échoue)
+
+```
+sudo rm /etc/systemd/system/crypto-operator-api.service.d/zzzzzz-agent-invocation-599.conf
+sudo systemctl daemon-reload && sudo systemctl restart crypto-operator-api
+systemctl show crypto-operator-api -p WorkingDirectory      # = API_OLD
+readlink /run/cat/current | diff - ~/cat-obs-pilot/paper.before && echo PAPER_INCHANGE
+# Accès ajoutés retirés ; rapports conservés tels quels :
+sudo chgrp -R cat-obs-ro /srv/cat-obs/reports && sudo chmod 0750 /srv/cat-obs/reports
+sudo chmod g-s /srv/cat-obs/reports/runs /srv/cat-obs/reports/locks
+sudo groupdel cat-obs-read
+```
+
+- **Conservés** : tout `/srv/cat-obs/reports/` (enveloppes, verrou), la release `API_NEW`
+  (inerte, non servie), le checkout `$CK` (inerte) et `52db9887…`. Aucun `rm -rf`.
+- Relancer l'étape 7 pour confirmer le retour à l'état initial.
+
+## Annexe A — Activation frontend (décision séparée, NON incluse dans le pilote)
+
+À n'exécuter qu'après un GO distinct, une fois le pilote accepté. `WEB_NEW=/opt/cat-app/releases/CAT-SYSTEM-AGENTS-599-${S:0:8}`.
+Build avec drapeau, même base que la release servie :
 
 ```
 cd ~/cat-obs-pilot/src/frontend && npm ci && VITE_CARTOGRAPHER_INVOCATION=1 npm run build
@@ -117,76 +212,7 @@ BindReadOnlyPaths=
 BindReadOnlyPaths=/opt/cat-app/releases/CAT-SYSTEM-AGENTS-599-<S8>/dist:/opt/cat-app/releases/CAT-FOOTPRINT-FINANCE-V6-RC1/frontend/dist
 ```
 
-(redémarrage web à l'étape 6 seulement, après le contrôle du lecteur).
-
-## 4. Contrôle du lecteur dans le contexte réel de l'API (N3)
-
-```
-curl -s $URL | python3 -m json.tool
-```
-
-Attendu : `connection ABSENT` (« aucune invocation consignée »), `activity INDETERMINE`, `display.light
-GRAY`, `read_only true`, aucun chemin dans la réponse. `ACCESS_DENIED` ou `UNREADABLE` → étape 8.
-Cible inconnue : `curl -s -o /dev/null -w '%{http_code}' 127.0.0.1:8090/api/operator/v1/agent-invocations/x` → 404.
-
-## 5. Une invocation manuelle isolée
-
-Lancer **une** fois la commande `systemd-run` de la revue (§4). Attendu : code 0, ligne `PUBLISHED`,
-`COMPLETED`, `PARTIAL`, `content_sha256 67bdcc05…`. Puis :
-
-```
-sudo stat -c '%a %U:%G %n' /srv/cat-obs/reports/runs/* /srv/cat-obs/reports/runs/*/* /srv/cat-obs/reports/locks/*
-# attendu : dossiers 2750, fichiers 640, groupe cat-obs-read
-```
-
-Option « vert réel » (au mieux, non bloquante) : dans une seconde session, `while :; do curl -s $URL | grep -o '"light": *"[A-Z]*"'; sleep 0.2; done`
-pendant l'invocation. Ne jamais créer de faux verrou pour l'obtenir.
-
-## 6. Rapport → API → application
-
-```
-curl -s $URL | python3 -m json.tool
-```
-
-Attendu : `AVAILABLE`, `TERMINE`, `last_result PARTIAL`, `display RED « Inactif · fin normale »`,
-`activity_reason` contenant « aucun processus ne détient le verrou » (preuve que `/proc/locks` est lu
-dans le service ; « /proc/locks illisible » → étape 8). Puis :
-
-```
-sudo systemctl daemon-reload && sudo systemctl restart crypto-operator-web
-```
-
-Sur mobile (vue Système) : carte « preuve d'invocation » rouge « Inactif · fin normale », profil du
-registre gris (`NOT_WIRED`). Captures conservées localement.
-
-## 7. Non-régression
-
-```
-routes $API_NEW > routes.after
-diff routes.before routes.after      # seule ligne ajoutée : /api/operator/v1/agent-invocations/{agent_id}
-for p in $(cat routes.before | grep -v "{"); do echo "$p $(curl -s -o /dev/null -w '%{http_code}' 127.0.0.1:8090$p)"; done > codes.after
-diff codes.before codes.after        # aucun écart
-readlink /run/cat/current | diff - paper.before && echo PAPER_INCHANGE
-systemctl is-active crypto-operator-api crypto-operator-web cat-or-live-api cat-or-live-web cat-or-live-collector
-```
-
-Vues web : Accueil, Marché, Finance, Système chargées sans erreur ; aucun timer cartographe
-(`systemctl list-timers | grep -i cat-obs` vide).
-
-## 8. Retour arrière (si un contrôle échoue)
-
-```
-sudo rm /etc/systemd/system/crypto-operator-api.service.d/zzzzzz-agent-invocation-599.conf
-sudo rm -f /etc/systemd/system/crypto-operator-web.service.d/zzzzzzzzzzzzzzzzzzz-agent-invocation-599.conf
-sudo systemctl daemon-reload && sudo systemctl restart crypto-operator-api crypto-operator-web
-systemctl show crypto-operator-api -p WorkingDirectory      # = API_OLD
-readlink /run/cat/current | diff - ~/cat-obs-pilot/paper.before && echo PAPER_INCHANGE
-# Accès ajoutés retirés ; rapports conservés tels quels :
-sudo chgrp -R cat-obs-ro /srv/cat-obs/reports && sudo chmod 0750 /srv/cat-obs/reports
-sudo chmod g-s /srv/cat-obs/reports/runs /srv/cat-obs/reports/locks
-sudo groupdel cat-obs-read
-```
-
-- **Conservés** : tout `/srv/cat-obs/reports/` (enveloppes, verrou), les releases `API_NEW` et `WEB_NEW`
-  (inertes, non servies), le checkout `$CK` (inerte) et `52db9887…`. Aucun `rm -rf`.
-- Relancer l'étape 7 pour confirmer le retour à l'état initial.
+Puis `sudo systemctl daemon-reload && sudo systemctl restart crypto-operator-web` ; sur mobile (vue
+Système) : carte « preuve d'invocation » rouge « Inactif · fin normale », profil du registre gris
+(`NOT_WIRED`). Retour arrière : retirer ce drop-in, `daemon-reload`, redémarrer le web ; `WEB_NEW`
+conservé inerte.

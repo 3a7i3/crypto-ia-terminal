@@ -8,9 +8,13 @@ Procédure ordonnée : [`CARTOGRAPHER_INSTALL_PROCEDURE.md`](CARTOGRAPHER_INSTAL
 ## 1. SHA audité
 
 - HEAD de #599 vérifié au début de la revue : `57b4ee005fa4e1ec34edb9bc73747949b2d602e9` (= référence annoncée).
-- Ce dossier est ajouté par un commit **documentaire** au-dessus (`docs/agents/observation/` seulement) :
-  code exécuté, tests et frontend identiques à `57b4ee00`. Le SHA retenu pour l'installation est le HEAD
-  qui contient ce dossier (noté `<SHA_RETENU>` ; voir la PR).
+- Ce dossier est ajouté par des commits **documentaires** au-dessus (`docs/agents/observation/` seulement) :
+  dans le **dépôt**, code, tests et frontend sont identiques à `57b4ee00`. Le SHA retenu pour l'installation
+  est le HEAD qui contient ce dossier (noté `<SHA_RETENU>` ; voir la PR).
+- **Côté VPS, l'installation change le code exécuté par l'API** : le service passerait de la release
+  `85376c5e` à `85376c5e` + 7 fichiers (§4 bis). Six fichiers sont des modules nouveaux, importés au
+  démarrage par `app.py` ; `app.py` lui-même est modifié (+10 lignes : 1 import, 1 route). Ce n'est donc
+  pas un changement « documentaire » pour le service.
 - Base #598 (`52db9887`) inchangée.
 
 ## 2. Relecture des corrections
@@ -94,10 +98,63 @@ et non « /proc/locks illisible »).
 | Python runner | `/usr/bin/python3.10` (3.10.12, bibliothèque standard seule) | lisible par `cat-obs-ro` ; la CPython 3.11 est sous `/home/lecanada26` (0750) : y donner accès élargirait le runner ; suite verte sous 3.10 |
 | Checkout runner | `/srv/cat-obs/checkout/<SHA_RETENU>`, clone **complet** (contient `e387318e`), détaché, `root:root`, dossiers 0555 / fichiers 0444 | immuable pour le runner ; même modèle que `52db9887` (conservé) |
 | Point d'entrée | `python3.10 -m agent_bench.observation.executor` | CLI testée (codes 0/2/3/4) |
-| Release API | **`85376c5e` + correctif minimal** de 7 fichiers (`agent_bench/__init__.py`, `agent_bench/observation/{__init__,contract,invocation,invocation_reader}.py`, `observability/operator_api/agent_invocation_reader.py`, route ajoutée dans `app.py`), arbre attendu **`c1ecc3b436e8a9617004ca0c8f142ec9e7ff7012`**, correctif [`pilot/api-85376c5e-agent-invocation.patch`](pilot/api-85376c5e-agent-invocation.patch) (sha256 `6a73ea3b…41fc`) | n'embarque **pas** les 385 autres fichiers changés depuis `85376c5e` (dont la route BBO non déployée) ; tests API existants : **mêmes 10 échecs préexistants** (`test_operator_snapshot_builder`) qu'à `85376c5e`, 364 passés ; route servie sur un vrai rapport : `AVAILABLE/TERMINE/RED`, chemin non exposé, cible inconnue 404 |
+| Release API | **`85376c5e` + correctif minimal** de 7 fichiers (`agent_bench/__init__.py`, `agent_bench/observation/{__init__,contract,invocation,invocation_reader}.py`, `observability/operator_api/agent_invocation_reader.py`, route ajoutée dans `app.py`), arbre attendu **`c1ecc3b436e8a9617004ca0c8f142ec9e7ff7012`**, correctif [`pilot/api-85376c5e-agent-invocation.patch`](pilot/api-85376c5e-agent-invocation.patch) (sha256 `6a73ea3b…41fc`) ; manifeste en §4 bis | n'embarque **pas** les 385 autres fichiers changés depuis `85376c5e` (dont la route BBO non déployée) ; tests : §4 ter |
 | venv API | celui de `85376c5e` réutilisé (aucune dépendance nouvelle ; aucun `.pth` pointant vers une release) | évite une reconstruction réseau |
-| Release frontend | build de `<SHA_RETENU>` avec `VITE_CARTOGRAPHER_INVOCATION=1` ; diff frontend cumulé depuis `857404f8` = **#599 seulement** (10 fichiers dont tests/harnais) ; manifeste local attendu `2d59c533…` (12 fichiers ; seuls le JS, le CSS et `index.html` diffèrent de `55a0eedf…`) | même base que la release servie, vérifiée à l'identique |
+| Release frontend (**étape séparée, hors pilote**) | build de `<SHA_RETENU>` avec `VITE_CARTOGRAPHER_INVOCATION=1` ; diff frontend cumulé depuis `857404f8` = **#599 seulement** (10 fichiers dont tests/harnais) ; manifeste local attendu `2d59c533…` (12 fichiers ; seuls le JS, le CSS et `index.html` diffèrent de `55a0eedf…`) | même base que la release servie, vérifiée à l'identique |
 | Registre | `NOT_WIRED` | voyant du profil gris ; seule la carte de preuve montre l'état |
+
+### 4 bis. Manifeste du correctif API (7 fichiers)
+
+Correctif `pilot/api-85376c5e-agent-invocation.patch`, sha256
+`6a73ea3bdb1431e70b7234a451a79b1746c1e524db4c054d82659c78417c41fc`, appliqué à `85376c5e` → arbre
+`c1ecc3b436e8a9617004ca0c8f142ec9e7ff7012` (vérifié par `git write-tree`). Empreintes des fichiers
+**après application** :
+
+| Statut | Chemin | Blob git | sha256 | Octets | Origine |
+|---|---|---|---|---|---|
+| A | `agent_bench/__init__.py` | `e69de29bb2d1d6434b8b29ae775ad8c2e48c5391` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | = `57b4ee00` |
+| A | `agent_bench/observation/__init__.py` | `e69de29bb2d1d6434b8b29ae775ad8c2e48c5391` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | 0 | = `57b4ee00` |
+| A | `agent_bench/observation/contract.py` | `1b673cb487f310ac5e4364272ae0d2b863675161` | `12df32e6d8cb23f9fa666b2bf572bef7747688f861a769b8b42ea3913092ba12` | 10502 | = `57b4ee00` |
+| A | `agent_bench/observation/invocation.py` | `57b02ed42aea59b337c30f409efd7ff9461560cb` | `8bb55924b0a316b12205d8e4f184d68f675e4ad7ca5af397ff844b9b1f002dd2` | 13719 | = `57b4ee00` |
+| A | `agent_bench/observation/invocation_reader.py` | `fc77894cbe8ba7fecd84deada69f0ee82a0ff00f` | `4f42f428b8f98f8e5f5fcd504cef99755f379c7053e510aea9d1e7053d5e90ca` | 11291 | = `57b4ee00` |
+| A | `observability/operator_api/agent_invocation_reader.py` | `0f3f3d040c4d1a6402286e84e6d8e14b93f8cfee` | `13bc5f81fdc0ede1c3790910dff121bd0b85c8340ac95b9f89de19286c48d913` | 2497 | = `57b4ee00` |
+| M | `observability/operator_api/app.py` | `e940690472bcc5c18d8b1fa00e22ba397e797971` (avant : `39592cddb85d0c7b0c6ed75beede3639fdd17cb1`) | `d8e106068158bb42f0538536142bf9bcefcfbec5778ac3fd69776176879e54bc` | 22245 | `85376c5e` + 10 lignes ; **≠ `57b4ee00`** (qui contient aussi la route BBO, exclue) |
+
+Modification de `app.py` : une ligne d'import (`agent_invocation_reader`) après l'import
+`MarketFlowReader`, et la route `GET /api/operator/v1/agent-invocations/{agent_id}` insérée avant
+`/api/operator/v1/runtime-service`. Aucune route existante, aucun middleware, aucune dépendance modifiés.
+Exécuteur, banc et cartographe (`executor.py`, `bench.py`, `repository_cartographer.py`, …) ne sont
+**pas** dans la release API : ils ne tournent que dans le checkout runner.
+
+Contrôle à l'installation : `git -C $API_NEW write-tree` = `c1ecc3b4…`, puis
+`git -C $API_NEW diff --cached --name-status 85376c5e` = ces 7 lignes exactement.
+
+### 4 ter. Qualification des tests API (correction)
+
+**Correction de la revue précédente.** Elle annonçait « mêmes 10 échecs préexistants
+(`test_operator_snapshot_builder`) ». C'était faux : ces 10 échecs venaient de **mon environnement de
+test local**, incomplet (`ModuleNotFoundError: requests`, puis `dotenv`), pas du code. Le venv servi au
+VPS contient ces dépendances (`dotenv`, `requests`, `fastapi 0.136.1`, `pydantic_settings`,
+`uvicorn 0.46.0`, lu en N1). Refait avec CPython 3.11 et `requirements-ci.txt` de `85376c5e` :
+
+| Contrôle | Base `85376c5e` | Candidat `c1ecc3b4` |
+|---|---|---|
+| Sous-ensemble API (mêmes 9 fichiers de test `operator_api`) | 374 passés, 0 échec | 374 passés, 0 échec |
+| Suite complète `tests/` (hors `performance`/`slow`) | 11 805 passés, 21 sautés, 2 xfail, **2 échecs** | 11 805 passés, 21 sautés, 2 xfail, **2 échecs** (mêmes identifiants) |
+| Tests de la nouvelle route (`tests/agent_bench/test_agent_invocation_api.py`, 8 tests) exécutés **contre `app.py` candidat** | — (route absente) | **8 passés** |
+| Script de session PAPER (`CAT-paper-session.py`, sha256 `f7aa516f…4bb0`, copie du VPS) | crée une session si `current` manque | session existante **conservée** : même cible `current`, même nom affiché, aucune création ; racine vide → session valide créée (comportement inchangé) |
+
+Les **2 échecs de la suite complète** sont identiques (mêmes tests, même assertion) sur base et candidat,
+et viennent de l'environnement d'exécution local, pas du code :
+`tests/governance_tower/test_gt_host_provider.py::test_snapshot_permission_denial_is_not_a_missing_source`
+(exécuté en root : `chmod 0` n'empêche pas la lecture, `AVAILABLE` au lieu de `DENIED`) et
+`tests/colony_lab/test_supervisor.py::test_process_count_is_bounded` (`assert 64 <= (8 - 2)` : processus
+du conteneur de test comptés). Aucun ne touche l'API ni les 7 fichiers. **Aucune nouvelle régression.**
+
+Pour les tests de route, l'arbre candidat a reçu en plus, hors release, les modules runner
+(`executor.py`, `bench.py`, …) et trois fichiers d'entrée du banc (périmètre analysé par la mission) ;
+les 7 fichiers du correctif sont restés identiques octet pour octet. Le script PAPER n'importe aucun
+des 7 fichiers (vérifié : ni `observability.operator_api.app` ni `agent_bench` dans `sys.modules`).
 
 ### Matrice des permissions
 
@@ -140,18 +197,50 @@ sudo systemd-run --unit=cat-obs-cartographer-$(date -u +%Y%m%dT%H%M%SZ) --wait -
 (mode `2750` de `runs/<mission_id>`). Bornes internes non modifiables par argument : 120 s, 30 fichiers,
 bail 600 s, `RLIMIT_AS` 1 Gio.
 
-## 5. Contrôles restant après installation
+## 5. Preuves acquises et critères d'acceptation du pilote
 
-1. **N3 réel** : réponse de la route dans le service (`ABSENT`, puis motif « aucun processus ne détient
-   le verrou » après invocation, preuve que `/proc/locks` est lu dans le contexte réel).
-2. **Vert réel** : non démontrable de façon déterministe au pilote (invocation ≈ 1 s) ; lecture en boucle
-   pendant l'invocation, au mieux ; sinon reporté à la campagne. Jamais simulé par un faux verrou.
-3. Héritage setgid malgré `RestrictSUIDSGID=yes` ; mode 0640 et groupe des fichiers produits.
-4. Non-régression : routes API identiques + 1, codes de réponse inchangés, session PAPER inchangée, vues web.
-5. CI : rendre obligatoires les deux tests pilote (§2) — décision source distincte.
+### 5.1 Déjà acquis (avant toute installation)
+
+| Preuve | Portée exacte |
+|---|---|
+| Correctif API = 7 fichiers, arbre `c1ecc3b4`, empreintes §4 bis | source, local |
+| Tests API base = candidat (374/374), suite complète identique (2 mêmes échecs d'environnement),  8 tests de route sur `app.py` candidat | local, CPython 3.11 + dépendances CI de `85376c5e` ; pas le venv du VPS |
+| Mission de zone réelle sur checkout propre : `COMPLETED`/`PARTIAL`, `content_sha256 67bdcc05…` | local, Python 3.10/3.11 ; pas sous `systemd-run` au VPS |
+| Route candidate sur ce rapport : `AVAILABLE`/`TERMINE`/`RED`, chemin non exposé, cible inconnue 404 | local, `TestClient` |
+| Script PAPER : session existante conservée avec l'arbre candidat | local, copie vérifiée par sha256 du script VPS |
+| Service API : espaces de noms, `/srv/cat-obs` et `/proc/locks` visibles dans son espace de montage | N1 + N3 **partiel** (lu avec mes identifiants, pas ceux du service) |
+| `dist` servi = build de `857404f8` | N1 + local |
+
+### 5.2 Critères d'acceptation après installation (obligatoires ; un échec → retour arrière)
+
+1. **Code servi** : `WorkingDirectory` = `API_NEW`, arbre `c1ecc3b4`, `diff --name-status` = 7 lignes.
+2. **Session PAPER** : cible de `/run/cat/current` et empreinte de `session.json` identiques avant et
+   après le redémarrage API ; aucune nouvelle session `PAPER-*` créée.
+3. **Lecture effective sous les droits du service (N3)** : la route, exécutée dans le service, répond
+   `ABSENT`/`GRAY` avant l'invocation (ni `ACCESS_DENIED` ni `UNREADABLE`). C'est le **critère
+   d'acceptation** de la lecture réelle : aucune preuve antérieure ne le remplace.
+4. **Une invocation manuelle** : code 0, `PUBLISHED`, `COMPLETED`, `PARTIAL`, `content_sha256
+   67bdcc05…` ; fichiers produits `0640`, dossiers `2750`, groupe `cat-obs-read`.
+5. **Rapport → route** : `AVAILABLE`, `TERMINE`, `last_result PARTIAL`, voyant `RED` « Inactif · fin
+   normale », `invocation_id` de la route = celui de l'enveloppe lue sur disque (`sudo`), dont le
+   `content_sha256` = `67bdcc05…` (la route ne renvoie pas l'empreinte : `AVAILABLE` signifie que le
+   lecteur a revalidé enveloppe ↔ rapport ↔ identité attendue) ;
+   motif d'activité « aucun processus ne détient le verrou » (preuve que `/proc/locks` est lu dans le
+   service ; « /proc/locks illisible » = échec).
+6. **Non-régression** : routes existantes identiques + 1 seule, codes HTTP inchangés, services actifs.
+
+### 5.3 Hors pilote
+
+- **Vert réel : non vérifié.** L'invocation dure ≈ 1 s ; on ne prolonge pas la mission et on ne crée
+  aucun faux verrou pour l'observer. Une invocation réelle terminée, identifiée et affichée `PARTIAL`
+  est la preuve utile du pilote. Le vert reste explicitement non observé tant qu'il ne l'a pas été.
+- Activation frontend (build avec `VITE_CARTOGRAPHER_INVOCATION=1`, drop-in web) : décision séparée.
+- Timer, campagne de sept jours, activation du registre (`NOT_WIRED`) : décisions séparées.
+- CI : rendre obligatoires les deux tests pilote (§2) : changement source distinct.
 
 ## 6. Verdict
 
-**Prêt pour décision d'installation pilote**, sous réserve des préconditions vérifiées à l'étape 1 de la
-procédure (SHA, tests pilote sur clone complet, tests sous Python 3.10.12 de l'hôte). Aucun blocage
-identifié ; deux points restent ouverts et sont contrôlés dans la procédure : N3 réel et vert réel.
+**Prêt pour décision d'installation pilote** dans le périmètre restreint ci-dessus (groupe et
+permissions, runner, correctif API minimal, redémarrage API contrôlé, une invocation, lecture par la
+route, retour arrière si un critère du §5.2 échoue). L'installation **modifie le code exécuté par
+l'API** (§4 bis). Aucune régression de test constatée entre `85376c5e` et le candidat (§4 ter).
