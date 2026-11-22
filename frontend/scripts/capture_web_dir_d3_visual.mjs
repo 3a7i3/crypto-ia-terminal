@@ -31,7 +31,7 @@ try {
   assert(await nav.isVisible(),"Modules inaccessible");
   const links=await nav.getByRole("link").evaluateAll(a=>a.map(e=>[e.textContent.trim(),new URL(e.href).pathname]));
   assert(links.length===7,"Six module owners missing: "+JSON.stringify(links));
-  for(const [label,href] of [["Marché","/paper-live/market"],["Décisions","/paper-live/decisions"],["Positions","/paper-live/portfolio"],["Finance","/paper-live/finance"],["Laboratoire","/research"],["Système","/paper-live/system"]])
+  for(const [label,href] of [["Marché","/paper-live/market"],["Décisions","/paper-live/decisions"],["Positions","/paper-live/portfolio"],["Wallet","/paper-live/finance"],["Laboratoire","/research"],["Système","/paper-live/system"]])
    assert(links.some(([text,path])=>text.includes(label)&&path===href),"Module owner missing: "+label+" "+JSON.stringify(links));
   if(width<=640)await page.keyboard.press("Escape");
   // Absence stays explicit: the home source states its own deployment code.
