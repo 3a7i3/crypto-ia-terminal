@@ -54,8 +54,8 @@
       "source_blob_sha1": "dd414cad0c9b73c5106d6593dd603966db14ec83",
       "validation_status": "MIGRATION_CANDIDATE",
       "validation_note": "Chevauche Repo Architect.",
-      "wiring_status": "NOT_WIRED",
-      "runner_id": null,
+      "wiring_status": "VERIFIED",
+      "runner_id": "obs-repo-cartographer-ro-01",
       "legacy_blocked": false
     },
     {

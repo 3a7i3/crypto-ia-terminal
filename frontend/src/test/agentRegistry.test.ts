@@ -79,10 +79,10 @@ describe("registre des identités d'agents", () => {
     }
   });
 
-  it("ne qualifie aucun profil PAPER et ne déclare aucun runner", () => {
+  it("ne qualifie aucun profil PAPER et ne relie que le cartographe (décision opérateur 2026-11-22)", () => {
     expect(agentsOfFamily(AGENT_REGISTRY, "EXECUTION_PAPER")).toHaveLength(0);
-    expect(AGENT_REGISTRY.agents.every((a) => a.runner_id === null)).toBe(true);
-    expect(AGENT_REGISTRY.agents.every((a) => a.wiring_status !== "VERIFIED")).toBe(true);
+    const wired = AGENT_REGISTRY.agents.filter((a) => a.wiring_status === "VERIFIED" || a.runner_id !== null);
+    expect(wired.map((a) => [a.id, a.runner_id])).toEqual([["repository-cartographer", "obs-repo-cartographer-ro-01"]]);
   });
 
   it("ne contient ni secret ni donnée d'exécution", () => {

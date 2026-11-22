@@ -184,7 +184,7 @@ test("brand URLs carry content identity and agree across PWA, document, header a
 
 // M1-D2-PWA: release identity and upgrade/rollback lifecycle proof.
 // This identity must change whenever the deployed application shell changes.
-const TARGET_SHELL_CACHE = "crypto-ai-operator-shell-cat-agent-proof-in-terminal-599";
+const TARGET_SHELL_CACHE = "crypto-ai-operator-shell-cat-agent-registry-wired-599";
 const PRIOR_SHELL_CACHE = "crypto-ai-operator-shell-cat-agent-in-family-599";
 
 async function createTransitionHarness(workerSource, buckets) {
@@ -228,7 +228,7 @@ async function createTransitionHarness(workerSource, buckets) {
 
 test("System agents registry release updates the exact shell cache identity and cleans only CAT shell caches", async () => {
   const workerSource = await readFile(path.join(PUBLIC, "sw.js"), "utf8");
-  assert.ok(workerSource.includes("cat-agent-proof-in-terminal-599"),
+  assert.ok(workerSource.includes("cat-agent-registry-wired-599"),
     "the new release must change sw.js bytes and its cache identity");
   assert.ok(!workerSource.includes("cat-agent-in-family-599"),
     "the previous release's cache identity must not be reused");
@@ -258,7 +258,7 @@ test("System agents registry release updates the exact shell cache identity and 
 
   // Rollback simulation: the former release used this same worker logic and
   // the old cache identity (read-only proof obtained at M1-D1).
-  const priorSource = workerSource.replace("cat-agent-proof-in-terminal-599", "cat-agent-in-family-599");
+  const priorSource = workerSource.replace("cat-agent-registry-wired-599", "cat-agent-in-family-599");
   assert.notEqual(priorSource, workerSource, "rollback must publish different service-worker bytes");
   const rolledBack = await createTransitionHarness(priorSource, buckets);
   await rolledBack.dispatch("install");

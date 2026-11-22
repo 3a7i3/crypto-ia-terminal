@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, act } from "@testing-library/react";
 import {
+  EXPECTED_IDENTITY,
   DISPLAY_TTL_S,
   INVOCATION_POLL_MS,
   InvocationPoller,
@@ -142,11 +143,15 @@ describe("contrat d'affichage partagé : le serveur décide, l'interface filtre"
     expect(effectiveVerdict(received, wired, T0 + 3_600_000 + DISPLAY_TTL_S * 1000).light).toBe("GRAY");
   });
 
-  it("le registre livré (NOT_WIRED) garde le voyant gris, même avec une preuve en cours", () => {
+  it("un profil NOT_WIRED garde le voyant gris, même avec une preuve en cours", () => {
     const ev = evidenceFromPoll({ status: "OK", received: rec(running) }, T0);
-    const v = classifyActivity(cart, ev, T0);
+    const v = classifyActivity({ ...cart, wiring_status: "NOT_WIRED", runner_id: null }, ev, T0);
     expect(v.light).toBe("GRAY");
     expect(v.reason).toMatch(/Préproduction/);
+  });
+
+  it("le registre livré relie le cartographe au runner attendu", () => {
+    expect([cart.wiring_status, cart.runner_id]).toEqual(["VERIFIED", EXPECTED_IDENTITY.runner_id]);
   });
 
   it("profil relié : le panneau applique le verdict serveur filtré", () => {

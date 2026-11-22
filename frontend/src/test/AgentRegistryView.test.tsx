@@ -27,7 +27,8 @@ describe("AgentRegistryView", () => {
     for (const l of lights) {
       expect(l).toHaveAttribute("data-light", "GRAY");
       expect(l).toHaveTextContent(/Gris · Non attesté/);
-      expect(l).toHaveTextContent(/runner relié/);
+      // Le cartographe est relié, mais sans source de preuve branchée il reste gris.
+      expect(l).toHaveTextContent(/runner relié|Aucune source de preuve/);
     }
     expect(screen.queryByText(/Vert ·/)).toBeNull();
     expect(screen.queryByText(/Rouge ·/)).toBeNull();
