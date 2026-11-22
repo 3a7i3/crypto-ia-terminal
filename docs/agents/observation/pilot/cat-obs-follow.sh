@@ -10,7 +10,7 @@ OUT=/srv/cat-obs/follow
 export HOME=/nonexistent LC_ALL=C GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0
 g() { git -C "$UP" -c safe.directory="$UP" -c credential.helper= "$@"; }
 log() { logger -t cat-obs-follow "$*" 2>/dev/null || true; echo "$*"; }
-if timeout 60 g fetch -q --depth=1 origin main && g checkout -q --detach --force FETCH_HEAD && g clean -qfdx; then
+if timeout 60 git -C "$UP" -c safe.directory="$UP" -c credential.helper= fetch -q --depth=1 origin main && g checkout -q --detach --force FETCH_HEAD && g clean -qfdx; then
   SHA=$(g rev-parse HEAD)
 else
   log "lecture de main impossible : dernière mission conservée"
