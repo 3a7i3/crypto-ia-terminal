@@ -98,3 +98,30 @@ def test_reader_crash_becomes_gray_unreadable(client, monkeypatch):
     monkeypatch.setattr(air.rd, "read_status", boom)
     body = c.get(URL).json()
     assert body["connection"] == "UNREADABLE" and body["display"]["light"] == "GRAY"
+
+
+HIST = URL + "/history"
+
+
+def test_history_absent_then_lists_each_report_newest_first(client):
+    c, genv = client
+    body = c.get(HIST).json()
+    assert body["connection"] == "ABSENT" and body["total"] == 0 and body["items"] == []
+    e1, _ = ex.run_once(**genv.kwargs())
+    time.sleep(1.1)
+    e2, _ = ex.run_once(**genv.kwargs())
+    r = c.get(HIST)
+    body = r.json()
+    assert r.status_code == 200 and r.headers["cache-control"] == "no-store" and body["read_only"] is True
+    assert body["connection"] == "AVAILABLE" and body["total"] == 2
+    assert [i["invocation_id"] for i in body["items"]] == [e2["invocation_id"], e1["invocation_id"]]
+    it = body["items"][0]
+    assert it["verdict"] == "VALID" and it["ended_utc"] == e2["ended_utc"]
+    assert set(it["summary"]) == {"seen", "found", "not_concluded", "write_templates", "limits", "errors"}
+    assert str(genv.root) not in r.text
+
+
+def test_history_unknown_agent_404(client):
+    c, _ = client
+    r = c.get("/api/operator/v1/agent-invocations/sniper-engine/history")
+    assert r.status_code == 404 and r.headers["cache-control"] == "no-store"

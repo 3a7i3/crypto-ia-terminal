@@ -247,3 +247,78 @@ def read_status(reports: Path, *, mission_id: str, agent_id: str, runner_id: str
         out["last_activity_utc"] = env["ended_utc"]
         out["invocation_id"] = env["invocation_id"]
     return done("AVAILABLE", "dernière preuve valide")
+
+
+HISTORY_MAX_ITEMS = 20
+
+
+def _report_summary(env):
+    """Résumé d'affichage d'un rapport : compteurs et libellés, jamais de contenu de fichier."""
+    ct = ((env.get("report") or {}).get("content")) or {}
+    return {
+        "seen": {"sources": len(ct.get("sources") or []), "imports": len(ct.get("imports") or []),
+                 "calls": len(ct.get("calls") or [])},
+        "found": sorted({f.get("code") for f in ct.get("findings") or [] if f.get("code")}),
+        "not_concluded": [{"path": u.get("path"), "line": u.get("line"), "reason": u.get("reason")}
+                          for u in (ct.get("unknowns") or [])],
+        "write_templates": len(ct.get("write_templates") or []),
+        "limits": len(ct.get("limits") or []),
+        "errors": [e.get("code") for e in ct.get("errors") or []],
+    }
+
+
+def read_history(reports: Path, *, mission_id: str, agent_id: str, runner_id: str, now_ts: float,
+                 expected_profile_blob=None, max_items: int = HISTORY_MAX_ITEMS):
+    """Historique des invocations publiées, plus récentes d'abord. Ne lève pas.
+
+    Chaque entrée garde son verdict : une enveloppe invalide reste visible comme telle.
+    """
+    out = {"contract": inv.INVOCATION_CONTRACT, "agent_id": agent_id, "mission_id": mission_id,
+           "server_observed_at_utc": inv.utc_iso(now_ts), "connection": None,
+           "connection_reason": None, "total": None, "items": []}
+    try:
+        dfd = _open_dir(reports, "runs", mission_id)
+    except OSError as exc:
+        kind, why = _err_kind(exc)
+        out["connection"], out["connection_reason"] = kind, why
+        if kind == "ABSENT":
+            out["connection_reason"], out["total"] = "aucune invocation consignée", 0
+        return out
+    try:
+        try:
+            names = _list_bounded(dfd)
+        except OverflowError:
+            out["connection"] = "UNREADABLE"
+            out["connection_reason"] = f"plus de {inv.MAX_DIR_ENTRIES} entrées : énumération refusée"
+            return out
+        except OSError as exc:
+            out["connection"], out["connection_reason"] = _err_kind(exc)
+            return out
+        candidates = sorted((n for n in names if inv.NAME_RE.match(n)), reverse=True)
+        out["total"] = len(candidates)
+        for name in candidates[:max_items]:
+            item = {"verdict": None, "reason": None}
+            try:
+                raw, _ = _read_at(dfd, name)
+                env = json.loads(raw.decode("utf-8"))
+            except (OSError, ValueError) as exc:
+                item.update(verdict="UNREADABLE", reason=_err_kind(exc)[1] if isinstance(exc, OSError)
+                            else "fichier illisible")
+                out["items"].append(item)
+                continue
+            verdict, reason = inv.validate_envelope(env, agent_id=agent_id, runner_id=runner_id,
+                                                    mission_id=mission_id, now_ts=now_ts,
+                                                    expected_profile_blob=expected_profile_blob)
+            if verdict == "VALID" and inv.file_name(env) != name:
+                verdict, reason = "INVALID", "nom de fichier incohérent avec l'enveloppe"
+            item.update(verdict=verdict, reason=reason)
+            if verdict == "VALID":
+                item.update(invocation_id=env["invocation_id"], started_utc=env["started_utc"],
+                            ended_utc=env["ended_utc"], state=env["state"],
+                            result_status=env["result_status"], analysed_sha=env["analysed_sha"],
+                            content_sha256=env["content_sha256"], summary=_report_summary(env))
+            out["items"].append(item)
+    finally:
+        os.close(dfd)
+    out["connection"], out["connection_reason"] = "AVAILABLE", "historique lu"
+    return out

@@ -48,3 +48,21 @@ def read_agent_invocation(target: str, *, reports: Path | None = None, now_ts: f
                                "valid_until_utc": None}}
     summary["read_only"] = True
     return summary
+
+
+def read_agent_history(target: str, *, reports: Path | None = None, now_ts: float | None = None) -> dict:
+    spec = TARGETS.get(target)
+    if spec is None:
+        raise KeyError(target)
+    now = time.time() if now_ts is None else now_ts
+    try:
+        out = rd.read_history(reports or DEFAULT_REPORTS_PATH, mission_id=spec["mission_id"],
+                              agent_id=spec["agent_id"], runner_id=spec["runner_id"], now_ts=now,
+                              expected_profile_blob=spec["profile_blob_sha1"])
+    except Exception:  # noqa: BLE001 — jamais une exception brute vers le client
+        out = {"contract": inv.INVOCATION_CONTRACT, "agent_id": spec["agent_id"],
+               "mission_id": spec["mission_id"], "server_observed_at_utc": inv.utc_iso(now),
+               "connection": "UNREADABLE", "connection_reason": "lecture impossible",
+               "total": None, "items": []}
+    out["read_only"] = True
+    return out

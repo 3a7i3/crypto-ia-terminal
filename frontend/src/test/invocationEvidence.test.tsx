@@ -162,8 +162,11 @@ type Pending = { resolve: (r: Response) => void; reject: (e: unknown) => void; s
 
 function fakeFetch() {
   const calls: Pending[] = [];
-  const impl = (_u: string, init: RequestInit) =>
-    new Promise<Response>((resolve, reject) => {
+  const impl = (u: string, init: RequestInit) =>
+    // L'historique du mini terminal a sa propre requête : hors du décompte de la preuve.
+    String(u).endsWith("/history")
+      ? Promise.resolve(new Response(JSON.stringify({ contract: "cat.observation.invocation.v1", read_only: true, connection: "ABSENT", connection_reason: null, total: 0, items: [] }), { status: 200 }))
+      : new Promise<Response>((resolve, reject) => {
       const signal = init.signal as AbortSignal;
       signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
       calls.push({ resolve, reject, signal });

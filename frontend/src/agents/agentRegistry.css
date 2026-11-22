@@ -48,3 +48,26 @@
 .invocation-light-green { background: #1a7f37; }
 .invocation-light-red { background: #cf222e; }
 .invocation-light-gray { background: #8c959f; }
+
+/* Mini terminal du cartographe */
+.miniterm { margin: 1rem 0; border: 1px solid var(--bg-border); border-radius: 12px; background: var(--bg-card); color: var(--text-pri); overflow: hidden; }
+.miniterm-hd { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--bg-border); }
+.miniterm-hd h3 { margin: 0; font-size: 1rem; }
+.miniterm-giro { display: inline-block; font-size: 1.2rem; transition: filter 0.3s; }
+.miniterm-giro-red { filter: drop-shadow(0 0 6px #e5484d); }
+.miniterm-giro-green { filter: hue-rotate(110deg) saturate(1.4) drop-shadow(0 0 8px #30a46c); animation: miniterm-pulse 0.6s infinite alternate; }
+.miniterm-giro-gray { filter: grayscale(1) opacity(0.6); }
+@keyframes miniterm-pulse { to { transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .miniterm-giro-green { animation: none; } }
+.miniterm-rythme { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--bg-border); font-size: 0.8rem; color: var(--text-sec, inherit); }
+.miniterm-clock { border: 1px solid var(--bg-border); border-radius: 8px; padding: 0.2rem 0.6rem; background: none; color: inherit; opacity: 0.6; }
+.miniterm-term { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; max-height: 28rem; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; }
+.miniterm-day { align-self: center; font-size: 0.7rem; opacity: 0.7; }
+.miniterm-msg { background: var(--bg-elev, rgba(127,127,127,0.08)); border: 1px solid var(--bg-border); border-radius: 12px 12px 12px 4px; padding: 0.6rem 0.75rem; max-width: 94%; overflow-wrap: anywhere; }
+.miniterm-msg ul { margin: 0.25rem 0; padding-left: 1rem; }
+.miniterm-msg-bad { border-color: #e5484d; }
+.miniterm-title { font-weight: 600; margin-bottom: 0.25rem; }
+.miniterm-status-PARTIAL { color: #f5a524; } .miniterm-status-COMPLETE { color: #30a46c; } .miniterm-status-FAILED, .miniterm-status-BLOCKED { color: #e5484d; }
+.miniterm-meta { opacity: 0.7; font-size: 0.7rem; }
+.miniterm-ft { margin-top: 0.3rem; text-align: right; font-size: 0.7rem; opacity: 0.7; }
+.miniterm-foot { margin: 0; padding: 0 1rem 0.6rem; font-size: 0.7rem; opacity: 0.7; }

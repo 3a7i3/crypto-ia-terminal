@@ -4,6 +4,7 @@
 // aucun bouton de lancement, d'arrêt, de trading ou de délégation. Le voyant
 // d'activité vient de `classifyActivity` et reste gris sans preuve serveur.
 
+import { CartographerMiniTerminal, useInvocationHistory } from "../agents/invocationHistory";
 import React from "react";
 import "../agents/agentRegistry.css";
 import {
@@ -277,10 +278,15 @@ export const InvocationProofCard: React.FC<{ state: PollState; verdict: Activity
 /** Vue branchée (drapeau actif) ; exportée pour les tests d'expiration. */
 export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs }) => {
   const { evidence, nowMs, state, verdict } = useInvocationEvidence(true, { pollMs });
+  const history = useInvocationHistory(true, pollMs);
   return (
     <>
       <AgentRegistryPanel registry={AGENT_REGISTRY} evidence={evidence} nowMs={nowMs} />
-      <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
+      <CartographerMiniTerminal light={verdict.light} lightReason={`${verdict.label} · ${verdict.reason}`} history={history} />
+      <details className="invocation-details">
+        <summary>Détail de la preuve</summary>
+        <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
+      </details>
     </>
   );
 };
