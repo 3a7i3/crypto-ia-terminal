@@ -1,0 +1,22 @@
+{
+  "expected_summary": "SOURCE_STALE, mtime non utilisé comme preuve",
+  "freshness_verdict": "SOURCE_STALE",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "PROVEN",
+    "PRODUCER_TO_STORAGE": "PROVEN",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "PROVEN",
+    "STORAGE_TO_READER": "PROVEN"
+  },
+  "required_findings": [
+    "PRODUCER_IDENTIFIED",
+    "UPSTREAM_ENDPOINTS_DECLARED",
+    "UPSTREAM_APPEND_ONLY_LOG",
+    "SOURCE_STALE",
+    "MTIME_RECENT_SOURCE_STALE"
+  ],
+  "status": "COMPLETE",
+  "title": "Timestamp source périmé malgré un mtime récent"
+}
