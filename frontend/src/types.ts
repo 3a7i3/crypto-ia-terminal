@@ -55,6 +55,7 @@ export interface PortfolioStatus {
 }
 
 export interface PortfolioDomain {
+  pending_paper_orders?: unknown;
   domain: string;
   observed_at_utc: string;
   source: string;
@@ -162,4 +163,17 @@ export interface ApiStructuredError {
   error_code?: string;
   error_message?: string;
   retries_used?: number;
+}
+
+export interface PendingPaperOrder {
+  order_id: string;
+  decision_id: string;
+  symbol: string;
+  side: "LONG" | "SHORT";
+  state: "PENDING" | "SUBMITTED" | "PARTIALLY_FILLED";
+  size_usd: number | null;
+  planned_entry_price: number | null;
+  tp_price: number | null;
+  sl_price: number | null;
+  updated_at_utc: string;
 }

@@ -1,0 +1,31 @@
+{
+  "agent_id": "repository-cartographer",
+  "analyzed_ref": {
+    "kind": "GIT_COMMIT",
+    "sha": "e387318eeaed81d4e6dc90228d46943a65a5b73c"
+  },
+  "budget": {
+    "max_bytes": 2000000,
+    "max_files": 30,
+    "max_wall_ms": 30000
+  },
+  "capture": null,
+  "contract": "cat.observation.mission.v1",
+  "mission_id": "02e0f78f43d1062ee0efed015ad9fe37329dbe480062f02c53e32c82e19fdece",
+  "profile": {
+    "blob_sha1": "dd414cad0c9b73c5106d6593dd603966db14ec83",
+    "source_path": ".github/agents/repository-cartographer.agent.md"
+  },
+  "question": {
+    "kind": "REPOSITORY_MAP",
+    "text": "Cartographier les appels, imports, producteurs et flags de la petite zone de publication BBO (lecteur, producteur, collecte).",
+    "zone_id": "bbo-composite-history-small"
+  },
+  "scope": {
+    "read_paths": [
+      "observability/operator_api/bbo_history_reader.py",
+      "observability/radar_composite/bbo_history.py",
+      "observability/radar_composite/bbo_pilot.py"
+    ]
+  }
+}

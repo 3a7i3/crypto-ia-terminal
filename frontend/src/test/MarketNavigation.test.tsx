@@ -29,7 +29,8 @@ const serve = (url: string): Response => {
 
 let fetchMock: ReturnType<typeof vi.fn>;
 const urls = () => fetchMock.mock.calls.map((call) => String(call[0]));
-const families = () => [...new Set(urls().map((u) => u.replace(/^\/api\/operator\/v1\//, "").replace(/[/?].*$/, "")))].sort();
+// La capture Footprint figée (fichier statique de Microstructure) est nommée à part.
+const families = () => [...new Set(urls().map((u) => u.replace(/^\/observations\/footprint\/.*/, "footprint-capture").replace(/^\/api\/operator\/v1\//, "").replace(/^\//, "").replace(/[/?].*$/, "")))].sort();
 const at = (path: string) => window.history.replaceState({}, "", path);
 const where = () => window.location.pathname + window.location.search;
 const tab = (name: string) => screen.getByRole("tab", { name });
@@ -44,9 +45,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("M1-C1 deep Market routes", () => {
   const views = [
     ["radar", "Scanner", ["spot-radar"]],
-    ["venues", "Comparaison des plateformes", ["derivatives-stress", "venue-comparison"]],
-    ["flow", "Flux", ["derivatives-stress", "market-flow"]],
-    ["lmi", "Microstructure", ["market-microstructure"]],
+    ["lmi", "Microstructure", ["footprint-capture", "market-microstructure"]],
   ] as const;
 
   it.each(views)("opens /paper-live/market/%s directly and only that view requests its source", async (slug, label, family) => {
@@ -61,7 +60,7 @@ describe("M1-C1 deep Market routes", () => {
     expect(window.location.pathname).toBe("/paper-live/market/" + slug);
     expect(families()).toEqual([...family]);
     expect(urls().some((u) => u.includes("/burn-in"))).toBe(false);
-    expect(screen.getByText("Radar Spot, flux, plateformes et microstructure")).toBeInTheDocument();
+    expect(screen.getByText("Scanner et microstructure")).toBeInTheDocument();
   });
 
   it.each(["/", "/direction", "/paper-live", "/paper-live/overview", "/paper-live/market", "/paper-live/market/"])(
@@ -71,7 +70,7 @@ describe("M1-C1 deep Market routes", () => {
       render(<App />);
       await waitFor(() => expect(window.location.pathname).toBe(RADAR));
       expect(window.history.length).toBe(before);
-      expect(await screen.findByRole("heading", { name: "Market Radar · MEXC Spot" })).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { name: "Scanner classé" })).toBeInTheDocument();
       expect(urls().some((u) => u.includes("/burn-in"))).toBe(false);
     });
 
@@ -102,30 +101,31 @@ describe("M1-C1 deep Market routes", () => {
 });
 
 describe("M1-C1 browser history", () => {
-  it("moves between views with real links, Back and Forward, and leaves inactive views silent", async () => {
+  it("moves between Scanner and Microstructure with browser history, without mounting retired views", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Market Radar · MEXC Spot" });
+    await screen.findByRole("heading", { name: "Scanner classé" });
     const start = window.history.length;
-    expect(tab("Flux")).toHaveAttribute("href", "/paper-live/market/flow");
-    fetchMock.mockClear();
-    fireEvent.click(tab("Flux"));
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
-    expect(window.history.length).toBe(start + 1);
-    await waitFor(() => expect(families()).toEqual(["derivatives-stress", "market-flow"]));
     fetchMock.mockClear();
     fireEvent.click(tab("Microstructure"));
-    await waitFor(() => expect(families()).toEqual(["market-microstructure"]));
-    expect(window.location.pathname).toBe("/paper-live/market/lmi");
+    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "lmi"));
+    expect(window.history.length).toBe(start + 1);
+    await waitFor(() => expect(families()).toEqual(["footprint-capture", "market-microstructure"]));
     act(() => window.history.back());
-    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
-    expect(tab("Flux")).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "radar"));
     act(() => window.history.forward());
     await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "lmi"));
-    act(() => window.history.go(-2));
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "radar"));
-    expect(urls().some((u) => u.includes("/burn-in"))).toBe(false);
+  });
+
+  it.each(["venues", "flow"])("redirects the retired %s bookmark without requesting its sources", async (slug) => {
+    at("/paper-live/market/" + slug);
+    const before = window.history.length;
+    render(<App />);
+    await waitFor(() => expect(window.location.pathname).toBe(RADAR));
+    expect(window.history.length).toBe(before);
+    await screen.findByRole("heading", { name: "Scanner classé" });
+    expect(families()).toEqual(["spot-radar"]);
+    expect(screen.queryByRole("tab", { name: /Flux|Comparaison des plateformes/ })).toBeNull();
   });
 });
 
@@ -154,8 +154,8 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
       await waitFor(() => expect(where()).toBe(RADAR));
       expect(window.history.length).toBe(before);
       expect(screen.queryByRole("button", { name: "CryptoRadar historique" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Radar Spot MEXC" })).toHaveAttribute("aria-pressed", "true");
-      await screen.findByRole("heading", { name: "Market Radar · MEXC Spot" });
+      expect(screen.getByRole("button", { name: "Scanner classé" })).toHaveAttribute("aria-pressed", "true");
+      await screen.findByRole("heading", { name: "Scanner classé" });
       await waitFor(() => expect(families()).toEqual(["spot-radar"]));
     });
 
@@ -165,27 +165,26 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
       render(<App />);
       await waitFor(() => expect(window.location.pathname).toBe(RADAR));
       expect(screen.getByRole("button", { name: "Bulles Intraday" })).toHaveAttribute("aria-pressed", "true");
-      await waitFor(() => expect(families()).toEqual(["intraday"]));
+      await waitFor(() => expect(families()).toEqual(["spot-radar"]));
       expect(new URLSearchParams(window.location.search).get("radar") ?? "").not.toBe("1");
     });
 
-  it("offers only Radar Spot and Intraday, keeps the choice across views, without new history entries", async () => {
+  it("offers ranked, intraday and Radar Spot views, keeps the choice across views, without new history entries", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Market Radar · MEXC Spot" });
-    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Radar Spot MEXC", "Bulles Intraday"]);
+    await screen.findByRole("heading", { name: "Scanner classé" });
+    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Scanner classé", "Bulles Intraday", "Radar Spot"]);
     const before = window.history.length;
-    fetchMock.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Bulles Intraday" }));
     await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
     expect(window.history.length).toBe(before);
-    await waitFor(() => expect(families()).toEqual(["intraday"]));
-    fireEvent.click(tab("Flux"));
-    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/flow"));
+    await waitFor(() => expect(families()).toEqual(["spot-radar"]));
+    fireEvent.click(tab("Microstructure"));
+    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
     expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=intraday");
     fireEvent.click(tab("Scanner"));
     await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
-    fireEvent.click(screen.getByRole("button", { name: "Radar Spot MEXC" }));
+    fireEvent.click(screen.getByRole("button", { name: "Scanner classé" }));
     await waitFor(() => expect(where()).toBe(RADAR));
     expect(families()).not.toContain("market");
   });
@@ -193,7 +192,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
   it("keeps the Radar detail dialog without history entry, closes it with Escape and restores focus", async () => {
     at(RADAR);
     render(<App />);
-    const bubble = await screen.findByRole("button", { name: /BTC\/USDT · MEXC Spot/ });
+    const bubble = await screen.findByRole("button", { name: /^BTC\/USDT$/ });
     const before = window.history.length;
     bubble.focus();
     fireEvent.click(bubble);
@@ -208,7 +207,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
   it("keeps the Intraday detail dialog working inside the Radar route", async () => {
     at(RADAR + "?product=intraday");
     render(<App />);
-    const trigger = await screen.findByRole("button", { name: /DOGE\/USDT · mexc · spot/ });
+    const trigger = await screen.findByRole("button", { name: /^DOGE\/USDT/ });
     const before = window.history.length;
     trigger.focus();
     fireEvent.click(trigger);
@@ -224,17 +223,17 @@ describe("M1-C1 keyboard and links", () => {
   it("moves with arrows, Home and End, keeps one focusable tab and returns focus to the chosen tab", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Market Radar · MEXC Spot" });
+    await screen.findByRole("heading", { name: "Scanner classé" });
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Comparaison des plateformes", "Flux", "Microstructure"]);
-    expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1"]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Microstructure"]);
+    expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1"]);
     expect(screen.getByRole("tablist", { name: "Vues du marché" })).toBeInTheDocument();
     tab("Scanner").focus();
     fireEvent.keyDown(tab("Scanner"), { key: "ArrowRight" });
-    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/venues"));
-    await waitFor(() => expect(tab("Comparaison des plateformes")).toHaveFocus());
-    expect(tab("Comparaison des plateformes")).toHaveAttribute("tabindex", "0");
-    fireEvent.keyDown(tab("Comparaison des plateformes"), { key: "End" });
+    await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
+    await waitFor(() => expect(tab("Microstructure")).toHaveFocus());
+    expect(tab("Microstructure")).toHaveAttribute("tabindex", "0");
+    fireEvent.keyDown(tab("Microstructure"), { key: "End" });
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
     await waitFor(() => expect(tab("Microstructure")).toHaveFocus());
     fireEvent.keyDown(tab("Microstructure"), { key: "ArrowRight" });
@@ -253,9 +252,9 @@ describe("M1-C1 keyboard and links", () => {
   });
 
   it("points Accueil and the brand at the canonical Radar route; Marché keeps the active state", async () => {
-    at("/paper-live/market/flow");
+    at("/paper-live/market/lmi");
     render(<App />);
-    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "flow"));
+    await waitFor(() => expect(panel()).toHaveAttribute("data-market-view", "lmi"));
     const nav = screen.getByRole("navigation", { name: "Modules de la machine" });
     const home = within(nav).getByRole("link", { name: "Accueil" });
     expect(home).toHaveAttribute("href", RADAR);

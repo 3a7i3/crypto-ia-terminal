@@ -16,6 +16,15 @@ frère, avec son artifact, son lecteur, sa route et son validateur, sur le même
 
 ## Placement dans l'app
 
+> **Statut après fusion de `main` (2026-11-22).** Depuis [#595](https://github.com/3a7i3/crypto-ia-terminal/pull/595),
+> l'espace Marché ne monte que **Scanner** et **Microstructure** ; les anciens marque-pages
+> `/paper-live/market/venues` et `/flow` redirigent vers le Scanner, et leurs modules restent dans Git.
+> Les sections ci-dessous sont donc **intégrées aux composants** `MarketVenuesView` et `MarketFlowView`,
+> **mais non atteignables depuis l'interface actuelle**. Les rétablir (ou les loger dans une autre vue)
+> est une décision de l'opérateur, non prise ici. La preuve navigateur synthétique par route
+> (`capture_derivatives_stress_visual.mjs`) a été retirée : elle dépendait de ces routes. Les contrôles
+> restants sont les tests de composants et la chaîne cross-stack (producteur, lecteur, route, validateur).
+
 | Onglet Marché | Ajout | Composant |
 |---|---|---|
 | **Comparaison des plateformes** | section « Stress du levier et déséquilibre des dérivés » sous la comparaison des carnets : prix, prime vs indice, base vs spot, funding, OI, fenêtres 1 h / 4 h / 24 h, écarts entre plateformes | `DerivativesStressPanel.tsx` |
@@ -108,7 +117,7 @@ immuable ; elle n'alimente aucun feedback vers l'epoch active.
 | `observability/operator_api/app.py` | `GET /api/operator/v1/derivatives-stress`, `Cache-Control: no-store`, non configuré par défaut (503) |
 | `frontend/src/lib/derivativesStress*.ts`, `stressLabels.ts`, `venueNames.ts` | Contrat, client GET-only, libellés |
 | `frontend/src/components/DerivativesStressPanel.tsx`, `TradeTimingPanel.tsx`, `market-stress.css` | Sections de l'app |
-| `tests/market_stress/`, `tests/cross_stack/generate_derivatives_stress_fixture.py`, `frontend/src/test/derivativesStress.compat.test.tsx`, `frontend/scripts/capture_derivatives_stress_visual.mjs` | Tests et preuves |
+| `tests/market_stress/`, `tests/cross_stack/generate_derivatives_stress_fixture.py`, `frontend/src/test/derivativesStress.compat.test.tsx` | Tests et preuves |
 
 Le chemin du fichier lu serait fourni par `OPERATOR_DERIVATIVES_STRESS_PATH` après une admission
 distincte. Aucun fichier actif ni variable du runtime n'est ajouté ici.
@@ -116,9 +125,9 @@ distincte. Aucun fichier actif ni variable du runtime n'est ajouté ici.
 ## Preuves et limites
 
 Toutes les valeurs des tests sont **inventées** ; elles empruntent la chaîne réelle
-`builder → fichier → lecteur → route FastAPI → validateur React → vue`. La preuve navigateur
-(captures et `checks.json`, 14 jours en CI) intercepte les seuls GET d'artifact, en clair/sombre,
-à 1440 / 768 / 393 px, états synthétique, périmé, partiel, non résolu, 503 et contrat invalide.
+`builder → fichier → lecteur → route FastAPI → validateur React → vue`. Une preuve navigateur par route avait été exécutée avant #595 (clair/sombre, 1440 / 768 / 393 px,
+états synthétique, périmé, partiel, non résolu, 503 et contrat invalide, sans débordement) ; elle n'est
+plus dans le dépôt car ses routes ne sont plus montées.
 
 Commandes (depuis la racine, Python 3.11) :
 
@@ -128,7 +137,6 @@ python -m tests.cross_stack.generate_derivatives_stress_fixture --out frontend/.
 cd frontend
 CROSS_STACK_FIXTURES_DIR="$PWD/.cross-stack-fixtures" npx vitest run src/test/derivativesStress.compat.test.tsx
 npm run build
-CROSS_STACK_FIXTURES_DIR="$PWD/.cross-stack-fixtures" node scripts/capture_derivatives_stress_visual.mjs
 ```
 
 Limites à ne pas effacer :

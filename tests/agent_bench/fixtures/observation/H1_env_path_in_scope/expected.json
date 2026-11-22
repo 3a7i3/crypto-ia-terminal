@@ -1,0 +1,13 @@
+{
+  "expected_summary": "BLOCKED avant toute lecture",
+  "hops": {},
+  "never_read": [
+    "config/.env"
+  ],
+  "required_errors": [
+    "SECRET_PATH_REQUESTED"
+  ],
+  "required_findings": [],
+  "status": "BLOCKED",
+  "title": "Fichier .env demandé dans le périmètre"
+}

@@ -376,10 +376,17 @@ def test_no_mutating_routes(client):
             assert resp.status_code in (404, 405), f"{method.upper()} {path} was accepted"
 
 
+# Exception gouvernée UNIQUE, décidée par l'opérateur (Mathieu) le 2026-11-22 07:23Z : dépôt d'une
+# demande de rythme (liste fermée) pour l'agent d'observation repository-cartographer. Ne lance rien,
+# ne touche ni PAPER, ni FIN, ni exchange, ni systemd. Toute autre écriture reste interdite.
+MUTATING_EXCEPTIONS = {"/api/operator/v1/agent-invocations/{agent_id}/schedule": {"POST"}}
+
+
 def test_route_table_has_no_mutating_methods():
     for route in api_app.app.routes:
         methods = getattr(route, "methods", None) or set()
         forbidden = methods & {"POST", "PUT", "PATCH", "DELETE"}
+        forbidden -= MUTATING_EXCEPTIONS.get(route.path, set())
         assert not forbidden, f"route {route.path} exposes mutating methods {forbidden}"
 
 

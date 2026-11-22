@@ -1,0 +1,24 @@
+{
+  "expected_summary": "CAPTURE_MALFORMED ; maillons prouvés conservés ; fraîcheur INCONCLUSIVE",
+  "freshness_verdict": "INCONCLUSIVE",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "PROVEN",
+    "PRODUCER_TO_STORAGE": "PROVEN",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "PROVEN",
+    "STORAGE_TO_READER": "PROVEN"
+  },
+  "required_errors": [
+    "CAPTURE_MALFORMED"
+  ],
+  "required_findings": [
+    "PRODUCER_IDENTIFIED",
+    "UPSTREAM_ENDPOINTS_DECLARED",
+    "UPSTREAM_APPEND_ONLY_LOG",
+    "CAPTURE_MALFORMED"
+  ],
+  "status": "PARTIAL",
+  "title": "Entrée malformée"
+}

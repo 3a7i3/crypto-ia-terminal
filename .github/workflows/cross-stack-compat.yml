@@ -123,24 +123,15 @@ jobs:
           node scripts/assert_no_legacy_proof_in_dist.mjs
           npm run build:legacy-proof
           node scripts/capture_market_catalogue_visual.mjs
-          node scripts/capture_venue_comparison_visual.mjs
-          node scripts/capture_derivatives_stress_visual.mjs
+          # Retired Market views keep their source and unit contracts, but are not mounted.
+          node scripts/capture_market_retirement_visual.mjs
 
-      - name: Upload multi-venue comparison synthetic proof
+      - name: Upload Market navigation proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: market-venues-synthetic-proof
-          path: frontend/artifacts/market-venues/
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload derivatives stress synthetic proof
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: market-stress-synthetic-proof
-          path: frontend/artifacts/market-stress/
+          name: market-retirement-proof
+          path: frontend/artifacts/market-retirement/
           if-no-files-found: error
           retention-days: 14
 

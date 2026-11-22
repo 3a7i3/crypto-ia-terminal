@@ -1,0 +1,22 @@
+{
+  "distinct_observations": 7,
+  "expected_summary": "7 maillons PROVEN, source dans le seuil",
+  "freshness_verdict": "SOURCE_WITHIN_THRESHOLD",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "PROVEN",
+    "PRODUCER_TO_STORAGE": "PROVEN",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "PROVEN",
+    "STORAGE_TO_READER": "PROVEN"
+  },
+  "required_findings": [
+    "PRODUCER_IDENTIFIED",
+    "UPSTREAM_ENDPOINTS_DECLARED",
+    "UPSTREAM_APPEND_ONLY_LOG",
+    "SOURCE_WITHIN_THRESHOLD"
+  ],
+  "status": "COMPLETE",
+  "title": "Chaîne complète et cohérente"
+}

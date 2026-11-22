@@ -24,7 +24,7 @@ export const MODULES: {
   {
     to: "/paper-live/market",
     label: "Marché",
-    description: "Observations, scanner et liquidité",
+    description: "Scanner et lecture microstructurelle",
     icon: "market",
     testId: "tab-market",
   },
@@ -44,7 +44,7 @@ export const MODULES: {
   },
   {
     to: "/paper-live/finance",
-    label: "Finance",
+    label: "Wallet",
     description: "Montants, frais et réconciliation",
     icon: "finance",
     testId: "tab-finance",

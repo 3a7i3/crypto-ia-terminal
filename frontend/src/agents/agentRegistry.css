@@ -1,0 +1,86 @@
+/* Registre des agents (Système). Thèmes : variables existantes uniquement. */
+.agent-registry { margin: 20px 0; min-width: 0; }
+.agent-registry-head h2 { margin: 0 0 8px; color: var(--heading); font-size: 18px; font-weight: 650; }
+.agent-registry-head p { margin: 0 0 8px; color: var(--text-sec); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.agent-registry-head .agent-registry-boundary { color: var(--text-muted); }
+.agent-family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-top: 12px; align-items: start; }
+.agent-family-card, .agent-legacy { min-width: 0; border: 1px solid var(--bg-border); border-radius: var(--r-card); background: var(--bg-card); }
+.agent-legacy { margin-top: 12px; border-style: dashed; }
+.agent-family-card > summary, .agent-legacy > summary { display: grid; gap: 4px; min-height: 52px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.agent-family-card > summary::-webkit-details-marker, .agent-legacy > summary::-webkit-details-marker { display: none; }
+.agent-family-card > summary::after, .agent-legacy > summary::after { content: "Ouvrir les profils ▾"; color: var(--accent); font-size: 12px; margin-top: 4px; }
+.agent-family-card[open] > summary::after, .agent-legacy[open] > summary::after { content: "Fermer ▴"; }
+.agent-family-title { color: var(--heading); font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+.agent-family-count { color: var(--text-sec); font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
+.agent-family-summary { color: var(--text-muted); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.agent-profile-list { display: grid; gap: 10px; padding: 0 12px 12px; }
+.agent-profile { min-width: 0; padding: 12px; border: 1px solid var(--bg-border); border-radius: 10px; background: var(--bg-card-soft, var(--bg-card)); }
+.agent-profile h4 { margin: 0 0 4px; color: var(--text-pri); font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
+.agent-mission { margin: 0 0 10px; color: var(--text-sec); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.agent-empty { margin: 0; padding: 0 16px 14px; color: var(--text-sec); font-size: 13px; line-height: 1.6; }
+.agent-light { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--bg-border); }
+.agent-light-dot { flex: 0 0 auto; width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; border: 2px solid currentColor; }
+.agent-light-text { display: grid; gap: 2px; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--text-sec); overflow-wrap: anywhere; }
+.agent-light-text strong { color: var(--text-pri); font-weight: 650; }
+.agent-light-green { color: var(--ok); }
+.agent-light-green .agent-light-dot { background: var(--ok); }
+.agent-light-red { color: var(--danger); }
+.agent-light-red .agent-light-dot { background: var(--danger); }
+.agent-light-gray { color: var(--neutral); }
+.agent-light-gray .agent-light-dot { background: transparent; }
+.agent-facts { display: grid; gap: 6px; margin: 10px 0 0; }
+.agent-facts > div { display: grid; gap: 2px; min-width: 0; }
+.agent-facts dt { color: var(--text-muted); font-size: 12px; }
+.agent-facts dd { margin: 0; color: var(--text-pri); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; word-break: break-word; }
+.agent-source-link { color: var(--accent); overflow-wrap: anywhere; word-break: break-all; }
+.agent-registry-foot { margin: 12px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+
+/* Preuve d'invocation (lecture seule) */
+.invocation-card { margin: 1rem 0; padding: 0.75rem 1rem; border: 1px solid var(--bg-border); border-radius: 10px; background: var(--bg-card); color: var(--text-pri); }
+.invocation-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--text-pri); }
+.invocation-card dl { display: grid; gap: 0.5rem; margin: 0; }
+.invocation-card dt { font-weight: 600; font-size: 0.85rem; }
+.invocation-card dd { margin: 0; overflow-wrap: anywhere; }
+.invocation-reason { color: var(--text-sec); font-size: 0.85rem; }
+.invocation-foot { font-size: 0.8rem; color: var(--text-sec); margin: 0.5rem 0 0; }
+@media (max-width: 480px) { .invocation-card { padding: 0.5rem 0.75rem; } }
+.invocation-light { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0.4rem; vertical-align: middle; background: #8c959f; }
+.invocation-light-green { background: #1a7f37; }
+.invocation-light-red { background: #cf222e; }
+.invocation-light-gray { background: #8c959f; }
+
+/* Mini terminal du cartographe */
+.miniterm { margin: 1rem 0; border: 1px solid var(--bg-border); border-radius: 12px; background: var(--bg-card); color: var(--text-pri); overflow: hidden; }
+.miniterm-hd { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--bg-border); }
+.miniterm-hd h3 { margin: 0; font-size: 1rem; }
+.miniterm-giro { display: inline-block; width: 36px; height: 36px; object-fit: contain; }
+.miniterm-giro-red { filter: drop-shadow(0 0 4px rgba(229,72,77,0.5)); }
+.miniterm-giro-green { filter: drop-shadow(0 0 6px rgba(48,164,108,0.7)); animation: miniterm-pulse 0.6s infinite alternate; }
+.miniterm-giro-gray { opacity: 0.9; }
+@keyframes miniterm-pulse { to { transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .miniterm-giro-green { animation: none; } }
+.miniterm-rythme { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--bg-border); font-size: 0.8rem; color: var(--text-sec, inherit); }
+.miniterm-clock { border: 1px solid #f5a524; border-radius: 10px; padding: 0.3rem 0.7rem; background: #fff7e6; color: #1a1a1a; font-size: 1.3rem; line-height: 1; }
+.miniterm-term { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; max-height: 28rem; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; }
+.miniterm-day { align-self: center; font-size: 0.7rem; opacity: 0.7; }
+.miniterm-msg { background: var(--bg-elev, rgba(127,127,127,0.08)); border: 1px solid var(--bg-border); border-radius: 12px 12px 12px 4px; padding: 0.6rem 0.75rem; max-width: 94%; overflow-wrap: anywhere; }
+.miniterm-msg ul { margin: 0.25rem 0; padding-left: 1rem; }
+.miniterm-msg-bad { border-color: #e5484d; }
+.miniterm-title { font-weight: 600; margin-bottom: 0.25rem; }
+.miniterm-status-PARTIAL { color: #f5a524; } .miniterm-status-COMPLETE { color: #30a46c; } .miniterm-status-FAILED, .miniterm-status-BLOCKED { color: #e5484d; }
+.miniterm-meta { opacity: 0.7; font-size: 0.7rem; }
+.miniterm-ft { margin-top: 0.3rem; text-align: right; font-size: 0.7rem; opacity: 0.7; }
+.miniterm-foot { margin: 0; padding: 0 1rem 0.6rem; font-size: 0.7rem; opacity: 0.7; }
+.miniterm-dd { position: relative; }
+.miniterm-clock { cursor: pointer; }
+.miniterm-clock:disabled { cursor: progress; opacity: 0.7; }
+.miniterm-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; display: flex; flex-direction: column; min-width: 9rem; background: #fff; color: #1a1a1a; border: 1px solid #f5a524; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.15); }
+.miniterm-menu button { background: none; border: 0; text-align: left; padding: 0.6rem 0.9rem; font-size: 0.9rem; color: inherit; cursor: pointer; }
+.miniterm-menu button:hover, .miniterm-menu button.is-current { background: #fff7e6; font-weight: 600; }
+.miniterm-pending { color: #b26b00; }
+.agent-profile-slotted { padding: 0; border: 0; background: none; }
+.agent-profile-slotted > .miniterm { margin-top: 0; }
+.miniterm-info { padding: 0.6rem 1rem; border-bottom: 1px solid var(--bg-border); font-size: 0.85rem; }
+.miniterm-info .agent-mission { margin: 0 0 0.5rem; }
+.miniterm-footer{padding:.6rem 1rem;border-top:1px solid var(--bg-border)}
+.miniterm-footer .invocation-details{margin:0}

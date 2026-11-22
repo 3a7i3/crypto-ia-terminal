@@ -1,0 +1,21 @@
+{
+  "expected_summary": "STORAGE_TO_READER INCONCLUSIVE",
+  "hops": {
+    "API_TO_CLIENT": "PROVEN",
+    "CLIENT_TO_VIEW": "PROVEN",
+    "PRODUCER": "PROVEN",
+    "PRODUCER_TO_STORAGE": "PROVEN",
+    "READER_TO_API": "PROVEN",
+    "SOURCE_TO_PRODUCER": "PROVEN",
+    "STORAGE_TO_READER": "INCONCLUSIVE"
+  },
+  "required_findings": [
+    "PRODUCER_IDENTIFIED",
+    "UPSTREAM_ENDPOINTS_DECLARED",
+    "UPSTREAM_APPEND_ONLY_LOG",
+    "READER_WITHOUT_PROVEN_STORAGE_LINK",
+    "SOURCE_WITHIN_THRESHOLD"
+  ],
+  "status": "PARTIAL",
+  "title": "Lecteur sans lien prouvé avec le stockage"
+}

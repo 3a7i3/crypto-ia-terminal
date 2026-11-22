@@ -103,8 +103,11 @@ def test_operator_api_exposes_only_get_business_routes():
         "/api/operator/v1/snapshot",
         "/api/operator/v1/market",
     }
+    # Exception gouvernée unique : programmateur du cartographe (décision opérateur 2026-11-22 07:23Z).
+    schedule = "/api/operator/v1/agent-invocations/{agent_id}/schedule"
     for route in business_routes:
-        assert set(route.methods or ()) <= {"GET"}, route.path
+        allowed = {"GET", "POST"} if route.path == schedule else {"GET"}
+        assert set(route.methods or ()) <= allowed, route.path
 
 
 def test_healthz_claims_only_api_transport_readiness():

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
+import { FOOTPRINT_REPLAY_URL } from "../lib/footprintReplay";
 import { MarketFlowView } from "../views/MarketFlowView";
 import { MarketVenuesView } from "../views/MarketVenuesView";
 import { MarketMicrostructureView } from "../views/MarketMicrostructureView";
@@ -34,14 +35,16 @@ describe("marketSourceSetup", () => {
   });
 });
 
-const cases: { name: string; view: () => JSX.Element; endpoint: string; code: string; label: string; otherCode: string; otherText: RegExp }[] = [
-  { name: "Flux", view: () => <MarketFlowView/>, endpoint: "/api/operator/v1/market-flow", code: "MARKET_FLOW_NOT_CONFIGURED", label: "Source Flux non configurée", otherCode: "MARKET_FLOW_UNREADABLE", otherText: /Flux indisponible · HTTP 503 · MARKET_FLOW_UNREADABLE/ },
-  { name: "Comparaison des plateformes", view: () => <MarketVenuesView/>, endpoint: "/api/operator/v1/venue-comparison", code: "VENUE_COMPARISON_NOT_CONFIGURED", label: "Source Comparaison des plateformes non configurée", otherCode: "VENUE_COMPARISON_MISSING", otherText: /Aucune publication de comparaison disponible/ },
-  { name: "Microstructure", view: () => <MarketMicrostructureView/>, endpoint: "/api/operator/v1/market-microstructure", code: "SOURCE_NOT_DEPLOYED", label: "Source Microstructure non déployée", otherCode: "MICROSTRUCTURE_MISSING", otherText: /SOURCE INDISPONIBLE · HTTP 503 · MICROSTRUCTURE_MISSING/ },
+// Flux and Comparaison also host the derivatives-stress source (component level; the views are not mounted in the app).
+const DERIVATIVES_STRESS_URL = ["/api/operator/v1/derivatives-stress"];
+const cases: { name: string; view: () => JSX.Element; endpoint: string; also?: string[]; code: string; label: string; otherCode: string; otherText: RegExp }[] = [
+  { name: "Flux", view: () => <MarketFlowView/>, endpoint: "/api/operator/v1/market-flow", also: DERIVATIVES_STRESS_URL, code: "MARKET_FLOW_NOT_CONFIGURED", label: "Source Flux non configurée", otherCode: "MARKET_FLOW_UNREADABLE", otherText: /Flux indisponible · HTTP 503 · MARKET_FLOW_UNREADABLE/ },
+  { name: "Comparaison des plateformes", view: () => <MarketVenuesView/>, endpoint: "/api/operator/v1/venue-comparison", also: DERIVATIVES_STRESS_URL, code: "VENUE_COMPARISON_NOT_CONFIGURED", label: "Source Comparaison des plateformes non configurée", otherCode: "VENUE_COMPARISON_MISSING", otherText: /Aucune publication de comparaison disponible/ },
+  { name: "Microstructure", view: () => <MarketMicrostructureView/>, endpoint: "/api/operator/v1/market-microstructure", also: [FOOTPRINT_REPLAY_URL], code: "SOURCE_NOT_DEPLOYED", label: "Source Microstructure non déployée", otherCode: "MICROSTRUCTURE_MISSING", otherText: /SOURCE INDISPONIBLE · HTTP 503 · MICROSTRUCTURE_MISSING/ },
   { name: "Radar Spot", view: () => <SpotRadarMap/>, endpoint: "/api/operator/v1/spot-radar/scanner", code: "SPOT_RADAR_NOT_CONFIGURED", label: "Source Radar Spot non configurée", otherCode: "SPOT_RADAR_MISSING", otherText: /API indisponible · SPOT_RADAR_MISSING/ },
 ];
 
-describe.each(cases)("$name", ({ name, view, endpoint, code, label, otherCode, otherText }) => {
+describe.each(cases)("$name", ({ view, endpoint, also = [], code, label, otherCode, otherText }) => {
   it("shows an unconfigured source apart from a failure, with its exact code and no empty market", async () => {
     const calls = stub(() => json({ error_code: code }, 503));
     render(view());
@@ -54,9 +57,8 @@ describe.each(cases)("$name", ({ name, view, endpoint, code, label, otherCode, o
     expect(screen.queryByRole("alert")).toBeNull();
     // The venue view keeps its pre-C2 sentence (asserted by venueComparison.compat).
     if (endpoint.endsWith("/venue-comparison")) expect(screen.getByText("Aucune publication de comparaison disponible.")).toBeInTheDocument();
-    // Only this view's own sources are read.
-    const own = name === "Flux" || name === "Comparaison des plateformes" ? [endpoint, "/api/operator/v1/derivatives-stress"] : [endpoint];
-    expect(new Set(calls)).toEqual(new Set(own));
+    // Only this view's own source is read (plus, for Microstructure, the static Footprint capture).
+    expect(new Set(calls)).toEqual(new Set([endpoint, ...also]));
   });
 
   it("keeps any other error code as an unavailable source, not as unconfigured", async () => {

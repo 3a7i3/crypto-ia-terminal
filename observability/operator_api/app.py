@@ -22,7 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from observability.operator_api.event_center_reader import EventCenterReader
@@ -31,6 +31,8 @@ from observability.operator_api.venue_comparison_reader import VenueComparisonRe
 from observability.operator_api.derivatives_stress_reader import DerivativesStressReader
 from observability.operator_api.market_flow_reader import MarketFlowReader
 from observability.operator_api.bbo_history_reader import BboHistoryReader
+from observability.operator_api import agent_schedule
+from observability.operator_api.agent_invocation_reader import TARGETS as AGENT_INVOCATION_TARGETS, read_agent_invocation, read_agent_history
 
 from observability.operator_api.market_microstructure_reader import (
     DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
@@ -491,6 +493,56 @@ def get_market_microstructure() -> Any:
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code})
     return result.snapshot
+
+
+@app.get("/api/operator/v1/agent-invocations/{agent_id}")
+def get_agent_invocation(agent_id: str) -> Any:
+    """Lecture seule de la dernière preuve d'invocation d'un agent autorisé."""
+    if agent_id not in AGENT_INVOCATION_TARGETS:
+        return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"},
+                            headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=read_agent_invocation(agent_id), headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/operator/v1/agent-invocations/{agent_id}/history")
+def get_agent_invocation_history(agent_id: str) -> Any:
+    """Lecture seule de l'historique des rapports d'un agent autorisé (20 plus récents)."""
+    if agent_id not in AGENT_INVOCATION_TARGETS:
+        return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"},
+                            headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=read_agent_history(agent_id), headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/operator/v1/agent-invocations/{agent_id}/schedule")
+def get_agent_schedule(agent_id: str) -> Any:
+    """Rythme demandé et rythme appliqué (publié par l'applicateur root)."""
+    if agent_id not in agent_schedule.SCHEDULABLE:
+        return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"},
+                            headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=agent_schedule.read_schedule(agent_id), headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/operator/v1/agent-invocations/{agent_id}/schedule")
+async def post_agent_schedule(agent_id: str, request: Request) -> Any:
+    """SEULE écriture de l'API (exception gouvernée) : dépose une demande de rythme. Ne lance rien."""
+    h = {"Cache-Control": "no-store"}
+    if agent_id not in agent_schedule.SCHEDULABLE:
+        return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"}, headers=h)
+    if request.headers.get("x-cat-operator") != "schedule":
+        return JSONResponse(status_code=403, content={"error_code": "MISSING_OPERATOR_HEADER"}, headers=h)
+    try:
+        body = await request.json()
+        rhythm = body.get("rhythm") if isinstance(body, dict) else None
+    except ValueError:
+        rhythm = None
+    if rhythm not in agent_schedule.allowed_rhythms():
+        return JSONResponse(status_code=422, content={"error_code": "RHYTHM_NOT_ALLOWED",
+                                                      "allowed": list(agent_schedule.allowed_rhythms())}, headers=h)
+    try:
+        out = agent_schedule.request_rhythm(agent_id, rhythm)
+    except OSError:
+        return JSONResponse(status_code=503, content={"error_code": "CONTROL_UNWRITABLE"}, headers=h)
+    return JSONResponse(status_code=202, content=out, headers=h)
 
 
 @app.get("/api/operator/v1/runtime-service")

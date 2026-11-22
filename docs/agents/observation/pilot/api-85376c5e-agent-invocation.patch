@@ -1,0 +1,856 @@
+diff --git a/agent_bench/__init__.py b/agent_bench/__init__.py
+new file mode 100644
+index 00000000..e69de29b
+diff --git a/agent_bench/observation/__init__.py b/agent_bench/observation/__init__.py
+new file mode 100644
+index 00000000..e69de29b
+diff --git a/agent_bench/observation/contract.py b/agent_bench/observation/contract.py
+new file mode 100644
+index 00000000..1b673cb4
+--- /dev/null
++++ b/agent_bench/observation/contract.py
+@@ -0,0 +1,218 @@
++"""Contrat commun d'une mission Observation — ``cat.observation.mission.v1``.
++
++Banc isolé uniquement : ce module valide une mission, calcule son identité
++déterministe et scelle un rapport. Il n'ouvre aucun réseau, ne lit aucun secret,
++n'écrit dans aucune donnée de production et n'accorde aucune autorité. Un rapport
++scellé n'est jamais « valide » par lui-même : la validation appartient au banc
++de tests et à la revue humaine (docs/contracts/AGENT_OBSERVATION_MISSION_V1.md).
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import re
++import unicodedata
++
++MISSION_CONTRACT = "cat.observation.mission.v1"
++REPORT_CONTRACT = "cat.observation.report.v1"
++MISSION_IDENTITY_SCHEMA = "cat.observation.mission-identity.v1"
++
++# Profils exécutables au banc. data-provenance-auditor : pilote (chaîne de dataset).
++# repository-cartographer : cartographie statique d'une zone (PR #598, lot 2).
++# Les deux autres profils n'ont qu'une fiche : une mission les visant est BLOCKED.
++EXECUTABLE_AGENTS = ("data-provenance-auditor", "repository-cartographer")
++QUESTION_KIND_BY_AGENT = {
++    "data-provenance-auditor": "DATASET_PROVENANCE_CHAIN",
++    "repository-cartographer": "REPOSITORY_MAP",
++}
++# Budget de fichiers d'une cartographie de zone (lot 2 : au plus 30 sources .py).
++REPOSITORY_MAP_MAX_FILES = 30
++OBSERVATION_AGENTS = ("data-provenance-auditor", "observability-cartographer",
++                      "repository-cartographer", "repo-architect")
++
++MISSION_STATUSES = ("COMPLETE", "PARTIAL", "BLOCKED", "FAILED")
++PROOF_LEVELS = ("PROVEN", "SUPPORTED", "INFERRED", "INCONCLUSIVE", "NOT_FOUND")
++EVIDENCE_TYPES = ("CODE", "CALL_SITE", "IMPORT", "LITERAL", "CAPTURE_FIELD", "FILE_STAT", "MISSION_INPUT")
++CONFIDENCE = ("HIGH", "MEDIUM", "LOW")
++QUESTION_KINDS = ("DATASET_PROVENANCE_CHAIN", "REPOSITORY_MAP")
++UNITS = ("EPOCH_MS", "DURATION_MS", "UTC_ISO_SECONDS", "DECIMAL_STRING_BPS", "COUNT")
++
++HEX40 = re.compile(r"^[0-9a-f]{40}$")
++HEX64 = re.compile(r"^[0-9a-f]{64}$")
++UTC_SECONDS = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
++SLUG = re.compile(r"^[a-z0-9][a-z0-9._-]{0,79}$")
++POINTER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\[\*\])?(\.[A-Za-z_][A-Za-z0-9_]*(\[\*\])?)*$")
++
++# Grammaire des chemins : celle de A1 §4 (repository_read_paths), appliquée ici.
++_SECRET_NAME = re.compile(r"(^|/)(\.env[^/]*|id_rsa[^/]*|id_ed25519[^/]*|[^/]*\.(pem|key|p12|pfx))$", re.IGNORECASE)
++_SECRET_DIR = re.compile(r"(^|/)secrets?/", re.IGNORECASE)
++
++
++class MissionRejected(ValueError):
++    """Entrée refusée avant toute lecture : la mission devient BLOCKED."""
++
++    def __init__(self, code, detail=""):
++        super().__init__(f"{code}: {detail}")
++        self.code = code
++        self.detail = detail
++
++
++def canonical_bytes(value):
++    """Sérialisation canonique (A1 §3.1, précédent research_candidate/candidate.py)."""
++    return json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True,
++                      separators=(",", ":")).encode("utf-8")
++
++
++def sha256_json(value):
++    return hashlib.sha256(canonical_bytes(value)).hexdigest()
++
++
++def git_blob_sha1(data: bytes) -> str:
++    return hashlib.sha1(b"blob %d\x00" % len(data) + data).hexdigest()
++
++
++def path_violation(path):
++    """Retourne un code de rejet si le chemin sort de la grammaire, sinon None."""
++    if not isinstance(path, str) or not path or path != path.strip():
++        return "SCOPE_PATH_INVALID"
++    if unicodedata.normalize("NFC", path) != path:
++        return "SCOPE_PATH_INVALID"
++    if path.startswith("/") or "\\" in path or "//" in path or any(c in path for c in "*?[]"):
++        return "SCOPE_PATH_INVALID"
++    if any(part in ("..", ".") for part in path.rstrip("/").split("/")):
++        return "SCOPE_PATH_INVALID"
++    if _SECRET_NAME.search(path.rstrip("/")) or _SECRET_DIR.search(path if path.endswith("/") else path + "/"):
++        return "SECRET_PATH_REQUESTED"
++    return None
++
++
++def is_secret_like(rel_path):
++    return bool(_SECRET_NAME.search(rel_path) or _SECRET_DIR.search(rel_path))
++
++
++def mission_identity(m):
++    """Document d'identité : tout ce qui définit la question, rien d'horodaté."""
++    return {
++        "mission_identity_schema": MISSION_IDENTITY_SCHEMA,
++        "agent_id": m["agent_id"],
++        "profile": m["profile"],
++        "analyzed_ref": m["analyzed_ref"],
++        "scope": m["scope"],
++        "question": m["question"],
++        "budget": m["budget"],
++        "capture": m["capture"],
++    }
++
++
++def compute_mission_id(m):
++    return sha256_json(mission_identity(m))
++
++
++def _keys(obj, keys, where):
++    if not isinstance(obj, dict) or set(obj) != set(keys):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", where)
++
++
++def _int(v, lo, hi):
++    return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi
++
++
++def validate_mission(m):
++    """Validation structurelle fermée. Lève MissionRejected ; ne corrige jamais."""
++    _keys(m, ("contract", "agent_id", "profile", "mission_id", "analyzed_ref", "scope",
++              "question", "budget", "capture"), "top")
++    if m["contract"] != MISSION_CONTRACT:
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "contract")
++    if m["agent_id"] not in OBSERVATION_AGENTS:
++        raise MissionRejected("AGENT_UNKNOWN", str(m["agent_id"]))
++    if m["agent_id"] not in EXECUTABLE_AGENTS:
++        raise MissionRejected("AGENT_NOT_QUALIFIED_FOR_BENCH", m["agent_id"])
++    p = m["profile"]
++    _keys(p, ("source_path", "blob_sha1"), "profile")
++    if path_violation(p["source_path"]) or not HEX40.match(str(p["blob_sha1"])):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "profile")
++    ref = m["analyzed_ref"]
++    _keys(ref, ("kind", "sha"), "analyzed_ref")
++    if not ((ref["kind"] == "GIT_COMMIT" and HEX40.match(str(ref["sha"])))
++            or (ref["kind"] == "FIXTURE_TREE" and HEX64.match(str(ref["sha"])))):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "analyzed_ref")
++    s = m["scope"]
++    _keys(s, ("read_paths",), "scope")
++    paths = s["read_paths"]
++    if not isinstance(paths, list) or not paths or paths != sorted(set(paths)):
++        raise MissionRejected("SCOPE_ARRAY_NOT_CANONICAL", "read_paths must be sorted and unique")
++    for path in paths:
++        code = path_violation(path)
++        if code:
++            raise MissionRejected(code, path)
++    kind = m["question"]["kind"] if isinstance(m["question"], dict) else None
++    if kind not in QUESTION_KINDS or QUESTION_KIND_BY_AGENT[m["agent_id"]] != kind:
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.kind does not match agent_id")
++    b = m["budget"]
++    _keys(b, ("max_files", "max_bytes", "max_wall_ms"), "budget")
++    if not (_int(b["max_files"], 1, 5000) and _int(b["max_bytes"], 1, 64_000_000) and _int(b["max_wall_ms"], 1, 600_000)):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "budget")
++    if kind == "REPOSITORY_MAP":
++        _validate_repository_map(m, paths)
++    else:
++        _validate_dataset_chain(m, paths)
++    if not HEX64.match(str(m["mission_id"])) or m["mission_id"] != compute_mission_id(m):
++        raise MissionRejected("MISSION_ID_MISMATCH", "mission_id is not the hash of its identity document")
++    return m
++
++
++def _validate_repository_map(m, paths):
++    q = m["question"]
++    _keys(q, ("kind", "zone_id", "text"), "question")
++    if not SLUG.match(str(q["zone_id"])) or not isinstance(q["text"], str) or not 10 <= len(q["text"]) <= 600:
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.zone_id/text")
++    if m["budget"]["max_files"] > REPOSITORY_MAP_MAX_FILES:
++        raise MissionRejected("FILE_BUDGET_EXCEEDED", f"max_files > {REPOSITORY_MAP_MAX_FILES}")
++    if m["capture"] is not None:
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "REPOSITORY_MAP takes no capture")
++
++
++def _validate_dataset_chain(m, paths):
++    q = m["question"]
++    _keys(q, ("kind", "dataset_id", "text", "as_of_utc", "max_source_age_ms", "source_ts",
++              "write_ts", "units", "join_checks", "observation_key"), "question")
++    if not isinstance(q["dataset_id"], str) or not q["dataset_id"]:
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.dataset_id")
++    if not isinstance(q["text"], str) or not 10 <= len(q["text"]) <= 600:
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.text")
++    if not UTC_SECONDS.match(str(q["as_of_utc"])):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.as_of_utc")
++    if q["max_source_age_ms"] is not None and not _int(q["max_source_age_ms"], 1, 2**53 - 1):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.max_source_age_ms")
++    for k in ("source_ts", "write_ts"):
++        if not POINTER.match(str(q[k])):
++            raise MissionRejected("MISSION_SCHEMA_VIOLATION", f"question.{k}")
++    if not isinstance(q["units"], dict) or not all(POINTER.match(k) and v in UNITS for k, v in q["units"].items()):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.units")
++    if not isinstance(q["join_checks"], list):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.join_checks")
++    for j in q["join_checks"]:
++        _keys(j, ("left", "right", "relation"), "join_check")
++        if not (POINTER.match(str(j["left"])) and POINTER.match(str(j["right"]))) \
++                or j["relation"] not in ("EQUALS", "CONTAINED_IN", "SAME_LENGTH"):
++            raise MissionRejected("MISSION_SCHEMA_VIOLATION", "join_check")
++    ok = q["observation_key"]
++    if not isinstance(ok, list) or not ok or not all(POINTER.match(str(x)) for x in ok):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.observation_key")
++    c = m["capture"]
++    _keys(c, ("capture_id", "path", "sha256", "kind"), "capture")
++    if not SLUG.match(str(c["capture_id"])) or not HEX64.match(str(c["sha256"])) \
++            or c["kind"] not in ("FIXTURE", "COMMITTED_FIXTURE", "AUTHORIZED_CAPTURE"):
++        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "capture")
++    code = path_violation(c["path"])
++    if code:
++        raise MissionRejected(code, c["path"])
++    if not any(c["path"] == r or (r.endswith("/") and c["path"].startswith(r)) for r in paths):
++        raise MissionRejected("CAPTURE_OUT_OF_SCOPE", c["path"])
++
++
++def seal_report(content, run):
++    """Sépare le contenu déterministe des métadonnées d'exécution et scelle les deux."""
++    content_sha = sha256_json(content)
++    body = {"content": content, "content_sha256": content_sha, "run": run}
++    return {**body, "report_sha256": sha256_json(body)}
+diff --git a/agent_bench/observation/invocation.py b/agent_bench/observation/invocation.py
+new file mode 100644
+index 00000000..57b02ed4
+--- /dev/null
++++ b/agent_bench/observation/invocation.py
+@@ -0,0 +1,281 @@
++"""Contrat d'invocation `cat.observation.invocation.v1` : enveloppe, verrou et règles de validation.
++
++Une invocation est publiée comme un seul fichier JSON : l'enveloppe contient le rapport scellé
++et le bloc `verification` (SHA du checkout, empreintes des modules exécutés, empreintes du
++périmètre au SHA analysé). Ce module ne lance rien et n'écrit rien : il valide.
++
++Niveaux distincts (à ne pas confondre) :
++- qualification du profil : `agent_id`, `profile_blob_sha1` ;
++- identité du runner : `runner_id` ;
++- état d'exécution : COMPLETED, FAILED, TIMEOUT, INTERRUPTED, ABANDONED ;
++- résultat scientifique : COMPLETE, PARTIAL, BLOCKED, FAILED (dans le rapport).
++
++Les empreintes sont recalculées, mais elles ne remplacent pas les comparaisons d'identité :
++un rapport correctement scellé d'un autre agent ou d'un autre SHA reste invalide.
++"""
++from __future__ import annotations
++
++import json
++import re
++from datetime import datetime, timezone
++
++from agent_bench.observation import contract as c
++
++INVOCATION_CONTRACT = "cat.observation.invocation.v1"
++LOCK_CONTRACT = "cat.observation.invocation-lock.v1"
++CONTRACT_VERSION = 1
++
++EXECUTION_STATES = ("COMPLETED", "FAILED", "TIMEOUT", "INTERRUPTED", "ABANDONED")
++RESULT_STATUSES = ("COMPLETE", "PARTIAL", "BLOCKED", "FAILED")
++FAILED_STATES = ("FAILED", "TIMEOUT", "INTERRUPTED", "ABANDONED")
++
++HEX40 = re.compile(r"^[0-9a-f]{40}$")
++HEX64 = re.compile(r"^[0-9a-f]{64}$")
++HEX32 = re.compile(r"^[0-9a-f]{32}$")
++UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
++ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
++NAME_RE = re.compile(r"^(\d{8}T\d{6}Z)_([0-9a-f]{32})\.json$")
++
++# Bornes (non modifiables par argument : un argument ne peut que les abaisser).
++MAX_RUN_S = 120                 # durée maximale d'une invocation
++MAX_LEASE_S = 600               # durée maximale d'un bail de verrou
++MAX_FILES = 30                  # périmètre de mission (REPOSITORY_MAP)
++MAX_PROOF_BYTES = 2 * 1024 * 1024
++MAX_DIR_ENTRIES = 200           # énumération réellement bornée d'un dossier de preuves
++CLOCK_SKEW_S = 60
++DISPLAY_TTL_S = 90              # validité d'un affichage vert/rouge sans nouvelle réponse
++ABSENCE_WINDOW_S = 36 * 3600    # règle des 36 h : dernière mission trop ancienne
++
++ENVELOPE_KEYS = {
++    "contract", "contract_version", "invocation_id", "agent_id", "runner_id", "mission_id",
++    "profile_blob_sha1", "code_sha", "analysed_sha", "started_utc", "ended_utc", "state",
++    "exit_code", "interruption_reason", "result_status", "report_sha256", "content_sha256",
++    "limits", "verification", "report",
++}
++VERIFICATION_KEYS = {"checkout_head", "executed_modules", "scope_blobs", "profile_source_path",
++                     "profile_blob_sha1"}
++LOCK_KEYS = {"contract", "agent_id", "runner_id", "mission_id", "invocation_id", "pid",
++             "started_utc", "lease_until_utc"}
++
++
++def parse_utc(v):
++    """Date UTC `AAAA-MM-JJThh:mm:ssZ` (seconde entière), ou None."""
++    if not isinstance(v, str) or not UTC_RE.match(v):
++        return None
++    try:
++        return datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
++    except ValueError:
++        return None
++
++
++def utc_iso(ts):
++    return datetime.fromtimestamp(int(ts), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
++
++
++def utc_now_iso(ts=None):
++    return utc_iso(datetime.now(timezone.utc).timestamp() if ts is None else ts)
++
++
++def stamp_of(utc_str):
++    """`2026-11-22T01:02:03Z` → `20261122T010203Z`."""
++    return utc_str.replace("-", "").replace(":", "")
++
++
++def file_name(env):
++    return f"{stamp_of(env['started_utc'])}_{env['invocation_id']}.json"
++
++
++# --- Verrou -------------------------------------------------------------------------------
++
++def make_lock(*, agent_id, runner_id, mission_id, invocation_id, pid, now, lease_s):
++    lease_s = min(lease_s, MAX_LEASE_S)
++    return {"contract": LOCK_CONTRACT, "agent_id": agent_id, "runner_id": runner_id,
++            "mission_id": mission_id, "invocation_id": invocation_id, "pid": pid,
++            "started_utc": utc_iso(now), "lease_until_utc": utc_iso(now + lease_s)}
++
++
++def validate_lock(data, *, agent_id, runner_id, mission_id, now_ts):
++    """Contenu du verrou : schéma, identités, chronologie, bail borné. (ok, motif)."""
++    if not isinstance(data, dict):
++        return False, "verrou non objet"
++    if set(data) != LOCK_KEYS:
++        return False, "schéma de verrou incomplet ou inattendu"
++    if data["contract"] != LOCK_CONTRACT:
++        return False, "contrat de verrou inconnu"
++    if data["agent_id"] != agent_id:
++        return False, "verrou d'un autre agent"
++    if data["runner_id"] != runner_id:
++        return False, "verrou d'un autre runner"
++    if data["mission_id"] != mission_id:
++        return False, "verrou d'une autre mission"
++    if not (isinstance(data["invocation_id"], str) and HEX32.match(data["invocation_id"])):
++        return False, "identifiant d'invocation absent ou malformé"
++    if not (isinstance(data["pid"], int) and not isinstance(data["pid"], bool) and data["pid"] > 0):
++        return False, "pid absent ou malformé"
++    started, lease = parse_utc(data["started_utc"]), parse_utc(data["lease_until_utc"])
++    if started is None or lease is None:
++        return False, "dates de verrou invalides"
++    if started > now_ts + CLOCK_SKEW_S:
++        return False, "début de verrou dans le futur"
++    if lease <= started:
++        return False, "bail antérieur au début"
++    if lease - started > MAX_LEASE_S:
++        return False, f"bail excessif (> {MAX_LEASE_S} s)"
++    if lease <= now_ts:
++        return False, "bail expiré"
++    return True, "ok"
++
++
++# --- Enveloppe ----------------------------------------------------------------------------
++
++def make_envelope(*, invocation_id, agent_id, runner_id, mission, code_sha, analysed_sha,
++                  started_utc, ended_utc, state, exit_code, interruption_reason, report,
++                  limits, verification):
++    if state not in EXECUTION_STATES:
++        raise ValueError("state")
++    rep = report or {}
++    content = rep.get("content") or {}
++    return {
++        "contract": INVOCATION_CONTRACT, "contract_version": CONTRACT_VERSION,
++        "invocation_id": invocation_id, "agent_id": agent_id, "runner_id": runner_id,
++        "mission_id": mission["mission_id"], "profile_blob_sha1": mission["profile"]["blob_sha1"],
++        "code_sha": code_sha, "analysed_sha": analysed_sha,
++        "started_utc": started_utc, "ended_utc": ended_utc, "state": state,
++        "exit_code": exit_code, "interruption_reason": interruption_reason,
++        "result_status": content.get("status") if report else None,
++        "report_sha256": rep.get("report_sha256"), "content_sha256": rep.get("content_sha256"),
++        "limits": limits, "verification": verification, "report": report,
++    }
++
++
++def _check_verification(env):
++    v = env["verification"]
++    if not isinstance(v, dict) or set(v) != VERIFICATION_KEYS:
++        return "vérification absente ou incomplète"
++    if v["checkout_head"] != env["code_sha"]:
++        return "HEAD vérifié différent du SHA de code déclaré"
++    if v["profile_blob_sha1"] != env["profile_blob_sha1"]:
++        return "profil vérifié différent du profil déclaré"
++    if not isinstance(v["profile_source_path"], str) or not v["profile_source_path"]:
++        return "chemin de profil absent"
++    for key in ("executed_modules", "scope_blobs"):
++        m = v[key]
++        if not isinstance(m, dict) or not m:
++            return f"{key} vide"
++        if not all(isinstance(k, str) and isinstance(b, str) and HEX40.match(b) for k, b in m.items()):
++            return f"{key} malformé"
++    return None
++
++
++def validate_envelope(env, *, agent_id, runner_id, mission_id, now_ts, expected_profile_blob=None):
++    """(classe, motif). classe ∈ VALID, INVALID, INCOMPLETE, FUTURE.
++
++    VALID : schéma, identités, cohérence enveloppe/rapport/sources, chronologie, empreintes.
++    Il ne dit rien d'une exécution en cours.
++    """
++    if not isinstance(env, dict):
++        return "INVALID", "enveloppe non objet"
++    missing, extra = ENVELOPE_KEYS - set(env), set(env) - ENVELOPE_KEYS
++    if missing:
++        return "INCOMPLETE", f"champs manquants: {','.join(sorted(missing))}"
++    if extra:
++        return "INVALID", f"champs inattendus: {','.join(sorted(extra))}"
++    if env["contract"] != INVOCATION_CONTRACT or env["contract_version"] != CONTRACT_VERSION:
++        return "INVALID", "version de contrat inconnue"
++    if not (isinstance(env["invocation_id"], str) and HEX32.match(env["invocation_id"])):
++        return "INVALID", "invocation_id"
++    if env["agent_id"] != agent_id:
++        return "INVALID", "agent_id différent de l'agent attendu"
++    if env["runner_id"] != runner_id:
++        return "INVALID", "runner_id différent du runner attendu"
++    if env["mission_id"] != mission_id:
++        return "INVALID", "mission_id différent de la mission attendue"
++    state = env["state"]
++    if state not in EXECUTION_STATES:
++        return "INVALID", "état d'exécution inconnu"
++    abandoned = state == "ABANDONED"
++    for k in ("profile_blob_sha1", "code_sha", "analysed_sha"):
++        if abandoned and env[k] is None:
++            continue  # une invocation abandonnée n'a pas prouvé ses SHA : null, jamais inventé
++        if not (isinstance(env[k], str) and HEX40.match(env[k])):
++            return "INVALID", f"{k} absent ou malformé"
++    if expected_profile_blob is not None and not abandoned and env["profile_blob_sha1"] != expected_profile_blob:
++        return "INVALID", "profil différent du profil qualifié"
++    started, ended = parse_utc(env["started_utc"]), parse_utc(env["ended_utc"])
++    if started is None or ended is None:
++        return "INVALID", "dates UTC invalides"
++    if ended < started:
++        return "INVALID", "fin antérieure au début"
++    if started > now_ts + CLOCK_SKEW_S or ended > now_ts + CLOCK_SKEW_S:
++        return "FUTURE", "date future"
++
++    # Cohérence état d'exécution / code de sortie / motif.
++    code = env["exit_code"]
++    if state == "COMPLETED" and code != 0:
++        return "INVALID", "COMPLETED exige un code de sortie 0"
++    if state == "FAILED" and not (isinstance(code, int) and not isinstance(code, bool) and code >= 1):
++        return "INVALID", "FAILED exige un code de sortie ≥ 1"
++    if state in ("TIMEOUT", "INTERRUPTED", "ABANDONED") and code is not None:
++        return "INVALID", "code de sortie inattendu pour une interruption"
++    if state != "COMPLETED" and not env["interruption_reason"]:
++        return "INVALID", "motif d'échec ou d'interruption absent"
++
++    if abandoned:
++        if any(env[k] is not None for k in ("report", "result_status", "report_sha256",
++                                            "content_sha256", "verification", "limits")):
++            return "INVALID", "une invocation abandonnée ne porte ni rapport ni vérification"
++        return "VALID", "ok"
++
++    lim = env["limits"]
++    if not (isinstance(lim, dict) and isinstance(lim.get("max_files"), int)
++            and isinstance(lim.get("max_run_s"), (int, float))):
++        return "INVALID", "limites absentes"
++    if lim["max_files"] > MAX_FILES or lim["max_run_s"] > MAX_RUN_S:
++        return "INVALID", "limites déclarées au-delà des bornes"
++    why = _check_verification(env)
++    if why:
++        return "INVALID", why
++
++    rep = env["report"]
++    if state != "COMPLETED":
++        if rep is not None or env["result_status"] is not None:
++            return "INVALID", "rapport présent sur une invocation non terminée"
++        return "VALID", "ok"
++    if not isinstance(rep, dict):
++        return "INCOMPLETE", "rapport absent"
++    if set(rep) != {"content", "content_sha256", "run", "report_sha256"}:
++        return "INVALID", "enveloppe de rapport inattendue"
++    if rep["content_sha256"] != c.sha256_json(rep["content"]):
++        return "INVALID", "empreinte du contenu altérée"
++    if rep["report_sha256"] != c.sha256_json({"content": rep["content"],
++                                              "content_sha256": rep["content_sha256"],
++                                              "run": rep["run"]}):
++        return "INVALID", "empreinte du rapport altérée"
++    if env["content_sha256"] != rep["content_sha256"] or env["report_sha256"] != rep["report_sha256"]:
++        return "INVALID", "empreintes d'enveloppe incohérentes"
++    ct = rep["content"]
++    # Comparaisons d'identité : un sceau correct ne les remplace pas.
++    if ct.get("agent_id") != env["agent_id"]:
++        return "INVALID", "rapport d'un autre agent"
++    if ct.get("mission_id") != env["mission_id"]:
++        return "INVALID", "rapport d'une autre mission"
++    if ct.get("analyzed_ref") != {"kind": "GIT_COMMIT", "sha": env["analysed_sha"]}:
++        return "INVALID", "SHA analysé du rapport différent de l'enveloppe"
++    prof = ct.get("profile")
++    if not (isinstance(prof, dict) and prof.get("path") == "profile:" + env["verification"]["profile_source_path"]):
++        return "INVALID", "profil du rapport incohérent"
++    if ct.get("status") not in RESULT_STATUSES:
++        return "INVALID", "statut de résultat inconnu"
++    if env["result_status"] != ct["status"]:
++        return "INVALID", "résultat déclaré incohérent avec le rapport"
++    sources = {s.get("path") for s in ct.get("sources", [])
++               if isinstance(s, dict) and not str(s.get("path", "")).startswith("profile:")}
++    if not sources <= set(env["verification"]["scope_blobs"]):
++        return "INVALID", "sources du rapport hors du périmètre vérifié"
++    return "VALID", "ok"
++
++
++def json_load_bounded(raw: bytes):
++    if len(raw) > MAX_PROOF_BYTES:
++        raise ValueError("TOO_LARGE")
++    return json.loads(raw.decode("utf-8"))
+diff --git a/agent_bench/observation/invocation_reader.py b/agent_bench/observation/invocation_reader.py
+new file mode 100644
+index 00000000..fc77894c
+--- /dev/null
++++ b/agent_bench/observation/invocation_reader.py
+@@ -0,0 +1,249 @@
++"""Lecteur strictement passif des preuves d'invocation (contrat v1).
++
++Passif : aucun fichier créé, modifié ou verrouillé. L'observation de vie lit `/proc/locks`
++(verrou noyau tenu sur l'inode du fichier de verrou) ; elle ne prend jamais de verrou, pour ne
++pas perturber l'exécuteur.
++
++Sortie, partagée avec l'interface (`display`) :
++- connexion et preuve : AVAILABLE, ABSENT, ACCESS_DENIED, UNREADABLE, INCOMPLETE, INVALID ;
++- activité : EN_COURS (verrou noyau tenu + contenu de verrou valide + bail non expiré),
++  TERMINE (dernière enveloppe valide), INDETERMINE (tout le reste) ;
++- dernier résultat scientifique, séparé ;
++- `display` : GREEN seulement si identité, preuve, observation de vie et fraîcheur sont valides ;
++  RED pour une fin attestée (« fin normale » ou « échec ») ; GRAY sinon ; `valid_until_utc` borne
++  la durée pendant laquelle l'interface peut afficher cette couleur sans nouvelle réponse.
++
++Relire un ancien rapport ne rajeunit jamais l'activité : `last_activity_utc` est la fin consignée.
++"""
++from __future__ import annotations
++
++import errno
++import json
++import os
++import stat
++from pathlib import Path
++
++from agent_bench.observation import invocation as inv
++
++PROC_LOCKS = Path("/proc/locks")
++
++
++_TRAVERSE = getattr(os, "O_PATH", os.O_RDONLY)
++
++
++def _open_dir(root: Path, *parts):
++    """Ouvre root/parts… en refusant tout lien symbolique, à chaque niveau (racine comprise).
++
++    Les niveaux intermédiaires sont ouverts en `O_PATH` : le compte lecteur n'a besoin que du droit
++    de traverser (`x`) le dossier des rapports, pas de le lister. Seul le dernier niveau est ouvert
++    en lecture (énumération ou lecture des fichiers).
++    """
++    last = len(parts)
++    fd = os.open(root, (os.O_RDONLY if last == 0 else _TRAVERSE) | os.O_DIRECTORY | os.O_NOFOLLOW)
++    try:
++        for i, part in enumerate(parts, 1):
++            mode = os.O_RDONLY if i == last else _TRAVERSE
++            nfd = os.open(part, mode | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
++            os.close(fd)
++            fd = nfd
++        return fd
++    except BaseException:
++        os.close(fd)
++        raise
++
++
++def _read_at(dfd, name):
++    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=dfd)
++    try:
++        st = os.fstat(fd)
++        if not stat.S_ISREG(st.st_mode):
++            raise ValueError("NOT_REGULAR")
++        if st.st_size > inv.MAX_PROOF_BYTES:
++            raise ValueError("TOO_LARGE")
++        data = os.read(fd, inv.MAX_PROOF_BYTES + 1)
++        if len(data) > inv.MAX_PROOF_BYTES:
++            raise ValueError("TOO_LARGE")
++        return data, st
++    finally:
++        os.close(fd)
++
++
++def _err_kind(exc):
++    if isinstance(exc, PermissionError):
++        return "ACCESS_DENIED", "accès refusé"
++    if isinstance(exc, FileNotFoundError):
++        return "ABSENT", "absent"
++    if isinstance(exc, OSError) and exc.errno in (errno.ELOOP, errno.ENOTDIR):
++        return "UNREADABLE", "lien symbolique ou chemin non conforme refusé"
++    return "UNREADABLE", type(exc).__name__
++
++
++def flock_holders(st, proc_locks: Path = PROC_LOCKS):
++    """PIDs détenant un FLOCK WRITE sur l'inode `st`, d'après /proc/locks. None si illisible."""
++    try:
++        text = proc_locks.read_text(encoding="ascii", errors="replace")
++    except OSError:
++        return None
++    want = (os.major(st.st_dev), os.minor(st.st_dev), st.st_ino)
++    pids = set()
++    for line in text.splitlines():
++        parts = line.split()
++        if "->" in parts:      # verrou en attente, pas tenu
++            continue
++        if len(parts) < 6 or parts[1] != "FLOCK" or parts[3] != "WRITE":
++            continue
++        try:
++            maj, mnr, ino = parts[5].split(":")
++            key = (int(maj, 16), int(mnr, 16), int(ino))
++            pid = int(parts[4])
++        except ValueError:
++            continue
++        if key == want:
++            pids.add(pid)
++    return pids
++
++
++def read_lock(reports: Path, *, agent_id, runner_id, mission_id, now_ts, proc_locks: Path = PROC_LOCKS):
++    """Activité en cours attestée ou non. Ne lève pas."""
++    try:
++        dfd = _open_dir(reports, "locks")
++    except OSError as exc:
++        kind, why = _err_kind(exc)
++        return {"activity": "INDETERMINE", "life_observed": False,
++                "reason": "aucun verrou" if kind == "ABSENT" else f"verrous illisibles ({why})"}
++    try:
++        try:
++            raw, st = _read_at(dfd, f"{runner_id}.lock")
++        except (OSError, ValueError) as exc:
++            if isinstance(exc, FileNotFoundError):
++                return {"activity": "INDETERMINE", "life_observed": False, "reason": "aucun verrou"}
++            return {"activity": "INDETERMINE", "life_observed": False, "reason": f"verrou illisible ({type(exc).__name__})"}
++    finally:
++        os.close(dfd)
++    holders = flock_holders(st, proc_locks)
++    if holders is None:
++        return {"activity": "INDETERMINE", "life_observed": False,
++                "reason": "vie du processus non attestable (/proc/locks illisible)"}
++    if not holders:
++        return {"activity": "INDETERMINE", "life_observed": False,
++                "reason": "aucun processus ne détient le verrou"}
++    try:
++        data = json.loads(raw.decode("utf-8")) if raw.strip() else None
++    except ValueError:
++        data = None
++    ok, why = inv.validate_lock(data, agent_id=agent_id, runner_id=runner_id, mission_id=mission_id,
++                                now_ts=now_ts)
++    if not ok:
++        return {"activity": "INDETERMINE", "life_observed": True, "reason": f"verrou tenu mais invalide : {why}"}
++    if data["pid"] not in holders:
++        return {"activity": "INDETERMINE", "life_observed": True,
++                "reason": "le processus détenteur n'est pas celui déclaré dans le verrou"}
++    return {"activity": "EN_COURS", "life_observed": True, "reason": "verrou noyau tenu, bail valide",
++            "invocation_id": data["invocation_id"], "started_utc": data["started_utc"],
++            "lease_until_utc": data["lease_until_utc"]}
++
++
++def _list_bounded(dfd):
++    """Énumère au plus MAX_DIR_ENTRIES entrées ; au-delà, refus explicite (pas de troncature muette)."""
++    names = []
++    with os.scandir(dfd) as it:
++        for e in it:
++            if len(names) >= inv.MAX_DIR_ENTRIES:
++                raise OverflowError
++            names.append(e.name)
++    return names
++
++
++def _display(out, now_ts):
++    """Contrat d'affichage partagé avec l'interface."""
++    ttl = inv.utc_iso(now_ts + inv.DISPLAY_TTL_S)
++    if out["activity"] == "EN_COURS" and out["life_observed"] and out["connection"] in ("AVAILABLE", "ABSENT"):
++        lease = inv.parse_utc(out["lease_until_utc"]) or now_ts
++        return {"light": "GREEN", "label": "Actif", "reason": "exécution en cours attestée",
++                "valid_until_utc": inv.utc_iso(min(lease, now_ts + inv.DISPLAY_TTL_S))}
++    if out["activity"] == "EN_COURS":
++        return {"light": "GRAY", "label": "Non attesté",
++                "reason": f"exécution signalée mais preuve {out['connection']}", "valid_until_utc": None}
++    if out["activity"] == "TERMINE":
++        failed = out["last_state"] in inv.FAILED_STATES
++        label = "Inactif · échec" if failed else "Inactif · fin normale"
++        if out["mission_overdue"]:
++            label += " · aucune mission depuis plus de 36 h"
++        return {"light": "RED", "label": label, "reason": f"dernière invocation {out['last_state']}",
++                "valid_until_utc": ttl}
++    return {"light": "GRAY", "label": "Non attesté",
++            "reason": out["activity_reason"] or out["connection_reason"] or "état non attestable",
++            "valid_until_utc": None}
++
++
++def read_status(reports: Path, *, mission_id: str, agent_id: str, runner_id: str, now_ts: float,
++                expected_profile_blob=None, proc_locks: Path = PROC_LOCKS):
++    """Résumé pour Système. Ne lève pas : toute erreur devient un état explicite."""
++    out = {"contract": inv.INVOCATION_CONTRACT, "agent_id": agent_id, "runner_id": runner_id,
++           "mission_id": mission_id, "server_observed_at_utc": inv.utc_iso(now_ts),
++           "connection": None, "connection_reason": None,
++           "activity": "INDETERMINE", "activity_reason": None, "life_observed": False,
++           "lease_until_utc": None, "last_activity_utc": None, "last_mission_age_s": None,
++           "mission_overdue": False, "last_result": None, "last_state": None, "invocation_id": None,
++           "display": None}
++
++    lock = read_lock(reports, agent_id=agent_id, runner_id=runner_id, mission_id=mission_id,
++                     now_ts=now_ts, proc_locks=proc_locks)
++    out["activity_reason"] = lock["reason"]
++    out["life_observed"] = lock["life_observed"]
++    if lock["activity"] == "EN_COURS":
++        out["activity"] = "EN_COURS"
++        out["lease_until_utc"] = lock["lease_until_utc"]
++        out["last_activity_utc"] = lock["started_utc"]
++        out["invocation_id"] = lock["invocation_id"]
++
++    def done(conn, why):
++        out["connection"], out["connection_reason"] = conn, why
++        out["display"] = _display(out, now_ts)
++        return out
++
++    try:
++        dfd = _open_dir(reports, "runs", mission_id)
++    except OSError as exc:
++        kind, why = _err_kind(exc)
++        return done(kind, "aucune invocation consignée" if kind == "ABSENT" else f"dossier de preuves : {why}")
++    try:
++        try:
++            names = _list_bounded(dfd)
++        except OverflowError:
++            return done("UNREADABLE", f"plus de {inv.MAX_DIR_ENTRIES} entrées : énumération refusée")
++        except OSError as exc:
++            return done(*_err_kind(exc))
++        candidates = sorted(n for n in names if inv.NAME_RE.match(n))
++        if not candidates:
++            return done("ABSENT", "aucune invocation consignée")
++        latest = candidates[-1]
++        try:
++            raw, _ = _read_at(dfd, latest)
++            env = json.loads(raw.decode("utf-8"))
++        except (OSError, ValueError) as exc:
++            kind, why = _err_kind(exc) if isinstance(exc, OSError) else ("INVALID", f"fichier illisible ({exc})")
++            return done(kind if kind != "ABSENT" else "UNREADABLE", why)
++    finally:
++        os.close(dfd)
++
++    verdict, reason = inv.validate_envelope(env, agent_id=agent_id, runner_id=runner_id,
++                                            mission_id=mission_id, now_ts=now_ts,
++                                            expected_profile_blob=expected_profile_blob)
++    if verdict == "VALID" and inv.file_name(env) != latest:
++        verdict, reason = "INVALID", "nom de fichier incohérent avec l'enveloppe"
++    if verdict != "VALID":
++        out["last_state"] = None
++        return done("INCOMPLETE" if verdict == "INCOMPLETE" else "INVALID", f"{verdict}: {reason}")
++
++    out["last_state"] = env["state"]
++    out["last_result"] = env["result_status"]
++    ended = inv.parse_utc(env["ended_utc"])
++    out["last_mission_age_s"] = max(0, int(now_ts - ended))
++    out["mission_overdue"] = now_ts - ended > inv.ABSENCE_WINDOW_S
++    if out["activity"] != "EN_COURS":
++        out["activity"] = "TERMINE"
++        out["activity_reason"] = f"dernière invocation {env['state']} ({lock['reason']})"
++        out["last_activity_utc"] = env["ended_utc"]
++        out["invocation_id"] = env["invocation_id"]
++    return done("AVAILABLE", "dernière preuve valide")
+diff --git a/observability/operator_api/agent_invocation_reader.py b/observability/operator_api/agent_invocation_reader.py
+new file mode 100644
+index 00000000..0f3f3d04
+--- /dev/null
++++ b/observability/operator_api/agent_invocation_reader.py
+@@ -0,0 +1,50 @@
++"""Lecteur en lecture seule des preuves d'invocation d'agents (contrat v1).
++
++Aucune écriture, aucun verrou pris, aucun lancement. Le chemin des rapports vient de
++`AGENT_INVOCATION_REPORTS_PATH` (défaut : `/srv/cat-obs/reports`) et n'est jamais renvoyé
++au client. Seuls les agents listés ci-dessous sont lisibles, avec leur identité attendue.
++"""
++
++from __future__ import annotations
++
++import os
++import time
++from pathlib import Path
++
++from agent_bench.observation import invocation as inv
++from agent_bench.observation import invocation_reader as rd
++
++DEFAULT_REPORTS_PATH = Path(os.getenv("AGENT_INVOCATION_REPORTS_PATH", "/srv/cat-obs/reports"))
++
++# Cibles autorisées : identité attendue, pas de chemin ni de nom libre.
++TARGETS = {
++    "repository-cartographer": {
++        "agent_id": "repository-cartographer",
++        "runner_id": "obs-repo-cartographer-ro-01",
++        "mission_id": "02e0f78f43d1062ee0efed015ad9fe37329dbe480062f02c53e32c82e19fdece",
++        "profile_blob_sha1": "dd414cad0c9b73c5106d6593dd603966db14ec83",
++    },
++}
++
++
++def read_agent_invocation(target: str, *, reports: Path | None = None, now_ts: float | None = None) -> dict:
++    spec = TARGETS.get(target)
++    if spec is None:
++        raise KeyError(target)
++    now = time.time() if now_ts is None else now_ts
++    try:
++        summary = rd.read_status(reports or DEFAULT_REPORTS_PATH, mission_id=spec["mission_id"],
++                                 agent_id=spec["agent_id"], runner_id=spec["runner_id"], now_ts=now,
++                                 expected_profile_blob=spec["profile_blob_sha1"])
++    except Exception:  # noqa: BLE001 — jamais une exception brute vers le client
++        summary = {"contract": inv.INVOCATION_CONTRACT, "agent_id": spec["agent_id"],
++                   "runner_id": spec["runner_id"], "mission_id": spec["mission_id"],
++                   "server_observed_at_utc": inv.utc_iso(now), "connection": "UNREADABLE",
++                   "connection_reason": "lecture impossible", "activity": "INDETERMINE",
++                   "activity_reason": None, "life_observed": False, "lease_until_utc": None,
++                   "last_activity_utc": None, "last_mission_age_s": None, "mission_overdue": False,
++                   "last_result": None, "last_state": None, "invocation_id": None,
++                   "display": {"light": "GRAY", "label": "Non attesté", "reason": "lecture impossible",
++                               "valid_until_utc": None}}
++    summary["read_only"] = True
++    return summary
+diff --git a/observability/operator_api/app.py b/observability/operator_api/app.py
+index 39592cdd..e9406904 100644
+--- a/observability/operator_api/app.py
++++ b/observability/operator_api/app.py
+@@ -29,6 +29,7 @@ from observability.operator_api.event_center_reader import EventCenterReader
+ from observability.operator_api.storage_reader import StorageSnapshotReader
+ from observability.operator_api.venue_comparison_reader import VenueComparisonReader
+ from observability.operator_api.market_flow_reader import MarketFlowReader
++from observability.operator_api.agent_invocation_reader import TARGETS as AGENT_INVOCATION_TARGETS, read_agent_invocation
+ 
+ from observability.operator_api.market_microstructure_reader import (
+     DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
+@@ -491,6 +492,15 @@ def get_market_microstructure() -> Any:
+     return result.snapshot
+ 
+ 
++@app.get("/api/operator/v1/agent-invocations/{agent_id}")
++def get_agent_invocation(agent_id: str) -> Any:
++    """Lecture seule de la dernière preuve d'invocation d'un agent autorisé."""
++    if agent_id not in AGENT_INVOCATION_TARGETS:
++        return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"},
++                            headers={"Cache-Control": "no-store"})
++    return JSONResponse(content=read_agent_invocation(agent_id), headers={"Cache-Control": "no-store"})
++
++
+ @app.get("/api/operator/v1/runtime-service")
+ def get_runtime_service() -> Any:
+     """Transport only the passive host/systemd observation artifact."""
