@@ -78,3 +78,7 @@
 .miniterm-menu button { background: none; border: 0; text-align: left; padding: 0.6rem 0.9rem; font-size: 0.9rem; color: inherit; cursor: pointer; }
 .miniterm-menu button:hover, .miniterm-menu button.is-current { background: #fff7e6; font-weight: 600; }
 .miniterm-pending { color: #b26b00; }
+.agent-profile-slotted { padding: 0; border: 0; background: none; }
+.agent-profile-slotted > .miniterm { margin-top: 0; }
+.miniterm-info { padding: 0.6rem 1rem; border-bottom: 1px solid var(--bg-border); font-size: 0.85rem; }
+.miniterm-info .agent-mission { margin: 0 0 0.5rem; }

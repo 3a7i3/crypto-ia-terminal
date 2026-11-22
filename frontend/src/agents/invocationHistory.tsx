@@ -134,11 +134,12 @@ const Bubble: React.FC<{ item: HistoryItem; previous?: HistoryItem }> = ({ item,
 
 const GIRO_CLASS: Record<ActivityLight, string> = { GREEN: "green", RED: "red", GRAY: "gray" } as Record<ActivityLight, string>;
 
-export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightReason: string; history: HistoryState; controls?: React.ReactNode }> = ({
+export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightReason: string; history: HistoryState; controls?: React.ReactNode; info?: React.ReactNode }> = ({
   light,
   lightReason,
   history,
   controls,
+  info,
 }) => {
   const chrono = history.status === "OK" ? [...history.items].reverse() : [];
   let lastDay = "";
@@ -157,6 +158,7 @@ export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightRea
         />
         <h3>Repository Cartographer</h3>
       </header>
+      {info ? <div className="miniterm-info" data-testid="miniterm-info">{info}</div> : null}
       {controls}
       <div className="miniterm-term" data-testid="miniterm-term">
         {history.status === "LOADING" ? <div className="miniterm-day">Lecture en cours…</div> : null}

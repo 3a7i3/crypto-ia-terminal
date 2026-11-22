@@ -5,7 +5,7 @@
 importScripts("/pwa-policy.js");
 
 const SHELL_CACHE_PREFIX = "crypto-ai-operator-shell-";
-const SHELL_CACHE = `${SHELL_CACHE_PREFIX}cat-agent-in-family-599`;
+const SHELL_CACHE = `${SHELL_CACHE_PREFIX}cat-agent-info-in-terminal-599`;
 const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",

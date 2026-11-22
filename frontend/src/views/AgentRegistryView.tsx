@@ -55,13 +55,8 @@ const SourceLink: React.FC<{ agent: AgentIdentity }> = ({ agent }) => (
   </a>
 );
 
-const AgentProfile: React.FC<{ agent: AgentIdentity; verdict: ActivityVerdict; children?: React.ReactNode }> = ({
-  agent,
-  verdict,
-  children,
-}) => (
-  <article className="agent-profile" data-testid={`agent-profile-${agent.id}`}>
-    <h4>{agent.display_name}</h4>
+const AgentFacts: React.FC<{ agent: AgentIdentity; verdict: ActivityVerdict }> = ({ agent, verdict }) => (
+  <>
     <p className="agent-mission">{agent.mission}</p>
     <ActivityLightView verdict={verdict} />
     <dl className="agent-facts">
@@ -90,9 +85,32 @@ const AgentProfile: React.FC<{ agent: AgentIdentity; verdict: ActivityVerdict; c
         <dd data-testid="agent-last-proof">{verdict.last_proof_at_utc ?? "Aucune preuve disponible"}</dd>
       </div>
     </dl>
-    {children}
-  </article>
+  </>
 );
+
+/** Un emplacement reçoit la fiche de l'agent et l'affiche où il veut (ex. sous le titre du terminal). */
+export type AgentSlot = (facts: React.ReactNode) => React.ReactNode;
+
+const AgentProfile: React.FC<{ agent: AgentIdentity; verdict: ActivityVerdict; slot?: AgentSlot }> = ({
+  agent,
+  verdict,
+  slot,
+}) => {
+  const facts = <AgentFacts agent={agent} verdict={verdict} />;
+  if (slot) {
+    return (
+      <article className="agent-profile agent-profile-slotted" data-testid={`agent-profile-${agent.id}`}>
+        {slot(facts)}
+      </article>
+    );
+  }
+  return (
+    <article className="agent-profile" data-testid={`agent-profile-${agent.id}`}>
+      <h4>{agent.display_name}</h4>
+      {facts}
+    </article>
+  );
+};
 
 const countLights = (verdicts: ActivityVerdict[]) => {
   const c = { GREEN: 0, RED: 0, GRAY: 0 };
@@ -105,7 +123,7 @@ export const AgentRegistryPanel: React.FC<{
   evidence: EvidenceSource;
   nowMs: number;
   /** Contenu supplémentaire affiché dans le bloc d'un agent (ex. mini terminal), par identifiant. */
-  slots?: Record<string, React.ReactNode>;
+  slots?: Record<string, AgentSlot>;
 }> = ({ registry, evidence, nowMs, slots }) => {
   const families = FAMILY_ORDER.map((id) => registry.families.find((f) => f.id === id)!);
   const legacy = legacyAgents(registry);
@@ -147,9 +165,7 @@ export const AgentRegistryPanel: React.FC<{
               ) : (
                 <div className="agent-profile-list">
                   {agents.map((a, i) => (
-                    <AgentProfile key={a.id} agent={a} verdict={verdicts[i]}>
-                      {slots?.[a.id]}
-                    </AgentProfile>
+                    <AgentProfile key={a.id} agent={a} verdict={verdicts[i]} slot={slots?.[a.id]} />
                   ))}
                 </div>
               )}
@@ -310,9 +326,10 @@ export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs
         evidence={evidence}
         nowMs={nowMs}
         slots={{
-          "repository-cartographer": (
+          "repository-cartographer": (facts) => (
             <>
               <CartographerMiniTerminal
+                info={facts}
                 light={off && verdict.light !== "GREEN" ? "GRAY" : verdict.light}
                 lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
                 history={history}
