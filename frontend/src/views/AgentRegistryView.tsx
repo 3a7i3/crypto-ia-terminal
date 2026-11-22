@@ -4,12 +4,14 @@
 // aucun bouton de lancement, d'arrêt, de trading ou de délégation. Le voyant
 // d'activité vient de `classifyActivity` et reste gris sans preuve serveur.
 
+import { ScheduleControl, useAgentSchedule } from "../agents/agentSchedule";
 import { CartographerMiniTerminal, useInvocationHistory } from "../agents/invocationHistory";
 import React from "react";
 import "../agents/agentRegistry.css";
 import {
   INVOCATION_FLAG_ON,
   localExpiryMs,
+  parseUtc,
   useInvocationEvidence,
   type PollState,
 } from "../agents/invocationEvidence";
@@ -277,12 +279,30 @@ export const InvocationProofCard: React.FC<{ state: PollState; verdict: Activity
 
 /** Vue branchée (drapeau actif) ; exportée pour les tests d'expiration. */
 export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs }) => {
-  const { evidence, nowMs, state, verdict } = useInvocationEvidence(true, { pollMs });
-  const history = useInvocationHistory(true, pollMs);
+  const sched = useAgentSchedule(true);
+  // Le passage dure moins d'une seconde : lecture rapprochée autour de l'heure prévue pour
+  // que le vert (exécution attestée par le verrou noyau) soit visible.
+  const [burst, setBurst] = React.useState(false);
+  const next = sched.schedule?.applied && sched.schedule.applied !== "off" ? parseUtc(sched.schedule.next_utc) : null;
+  React.useEffect(() => {
+    if (next === null) return undefined;
+    const startIn = Math.max(0, next - Date.now() - 2_000);
+    const a = setTimeout(() => setBurst(true), startIn);
+    const b = setTimeout(() => setBurst(false), startIn + 12_000);
+    return () => { clearTimeout(a); clearTimeout(b); setBurst(false); };
+  }, [next]);
+  const { evidence, nowMs, state, verdict } = useInvocationEvidence(true, { pollMs: burst ? 100 : pollMs });
+  const history = useInvocationHistory(true, burst ? 3_000 : pollMs);
+  const off = sched.schedule?.applied === "off";
   return (
     <>
       <AgentRegistryPanel registry={AGENT_REGISTRY} evidence={evidence} nowMs={nowMs} />
-      <CartographerMiniTerminal light={verdict.light} lightReason={`${verdict.label} · ${verdict.reason}`} history={history} />
+      <CartographerMiniTerminal
+        light={off && verdict.light !== "GREEN" ? "GRAY" : verdict.light}
+        lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
+        history={history}
+        controls={<ScheduleControl schedule={sched.schedule} error={sched.error} sending={sched.sending} onPick={(v) => void sched.request(v)} />}
+      />
       <details className="invocation-details">
         <summary>Détail de la preuve</summary>
         <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />

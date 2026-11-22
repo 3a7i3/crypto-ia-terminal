@@ -59,8 +59,17 @@ function apiError(response, status, code, message) {
   response.end(JSON.stringify({ error_code: code, error_message: message }));
 }
 
-function methodAllowed(request) {
-  return request.method === "GET" || request.method === "HEAD";
+// Exception gouvernée UNIQUE (opérateur, 2026-11-22 07:23Z) : demande de rythme d'un agent
+// d'observation. Seule écriture relayée ; corps borné ; tout le reste reste GET/HEAD.
+export const AGENT_SCHEDULE_PATH_RE = /^\/api\/operator\/v1\/agent-invocations\/[a-z0-9-]{1,64}\/schedule$/;
+const SCHEDULE_MAX_BODY = 256;
+
+function isSchedulePost(request, pathname) {
+  return request.method === "POST" && AGENT_SCHEDULE_PATH_RE.test(pathname);
+}
+
+function methodAllowed(request, pathname) {
+  return request.method === "GET" || request.method === "HEAD" || isSchedulePost(request, pathname);
 }
 
 function isApiPath(pathname) {
@@ -83,7 +92,9 @@ function proxyToOperatorApi(request, response, target) {
     port: target.port,
     method: request.method,
     path: request.url,
-    headers: { host: target.host },
+    headers: request.method === "POST"
+      ? { host: target.host, "content-type": "application/json", "x-cat-operator": String(request.headers["x-cat-operator"] ?? "") }
+      : { host: target.host },
   }, (upstreamResponse) => {
     const headers = copyProxyHeaders(upstreamResponse.headers);
     // WEB-01B runtime truth must remain network-only from the browser/PWA
@@ -100,7 +111,15 @@ function proxyToOperatorApi(request, response, target) {
   });
   upstream.setTimeout(UPSTREAM_TIMEOUT_MS, () => upstream.destroy(new Error("UPSTREAM_TIMEOUT")));
   upstream.once("error", () => failRequest(response, 502, "OPERATOR_API_UNAVAILABLE", "Local Operator API is unavailable."));
-  request.pipe(upstream);
+  if (request.method !== "POST") return void request.pipe(upstream);
+  let size = 0;
+  const chunks = [];
+  request.on("data", (c) => {
+    size += c.length;
+    if (size > SCHEDULE_MAX_BODY) { upstream.destroy(); request.destroy(); return; }
+    chunks.push(c);
+  });
+  request.on("end", () => { if (size <= SCHEDULE_MAX_BODY) upstream.end(Buffer.concat(chunks)); });
 }
 
 async function resolveStaticPath(distRoot, pathname) {
@@ -152,7 +171,7 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
       try { url = new URL(request.url ?? "/", `http://${host}`); } catch {
         return failRequest(response, 400, "INVALID_REQUEST_URL", "Request target is not a valid URL.");
       }
-      if (!methodAllowed(request)) return apiError(response, 405, "METHOD_NOT_ALLOWED", "WEB-01G accepts GET and HEAD only.");
+      if (!methodAllowed(request, url.pathname)) return apiError(response, 405, "METHOD_NOT_ALLOWED", "WEB-01G accepts GET and HEAD only (sauf demande de rythme d'agent).");
       if (balanceHistory && url.pathname === "/api/operator/v1/paper-balance-history") {
         const period = url.searchParams.get("days") ?? "1";
         if (!["1", "7", "30"].includes(period)) return apiError(response, 400, "INVALID_PERIOD", "Expected 1, 7 or 30 days.");

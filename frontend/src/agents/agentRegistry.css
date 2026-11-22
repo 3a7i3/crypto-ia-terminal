@@ -71,3 +71,10 @@
 .miniterm-meta { opacity: 0.7; font-size: 0.7rem; }
 .miniterm-ft { margin-top: 0.3rem; text-align: right; font-size: 0.7rem; opacity: 0.7; }
 .miniterm-foot { margin: 0; padding: 0 1rem 0.6rem; font-size: 0.7rem; opacity: 0.7; }
+.miniterm-dd { position: relative; }
+.miniterm-clock { cursor: pointer; }
+.miniterm-clock:disabled { cursor: progress; opacity: 0.7; }
+.miniterm-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; display: flex; flex-direction: column; min-width: 9rem; background: #fff; color: #1a1a1a; border: 1px solid #f5a524; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.15); }
+.miniterm-menu button { background: none; border: 0; text-align: left; padding: 0.6rem 0.9rem; font-size: 0.9rem; color: inherit; cursor: pointer; }
+.miniterm-menu button:hover, .miniterm-menu button.is-current { background: #fff7e6; font-weight: 600; }
+.miniterm-pending { color: #b26b00; }

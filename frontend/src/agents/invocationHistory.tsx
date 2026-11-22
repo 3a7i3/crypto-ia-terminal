@@ -11,8 +11,6 @@ import { CARTOGRAPHER_INVOCATION_URL, INVOCATION_CONTRACT, parseUtc } from "./in
 
 export const CARTOGRAPHER_HISTORY_URL = `${CARTOGRAPHER_INVOCATION_URL}/history`;
 export const HISTORY_POLL_MS = 30_000;
-/** Rythme réglé sur le serveur par l'opérateur (affichage seul ; aucune commande). */
-export const CARTOGRAPHER_RHYTHM_LABEL = (import.meta.env.VITE_CARTOGRAPHER_RHYTHM as string | undefined) || "non déclaré";
 
 export interface HistoryItem {
   verdict: string;
@@ -136,10 +134,11 @@ const Bubble: React.FC<{ item: HistoryItem; previous?: HistoryItem }> = ({ item,
 
 const GIRO_CLASS: Record<ActivityLight, string> = { GREEN: "green", RED: "red", GRAY: "gray" } as Record<ActivityLight, string>;
 
-export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightReason: string; history: HistoryState }> = ({
+export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightReason: string; history: HistoryState; controls?: React.ReactNode }> = ({
   light,
   lightReason,
   history,
+  controls,
 }) => {
   const chrono = history.status === "OK" ? [...history.items].reverse() : [];
   let lastDay = "";
@@ -158,10 +157,7 @@ export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightRea
         />
         <h3>Repository Cartographer</h3>
       </header>
-      <div className="miniterm-rythme">
-        <span>Rythme : <b>{CARTOGRAPHER_RHYTHM_LABEL}</b> (réglé sur le serveur)</span>
-        <button type="button" className="miniterm-clock" disabled title="Commande depuis l'application : mission séparée">⏰ ▾</button>
-      </div>
+      {controls}
       <div className="miniterm-term" data-testid="miniterm-term">
         {history.status === "LOADING" ? <div className="miniterm-day">Lecture en cours…</div> : null}
         {history.status === "UNREACHABLE" ? (
