@@ -5,7 +5,7 @@ set -uo pipefail
 P=/home/lecanada26/cat-obs-pilot
 SRC=$P/src
 S=c823cec17891c54d814aa9f4bec759925445579e
-FOLLOW_REV=99ffc002f926b5a5828deaaaaa3f3923a991a48b
+FOLLOW_REV=3b440f416676d60889a03ff75fd814710f107f40
 CKN=/srv/cat-obs/checkout/$S
 API_OLD=/home/lecanada26/crypto-install/releases/85376c5e7725c9fa45f8d05fb0051f25a127aba4
 API_PREV=/home/lecanada26/crypto-install/releases/85376c5e-agent-invocation-32f5ce0a
