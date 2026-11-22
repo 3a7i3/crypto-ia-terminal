@@ -38,7 +38,9 @@ stop-agent)
   systemctl disable --now cat-obs-cartographer.timer 2>/dev/null
   systemctl stop cat-obs-cartographer.service 2>/dev/null
   rm -f $U.timer; systemctl daemon-reload
-  systemctl list-timers --all --no-pager | grep -c cat-obs-cartographer | grep -qx 0 && ok "agent arrêté, aucun timer" || fail "timer encore présent"
+  # (grep sans correspondance sort en 1 : pas de pipeline sous pipefail)
+  [ "$(systemctl is-active cat-obs-cartographer.timer)" != active ] && [ ! -e $U.timer ] \
+    && [ "$(systemctl is-active cat-obs-cartographer.service)" != active ] && ok "agent arrêté, aucun timer" || fail "timer encore présent"
   ;;
 api)
   [ -f "$DROPIN" ] || fail "drop-in API absent"
