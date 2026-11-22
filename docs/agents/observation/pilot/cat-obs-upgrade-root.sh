@@ -1,5 +1,6 @@
 #!/bin/bash
 # Cartographe : mini terminal + rythme 1 h (choix A, Mathieu 2026-11-22). Code ad2f46df.
+# app.py = app.py servi (c1ecc3b4) + route /history seule : celui de la branche importe des modules absents de 85376c5e.
 # Usage : sudo bash cat-obs-upgrade-root.sh stop-agent|api|web|hourly|rollback
 set -uo pipefail
 P=/home/lecanada26/cat-obs-pilot
@@ -44,9 +45,9 @@ stop-agent)
   ;;
 api)
   [ -f "$DROPIN" ] || fail "drop-in API absent"
-  [ "$(runuser -u lecanada26 -- git -C $API_NEW write-tree)" = 2d9d59060a881ec8b84300f95d778e4005cf26f4 ] || fail "arbre API_NEW"
+  [ "$(runuser -u lecanada26 -- git -C $API_NEW write-tree)" = bace0d1ed7e1e7a242e51c4fa1561a0bde636216 ] || fail "arbre API_NEW"
   [ "$(runuser -u lecanada26 -- git -C $API_NEW diff --cached --name-status ${API_OLD##*/} | wc -l)" = 7 ] || fail "API_NEW != 7 fichiers"
-  ok "release API 2d9d5906 (7 fichiers)"
+  ok "release API bace0d1e (7 fichiers)"
   paper_check || fail "session PAPER déjà différente avant action"
   grep -q "$API_PREV" "$DROPIN" || fail "drop-in ne pointe pas sur la release précédente"
   set_api "$API_PREV" "$API_NEW"
