@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { AgentRegistryPanel, AgentRegistryView } from "../views/AgentRegistryView";
-import { AGENT_REGISTRY, type AgentRegistry } from "../agents/agentRegistry";
+import { AGENT_REGISTRY, type ActivityEvidence, type AgentRegistry } from "../agents/agentRegistry";
 
 const NOW = Date.parse("2026-11-21T20:00:00Z");
 
@@ -66,8 +66,8 @@ describe("AgentRegistryView", () => {
     const diag = reg.agents.find((a) => a.id === "system-diagnostic")!;
     diag.wiring_status = "VERIFIED";
     diag.runner_id = "runner-test";
-    const records = [
-      { agent_id: "system-diagnostic", runner_id: "runner-test", observed_at_utc: "2026-11-21T19:59:00Z", last_activity_at_utc: "2026-11-21T19:50:00Z", server_proof_ref: "test#1" },
+    const records: ActivityEvidence[] = [
+      { agent_id: "system-diagnostic", runner_id: "runner-test", observed_at_utc: "2026-11-21T19:59:00Z", last_activity_at_utc: "2026-11-21T19:50:00Z", server_proof_ref: "test#1", execution_state: "EN_COURS" as const, outcome: null },
       { agent_id: "repo-architect", runner_id: "runner-test", observed_at_utc: "2026-11-21T19:59:00Z", last_activity_at_utc: "2026-11-21T19:50:00Z", server_proof_ref: "test#2" },
     ];
     render(<AgentRegistryPanel registry={reg} evidence={{ status: "OK", records }} nowMs={NOW} />);

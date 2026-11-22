@@ -92,18 +92,30 @@ Installation proposée (à faire seulement après décision) :
 Retour arrière : retirer le lanceur et le checkout de l'invocation ; **conserver** `/srv/cat-obs/reports/`
 (preuves, CLAUDE.md §5). Aucun `rm -rf` sur `reports`.
 
-## 6. Ce qui n'est pas fait dans ce lot
+## 6. Route, présentation et campagne (lot 2 de la PR)
 
-- Route API `GET /api/operator/v1/agent-invocations/...` et son branchement dans
-  `AgentRegistryView` : **non fait**. La présentation Système (trois états séparés, vieillissement
-  pendant que la page est ouverte, coupure API → gris) reste à implémenter.
-- Captures mobile clair/sombre : **non faites**.
-- Campagne de 7 jours : **non préparée**.
-- Accès réel au VPS, inventaire des rapports, identité de l'API : **non vérifiés**.
+- **Route** : `GET /api/operator/v1/agent-invocations/repository-cartographer` (lecture seule, `Cache-Control: no-store`).
+  Cibles autorisées par liste fermée (`observability/operator_api/agent_invocation_reader.py`) ; le chemin des rapports
+  vient de `AGENT_INVOCATION_REPORTS_PATH` et n'est jamais renvoyé au client. Une autre cible renvoie 404.
+- **Présentation Système** : trois états séparés (connexion et preuve, activité, dernier résultat).
+  Elle est **désactivée par défaut** : seul un build avec `VITE_CARTOGRAPHER_INVOCATION=1` interroge la route.
+  Le registre garde `NOT_WIRED`, donc le voyant du profil reste gris ; la carte est la seule à montrer l'état.
+- **Voyants** : vert seulement pour une exécution en cours attestée par un bail valide ; une invocation terminée
+  est rouge avec libellé « fin normale » ou « échec », jamais verte. Une preuve périmée ou une coupure API est grise.
+  Le sondage est toutes les 30 s, et l'âge est recalculé toutes les 15 s pendant que la page reste ouverte.
+- **Captures mobile** (iPhone 13, clair et sombre, six scénarios synthétiques) :
+  `docs/agents/observation/screenshots/invocation-mobile/` (voir `results.json`). Aucun débordement horizontal.
+  Scénarios : terminé PARTIAL, en cours, échec TIMEOUT, preuve invalide, preuve périmée, coupure API.
+  Le harnais est `frontend/vite.cartographer-proof.config.ts` (données figées, aucun VPS).
+- **Campagne de sept jours** : préparée, non démarrée — `CARTOGRAPHER_CAMPAGNE_7J.md`.
+
+Reste hors de ce lot, à décider par Mathieu : installation de l'exécuteur sur l'hôte, compte réel de l'API,
+droits de lecture sur `runs/` et `locks/`, date de démarrage de la campagne.
 
 ## 7. Tests
 
-`tests/agent_bench/test_invocation_contract.py` : 22 tests, couvrant le tableau d'acceptation
+`tests/agent_bench/test_invocation_contract.py` (22 tests) et `tests/test_agent_invocation_api.py` (4 tests) ; côté front,
+`frontend/src/test/invocationEvidence.test.tsx` et `agentRegistry.test.ts`. Couverture : le tableau d'acceptation
 (PARTIAL valide, EN_COURS limité, interruption, lancements concurrents, nom existant, publication
 interrompue, empreinte altérée, mauvais runner, date future, rapport absent, illisible, lien symbolique,
 relecture sans rajeunissement, invocation abandonnée, refus avant verrou). Ils sont **unitaires et

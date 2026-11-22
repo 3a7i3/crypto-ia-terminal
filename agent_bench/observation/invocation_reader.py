@@ -77,6 +77,7 @@ def read_status(reports: Path, *, mission_id: str, agent_id: str, runner_id: str
     if lock.get("activity") == "EN_COURS":
         out["activity"] = "EN_COURS"
         out["activity_reason"] = lock["reason"]
+        out["last_activity_utc"] = lock["started_utc"]  # début de l'exécution en cours
     elif lock.get("present"):
         out["activity_reason"] = lock.get("reason")
 

@@ -30,6 +30,7 @@ from observability.operator_api.storage_reader import StorageSnapshotReader
 from observability.operator_api.venue_comparison_reader import VenueComparisonReader
 from observability.operator_api.market_flow_reader import MarketFlowReader
 from observability.operator_api.bbo_history_reader import BboHistoryReader
+from observability.operator_api.agent_invocation_reader import TARGETS as AGENT_INVOCATION_TARGETS, read_agent_invocation
 
 from observability.operator_api.market_microstructure_reader import (
     DEFAULT_PATH as DEFAULT_MICROSTRUCTURE_PATH,
@@ -490,6 +491,15 @@ def get_market_microstructure() -> Any:
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code})
     return result.snapshot
+
+
+@app.get("/api/operator/v1/agent-invocations/{agent_id}")
+def get_agent_invocation(agent_id: str) -> Any:
+    """Lecture seule de la dernière preuve d'invocation d'un agent autorisé."""
+    if agent_id not in AGENT_INVOCATION_TARGETS:
+        return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"},
+                            headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=read_agent_invocation(agent_id), headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/operator/v1/runtime-service")

@@ -7,7 +7,6 @@ import {
   AGENT_REGISTRY,
   FAMILY_ORDER,
   MAX_PROOF_AGE_S,
-  RECENT_ACTIVITY_WINDOW_S,
   RUNTIME_EVIDENCE_SOURCE,
   agentsOfFamily,
   classifyActivity,
@@ -140,6 +139,8 @@ describe("voyant d'activité", () => {
         observed_at_utc: "2026-11-21T19:58:00Z",
         last_activity_at_utc: "2026-11-21T19:40:00Z",
         server_proof_ref: "journal:runner-vps-diag-01#42",
+        execution_state: "TERMINE",
+        outcome: "FIN_NORMALE",
         ...over,
       },
     ],
@@ -154,16 +155,34 @@ describe("voyant d'activité", () => {
     }
   });
 
-  it("vert : runner vérifié, preuve fraîche, activité récente", () => {
-    const v = classifyActivity(wired, ev(), NOW);
+  it("vert : runner vérifié, preuve fraîche, exécution en cours attestée", () => {
+    const v = classifyActivity(wired, ev({ execution_state: "EN_COURS", last_activity_at_utc: "2026-11-21T19:57:00Z" }), NOW);
     expect(v.light).toBe("GREEN");
     expect(v.last_proof_at_utc).toBe("2026-11-21T19:58:00Z");
   });
 
-  it("rouge : runner vérifié, preuve fraîche, activité ancienne ou absente", () => {
-    const old = new Date(Date.parse("2026-11-21T19:58:00Z") - (RECENT_ACTIVITY_WINDOW_S + 1) * 1000).toISOString();
-    expect(classifyActivity(wired, ev({ last_activity_at_utc: old }), NOW).light).toBe("RED");
+  it("une activité récente terminée n'est jamais verte", () => {
+    const recent = classifyActivity(wired, ev({ last_activity_at_utc: "2026-11-21T19:59:00Z" }), NOW);
+    expect(recent.light).toBe("RED");
+    expect(recent.label).toBe("Inactif · fin normale");
+  });
+
+  it("rouge distingue fin normale et échec", () => {
+    expect(classifyActivity(wired, ev({ outcome: "ECHEC" }), NOW).label).toBe("Inactif · échec");
+    expect(classifyActivity(wired, ev({ outcome: "FIN_NORMALE" }), NOW).label).toBe("Inactif · fin normale");
     expect(classifyActivity(wired, ev({ last_activity_at_utc: null }), NOW).light).toBe("RED");
+  });
+
+  it("gris sans état d'exécution attesté ou avec bail expiré", () => {
+    expect(classifyActivity(wired, ev({ execution_state: undefined }), NOW).light).toBe("GRAY");
+    const indet = classifyActivity(wired, ev({ execution_state: "INDETERMINE" }), NOW);
+    expect(indet.light).toBe("GRAY");
+    expect(indet.reason).toMatch(/bail expiré/);
+  });
+
+  it("gris : preuve de cours d'exécution périmée", () => {
+    const v = classifyActivity(wired, ev({ execution_state: "EN_COURS", observed_at_utc: "2026-11-21T19:00:00Z" }), NOW);
+    expect(v.light).toBe("GRAY");
   });
 
   it("une preuve valide ne rend jamais vert un profil sans runner vérifié", () => {

@@ -153,6 +153,10 @@ export interface ActivityEvidence {
   last_activity_at_utc: string | null;
   /** Référence de la preuve côté serveur (journal, heartbeat, digest). */
   server_proof_ref: string;
+  /** État d'exécution attesté. Seul EN_COURS peut produire un voyant vert. */
+  execution_state?: "EN_COURS" | "TERMINE" | "INDETERMINE";
+  /** Issue d'une invocation terminée : fin normale ou échec. Sert au libellé rouge. */
+  outcome?: "FIN_NORMALE" | "ECHEC" | null;
 }
 
 export type EvidenceSource =
@@ -176,7 +180,7 @@ export interface ActivityVerdict {
 
 /** Âge maximal d'une preuve serveur pour être considérée comme actuelle. */
 export const MAX_PROOF_AGE_S = 15 * 60;
-/** Fenêtre dans laquelle une activité est dite « récente ». */
+/** Fenêtre d'activité récente (conservée pour compatibilité : elle ne produit plus de vert). */
 export const RECENT_ACTIVITY_WINDOW_S = 60 * 60;
 /** Tolérance d'horloge pour une date légèrement future. */
 export const CLOCK_SKEW_S = 60;
@@ -236,28 +240,38 @@ export function classifyActivity(
     return gray("Preuve incohérente : date d'observation dans le futur.", ev.observed_at_utc);
   if (nowMs - observed > MAX_PROOF_AGE_S * 1000)
     return gray("Preuve périmée : l'état actuel n'est pas attesté.", ev.observed_at_utc);
-  if (ev.last_activity_at_utc === null)
-    return {
-      light: "RED",
-      label: "Inactif",
-      reason: "Runner vérifié, aucune activité enregistrée.",
-      last_proof_at_utc: ev.observed_at_utc,
-    };
-  const activity = parseUtc(ev.last_activity_at_utc);
-  if (activity === null) return gray("Preuve incohérente : date d'activité invalide.", ev.observed_at_utc);
-  if (activity > observed + CLOCK_SKEW_S * 1000)
+  if (ev.execution_state === undefined)
+    return gray("Preuve incomplète : état d'exécution non attesté.", ev.observed_at_utc);
+  if (ev.execution_state === "INDETERMINE")
+    return gray("Activité indéterminée : bail expiré ou preuve absente.", ev.observed_at_utc);
+  const activity = ev.last_activity_at_utc === null ? null : parseUtc(ev.last_activity_at_utc);
+  if (ev.last_activity_at_utc !== null && activity === null)
+    return gray("Preuve incohérente : date d'activité invalide.", ev.observed_at_utc);
+  if (activity !== null && activity > observed + CLOCK_SKEW_S * 1000)
     return gray("Preuve incohérente : activité postérieure à l'observation.", ev.observed_at_utc);
-  if (observed - activity <= RECENT_ACTIVITY_WINDOW_S * 1000)
+  if (ev.execution_state === "EN_COURS") {
+    // Vert uniquement : exécution en cours attestée, preuve fraîche (contrôlée plus haut).
     return {
       light: "GREEN",
       label: "Actif",
-      reason: "Activité récente attestée par le runner vérifié.",
+      reason: "Exécution en cours attestée par un bail valide.",
       last_proof_at_utc: ev.observed_at_utc,
     };
-  return {
-    light: "RED",
-    label: "Inactif",
-    reason: "Runner vérifié, sans activité récente.",
-    last_proof_at_utc: ev.observed_at_utc,
-  };
+  }
+  // TERMINE : inactivité attestée. Jamais vert, même si la fin est récente.
+  if (ev.outcome === "ECHEC")
+    return {
+      light: "RED",
+      label: "Inactif · échec",
+      reason: "Dernière invocation terminée en échec.",
+      last_proof_at_utc: ev.observed_at_utc,
+    };
+  if (ev.outcome === "FIN_NORMALE")
+    return {
+      light: "RED",
+      label: "Inactif · fin normale",
+      reason: "Dernière invocation terminée normalement ; aucune exécution en cours attestée.",
+      last_proof_at_utc: ev.observed_at_utc,
+    };
+  return gray("Issue de la dernière invocation non attestée.", ev.observed_at_utc);
 }

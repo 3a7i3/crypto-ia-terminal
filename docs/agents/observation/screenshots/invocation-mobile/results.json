@@ -1,0 +1,91 @@
+[
+ {
+  "scheme": "light",
+  "scen": "partial",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité Terminé · 2026-11-22T01:39:43Z Dernier résultat PARTIAL · PARTIAL ne signifie pas une panne Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "light",
+  "scen": "running",
+  "green_allowed": "yes",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité En cours · 2026-11-22T01:43:43Z Dernier résultat PARTIAL · PARTIAL ne signifie pas une panne Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "light",
+  "scen": "failed",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité Terminé · échec (TIMEOUT) · 2026-11-22T01:39:43Z Dernier résultat Aucun résultat attesté Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "light",
+  "scen": "invalid",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Preuve invalide · INVALID: empreinte du contenu altérée Activité Indéterminé Dernier résultat Aucun résultat attesté Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "light",
+  "scen": "stale",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité Preuve périmée : état non attesté Dernier résultat PARTIAL · PARTIAL ne signifie pas une panne Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "light",
+  "scen": "outage",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Coupure API ou preuve non reçue Activité Non attesté Dernier résultat Aucun résultat attesté Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "dark",
+  "scen": "partial",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité Terminé · 2026-11-22T01:39:43Z Dernier résultat PARTIAL · PARTIAL ne signifie pas une panne Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "dark",
+  "scen": "running",
+  "green_allowed": "yes",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité En cours · 2026-11-22T01:43:43Z Dernier résultat PARTIAL · PARTIAL ne signifie pas une panne Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "dark",
+  "scen": "failed",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité Terminé · échec (TIMEOUT) · 2026-11-22T01:39:43Z Dernier résultat Aucun résultat attesté Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "dark",
+  "scen": "invalid",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Preuve invalide · INVALID: empreinte du contenu altérée Activité Indéterminé Dernier résultat Aucun résultat attesté Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "dark",
+  "scen": "stale",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Disponible · dernière preuve valide Activité Preuve périmée : état non attesté Dernier résultat PARTIAL · PARTIAL ne signifie pas une panne Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "scheme": "dark",
+  "scen": "outage",
+  "green_allowed": "no",
+  "horizontal_overflow_px": 0,
+  "card_text": "Repository Cartographer · preuve d'invocation Connexion et preuve Coupure API ou preuve non reçue Activité Non attesté Dernier résultat Aucun résultat attesté Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore. Vert seulement pour une exécution en cours attestée par une preuve fraîche."
+ },
+ {
+  "outage_check": true,
+  "green_before": "yes",
+  "green_after_outage": "no"
+ }
+]

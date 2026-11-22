@@ -7,9 +7,15 @@
 import React from "react";
 import "../agents/agentRegistry.css";
 import {
+  INVOCATION_FLAG_ON,
+  useInvocationEvidence,
+  type InvocationSummary,
+} from "../agents/invocationEvidence";
+import {
   AGENT_REGISTRY,
   FAMILY_ORDER,
   GITHUB_SOURCE_BASE,
+  MAX_PROOF_AGE_S,
   RUNTIME_EVIDENCE_SOURCE,
   VALIDATION_LABEL,
   WIRING_LABEL,
@@ -179,6 +185,94 @@ export const AgentRegistryPanel: React.FC<{
   );
 };
 
-export const AgentRegistryView: React.FC = () => (
+const CONNECTION_LABEL: Record<string, string> = {
+  AVAILABLE: "Disponible",
+  ABSENT: "Absente",
+  ACCESS_DENIED: "Accès refusé",
+  UNREADABLE: "Inaccessible",
+  INCOMPLETE: "Fichier incomplet",
+  INVALID: "Preuve invalide",
+};
+
+const ACTIVITY_LABEL: Record<string, string> = {
+  EN_COURS: "En cours",
+  TERMINE: "Terminé",
+  INDETERMINE: "Indéterminé",
+};
+
+const RESULT_LABEL: Record<string, string> = {
+  COMPLETE: "COMPLETE",
+  PARTIAL: "PARTIAL",
+  BLOCKED: "BLOCKED",
+  FAILED: "FAILED",
+};
+
+/** Trois états séparés : connexion et preuve, activité, dernier résultat. */
+export const InvocationProofCard: React.FC<{ summary: InvocationSummary | null; nowMs: number; unavailable?: boolean }> = ({
+  summary,
+  nowMs,
+  unavailable,
+}) => {
+  const observed = summary?.observed_at_utc ? Date.parse(summary.observed_at_utc) : NaN;
+  const stale = summary !== null && Number.isFinite(observed) && nowMs - observed > MAX_PROOF_AGE_S * 1000;
+  const connection = unavailable || !summary ? "Coupure API ou preuve non reçue" : CONNECTION_LABEL[summary.connection ?? ""] ?? "Inconnue";
+  const activityKey = summary && !stale ? summary.activity ?? "" : "";
+  const activity = stale ? "Preuve périmée : état non attesté" : ACTIVITY_LABEL[activityKey] ?? "Non attesté";
+  const greenAllowed = !stale && summary?.activity === "EN_COURS";
+  const failedEnd = !stale && summary?.activity === "TERMINE" && ["FAILED", "TIMEOUT", "INTERRUPTED", "ABANDONED"].includes(summary?.last_state ?? "");
+  // Vert : exécution en cours attestée. Rouge : inactivité attestée. Gris : non attestable.
+  const activityLight = greenAllowed ? "green" : summary?.activity === "TERMINE" && !stale ? "red" : "gray";
+  return (
+    <section className="invocation-card" data-testid="invocation-card" aria-label="Preuve d'invocation du Repository Cartographer">
+      <h3>Repository Cartographer · preuve d'invocation</h3>
+      <dl>
+        <div data-testid="invocation-connection">
+          <dt>Connexion et preuve</dt>
+          <dd>
+            {connection}
+            {summary?.connection_reason ? <span className="invocation-reason"> · {summary.connection_reason}</span> : null}
+          </dd>
+        </div>
+        <div data-testid="invocation-activity" data-green={greenAllowed ? "yes" : "no"}>
+          <dt>Activité</dt>
+          <dd>
+            <span className={`invocation-light invocation-light-${activityLight}`} aria-hidden="true" />
+            {activity}
+            {failedEnd ? <span className="invocation-reason"> · échec ({summary?.last_state})</span> : null}
+            {summary?.last_activity_utc && !stale ? <span className="invocation-reason"> · {summary.last_activity_utc}</span> : null}
+          </dd>
+        </div>
+        <div data-testid="invocation-result">
+          <dt>Dernier résultat</dt>
+          <dd>
+            {summary?.last_result ? RESULT_LABEL[summary.last_result] ?? summary.last_result : "Aucun résultat attesté"}
+            {summary?.last_result === "PARTIAL" ? (
+              <span className="invocation-reason"> · PARTIAL ne signifie pas une panne</span>
+            ) : null}
+          </dd>
+        </div>
+      </dl>
+      <p className="invocation-foot">
+        Lecture seule. Terminé ≠ en cours : une mission réussie ne prouve pas que le runner travaille encore.
+        Vert seulement pour une exécution en cours attestée par une preuve fraîche.
+      </p>
+    </section>
+  );
+};
+
+const LiveAgentRegistryView: React.FC = () => {
+  const { evidence, nowMs, summary } = useInvocationEvidence(true);
+  return (
+    <>
+      <AgentRegistryPanel registry={AGENT_REGISTRY} evidence={evidence} nowMs={nowMs} />
+      <InvocationProofCard summary={summary} nowMs={nowMs} unavailable={evidence.status === "UNREACHABLE"} />
+    </>
+  );
+};
+
+const StaticAgentRegistryView: React.FC = () => (
   <AgentRegistryPanel registry={AGENT_REGISTRY} evidence={RUNTIME_EVIDENCE_SOURCE} nowMs={Date.now()} />
 );
+
+export const AgentRegistryView: React.FC = () =>
+  INVOCATION_FLAG_ON ? <LiveAgentRegistryView /> : <StaticAgentRegistryView />;
