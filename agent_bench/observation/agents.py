@@ -14,7 +14,8 @@ summary.json, écrits par ce module sur demande) :
       runs/<mission_id>/<AAAAMMJJThhmmssZ>_<invocation_id>.json   une enveloppe par passage
       mission/                      mission courante dérivée (suivi de main, si utilisé)
 
-Le cartographe garde son dossier historique ``/srv/cat-obs/reports`` (installé le 22/11) : le
+Racine : ``/srv/cat-obs/agent-reports/observation/<agent>`` (arborescence par famille préparée sur
+le VPS le 22/11). Le cartographe garde son dossier historique ``/srv/cat-obs/reports`` (installé le 22/11) : le
 déplacer est une décision séparée. Ce module n'installe rien, ne crée aucun utilisateur ni unité.
 """
 from __future__ import annotations
@@ -32,7 +33,9 @@ from agent_bench.observation import invocation as inv
 
 STORAGE_CONTRACT = "cat.observation.agent-storage.v1"
 SUMMARY_CONTRACT = "cat.observation.agent-storage-summary.v1"
-STORAGE_ROOT = "/srv/cat-obs/agents"
+# Arborescence préparée sur le VPS le 2026-11-22 (~22:03Z, script cat-agent-report-dirs-prepare.sh) :
+# /srv/cat-obs/agent-reports/<famille>/<agent>, une famille par groupe du registre Système.
+STORAGE_ROOT = "/srv/cat-obs/agent-reports/observation"
 MAX_SUMMARY_ENTRIES = 5000
 
 

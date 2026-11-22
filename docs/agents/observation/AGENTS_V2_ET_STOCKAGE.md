@@ -13,9 +13,13 @@ Fiche de départ : fiches techniques du 22/11 (document projet). Contrat :
 | Agent | Question | Contrat | Runner proposé | Dossier de stockage (VPS) | Rythme proposé |
 |---|---|---|---|---|---|
 | `repository-cartographer` | `REPOSITORY_MAP` | v1 | `obs-repo-cartographer-ro-01` (installé) | `/srv/cat-obs/reports` (existant) | suivi de main |
-| `data-provenance-auditor` | `DATASET_PROVENANCE_CHAIN` | v1 | `obs-data-provenance-ro-01` | `/srv/cat-obs/agents/data-provenance-auditor` | suivi de main |
-| `observability-cartographer` | `METRIC_SURFACE_MAP` | **v2** | `obs-observability-ro-01` | `/srv/cat-obs/agents/observability-cartographer` | suivi de main |
-| `repo-architect` | `CHANGE_IMPACT` | **v2** | `obs-repo-architect-ro-01` | `/srv/cat-obs/agents/repo-architect` | à la demande |
+| `data-provenance-auditor` | `DATASET_PROVENANCE_CHAIN` | v1 | `obs-data-provenance-ro-01` | `/srv/cat-obs/agent-reports/observation/data-provenance-auditor` | suivi de main |
+| `observability-cartographer` | `METRIC_SURFACE_MAP` | **v2** | `obs-observability-ro-01` | `/srv/cat-obs/agent-reports/observation/observability-cartographer` | suivi de main |
+| `repo-architect` | `CHANGE_IMPACT` | **v2** | `obs-repo-architect-ro-01` | `/srv/cat-obs/agent-reports/observation/repo-architect` | à la demande |
+
+Les dossiers suivent l'arborescence par famille préparée sur le VPS le 22/11
+(`/srv/cat-obs/agent-reports/<famille>/<agent>`). Le cartographe garde `/srv/cat-obs/reports` tant
+qu'aucune migration n'est décidée.
 
 Source de vérité : [`agent_bench/observation/agents.py`](../../../agent_bench/observation/agents.py)
 (`python3 -m agent_bench.observation.agents list`).
