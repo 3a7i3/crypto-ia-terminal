@@ -14,17 +14,33 @@ import re
 import unicodedata
 
 MISSION_CONTRACT = "cat.observation.mission.v1"
+# v2 : mêmes règles communes, deux nouveaux types de question (fiches techniques 2026-11-22).
+# Une mission v1 reste v1 : son identité et son mission_id ne changent pas.
+MISSION_CONTRACT_V2 = "cat.observation.mission.v2"
 REPORT_CONTRACT = "cat.observation.report.v1"
 MISSION_IDENTITY_SCHEMA = "cat.observation.mission-identity.v1"
 
 # Profils exécutables au banc. data-provenance-auditor : pilote (chaîne de dataset).
 # repository-cartographer : cartographie statique d'une zone (PR #598, lot 2).
 # Les deux autres profils n'ont qu'une fiche : une mission les visant est BLOCKED.
-EXECUTABLE_AGENTS = ("data-provenance-auditor", "repository-cartographer")
+# observability-cartographer et repo-architect : banc isolé v2 (contrat mission.v2).
+EXECUTABLE_AGENTS = ("data-provenance-auditor", "repository-cartographer",
+                     "observability-cartographer", "repo-architect")
 QUESTION_KIND_BY_AGENT = {
     "data-provenance-auditor": "DATASET_PROVENANCE_CHAIN",
     "repository-cartographer": "REPOSITORY_MAP",
+    "observability-cartographer": "METRIC_SURFACE_MAP",
+    "repo-architect": "CHANGE_IMPACT",
 }
+CONTRACT_BY_KIND = {
+    "DATASET_PROVENANCE_CHAIN": MISSION_CONTRACT,
+    "REPOSITORY_MAP": MISSION_CONTRACT,
+    "METRIC_SURFACE_MAP": MISSION_CONTRACT_V2,
+    "CHANGE_IMPACT": MISSION_CONTRACT_V2,
+}
+# Budgets de fichiers des types v2 (même borne que la cartographie de zone).
+METRIC_SURFACE_MAX_FILES = 30
+CHANGE_IMPACT_MAX_FILES = 30
 # Budget de fichiers d'une cartographie de zone (lot 2 : au plus 30 sources .py).
 REPOSITORY_MAP_MAX_FILES = 30
 OBSERVATION_AGENTS = ("data-provenance-auditor", "observability-cartographer",
@@ -34,7 +50,7 @@ MISSION_STATUSES = ("COMPLETE", "PARTIAL", "BLOCKED", "FAILED")
 PROOF_LEVELS = ("PROVEN", "SUPPORTED", "INFERRED", "INCONCLUSIVE", "NOT_FOUND")
 EVIDENCE_TYPES = ("CODE", "CALL_SITE", "IMPORT", "LITERAL", "CAPTURE_FIELD", "FILE_STAT", "MISSION_INPUT")
 CONFIDENCE = ("HIGH", "MEDIUM", "LOW")
-QUESTION_KINDS = ("DATASET_PROVENANCE_CHAIN", "REPOSITORY_MAP")
+QUESTION_KINDS = ("DATASET_PROVENANCE_CHAIN", "REPOSITORY_MAP", "METRIC_SURFACE_MAP", "CHANGE_IMPACT")
 UNITS = ("EPOCH_MS", "DURATION_MS", "UTC_ISO_SECONDS", "DECIMAL_STRING_BPS", "COUNT")
 
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -121,7 +137,7 @@ def validate_mission(m):
     """Validation structurelle fermée. Lève MissionRejected ; ne corrige jamais."""
     _keys(m, ("contract", "agent_id", "profile", "mission_id", "analyzed_ref", "scope",
               "question", "budget", "capture"), "top")
-    if m["contract"] != MISSION_CONTRACT:
+    if m["contract"] not in (MISSION_CONTRACT, MISSION_CONTRACT_V2):
         raise MissionRejected("MISSION_SCHEMA_VIOLATION", "contract")
     if m["agent_id"] not in OBSERVATION_AGENTS:
         raise MissionRejected("AGENT_UNKNOWN", str(m["agent_id"]))
@@ -148,12 +164,18 @@ def validate_mission(m):
     kind = m["question"]["kind"] if isinstance(m["question"], dict) else None
     if kind not in QUESTION_KINDS or QUESTION_KIND_BY_AGENT[m["agent_id"]] != kind:
         raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.kind does not match agent_id")
+    if m["contract"] != CONTRACT_BY_KIND[kind]:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "contract does not match question.kind")
     b = m["budget"]
     _keys(b, ("max_files", "max_bytes", "max_wall_ms"), "budget")
     if not (_int(b["max_files"], 1, 5000) and _int(b["max_bytes"], 1, 64_000_000) and _int(b["max_wall_ms"], 1, 600_000)):
         raise MissionRejected("MISSION_SCHEMA_VIOLATION", "budget")
     if kind == "REPOSITORY_MAP":
         _validate_repository_map(m, paths)
+    elif kind == "METRIC_SURFACE_MAP":
+        _validate_metric_surface(m, paths)
+    elif kind == "CHANGE_IMPACT":
+        _validate_change_impact(m, paths)
     else:
         _validate_dataset_chain(m, paths)
     if not HEX64.match(str(m["mission_id"])) or m["mission_id"] != compute_mission_id(m):
@@ -170,6 +192,84 @@ def _validate_repository_map(m, paths):
         raise MissionRejected("FILE_BUDGET_EXCEEDED", f"max_files > {REPOSITORY_MAP_MAX_FILES}")
     if m["capture"] is not None:
         raise MissionRejected("MISSION_SCHEMA_VIOLATION", "REPOSITORY_MAP takes no capture")
+
+
+def _in_paths(path, paths):
+    return any(path == r or (r.endswith("/") and path.startswith(r)) for r in paths)
+
+
+def _validate_upstream(u, where):
+    """Rapport amont cité (jamais lu par l'agent) : agent, empreinte de contenu, SHA analysé."""
+    _keys(u, ("agent_id", "content_sha256", "analysed_sha"), where)
+    if u["agent_id"] not in OBSERVATION_AGENTS or not HEX64.match(str(u["content_sha256"])) \
+            or not HEX40.match(str(u["analysed_sha"])):
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", where)
+
+
+def _validate_metric_surface(m, paths):
+    """METRIC_SURFACE_MAP (observability-cartographer) : une surface affichée, ses métriques."""
+    q = m["question"]
+    _keys(q, ("kind", "surface_id", "surface_path", "text", "upstream_reports"), "question")
+    if not SLUG.match(str(q["surface_id"])) or not isinstance(q["text"], str) or not 10 <= len(q["text"]) <= 600:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.surface_id/text")
+    sp = q["surface_path"]
+    code = path_violation(sp)
+    if code:
+        raise MissionRejected(code, str(sp))
+    if not str(sp).endswith((".ts", ".tsx")) or sp.endswith("/"):
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.surface_path must be a .ts/.tsx file")
+    if not _in_paths(sp, paths):
+        raise MissionRejected("SURFACE_OUT_OF_SCOPE", sp)
+    ups = q["upstream_reports"]
+    if not isinstance(ups, list) or len(ups) > 10:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.upstream_reports")
+    for u in ups:
+        _validate_upstream(u, "question.upstream_reports")
+        if u["agent_id"] != "data-provenance-auditor":
+            raise MissionRejected("MISSION_SCHEMA_VIOLATION", "upstream_reports: data-provenance-auditor only")
+    if m["budget"]["max_files"] > METRIC_SURFACE_MAX_FILES:
+        raise MissionRejected("FILE_BUDGET_EXCEEDED", f"max_files > {METRIC_SURFACE_MAX_FILES}")
+    if m["capture"] is not None:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "METRIC_SURFACE_MAP takes no capture")
+
+
+def _validate_change_impact(m, paths):
+    """CHANGE_IMPACT (repo-architect) : un diff base→analysé, des chemins modifiés, une carte citée."""
+    q = m["question"]
+    _keys(q, ("kind", "change_id", "text", "base_sha", "changed_paths", "diff_sha256", "upstream_map"),
+          "question")
+    if not SLUG.match(str(q["change_id"])) or not isinstance(q["text"], str) or not 10 <= len(q["text"]) <= 600:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.change_id/text")
+    if not HEX40.match(str(q["base_sha"])) or not HEX64.match(str(q["diff_sha256"])):
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.base_sha/diff_sha256")
+    cp = q["changed_paths"]
+    if not isinstance(cp, list) or not cp or cp != sorted(set(cp)):
+        raise MissionRejected("SCOPE_ARRAY_NOT_CANONICAL", "changed_paths must be sorted and unique")
+    for p in cp:
+        code = path_violation(p)
+        if code:
+            raise MissionRejected(code, str(p))
+        if p.endswith("/"):
+            raise MissionRejected("MISSION_SCHEMA_VIOLATION", "changed_paths are files")
+    if len(cp) > CHANGE_IMPACT_MAX_FILES or m["budget"]["max_files"] > CHANGE_IMPACT_MAX_FILES:
+        raise MissionRejected("FILE_BUDGET_EXCEEDED", f"> {CHANGE_IMPACT_MAX_FILES}")
+    if sorted(paths) != cp:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "read_paths must equal changed_paths")
+    um = q["upstream_map"]
+    if um is not None:
+        _keys(um, ("agent_id", "content_sha256", "analysed_sha", "mapped_paths"), "question.upstream_map")
+        _validate_upstream({k: um[k] for k in ("agent_id", "content_sha256", "analysed_sha")},
+                           "question.upstream_map")
+        if um["agent_id"] != "repository-cartographer":
+            raise MissionRejected("MISSION_SCHEMA_VIOLATION", "upstream_map: repository-cartographer only")
+        if um["analysed_sha"] != q["base_sha"]:
+            raise MissionRejected("UPSTREAM_MAP_SHA_MISMATCH", "la carte doit décrire la base du diff")
+        mp = um["mapped_paths"]
+        if not isinstance(mp, list) or mp != sorted(set(mp)) or len(mp) > 200 \
+                or any(path_violation(p) for p in mp):
+            raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.upstream_map.mapped_paths")
+    if m["capture"] is not None:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "CHANGE_IMPACT takes no capture")
 
 
 def _validate_dataset_chain(m, paths):

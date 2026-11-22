@@ -8,7 +8,10 @@ une nouvelle révision de main donne une nouvelle mission, la même révision la
 Sorties (écriture atomique dans `--out`) :
 - `mission.json` : la mission dérivée, validée par le contrat ;
 - `current.env` : ANALYSED_SHA et MISSION_ID pour l'unité systemd du cartographe ;
-- `repository-cartographer.mission` : l'identifiant de mission courant, lu par l'API.
+- `<agent_id>.mission` : l'identifiant de mission courant (`repository-cartographer.mission` pour le
+  cartographe, lu par l'API ; même règle pour data-provenance-auditor et observability-cartographer).
+
+repo-architect n'est pas suivi : sa mission porte un diff (base → tête) préparé à la demande.
 """
 from __future__ import annotations
 
@@ -24,11 +27,18 @@ from agent_bench.observation import contract as c
 
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 POINTER = "repository-cartographer.mission"
+FOLLOWABLE_KINDS = ("REPOSITORY_MAP", "DATASET_PROVENANCE_CHAIN", "METRIC_SURFACE_MAP")
+
+
+def pointer_name(agent_id: str) -> str:
+    return f"{agent_id}.mission"
 
 
 def derive_mission(template: dict, analysed_sha: str) -> dict:
     if not HEX40.match(analysed_sha or ""):
         raise ValueError("ANALYSED_SHA_INVALID")
+    if (template.get("question") or {}).get("kind") not in FOLLOWABLE_KINDS:
+        raise ValueError("KIND_NOT_FOLLOWABLE")
     m = copy.deepcopy(template)
     m["analyzed_ref"] = {"kind": "GIT_COMMIT", "sha": analysed_sha}
     m["mission_id"] = c.compute_mission_id(m)
@@ -51,7 +61,7 @@ def publish(template: dict, analysed_sha: str, out: Path) -> dict:
     m = derive_mission(template, analysed_sha)
     _atomic_write(out / "mission.json", (json.dumps(m, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode())
     _atomic_write(out / "current.env", f"ANALYSED_SHA={analysed_sha}\nMISSION_ID={m['mission_id']}\n".encode("ascii"))
-    _atomic_write(out / POINTER, (m["mission_id"] + "\n").encode("ascii"))
+    _atomic_write(out / pointer_name(m["agent_id"]), (m["mission_id"] + "\n").encode("ascii"))
     return m
 
 

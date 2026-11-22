@@ -1,13 +1,13 @@
 # Famille Observation — fiches de mission et frontières
 
-Statut : **repository-cartographer a un banc isolé (lot 2)** ; les trois autres profils
-restent **fiches seulement**. Aucun ne dispose de runner ni de liaison serveur. Une mission
-qui vise `observability-cartographer` ou `repo-architect` est refusée `BLOCKED
-AGENT_NOT_QUALIFIED_FOR_BENCH` par [`contract.py`](../../../agent_bench/observation/contract.py).
+Statut (2026-11-22) : **les quatre profils ont un banc isolé**. repository-cartographer est
+installé sur le VPS ; data-provenance-auditor, observability-cartographer et repo-architect ont
+leur banc, leur exécuteur commun et un dossier de stockage déclaré, **sans runner installé**.
+Agents v2 et stockage : [AGENTS_V2_ET_STOCKAGE.md](AGENTS_V2_ET_STOCKAGE.md). Les sections ci-dessous
+restent la fiche d'origine (frontières, critères) ; la frontière repository-cartographer /
+repo-architect retenue est l'option « prospectif, sans extraction propre ».
+Contrat commun : [AGENT_OBSERVATION_MISSION_V1](../../contracts/AGENT_OBSERVATION_MISSION_V1.md) (§10 pour la v2).
 Résultat du lot 2 : [CARTOGRAPHER_RESULT.md](CARTOGRAPHER_RESULT.md) ; runner : [REPOSITORY_CARTOGRAPHER_RUNNER.md](REPOSITORY_CARTOGRAPHER_RUNNER.md).
-Contrat commun : [AGENT_OBSERVATION_MISSION_V1](../../contracts/AGENT_OBSERVATION_MISSION_V1.md).
-Profils lus à `857404f8` ; leurs fichiers `.agent.md` ne sont pas modifiés (blobs vérifiés
-par le registre #597).
 
 ## 0. Frontières de la famille
 

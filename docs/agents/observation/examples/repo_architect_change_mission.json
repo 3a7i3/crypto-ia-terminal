@@ -1,0 +1,41 @@
+{
+  "agent_id": "repo-architect",
+  "analyzed_ref": {
+    "kind": "GIT_COMMIT",
+    "sha": "c823cec17891c54d814aa9f4bec759925445579e"
+  },
+  "budget": {
+    "max_bytes": 4000000,
+    "max_files": 4,
+    "max_wall_ms": 60000
+  },
+  "capture": null,
+  "contract": "cat.observation.mission.v2",
+  "mission_id": "00985f5f94c4f749b8fa32664d61c09c61ad672c9c343b20c535f438559d23c0",
+  "profile": {
+    "blob_sha1": "47b9f9d70031ff62ade14a4faa60d6d4843bd141",
+    "source_path": ".github/repo-architect.agent.md"
+  },
+  "question": {
+    "base_sha": "e66cecf65b59a79ba54b00071ce5892f5bc9ff46",
+    "change_id": "cartographe-suivi-de-main",
+    "changed_paths": [
+      "agent_bench/observation/executor.py",
+      "agent_bench/observation/follow_main.py",
+      "observability/operator_api/agent_invocation_reader.py",
+      "tests/agent_bench/test_follow_main.py"
+    ],
+    "diff_sha256": "eda635eca98fe7aeefa5d881f2e0ddb44a06af13d07c15cea3eb244e8b933df6",
+    "kind": "CHANGE_IMPACT",
+    "text": "Le suivi de main du cartographe touche-t-il une autorité ou une frontière gelée, et quels tests manquent ?",
+    "upstream_map": null
+  },
+  "scope": {
+    "read_paths": [
+      "agent_bench/observation/executor.py",
+      "agent_bench/observation/follow_main.py",
+      "observability/operator_api/agent_invocation_reader.py",
+      "tests/agent_bench/test_follow_main.py"
+    ]
+  }
+}

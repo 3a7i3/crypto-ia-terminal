@@ -21,17 +21,20 @@ VOYANT SYSTÈME    reste gris tant qu'aucun runner serveur relié et prouvé (#5
 
 ## 1. Familles et profils
 
-| Profil | Exécutable au banc V1 | Fiche |
+| Profil | Exécutable au banc | Fiche |
 |---|---|---|
-| `data-provenance-auditor` | **oui (pilote)** | ce contrat + [fiches](../agents/observation/MISSION_SHEETS.md) |
-| `observability-cartographer` | non → `BLOCKED AGENT_NOT_QUALIFIED_FOR_BENCH` | [fiches](../agents/observation/MISSION_SHEETS.md) |
-| `repository-cartographer` | **oui (lot 2, question `REPOSITORY_MAP`)** | [fiche](../agents/observation/MISSION_SHEETS.md) · [runner](../agents/observation/REPOSITORY_CARTOGRAPHER_RUNNER.md) · [résultat](../agents/observation/CARTOGRAPHER_RESULT.md) |
-| `repo-architect` | non → idem | idem |
+| `data-provenance-auditor` | **oui (pilote, `DATASET_PROVENANCE_CHAIN`, v1)** | ce contrat + [fiches](../agents/observation/MISSION_SHEETS.md) |
+| `observability-cartographer` | **oui (banc v2, `METRIC_SURFACE_MAP`)** | [agents v2](../agents/observation/AGENTS_V2_ET_STOCKAGE.md) |
+| `repository-cartographer` | **oui (lot 2, question `REPOSITORY_MAP`, v1)** | [fiche](../agents/observation/MISSION_SHEETS.md) · [runner](../agents/observation/REPOSITORY_CARTOGRAPHER_RUNNER.md) · [résultat](../agents/observation/CARTOGRAPHER_RESULT.md) |
+| `repo-architect` | **oui (banc v2, `CHANGE_IMPACT`)** | [agents v2](../agents/observation/AGENTS_V2_ET_STOCKAGE.md) |
 
-`observability-cartographer` et `repo-architect` restent non qualifiés : `BLOCKED AGENT_NOT_QUALIFIED_FOR_BENCH`.
 Tout autre `agent_id` ⇒ `BLOCKED AGENT_UNKNOWN`. Le type de question doit correspondre
 au profil : `DATASET_PROVENANCE_CHAIN` pour `data-provenance-auditor`, `REPOSITORY_MAP`
-pour `repository-cartographer` (sinon `MISSION_SCHEMA_VIOLATION`).
+pour `repository-cartographer`, `METRIC_SURFACE_MAP` pour `observability-cartographer`,
+`CHANGE_IMPACT` pour `repo-architect` (sinon `MISSION_SCHEMA_VIOLATION`). Les deux types v2
+exigent `contract = cat.observation.mission.v2` ; les types v1 restent sous `…mission.v1`
+(identités et `mission_id` inchangés). Banc v2 ≠ runner installé : aucun des deux nouveaux
+profils n'a de runner sur le VPS.
 
 ## 6 bis. Cartographie de zone (`REPOSITORY_MAP`, lot 2)
 
@@ -176,3 +179,10 @@ contradiction conservée (`OBSERVATION_KEY_CONFLICT`).
 Toute nouvelle règle de preuve, unité, relation ou profil exécutable = nouvelle version
 (`…v2`), revue humaine, nouveaux cas de banc. Un profil n'est exécutable au banc qu'après
 une fiche acceptée, des fixtures à résultat attendu prédéfini et une matrice verte.
+
+## 10. Version 2 (`cat.observation.mission.v2`, 2026-11-22)
+
+Ajoute deux types de question, sans changer les règles communes (§2–§7) :
+`METRIC_SURFACE_MAP` (observability-cartographer) et `CHANGE_IMPACT` (repo-architect). Champs,
+règles de preuve, matrices et dossiers de stockage : [AGENTS_V2_ET_STOCKAGE](../agents/observation/AGENTS_V2_ET_STOCKAGE.md).
+
