@@ -20,7 +20,7 @@ BASE=http://127.0.0.1:8090/api/operator/v1
 AG=$BASE/agent-invocations/repository-cartographer
 [ "$(id -u)" = 0 ] || { echo "ECHEC: lancer avec sudo"; exit 1; }
 PH=${1:-}
-case "$PH" in control|api|web|rollback) ;; *) echo "usage: sudo bash $0 control|api|web|rollback"; exit 2;; esac
+case "$PH" in control|api|web|retention|rollback) ;; *) echo "usage: sudo bash $0 control|api|web|retention|rollback"; exit 2;; esac
 LOG=$P/button-$PH-$(date -u +%Y%m%dT%H%M%SZ).log
 exec > >(tee "$LOG") 2>&1
 echo "== phase $PH $(date -u +%FT%TZ)"
@@ -100,10 +100,25 @@ web)
   paper_check && ok "session PAPER identique" || echo "ATTENTION: session PAPER différente"
   ok "web sur $WEB_NEW (bouton actif)"
   ;;
+retention)
+  RUNS=/srv/cat-obs/reports/runs/02e0f78f43d1062ee0efed015ad9fe37329dbe480062f02c53e32c82e19fdece
+  T=$(mktemp); runuser -u lecanada26 -- git -C $SRC show a77d81bbb02ff21b53c8165bab199576e159b691:docs/agents/observation/pilot/cat-obs-prune.sh > $T || fail "lecture du script de rétention"
+  install -o root -g root -m 0755 $T /usr/local/sbin/cat-obs-prune; rm -f $T
+  install -d -m 0755 /etc/systemd/system/cat-obs-cartographer.service.d
+  printf '[Service]\nExecStopPost=/usr/local/sbin/cat-obs-prune %s\n' $RUNS > /etc/systemd/system/cat-obs-cartographer.service.d/retention.conf
+  chmod 0644 /etc/systemd/system/cat-obs-cartographer.service.d/retention.conf
+  systemctl daemon-reload
+  echo "rapports avant : $(find $RUNS -maxdepth 1 -type f -name '*.json' | wc -l)"
+  runuser -u cat-obs-ro -- /usr/local/sbin/cat-obs-prune $RUNS || fail "rétention en échec"
+  echo "rapports après : $(find $RUNS -maxdepth 1 -type f -name '*.json' | wc -l) (20 au plus)"
+  echo "taille du dossier : $(du -sh /srv/cat-obs/reports | cut -f1)"
+  ok "rétention active : 20 derniers rapports après chaque passage"
+  ;;
 rollback)
   [ -f $P/web-dropin.before-button ] && cp $P/web-dropin.before-button "$WEB_DROPIN"
   [ -f $P/api-dropin.before-button ] && cp $P/api-dropin.before-button "$DROPIN"
   systemctl disable --now cat-obs-schedule.path 2>/dev/null
+  rm -f /etc/systemd/system/cat-obs-cartographer.service.d/retention.conf
   systemctl daemon-reload; systemctl restart crypto-operator-api crypto-operator-web; api_ready && ok "API revenue"
   paper_check && ok "session PAPER identique" || echo "ATTENTION: session PAPER différente"
   echo "Rythme de l'agent inchangé (timer tel quel). Arrêt complet : sudo bash $P/cat-obs-upgrade-root.sh stop-agent"
