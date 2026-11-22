@@ -43,7 +43,9 @@ def test_server_is_fixed_loopback_get_head_proxy_without_runtime_artifact_access
     assert 'SPOT_RADAR_API_PREFIX = "/api/operator/v1/spot-radar/"' in text
     assert 'SPOT_RADAR_API_TARGET = "http://127.0.0.1:18906"' in text
     assert "UPSTREAM_TIMEOUT_MS = 10000" in text
-    assert text.index("if (!methodAllowed(request))") < text.index("url.pathname.startsWith(SPOT_RADAR_API_PREFIX)")
+    # Seule exception au GET/HEAD : POST de rythme d'agent (décision opérateur 2026-11-22 07:23Z).
+    assert text.index("if (!methodAllowed(request, url.pathname))") < text.index("url.pathname.startsWith(SPOT_RADAR_API_PREFIX)")
+    assert 'request.method === "POST" && AGENT_SCHEDULE_PATH_RE.test(pathname)' in text
     assert 'headers["cache-control"] = "no-store";' in text
     assert 'OPERATOR_API_TARGET = "http://127.0.0.1:8090"' in text
     assert "0.0.0.0" not in text and "[::]" not in text
@@ -52,8 +54,14 @@ def test_server_is_fixed_loopback_get_head_proxy_without_runtime_artifact_access
     assert "OPERATOR_API_UNAVAILABLE" in text
     assert "isApiPath(url.pathname)" in text
     assert "requested ?? path.join(distRoot, \"index.html\")" in text
-    for forbidden in ("databases/", "cryptoradar_market_snapshot", "operator_snapshot", "readFile", "fetch(", "POST", "PUT", "PATCH", "DELETE", "TELEGRAM", "API_KEY", "API_SECRET"):
+    for forbidden in ("databases/", "cryptoradar_market_snapshot", "operator_snapshot", "readFile", "fetch(", "PUT", "PATCH", "DELETE", "TELEGRAM", "API_KEY", "API_SECRET"):
         assert forbidden not in text
+    # POST n'apparaît que pour l'exception gouvernée du programmateur (3 lignes exactes).
+    assert [l.strip() for l in text.splitlines() if "POST" in l] == [
+        'return request.method === "POST" && AGENT_SCHEDULE_PATH_RE.test(pathname);',
+        'headers: request.method === "POST"',
+        'if (request.method !== "POST") return void request.pipe(upstream);',
+    ]
 
 
 def test_frontend_service_is_registered_in_read_only_service_matrix() -> None:
