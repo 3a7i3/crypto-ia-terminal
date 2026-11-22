@@ -57,7 +57,7 @@ def test_server_is_fixed_loopback_get_head_proxy_without_runtime_artifact_access
     for forbidden in ("databases/", "cryptoradar_market_snapshot", "operator_snapshot", "readFile", "fetch(", "PUT", "PATCH", "DELETE", "TELEGRAM", "API_KEY", "API_SECRET"):
         assert forbidden not in text
     # POST n'apparaît que pour l'exception gouvernée du programmateur (3 lignes exactes).
-    assert [l.strip() for l in text.splitlines() if "POST" in l] == [
+    assert [line.strip() for line in text.splitlines() if "POST" in line] == [
         'return request.method === "POST" && AGENT_SCHEDULE_PATH_RE.test(pathname);',
         'headers: request.method === "POST"',
         'if (request.method !== "POST") return void request.pipe(upstream);',

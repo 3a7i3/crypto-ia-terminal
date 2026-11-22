@@ -1,4 +1,7 @@
 """Programmateur : seule écriture de l'API, liste fermée, en-tête opérateur exigé, aucun lancement."""
+import calendar
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -66,7 +69,9 @@ def test_only_this_route_mutates():
 def test_next_slot_follows_the_clock_after_each_pass(tmp_path):
     (tmp_path / "repository-cartographer.status.json").write_text(
         '{"applied":"10min","applied_utc":"2026-11-22T08:24:00Z","next_utc":"2026-11-22T08:30:00Z"}')
-    at = lambda s: __import__("calendar").timegm(__import__("time").strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
+    def at(s):
+        return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
+
     assert sch.read_schedule("repository-cartographer", control=tmp_path, now_ts=at("2026-11-22T08:24:10Z"))["next_utc"] == "2026-11-22T08:30:00Z"
     assert sch.read_schedule("repository-cartographer", control=tmp_path, now_ts=at("2026-11-22T08:30:01Z"))["next_utc"] == "2026-11-22T08:40:00Z"
     (tmp_path / "repository-cartographer.status.json").write_text('{"applied":"1h"}')
