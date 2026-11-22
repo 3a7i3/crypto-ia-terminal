@@ -1,6 +1,9 @@
 # Procédure d'installation pilote — Repository Cartographer (préparée, NON exécutée)
 
-Statut : **à relire, non exécutée**. Chaque étape demande l'autorisation explicite de Mathieu ; les
+Statut : **exécutée le 2026-11-22 (04:52–04:56Z) sur `cd23922a`, critères obligatoires passés** —
+voir [`CARTOGRAPHER_PILOT_RESULT.md`](CARTOGRAPHER_PILOT_RESULT.md). Les étapes root ont été exécutées par
+Mathieu via [`pilot/cat-obs-pilot-root.sh`](pilot/cat-obs-pilot-root.sh) (phases `access`, `install`,
+`invoke`, `rollback`). Texte d'origine ci-dessous, corrigé du point « exécutables » de l'étape 3. Chaque étape demande l'autorisation explicite de Mathieu ; les
 commandes `sudo` sont exécutées par lui. Configuration justifiée dans
 [`CARTOGRAPHER_INSTALL_REVIEW.md`](CARTOGRAPHER_INSTALL_REVIEW.md) (constats VPS du 2026-11-22).
 Périmètre du pilote : groupe et permissions, runner, correctif API minimal, redémarrage API contrôlé,
@@ -70,6 +73,9 @@ Le compte `lecanada26` n'est pas modifié ; le groupe n'est donné qu'à l'unit�
 sudo git clone ~/cat-obs-pilot/src $CK && sudo git -C $CK checkout --detach $S
 sudo git -C $CK remote remove origin
 sudo chown -R root:root $CK && sudo find $CK -type d -exec chmod 0555 {} + && sudo find $CK -type f -exec chmod 0444 {} +
+# exécutables suivis par git : 0555, sinon git voit un changement de mode 100755 → 100644 (échec constaté au pilote)
+sudo git -C $CK ls-files -s | awk '$1=="100755"{print $4}' | (cd $CK && sudo xargs -r chmod 0555)
+sudo git -C $CK status --porcelain | wc -l   # 0
 sudo -u cat-obs-ro env -i PATH=/usr/bin:/bin HOME=/nonexistent GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=$CK git -C $CK rev-parse HEAD   # = S
 ```
 

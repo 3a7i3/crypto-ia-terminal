@@ -63,9 +63,14 @@ jobs:
     env:
       BINANCE_TESTNET: "true"
       MARKET_SCANNER_SYNTHETIC: "true"
+      # Tests pilote de l'Observation (#599) : commit pilote requis, absence = échec.
+      CAT_REQUIRE_PILOT_COMMIT: "1"
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Commit pilote de l'Observation (tests pilote obligatoires)
+        run: git fetch --no-tags --depth=1 origin 857404f8ebfbcf9df4a3f36052ab5357ea9b8d7b
 
       - uses: actions/setup-python@v5
         with:

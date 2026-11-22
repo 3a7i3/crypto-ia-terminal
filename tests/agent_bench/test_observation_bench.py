@@ -6,6 +6,7 @@ aucun runner et n'allume aucun voyant de Système.
 """
 import copy
 import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -248,8 +249,12 @@ def _require_commit(sha):
     ok = subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=REPO, capture_output=True,
                         check=False)
     if ok.returncode != 0:
-        # Clone superficiel (CI fetch-depth 1) : saut explicite, jamais un succès silencieux.
-        pytest.skip(f"commit pilote {sha[:12]} absent du clone (historique superficiel)")
+        msg = f"commit pilote {sha[:12]} absent du clone (historique superficiel)"
+        if os.environ.get("CAT_REQUIRE_PILOT_COMMIT") == "1":
+            # CI : le commit est récupéré explicitement ; son absence est un échec, pas un saut.
+            pytest.fail(msg)
+        # Clone superficiel hors CI : saut explicite, jamais un succès silencieux.
+        pytest.skip(msg)
 
 
 def _extract_at(sha, paths, dest):

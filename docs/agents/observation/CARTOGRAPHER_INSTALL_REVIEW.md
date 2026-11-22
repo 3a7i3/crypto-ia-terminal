@@ -244,3 +244,6 @@ bail 600 s, `RLIMIT_AS` 1 Gio.
 permissions, runner, correctif API minimal, redémarrage API contrôlé, une invocation, lecture par la
 route, retour arrière si un critère du §5.2 échoue). L'installation **modifie le code exécuté par
 l'API** (§4 bis). Aucune régression de test constatée entre `85376c5e` et le candidat (§4 ter).
+
+**Exécution (2026-11-22 04:52–04:56Z)** : pilote installé, critères du §5.2 passés ; voir
+[`CARTOGRAPHER_PILOT_RESULT.md`](CARTOGRAPHER_PILOT_RESULT.md).
