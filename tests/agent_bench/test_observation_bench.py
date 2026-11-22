@@ -126,7 +126,7 @@ def _run_mutated(mutate, refresh_id=True):
 
 
 @pytest.mark.parametrize("mutate,code,refresh", [
-    (lambda m: m.update(agent_id="repository-cartographer"), "AGENT_NOT_QUALIFIED_FOR_BENCH", True),
+    (lambda m: m.update(agent_id="observability-cartographer"), "AGENT_NOT_QUALIFIED_FOR_BENCH", True),
     (lambda m: m.update(agent_id="sniper-engine"), "AGENT_UNKNOWN", True),
     (lambda m: m["question"].update(text="Une autre question ici, sans recalcul d'identité."), "MISSION_ID_MISMATCH", False),
     (lambda m: m["profile"].update(blob_sha1="0" * 40), "PROFILE_VERSION_MISMATCH", True),

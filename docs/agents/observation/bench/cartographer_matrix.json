@@ -1,0 +1,408 @@
+[
+  {
+    "expected": {
+      "calls": [],
+      "findings": [],
+      "imports": [
+        [
+          "main.py",
+          "worker:run",
+          "IMPORT_ONLY"
+        ]
+      ],
+      "production_calls": 0,
+      "unknowns": []
+    },
+    "id": "CARTO_1_import_seul",
+    "obtained": {
+      "calls": [],
+      "findings": [],
+      "imports": [
+        [
+          "main.py",
+          "worker:run",
+          "IMPORT_ONLY"
+        ]
+      ],
+      "production_calls": 0,
+      "unknowns": []
+    },
+    "passed": true,
+    "title": "Import sans appel"
+  },
+  {
+    "expected": {
+      "calls": [
+        [
+          "tests/test_main.py",
+          "run",
+          "TEST_CALL"
+        ]
+      ],
+      "findings": [],
+      "imports": [
+        [
+          "tests/test_main.py",
+          "main:run",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 0,
+      "unknowns": []
+    },
+    "id": "CARTO_2_test_seul",
+    "obtained": {
+      "calls": [
+        [
+          "tests/test_main.py",
+          "run",
+          "TEST_CALL"
+        ]
+      ],
+      "findings": [],
+      "imports": [
+        [
+          "tests/test_main.py",
+          "main:run",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 0,
+      "unknowns": []
+    },
+    "passed": true,
+    "title": "Appel seulement dans un test"
+  },
+  {
+    "expected": {
+      "calls": [
+        [
+          "app.py",
+          "make",
+          "TEST_SCOPE_CALL"
+        ]
+      ],
+      "findings": [],
+      "imports": [
+        [
+          "app.py",
+          "tests.helpers:make",
+          "IMPORT_TEST_SCOPE"
+        ]
+      ],
+      "production_calls": 0,
+      "unknowns": []
+    },
+    "id": "CARTO_3_import_test_en_production",
+    "obtained": {
+      "calls": [
+        [
+          "app.py",
+          "make",
+          "TEST_SCOPE_CALL"
+        ]
+      ],
+      "findings": [],
+      "imports": [
+        [
+          "app.py",
+          "tests.helpers:make",
+          "IMPORT_TEST_SCOPE"
+        ]
+      ],
+      "production_calls": 0,
+      "unknowns": []
+    },
+    "passed": true,
+    "title": "Helper de test importé par le code de production"
+  },
+  {
+    "expected": {
+      "calls": [
+        [
+          "main.py",
+          "primary.run",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "main.py",
+          "fallback.run",
+          "CONDITIONAL_PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [],
+      "imports": [],
+      "production_calls": 1,
+      "unknowns": []
+    },
+    "id": "CARTO_4_fallback_conditionnel",
+    "obtained": {
+      "calls": [
+        [
+          "main.py",
+          "fallback.run",
+          "CONDITIONAL_PRODUCTION_CALL"
+        ],
+        [
+          "main.py",
+          "primary.run",
+          "PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [],
+      "imports": [],
+      "production_calls": 1,
+      "unknowns": []
+    },
+    "passed": true,
+    "title": "Appel de secours identifié comme conditionnel"
+  },
+  {
+    "expected": {
+      "calls": [],
+      "findings": [],
+      "imports": [],
+      "production_calls": 0,
+      "unknowns": [
+        "DYNAMIC_CALL_TARGET"
+      ]
+    },
+    "id": "CARTO_5_cible_dynamique",
+    "obtained": {
+      "calls": [],
+      "findings": [],
+      "imports": [],
+      "production_calls": 0,
+      "unknowns": [
+        "DYNAMIC_CALL_TARGET"
+      ]
+    },
+    "passed": true,
+    "title": "Cible d'appel dynamique reste INCONCLUSIVE"
+  },
+  {
+    "expected": {
+      "calls": [
+        [
+          "export_a.py",
+          "fh.write",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "export_a.py",
+          "open",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "export_b.py",
+          "Path",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "export_b.py",
+          "Path('out.json').write_text",
+          "PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [
+        "MULTIPLE_PRODUCER_CANDIDATES"
+      ],
+      "imports": [
+        [
+          "export_b.py",
+          "pathlib:Path",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 4,
+      "unknowns": []
+    },
+    "id": "CARTO_6_deux_producteurs",
+    "obtained": {
+      "calls": [
+        [
+          "export_a.py",
+          "fh.write",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "export_a.py",
+          "open",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "export_b.py",
+          "Path",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "export_b.py",
+          "Path('out.json').write_text",
+          "PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [
+        "MULTIPLE_PRODUCER_CANDIDATES"
+      ],
+      "imports": [
+        [
+          "export_b.py",
+          "pathlib:Path",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 4,
+      "unknowns": []
+    },
+    "passed": true,
+    "title": "Deux producteurs candidats du même fichier"
+  },
+  {
+    "expected": {
+      "calls": [
+        [
+          "cfg.py",
+          "os.getenv",
+          "PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [
+        "FLAG_SINGLE_PATH"
+      ],
+      "imports": [
+        [
+          "cfg.py",
+          "os",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 1,
+      "unknowns": []
+    },
+    "id": "CARTO_7_flag_un_chemin",
+    "obtained": {
+      "calls": [
+        [
+          "cfg.py",
+          "os.getenv",
+          "PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [
+        "FLAG_SINGLE_PATH"
+      ],
+      "imports": [
+        [
+          "cfg.py",
+          "os",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 1,
+      "unknowns": []
+    },
+    "passed": true,
+    "title": "Flag lu sur un seul chemin"
+  },
+  {
+    "expected": {
+      "calls": [
+        [
+          "a.py",
+          "os.getenv",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "b.py",
+          "os.environ.get",
+          "PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [
+        "FLAG_MULTI_PATH"
+      ],
+      "imports": [
+        [
+          "a.py",
+          "os",
+          "IMPORT_USED"
+        ],
+        [
+          "b.py",
+          "os",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 2,
+      "unknowns": []
+    },
+    "id": "CARTO_8_flag_deux_chemins",
+    "obtained": {
+      "calls": [
+        [
+          "a.py",
+          "os.getenv",
+          "PRODUCTION_CALL"
+        ],
+        [
+          "b.py",
+          "os.environ.get",
+          "PRODUCTION_CALL"
+        ]
+      ],
+      "findings": [
+        "FLAG_MULTI_PATH"
+      ],
+      "imports": [
+        [
+          "a.py",
+          "os",
+          "IMPORT_USED"
+        ],
+        [
+          "b.py",
+          "os",
+          "IMPORT_USED"
+        ]
+      ],
+      "production_calls": 2,
+      "unknowns": []
+    },
+    "passed": true,
+    "title": "Flag lu sur deux chemins"
+  },
+  {
+    "expected": {
+      "calls": [],
+      "findings": [],
+      "imports": [],
+      "production_calls": 0,
+      "unknowns": [
+        "PARSE_FAILED"
+      ]
+    },
+    "id": "CARTO_9_source_illisible",
+    "obtained": {
+      "calls": [],
+      "findings": [],
+      "imports": [],
+      "production_calls": 0,
+      "unknowns": [
+        "PARSE_FAILED"
+      ]
+    },
+    "passed": true,
+    "title": "Source non analysable"
+  },
+  {
+    "expected": {
+      "error": "FILE_BUDGET_EXCEEDED"
+    },
+    "id": "CARTO_10_budget_31_fichiers",
+    "obtained": {
+      "error": "FILE_BUDGET_EXCEEDED"
+    },
+    "passed": true,
+    "title": "Budget de 30 fichiers dépassé"
+  }
+]

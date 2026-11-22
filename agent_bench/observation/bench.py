@@ -30,6 +30,7 @@ from agent_bench.observation.provenance_auditor import audit
 REPO = Path(__file__).resolve().parents[2]
 FIXTURES = REPO / "tests" / "agent_bench" / "fixtures" / "observation"
 PILOT_MISSION = REPO / "docs" / "agents" / "observation" / "examples" / "pilot_mission.json"
+ZONE_MISSION = REPO / "docs" / "agents" / "observation" / "examples" / "cartographer_zone_mission.json"
 
 
 def tree_sha256(root):
@@ -190,6 +191,12 @@ def main(argv=None):
     sub.add_parser("freeze")
     mx = sub.add_parser("matrix")
     mx.add_argument("--out", required=True)
+    cz = sub.add_parser("cartographer")
+    cz.add_argument("--mission", default=str(ZONE_MISSION))
+    cz.add_argument("--repo-sha", required=True)
+    cz.add_argument("--out", required=True)
+    cm = sub.add_parser("cartographer-matrix")
+    cm.add_argument("--out", required=True)
     pl = sub.add_parser("pilot")
     pl.add_argument("--repo-sha", required=True)
     pl.add_argument("--out", required=True)
@@ -207,6 +214,25 @@ def main(argv=None):
         print(json.dumps({"cases": len(rows), "passed": sum(r["verdict"]["passed"] for r in rows),
                           "max_rss_kb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}))
         return 0 if all(r["verdict"]["passed"] for r in rows) else 1
+    if a.cmd == "cartographer":
+        from agent_bench.observation import repository_cartographer as rc
+        m = json.loads(Path(a.mission).read_text(encoding="utf-8"))
+        if m["analyzed_ref"] != {"kind": "GIT_COMMIT", "sha": a.repo_sha}:
+            raise SystemExit(f"REFUSED: mission names {m['analyzed_ref']}, harness checked {a.repo_sha}")
+        verify_git_scope(a.repo_sha, m["scope"]["read_paths"])
+        report = rc.audit_zone(m, REPO, REPO)
+        Path(a.out).write_text(_dump(report), encoding="utf-8")
+        print(report["content"]["status"], report["content_sha256"])
+        return 0
+    if a.cmd == "cartographer-matrix":
+        from agent_bench.observation import repository_cartographer as rc
+        rows = rc.cartographer_matrix()
+        out = Path(a.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "cartographer_matrix.json").write_text(_dump(rows), encoding="utf-8")
+        (out / "cartographer_matrix.md").write_text(rc.cartographer_matrix_markdown(rows), encoding="utf-8")
+        print(json.dumps({"cases": len(rows), "passed": sum(r["passed"] for r in rows)}))
+        return 0 if all(r["passed"] for r in rows) else 1
     report = pilot(a.repo_sha)
     Path(a.out).write_text(_dump(report), encoding="utf-8")
     print(report["content"]["status"], report["content_sha256"])

@@ -17,9 +17,16 @@ MISSION_CONTRACT = "cat.observation.mission.v1"
 REPORT_CONTRACT = "cat.observation.report.v1"
 MISSION_IDENTITY_SCHEMA = "cat.observation.mission-identity.v1"
 
-# Seul le pilote est exécutable dans ce lot. Les trois autres profils Observation
-# ont une fiche de mission mais aucun banc : une mission les visant est BLOCKED.
-EXECUTABLE_AGENTS = ("data-provenance-auditor",)
+# Profils exécutables au banc. data-provenance-auditor : pilote (chaîne de dataset).
+# repository-cartographer : cartographie statique d'une zone (PR #598, lot 2).
+# Les deux autres profils n'ont qu'une fiche : une mission les visant est BLOCKED.
+EXECUTABLE_AGENTS = ("data-provenance-auditor", "repository-cartographer")
+QUESTION_KIND_BY_AGENT = {
+    "data-provenance-auditor": "DATASET_PROVENANCE_CHAIN",
+    "repository-cartographer": "REPOSITORY_MAP",
+}
+# Budget de fichiers d'une cartographie de zone (lot 2 : au plus 30 sources .py).
+REPOSITORY_MAP_MAX_FILES = 30
 OBSERVATION_AGENTS = ("data-provenance-auditor", "observability-cartographer",
                       "repository-cartographer", "repo-architect")
 
@@ -27,7 +34,7 @@ MISSION_STATUSES = ("COMPLETE", "PARTIAL", "BLOCKED", "FAILED")
 PROOF_LEVELS = ("PROVEN", "SUPPORTED", "INFERRED", "INCONCLUSIVE", "NOT_FOUND")
 EVIDENCE_TYPES = ("CODE", "CALL_SITE", "IMPORT", "LITERAL", "CAPTURE_FIELD", "FILE_STAT", "MISSION_INPUT")
 CONFIDENCE = ("HIGH", "MEDIUM", "LOW")
-QUESTION_KINDS = ("DATASET_PROVENANCE_CHAIN",)
+QUESTION_KINDS = ("DATASET_PROVENANCE_CHAIN", "REPOSITORY_MAP")
 UNITS = ("EPOCH_MS", "DURATION_MS", "UTC_ISO_SECONDS", "DECIMAL_STRING_BPS", "COUNT")
 
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -138,11 +145,39 @@ def validate_mission(m):
         code = path_violation(path)
         if code:
             raise MissionRejected(code, path)
+    kind = m["question"]["kind"] if isinstance(m["question"], dict) else None
+    if kind not in QUESTION_KINDS or QUESTION_KIND_BY_AGENT[m["agent_id"]] != kind:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.kind does not match agent_id")
+    b = m["budget"]
+    _keys(b, ("max_files", "max_bytes", "max_wall_ms"), "budget")
+    if not (_int(b["max_files"], 1, 5000) and _int(b["max_bytes"], 1, 64_000_000) and _int(b["max_wall_ms"], 1, 600_000)):
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "budget")
+    if kind == "REPOSITORY_MAP":
+        _validate_repository_map(m, paths)
+    else:
+        _validate_dataset_chain(m, paths)
+    if not HEX64.match(str(m["mission_id"])) or m["mission_id"] != compute_mission_id(m):
+        raise MissionRejected("MISSION_ID_MISMATCH", "mission_id is not the hash of its identity document")
+    return m
+
+
+def _validate_repository_map(m, paths):
+    q = m["question"]
+    _keys(q, ("kind", "zone_id", "text"), "question")
+    if not SLUG.match(str(q["zone_id"])) or not isinstance(q["text"], str) or not 10 <= len(q["text"]) <= 600:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.zone_id/text")
+    if m["budget"]["max_files"] > REPOSITORY_MAP_MAX_FILES:
+        raise MissionRejected("FILE_BUDGET_EXCEEDED", f"max_files > {REPOSITORY_MAP_MAX_FILES}")
+    if m["capture"] is not None:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "REPOSITORY_MAP takes no capture")
+
+
+def _validate_dataset_chain(m, paths):
     q = m["question"]
     _keys(q, ("kind", "dataset_id", "text", "as_of_utc", "max_source_age_ms", "source_ts",
               "write_ts", "units", "join_checks", "observation_key"), "question")
-    if q["kind"] not in QUESTION_KINDS or not isinstance(q["dataset_id"], str) or not q["dataset_id"]:
-        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.kind/dataset_id")
+    if not isinstance(q["dataset_id"], str) or not q["dataset_id"]:
+        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.dataset_id")
     if not isinstance(q["text"], str) or not 10 <= len(q["text"]) <= 600:
         raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.text")
     if not UTC_SECONDS.match(str(q["as_of_utc"])):
@@ -164,10 +199,6 @@ def validate_mission(m):
     ok = q["observation_key"]
     if not isinstance(ok, list) or not ok or not all(POINTER.match(str(x)) for x in ok):
         raise MissionRejected("MISSION_SCHEMA_VIOLATION", "question.observation_key")
-    b = m["budget"]
-    _keys(b, ("max_files", "max_bytes", "max_wall_ms"), "budget")
-    if not (_int(b["max_files"], 1, 5000) and _int(b["max_bytes"], 1, 64_000_000) and _int(b["max_wall_ms"], 1, 600_000)):
-        raise MissionRejected("MISSION_SCHEMA_VIOLATION", "budget")
     c = m["capture"]
     _keys(c, ("capture_id", "path", "sha256", "kind"), "capture")
     if not SLUG.match(str(c["capture_id"])) or not HEX64.match(str(c["sha256"])) \
@@ -178,9 +209,6 @@ def validate_mission(m):
         raise MissionRejected(code, c["path"])
     if not any(c["path"] == r or (r.endswith("/") and c["path"].startswith(r)) for r in paths):
         raise MissionRejected("CAPTURE_OUT_OF_SCOPE", c["path"])
-    if not HEX64.match(str(m["mission_id"])) or m["mission_id"] != compute_mission_id(m):
-        raise MissionRejected("MISSION_ID_MISMATCH", "mission_id is not the hash of its identity document")
-    return m
 
 
 def seal_report(content, run):

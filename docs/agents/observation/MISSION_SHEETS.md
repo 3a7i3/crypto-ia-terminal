@@ -1,8 +1,10 @@
 # Famille Observation — fiches de mission et frontières
 
-Statut : **fiches seulement**. Aucun des trois profils ci-dessous n'a de banc, de runner
-ni de liaison serveur ; une mission qui les vise est refusée `BLOCKED
+Statut : **repository-cartographer a un banc isolé (lot 2)** ; les trois autres profils
+restent **fiches seulement**. Aucun ne dispose de runner ni de liaison serveur. Une mission
+qui vise `observability-cartographer` ou `repo-architect` est refusée `BLOCKED
 AGENT_NOT_QUALIFIED_FOR_BENCH` par [`contract.py`](../../../agent_bench/observation/contract.py).
+Résultat du lot 2 : [CARTOGRAPHER_RESULT.md](CARTOGRAPHER_RESULT.md) ; runner : [REPOSITORY_CARTOGRAPHER_RUNNER.md](REPOSITORY_CARTOGRAPHER_RUNNER.md).
 Contrat commun : [AGENT_OBSERVATION_MISSION_V1](../../contracts/AGENT_OBSERVATION_MISSION_V1.md).
 Profils lus à `857404f8` ; leurs fichiers `.agent.md` ne sont pas modifiés (blobs vérifiés
 par le registre #597).
@@ -61,8 +63,9 @@ Proposition (à valider par Mathieu avant toute fonction) :
   `CANONICAL_EXISTING`.
 - **Dépendance** : pilote DPA recevable.
 
-## 2. repository-cartographer
+## 2. repository-cartographer  (banc lot 2 : exécutable, non installé)
 
+- **Statut** : banc isolé, critères du lot 2 testés (matrice CARTO_1 à CARTO_10). Non déployé.
 - **Classe/niveau envisagés** : `SENSOR` F0.
 - **Question bornée V1** : pour une zone (≤ 30 fichiers), produire le graphe des
   relations prouvées et la liste des points d'entrée, états persistants, flags et tests,
@@ -77,8 +80,9 @@ Proposition (à valider par Mathieu avant toute fonction) :
 - **Critères propres (banc futur)** : fixtures avec import non appelé, appel via
   fallback, deux producteurs d'un même fichier, module importé seulement par des tests,
   flag lu sur un seul chemin ; un module n'est jamais `CALLED` parce qu'il existe.
-- **Réutilisation** : `agent_bench/observation/source_index.py` couvre déjà
-  imports/écritures/lectures/routes ; à étendre plutôt qu'à dupliquer.
+- **Réutilisation** : `agent_bench/observation/source_index.py` (écritures, flags, routes),
+  `contract.path_violation` (périmètre et secrets), `scoped_io.ScopedReader` (lecture bornée).
+  Le noyau `map_repository` du prototype est conservé tel quel ; la classification est dans `classify`.
 
 ## 3. repo-architect
 
@@ -97,8 +101,7 @@ Proposition (à valider par Mathieu avant toute fonction) :
 
 ## 4. Ordre conseillé
 
-1. `repository-cartographer` — fondation statique, réutilise l'index du pilote,
-   fixtures faciles à prédéfinir.
+1. `repository-cartographer` — **fait au lot 2** (banc, matrice, zone réelle) ; reste la revue humaine.
 2. `observability-cartographer` — consomme DPA et le cartographe ; partie Telegram
    limitée au code source.
 3. `repo-architect` — seulement après la décision de frontière (ou archivage), car il

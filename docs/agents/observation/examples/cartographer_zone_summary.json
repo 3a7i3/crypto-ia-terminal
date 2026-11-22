@@ -1,0 +1,95 @@
+{
+  "activity": {
+    "conditional_production_calls": 483,
+    "imports_only": 6,
+    "imports_test_scope": 0,
+    "production_calls": 498,
+    "test_calls": 0,
+    "test_scope_calls": 0
+  },
+  "analyzed_ref": {
+    "kind": "GIT_COMMIT",
+    "sha": "e387318eeaed81d4e6dc90228d46943a65a5b73c"
+  },
+  "calls_by_status": {
+    "CONDITIONAL_PRODUCTION_CALL": 483,
+    "PRODUCTION_CALL": 498
+  },
+  "content_sha256": "67bdcc05ec67e54013991028275d78ff4727c299fe2f9b6762c2b3da35a3fa4e",
+  "findings": [
+    {
+      "claim": "Le flag OPERATOR_BBO_HISTORY_PATH n'est lu que dans observability/operator_api/bbo_history_reader.py:BboHistoryReader.__init__ (dans la zone seulement).",
+      "code": "FLAG_SINGLE_PATH",
+      "evidence": [
+        {
+          "evidence_type": "CALL_SITE",
+          "line": 30,
+          "path": "observability/operator_api/bbo_history_reader.py",
+          "sha256": "44a3febae3710c5bbc8f77efcb01d463b8c31c5e7e70b931a09ea29281437938",
+          "symbol": "BboHistoryReader.__init__"
+        }
+      ],
+      "level": "SUPPORTED"
+    }
+  ],
+  "flags": [
+    "OPERATOR_BBO_HISTORY_PATH"
+  ],
+  "imports_by_status": {
+    "IMPORT_ONLY": 6,
+    "IMPORT_USED": 37
+  },
+  "limits": [
+    "STATIC_ANALYSIS_ONLY_NO_IMPORT_NO_EXECUTION",
+    "DEFINED_IS_NOT_CALLED_IS_NOT_ACTIVE",
+    "IMPORT_IS_NOT_CALL",
+    "CONDITIONAL_CALL_IS_NOT_PROVEN_REACHABLE",
+    "DYNAMIC_CALL_TARGET_IS_INCONCLUSIVE",
+    "ONE_HOP_NAME_RESOLUTION_ONLY",
+    "FLAG_ATTRIBUTION_LIMITED_TO_THE_ZONE",
+    "NO_RUNTIME_OBSERVATION",
+    "REPORT_IS_NOT_SELF_CERTIFYING"
+  ],
+  "mission_id": "02e0f78f43d1062ee0efed015ad9fe37329dbe480062f02c53e32c82e19fdece",
+  "note": "Résumé scellé d'une cartographie de zone (FIXTURE/ZONE réelle, statique). Le rapport complet est hors dépôt : /mnt/project-files/cat-market-m1/agents-observation-pilot/repository-cartographer/zone_bbo_small_e387318_full.json",
+  "report_sha256_at_creation": "9261b763555c6a7ba3ed0056d976686cc5aed97d64a333ce3a6234a315603b7b",
+  "schema": "cat.observation.repository-map.summary.v1",
+  "sources": [
+    {
+      "bytes": 4572,
+      "path": "profile:.github/agents/repository-cartographer.agent.md",
+      "sha256": "5c15232674b0009a9bcab05e0024a1ff46a778df2eda01efd4298388337a6112"
+    },
+    {
+      "bytes": 3309,
+      "path": "observability/operator_api/bbo_history_reader.py",
+      "sha256": "44a3febae3710c5bbc8f77efcb01d463b8c31c5e7e70b931a09ea29281437938"
+    },
+    {
+      "bytes": 16431,
+      "path": "observability/radar_composite/bbo_history.py",
+      "sha256": "510932f561d41a0e0627cf65f0573506ea3f3ffa04755dec3b1cf0277e5eabac"
+    },
+    {
+      "bytes": 72103,
+      "path": "observability/radar_composite/bbo_pilot.py",
+      "sha256": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae"
+    }
+  ],
+  "status": "PARTIAL",
+  "unknowns": [
+    {
+      "level": "INCONCLUSIVE",
+      "line": 1455,
+      "path": "observability/radar_composite/bbo_pilot.py",
+      "reason": "DYNAMIC_CALL_TARGET"
+    },
+    {
+      "level": "INCONCLUSIVE",
+      "line": 1466,
+      "path": "observability/radar_composite/bbo_pilot.py",
+      "reason": "DYNAMIC_CALL_TARGET"
+    }
+  ],
+  "zone_id": "bbo-composite-history-small"
+}

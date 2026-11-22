@@ -25,10 +25,37 @@ VOYANT SYSTÈME    reste gris tant qu'aucun runner serveur relié et prouvé (#5
 |---|---|---|
 | `data-provenance-auditor` | **oui (pilote)** | ce contrat + [fiches](../agents/observation/MISSION_SHEETS.md) |
 | `observability-cartographer` | non → `BLOCKED AGENT_NOT_QUALIFIED_FOR_BENCH` | [fiches](../agents/observation/MISSION_SHEETS.md) |
-| `repository-cartographer` | non → idem | idem |
+| `repository-cartographer` | **oui (lot 2, question `REPOSITORY_MAP`)** | [fiche](../agents/observation/MISSION_SHEETS.md) · [runner](../agents/observation/REPOSITORY_CARTOGRAPHER_RUNNER.md) · [résultat](../agents/observation/CARTOGRAPHER_RESULT.md) |
 | `repo-architect` | non → idem | idem |
 
-Tout autre `agent_id` ⇒ `BLOCKED AGENT_UNKNOWN`.
+`observability-cartographer` et `repo-architect` restent non qualifiés : `BLOCKED AGENT_NOT_QUALIFIED_FOR_BENCH`.
+Tout autre `agent_id` ⇒ `BLOCKED AGENT_UNKNOWN`. Le type de question doit correspondre
+au profil : `DATASET_PROVENANCE_CHAIN` pour `data-provenance-auditor`, `REPOSITORY_MAP`
+pour `repository-cartographer` (sinon `MISSION_SCHEMA_VIOLATION`).
+
+## 6 bis. Cartographie de zone (`REPOSITORY_MAP`, lot 2)
+
+| Champ | Contenu |
+|---|---|
+| `question` | `kind=REPOSITORY_MAP`, `zone_id` (slug), `text` |
+| `capture` | `null` (aucune capture ; toute autre valeur est refusée) |
+| `budget.max_files` | au plus **30** (`REPOSITORY_MAP_MAX_FILES`) ; au-delà ⇒ `FILE_BUDGET_EXCEEDED` |
+| `scope.read_paths` | même grammaire ; seuls les fichiers `.py` sont analysés, les autres sont listés dans `skipped_non_python` |
+
+Règles de classement (module `agent_bench/observation/repository_cartographer.py`) :
+
+- un **import** n'est jamais un appel. `IMPORT_ONLY` : aucun appel de la même module ne
+  s'en réclame (peut servir à un attribut ou une constante) ; `IMPORT_USED` ; `IMPORT_TEST_SCOPE` :
+  un module de test importé par du code de production ;
+- un **appel** dans un fichier de test est `TEST_CALL` ; un appel à un nom importé depuis un
+  module de test est `TEST_SCOPE_CALL` ; ni l'un ni l'autre n'est une preuve d'activité de production ;
+- un appel de secours (`except`) est `CONDITIONAL_PRODUCTION_CALL` (`EXCEPT_HANDLER`) ; un appel
+  sous `if`, ternaire ou court-circuit est aussi conditionnel (`BRANCH`) ;
+- une cible d'appel non nommable (`handlers[k]()`) est `DYNAMIC_CALL_TARGET`, niveau `INCONCLUSIVE`, jamais un appel ;
+- deux écritures candidates vers le même fichier ⇒ `MULTIPLE_PRODUCER_CANDIDATES`, avec chaque référence ;
+- un flag lu sur un seul couple (fichier, fonction) ⇒ `FLAG_SINGLE_PATH` attribué à ce couple,
+  niveau `SUPPORTED` (attribution limitée à la zone) ; sinon `FLAG_MULTI_PATH` ;
+- chaque constat cite fichier, ligne, symbole et `sha256` de la source.
 
 ## 2. Entrée obligatoire (`cat.observation.mission.v1`)
 
