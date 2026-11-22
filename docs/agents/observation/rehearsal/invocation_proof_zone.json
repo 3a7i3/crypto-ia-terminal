@@ -1,0 +1,15 @@
+{
+  "runner_id": "obs-repo-cartographer-ro-01",
+  "unix_user": "cat-obs-ro",
+  "environment": "throwaway_container_rehearsal_not_vps",
+  "network": "unshare -n (netns without route; control: Network is unreachable)",
+  "mission_id": "02e0f78f43d1062ee0efed015ad9fe37329dbe480062f02c53e32c82e19fdece",
+  "code_sha_bench": "3b67c91b641b4c805cf07c01782db4f547090a67",
+  "zone_sha_analysed": "e387318eeaed81d4e6dc90228d46943a65a5b73c",
+  "command": "bench cartographer --repo-sha <zone_sha> --out <reports>",
+  "exit_code": 0,
+  "status": "PARTIAL",
+  "content_sha256": "67bdcc05ec67e54013991028275d78ff4727c299fe2f9b6762c2b3da35a3fa4e",
+  "checkout_readonly": true,
+  "write_probe": "denied outside reports"
+}
