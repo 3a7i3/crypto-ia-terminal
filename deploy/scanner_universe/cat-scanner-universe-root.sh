@@ -13,6 +13,9 @@
 #   sudo bash cat-scanner-universe-root.sh web      <sha>   page = version en service + univers dans Marché → Scanner
 #   sudo bash cat-scanner-universe-root.sh status   <sha>   lecture seule
 #   sudo bash cat-scanner-universe-root.sh rollback <sha>   retour à l'API et au web du bloc Market
+#   sudo bash cat-scanner-universe-root.sh web-refonte <sha>        web seul : refonte Scanner + Radar de signaux · Démo
+#   sudo bash cat-scanner-universe-root.sh web-refonte-revert <sha> retour au web Scanner V1 (bc259b23)
+# Préparation de la refonte sans root : bash ~/cat-scanner-universe-block/prep-refonte.sh <sha>
 # Préparation sans root : bash ~/cat-scanner-universe-block/prep.sh <sha>
 set -uo pipefail
 H=/home/lecanada26
@@ -35,11 +38,15 @@ BASE=http://127.0.0.1:8090/api/operator/v1
 WEB=http://127.0.0.1:8181
 [ "$(id -u)" = 0 ] || { echo "ECHEC: lancer avec sudo"; exit 1; }
 PH=${1:-}; S=${2:-}
-case "$PH" in install|invoke|api|web|status|rollback) ;; *) echo "usage: sudo bash $0 install|invoke|api|web|status|rollback <sha_code>"; exit 2;; esac
+case "$PH" in install|invoke|api|web|status|rollback|web-refonte|web-refonte-revert) ;; *) echo "usage: sudo bash $0 install|invoke|api|web|status|rollback|web-refonte|web-refonte-revert <sha_code>"; exit 2;; esac
 [[ "$S" =~ ^[0-9a-f]{40}$ ]] || { echo "ECHEC: sha de code (40 hex) requis"; exit 2; }
 CK=/opt/cat-scanner-universe/checkout/$S
 API_NEW=$API_PREV-scanner-${S:0:8}
 WEB_NEW=/opt/cat-app/releases/CAT-SCANNER-UNIVERSE-${S:0:8}
+# Refonte : remplace seulement le dist servi par le drop-in web du Scanner V1 (bc259b23).
+WEB_V1=/opt/cat-app/releases/CAT-SCANNER-UNIVERSE-bc259b23
+WEB_REF=/opt/cat-app/releases/CAT-SCANNER-REFONTE-${S:0:8}
+WEB_DROP_V1=$B/web-dropin-scanner-v1-bc259b23.conf
 mkdir -p $B
 LOG=$B/scanner-$PH-$(date -u +%Y%m%dT%H%M%SZ).log
 exec > >(tee "$LOG") 2>&1
@@ -184,6 +191,38 @@ web)
   r=$(code $WEB/api/operator/v1/scanner-universe); echo "via web : univers $r · Market $(code $WEB/api/operator/v1/agent-invocations/market-observer) · stockage $(code $WEB/api/operator/v1/storage-inventory)"
   [ "$r" = 200 ] || { undo; fail "relais web — retour arrière fait"; }
   ok "web sur $WEB_NEW : Marché → Scanner n'affiche que l'univers commun (recharger la page)"
+  ;;
+web-refonte)
+  [ -f "$WEB_DROP" ] || fail "drop-in web du Scanner V1 absent : phase web non faite"
+  grep -qF "$WEB_V1/dist:" $WEB_DROP || fail "le drop-in web ne sert plus $WEB_V1 : rien n'a été basculé"
+  CUR=$(systemctl show $WEB_UNIT -p BindReadOnlyPaths --value)
+  [[ "$CUR" == "$WEB_V1/dist:$WEB_TARGET/dist:rbind "* ]] || fail "le web servi n'est pas $WEB_V1"
+  manifest() { (cd "$1" && find . -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1); }
+  [ "$(manifest $B/web-refonte/frontend/dist)" = "$(cat $B/web-refonte.manifest)" ] || fail "dist != manifeste (relancer prep-refonte.sh)"
+  if [ ! -d $WEB_REF/dist ]; then install -d -m 0755 $WEB_REF && cp -r $B/web-refonte/frontend/dist $WEB_REF/dist; fi
+  chown -R root:root $WEB_REF; chmod -R a+rX $WEB_REF
+  [ "$(manifest $WEB_REF/dist)" = "$(cat $B/web-refonte.manifest)" ] || fail "copie du dist"
+  cp -p $WEB_DROP $WEB_DROP_V1
+  sed -i "s|$WEB_V1/dist:|$WEB_REF/dist:|" $WEB_DROP
+  grep -qF "$WEB_REF/dist:" $WEB_DROP || { cp -p $WEB_DROP_V1 $WEB_DROP; fail "réécriture du drop-in"; }
+  undo() { cp -p $WEB_DROP_V1 $WEB_DROP; systemctl daemon-reload; systemctl restart $WEB_UNIT; }
+  systemctl daemon-reload && systemctl restart $WEB_UNIT
+  A=$(sed -n 's/.*src="\(\/assets\/[^"]*\.js\)".*/\1/p' $WEB_REF/dist/index.html)
+  curl -fsS --retry 8 --retry-connrefused --retry-delay 1 -m 5 $WEB/paper-live/system 2>/dev/null | cmp - $WEB_REF/dist/index.html || { undo; fail "page servie != build — retour arrière fait"; }
+  curl -fsS -m 5 $WEB$A | cmp - $WEB_REF/dist$A || { undo; fail "bundle servi != build — retour arrière fait"; }
+  r=$(code $WEB/api/operator/v1/scanner-universe); echo "via web : univers $r · Market $(code $WEB/api/operator/v1/agent-invocations/market-observer) · stockage $(code $WEB/api/operator/v1/storage-inventory)"
+  [ "$r" = 200 ] || { undo; fail "relais web — retour arrière fait"; }
+  ok "web sur $WEB_REF : Classement du jour, Terminal live, Radar Spot, Radar de signaux · Démo (recharger la page)"
+  ;;
+web-refonte-revert)
+  [ -f "$WEB_DROP_V1" ] || fail "sauvegarde $WEB_DROP_V1 absente"
+  cp -p $WEB_DROP_V1 $WEB_DROP
+  systemctl daemon-reload && systemctl restart $WEB_UNIT
+  CUR=$(systemctl show $WEB_UNIT -p BindReadOnlyPaths --value)
+  [[ "$CUR" == "$WEB_V1/dist:"* ]] || fail "le web ne sert pas $WEB_V1"
+  curl -fsS --retry 8 --retry-connrefused --retry-delay 1 -m 5 $WEB/paper-live/system 2>/dev/null | cmp - $WEB_V1/dist/index.html || fail "page servie != $WEB_V1"
+  echo "Conservée : la release $WEB_REF."
+  ok "web revenu sur $WEB_V1 (Scanner V1)"
   ;;
 status)
   systemctl list-timers cat-scanner-universe.timer --no-pager | head -2
