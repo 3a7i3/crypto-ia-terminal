@@ -1,0 +1,15 @@
+.live-terminal { margin-top: .75rem; padding: clamp(.7rem, 3vw, 1.2rem); border-radius: 1rem; background: #0b1220; color: #d9e6f5; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; min-width: 0; }
+.live-terminal header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .3rem .8rem; }
+.live-terminal h2 { margin: 0; font-size: 1.05rem; letter-spacing: .04em; text-transform: uppercase; color: #9fd3ff; }
+.live-terminal header p { margin: 0; font-size: .8rem; }
+.live-terminal .live-on { color: #7cf0b0; }
+.live-terminal .live-off { color: #f6c177; }
+.live-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: .6rem; font-size: .82rem; font-variant-numeric: tabular-nums; }
+.live-table th, .live-table td { padding: .35rem .25rem; border-bottom: 1px solid #1f2c42; text-align: right; overflow-wrap: anywhere; }
+.live-table thead th { color: #7f93ad; font-weight: 500; font-size: .72rem; text-transform: uppercase; }
+.live-table th[scope="row"], .live-table thead th:first-child { text-align: left; color: #eef5ff; width: 30%; }
+.live-table td.up { color: #7cf0b0; }
+.live-table td.down { color: #ff9aae; }
+.live-terminal .scanner-gate-notice, .live-empty, .live-alert { margin: .7rem 0 0; font-size: .85rem; }
+.live-alert { color: #ff9aae; }
+.live-foot { margin: .7rem 0 0; font-size: .7rem; color: #7f93ad; }

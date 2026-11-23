@@ -14,8 +14,8 @@ type Qualification = {
 };
 const noQualifications: readonly Qualification[] = [];
 
-export function SymbolScanner({ bubbles, selection, onSelect, qualifications = noQualifications, gate }: {
-  bubbles: boolean;
+/** Classement du jour: MEXC Spot pairs ranked by qualified 24 h quote volume. */
+export function SymbolScanner({ selection, onSelect, qualifications = noQualifications, gate }: {
   /** Scanner V1 common universe: only admitted MEXC Spot rows are shown. */
   gate?: ScannerGate;
   selection: readonly string[];
@@ -27,7 +27,6 @@ export function SymbolScanner({ bubbles, selection, onSelect, qualifications = n
   const [refresh, setRefresh] = useState(0);
   const [now, setNow] = useState(Date.now);
   const [query, setQuery] = useState("");
-  const [list, setList] = useState(false);
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [active, setActive] = useState<string>();
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -69,8 +68,7 @@ export function SymbolScanner({ bubbles, selection, onSelect, qualifications = n
       || a.instrument_id.localeCompare(b.instrument_id));
   const ranks = new Map(ranked.map((row, index) => [row.instrument_id, index + 1]));
   const needle = query.trim().toUpperCase();
-  const ordered = bubbles ? [...instruments].sort((a, b) => a.instrument_id.localeCompare(b.instrument_id))
-    : [...ranked, ...instruments.filter(row => !ranks.has(row.instrument_id))];
+  const ordered = [...ranked, ...instruments.filter(row => !ranks.has(row.instrument_id))];
   const rows = ordered
     .filter(row => (row.display_symbol.toUpperCase().includes(needle) || row.identity.native_symbol.toUpperCase().includes(needle))
       && (!selectedOnly || selection.includes(row.instrument_id)));
@@ -89,13 +87,12 @@ export function SymbolScanner({ bubbles, selection, onSelect, qualifications = n
     return bid > 0 && ask >= bid ? `${((ask - bid) / ((ask + bid) / 2) * 10_000).toFixed(1)} pb` : "Indisponible";
   };
 
-  return <section className="symbol-scanner" aria-label={bubbles ? "Bulles Intraday" : "Scanner classé"}>
-    <header><h2>{bubbles ? "Bulles Intraday" : "Scanner classé"}</h2>
-      <p>MEXC Spot · USDT · {bubbles ? "Variation publiée sur 24 h" : "Rang par volume 24 h qualifié"}</p></header>
+  return <section className="symbol-scanner" aria-label="Classement du jour">
+    <header><h2>Classement du jour</h2>
+      <p>MEXC Spot · USDT · Rang par volume 24 h qualifié</p></header>
     <div className="symbol-tools">
       <label>Rechercher un symbole<input type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>
-      {bubbles ? <button type="button" aria-pressed={list} onClick={() => setList(!list)}>{list ? "Afficher les bulles" : "Afficher la liste"}</button>
-        : <button type="button" aria-pressed={selectedOnly} onClick={() => setSelectedOnly(!selectedOnly)}>Sélection ({selection.length})</button>}
+      <button type="button" aria-pressed={selectedOnly} onClick={() => setSelectedOnly(!selectedOnly)}>Sélection ({selection.length})</button>
       <button type="button" onClick={() => setRefresh(value => value + 1)}>Actualiser</button>
     </div>
     {setup ? <MarketSourceNotice source="Radar Spot" setup={setup} code={error} />
@@ -104,25 +101,17 @@ export function SymbolScanner({ bubbles, selection, onSelect, qualifications = n
     {data && gate && instruments.length === 0 && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state)}</p>}
     {data && <p className="symbol-summary">{rows.length} / {data.selected_instruments} instruments{gate ? ` · ${instruments.length} admis par l’univers commun` : ""} · {data.evidence_kind === "SYNTHETIC" ? "Démonstration" : `Collecteur ${data.collector.state}`}</p>}
     {data && rows.length === 0 && (instruments.length > 0 || !gate) && <p role="status">Aucun symbole pour cette recherche.</p>}
-    {rows.length > 0 && (bubbles && !list ? <div className="symbol-bubbles">
-      {rows.map(row => {
-        const value = change(row);
-        const numeric = value === null ? 0 : Number(value);
-        const size = 66 + Math.min(30, Math.abs(numeric) * 2);
-        return <button key={row.instrument_id} type="button" className={numeric > 0 ? "up" : numeric < 0 ? "down" : "neutral"}
-          style={{ width: size, height: size }} onClick={event => { trigger.current = event.currentTarget; setActive(row.instrument_id); }}>
-          <strong>{row.display_symbol}</strong><span>{pct(row)}</span>{freshness(row) !== "Fraîche" && <small>{freshness(row)}</small>}
-        </button>;
-      })}</div> : <table className="symbol-table">
-      <thead><tr><th scope="col">Rang</th><th scope="col">Paire</th><th scope="col">{bubbles ? "Variation" : "Volume 24 h"}</th><th scope="col">Spread</th></tr></thead>
+    {rows.length > 0 && <table className="symbol-table">
+      <thead><tr><th scope="col">Rang</th><th scope="col">Paire</th><th scope="col">Volume 24 h</th><th scope="col">24 h</th><th scope="col">Spread</th></tr></thead>
       <tbody>{rows.map(row => {
         const rank = ranks.get(row.instrument_id);
         return <tr key={row.instrument_id}><td><span className={rank && rank <= 25 ? rank <= 3 ? "gold" : rank <= 10 ? "silver" : "bronze" : undefined}>{rank ?? "—"}</span></td>
           <td><button type="button" onClick={event => { trigger.current = event.currentTarget; setActive(row.instrument_id); }}>{row.display_symbol}</button><small>{freshness(row)}</small></td>
-          <td>{bubbles ? pct(row) : row.ticker.volume_qualified ? `${Intl.NumberFormat("fr-FR", { notation: "compact" }).format(Number(row.ticker.quote_volume_24h))} USDT` : "—"}</td>
+          <td>{row.ticker.volume_qualified ? `${Intl.NumberFormat("fr-FR", { notation: "compact" }).format(Number(row.ticker.quote_volume_24h))} USDT` : "—"}</td>
+          <td className={change(row) === null ? undefined : decimalCompare(change(row)!, "0") > 0 ? "up" : decimalCompare(change(row)!, "0") < 0 ? "down" : undefined}>{pct(row)}</td>
           <td>{spread(row)}</td></tr>;
       })}</tbody>
-    </table>)}
+    </table>}
     {detail && <dialog className="symbol-detail" ref={node => { if (node && !node.open) node.showModal?.(); }}
       aria-label={`Fiche ${detail.display_symbol}`} open={typeof HTMLDialogElement.prototype.showModal !== "function" || undefined} onClose={close}
       onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.currentTarget.close?.(); close(); } }}>

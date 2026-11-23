@@ -1,7 +1,7 @@
 // Scanner V1 — common MEXC × Kraken universe in Marché → Scanner.
 // LOCAL TEST FIXTURES ONLY: spotRadar-scanner.json replayed unchanged plus the
 // synthetic universe of scannerUniverseFixtures.ts. Nothing here is runtime evidence.
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import scanner from "./fixtures/spotRadar-scanner.json";
@@ -26,6 +26,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+const openHistory = (summary: HTMLElement) => { const d = summary.closest("details")!; act(() => { d.open = true; d.dispatchEvent(new Event("toggle")); }); };
 const open = (search = "") => { window.history.replaceState({}, "", RADAR + search); render(<App />); };
 
 describe("client contract", () => {
@@ -69,8 +70,7 @@ describe("Marché → Scanner", () => {
   });
 
   it.each([
-    ["Scanner classé", ""],
-    ["Bulles Intraday", "?product=intraday"],
+    ["Classement du jour", ""],
     ["Radar Spot", "?product=spot-radar"],
   ])("keeps a three-market pair out of %s", async (_label, search) => {
     open(search);
@@ -82,10 +82,25 @@ describe("Marché → Scanner", () => {
     expect(screen.queryByText("DOGE/USDT")).toBeNull();
   });
 
+  it("shows only live admitted pairs in the Terminal live", async () => {
+    open("?product=live");
+    const table = await screen.findByRole("table", { name: "Paires live" });
+    expect(within(table).getAllByRole("rowheader").map(h => h.textContent)).toEqual(["BTC/USDT"]);
+    expect(screen.getByText(/● LIVE · 1 paire/)).toBeInTheDocument();
+    expect(screen.queryByText("DOGE/USDT")).toBeNull();
+  });
+
+  it("shows no live row when the universe is empty or the feed is not live", async () => {
+    universe = () => json(universeFixture([]));
+    open("?product=live");
+    await screen.findByText("Univers commun vide vérifié : aucune ligne n’est affichée.");
+    expect(screen.queryByRole("table", { name: "Paires live" })).toBeNull();
+  });
+
   it("keeps a non-admitted pair out of the historical composite tab", async () => {
     open("?product=spot-radar");
     await screen.findByText(/1 paire vérifiée/);
-    fireEvent.click(await screen.findByRole("button", { name: "Composite historique" }));
+    openHistory(await screen.findByText("Composite historique · aperçu hors live"));
     const group = await screen.findByRole("group", { name: "Paire historique" });
     expect(within(group).getByRole("button", { name: "BTC/USDT" })).toBeInTheDocument();
     expect(within(group).queryByRole("button", { name: /ATOM/ })).toBeNull();
@@ -95,7 +110,7 @@ describe("Marché → Scanner", () => {
     universe = () => json(universeFixture([], { status: "UNVERIFIABLE" }));
     open("?product=spot-radar");
     await screen.findByText(/Univers indisponible/);
-    fireEvent.click(await screen.findByRole("button", { name: "Composite historique" }));
+    openHistory(await screen.findByText("Composite historique · aperçu hors live"));
     await screen.findByText("Composite de milieux de carnet · Spot · Historique");
     expect(screen.queryByRole("group", { name: "Paire historique" })).toBeNull();
   });

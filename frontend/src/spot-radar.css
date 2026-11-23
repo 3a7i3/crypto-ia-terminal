@@ -88,3 +88,7 @@ html[data-layout=mobile] .spot-radar .intraday-bubbles{grid-template-columns:rep
 .bbo-limits{font-size:13px;line-height:1.5;padding-left:18px}
 @media(max-width:600px){.bbo-window dl,.bbo-provenance dl{grid-template-columns:1fr}.bbo-window dt,.bbo-provenance dt{margin-top:4px}}
 .bbo-history .intraday-metrics strong{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+/* Refonte 2026-11-23 : une ligne par paire, faits utiles en clair. */
+.spot-radar .intraday-list .radar-line-facts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;opacity:.85}
+.radar-history-preview{margin-top:14px;border:1px solid #77879a66;border-radius:12px;padding:10px 14px}
+.radar-history-preview>summary{cursor:pointer;font-weight:600;min-height:28px}

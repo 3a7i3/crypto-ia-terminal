@@ -43,7 +43,7 @@ const states = [
   ["vide-verifie-reel-20261123T023238Z", () => { assert(real, "SCANNER_UNIVERSE_REAL requis pour l'état vide réel"); return real; }],
   ["indisponible-synthetique", now => synthetic([["BTC", "USDT"]], "UNVERIFIABLE", now)],
 ];
-const subviews = [["classe", ""], ["bulles", "?product=intraday"], ["radar-spot", "?product=spot-radar"]];
+const subviews = [["classe", ""], ["terminal-live", "?product=live"], ["radar-spot", "?product=spot-radar"]];
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch();
 const results = [];

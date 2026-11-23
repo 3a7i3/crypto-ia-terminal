@@ -76,7 +76,7 @@ describe("M1-C1 deep Market routes", () => {
       render(<App />);
       await waitFor(() => expect(window.location.pathname).toBe(RADAR));
       expect(window.history.length).toBe(before);
-      expect(await screen.findByRole("heading", { name: "Scanner classé" })).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { name: "Classement du jour" })).toBeInTheDocument();
       expect(urls().some((u) => u.includes("/burn-in"))).toBe(false);
     });
 
@@ -110,7 +110,7 @@ describe("M1-C1 browser history", () => {
   it("moves between Scanner and Microstructure with browser history, without mounting retired views", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Scanner classé" });
+    await screen.findByRole("heading", { name: "Classement du jour" });
     const start = window.history.length;
     fetchMock.mockClear();
     fireEvent.click(tab("Microstructure"));
@@ -129,7 +129,7 @@ describe("M1-C1 browser history", () => {
     render(<App />);
     await waitFor(() => expect(window.location.pathname).toBe(RADAR));
     expect(window.history.length).toBe(before);
-    await screen.findByRole("heading", { name: "Scanner classé" });
+    await screen.findByRole("heading", { name: "Classement du jour" });
     expect(families()).toEqual(["scanner-universe", "spot-radar"]);
     expect(screen.queryByRole("tab", { name: /Flux|Comparaison des plateformes/ })).toBeNull();
   });
@@ -140,14 +140,15 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
   // Was: radar=0 -> "historical" and the three bookmarks below stayed on it.
   // Now: radar=0 is obsolete; it opens Radar Spot (Intraday if intraday=1 too),
   // the parameter is dropped with replace and /api/operator/v1/market is not read.
-  it("documents the parameter priority after M1-C3 (intraday=1 / product=intraday > Radar Spot)", () => {
+  it("documents the parameter priority after the Scanner refonte (Intraday retired)", () => {
     const p = (q: string) => marketProduct(new URLSearchParams(q));
     expect(p("")).toBe("spot");
     expect(p("radar=0")).toBe("spot");
-    expect(p("intraday=1")).toBe("intraday");
-    expect(p("radar=0&intraday=1")).toBe("intraday");
-    expect(p("product=intraday")).toBe("intraday");
-    expect(p("radar=0&product=intraday")).toBe("intraday");
+    expect(p("intraday=1")).toBe("spot");
+    expect(p("radar=0&intraday=1")).toBe("spot");
+    expect(p("product=intraday")).toBe("spot");
+    expect(p("product=live")).toBe("live");
+    expect(p("product=spot-radar")).toBe("spot-radar");
     expect(p("radar=1")).toBe("spot");
     expect(p("product=autre")).toBe("spot");
   });
@@ -160,37 +161,40 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
       await waitFor(() => expect(where()).toBe(RADAR));
       expect(window.history.length).toBe(before);
       expect(screen.queryByRole("button", { name: "CryptoRadar historique" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Scanner classé" })).toHaveAttribute("aria-pressed", "true");
-      await screen.findByRole("heading", { name: "Scanner classé" });
+      expect(screen.getByRole("button", { name: "Classement du jour" })).toHaveAttribute("aria-pressed", "true");
+      await screen.findByRole("heading", { name: "Classement du jour" });
       await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
     });
 
   it.each(["/paper-live/market?intraday=1", RADAR + "?product=intraday", "/paper-live/market?radar=0&intraday=1"])(
-    "opens Intraday from %s", async (from) => {
+    "opens the Classement du jour from the retired Intraday bookmark %s and drops it", async (from) => {
       at(from);
+      const before = window.history.length;
       render(<App />);
-      await waitFor(() => expect(window.location.pathname).toBe(RADAR));
-      expect(screen.getByRole("button", { name: "Bulles Intraday" })).toHaveAttribute("aria-pressed", "true");
+      await waitFor(() => expect(where()).toBe(RADAR));
+      expect(window.history.length).toBe(before);
+      expect(screen.queryByRole("button", { name: "Bulles Intraday" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Classement du jour" })).toHaveAttribute("aria-pressed", "true");
       await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
-      expect(new URLSearchParams(window.location.search).get("radar") ?? "").not.toBe("1");
     });
 
-  it("offers ranked, intraday and Radar Spot views, keeps the choice across views, without new history entries", async () => {
+  it("offers Classement, Terminal live and Radar Spot, keeps the choice across views, without new history entries", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Scanner classé" });
-    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Scanner classé", "Bulles Intraday", "Radar Spot"]);
+    await screen.findByRole("heading", { name: "Classement du jour" });
+    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Classement du jour", "Terminal live", "Radar Spot"]);
     const before = window.history.length;
-    fireEvent.click(screen.getByRole("button", { name: "Bulles Intraday" }));
-    await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
+    fireEvent.click(screen.getByRole("button", { name: "Terminal live" }));
+    await waitFor(() => expect(where()).toBe(RADAR + "?product=live"));
     expect(window.history.length).toBe(before);
+    await screen.findByRole("heading", { name: "Terminal live" });
     await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
     fireEvent.click(tab("Microstructure"));
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
-    expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=intraday");
+    expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=live");
     fireEvent.click(tab("Scanner"));
-    await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
-    fireEvent.click(screen.getByRole("button", { name: "Scanner classé" }));
+    await waitFor(() => expect(where()).toBe(RADAR + "?product=live"));
+    fireEvent.click(screen.getByRole("button", { name: "Classement du jour" }));
     await waitFor(() => expect(where()).toBe(RADAR));
     expect(families()).not.toContain("market");
   });
@@ -209,27 +213,13 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(bubble);
   });
-
-  it("keeps the Intraday detail dialog working inside the Radar route", async () => {
-    at(RADAR + "?product=intraday");
-    render(<App />);
-    const trigger = await screen.findByRole("button", { name: /^DOGE\/USDT/ });
-    const before = window.history.length;
-    trigger.focus();
-    fireEvent.click(trigger);
-    const dialog = screen.getByRole("dialog");
-    expect(window.history.length).toBe(before);
-    fireEvent.keyDown(dialog, { key: "Escape" });
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(document.activeElement).toBe(trigger);
-  });
 });
 
 describe("M1-C1 keyboard and links", () => {
   it("moves with arrows, Home and End, keeps one focusable tab and returns focus to the chosen tab", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Scanner classé" });
+    await screen.findByRole("heading", { name: "Classement du jour" });
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Microstructure"]);
     expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1"]);
