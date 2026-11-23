@@ -56,16 +56,22 @@ install)
   [ -x $PY ] || fail "$PY absent"
   [ ! -e $U.service ] && [ ! -e $U.timer ] || fail "unités déjà présentes"
   id $SVC_USER >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin $SVC_USER || fail "création du compte $SVC_USER"
+  # Un checkout présent mais incomplet (essai interrompu) est refait ; il ne contient que du code.
+  if [ -d $CK ] && [ "$(git -C $CK rev-parse -q --verify HEAD 2>/dev/null)" != $S ]; then rm -rf $CK; fi
   if [ ! -d $CK ]; then
     runuser -u lecanada26 -- git -C $SRC cat-file -e $S^{commit} || fail "commit $S absent de $SRC (lancer prep.sh)"
+    # Le commit n'est qu'une branche distante dans $SRC : une branche locale le rend clonable.
+    runuser -u lecanada26 -- git -C $SRC update-ref refs/heads/deploy/${S:0:12} $S || fail "référence de déploiement"
     install -d -m 0755 /opt/cat-scanner-universe/checkout
+    rm -rf $CK.tmp
     GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=$SRC \
-      git clone -q --no-hardlinks --no-checkout $SRC $CK || fail "clone checkout"
-    git -C $CK checkout -q --detach $S || fail "checkout $S"
-    git -C $CK remote remove origin
-    chown -R root:root $CK
-    find $CK -type d -exec chmod 0555 {} +
-    find $CK -type f -exec chmod 0444 {} +
+      git clone -q --no-hardlinks --no-checkout --branch deploy/${S:0:12} $SRC $CK.tmp || fail "clone checkout"
+    git -C $CK.tmp checkout -q --detach $S || fail "checkout $S"
+    git -C $CK.tmp remote remove origin
+    chown -R root:root $CK.tmp
+    find $CK.tmp -type d -exec chmod 0555 {} +
+    find $CK.tmp -type f -exec chmod 0444 {} +
+    mv $CK.tmp $CK || fail "mise en place du checkout"
   fi
   [ "$(git -C $CK rev-parse HEAD)" = $S ] || fail "checkout != $S"
   [ -z "$(git -C $CK status --porcelain)" ] || fail "checkout modifié"
