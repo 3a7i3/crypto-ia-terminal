@@ -194,25 +194,29 @@ web)
   ;;
 web-refonte)
   [ -f "$WEB_DROP" ] || fail "drop-in web du Scanner V1 absent : phase web non faite"
-  grep -qF "$WEB_V1/dist:" $WEB_DROP || fail "le drop-in web ne sert plus $WEB_V1 : rien n'a été basculé"
+  # Sert le Scanner V1 ou une refonte précédente ; la sauvegarde garde toujours le drop-in V1.
   CUR=$(systemctl show $WEB_UNIT -p BindReadOnlyPaths --value)
-  [[ "$CUR" == "$WEB_V1/dist:$WEB_TARGET/dist:rbind "* ]] || fail "le web servi n'est pas $WEB_V1"
+  FROM=${CUR%%/dist:*}
+  [[ "$FROM" == "$WEB_V1" || "$FROM" == /opt/cat-app/releases/CAT-SCANNER-REFONTE-* ]] || fail "le web servi ($FROM) n'est ni $WEB_V1 ni une refonte"
+  grep -qF "$FROM/dist:" $WEB_DROP || fail "le drop-in web ne correspond pas au web servi"
   manifest() { (cd "$1" && find . -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1); }
   [ "$(manifest $B/web-refonte/frontend/dist)" = "$(cat $B/web-refonte.manifest)" ] || fail "dist != manifeste (relancer prep-refonte.sh)"
   if [ ! -d $WEB_REF/dist ]; then install -d -m 0755 $WEB_REF && cp -r $B/web-refonte/frontend/dist $WEB_REF/dist; fi
   chown -R root:root $WEB_REF; chmod -R a+rX $WEB_REF
   [ "$(manifest $WEB_REF/dist)" = "$(cat $B/web-refonte.manifest)" ] || fail "copie du dist"
-  cp -p $WEB_DROP $WEB_DROP_V1
-  sed -i "s|$WEB_V1/dist:|$WEB_REF/dist:|" $WEB_DROP
-  grep -qF "$WEB_REF/dist:" $WEB_DROP || { cp -p $WEB_DROP_V1 $WEB_DROP; fail "réécriture du drop-in"; }
-  undo() { cp -p $WEB_DROP_V1 $WEB_DROP; systemctl daemon-reload; systemctl restart $WEB_UNIT; }
+  [ "$FROM" = "$WEB_V1" ] && cp -p $WEB_DROP $WEB_DROP_V1
+  cp -p $WEB_DROP $B/web-dropin.prev.conf
+  sed -i "s|$FROM/dist:|$WEB_REF/dist:|" $WEB_DROP
+  grep -qF "$WEB_REF/dist:" $WEB_DROP || { cp -p $B/web-dropin.prev.conf $WEB_DROP; fail "réécriture du drop-in"; }
+  undo() { cp -p $B/web-dropin.prev.conf $WEB_DROP; systemctl daemon-reload; systemctl restart $WEB_UNIT; }
   systemctl daemon-reload && systemctl restart $WEB_UNIT
   A=$(sed -n 's/.*src="\(\/assets\/[^"]*\.js\)".*/\1/p' $WEB_REF/dist/index.html)
   curl -fsS --retry 8 --retry-connrefused --retry-delay 1 -m 5 $WEB/paper-live/system 2>/dev/null | cmp - $WEB_REF/dist/index.html || { undo; fail "page servie != build — retour arrière fait"; }
   curl -fsS -m 5 $WEB$A | cmp - $WEB_REF/dist$A || { undo; fail "bundle servi != build — retour arrière fait"; }
   r=$(code $WEB/api/operator/v1/scanner-universe); echo "via web : univers $r · Market $(code $WEB/api/operator/v1/agent-invocations/market-observer) · stockage $(code $WEB/api/operator/v1/storage-inventory)"
   [ "$r" = 200 ] || { undo; fail "relais web — retour arrière fait"; }
-  ok "web sur $WEB_REF : Classement du jour, Terminal live, Radar Spot, Radar de signaux · Démo (recharger la page)"
+  rm -f $B/web-dropin.prev.conf
+  ok "web sur $WEB_REF : Moniteur de marché, Radar Spot, Radar de signaux · Démo (recharger la page)"
   ;;
 web-refonte-revert)
   [ -f "$WEB_DROP_V1" ] || fail "sauvegarde $WEB_DROP_V1 absente"
