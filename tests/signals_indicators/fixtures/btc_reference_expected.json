@@ -1,0 +1,1154 @@
+{
+  "schema": "cat.signals.indicators.v1",
+  "indicator_set": "v1",
+  "as_of": "2026-11-23T05:00:04.000Z",
+  "status": "PARTIAL",
+  "provenance": {
+    "code_sha": "GOLDEN",
+    "input_sha256": "259492affd08ce912aac815626a5051d96b53dc342e63b6e0e9859c416b07935",
+    "fixture": "SYNTHETIC"
+  },
+  "symbols": [
+    {
+      "base": "BTC",
+      "timeframe": "1h",
+      "coherence": "EVALUATED",
+      "markets": {
+        "mexc_spot": {
+          "exchange": "mexc",
+          "kind": "spot",
+          "instrument": "BTCUSDT",
+          "quote": "USDT",
+          "inputs_sha256": "cfd496c56ab89a078800ac4cecb7b926019449344c1c9e034179f49bf2aac34e",
+          "check": "VERIFIED",
+          "bars": {
+            "count": 120,
+            "first_open": "2026-11-18T05:00:00.000Z",
+            "last_open": "2026-11-23T04:00:00.000Z",
+            "forming_open": "2026-11-23T05:00:00.000Z"
+          },
+          "last_close": "91765.00000000",
+          "book": {
+            "check": "VERIFIED",
+            "at": "2026-11-23T05:00:02.000Z"
+          },
+          "values": {
+            "rsi_14": {
+              "closed": {
+                "state": "OK",
+                "value": "53.10613539"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "50.15117797"
+              }
+            },
+            "di_plus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "17.80722751"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "16.86941928"
+              }
+            },
+            "di_minus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "10.43552552"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "13.54737877"
+              }
+            },
+            "adx_14": {
+              "closed": {
+                "state": "OK",
+                "value": "19.16486098"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "18.57606590"
+              }
+            },
+            "atr14_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.31665399"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.31094105"
+              }
+            },
+            "ema20_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.13264427"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.04288887"
+              }
+            },
+            "ema20_slope_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.01396450"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.00451441"
+              }
+            },
+            "ema50_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.37930267"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.19100204"
+              }
+            },
+            "ema50_slope_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.01548414"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.00779661"
+              }
+            },
+            "vwap_session_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.05531554"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.11348305"
+              }
+            },
+            "volume_rel_20": {
+              "closed": {
+                "state": "OK",
+                "value": "0.80842322"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "1.08415075"
+              }
+            },
+            "delta_pct_volume": {
+              "closed": {
+                "state": "OK",
+                "value": "4.00000000"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "8.00000000"
+              }
+            },
+            "cvd_session": {
+              "closed": {
+                "state": "OK",
+                "value": "4.30000000"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "21.10000000"
+              }
+            },
+            "imb_top10": {
+              "snapshot": {
+                "state": "OK",
+                "value": "-0.13207547"
+              },
+              "at": "2026-11-23T05:00:02.000Z"
+            },
+            "spread_bps": {
+              "snapshot": {
+                "state": "OK",
+                "value": "0.10897401"
+              },
+              "at": "2026-11-23T05:00:02.000Z"
+            }
+          }
+        },
+        "mexc_perp": {
+          "exchange": "mexc",
+          "kind": "perp",
+          "instrument": "BTC_USDT",
+          "quote": "USDT",
+          "inputs_sha256": "4880fa992b7b9834e41cd9c38a16117b693ac86d4ad076f886933f1cab035f30",
+          "check": "VERIFIED",
+          "bars": {
+            "count": 120,
+            "first_open": "2026-11-18T05:00:00.000Z",
+            "last_open": "2026-11-23T04:00:00.000Z",
+            "forming_open": "2026-11-23T05:00:00.000Z"
+          },
+          "last_close": "91861.70000000",
+          "book": {
+            "check": "VERIFIED",
+            "at": "2026-11-23T05:00:02.000Z"
+          },
+          "values": {
+            "rsi_14": {
+              "closed": {
+                "state": "OK",
+                "value": "53.88508620"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "50.90063146"
+              }
+            },
+            "di_plus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "18.01845256"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "17.07278282"
+              }
+            },
+            "di_minus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "9.76151440"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "12.89804310"
+              }
+            },
+            "adx_14": {
+              "closed": {
+                "state": "OK",
+                "value": "20.15399074"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "19.70937319"
+              }
+            },
+            "atr14_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.31747263"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.31168475"
+              }
+            },
+            "ema20_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.17516978"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.00430913"
+              }
+            },
+            "ema20_slope_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.01844232"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.00045359"
+              }
+            },
+            "ema50_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.43626085"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.24580104"
+              }
+            },
+            "ema50_slope_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.01780974"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.01003370"
+              }
+            },
+            "vwap_session_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.05525959"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.11336162"
+              }
+            },
+            "volume_rel_20": {
+              "closed": {
+                "state": "OK",
+                "value": "0.80842322"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "1.08415075"
+              }
+            },
+            "delta_pct_volume": {
+              "closed": {
+                "state": "OK",
+                "value": "4.00000000"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "8.00000000"
+              }
+            },
+            "cvd_session": {
+              "closed": {
+                "state": "OK",
+                "value": "4.30000000"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "21.10000000"
+              }
+            },
+            "imb_top10": {
+              "snapshot": {
+                "state": "OK",
+                "value": "-0.09090909"
+              },
+              "at": "2026-11-23T05:00:02.000Z"
+            },
+            "spread_bps": {
+              "snapshot": {
+                "state": "OK",
+                "value": "0.10885930"
+              },
+              "at": "2026-11-23T05:00:02.000Z"
+            },
+            "oi_change_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "1.90000000"
+              }
+            },
+            "funding_rate": {
+              "snapshot": {
+                "state": "OK",
+                "value": "0.00010000"
+              }
+            }
+          }
+        },
+        "kraken_spot": {
+          "exchange": "kraken",
+          "kind": "spot",
+          "instrument": "BTC/USD",
+          "quote": "USD",
+          "inputs_sha256": "6cf21d8dc327b11535dbf40825e2f12f6b84f82c50527c9b518971121ab221b1",
+          "check": "VERIFIED",
+          "bars": {
+            "count": 120,
+            "first_open": "2026-11-18T05:00:00.000Z",
+            "last_open": "2026-11-23T04:00:00.000Z",
+            "forming_open": "2026-11-23T05:00:00.000Z"
+          },
+          "last_close": "91855.80000000",
+          "book": {
+            "check": "REJECTED",
+            "reason": "STALE_BOOK",
+            "detail": "instantané de carnet trop ancien ou futur"
+          },
+          "values": {
+            "rsi_14": {
+              "closed": {
+                "state": "OK",
+                "value": "54.97452041"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "51.94628727"
+              }
+            },
+            "di_plus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "18.45581669"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "17.49112054"
+              }
+            },
+            "di_minus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "12.84034799"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "12.16917562"
+              }
+            },
+            "adx_14": {
+              "closed": {
+                "state": "OK",
+                "value": "18.26520254"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "18.24218758"
+              }
+            },
+            "atr14_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.31885736"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.31297397"
+              }
+            },
+            "ema20_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.25246865"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.06548737"
+              }
+            },
+            "ema20_slope_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.02658271"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.00689388"
+              }
+            },
+            "ema50_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.49309699"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.30028694"
+              }
+            },
+            "ema50_slope_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.02013046"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.01225811"
+              }
+            },
+            "vwap_session_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.14883557"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.03649891"
+              }
+            },
+            "volume_rel_20": {
+              "closed": {
+                "state": "OK",
+                "value": "0.80842322"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "1.08415075"
+              }
+            },
+            "delta_pct_volume": {
+              "closed": {
+                "state": "OK",
+                "value": "4.00000000"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "8.00000000"
+              }
+            },
+            "cvd_session": {
+              "closed": {
+                "state": "OK",
+                "value": "4.30000000"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "21.10000000"
+              }
+            },
+            "imb_top10": {
+              "snapshot": {
+                "state": "NOT_AVAILABLE",
+                "reason": "BOOK_REJECTED"
+              }
+            },
+            "spread_bps": {
+              "snapshot": {
+                "state": "NOT_AVAILABLE",
+                "reason": "BOOK_REJECTED"
+              }
+            }
+          }
+        },
+        "kraken_perp": {
+          "exchange": "kraken",
+          "kind": "perp",
+          "instrument": "PF_XBTUSD",
+          "quote": "USD",
+          "inputs_sha256": "15ee677d14f377bad733df7db9fbf3d391cbfbf144458168fa63008b4c4b0126",
+          "check": "VERIFIED",
+          "bars": {
+            "count": 20,
+            "first_open": "2026-11-22T09:00:00.000Z",
+            "last_open": "2026-11-23T04:00:00.000Z",
+            "forming_open": "2026-11-23T05:00:00.000Z"
+          },
+          "last_close": "91932.60000000",
+          "book": {
+            "check": "VERIFIED",
+            "at": "2026-11-23T05:00:02.000Z"
+          },
+          "values": {
+            "rsi_14": {
+              "closed": {
+                "state": "OK",
+                "value": "56.87317421"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "53.77251182"
+              }
+            },
+            "di_plus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "22.60974039"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "21.43687151"
+              }
+            },
+            "di_minus_14": {
+              "closed": {
+                "state": "OK",
+                "value": "12.09424530"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "11.46686242"
+              }
+            },
+            "adx_14": {
+              "closed": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 8
+              },
+              "provisional": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 7
+              }
+            },
+            "atr14_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.32131063"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.31525010"
+              }
+            },
+            "ema20_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.29741439"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.10610964"
+              }
+            },
+            "ema20_slope_pct": {
+              "closed": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 1
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "0.01117068"
+              }
+            },
+            "ema50_dist_pct": {
+              "closed": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 30
+              },
+              "provisional": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 29
+              }
+            },
+            "ema50_slope_pct": {
+              "closed": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 31
+              },
+              "provisional": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 30
+              }
+            },
+            "vwap_session_dist_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "0.14878653"
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "-0.03650245"
+              }
+            },
+            "volume_rel_20": {
+              "closed": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INSUFFICIENT_BARS",
+                "missing": 1
+              },
+              "provisional": {
+                "state": "OK",
+                "value": "1.08415075"
+              }
+            },
+            "delta_pct_volume": {
+              "closed": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INPUT_MISSING",
+                "input": "buy_v/sell_v"
+              },
+              "provisional": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INPUT_MISSING",
+                "input": "buy_v/sell_v"
+              }
+            },
+            "cvd_session": {
+              "closed": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INPUT_MISSING",
+                "input": "buy_v/sell_v"
+              },
+              "provisional": {
+                "state": "NOT_AVAILABLE",
+                "reason": "INPUT_MISSING",
+                "input": "buy_v/sell_v"
+              }
+            },
+            "imb_top10": {
+              "snapshot": {
+                "state": "OK",
+                "value": "-0.09090909"
+              },
+              "at": "2026-11-23T05:00:02.000Z"
+            },
+            "spread_bps": {
+              "snapshot": {
+                "state": "OK",
+                "value": "0.10877534"
+              },
+              "at": "2026-11-23T05:00:02.000Z"
+            },
+            "oi_change_pct": {
+              "closed": {
+                "state": "OK",
+                "value": "5.06666667"
+              }
+            },
+            "funding_rate": {
+              "snapshot": {
+                "state": "OK",
+                "value": "0.00007000"
+              }
+            }
+          }
+        }
+      },
+      "gaps": {
+        "rsi_14": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.77895081"
+            },
+            "kraken": {
+              "state": "OK",
+              "value": "-1.89865380"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-1.86838502"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "-2.98808801"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "3.76703882",
+            "markets_used": 4
+          }
+        },
+        "adx_14": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.98912976"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "0.89965844"
+            },
+            "perp": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "1.88878820",
+            "markets_used": 3
+          }
+        },
+        "di_plus_14": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.21122505"
+            },
+            "kraken": {
+              "state": "OK",
+              "value": "-4.15392370"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-0.64858918"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "-4.59128783"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "4.80251288",
+            "markets_used": 4
+          }
+        },
+        "di_minus_14": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "0.67401112"
+            },
+            "kraken": {
+              "state": "OK",
+              "value": "0.74610269"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-2.40482247"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "-2.33273090"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "3.07883359",
+            "markets_used": 4
+          }
+        },
+        "atr14_pct": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.00081864"
+            },
+            "kraken": {
+              "state": "OK",
+              "value": "-0.00245327"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-0.00220337"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "-0.00383800"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.00465664",
+            "markets_used": 4
+          }
+        },
+        "ema20_dist_pct": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.04252551"
+            },
+            "kraken": {
+              "state": "OK",
+              "value": "-0.04494574"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-0.11982438"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "-0.12224461"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.16477012",
+            "markets_used": 4
+          }
+        },
+        "ema50_dist_pct": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.05695818"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-0.11379432"
+            },
+            "perp": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.11379432",
+            "markets_used": 3
+          }
+        },
+        "ema20_slope_pct": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.00447782"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-0.01261821"
+            },
+            "perp": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.01261821",
+            "markets_used": 3
+          }
+        },
+        "ema50_slope_pct": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.00232560"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-0.00464632"
+            },
+            "perp": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.00464632",
+            "markets_used": 3
+          }
+        },
+        "vwap_session_dist_pct": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "0.00005595"
+            },
+            "kraken": {
+              "state": "OK",
+              "value": "0.00004904"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "-0.09352003"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "-0.09352694"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.09357598",
+            "markets_used": 4
+          }
+        },
+        "volume_rel_20": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "0.00000000"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "0.00000000"
+            },
+            "perp": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.00000000",
+            "markets_used": 3
+          }
+        },
+        "delta_pct_volume": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "0.00000000"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "OK",
+              "value": "0.00000000"
+            },
+            "perp": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.00000000",
+            "markets_used": 3
+          }
+        },
+        "imb_top10": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "-0.04116638"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "0.00000000"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.04116638",
+            "markets_used": 3
+          }
+        },
+        "spread_bps": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "0.00011471"
+            },
+            "kraken": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            }
+          },
+          "mexc_vs_kraken": {
+            "spot": {
+              "state": "NOT_AVAILABLE",
+              "reason": "SIDE_MISSING"
+            },
+            "perp": {
+              "state": "OK",
+              "value": "0.00008396"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.00019867",
+            "markets_used": 3
+          }
+        },
+        "oi_change_pct": {
+          "mexc_vs_kraken": {
+            "perp": {
+              "state": "OK",
+              "value": "-3.16666667"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "3.16666667",
+            "markets_used": 2
+          }
+        },
+        "funding_rate": {
+          "mexc_vs_kraken": {
+            "perp": {
+              "state": "OK",
+              "value": "0.00003000"
+            }
+          },
+          "dispersion": {
+            "state": "OK",
+            "value": "0.00003000",
+            "markets_used": 2
+          }
+        },
+        "basis_pct": {
+          "spot_vs_perp": {
+            "mexc": {
+              "state": "OK",
+              "value": "0.10537787"
+            },
+            "kraken": {
+              "state": "OK",
+              "value": "0.08360931"
+            }
+          }
+        }
+      },
+      "not_compared": [
+        "cvd_session"
+      ],
+      "aggregate": {
+        "spot": {
+          "markets_used": 2,
+          "markets_total": 2
+        },
+        "perp": {
+          "markets_used": 2,
+          "markets_total": 2
+        }
+      }
+    }
+  ],
+  "failures": [
+    {
+      "market": "kraken_spot",
+      "component": "book",
+      "check": "REJECTED",
+      "reason": "STALE_BOOK"
+    }
+  ]
+}
