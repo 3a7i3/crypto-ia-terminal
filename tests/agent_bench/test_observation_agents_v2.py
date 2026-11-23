@@ -237,14 +237,15 @@ def test_executor_default_agent_stays_the_cartographer(tmp_path):
 
 def test_every_agent_has_its_own_storage_dir_and_manifest():
     dirs = [s.storage_dir for s in ag.AGENTS.values()]
-    assert len(set(dirs)) == 4
+    assert len(set(dirs)) == len(ag.AGENTS) == 5
     assert ag.spec("repository-cartographer").storage_dir == "/srv/cat-obs/reports"
     for aid in ag.AGENTS:
         mf = ag.manifest(aid)
         assert mf["git_policy"] == "NEVER" and mf["retention"] == {"kind": "KEEP_LAST", "n": 20, "archive": "NONE"}
-        assert mf["question_kind"] == c.QUESTION_KIND_BY_AGENT[aid]
+        assert mf["question_kind"] == c.QUESTION_KIND_BY_AGENT.get(aid, "MARKET_RUNTIME_OBSERVATION")
     assert {s.runner_id for s in ag.AGENTS.values()} == {
-        "obs-repo-cartographer-ro-01", "obs-data-provenance-ro-01", "obs-observability-ro-01", "obs-repo-architect-ro-01"}
+        "obs-repo-cartographer-ro-01", "obs-data-provenance-ro-01", "obs-observability-ro-01", "obs-repo-architect-ro-01",
+        "obs-market-ro-01"}
 
 
 def test_summary_never_turns_a_read_failure_into_zeros(tmp_path):

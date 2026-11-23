@@ -1,0 +1,40 @@
+{
+  "agent_id": "market-observer",
+  "budget": {
+    "max_wall_ms": 60000
+  },
+  "contract": "cat.observation.runtime-mission.v1",
+  "domain": "MARKET",
+  "mission_id": "24d40d6c142909962eff9f87b5e0739cb3a39188e86f9023866a186b6d458b2a",
+  "profile": {
+    "blob_sha1": "d7a4946e6064d8e50b42b308f465aff3b3c78d5f",
+    "source_path": ".github/agents/market-observer.agent.md"
+  },
+  "sources": [
+    {
+      "id": "scanner_health",
+      "path": "/api/operator/v1/spot-radar/health",
+      "port": 18906
+    },
+    {
+      "id": "scanner_rows",
+      "path": "/api/operator/v1/spot-radar/scanner",
+      "port": 18906
+    },
+    {
+      "id": "operator_market",
+      "path": "/api/operator/v1/market",
+      "port": 8090
+    }
+  ],
+  "thresholds": {
+    "collector_alert_s": 600,
+    "collector_warn_s": 120,
+    "live_ratio_warn": 0.9,
+    "market_alert_s": 86400,
+    "market_warn_s": 3600,
+    "row_alert_s": 600,
+    "row_warn_s": 120,
+    "rtt_warn_ms": 2000
+  }
+}

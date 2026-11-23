@@ -18,13 +18,15 @@ from pathlib import Path
 CONTROL_PATH = Path(os.getenv("AGENT_SCHEDULE_CONTROL_PATH", "/srv/cat-obs/control"))
 RHYTHMS = ("10min", "1h", "off")
 TEST_RHYTHMS = ("1min",)
-SCHEDULABLE = ("repository-cartographer", "data-provenance-auditor")
+SCHEDULABLE = ("repository-cartographer", "data-provenance-auditor", "market-observer")
 MAX_STATUS_BYTES = 4096
 # Rythmes calés sur l'horloge (OnCalendar *:0/10, hourly, *:*:00) : le prochain créneau se déduit
 # de l'heure courante, ce qui garde « prochain » à jour après chaque passage.
 SLOT_S = {"1min": 60, "10min": 600, "1h": 3600}
-# Décalage par agent pour ne pas tomber sur le même créneau : le DPA tourne à :05/10 et :30.
-SLOT_OFFSET_S = {"data-provenance-auditor": {"10min": 300, "1h": 1800}}
+# Décalage par agent pour ne pas tomber sur le même créneau : le DPA tourne à :05/10 et :30,
+# l'Observateur Marché à :03/10 et :45.
+SLOT_OFFSET_S = {"data-provenance-auditor": {"10min": 300, "1h": 1800},
+                 "market-observer": {"10min": 180, "1h": 2700}}
 
 
 def allowed_rhythms() -> tuple[str, ...]:

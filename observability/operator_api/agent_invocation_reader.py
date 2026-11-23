@@ -26,6 +26,9 @@ FOLLOW_PATH = Path(os.getenv("AGENT_INVOCATION_FOLLOW_PATH", "/srv/cat-obs/follo
 
 DPA_REPORTS_PATH = Path(os.getenv(
     "DPA_REPORTS_PATH", "/srv/cat-obs/agent-reports/observation/data-provenance-auditor"))
+# Observateur Marché (données du VPS, 2026-11-23) : mission fixe, sans suivi de main.
+MARKET_REPORTS_PATH = Path(os.getenv(
+    "MARKET_OBSERVER_REPORTS_PATH", "/srv/cat-obs/agent-reports/observation/market-observer"))
 
 # Cibles autorisées : identité attendue, pas de chemin ni de nom libre.
 TARGETS = {
@@ -42,6 +45,12 @@ TARGETS = {
         "mission_id": "f99fb24b813364bad5af4a43c4be2da3debbe35dedc351b0ecffd5741a633de4",
         "profile_blob_sha1": "45447863514be83fa0b5830f4e1491b35a9b24b1",
     },
+    "market-observer": {
+        "agent_id": "market-observer",
+        "runner_id": "obs-market-ro-01",
+        "mission_id": "24d40d6c142909962eff9f87b5e0739cb3a39188e86f9023866a186b6d458b2a",
+        "profile_blob_sha1": "d7a4946e6064d8e50b42b308f465aff3b3c78d5f",
+    },
 }
 
 
@@ -49,6 +58,8 @@ def _paths(agent_id: str) -> tuple[Path, Path]:
     """(dossier des rapports, dossier du pointeur de mission) d'un agent autorisé."""
     if agent_id == "data-provenance-auditor":
         return DPA_REPORTS_PATH, DPA_REPORTS_PATH / "mission"
+    if agent_id == "market-observer":
+        return MARKET_REPORTS_PATH, MARKET_REPORTS_PATH / "mission"
     return DEFAULT_REPORTS_PATH, FOLLOW_PATH
 
 

@@ -270,6 +270,15 @@ def _report_summary(env):
         "limits": len(ct.get("limits") or []),
         "errors": [e.get("code") for e in ct.get("errors") or []],
     }
+    if ct.get("contract") == inv.RUNTIME_REPORT_CONTRACT:
+        # Observateur runtime : un contrôle par ligne, verdict publié tel quel (jamais recalculé).
+        out["checks"] = [{"code": str(k.get("code"))[:40], "verdict": str(k.get("verdict"))[:8],
+                          "observed": k.get("observed") if isinstance(k.get("observed"), (int, float, str, bool))
+                          or k.get("observed") is None else str(k.get("observed"))[:40],
+                          "note": str(k.get("note"))[:120] if k.get("note") else None}
+                         for k in (ct.get("checks") or [])[:24] if isinstance(k, dict)]
+        out["verdict_counts"] = ct.get("verdict_counts") if isinstance(ct.get("verdict_counts"), dict) else None
+        out["domain"] = ct.get("domain") if isinstance(ct.get("domain"), str) else None
     chain = ct.get("chain")
     if isinstance(chain, list):
         levels: dict = {}
@@ -332,7 +341,7 @@ def read_history(reports: Path, *, mission_id: str, agent_id: str, runner_id: st
             if verdict == "VALID":
                 item.update(invocation_id=env["invocation_id"], started_utc=env["started_utc"],
                             ended_utc=env["ended_utc"], state=env["state"],
-                            result_status=env["result_status"], analysed_sha=env["analysed_sha"],
+                            result_status=env["result_status"], analysed_sha=env.get("analysed_sha"),
                             content_sha256=env["content_sha256"], summary=_report_summary(env))
             out["items"].append(item)
     finally:

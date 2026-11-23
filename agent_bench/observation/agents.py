@@ -70,6 +70,12 @@ AGENTS = {
         "repo-architect", "CHANGE_IMPACT", c.MISSION_CONTRACT_V2, "obs-repo-architect-ro-01",
         ".github/repo-architect.agent.md", f"{STORAGE_ROOT}/repo-architect",
         c.CHANGE_IMPACT_MAX_FILES, 20, "A_LA_DEMANDE", "NON_INSTALLE"),
+    # Observateurs de DONNÉES du VPS (décision opérateur 2026-11-23) : lecture GET loopback, pas de
+    # fichier du dépôt analysé (max_files 0). Exécuteur : runtime_observer.
+    "market-observer": AgentSpec(
+        "market-observer", "MARKET_RUNTIME_OBSERVATION", "cat.observation.runtime-mission.v1", "obs-market-ro-01",
+        ".github/agents/market-observer.agent.md", f"{STORAGE_ROOT}/market-observer",
+        0, 20, "PERIODIQUE", "NON_INSTALLE"),
 }
 
 

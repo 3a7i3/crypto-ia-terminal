@@ -11,6 +11,7 @@ AGENT=${1:-repository-cartographer}
 case "$AGENT" in
   repository-cartographer) UNIT=cat-obs-cartographer; CAL10='*:0/10'; CAL1H='hourly' ;;
   data-provenance-auditor) UNIT=cat-obs-dpa;          CAL10='*:5/10'; CAL1H='*:30' ;;
+  market-observer)         UNIT=cat-obs-market;       CAL10='*:3/10'; CAL1H='*:45' ;;
   *) logger -t cat-obs-schedule "agent refusé (hors liste)"; exit 1 ;;
 esac
 REQ=$C/$AGENT.rhythm
