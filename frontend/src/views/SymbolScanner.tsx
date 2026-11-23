@@ -4,7 +4,7 @@ import { fetchRadar, RadarError, type RadarScanner, type RadarRow } from "../lib
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 import { MARKET_RADAR_PATH } from "../lib/moduleNavigation";
-import { gateNotice, type ScannerGate } from "../lib/scannerUniverseClient";
+import { gateNotice, marketBadge, type ScannerGate } from "../lib/scannerUniverseClient";
 import "./symbol-scanner.css";
 
 type Qualification = {
@@ -98,15 +98,15 @@ export function SymbolScanner({ selection, onSelect, qualifications = noQualific
     {setup ? <MarketSourceNotice source="Radar Spot" setup={setup} code={error} />
       : error && <p role="alert">Source indisponible · {error}{data ? " · Dernière publication affichée" : ""}</p>}
     {!data && !error && <p role="status">Chargement des observations…</p>}
-    {data && gate && instruments.length === 0 && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state)}</p>}
-    {data && <p className="symbol-summary">{rows.length} / {data.selected_instruments} instruments{gate ? ` · ${instruments.length} admis par l’univers commun` : ""} · {data.evidence_kind === "SYNTHETIC" ? "Démonstration" : `Collecteur ${data.collector.state}`}</p>}
+    {data && gate && instruments.length === 0 && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state, gate.byAsset)}</p>}
+    {data && <p className="symbol-summary">{rows.length} / {data.selected_instruments} instruments{gate ? ` · ${instruments.length} admis ${gate.byAsset ? "par actif (Spot et Perpétuel)" : "par l’univers commun"}` : ""} · {data.evidence_kind === "SYNTHETIC" ? "Démonstration" : `Collecteur ${data.collector.state}`}</p>}
     {data && rows.length === 0 && (instruments.length > 0 || !gate) && <p role="status">Aucun symbole pour cette recherche.</p>}
     {rows.length > 0 && <table className="symbol-table">
       <thead><tr><th scope="col">Rang</th><th scope="col">Paire</th><th scope="col">Volume 24 h</th><th scope="col">24 h</th><th scope="col">Spread</th></tr></thead>
       <tbody>{rows.map(row => {
         const rank = ranks.get(row.instrument_id);
         return <tr key={row.instrument_id}><td><span className={rank && rank <= 25 ? rank <= 3 ? "gold" : rank <= 10 ? "silver" : "bronze" : undefined}>{rank ?? "—"}</span></td>
-          <td><button type="button" onClick={event => { trigger.current = event.currentTarget; setActive(row.instrument_id); }}>{row.display_symbol}</button><small>{freshness(row)}</small></td>
+          <td><button type="button" onClick={event => { trigger.current = event.currentTarget; setActive(row.instrument_id); }}>{row.display_symbol}</button>{(b => b && <span className="market-count-badge" title={b.title}>{b.text}</span>)(marketBadge(gate, row.identity.native_symbol))}<small>{freshness(row)}</small></td>
           <td>{row.ticker.volume_qualified ? `${Intl.NumberFormat("fr-FR", { notation: "compact" }).format(Number(row.ticker.quote_volume_24h))} USDT` : "—"}</td>
           <td className={change(row) === null ? undefined : decimalCompare(change(row)!, "0") > 0 ? "up" : decimalCompare(change(row)!, "0") < 0 ? "down" : undefined}>{pct(row)}</td>
           <td>{spread(row)}</td></tr>;

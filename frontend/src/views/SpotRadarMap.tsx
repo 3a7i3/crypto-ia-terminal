@@ -7,7 +7,7 @@ import "../intraday.css";
 import "../spot-radar.css";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
-import { gateNotice, type ScannerGate } from "../lib/scannerUniverseClient";
+import { gateNotice, marketBadge, type ScannerGate } from "../lib/scannerUniverseClient";
 const labels:Record<Freshness,string>={LIVE:"LIVE qualifié",STALE:"STALE · périmée",DISCONNECTED:"DISCONNECTED · déconnecté",UNRESOLVED:"UNRESOLVED · non résolu",SYNTHETIC:"SYNTHETIC · fictif"};
 const spreadBp=(r:RadarRow)=>{const bid=Number(r.book.bid),ask=Number(r.book.ask);return bid>0&&ask>=bid?((ask-bid)/((ask+bid)/2)*10_000).toFixed(1)+" pb":"—";};
 const utc=(s:string|null)=>s?new Date(Number(s)).toISOString().replace("T"," ").replace("Z"," UTC"):"Non disponible";
@@ -65,13 +65,13 @@ const SpotRadarCurrent:React.FC<{gate?:ScannerGate}>=({gate})=>{
   {data&&<>
    <div className="intraday-metrics" aria-label="Couverture Radar"><div><strong>{data.observed_instruments} / {data.selected_instruments}</strong><span>Instruments observés / sélectionnés</span></div><div><strong>{live}</strong><span>LIVE qualifiés</span></div><div><strong>{data.collector.state}</strong><span>Collecteur · {data.collector.reason}</span></div><div><strong>{data.rows.reduce((n,r)=>n+r.timeframes.length,0)} / {data.selected_instruments*4}</strong><span>Histoires OHLCV · cible 300 bougies</span></div></div>
    {data.collector.fault_injection&&<p role="status" className="intraday-error">Interruption simulée du laboratoire · aucune panne MEXC n’est affirmée.</p>}
-   {gate&&<p className="intraday-coverage">Univers commun MEXC × Kraken : {admitted.length} instrument{admitted.length>1?"s":""} admis sur {data.rows.length} observés.</p>}
-   {gate&&admitted.length===0&&<p role="status" className="scanner-gate-notice">{gateNotice(gate.state)}</p>}
+   {gate&&<p className="intraday-coverage">{gate.byAsset?"Actifs MEXC × Kraken (Spot et Perpétuel)":"Univers commun MEXC × Kraken"} : {admitted.length} instrument{admitted.length>1?"s":""} admis sur {data.rows.length} observés.</p>}
+   {gate&&admitted.length===0&&<p role="status" className="scanner-gate-notice">{gateNotice(gate.state, gate.byAsset)}</p>}
    <div className="intraday-map-head"><h3>{list?"Liste accessible":"Carte des instruments"}</h3><span>{rows.length} instruments · mise à jour ≈ 15 s</span></div>
    {!rows.length?((admitted.length||!gate)?<p role="status" className="intraday-empty">Aucun instrument pour ces filtres.</p>:null):<div className={list?"intraday-list":"intraday-bubbles"} aria-label="Instruments Spot observés">{rows.map((r,i)=>{
     const pct=r.ticker.change_qualified?r.ticker.change_pct_24h:null,sign=pct===null?0:decimalCompare(pct,"0"),fresh=stateOf(r);
     return <button key={r.instrument_id} type="button" className={"intraday-bubble "+(sign>0?"intraday-up":sign<0?"intraday-down":"intraday-neutral")} style={{"--bubble-index":i} as React.CSSProperties} aria-label={r.display_symbol+" · MEXC Spot · "+labels[fresh]} onClick={e=>{origin.current=e.currentTarget;setSelected(r.instrument_id);}}>
-     <span className="intraday-bubble-market">MEXC / SPOT</span><strong>{r.base_asset}<small> / USDT</small></strong><span className="intraday-bubble-price">{r.ticker.last_price}</span><span className="intraday-bubble-change">{pct===null?"Non qualifiée":(sign>0?"+":"")+pct+" %"}<small>24 h · fournisseur</small></span>{list&&<span className="radar-line-facts"><span>Vol. 24 h {r.ticker.volume_qualified?Intl.NumberFormat("fr-FR",{notation:"compact"}).format(Number(r.ticker.quote_volume_24h))+" USDT":"—"}</span><span>Spread {spreadBp(r)}</span></span>}<span className={"radar-state radar-"+fresh.toLowerCase()}>{labels[fresh]}</span>
+     <span className="intraday-bubble-market">MEXC / SPOT</span><strong>{r.base_asset}<small> / USDT</small></strong>{(b => b && <span className="market-count-badge" title={b.title}>{b.text}</span>)(marketBadge(gate, r.identity.native_symbol))}<span className="intraday-bubble-price">{r.ticker.last_price}</span><span className="intraday-bubble-change">{pct===null?"Non qualifiée":(sign>0?"+":"")+pct+" %"}<small>24 h · fournisseur</small></span>{list&&<span className="radar-line-facts"><span>Vol. 24 h {r.ticker.volume_qualified?Intl.NumberFormat("fr-FR",{notation:"compact"}).format(Number(r.ticker.quote_volume_24h))+" USDT":"—"}</span><span>Spread {spreadBp(r)}</span></span>}<span className={"radar-state radar-"+fresh.toLowerCase()}>{labels[fresh]}</span>
     </button>;
    })}</div>}
    <div className="intraday-legend"><span>↗ Variation positive</span><span>↘ Variation négative</span><span>○ Variation non qualifiée</span><span>Couleur descriptive, sans anticipation.</span></div>

@@ -104,3 +104,27 @@ témoin, lance les tests et un passage à blanc du producteur) et
 4. Retour arrière : `rollback` retire les deux drop-ins, arrête et retire le timer
    et le service, redémarre API et web sur le bloc précédent. Les relevés, le
    checkout et le compte restent sur disque.
+
+## Version 1.1.0 — regroupement par actif de base (2026-11-23)
+
+Décision de l'opérateur (2026-11-23 08:59Z, « Par actif, devise affichée ») : la règle
+stricte par paire est conservée telle quelle (`pairs`, `status`), et la publication
+ajoute une section **additive** :
+
+- `assets` : pour chaque actif de base admis par **au moins un marché Spot et un marché
+  Perpétuel**, les instruments natifs admissibles de chaque marché, chacun avec sa propre
+  devise de cotation (`native_symbol`, `quote`, `contract_type`, `settlement_asset`).
+  `market_count` = nombre de marchés (2 à 4) ; `quotes` = devises listées, triées.
+  Les devises ne sont **jamais assimilées** (`USD` ≠ `USDT`) : elles sont affichées.
+- `asset_count` = longueur de `assets`. Tri : `market_count` décroissant, puis base.
+- Sans quatre sources courantes (`UNVERIFIABLE`, ou source périmée à la lecture),
+  `assets` est vide, comme `pairs`.
+- Ce n'est pas une sélection : la liste sert de filtre de faisabilité. Le choix des
+  actifs qui méritent attention appartient à Décision.
+
+Le lecteur API et le frontend lisent encore une publication `1.0.0` (sans `assets`).
+Dans Marché → Scanner, Classement du jour, Terminal live et Radar Spot montrent les
+lignes MEXC Spot observées dont l'actif est publié, avec un badge `n/4` marchés.
+
+Relevé réel du 2026-11-23 08:52Z (rejoué, non versionné) : 0 paire stricte ;
+533 actifs, dont 129 sur les 4 marchés, 227 sur 3, 177 sur 2 ; publication ≈ 300 Ko.

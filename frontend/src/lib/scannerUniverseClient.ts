@@ -32,8 +32,13 @@ export interface UniverseSource {
   excluded: Record<string, number>; raw_sha256: Record<string, string>;
 }
 export interface UniverseExclusion { key: string; reasons: Record<UniverseMarket, string | null>; native_symbols: Partial<Record<UniverseMarket, string[]>> }
+/** Since scanner-universe/1.1.0: admissible instruments grouped by base asset
+ *  (≥1 Spot and ≥1 Perpetual market), each market with its own quote currencies. */
+export interface UniverseListing { native_symbol: string; quote: string; contract_type: string; settlement_asset: string | null }
+export interface UniverseAsset { base: string; market_count: number; quotes: string[]; markets: Partial<Record<UniverseMarket, UniverseListing[]>> }
+export const UNIVERSE_SCHEMAS = ["scanner-universe/1.0.0", "scanner-universe/1.1.0"] as const;
 export interface ScannerUniverse {
-  schema_version: "scanner-universe/1.0.0"; product: "ScannerCommonUniverse"; status: UniverseStatus;
+  schema_version: typeof UNIVERSE_SCHEMAS[number]; assets?: UniverseAsset[]; asset_count?: number; product: "ScannerCommonUniverse"; status: UniverseStatus;
   computed_ms: number; served_ms?: number; freshness_max_age_ms: number; cadence_ms: number;
   blocking_sources: { market: UniverseMarket; reason: string | null }[];
   sources: UniverseSource[]; pairs: UniversePair[]; pair_count: number;
@@ -48,7 +53,7 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const isInt = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
 
 export function validateUniverse(v: unknown): ScannerUniverse {
-  if (!isObj(v) || v.schema_version !== "scanner-universe/1.0.0" || v.product !== "ScannerCommonUniverse") return fail();
+  if (!isObj(v) || !UNIVERSE_SCHEMAS.includes(v.schema_version as never) || v.product !== "ScannerCommonUniverse") return fail();
   const d = v as unknown as ScannerUniverse;
   if (!["VERIFIED", "VERIFIED_EMPTY", "UNVERIFIABLE"].includes(d.status)) return fail();
   if (!isInt(d.computed_ms) || !isInt(d.freshness_max_age_ms) || !Array.isArray(d.pairs) || d.pairs.length !== d.pair_count) return fail();
@@ -74,7 +79,33 @@ export function validateUniverse(v: unknown): ScannerUniverse {
       if ((type === "PERPETUAL") !== perpetual || (type === "SPOT") !== (proof.contract_type === "SPOT")) return fail();
     }
   }
+  if (d.schema_version === "scanner-universe/1.1.0") validateAssets(d, allCurrent);
+  else if ("assets" in d) return fail();
   return d;
+}
+
+function validateAssets(d: ScannerUniverse, allCurrent: boolean) {
+  if (!Array.isArray(d.assets) || d.assets.length !== d.asset_count) return fail();
+  if (d.assets.length && (d.status === "UNVERIFIABLE" || !allCurrent)) return fail();
+  const seen = new Set<string>();
+  for (const a of d.assets) {
+    if (!isObj(a) || typeof a.base !== "string" || seen.has(a.base) || !isObj(a.markets)) return fail();
+    seen.add(a.base);
+    const markets = Object.keys(a.markets) as UniverseMarket[];
+    if (!markets.every(m => UNIVERSE_MARKETS.includes(m)) || a.market_count !== markets.length) return fail();
+    if (!markets.some(m => m.endsWith("_SPOT")) || !markets.some(m => m.endsWith("_PERPETUAL"))) return fail();
+    const quotes = new Set<string>();
+    for (const m of markets) {
+      const rows = a.markets[m];
+      if (!Array.isArray(rows) || !rows.length) return fail();
+      for (const r of rows) {
+        if (!isObj(r) || typeof r.native_symbol !== "string" || !r.native_symbol || typeof r.quote !== "string") return fail();
+        if ((r.contract_type === "SPOT") !== m.endsWith("_SPOT")) return fail();
+        quotes.add(r.quote);
+      }
+    }
+    if (!Array.isArray(a.quotes) || a.quotes.join() !== [...quotes].sort().join()) return fail();
+  }
 }
 
 export async function fetchScannerUniverse(signal?: AbortSignal): Promise<ScannerUniverse> {
@@ -100,8 +131,8 @@ export async function fetchScannerUniverse(signal?: AbortSignal): Promise<Scanne
  *  the time it was received and the current time; never from the Spot Radar rows. */
 export type UniverseView =
   | { state: "LOADING" }
-  | { state: "VERIFIED"; doc: ScannerUniverse; pairs: UniversePair[] }
-  | { state: "VERIFIED_EMPTY"; doc: ScannerUniverse }
+  | { state: "VERIFIED"; doc: ScannerUniverse; pairs: UniversePair[]; assets: UniverseAsset[] }
+  | { state: "VERIFIED_EMPTY"; doc: ScannerUniverse; assets: UniverseAsset[] }
   | { state: "UNAVAILABLE"; doc: ScannerUniverse | null; code: string; blocking: { market: UniverseMarket | null; reason: string }[] };
 
 /** Re-checks source ages with the elapsed time since reception: a list that was
@@ -117,22 +148,38 @@ export function universeView(doc: ScannerUniverse | null, error: string | null, 
   if (doc.status === "UNVERIFIABLE") return { state: "UNAVAILABLE", doc, code: "UNVERIFIABLE", blocking: doc.blocking_sources.map(b => ({ market: b.market, reason: b.reason ?? "UNKNOWN" })) };
   if (elapsed > maxReadAgeMs) return { state: "UNAVAILABLE", doc, code: "READ_TOO_OLD", blocking: [{ market: null, reason: "READ_TOO_OLD" }] };
   if (stale.length) return { state: "UNAVAILABLE", doc, code: "SOURCE_STALE", blocking: stale.map(s => ({ market: s.market, reason: "STALE" })) };
-  return doc.status === "VERIFIED" ? { state: "VERIFIED", doc, pairs: doc.pairs } : { state: "VERIFIED_EMPTY", doc };
+  const assets = doc.assets ?? [];
+  return doc.status === "VERIFIED" ? { state: "VERIFIED", doc, pairs: doc.pairs, assets } : { state: "VERIFIED_EMPTY", doc, assets };
 }
 
-/** MEXC Spot native symbols that the current verified universe admits. Empty
- *  unless the view is VERIFIED: an unavailable or empty universe shows no row. */
+/** MEXC Spot native symbols that the current universe admits: strict pairs, plus
+ *  (1.1.0) every MEXC Spot instrument of a published asset. Empty unless the four
+ *  sources are current: an unavailable universe shows no row. */
 export function admittedMexcSpot(view: UniverseView): ReadonlySet<string> {
-  return view.state === "VERIFIED" ? new Set(view.pairs.map(p => p.proofs.MEXC_SPOT.native_symbol)) : new Set();
+  return new Set(mexcSpotMarkets(view).keys());
+}
+/** MEXC Spot native symbol -> number of markets (1–4) listing its base asset, as published. */
+export function mexcSpotMarkets(view: UniverseView): ReadonlyMap<string, number> {
+  const out = new Map<string, number>();
+  if (view.state !== "VERIFIED" && view.state !== "VERIFIED_EMPTY") return out;
+  for (const a of view.assets) for (const r of a.markets.MEXC_SPOT ?? []) out.set(r.native_symbol, a.market_count);
+  if (view.state === "VERIFIED") for (const p of view.pairs) out.set(p.proofs.MEXC_SPOT.native_symbol, 4);
+  return out;
 }
 export function admittedKeys(view: UniverseView): ReadonlySet<string> {
   return view.state === "VERIFIED" ? new Set(view.pairs.map(p => p.key)) : new Set();
 }
 
 /** Filter handed to every Scanner sub-view. Built only from the universe view. */
-export interface ScannerGate { admitted: ReadonlySet<string>; keys: ReadonlySet<string>; state: UniverseView["state"] }
-export function gateNotice(state: UniverseView["state"]): string {
-  return state === "VERIFIED" ? "Aucune ligne observée n’appartient à l’univers commun."
+export interface ScannerGate { admitted: ReadonlySet<string>; keys: ReadonlySet<string>; state: UniverseView["state"]; markets?: ReadonlyMap<string, number>; byAsset?: boolean }
+/** Short badge: number of the four markets listing the row's base asset. */
+export const marketBadge = (gate: ScannerGate | undefined, native: string) => {
+  const n = gate?.byAsset ? gate.markets?.get(native) : undefined;
+  return n === undefined ? null : { text: `${n}/4`, title: `Actif négocié sur ${n} des 4 marchés (MEXC Spot, MEXC Perpétuel, Kraken Spot, Kraken Perpétuel), chacun dans sa devise` };
+};
+export function gateNotice(state: UniverseView["state"], byAsset = false): string {
+  return byAsset && (state === "VERIFIED" || state === "VERIFIED_EMPTY") ? "Aucune ligne observée n’appartient à un actif publié (Spot et Perpétuel)."
+    : state === "VERIFIED" ? "Aucune ligne observée n’appartient à l’univers commun."
     : state === "VERIFIED_EMPTY" ? "Univers commun vide vérifié : aucune ligne n’est affichée."
     : state === "LOADING" ? "Univers commun en chargement : aucune ligne n’est encore affichée."
     : "Univers commun indisponible : aucune ligne n’est présentée comme courante.";

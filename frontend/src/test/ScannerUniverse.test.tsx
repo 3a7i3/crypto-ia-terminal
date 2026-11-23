@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import scanner from "./fixtures/spotRadar-scanner.json";
 import bbo from "./fixtures/bboCompositeHistory-synthetic.json";
-import { universeFixture } from "./scannerUniverseFixtures";
+import { assetUniverseFixture, universeFixture } from "./scannerUniverseFixtures";
 import { validateUniverse, universeView, admittedMexcSpot, UniverseError } from "../lib/scannerUniverseClient";
 
 const RADAR = "/paper-live/market/radar";
@@ -155,5 +155,48 @@ describe("Marché → Scanner", () => {
     expect(await screen.findByText(/Univers indisponible/)).toBeInTheDocument();
     expect(screen.queryByText(/Univers vide vérifié/)).toBeNull();
     expect(screen.queryByRole("button", { name: /^BTC\/USDT/ })).toBeNull();
+  });
+
+  describe("by base asset (scanner-universe/1.1.0)", () => {
+    it("validates the asset groups and refuses merged or premature ones", () => {
+      const doc = JSON.parse(JSON.stringify(assetUniverseFixture()));
+      expect(validateUniverse(doc).assets).toHaveLength(3);
+      const spotOnly = JSON.parse(JSON.stringify(doc)); spotOnly.assets[2].markets = { MEXC_SPOT: spotOnly.assets[2].markets.MEXC_SPOT }; spotOnly.assets[2].market_count = 1;
+      expect(() => validateUniverse(spotOnly)).toThrow(UniverseError);
+      const merged = JSON.parse(JSON.stringify(doc)); merged.assets[0].quotes = ["USDT"];
+      expect(() => validateUniverse(merged)).toThrow(UniverseError);
+      const premature = { ...JSON.parse(JSON.stringify(assetUniverseFixture({ status: "UNVERIFIABLE" }))), assets: doc.assets, asset_count: 3 };
+      expect(() => validateUniverse(premature)).toThrow(UniverseError);
+    });
+
+    it("counts assets per number of markets and keeps the strict pair count apart", async () => {
+      universe = () => json(assetUniverseFixture());
+      open();
+      expect((await screen.findByText(/1 actif sur les 4 marchés/)).closest("p")).toHaveTextContent("1 actif sur les 4 marchés · 1 sur 3 · 1 sur 2");
+      expect(screen.getByText(/Paires strictes/)).toHaveTextContent("Paires strictes (même devise sur les 4 marchés) : 0.");
+      expect(screen.queryByText(/Univers vide vérifié/)).toBeNull();
+      fireEvent.click(within(screen.getByRole("list", { name: "Actifs sur les quatre marchés" })).getByRole("button", { name: /^BTC · 4 marchés · devises USD, USDT/ }));
+      const dialog = await screen.findByRole("dialog", { name: "Instruments BTC" });
+      for (const text of ["BTCUSDT · USDT", "BTC_USDT · USDT", "XBTUSD · USD", "XBTUSDT · USDT", "PF_XBTUSD · USD"]) expect(dialog).toHaveTextContent(text);
+    });
+
+    it("shows observed MEXC Spot rows of published assets with their market count, and nothing else", async () => {
+      universe = () => json(assetUniverseFixture());
+      open();
+      await screen.findByText(/admis par actif/);
+      const table = await screen.findByRole("table");
+      const btc = within(table).getByRole("button", { name: "BTC/USDT" }).closest("td")!;
+      expect(btc).toHaveTextContent("4/4");
+      expect(within(table).getByRole("button", { name: "DOGE/USDT" }).closest("td")).toHaveTextContent("2/4");
+      expect(within(table).queryByRole("button", { name: "ATOM/USDT" })).toBeNull();
+    });
+
+    it("withdraws every asset row when a source is unavailable", async () => {
+      universe = () => json(assetUniverseFixture({ status: "UNVERIFIABLE" }));
+      open("?product=live");
+      await screen.findByText(/Univers indisponible/);
+      await screen.findByText("Univers commun indisponible : aucune ligne n’est présentée comme courante.");
+      expect(screen.queryByRole("table", { name: "Paires live" })).toBeNull();
+    });
   });
 });

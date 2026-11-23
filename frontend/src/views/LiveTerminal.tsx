@@ -7,7 +7,7 @@ import { decimalCompare } from "../lib/intradayClient";
 import { fetchRadar, RadarError, type RadarScanner, type RadarRow } from "../lib/spotRadarClient";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
-import { gateNotice, type ScannerGate } from "../lib/scannerUniverseClient";
+import { gateNotice, marketBadge, type ScannerGate } from "../lib/scannerUniverseClient";
 import "./live-terminal.css";
 
 export const LIVE_MAX_AGE_MS = 45_000;
@@ -60,14 +60,14 @@ export function LiveTerminal({ gate }: { gate?: ScannerGate }) {
     </header>
     {setup ? <MarketSourceNotice source="Radar Spot" setup={setup} code={error} />
       : error && <p role="alert" className="live-alert">Source indisponible · {error}</p>}
-    {data && gate && admitted.length === 0 && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state)}</p>}
+    {data && gate && admitted.length === 0 && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state, gate.byAsset)}</p>}
     {feedLive && admitted.length > 0 && live.length === 0 && <p role="status" className="live-empty">Aucune paire LIVE en ce moment.</p>}
     {live.length > 0 && <table className="live-table" aria-label="Paires live">
       <thead><tr><th scope="col">Paire</th><th scope="col">Prix</th><th scope="col">24 h</th><th scope="col">Spread pb</th><th scope="col">Âge</th></tr></thead>
       <tbody>{live.map(row => {
         const value = change(row), sign = value === null ? 0 : decimalCompare(value, "0");
         return <tr key={row.instrument_id}>
-          <th scope="row">{row.display_symbol}</th>
+          <th scope="row">{row.display_symbol}{(b => b && <span className="market-count-badge" title={b.title}>{b.text}</span>)(marketBadge(gate, row.identity.native_symbol))}</th>
           <td>{row.ticker.last_price}</td>
           <td className={sign > 0 ? "up" : sign < 0 ? "down" : undefined}>{value === null ? "—" : `${sign > 0 ? "+" : ""}${value} %`}</td>
           <td>{spread(row)}</td>

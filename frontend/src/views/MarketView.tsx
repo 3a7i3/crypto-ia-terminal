@@ -7,7 +7,7 @@ import { SignalsRadar, type SignalsDoc } from "./SignalsRadar";
 // Aucune requête vers un service de signaux ; aucune ligne n'entre dans le Scanner strict.
 import signalsDemo from "../demo/signalsIndicators-v1-btc-reference.json";
 import { ScannerUniverse, useScannerUniverse } from "./ScannerUniverse";
-import { admittedMexcSpot, admittedKeys } from "../lib/scannerUniverseClient";
+import { admittedMexcSpot, admittedKeys, mexcSpotMarkets } from "../lib/scannerUniverseClient";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, MemoryRouter, Navigate, Route, Routes, useInRouterContext, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MarketMicrostructureView } from "./MarketMicrostructureView";
@@ -42,7 +42,8 @@ const RadarPanel: React.FC = () => {
   // Scanner V1: every sub-view below shows only rows admitted by the current
   // common universe (four market proofs). No universe => no current row.
   const universe = useScannerUniverse();
-  const gate = { admitted: admittedMexcSpot(universe), keys: admittedKeys(universe), state: universe.state };
+  const byAsset = universe.state !== "LOADING" && universe.doc?.schema_version === "scanner-universe/1.1.0";
+  const gate = { admitted: admittedMexcSpot(universe), keys: admittedKeys(universe), state: universe.state, markets: mexcSpotMarkets(universe), byAsset };
   const toggleSelection = (id: string) => setSelection(previous =>
     previous.includes(id) ? previous.filter(item => item !== id) : [...previous, id]);
   const legacy = OBSOLETE(params);

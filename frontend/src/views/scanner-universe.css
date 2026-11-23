@@ -25,3 +25,12 @@
 .universe-detail dt { color: #acd0ed; margin-top: .6rem; }
 .universe-detail dd { margin: .15rem 0; overflow-wrap: anywhere; }
 .scanner-gate-notice { padding: .6rem .7rem; border-radius: .55rem; border: 1px dashed #77879a; overflow-wrap: anywhere; }
+
+/* Scanner V1.1 — regroupement par actif */
+.market-count-badge { display: inline-block; margin-left: .35rem; padding: 0 .35rem; border-radius: 999px; border: 1px solid currentColor; font-size: .7rem; font-weight: 600; opacity: .8; vertical-align: middle; }
+.universe-strict { margin: .25rem 0 .5rem; font-size: .85rem; opacity: .8; }
+.universe-assets { display: flex; flex-wrap: wrap; gap: .35rem; }
+.universe-assets button { min-height: 44px; }
+.asset-listing { display: block; }
+.asset-link { background: none; border: 0; padding: 0; min-height: 32px; color: inherit; text-decoration: underline; cursor: pointer; }
+.universe-assets button { width: auto; }

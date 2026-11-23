@@ -35,3 +35,21 @@ export function universeFixture(pairs: [string, string][], opts: { status?: "VER
     universe_sha256: "e".repeat(64),
   } as ScannerUniverse;
 }
+
+/** scanner-universe/1.1.0: strict pairs empty, instruments grouped by base asset
+ *  (invented listings; Kraken in USD, MEXC in USDT, as on the 2026-11-23 catalogues). */
+export function assetUniverseFixture(opts: { now?: number; status?: "VERIFIED_EMPTY" | "UNVERIFIABLE" } = {}): ScannerUniverse {
+  const status = opts.status ?? "VERIFIED_EMPTY";
+  const doc = universeFixture([], { now: opts.now, status });
+  const row = (native_symbol: string, quote: string, perp = false) => ({ native_symbol, quote, contract_type: perp ? "LINEAR_PERPETUAL" : "SPOT", settlement_asset: perp ? quote : null });
+  const assets = status === "UNVERIFIABLE" ? [] : [
+    { base: "BTC", market_count: 4, quotes: ["USD", "USDT"], markets: {
+      MEXC_SPOT: [row("BTCUSDT", "USDT")], MEXC_PERPETUAL: [row("BTC_USDT", "USDT", true)],
+      KRAKEN_SPOT: [row("XBTUSD", "USD"), row("XBTUSDT", "USDT")], KRAKEN_PERPETUAL: [row("PF_XBTUSD", "USD", true)] } },
+    { base: "ETH", market_count: 3, quotes: ["USD", "USDT"], markets: {
+      MEXC_SPOT: [row("ETHUSDT", "USDT")], MEXC_PERPETUAL: [row("ETH_USDT", "USDT", true)], KRAKEN_PERPETUAL: [row("PF_ETHUSD", "USD", true)] } },
+    { base: "DOGE", market_count: 2, quotes: ["USDT"], markets: {
+      MEXC_SPOT: [row("DOGEUSDT", "USDT")], MEXC_PERPETUAL: [row("DOGE_USDT", "USDT", true)] } },
+  ];
+  return { ...doc, schema_version: "scanner-universe/1.1.0", assets, asset_count: assets.length } as ScannerUniverse;
+}
