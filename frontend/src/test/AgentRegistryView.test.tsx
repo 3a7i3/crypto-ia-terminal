@@ -41,7 +41,10 @@ describe("AgentRegistryView", () => {
     expect(p).toHaveTextContent("Data Provenance Auditor");
     expect(p).toHaveTextContent("Auditer provenance");
     expect(p).toHaveTextContent("MIGRATION_CANDIDATE");
-    expect(within(p).getByTestId("agent-wiring")).toHaveTextContent("Aucun runner relié");
+    expect(within(p).getByTestId("agent-wiring")).toHaveTextContent("Runner relié et vérifié");
+    expect(within(screen.getByTestId("agent-profile-observability-cartographer")).getByTestId("agent-wiring")).toHaveTextContent(
+      "Aucun runner relié",
+    );
     expect(within(p).getByRole("link")).toHaveAttribute(
       "href",
       "https://github.com/3a7i3/crypto-ia-terminal/blob/main/.github/agents/data-provenance-auditor.agent.md",

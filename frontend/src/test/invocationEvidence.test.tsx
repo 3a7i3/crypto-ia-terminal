@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
-import { render, screen, cleanup, act } from "@testing-library/react";
+import { render, screen, cleanup, act, within } from "@testing-library/react";
 import {
   EXPECTED_IDENTITY,
   DISPLAY_TTL_S,
@@ -169,7 +169,10 @@ function fakeFetch() {
   const calls: Pending[] = [];
   const impl = (u: string, init: RequestInit) =>
     // L'historique du mini terminal a sa propre requête : hors du décompte de la preuve.
-    String(u).endsWith("/history")
+    // Le bloc du Data Provenance Auditor a ses propres lectures : hors du décompte du cartographe.
+    String(u).includes("data-provenance-auditor")
+      ? new Promise<Response>(() => undefined)
+      : String(u).endsWith("/history")
       ? Promise.resolve(new Response(JSON.stringify({ contract: "cat.observation.invocation.v1", read_only: true, connection: "ABSENT", connection_reason: null, total: 0, items: [] }), { status: 200 }))
       : new Promise<Response>((resolve, reject) => {
       const signal = init.signal as AbortSignal;
@@ -279,6 +282,7 @@ describe("InvocationPoller", () => {
 });
 
 describe("carte de preuve : expiration pendant que la page reste ouverte", () => {
+  const carto = () => within(screen.getByTestId("live-agent-repository-cartographer"));
   it("échéance seule : sans aucune nouvelle requête, le vert devient gris à valid_until", async () => {
     vi.useFakeTimers({ now: T0 });
     const f = fakeFetch();
@@ -290,17 +294,17 @@ describe("carte de preuve : expiration pendant que la page reste ouverte", () =>
       f.calls[0].resolve(json(running));
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
+    expect(carto().getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(DISPLAY_TTL_S * 1000 - 1_000);
     });
-    expect(screen.getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
+    expect(carto().getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_010);
     });
     expect(f.calls).toHaveLength(1);
-    expect(screen.getByTestId("invocation-activity")).toHaveAttribute("data-light", "GRAY");
-    expect(screen.getByTestId("invocation-activity")).toHaveTextContent("Preuve échue");
+    expect(carto().getByTestId("invocation-activity")).toHaveAttribute("data-light", "GRAY");
+    expect(carto().getByTestId("invocation-activity")).toHaveTextContent("Preuve échue");
     vi.unstubAllGlobals();
   });
 
@@ -314,16 +318,16 @@ describe("carte de preuve : expiration pendant que la page reste ouverte", () =>
       f.calls[0].resolve(json(running));
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
+    expect(carto().getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
     // Le serveur ne répond plus : requête suivante à 30 s, abandonnée à 40 s → gris.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(INVOCATION_POLL_MS + REQUEST_TIMEOUT_MS - 10);
     });
-    expect(screen.getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
+    expect(carto().getByTestId("invocation-activity")).toHaveAttribute("data-light", "GREEN");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(20);
     });
-    expect(screen.getByTestId("invocation-activity")).toHaveAttribute("data-light", "GRAY");
+    expect(carto().getByTestId("invocation-activity")).toHaveAttribute("data-light", "GRAY");
     vi.unstubAllGlobals();
   });
 });

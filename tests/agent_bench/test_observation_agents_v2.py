@@ -300,3 +300,67 @@ def test_follow_main_refuses_change_impact():
     m = json.loads((EXAMPLES / "repo_architect_change_mission.json").read_text(encoding="utf-8"))
     with pytest.raises(ValueError, match="KIND_NOT_FOLLOWABLE"):
         fm.derive_mission(m, "c" * 40)
+
+
+# --------------------------------------------------------------------------- bloc Système du DPA (API)
+
+def test_dpa_api_target_matches_registry_and_profile():
+    from observability.operator_api import agent_invocation_reader as air
+    t, s = air.TARGETS["data-provenance-auditor"], ag.spec("data-provenance-auditor")
+    assert t["runner_id"] == s.runner_id
+    assert str(air.DPA_REPORTS_PATH) == s.storage_dir
+    assert t["profile_blob_sha1"] == git(REPO, "hash-object", s.profile_path)
+    assert air._paths("data-provenance-auditor") == (air.DPA_REPORTS_PATH, air.DPA_REPORTS_PATH / "mission")
+
+
+def test_dpa_api_reads_its_own_folder_pointer_and_chain(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from agent_bench.observation import follow_main as fm
+    from observability.operator_api import agent_invocation_reader as air
+    from observability.operator_api import app as api
+
+    pilot = json.loads((EXAMPLES / "pilot_mission.json").read_text(encoding="utf-8"))
+    r = Repo(tmp_path, {p: REPO / p for p in pilot["scope"]["read_paths"]})
+    (r.reports / "mission").mkdir()
+    m = fm.publish(pilot, r.base, r.reports / "mission")  # pointeur de mission courante, comme l'unité
+    env, _ = r.run(m, "data-provenance-auditor", r.base)
+    monkeypatch.setattr(air, "DPA_REPORTS_PATH", r.reports)
+    # Le cartographe garde son dossier : rien de ce dossier ne doit lui être attribué.
+    monkeypatch.setattr(air, "DEFAULT_REPORTS_PATH", tmp_path / "absent")
+    c = TestClient(api.app)
+    base = "/api/operator/v1/agent-invocations/data-provenance-auditor"
+    st = c.get(base).json()
+    assert st["mission_id"] == m["mission_id"] and st["connection"] == "AVAILABLE"
+    assert st["last_result"] == env["result_status"] and st["display"]["light"] == "RED"
+    assert str(r.reports) not in json.dumps(st)
+    h = c.get(f"{base}/history").json()
+    assert h["total"] == 1 and h["items"][0]["verdict"] == "VALID"
+    ch = h["items"][0]["summary"]["chain"]
+    assert ch["links"] == len(env["report"]["content"]["chain"]) and ch["hops"][0]["level"]
+    assert h["items"][0]["summary"]["seen"]["sources"] == len(env["report"]["content"]["sources_consulted"])
+    carto = c.get("/api/operator/v1/agent-invocations/repository-cartographer").json()
+    assert carto["connection"] == "ABSENT"
+
+
+def test_dpa_schedule_route_and_offset_slots(tmp_path, monkeypatch):
+    import calendar
+
+    from fastapi.testclient import TestClient
+
+    from observability.operator_api import agent_schedule as sch
+    from observability.operator_api import app as api
+
+    monkeypatch.setattr(sch, "CONTROL_PATH", tmp_path)
+    c = TestClient(api.app)
+    url = "/api/operator/v1/agent-invocations/data-provenance-auditor/schedule"
+    assert c.post(url, json={"rhythm": "10min"}).status_code == 403
+    assert c.post(url, json={"rhythm": "10min"}, headers={"x-cat-operator": "schedule"}).status_code == 202
+    assert (tmp_path / "data-provenance-auditor.rhythm").read_text() == "10min\n"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["data-provenance-auditor.rhythm"]
+    at = calendar.timegm((2026, 11, 23, 1, 12, 0, 0, 0, 0))
+    (tmp_path / "data-provenance-auditor.status.json").write_text('{"applied":"10min"}')
+    assert sch.read_schedule("data-provenance-auditor", control=tmp_path, now_ts=at)["next_utc"] == "2026-11-23T01:15:00Z"
+    (tmp_path / "data-provenance-auditor.status.json").write_text('{"applied":"1h"}')
+    assert sch.read_schedule("data-provenance-auditor", control=tmp_path, now_ts=at)["next_utc"] == "2026-11-23T01:30:00Z"
+    assert c.get("/api/operator/v1/agent-invocations/repo-architect/schedule").status_code == 404

@@ -79,10 +79,13 @@ describe("registre des identités d'agents", () => {
     }
   });
 
-  it("ne qualifie aucun profil PAPER et ne relie que le cartographe (décision opérateur 2026-11-22)", () => {
+  it("ne qualifie aucun profil PAPER et ne relie que le cartographe et le DPA (décisions opérateur 2026-11-22/23)", () => {
     expect(agentsOfFamily(AGENT_REGISTRY, "EXECUTION_PAPER")).toHaveLength(0);
     const wired = AGENT_REGISTRY.agents.filter((a) => a.wiring_status === "VERIFIED" || a.runner_id !== null);
-    expect(wired.map((a) => [a.id, a.runner_id])).toEqual([["repository-cartographer", "obs-repo-cartographer-ro-01"]]);
+    expect(wired.map((a) => [a.id, a.runner_id])).toEqual([
+      ["data-provenance-auditor", "obs-data-provenance-ro-01"],
+      ["repository-cartographer", "obs-repo-cartographer-ro-01"],
+    ]);
   });
 
   it("ne contient ni secret ni donnée d'exécution", () => {
@@ -118,7 +121,7 @@ describe("registre des identités d'agents", () => {
     legacy.agents[11].family = "OBSERVATION";
     expect(() => validateRegistry(legacy)).toThrow(/héritage/);
     const runner = clone();
-    runner.agents[0].runner_id = "runner-x";
+    runner.agents.find((a: { wiring_status: string }) => a.wiring_status === "NOT_WIRED")!.runner_id = "runner-x";
     expect(() => validateRegistry(runner)).toThrow(/runner/);
     const path = clone();
     path.agents[0].source_path = "../etc/passwd";

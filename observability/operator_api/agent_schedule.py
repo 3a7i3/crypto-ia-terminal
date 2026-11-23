@@ -1,7 +1,8 @@
 """Programmateur d'agent : SEULE écriture de l'API.
 
 Exception gouvernée unique, décidée par Mathieu le 2026-11-22 07:23Z (carte de décision du fil
-« mini terminal du cartographe »). Toute autre route reste en lecture seule.
+« mini terminal du cartographe »), étendue au Data Provenance Auditor le 2026-11-23 (« même type
+de bloc », un agent à la fois). Toute autre route reste en lecture seule.
 
 L'API ne lance rien et ne touche pas à systemd. Elle dépose une DEMANDE (un mot d'une liste
 fermée) dans `AGENT_SCHEDULE_CONTROL_PATH`. Un applicateur root distinct (unité .path) valide la
@@ -17,11 +18,13 @@ from pathlib import Path
 CONTROL_PATH = Path(os.getenv("AGENT_SCHEDULE_CONTROL_PATH", "/srv/cat-obs/control"))
 RHYTHMS = ("10min", "1h", "off")
 TEST_RHYTHMS = ("1min",)
-SCHEDULABLE = ("repository-cartographer",)
+SCHEDULABLE = ("repository-cartographer", "data-provenance-auditor")
 MAX_STATUS_BYTES = 4096
 # Rythmes calés sur l'horloge (OnCalendar *:0/10, hourly, *:*:00) : le prochain créneau se déduit
 # de l'heure courante, ce qui garde « prochain » à jour après chaque passage.
 SLOT_S = {"1min": 60, "10min": 600, "1h": 3600}
+# Décalage par agent pour ne pas tomber sur le même créneau : le DPA tourne à :05/10 et :30.
+SLOT_OFFSET_S = {"data-provenance-auditor": {"10min": 300, "1h": 1800}}
 
 
 def allowed_rhythms() -> tuple[str, ...]:
@@ -32,9 +35,12 @@ def _utc(ts: float) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
 
 
-def next_slot_utc(applied: str | None, now_ts: float) -> str | None:
+def next_slot_utc(applied: str | None, now_ts: float, agent: str | None = None) -> str | None:
     p = SLOT_S.get(applied or "")
-    return _utc((int(now_ts) // p + 1) * p) if p else None
+    if not p:
+        return None
+    off = SLOT_OFFSET_S.get(agent or "", {}).get(applied or "", 0)
+    return _utc(((int(now_ts) - off) // p + 1) * p + off)
 
 
 def read_schedule(agent: str, *, control: Path | None = None, now_ts: float | None = None) -> dict:
@@ -58,7 +64,7 @@ def read_schedule(agent: str, *, control: Path | None = None, now_ts: float | No
             v = s.get(k) if isinstance(s, dict) else None
             out[k] = v if isinstance(v, str) and len(v) <= 32 else None
         if out["applied"] in SLOT_S:
-            out["next_utc"] = next_slot_utc(out["applied"], time.time() if now_ts is None else now_ts)
+            out["next_utc"] = next_slot_utc(out["applied"], time.time() if now_ts is None else now_ts, agent)
         elif out["applied"] == "off":
             out["next_utc"] = None
     except FileNotFoundError:

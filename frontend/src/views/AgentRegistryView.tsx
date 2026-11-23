@@ -9,10 +9,14 @@ import { CartographerMiniTerminal, useInvocationHistory } from "../agents/invoca
 import React from "react";
 import "../agents/agentRegistry.css";
 import {
+  DPA_IDENTITY,
+  EXPECTED_IDENTITY,
   INVOCATION_FLAG_ON,
+  invocationUrl,
   localExpiryMs,
   parseUtc,
   useInvocationEvidence,
+  type ExpectedIdentity,
   type PollState,
 } from "../agents/invocationEvidence";
 import {
@@ -122,9 +126,11 @@ export const AgentRegistryPanel: React.FC<{
   registry: AgentRegistry;
   evidence: EvidenceSource;
   nowMs: number;
+  /** Source de preuve propre à un agent (sinon `evidence`), par identifiant. */
+  evidenceByAgent?: Record<string, EvidenceSource>;
   /** Contenu supplémentaire affiché dans le bloc d'un agent (ex. mini terminal), par identifiant. */
   slots?: Record<string, AgentSlot>;
-}> = ({ registry, evidence, nowMs, slots }) => {
+}> = ({ registry, evidence, evidenceByAgent, nowMs, slots }) => {
   const families = FAMILY_ORDER.map((id) => registry.families.find((f) => f.id === id)!);
   const legacy = legacyAgents(registry);
   return (
@@ -144,7 +150,7 @@ export const AgentRegistryPanel: React.FC<{
       <div className="agent-family-grid">
         {families.map((family) => {
           const agents = agentsOfFamily(registry, family.id);
-          const verdicts = agents.map((a) => classifyActivity(a, evidence, nowMs));
+          const verdicts = agents.map((a) => classifyActivity(a, evidenceByAgent?.[a.id] ?? evidence, nowMs));
           const c = countLights(verdicts);
           return (
             <details className="agent-family-card" key={family.id} data-testid={`agent-family-${family.id}`}>
@@ -235,10 +241,11 @@ const LIGHT_CLASS: Record<string, string> = { GREEN: "green", RED: "red", GRAY: 
  * Trois états séparés : connexion et preuve, activité (voyant du contrat partagé, retiré à
  * l'échéance locale), dernier résultat scientifique. `verdict` vient de `effectiveVerdict`.
  */
-export const InvocationProofCard: React.FC<{ state: PollState; verdict: ActivityVerdict; nowMs: number }> = ({
+export const InvocationProofCard: React.FC<{ state: PollState; verdict: ActivityVerdict; nowMs: number; title?: string }> = ({
   state,
   verdict,
   nowMs,
+  title = "Repository Cartographer",
 }) => {
   const s = state.status === "OK" ? state.received.summary : null;
   const expiry = state.status === "OK" ? localExpiryMs(state.received) : null;
@@ -253,8 +260,8 @@ export const InvocationProofCard: React.FC<{ state: PollState; verdict: Activity
     ? new Date(expiry).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
     : null;
   return (
-    <section className="invocation-card" data-testid="invocation-card" aria-label="Preuve d'invocation du Repository Cartographer">
-      <h3>Repository Cartographer · preuve d'invocation</h3>
+    <section className="invocation-card" data-testid="invocation-card" aria-label={`Preuve d'invocation du ${title}`}>
+      <h3>{title} · preuve d'invocation</h3>
       <dl>
         <div data-testid="invocation-connection">
           <dt>Connexion et preuve</dt>
@@ -302,9 +309,29 @@ export const InvocationProofCard: React.FC<{ state: PollState; verdict: Activity
   );
 };
 
-/** Vue branchée (drapeau actif) ; exportée pour les tests d'expiration. */
-export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs }) => {
-  const sched = useAgentSchedule(true);
+/** Un agent branché : identité attendue, route du programmateur, libellé du bloc. */
+interface LiveAgent {
+  identity: ExpectedIdentity;
+  title: string;
+}
+const LIVE_AGENTS: LiveAgent[] = [
+  { identity: EXPECTED_IDENTITY, title: "Repository Cartographer" },
+  { identity: DPA_IDENTITY, title: "Data Provenance Auditor" },
+];
+
+interface LiveAgentData {
+  evidence: EvidenceSource;
+  nowMs: number;
+  slot: AgentSlot;
+}
+
+/**
+ * Lectures d'un agent branché (preuve, historique, programmateur) et son bloc : gyrophare,
+ * mini terminal, bouton ⏰. Le même bloc sert au cartographe et au Data Provenance Auditor.
+ */
+function useLiveAgent(agent: LiveAgent, pollMs?: number): LiveAgentData {
+  const base = invocationUrl(agent.identity.id);
+  const sched = useAgentSchedule(true, undefined, `${base}/schedule`);
   // Le passage dure moins d'une seconde : lecture rapprochée autour de l'heure prévue pour
   // que le vert (exécution attestée par le verrou noyau) soit visible.
   const [burst, setBurst] = React.useState(false);
@@ -316,36 +343,43 @@ export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs
     const b = setTimeout(() => setBurst(false), startIn + 12_000);
     return () => { clearTimeout(a); clearTimeout(b); setBurst(false); };
   }, [next]);
-  const { evidence, nowMs, state, verdict } = useInvocationEvidence(true, { pollMs: burst ? 100 : pollMs });
-  const history = useInvocationHistory(true, burst ? 3_000 : pollMs);
+  const { evidence, nowMs, state, verdict } = useInvocationEvidence(true, { pollMs: burst ? 100 : pollMs, agent: agent.identity });
+  const history = useInvocationHistory(true, burst ? 3_000 : pollMs, `${base}/history`);
   const off = sched.schedule?.applied === "off";
-  return (
-    <>
-      <AgentRegistryPanel
-        registry={AGENT_REGISTRY}
-        evidence={evidence}
-        nowMs={nowMs}
-        slots={{
-          "repository-cartographer": (facts) => (
-            <>
-              <CartographerMiniTerminal
-                info={facts}
-                light={off && verdict.light !== "GREEN" ? "GRAY" : verdict.light}
-                lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
-                history={history}
-                controls={<ScheduleControl schedule={sched.schedule} error={sched.error} sending={sched.sending} onPick={(v) => void sched.request(v)} />}
-                footer={
-                  <details className="invocation-details">
-                    <summary>Détail de la preuve</summary>
-                    <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} />
-                  </details>
-                }
-              />
-            </>
-          ),
-        }}
+  const slot: AgentSlot = (facts) => (
+    <div data-testid={`live-agent-${agent.identity.id}`}>
+      <CartographerMiniTerminal
+        title={agent.title}
+        info={facts}
+        light={off && verdict.light !== "GREEN" ? "GRAY" : verdict.light}
+        lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
+        history={history}
+        controls={<ScheduleControl schedule={sched.schedule} error={sched.error} sending={sched.sending} onPick={(v) => void sched.request(v)} />}
+        footer={
+          <details className="invocation-details">
+            <summary>Détail de la preuve</summary>
+            <InvocationProofCard state={state} verdict={verdict} nowMs={nowMs} title={agent.title} />
+          </details>
+        }
       />
-    </>
+    </div>
+  );
+  return { evidence, nowMs, slot };
+}
+
+/** Vue branchée (drapeau actif) ; exportée pour les tests d'expiration. */
+export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs }) => {
+  // Nombre d'agents fixe (constante du module) : l'ordre des hooks reste stable.
+  const carto = useLiveAgent(LIVE_AGENTS[0], pollMs);
+  const dpa = useLiveAgent(LIVE_AGENTS[1], pollMs);
+  return (
+    <AgentRegistryPanel
+      registry={AGENT_REGISTRY}
+      evidence={carto.evidence}
+      evidenceByAgent={{ [DPA_IDENTITY.id]: dpa.evidence }}
+      nowMs={Math.max(carto.nowMs, dpa.nowMs)}
+      slots={{ [EXPECTED_IDENTITY.id]: carto.slot, [DPA_IDENTITY.id]: dpa.slot }}
+    />
   );
 };
 

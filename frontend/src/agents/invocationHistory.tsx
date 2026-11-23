@@ -1,7 +1,8 @@
-// ── Mini terminal du Repository Cartographer (lecture seule) ───────────────
+// ── Mini terminal d'un agent d'observation (lecture seule) ─────────────────
 //
 // Une bulle par rapport publié, heure de production en bas (heure du navigateur).
-// Source : GET /agent-invocations/repository-cartographer/history (20 plus récents).
+// Source : GET /agent-invocations/<agent>/history (20 plus récents) ; cartographe par défaut,
+// Data Provenance Auditor depuis le 2026-11-23 (même bloc).
 // L'interface ne recalcule rien : elle valide, formate et affiche les verdicts serveur ;
 // une entrée non valide reste visible comme telle. Une panne de lecture n'est pas une
 // liste vide. Le gyrophare reprend le voyant du contrat partagé (vert/rouge/gris).
@@ -29,6 +30,8 @@ export interface HistoryItem {
     write_templates: number;
     limits: number;
     errors: string[];
+    /** Chaîne de provenance (Data Provenance Auditor seulement) : maillons et niveaux de preuve. */
+    chain?: { links: number; levels: Record<string, number>; hops?: { hop: string; level: string }[]; inferred: number; runtime_required: number };
   };
 }
 export type HistoryState =
@@ -58,7 +61,7 @@ export function parseHistory(raw: unknown): HistoryState {
   };
 }
 
-export function useInvocationHistory(enabled: boolean, pollMs = HISTORY_POLL_MS): HistoryState {
+export function useInvocationHistory(enabled: boolean, pollMs = HISTORY_POLL_MS, url = CARTOGRAPHER_HISTORY_URL): HistoryState {
   const [state, setState] = useState<HistoryState>({ status: "LOADING" });
   useEffect(() => {
     if (!enabled) return;
@@ -69,7 +72,7 @@ export function useInvocationHistory(enabled: boolean, pollMs = HISTORY_POLL_MS)
       ctrl = new AbortController();
       const guard = setTimeout(() => ctrl?.abort(), 10_000);
       try {
-        const res = await fetch(CARTOGRAPHER_HISTORY_URL, { cache: "no-store", signal: ctrl.signal });
+        const res = await fetch(url, { cache: "no-store", signal: ctrl.signal });
         const next = res.ok ? parseHistory(await res.json()) : { status: "UNREACHABLE" as const, reason: `HTTP ${res.status}` };
         if (alive) setState(next);
       } catch {
@@ -85,7 +88,7 @@ export function useInvocationHistory(enabled: boolean, pollMs = HISTORY_POLL_MS)
       if (timer) clearTimeout(timer);
       ctrl?.abort();
     };
-  }, [enabled, pollMs]);
+  }, [enabled, pollMs, url]);
   return state;
 }
 
@@ -116,6 +119,21 @@ const Bubble: React.FC<{ item: HistoryItem; previous?: HistoryItem }> = ({ item,
       </div>
       {same ? (
         <div>Identique au précédent (révision analysée {item.analysed_sha?.slice(0, 8)} inchangée).</div>
+      ) : s.chain ? (
+        <ul>
+          <li><b>Vu</b> : {s.seen.sources} sources consultées, chaîne de {s.chain.links} maillons</li>
+          {s.chain.hops?.length ? (
+            <li data-testid="miniterm-chain">
+              <b>Chaîne</b> : {s.chain.hops.map((h) => `${h.hop} ${h.level}`).join(" → ")}
+            </li>
+          ) : null}
+          <li><b>Trouvé</b> : {s.found.length ? s.found.join(", ") : "aucun constat"}</li>
+          <li>
+            <b>Non conclu</b> : {s.not_concluded.length ? s.not_concluded.map((u) => u.reason ?? "?").join(" ; ") : "rien"}
+            {s.chain.runtime_required ? ` · ${s.chain.runtime_required} mesure${s.chain.runtime_required > 1 ? "s" : ""} runtime requise${s.chain.runtime_required > 1 ? "s" : ""}` : ""}
+          </li>
+          <li><b>Statuts</b> : {s.limits} limites, {s.errors.length} erreur{s.errors.length > 1 ? "s" : ""}</li>
+        </ul>
       ) : (
         <ul>
           <li><b>Vu</b> : {s.seen.sources} sources, {s.seen.imports} imports, {s.seen.calls} appels</li>
@@ -134,7 +152,8 @@ const Bubble: React.FC<{ item: HistoryItem; previous?: HistoryItem }> = ({ item,
 
 const GIRO_CLASS: Record<ActivityLight, string> = { GREEN: "green", RED: "red", GRAY: "gray" } as Record<ActivityLight, string>;
 
-export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightReason: string; history: HistoryState; controls?: React.ReactNode; info?: React.ReactNode; footer?: React.ReactNode }> = ({
+export const CartographerMiniTerminal: React.FC<{ title?: string; light: ActivityLight; lightReason: string; history: HistoryState; controls?: React.ReactNode; info?: React.ReactNode; footer?: React.ReactNode }> = ({
+  title = "Repository Cartographer",
   light,
   lightReason,
   history,
@@ -145,7 +164,7 @@ export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightRea
   const chrono = history.status === "OK" ? [...history.items].reverse() : [];
   let lastDay = "";
   return (
-    <section className="miniterm" data-testid="miniterm" aria-label="Mini terminal du Repository Cartographer">
+    <section className="miniterm" data-testid="miniterm" aria-label={`Mini terminal du ${title}`}>
       <header className="miniterm-hd">
         <img
           className={`miniterm-giro miniterm-giro-${GIRO_CLASS[light]}`}
@@ -157,7 +176,7 @@ export const CartographerMiniTerminal: React.FC<{ light: ActivityLight; lightRea
           alt={`État : ${lightReason}`}
           title={lightReason}
         />
-        <h3>Repository Cartographer</h3>
+        <h3>{title}</h3>
       </header>
       {info ? <div className="miniterm-info" data-testid="miniterm-info">{info}</div> : null}
       {controls}

@@ -1,4 +1,4 @@
-// ── Programmateur du Repository Cartographer ───────────────────────────────
+// ── Programmateur d'un agent d'observation (cartographe, Data Provenance Auditor) ──
 // SEULE écriture de l'interface (exception gouvernée, opérateur, 2026-11-22 07:23Z).
 // Le bouton dépose une DEMANDE de rythme (liste fermée) ; un applicateur root sur le serveur
 // l'applique au timer et publie l'état appliqué. L'interface n'affiche comme « appliqué » que
@@ -24,7 +24,7 @@ export interface ScheduleState {
   connection: string;
 }
 
-export function useAgentSchedule(enabled: boolean, pollMs = SCHEDULE_POLL_MS) {
+export function useAgentSchedule(enabled: boolean, pollMs = SCHEDULE_POLL_MS, url = CARTOGRAPHER_SCHEDULE_URL) {
   const [state, setState] = useState<ScheduleState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -37,7 +37,7 @@ export function useAgentSchedule(enabled: boolean, pollMs = SCHEDULE_POLL_MS) {
     const tick = async () => {
       if (timer) clearTimeout(timer);
       try {
-        const r = await fetch(CARTOGRAPHER_SCHEDULE_URL, { cache: "no-store" });
+        const r = await fetch(url, { cache: "no-store" });
         const b = r.ok ? await r.json() : null;
         if (alive && b && typeof b === "object") {
           setState({
@@ -59,13 +59,13 @@ export function useAgentSchedule(enabled: boolean, pollMs = SCHEDULE_POLL_MS) {
       alive = false;
       if (timer) clearTimeout(timer);
     };
-  }, [enabled, pollMs]);
+  }, [enabled, pollMs, url]);
 
   const request = useCallback(async (rhythm: string) => {
     setSending(true);
     setError(null);
     try {
-      const r = await fetch(CARTOGRAPHER_SCHEDULE_URL, {
+      const r = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json", "x-cat-operator": "schedule" },
         body: JSON.stringify({ rhythm }),
@@ -79,7 +79,7 @@ export function useAgentSchedule(enabled: boolean, pollMs = SCHEDULE_POLL_MS) {
       // L'applicateur agit en quelques secondes : relire peu après.
       setTimeout(() => kick.current(), 3_000);
     }
-  }, []);
+  }, [url]);
 
   return { schedule: state, error, sending, request };
 }

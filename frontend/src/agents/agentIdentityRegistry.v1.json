@@ -27,9 +27,9 @@
       "source_path": ".github/agents/data-provenance-auditor.agent.md",
       "source_blob_sha1": "45447863514be83fa0b5830f4e1491b35a9b24b1",
       "validation_status": "MIGRATION_CANDIDATE",
-      "validation_note": "Une spécification bornée reste à créer.",
-      "wiring_status": "NOT_WIRED",
-      "runner_id": null,
+      "validation_note": "Runner VPS obs-data-provenance-ro-01 installé le 2026-11-22 (passage horaire à la demie, lecture seule, sans réseau).",
+      "wiring_status": "VERIFIED",
+      "runner_id": "obs-data-provenance-ro-01",
       "legacy_blocked": false
     },
     {
