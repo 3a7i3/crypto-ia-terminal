@@ -94,7 +94,7 @@ try{
  // M1-C5 (F4): the four active Market routes, addressed directly. Each selects
  // its own tab, mounts one panel and reads only its own source; CryptoRadar
  // historique is offered nowhere, including through the obsolete ?radar=0.
- const ROUTES=[["radar","Scanner",p=>p.startsWith("/api/operator/v1/spot-radar/")],["venues","Comparaison des plateformes",p=>p==="/api/operator/v1/venue-comparison"],["flow","Flux",p=>p==="/api/operator/v1/market-flow"],["lmi","Microstructure",p=>p==="/api/operator/v1/market-microstructure"]];
+ const ROUTES=[["radar","Scanner",p=>p.startsWith("/api/operator/v1/spot-radar/")||p==="/api/operator/v1/scanner-universe"],["venues","Comparaison des plateformes",p=>p==="/api/operator/v1/venue-comparison"],["flow","Flux",p=>p==="/api/operator/v1/market-flow"],["lmi","Microstructure",p=>p==="/api/operator/v1/market-microstructure"]];
  const routeChecks=[];
  for(const [slug,label,own] of ROUTES)for(const suffix of ["",...(slug==="radar"?["?radar=0"]:[])]){
   const context=await browser.newContext({viewport:{width:1440,height:900},locale:"fr-FR",serviceWorkers:"block"});
