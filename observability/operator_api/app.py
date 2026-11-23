@@ -30,6 +30,7 @@ from observability.operator_api.storage_reader import StorageSnapshotReader
 from observability.operator_api.venue_comparison_reader import VenueComparisonReader
 from observability.operator_api.market_flow_reader import MarketFlowReader
 from observability.operator_api.bbo_history_reader import BboHistoryReader
+from observability.operator_api.scanner_universe_reader import ScannerUniverseReader
 from observability.operator_api import agent_schedule
 from observability.operator_api.agent_invocation_reader import TARGETS as AGENT_INVOCATION_TARGETS, read_agent_invocation, read_agent_history
 
@@ -698,6 +699,23 @@ def configure_bbo_history_reader(path=None):
 @app.get("/api/operator/v1/bbo-composite-history")
 def get_bbo_composite_history():
     result = _bbo_history_reader.read()
+    if not result.ok:
+        return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
+
+
+# SCANNER-V1 (univers commun MEXC × Kraken): one explicitly configured publication;
+# no collection here, only validation and serving-time freshness withdrawal.
+_scanner_universe_reader = ScannerUniverseReader()
+
+def configure_scanner_universe_reader(path=None, *, now_fn=None):
+    global _scanner_universe_reader
+    _scanner_universe_reader = ScannerUniverseReader(path, now_fn=now_fn)
+    return _scanner_universe_reader
+
+@app.get("/api/operator/v1/scanner-universe")
+def get_scanner_universe():
+    result = _scanner_universe_reader.read()
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
     return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
