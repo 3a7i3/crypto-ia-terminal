@@ -42,7 +42,8 @@ try {
   // runs once; the home reads only the Radar Spot source it owns.
   const bootCounts=[...new Set(requests)].map(key=>requests.filter(r=>r===key).length);
   assert(bootCounts.length>=1 && bootCounts.every(n=>n>=1&&n<=2),"Home bounded boot fetches changed: "+JSON.stringify(requests));
-  assert(requests.every(r=>r.startsWith("GET /api/operator/v1/spot-radar/")&&!r.endsWith("/burn-in")),"Home reads another owner's source: "+JSON.stringify(requests));
+  // Scanner V1: the Scanner also owns the common-universe publication.
+  assert(requests.every(r=>(r.startsWith("GET /api/operator/v1/spot-radar/")||r==="GET /api/operator/v1/scanner-universe")&&!r.endsWith("/burn-in")),"Home reads another owner's source: "+JSON.stringify(requests));
   assert(!/Capital disponible|Burn-in|\bPF\b|Win Rate/.test(await home.innerText()),"Home duplicated domain data");
   for(const [label,theme]of [["Sombre","dark"],["Clair","light"]]){
    await page.getByRole("button",{name:"Paramètres de l’application"}).click();await page.getByRole("radio",{name:label,exact:true}).check();

@@ -91,7 +91,8 @@ suite("Venue publication through real offline producer/reader/API", () => {
   it("the Market view no longer offers the comparison tab and keeps the scanner error visible",async()=>{
     const fetchMock=vi.fn(async(input:RequestInfo|URL)=>String(input).endsWith("/venue-comparison")?response(fixture()):new Response(JSON.stringify({error_code:"MARKET_SNAPSHOT_MISSING"}),{status:503,headers:{"content-type":"application/json"}}));
     vi.stubGlobal("fetch",fetchMock);render(<MarketView/>);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Source indisponible · MARKET_SNAPSHOT_MISSING");
+    // Scanner V1: the common-universe block raises its own alert for the same 503.
+    await waitFor(()=>expect(screen.getAllByRole("alert").some(a=>a.textContent?.includes("Source indisponible · MARKET_SNAPSHOT_MISSING"))).toBe(true));
     expect(screen.queryByRole("tab",{name:"Comparaison des plateformes"})).toBeNull();
     expect(fetchMock.mock.calls.every(([u])=>String(u).startsWith("/api/operator/v1/")||String(u)==="/observations/btc-atom-book-v1.json")).toBe(true);
   });

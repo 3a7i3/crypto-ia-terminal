@@ -8,6 +8,7 @@ import {
   fetchBboHistory, BboHistoryError, BBO_HISTORY_LABEL, BBO_VENUES, BBO_SOURCE_STATES, BBO_SENS_L, BBO_SENS_G,
   type BboHistory, type BboPair, type BboWindow, type BboCandle, type BboVenue,
 } from "../lib/bboHistoryClient";
+import { gateNotice, type ScannerGate } from "../lib/scannerUniverseClient";
 import "../intraday.css";
 import "../spot-radar.css";
 
@@ -100,7 +101,7 @@ const Provenance: React.FC<{ p: BboPair; doc: BboHistory }> = ({ p, doc }) => {
   </details>;
 };
 
-export const BboCompositeHistory: React.FC = () => {
+export const BboCompositeHistory: React.FC<{ gate?: ScannerGate }> = ({ gate }) => {
   const [doc, setDoc] = useState<BboHistory | null>(null), [error, setError] = useState<string | null>(null);
   const [pair, setPair] = useState<string | null>(null), [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -111,7 +112,10 @@ export const BboCompositeHistory: React.FC = () => {
       .catch(e => { if (!controller.signal.aborted) { setDoc(null); setError(e instanceof BboHistoryError ? e.code : "TRANSPORT_ERROR"); } });
     return () => controller.abort();
   }, [attempt]);
-  const p = doc?.pairs.find(x => x.pair === pair) ?? null;
+  // Scanner V1: inside the Scanner, a historical pair is listed only when the
+  // current common universe admits the same BASE/QUOTE on all four markets.
+  const pairs = doc ? doc.pairs.filter(x => !gate || gate.keys.has(x.display_symbol)) : [];
+  const p = pairs.find(x => x.pair === pair) ?? pairs[0] ?? null;
   const complete = p ? p.windows.filter(w => w.candle.status === "COMPLETE") : [];
   const incomplete = p ? p.windows.length - complete.length : 0;
   const invalid = error?.startsWith("INVALID_BBO_HISTORY") || error === "BBO_HISTORY_INVALID_SCHEMA" || error === "BBO_HISTORY_MALFORMED_JSON" || error === "INVALID_JSON";
@@ -126,8 +130,9 @@ export const BboCompositeHistory: React.FC = () => {
     {error && <div role="alert" className="intraday-error">
       {absent ? "Aperçu historique absent" : invalid ? "Publication historique invalide" : "Aperçu historique indisponible"} · {error}. Aucune bougie n’est présentée.
       <button type="button" className="intraday-refresh" onClick={() => setAttempt(n => n + 1)}>Réessayer</button></div>}
+    {doc && gate && !pairs.length && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state)}</p>}
     {doc && p && <>
-      <div className="intraday-switch bbo-pairs" role="group" aria-label="Paire historique">{doc.pairs.map(x =>
+      <div className="intraday-switch bbo-pairs" role="group" aria-label="Paire historique">{pairs.map(x =>
         <button key={x.pair} type="button" aria-pressed={x.pair === pair} onClick={() => setPair(x.pair)}>{x.display_symbol}</button>)}</div>
       <p className="bbo-window-utc"><strong>{p.display_symbol}</strong> · Spot · {p.venues.map(v => `${VENUE[v.venue]} ${v.native_symbol}`).join(" + ")}<br />
         Fenêtre UTC : {utcMs(p.window_utc.start_ms)} → {utcMs(p.window_utc.end_ms)}</p>

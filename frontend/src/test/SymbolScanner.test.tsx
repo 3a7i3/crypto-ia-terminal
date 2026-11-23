@@ -16,7 +16,7 @@ it("keeps rank distinct from freshness and selects by instrument identity", asyn
   atom.freshness.state = "STALE";
   vi.mocked(fetchRadar).mockResolvedValue(data);
   const select = vi.fn();
-  const { container } = render(<SymbolScanner bubbles={false} selection={[]} onSelect={select} />);
+  const { container } = render(<SymbolScanner selection={[]} onSelect={select} />);
   await screen.findByRole("table");
   for (const [tier, count] of [["gold", 3], ["silver", 7], ["bronze", 15]] as const) {
     expect(container.querySelectorAll(`.${tier}`)).toHaveLength(count);
@@ -34,11 +34,11 @@ it.each([[false, false], [true, false], [false, true], [true, true]])(
     const data = fixture as RadarScanner;
     const btc = data.rows.find(row => row.base_asset === "BTC")!;
     vi.mocked(fetchRadar).mockResolvedValue(data);
-    render(<SymbolScanner bubbles selection={[]} onSelect={() => {}} qualifications={[
+    render(<SymbolScanner selection={[]} onSelect={() => {}} qualifications={[
       { instrumentId: btc.instrument_id, burnInPassed,
         chartHref: chartAvailable ? `/paper-live/market/radar/unified?instrument=${encodeURIComponent(btc.instrument_id)}` : undefined },
     ]} />);
-    fireEvent.click(await screen.findByRole("button", { name: /^BTC\/USDT / }));
+    fireEvent.click(await screen.findByRole("button", { name: "BTC/USDT" }));
     const link = screen.queryByRole("link", { name: "Ouvrir le graphique unifié" });
     expect(Boolean(link)).toBe(burnInPassed && chartAvailable);
     if (link) expect(decodeURIComponent(link.getAttribute("href")!)).toContain(btc.instrument_id);

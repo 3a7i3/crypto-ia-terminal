@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "../App";
 import { baseSnapshot } from "./fixtures";
 import spotRadarScanner from "./fixtures/spotRadar-scanner.json";
+import { universeFixture } from "./scannerUniverseFixtures";
 
 function jsonResponse(body: unknown, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
@@ -141,17 +142,19 @@ describe("App", () => {
   // because its client reads headers and a byte stream.
   const radarResponse = () => new Response(JSON.stringify(spotRadarScanner), { status: 200, headers: { "content-type": "application/json" } });
   const urls = () => fetchMock.mock.calls.map((call) => new URL(String(call[0]), "http://127.0.0.1").pathname);
+  // Scanner V1: the Scanner also reads the common universe; this fixture admits every row.
+  const universeResponse = () => new Response(JSON.stringify(universeFixture(spotRadarScanner.rows.map(r => [r.base_asset, r.quote_asset] as [string, string]))), { status: 200, headers: { "content-type": "application/json" } });
 
   it("loads MARKET alone and exposes microstructure only when requested", async () => {
     vi.spyOn(Date, "now").mockReturnValue(Number(spotRadarScanner.server_time_ms));
     const base = fetchMock.getMockImplementation() as (input: RequestInfo | URL) => Promise<Response>;
-    fetchMock.mockImplementation((input: RequestInfo | URL) => String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? Promise.resolve(radarResponse()) : base(input));
+    fetchMock.mockImplementation((input: RequestInfo | URL) => String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? Promise.resolve(radarResponse()) : String(input) === "/api/operator/v1/scanner-universe" ? Promise.resolve(universeResponse()) : base(input));
     window.history.replaceState({}, "", "/paper-live/market");
     render(<App />);
     await screen.findByText(/^30 \/ 30 instruments/);
     expect(window.location.pathname).toBe("/paper-live/market/radar");
-    expect(screen.getByRole("heading", { name: "Scanner classé" })).toBeInTheDocument();
-    expect(urls()).toEqual(["/api/operator/v1/spot-radar/scanner"]);
+    expect(screen.getByRole("heading", { name: "Moniteur de marché" })).toBeInTheDocument();
+    expect([...urls()].sort()).toEqual(["/api/operator/v1/scanner-universe", "/api/operator/v1/spot-radar/scanner"]);
     expect(screen.queryByTestId("tab-scores")).toBeNull();
     expect(screen.queryByTestId("tab-burn-in")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "Microstructure" }));
@@ -162,12 +165,12 @@ describe("App", () => {
 
   it("keeps MARKET independent of missing Advisor and reports that absence on Positions", async () => {
     vi.spyOn(Date, "now").mockReturnValue(Number(spotRadarScanner.server_time_ms));
-    fetchMock.mockImplementation((input: RequestInfo | URL) => Promise.resolve(String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? radarResponse() : jsonResponse({error_code:"SNAPSHOT_MISSING",error_message:"canonical artifact absent"},503)));
+    fetchMock.mockImplementation((input: RequestInfo | URL) => Promise.resolve(String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? radarResponse() : String(input) === "/api/operator/v1/scanner-universe" ? universeResponse() : jsonResponse({error_code:"SNAPSHOT_MISSING",error_message:"canonical artifact absent"},503)));
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
     fireEvent.click(screen.getByTestId("tab-market"));
     await screen.findByText(/^30 \/ 30 instruments/);
-    expect(screen.getByRole("heading", { name: "Scanner classé" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Moniteur de marché" })).toBeInTheDocument();
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
     expect(screen.queryByTestId("market-canonical-context")).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();

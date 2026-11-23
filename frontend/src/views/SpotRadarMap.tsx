@@ -7,20 +7,22 @@ import "../intraday.css";
 import "../spot-radar.css";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
+import { gateNotice, marketBadge, type ScannerGate } from "../lib/scannerUniverseClient";
 const labels:Record<Freshness,string>={LIVE:"LIVE qualifié",STALE:"STALE · périmée",DISCONNECTED:"DISCONNECTED · déconnecté",UNRESOLVED:"UNRESOLVED · non résolu",SYNTHETIC:"SYNTHETIC · fictif"};
+const spreadBp=(r:RadarRow)=>{const bid=Number(r.book.bid),ask=Number(r.book.ask);return bid>0&&ask>=bid?((ask-bid)/((ask+bid)/2)*10_000).toFixed(1)+" pb":"—";};
 const utc=(s:string|null)=>s?new Date(Number(s)).toISOString().replace("T"," ").replace("Z"," UTC"):"Non disponible";
-type RadarMode="current"|"bbo-history";
-/** The current Radar stays the default view; the BBO composite history is an opt-in, read-only preview. */
-export const SpotRadarMap:React.FC=()=>{
- const [mode,setMode]=useState<RadarMode>("current");
+/** Radar Spot (refonte 2026-11-23): one line per pair by default, provenance and
+ *  limits folded away. The BBO composite history is a folded, read-only preview. */
+export const SpotRadarMap:React.FC<{gate?:ScannerGate}>=({gate})=>{
+ const [history,setHistory]=useState(false);
  return <>
-  <div className="intraday-switch radar-mode" role="group" aria-label="Vue Radar"><button type="button" aria-pressed={mode==="current"} onClick={()=>setMode("current")}>Radar courant</button><button type="button" aria-pressed={mode==="bbo-history"} onClick={()=>setMode("bbo-history")}>Composite historique</button></div>
-  {mode==="current"?<SpotRadarCurrent/>:<BboCompositeHistory/>}
+  <SpotRadarCurrent gate={gate}/>
+  <details className="radar-history-preview" onToggle={e=>setHistory((e.currentTarget as HTMLDetailsElement).open)}><summary>Composite historique · aperçu hors live</summary>{history&&<BboCompositeHistory gate={gate}/>}</details>
  </>;
 };
-const SpotRadarCurrent:React.FC=()=>{
+const SpotRadarCurrent:React.FC<{gate?:ScannerGate}>=({gate})=>{
  const [data,setData]=useState<RadarScanner|null>(null),[error,setError]=useState<string|null>(null),[refresh,setRefresh]=useState(0);
- const [query,setQuery]=useState(""),[filter,setFilter]=useState<"ALL"|Freshness>("ALL"),[list,setList]=useState(false),[selected,setSelected]=useState<string|null>(null);
+ const [query,setQuery]=useState(""),[filter,setFilter]=useState<"ALL"|Freshness>("ALL"),[list,setList]=useState(true),[selected,setSelected]=useState<string|null>(null);
  const [tf,setTf]=useState<Timeframe>("M5"),[history,setHistory]=useState<RadarHistory|null>(null),[historyError,setHistoryError]=useState<string|null>(null),[now,setNow]=useState(Date.now());
  const receivedAt=useRef(0),historyKey=useRef("");
  const origin=useRef<HTMLButtonElement|null>(null),closeRef=useRef<HTMLButtonElement|null>(null),panel=useRef<HTMLDivElement|null>(null);
@@ -38,23 +40,22 @@ const SpotRadarCurrent:React.FC=()=>{
   if(r.freshness.state==="LIVE"&&r.freshness.age_ms!==null&&r.freshness.age_ms+elapsed>45_000)return "STALE";
   return r.freshness.state;
  };
- const rows=(data?.rows??[]).filter(r=>(r.display_symbol.toUpperCase().includes(query.trim().toUpperCase())||r.identity.native_symbol.includes(query.trim().toUpperCase()))&&(filter==="ALL"||stateOf(r)===filter));
- const detail=data?.rows.find(r=>r.instrument_id===selected);
+ const admitted=(data?.rows??[]).filter(r=>!gate||gate.admitted.has(r.identity.native_symbol));
+ const rows=admitted.filter(r=>(r.display_symbol.toUpperCase().includes(query.trim().toUpperCase())||r.identity.native_symbol.includes(query.trim().toUpperCase()))&&(filter==="ALL"||stateOf(r)===filter));
+ const detail=admitted.find(r=>r.instrument_id===selected);
  useEffect(()=>{if(!selected)return;closeRef.current?.focus();const before=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=before;};},[selected]);
  useEffect(()=>{
   const controller=new AbortController();const key=selected+":"+tf;if(historyKey.current!==key){setHistory(null);historyKey.current=key;}setHistoryError(null);
   if(detail)fetchRadar("ohlcv",{symbol:detail.identity.native_symbol,timeframe:tf},controller.signal).then(d=>{if(!controller.signal.aborted)setHistory(d);}).catch(e=>{if(!controller.signal.aborted)setHistoryError(e instanceof RadarError?e.code:"TRANSPORT_ERROR");});
   return()=>controller.abort();
  },[selected,tf,data?.snapshot_id]);
- const live=data?.rows.filter(r=>stateOf(r)==="LIVE").length??0;
+ const live=admitted.filter(r=>stateOf(r)==="LIVE").length;
  return <section className="intraday-desk spot-radar" aria-label="Radar Spot MEXC">
   <header className="intraday-heading"><div><p className="intraday-eyebrow">CAT / MARKET INTELLIGENCE</p><h2>Market Radar · MEXC Spot</h2><p className="intraday-lead">Le marché observé. Chaque chiffre remonte à sa source.</p></div>
    <span className="intraday-proof">{data?.evidence_kind==="SYNTHETIC"?"◆ SYNTHETIC":live>0?"● LIVE qualifié":"○ "+(data?.collector.state??"CONNEXION")}<small>{data?.evidence_kind==="SYNTHETIC"?"Fixture isolée · données fictives":"REST public · lecture seule"}</small></span>
   </header>
-  <p className="intraday-disclaimer">Observation uniquement · bulles de taille égale · variation 24 h déclarée par MEXC · aucun score ni autorisation de trading.</p>
   <div className="intraday-controls">
    <label>Rechercher un symbole<input aria-label="Rechercher un symbole Radar" type="search" maxLength={120} value={query} placeholder="BTC, DOGE, ATOM…" onChange={e=>setQuery(e.target.value)}/></label>
-   <label>Marché<select aria-label="Marché Radar"><option>Spot · MEXC</option></select></label>
    <label>Fraîcheur<select aria-label="Fraîcheur Radar" value={filter} onChange={e=>setFilter(e.target.value as typeof filter)}><option value="ALL">Tous les états</option>{Object.entries(labels).map(([s,l])=><option key={s} value={s}>{l}</option>)}</select></label>
    <div className="intraday-switch" role="group" aria-label="Affichage Radar"><button type="button" aria-pressed={!list} onClick={()=>setList(false)}>◉ Bulles</button><button type="button" aria-pressed={list} onClick={()=>setList(true)}>≡ Liste</button></div>
    <button type="button" className="intraday-refresh" onClick={()=>setRefresh(n=>n+1)}>Actualiser</button>
@@ -64,16 +65,17 @@ const SpotRadarCurrent:React.FC=()=>{
   {data&&<>
    <div className="intraday-metrics" aria-label="Couverture Radar"><div><strong>{data.observed_instruments} / {data.selected_instruments}</strong><span>Instruments observés / sélectionnés</span></div><div><strong>{live}</strong><span>LIVE qualifiés</span></div><div><strong>{data.collector.state}</strong><span>Collecteur · {data.collector.reason}</span></div><div><strong>{data.rows.reduce((n,r)=>n+r.timeframes.length,0)} / {data.selected_instruments*4}</strong><span>Histoires OHLCV · cible 300 bougies</span></div></div>
    {data.collector.fault_injection&&<p role="status" className="intraday-error">Interruption simulée du laboratoire · aucune panne MEXC n’est affirmée.</p>}
+   {gate&&<p className="intraday-coverage">{gate.byAsset?"Actifs MEXC × Kraken (Spot et Perpétuel)":"Univers commun MEXC × Kraken"} : {admitted.length} instrument{admitted.length>1?"s":""} admis sur {data.rows.length} observés.</p>}
+   {gate&&admitted.length===0&&<p role="status" className="scanner-gate-notice">{gateNotice(gate.state, gate.byAsset)}</p>}
    <div className="intraday-map-head"><h3>{list?"Liste accessible":"Carte des instruments"}</h3><span>{rows.length} instruments · mise à jour ≈ 15 s</span></div>
-   <p className="intraday-coverage">Sélection bornée à 30 instruments : BTC, DOGE, ATOM puis volume quote 24 h vérifié. Univers Spot USDT uniquement. Taille égale, sans classement prédictif.</p>
-   {!rows.length?<p role="status" className="intraday-empty">Aucun instrument pour ces filtres.</p>:<div className={list?"intraday-list":"intraday-bubbles"} aria-label="Instruments Spot observés">{rows.map((r,i)=>{
+   {!rows.length?((admitted.length||!gate)?<p role="status" className="intraday-empty">Aucun instrument pour ces filtres.</p>:null):<div className={list?"intraday-list":"intraday-bubbles"} aria-label="Instruments Spot observés">{rows.map((r,i)=>{
     const pct=r.ticker.change_qualified?r.ticker.change_pct_24h:null,sign=pct===null?0:decimalCompare(pct,"0"),fresh=stateOf(r);
     return <button key={r.instrument_id} type="button" className={"intraday-bubble "+(sign>0?"intraday-up":sign<0?"intraday-down":"intraday-neutral")} style={{"--bubble-index":i} as React.CSSProperties} aria-label={r.display_symbol+" · MEXC Spot · "+labels[fresh]} onClick={e=>{origin.current=e.currentTarget;setSelected(r.instrument_id);}}>
-     <span className="intraday-bubble-market">MEXC / SPOT</span><strong>{r.base_asset}<small> / USDT</small></strong><span className="intraday-bubble-price">{r.ticker.last_price}</span><span className="intraday-bubble-change">{pct===null?"Non qualifiée":(sign>0?"+":"")+pct+" %"}<small>24 h · fournisseur</small></span><span className={"radar-state radar-"+fresh.toLowerCase()}>{labels[fresh]}</span>
+     <span className="intraday-bubble-market">MEXC / SPOT</span><strong>{r.base_asset}<small> / USDT</small></strong>{(b => b && <span className="market-count-badge" title={b.title}>{b.text}</span>)(marketBadge(gate, r.identity.native_symbol))}<span className="intraday-bubble-price">{r.ticker.last_price}</span><span className="intraday-bubble-change">{pct===null?"Non qualifiée":(sign>0?"+":"")+pct+" %"}<small>24 h · fournisseur</small></span>{list&&<span className="radar-line-facts"><span>Vol. 24 h {r.ticker.volume_qualified?Intl.NumberFormat("fr-FR",{notation:"compact"}).format(Number(r.ticker.quote_volume_24h))+" USDT":"—"}</span><span>Spread {spreadBp(r)}</span></span>}<span className={"radar-state radar-"+fresh.toLowerCase()}>{labels[fresh]}</span>
     </button>;
    })}</div>}
    <div className="intraday-legend"><span>↗ Variation positive</span><span>↘ Variation négative</span><span>○ Variation non qualifiée</span><span>Couleur descriptive, sans anticipation.</span></div>
-   <details className="intraday-provenance"><summary>Provenance, fraîcheur et limites</summary><dl><dt>Preuve</dt><dd>{data.evidence_kind} · {data.schema_version}</dd><dt>Collecte</dt><dd>{utc(data.collector.last_success_ms)}</dd><dt>Expiration du pilote</dt><dd>{utc(data.collector.expires_ms)}</dd><dt>Source</dt><dd>{data.source.base_url} · {data.source.exchange} · Spot public</dd><dt>Identité scientifique</dt><dd>{data.snapshot_id}</dd><dt>Preuve de sélection</dt><dd>{data.source.selection_sha256}</dd><dt>Horloge exchange</dt><dd>{utc(data.clock.server_ms)} · RTT {data.clock.rtt_ms} ms</dd></dl><p>LIVE exige un timestamp source et une réception de moins de 45 s, une horloge qualifiée et un collecteur actif. La publication seule ne prouve aucune fraîcheur. Le ticker fournit une fenêtre « 24 h » déclarée ; ses openTime / closeTime ne prouvent pas une durée exacte de 24 h. Les bid/ask ont seulement une heure de réception.</p></details>
+   <details className="intraday-provenance"><summary>Provenance, fraîcheur et limites</summary><dl><dt>Preuve</dt><dd>{data.evidence_kind} · {data.schema_version}</dd><dt>Collecte</dt><dd>{utc(data.collector.last_success_ms)}</dd><dt>Expiration du pilote</dt><dd>{utc(data.collector.expires_ms)}</dd><dt>Source</dt><dd>{data.source.base_url} · {data.source.exchange} · Spot public</dd><dt>Identité scientifique</dt><dd>{data.snapshot_id}</dd><dt>Preuve de sélection</dt><dd>{data.source.selection_sha256}</dd><dt>Horloge exchange</dt><dd>{utc(data.clock.server_ms)} · RTT {data.clock.rtt_ms} ms</dd></dl><p>Observation uniquement · variation 24 h déclarée par MEXC · aucun score ni autorisation de trading. Sélection bornée à 30 instruments : BTC, DOGE, ATOM puis volume quote 24 h vérifié, Spot USDT uniquement.</p><p>LIVE exige un timestamp source et une réception de moins de 45 s, une horloge qualifiée et un collecteur actif. La publication seule ne prouve aucune fraîcheur. Le ticker fournit une fenêtre « 24 h » déclarée ; ses openTime / closeTime ne prouvent pas une durée exacte de 24 h. Les bid/ask ont seulement une heure de réception.</p></details>
    {detail&&<div className="intraday-modal-backdrop" onClick={e=>{if(e.target===e.currentTarget)close();}}><div ref={panel} className="intraday-detail" role="dialog" aria-modal="true" aria-labelledby="radar-detail-title" onKeyDown={e=>{
     if(e.key==="Escape"){e.preventDefault();close();}
     if(e.key==="Tab"){const nodes=panel.current?.querySelectorAll<HTMLElement>("button,input,select,summary,[href]");if(!nodes?.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
