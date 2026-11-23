@@ -43,12 +43,12 @@ const states = [
   ["vide-verifie-reel-20261123T023238Z", () => { assert(real, "SCANNER_UNIVERSE_REAL requis pour l'état vide réel"); return real; }],
   ["indisponible-synthetique", now => synthetic([["BTC", "USDT"]], "UNVERIFIABLE", now)],
 ];
-const subviews = [["classe", ""], ["terminal-live", "?product=live"], ["radar-spot", "?product=spot-radar"]];
+const subviews = [["moniteur", ""], ["radar-spot", "?product=spot-radar"]];
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch();
 const results = [];
 for (const vp of viewports) for (const [state, make] of states) for (const [sub, search] of subviews) {
-  if (vp.name !== "384x832-s24plus" && sub !== "classe") continue;
+  if (vp.name !== "384x832-s24plus" && sub !== "moniteur") continue;
   const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   const now = Number(scanner.server_time_ms);
@@ -70,7 +70,7 @@ for (const vp of viewports) for (const [state, make] of states) for (const [sub,
   const file = `${out}/scanner-${state}-${sub}-${vp.name}.png`;
   await page.screenshot({ path: file, fullPage: true });
   results.push({ viewport: vp.name, state, subview: sub, ...metrics, file });
-  if (state.startsWith("liste") && sub === "classe" && vp.name === "384x832-s24plus") {
+  if (state.startsWith("liste") && sub === "moniteur" && vp.name === "384x832-s24plus") {
     await page.getByRole("button", { name: /^BTC\/USDT · vérifiée/ }).click();
     await page.waitForSelector("dialog.universe-detail[open]");
     await page.screenshot({ path: `${out}/scanner-${state}-detail-${vp.name}.png` });

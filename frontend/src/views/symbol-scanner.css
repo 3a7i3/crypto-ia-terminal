@@ -23,3 +23,16 @@
 .symbol-detail dt { color: #acd0ed; margin-top: .5rem; }
 .symbol-detail dd { margin: .15rem 0; overflow-wrap: anywhere; }
 .symbol-detail a { display: block; padding: .75rem 0; color: #a5e7ef; }
+
+/* Moniteur de marché — programmateur de lecture et voyant */
+.monitor-schedule { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .8rem; margin: .3rem 0 .6rem; }
+.monitor-cadence { display: flex; gap: .3rem; }
+.monitor-cadence button { min-width: 48px; border: 1px solid #6e829c; background: transparent; color: inherit; font-weight: 600; }
+.monitor-cadence button[aria-pressed="true"] { background: #14534e; border-color: #14534e; color: #fff; }
+.monitor-light { margin: 0; font-size: .85rem; display: flex; align-items: center; gap: .35rem; }
+.monitor-light .dot { width: .7rem; height: .7rem; border-radius: 50%; flex: none; }
+.monitor-light.green .dot { background: #1f9d5c; box-shadow: 0 0 0 3px #1f9d5c33; }
+.monitor-light.orange .dot { background: #e08a1e; box-shadow: 0 0 0 3px #e08a1e33; }
+.monitor-light.red .dot { background: #c4314b; box-shadow: 0 0 0 3px #c4314b33; }
+.monitor-sort select { display: block; min-height: 44px; border-radius: .45rem; }
+.symbol-tools button[aria-pressed="true"] { background: #14534e; color: #fff; border-color: #14534e; }

@@ -153,7 +153,7 @@ describe("App", () => {
     render(<App />);
     await screen.findByText(/^30 \/ 30 instruments/);
     expect(window.location.pathname).toBe("/paper-live/market/radar");
-    expect(screen.getByRole("heading", { name: "Classement du jour" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Moniteur de marché" })).toBeInTheDocument();
     expect([...urls()].sort()).toEqual(["/api/operator/v1/scanner-universe", "/api/operator/v1/spot-radar/scanner"]);
     expect(screen.queryByTestId("tab-scores")).toBeNull();
     expect(screen.queryByTestId("tab-burn-in")).toBeNull();
@@ -170,7 +170,7 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
     fireEvent.click(screen.getByTestId("tab-market"));
     await screen.findByText(/^30 \/ 30 instruments/);
-    expect(screen.getByRole("heading", { name: "Classement du jour" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Moniteur de marché" })).toBeInTheDocument();
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
     expect(screen.queryByTestId("market-canonical-context")).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();

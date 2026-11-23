@@ -70,7 +70,7 @@ describe("Marché → Scanner", () => {
   });
 
   it.each([
-    ["Classement du jour", ""],
+    ["Moniteur de marché", ""],
     ["Radar Spot", "?product=spot-radar"],
   ])("keeps a three-market pair out of %s", async (_label, search) => {
     open(search);
@@ -82,19 +82,20 @@ describe("Marché → Scanner", () => {
     expect(screen.queryByText("DOGE/USDT")).toBeNull();
   });
 
-  it("shows only live admitted pairs in the Terminal live", async () => {
-    open("?product=live");
-    const table = await screen.findByRole("table", { name: "Paires live" });
-    expect(within(table).getAllByRole("rowheader").map(h => h.textContent)).toEqual(["BTC/USDT"]);
-    expect(screen.getByText(/● LIVE · 1 paire/)).toBeInTheDocument();
+  it("shows only live admitted pairs with « Live seulement »", async () => {
+    open();
+    const table = await screen.findByRole("table", { name: "Paires du moniteur" });
+    fireEvent.click(screen.getByRole("button", { name: "Live seulement" }));
+    expect(within(table).getAllByRole("button").map(b => b.textContent)).toEqual(["BTC/USDT"]);
+    expect(within(table).getByRole("button", { name: "BTC/USDT" }).closest("td")).toHaveTextContent(/Fraîche · \d+ s/);
     expect(screen.queryByText("DOGE/USDT")).toBeNull();
   });
 
   it("shows no live row when the universe is empty or the feed is not live", async () => {
     universe = () => json(universeFixture([]));
-    open("?product=live");
+    open();
     await screen.findByText("Univers commun vide vérifié : aucune ligne n’est affichée.");
-    expect(screen.queryByRole("table", { name: "Paires live" })).toBeNull();
+    expect(screen.queryByRole("table", { name: "Paires du moniteur" })).toBeNull();
   });
 
   it("keeps a non-admitted pair out of the historical composite tab", async () => {
@@ -142,7 +143,7 @@ describe("Marché → Scanner", () => {
     const demo = screen.getByRole("region", { name: "Radar de signaux" });
     expect(within(demo).getByRole("note")).toHaveTextContent("Données SYNTHÉTIQUES · cat.signals.indicators.v1");
     expect(within(demo).getByRole("table", { name: "Indicateurs BTC" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Classement du jour" }));
+    fireEvent.click(screen.getByRole("button", { name: "Moniteur de marché" }));
     await screen.findByText("Univers commun vide vérifié : aucune ligne n’est affichée.");
     expect(screen.queryByRole("button", { name: /^BTC\/USDT/ })).toBeNull();
     expect(screen.queryByRole("region", { name: "Radar de signaux" })).toBeNull();
@@ -195,10 +196,10 @@ describe("Marché → Scanner", () => {
 
     it("withdraws every asset row when a source is unavailable", async () => {
       universe = () => json(assetUniverseFixture({ status: "UNVERIFIABLE" }));
-      open("?product=live");
+      open();
       await screen.findByText(/Univers indisponible/);
       await screen.findByText("Univers commun indisponible : aucune ligne n’est présentée comme courante.");
-      expect(screen.queryByRole("table", { name: "Paires live" })).toBeNull();
+      expect(screen.queryByRole("table", { name: "Paires du moniteur" })).toBeNull();
     });
   });
 });

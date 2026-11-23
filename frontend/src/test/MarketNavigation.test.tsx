@@ -76,7 +76,7 @@ describe("M1-C1 deep Market routes", () => {
       render(<App />);
       await waitFor(() => expect(window.location.pathname).toBe(RADAR));
       expect(window.history.length).toBe(before);
-      expect(await screen.findByRole("heading", { name: "Classement du jour" })).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { name: "Moniteur de marché" })).toBeInTheDocument();
       expect(urls().some((u) => u.includes("/burn-in"))).toBe(false);
     });
 
@@ -110,7 +110,7 @@ describe("M1-C1 browser history", () => {
   it("moves between Scanner and Microstructure with browser history, without mounting retired views", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Classement du jour" });
+    await screen.findByRole("heading", { name: "Moniteur de marché" });
     const start = window.history.length;
     fetchMock.mockClear();
     fireEvent.click(tab("Microstructure"));
@@ -129,7 +129,7 @@ describe("M1-C1 browser history", () => {
     render(<App />);
     await waitFor(() => expect(window.location.pathname).toBe(RADAR));
     expect(window.history.length).toBe(before);
-    await screen.findByRole("heading", { name: "Classement du jour" });
+    await screen.findByRole("heading", { name: "Moniteur de marché" });
     expect(families()).toEqual(["scanner-universe", "spot-radar"]);
     expect(screen.queryByRole("tab", { name: /Flux|Comparaison des plateformes/ })).toBeNull();
   });
@@ -147,7 +147,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
     expect(p("intraday=1")).toBe("spot");
     expect(p("radar=0&intraday=1")).toBe("spot");
     expect(p("product=intraday")).toBe("spot");
-    expect(p("product=live")).toBe("live");
+    expect(p("product=live")).toBe("spot");
     expect(p("product=spot-radar")).toBe("spot-radar");
     expect(p("radar=1")).toBe("spot");
     expect(p("product=autre")).toBe("spot");
@@ -161,40 +161,39 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
       await waitFor(() => expect(where()).toBe(RADAR));
       expect(window.history.length).toBe(before);
       expect(screen.queryByRole("button", { name: "CryptoRadar historique" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Classement du jour" })).toHaveAttribute("aria-pressed", "true");
-      await screen.findByRole("heading", { name: "Classement du jour" });
+      expect(screen.getByRole("button", { name: "Moniteur de marché" })).toHaveAttribute("aria-pressed", "true");
+      await screen.findByRole("heading", { name: "Moniteur de marché" });
       await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
     });
 
-  it.each(["/paper-live/market?intraday=1", RADAR + "?product=intraday", "/paper-live/market?radar=0&intraday=1"])(
-    "opens the Classement du jour from the retired Intraday bookmark %s and drops it", async (from) => {
+  it.each(["/paper-live/market?intraday=1", RADAR + "?product=intraday", "/paper-live/market?radar=0&intraday=1", RADAR + "?product=live"])(
+    "opens the Moniteur de marché from the retired Intraday or Terminal live bookmark %s and drops it", async (from) => {
       at(from);
       const before = window.history.length;
       render(<App />);
       await waitFor(() => expect(where()).toBe(RADAR));
       expect(window.history.length).toBe(before);
       expect(screen.queryByRole("button", { name: "Bulles Intraday" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Classement du jour" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "Moniteur de marché" })).toHaveAttribute("aria-pressed", "true");
       await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
     });
 
-  it("offers Classement, Terminal live and Radar Spot, keeps the choice across views, without new history entries", async () => {
+  it("offers the Moniteur de marché, Radar Spot and the signals demo, keeps the choice across views, without new history entries", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Classement du jour" });
-    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Classement du jour", "Terminal live", "Radar Spot", "Radar de signaux · Démo"]);
+    await screen.findByRole("heading", { name: "Moniteur de marché" });
+    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Moniteur de marché", "Radar Spot", "Radar de signaux · Démo"]);
     const before = window.history.length;
-    fireEvent.click(screen.getByRole("button", { name: "Terminal live" }));
-    await waitFor(() => expect(where()).toBe(RADAR + "?product=live"));
+    fireEvent.click(screen.getByRole("button", { name: "Radar Spot" }));
+    await waitFor(() => expect(where()).toBe(RADAR + "?product=spot-radar"));
     expect(window.history.length).toBe(before);
-    await screen.findByRole("heading", { name: "Terminal live" });
     await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
     fireEvent.click(tab("Microstructure"));
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
-    expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=live");
+    expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=spot-radar");
     fireEvent.click(tab("Scanner"));
-    await waitFor(() => expect(where()).toBe(RADAR + "?product=live"));
-    fireEvent.click(screen.getByRole("button", { name: "Classement du jour" }));
+    await waitFor(() => expect(where()).toBe(RADAR + "?product=spot-radar"));
+    fireEvent.click(screen.getByRole("button", { name: "Moniteur de marché" }));
     await waitFor(() => expect(where()).toBe(RADAR));
     expect(families()).not.toContain("market");
   });
@@ -219,7 +218,7 @@ describe("M1-C1 keyboard and links", () => {
   it("moves with arrows, Home and End, keeps one focusable tab and returns focus to the chosen tab", async () => {
     at(RADAR);
     render(<App />);
-    await screen.findByRole("heading", { name: "Classement du jour" });
+    await screen.findByRole("heading", { name: "Moniteur de marché" });
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual(["Scanner", "Microstructure"]);
     expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1"]);
