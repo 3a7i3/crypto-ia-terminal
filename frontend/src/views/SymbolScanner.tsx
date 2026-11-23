@@ -4,6 +4,7 @@ import { fetchRadar, RadarError, type RadarScanner, type RadarRow } from "../lib
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 import { MARKET_RADAR_PATH } from "../lib/moduleNavigation";
+import { gateNotice, type ScannerGate } from "../lib/scannerUniverseClient";
 import "./symbol-scanner.css";
 
 type Qualification = {
@@ -13,8 +14,10 @@ type Qualification = {
 };
 const noQualifications: readonly Qualification[] = [];
 
-export function SymbolScanner({ bubbles, selection, onSelect, qualifications = noQualifications }: {
+export function SymbolScanner({ bubbles, selection, onSelect, qualifications = noQualifications, gate }: {
   bubbles: boolean;
+  /** Scanner V1 common universe: only admitted MEXC Spot rows are shown. */
+  gate?: ScannerGate;
   selection: readonly string[];
   onSelect: (id: string) => void;
   qualifications?: readonly Qualification[];
@@ -60,7 +63,7 @@ export function SymbolScanner({ bubbles, selection, onSelect, qualifications = n
     }
     return { LIVE: "Non qualifiée", STALE: "Ancienne", DISCONNECTED: "Déconnectée", UNRESOLVED: "Indisponible", SYNTHETIC: "Démonstration" }[row.freshness.state];
   };
-  const instruments = data?.rows ?? [];
+  const instruments = (data?.rows ?? []).filter(row => !gate || gate.admitted.has(row.identity.native_symbol));
   const ranked = instruments.filter(row => row.ticker.volume_qualified && freshness(row) === "Fraîche")
     .sort((a, b) => decimalCompare(b.ticker.quote_volume_24h, a.ticker.quote_volume_24h)
       || a.instrument_id.localeCompare(b.instrument_id));
@@ -98,8 +101,9 @@ export function SymbolScanner({ bubbles, selection, onSelect, qualifications = n
     {setup ? <MarketSourceNotice source="Radar Spot" setup={setup} code={error} />
       : error && <p role="alert">Source indisponible · {error}{data ? " · Dernière publication affichée" : ""}</p>}
     {!data && !error && <p role="status">Chargement des observations…</p>}
-    {data && <p className="symbol-summary">{rows.length} / {data.selected_instruments} instruments · {data.evidence_kind === "SYNTHETIC" ? "Démonstration" : `Collecteur ${data.collector.state}`}</p>}
-    {data && rows.length === 0 && <p role="status">Aucun symbole pour cette recherche.</p>}
+    {data && gate && instruments.length === 0 && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state)}</p>}
+    {data && <p className="symbol-summary">{rows.length} / {data.selected_instruments} instruments{gate ? ` · ${instruments.length} admis par l’univers commun` : ""} · {data.evidence_kind === "SYNTHETIC" ? "Démonstration" : `Collecteur ${data.collector.state}`}</p>}
+    {data && rows.length === 0 && (instruments.length > 0 || !gate) && <p role="status">Aucun symbole pour cette recherche.</p>}
     {rows.length > 0 && (bubbles && !list ? <div className="symbol-bubbles">
       {rows.map(row => {
         const value = change(row);

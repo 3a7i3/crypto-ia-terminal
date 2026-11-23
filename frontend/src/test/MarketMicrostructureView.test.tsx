@@ -76,7 +76,7 @@ describe("U3b LMI presentation", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Microstructure" }));
     await waitFor(() => expect(screen.getAllByTestId("microstructure-row")).toHaveLength(3));
     expect(screen.queryByTestId("market-canonical-context")).toBeNull();
-    expect(fetchMock.mock.calls.map(([u]) => String(u).replace(/\?.*$/, ""))).toEqual(["/api/operator/v1/spot-radar/scanner", "/api/operator/v1/market-microstructure"]);
+    expect(fetchMock.mock.calls.map(([u]) => String(u).replace(/\?.*$/, "")).sort()).toEqual(["/api/operator/v1/market-microstructure", "/api/operator/v1/scanner-universe", "/api/operator/v1/spot-radar/scanner"]);
   });
 
   it.each(["api", "invalid", "network"])("keeps %s failures explicit without zero coverage", async (kind) => {

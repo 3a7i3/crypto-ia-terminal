@@ -7,18 +7,19 @@ import "../intraday.css";
 import "../spot-radar.css";
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
+import { gateNotice, type ScannerGate } from "../lib/scannerUniverseClient";
 const labels:Record<Freshness,string>={LIVE:"LIVE qualifié",STALE:"STALE · périmée",DISCONNECTED:"DISCONNECTED · déconnecté",UNRESOLVED:"UNRESOLVED · non résolu",SYNTHETIC:"SYNTHETIC · fictif"};
 const utc=(s:string|null)=>s?new Date(Number(s)).toISOString().replace("T"," ").replace("Z"," UTC"):"Non disponible";
 type RadarMode="current"|"bbo-history";
 /** The current Radar stays the default view; the BBO composite history is an opt-in, read-only preview. */
-export const SpotRadarMap:React.FC=()=>{
+export const SpotRadarMap:React.FC<{gate?:ScannerGate}>=({gate})=>{
  const [mode,setMode]=useState<RadarMode>("current");
  return <>
   <div className="intraday-switch radar-mode" role="group" aria-label="Vue Radar"><button type="button" aria-pressed={mode==="current"} onClick={()=>setMode("current")}>Radar courant</button><button type="button" aria-pressed={mode==="bbo-history"} onClick={()=>setMode("bbo-history")}>Composite historique</button></div>
-  {mode==="current"?<SpotRadarCurrent/>:<BboCompositeHistory/>}
+  {mode==="current"?<SpotRadarCurrent gate={gate}/>:<BboCompositeHistory gate={gate}/>}
  </>;
 };
-const SpotRadarCurrent:React.FC=()=>{
+const SpotRadarCurrent:React.FC<{gate?:ScannerGate}>=({gate})=>{
  const [data,setData]=useState<RadarScanner|null>(null),[error,setError]=useState<string|null>(null),[refresh,setRefresh]=useState(0);
  const [query,setQuery]=useState(""),[filter,setFilter]=useState<"ALL"|Freshness>("ALL"),[list,setList]=useState(false),[selected,setSelected]=useState<string|null>(null);
  const [tf,setTf]=useState<Timeframe>("M5"),[history,setHistory]=useState<RadarHistory|null>(null),[historyError,setHistoryError]=useState<string|null>(null),[now,setNow]=useState(Date.now());
@@ -38,15 +39,16 @@ const SpotRadarCurrent:React.FC=()=>{
   if(r.freshness.state==="LIVE"&&r.freshness.age_ms!==null&&r.freshness.age_ms+elapsed>45_000)return "STALE";
   return r.freshness.state;
  };
- const rows=(data?.rows??[]).filter(r=>(r.display_symbol.toUpperCase().includes(query.trim().toUpperCase())||r.identity.native_symbol.includes(query.trim().toUpperCase()))&&(filter==="ALL"||stateOf(r)===filter));
- const detail=data?.rows.find(r=>r.instrument_id===selected);
+ const admitted=(data?.rows??[]).filter(r=>!gate||gate.admitted.has(r.identity.native_symbol));
+ const rows=admitted.filter(r=>(r.display_symbol.toUpperCase().includes(query.trim().toUpperCase())||r.identity.native_symbol.includes(query.trim().toUpperCase()))&&(filter==="ALL"||stateOf(r)===filter));
+ const detail=admitted.find(r=>r.instrument_id===selected);
  useEffect(()=>{if(!selected)return;closeRef.current?.focus();const before=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=before;};},[selected]);
  useEffect(()=>{
   const controller=new AbortController();const key=selected+":"+tf;if(historyKey.current!==key){setHistory(null);historyKey.current=key;}setHistoryError(null);
   if(detail)fetchRadar("ohlcv",{symbol:detail.identity.native_symbol,timeframe:tf},controller.signal).then(d=>{if(!controller.signal.aborted)setHistory(d);}).catch(e=>{if(!controller.signal.aborted)setHistoryError(e instanceof RadarError?e.code:"TRANSPORT_ERROR");});
   return()=>controller.abort();
  },[selected,tf,data?.snapshot_id]);
- const live=data?.rows.filter(r=>stateOf(r)==="LIVE").length??0;
+ const live=admitted.filter(r=>stateOf(r)==="LIVE").length;
  return <section className="intraday-desk spot-radar" aria-label="Radar Spot MEXC">
   <header className="intraday-heading"><div><p className="intraday-eyebrow">CAT / MARKET INTELLIGENCE</p><h2>Market Radar · MEXC Spot</h2><p className="intraday-lead">Le marché observé. Chaque chiffre remonte à sa source.</p></div>
    <span className="intraday-proof">{data?.evidence_kind==="SYNTHETIC"?"◆ SYNTHETIC":live>0?"● LIVE qualifié":"○ "+(data?.collector.state??"CONNEXION")}<small>{data?.evidence_kind==="SYNTHETIC"?"Fixture isolée · données fictives":"REST public · lecture seule"}</small></span>
@@ -64,9 +66,11 @@ const SpotRadarCurrent:React.FC=()=>{
   {data&&<>
    <div className="intraday-metrics" aria-label="Couverture Radar"><div><strong>{data.observed_instruments} / {data.selected_instruments}</strong><span>Instruments observés / sélectionnés</span></div><div><strong>{live}</strong><span>LIVE qualifiés</span></div><div><strong>{data.collector.state}</strong><span>Collecteur · {data.collector.reason}</span></div><div><strong>{data.rows.reduce((n,r)=>n+r.timeframes.length,0)} / {data.selected_instruments*4}</strong><span>Histoires OHLCV · cible 300 bougies</span></div></div>
    {data.collector.fault_injection&&<p role="status" className="intraday-error">Interruption simulée du laboratoire · aucune panne MEXC n’est affirmée.</p>}
+   {gate&&<p className="intraday-coverage">Univers commun MEXC × Kraken : {admitted.length} instrument{admitted.length>1?"s":""} admis sur {data.rows.length} observés.</p>}
+   {gate&&admitted.length===0&&<p role="status" className="scanner-gate-notice">{gateNotice(gate.state)}</p>}
    <div className="intraday-map-head"><h3>{list?"Liste accessible":"Carte des instruments"}</h3><span>{rows.length} instruments · mise à jour ≈ 15 s</span></div>
    <p className="intraday-coverage">Sélection bornée à 30 instruments : BTC, DOGE, ATOM puis volume quote 24 h vérifié. Univers Spot USDT uniquement. Taille égale, sans classement prédictif.</p>
-   {!rows.length?<p role="status" className="intraday-empty">Aucun instrument pour ces filtres.</p>:<div className={list?"intraday-list":"intraday-bubbles"} aria-label="Instruments Spot observés">{rows.map((r,i)=>{
+   {!rows.length?((admitted.length||!gate)?<p role="status" className="intraday-empty">Aucun instrument pour ces filtres.</p>:null):<div className={list?"intraday-list":"intraday-bubbles"} aria-label="Instruments Spot observés">{rows.map((r,i)=>{
     const pct=r.ticker.change_qualified?r.ticker.change_pct_24h:null,sign=pct===null?0:decimalCompare(pct,"0"),fresh=stateOf(r);
     return <button key={r.instrument_id} type="button" className={"intraday-bubble "+(sign>0?"intraday-up":sign<0?"intraday-down":"intraday-neutral")} style={{"--bubble-index":i} as React.CSSProperties} aria-label={r.display_symbol+" · MEXC Spot · "+labels[fresh]} onClick={e=>{origin.current=e.currentTarget;setSelected(r.instrument_id);}}>
      <span className="intraday-bubble-market">MEXC / SPOT</span><strong>{r.base_asset}<small> / USDT</small></strong><span className="intraday-bubble-price">{r.ticker.last_price}</span><span className="intraday-bubble-change">{pct===null?"Non qualifiée":(sign>0?"+":"")+pct+" %"}<small>24 h · fournisseur</small></span><span className={"radar-state radar-"+fresh.toLowerCase()}>{labels[fresh]}</span>

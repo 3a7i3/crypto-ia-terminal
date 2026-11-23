@@ -11,12 +11,18 @@ import ohlcv from "./fixtures/spotRadar-ohlcv.json";
 import intraday from "./fixtures/intradayS1.json";
 import { microstructureFixture } from "./marketMicrostructureFixtures";
 import { marketProduct } from "../views/MarketView";
+import { universeFixture } from "./scannerUniverseFixtures";
+
+// Scanner V1: the universe admits every fixture row, so the sub-view tests below keep
+// their rows; universe gating itself is covered by ScannerUniverse.test.tsx.
+const admitAll = () => universeFixture(scanner.rows.map(r => [r.base_asset, r.quote_asset] as [string, string]));
 
 const MARKER = "M1C1_LOCAL_TEST_FIXTURE_NOT_CONFIGURED";
 const RADAR = "/paper-live/market/radar";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const serve = (url: string): Response => {
+  if (url === "/api/operator/v1/scanner-universe") return json(admitAll());
   if (url.startsWith("/api/operator/v1/spot-radar/scanner")) return json(scanner);
   if (url.startsWith("/api/operator/v1/spot-radar/ohlcv")) return json(ohlcv);
   if (url.startsWith("/api/operator/v1/intraday/")) {
@@ -44,7 +50,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("M1-C1 deep Market routes", () => {
   const views = [
-    ["radar", "Scanner", ["spot-radar"]],
+    ["radar", "Scanner", ["scanner-universe", "spot-radar"]],
     ["lmi", "Microstructure", ["footprint-capture", "market-microstructure"]],
   ] as const;
 
@@ -124,7 +130,7 @@ describe("M1-C1 browser history", () => {
     await waitFor(() => expect(window.location.pathname).toBe(RADAR));
     expect(window.history.length).toBe(before);
     await screen.findByRole("heading", { name: "Scanner classé" });
-    expect(families()).toEqual(["spot-radar"]);
+    expect(families()).toEqual(["scanner-universe", "spot-radar"]);
     expect(screen.queryByRole("tab", { name: /Flux|Comparaison des plateformes/ })).toBeNull();
   });
 });
@@ -156,7 +162,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
       expect(screen.queryByRole("button", { name: "CryptoRadar historique" })).toBeNull();
       expect(screen.getByRole("button", { name: "Scanner classé" })).toHaveAttribute("aria-pressed", "true");
       await screen.findByRole("heading", { name: "Scanner classé" });
-      await waitFor(() => expect(families()).toEqual(["spot-radar"]));
+      await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
     });
 
   it.each(["/paper-live/market?intraday=1", RADAR + "?product=intraday", "/paper-live/market?radar=0&intraday=1"])(
@@ -165,7 +171,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
       render(<App />);
       await waitFor(() => expect(window.location.pathname).toBe(RADAR));
       expect(screen.getByRole("button", { name: "Bulles Intraday" })).toHaveAttribute("aria-pressed", "true");
-      await waitFor(() => expect(families()).toEqual(["spot-radar"]));
+      await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
       expect(new URLSearchParams(window.location.search).get("radar") ?? "").not.toBe("1");
     });
 
@@ -178,7 +184,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
     fireEvent.click(screen.getByRole("button", { name: "Bulles Intraday" }));
     await waitFor(() => expect(where()).toBe(RADAR + "?product=intraday"));
     expect(window.history.length).toBe(before);
-    await waitFor(() => expect(families()).toEqual(["spot-radar"]));
+    await waitFor(() => expect(families()).toEqual(["scanner-universe", "spot-radar"]));
     fireEvent.click(tab("Microstructure"));
     await waitFor(() => expect(window.location.pathname).toBe("/paper-live/market/lmi"));
     expect(tab("Scanner")).toHaveAttribute("href", RADAR + "?product=intraday");

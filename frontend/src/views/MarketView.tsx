@@ -1,5 +1,7 @@
 import { SpotRadarMap } from "./SpotRadarMap";
 import { SymbolScanner } from "./SymbolScanner";
+import { ScannerUniverse, useScannerUniverse } from "./ScannerUniverse";
+import { admittedMexcSpot, admittedKeys } from "../lib/scannerUniverseClient";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, MemoryRouter, Navigate, Route, Routes, useInRouterContext, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MarketMicrostructureView } from "./MarketMicrostructureView";
@@ -30,9 +32,13 @@ const RadarPanel: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const product = marketProduct(params);
   const [selection, setSelection] = useState<string[]>([]);
+  // Scanner V1: every sub-view below shows only rows admitted by the current
+  // common universe (four market proofs). No universe => no current row.
+  const universe = useScannerUniverse();
+  const gate = { admitted: admittedMexcSpot(universe), keys: admittedKeys(universe), state: universe.state };
   const toggleSelection = (id: string) => setSelection(previous =>
     previous.includes(id) ? previous.filter(item => item !== id) : [...previous, id]);
-  const scanner = <SymbolScanner bubbles={product === "intraday"} selection={selection} onSelect={toggleSelection} />;
+  const scanner = <SymbolScanner bubbles={product === "intraday"} selection={selection} onSelect={toggleSelection} gate={gate} />;
   const legacy = params.has("radar");
   useEffect(() => {
     if (!legacy) return;
@@ -49,12 +55,13 @@ const RadarPanel: React.FC = () => {
     setParams(query, { replace: true });
   };
   return <>
+    <ScannerUniverse view={universe} />
     <div className="market-display-choice" role="group" aria-label="Produit du scanner">
       <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Scanner classé</button>
       <button type="button" aria-pressed={product === "intraday"} onClick={() => select("intraday")}>Bulles Intraday</button>
       <button type="button" aria-pressed={product === "spot-radar"} onClick={() => select("spot-radar")}>Radar Spot</button>
     </div>
-    {legacy ? null : product === "spot-radar" ? <SpotRadarMap /> : scanner}
+    {legacy ? null : product === "spot-radar" ? <SpotRadarMap gate={gate} /> : scanner}
   </>;
 };
 
