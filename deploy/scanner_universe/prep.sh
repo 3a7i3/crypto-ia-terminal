@@ -72,7 +72,7 @@ echo "OK: app.py = version en service + $(diff $GA/observability/operator_api/ap
 (cd $B/api && $VENV -B -c 'import observability.operator_api.app') || fail "API non importable"
 echo "OK: API importable"
 
-rm -rf $B/src && mkdir -p $B/src && git -C $SRC archive $C observability tests/__init__.py tests/scanner_universe | tar -x -C $B/src
+rm -rf $B/src && mkdir -p $B/src && git -C $SRC archive $C observability agent_bench tests/__init__.py tests/scanner_universe | tar -x -C $B/src
 (cd $B/src && $VENV -B -m pytest -q -p no:cacheprovider tests/scanner_universe) > $B/tests.log 2>&1 || { tail -20 $B/tests.log; fail "tests Python"; }
 tail -1 $B/tests.log
 
