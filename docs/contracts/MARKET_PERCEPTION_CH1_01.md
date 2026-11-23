@@ -155,3 +155,47 @@ Décision opérateur consignée dans le fil de projet, sans URL publique :
 - Scanner/Radar, Flux/CVD/Heatmap et Footprint sont conservés ; leur raccord
   à la recherche attend une expérience qui le justifie (trades à couverture
   vérifiée pour Flux).
+
+## CH1-02 étape 1 — rejeu Kraken seul (source)
+
+Module : `observability/market_flow/kraken_replay.py`. Tests :
+`tests/market_flow/test_kraken_replay.py`, sur des journaux SYNTHETIC produits
+hors réseau par `bbo_pilot.dry_run`. Fonction pure : l'appelant fournit les
+octets de `manifest.json`, `events.jsonl` et `frames.bin`. Le rejeu du corpus
+réel reste un geste d'opérateur.
+
+- Le sceau est vérifié comme dans `bbo_pilot.load` ; toute perte d'intégrité
+  refuse le rejeu entier.
+- Le carnet Kraken est reconstruit avec le CRC32 à chaque message (portage de
+  `bbo_book.KrakenSource`, épinglé par un test différentiel). Les autres places
+  sont ignorées et comptées.
+- Sortie : un RAW_EVENT par événement Kraken, puis BOOK_STATE et QUALITY_REPORT
+  après chaque événement qui peut changer le carnet ou son intégrité. Le
+  résultat ne dépend que du préfixe du journal jusqu'à la borne.
+- `native_state` reprend les codes BBO sans classe temporelle : `VALID` signifie
+  synchronisé, deux côtés présents, non croisé, checksum vérifié au message
+  `last_book_receipt_seq`. `UNCHANGED_VERIFIED` et `FRESHNESS_UNKNOWN` relèvent
+  de l'étape de disponibilité.
+- Fraîcheur du carnet : `UNKNOWN / BOOK_FRESHNESS_NOT_ATTESTED`. Trades :
+  `UNKNOWN / TRADE_CHANNEL_NOT_CAPTURED` ; une trame du canal `trade` refuse le
+  rejeu. Temps natifs : `UNKNOWN / NATIVE_TIME_NOT_ATTESTED`.
+- `RESYNCING` n'apparaît qu'après une demande d'abonnement effectivement
+  envoyée et journalisée après la rupture.
+- Les temps de réception sont en millisecondes à l'origine ; la session déclare
+  `receipt_time_resolution_ns = 1000000`.
+
+### Politique de vivacité, déclarée avant tout rejeu réel
+
+| Élément | Règle |
+| --- | --- |
+| Événements qui attestent la vivacité | `ws_open`, `ws_control`, trame texte `ws_message` au JSON valide (heartbeat, pong, statut, accusé, carnet) |
+| Événements qui ne l'attestent pas | `sent`, `rest`, `checksum_mismatch`, `closed_by_pilot`, autres |
+| Délai maximal entre deux preuves | 2 000 ms, valeur pré-enregistrée `liveness_max_ms` du pilote BBO |
+| Axe de temps | `t_ms` (ancre du manifeste + délai monotone de réception) |
+| Sans preuve | avant la première preuve, après une déconnexion, après la dernière preuve : `SILENCE_UNATTESTED_*` |
+| Portée | vivacité de la connexion seulement ; elle ne rend pas le carnet frais et ne le valide pas |
+
+Un heartbeat établit la vivacité de la connexion ; le checksum atteste
+l'intégrité du carnet au message vérifié ; la fraîcheur du carnet reste UNKNOWN.
+Les silences sont listés avec leurs références de réception ; leur effet sur
+les fenêtres est décidé à l'étape de disponibilité.
