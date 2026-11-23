@@ -293,13 +293,26 @@ def _flat(d, p=""):
     return out
 
 
+# Fichiers du périmètre pilote modifiés depuis le SHA pilote, chacun revu :
+# - observability/operator_api/app.py : routes GET en lecture seule (preuves
+#   d'invocation ; Scanner V1 /scanner-universe, PR #602) ;
+# - frontend/src/views/SpotRadarMap.tsx et BboCompositeHistory.tsx : filtre
+#   d'affichage par l'univers commun Scanner V1 (PR #602), sans changement de
+#   la chaîne Radar observée par le pilote.
+REVIEWED_PILOT_CHANGES = {
+    "observability/operator_api/app.py",
+    "frontend/src/views/SpotRadarMap.tsx",
+    "frontend/src/views/BboCompositeHistory.tsx",
+}
+
+
 def test_pilot_on_current_scope_differs_only_by_reviewed_changes():
     """Périmètre courant : écarts attendus revus, pas une simple mise à jour d'empreintes.
 
-    Revue : depuis le SHA pilote, seul `observability/operator_api/app.py` a changé (route de
-    lecture seule des preuves d'invocation). Attendu : statut et niveaux de chaîne identiques,
-    mêmes symboles, et les seuls écarts sont l'empreinte/la taille d'app.py et des numéros de
-    ligne qui correspondent exactement au déplacement calculé par diff entre les deux versions.
+    Revue : depuis le SHA pilote, seuls les fichiers de REVIEWED_PILOT_CHANGES ont changé.
+    Attendu : statut et niveaux de chaîne identiques, mêmes symboles, et les seuls écarts
+    sont l'empreinte/la taille de ces fichiers et des numéros de ligne qui correspondent
+    exactement au déplacement calculé par diff entre les deux versions de chaque fichier.
     """
     import difflib
     import hashlib
@@ -311,15 +324,17 @@ def test_pilot_on_current_scope_differs_only_by_reviewed_changes():
     changed = {p for p in mission["scope"]["read_paths"]
                if hashlib.sha256((REPO / p).read_bytes()).hexdigest()
                != next(s["sha256"] for s in committed["sources_consulted"] if s["path"] == p)}
-    assert changed == {"observability/operator_api/app.py"}, changed
+    assert changed and changed <= REVIEWED_PILOT_CHANGES, changed
 
-    old = subprocess.run(["git", "show", f"{sha}:observability/operator_api/app.py"], cwd=REPO,
-                         check=True, capture_output=True).stdout.decode().splitlines()
-    new = (REPO / "observability/operator_api/app.py").read_text().splitlines()
     moved = {}
-    for a, b, size in difflib.SequenceMatcher(None, old, new, autojunk=False).get_matching_blocks():
-        for i in range(size):
-            moved[a + i + 1] = b + i + 1
+    for path in changed:
+        old = subprocess.run(["git", "show", f"{sha}:{path}"], cwd=REPO,
+                             check=True, capture_output=True).stdout.decode().splitlines()
+        new = (REPO / path).read_text().splitlines()
+        moved[path] = {}
+        for a, b, size in difflib.SequenceMatcher(None, old, new, autojunk=False).get_matching_blocks():
+            for i in range(size):
+                moved[path][a + i + 1] = b + i + 1
 
     current = audit(mission, REPO, REPO)["content"]
     assert current["status"] == committed["status"] == "PARTIAL"
@@ -329,16 +344,16 @@ def test_pilot_on_current_scope_differs_only_by_reviewed_changes():
     assert set(a) == set(b)
     diffs = {k for k in a if a[k] != b[k]}
     assert diffs, "le périmètre a changé : un écart est attendu"
-    new_sha = hashlib.sha256((REPO / "observability/operator_api/app.py").read_bytes()).hexdigest()
     for k in diffs:
         parent = k.rsplit(".", 1)[0]
-        assert a.get(parent + ".path") == "observability/operator_api/app.py", k
+        path = a.get(parent + ".path")
+        assert path in changed, k
         field = k.rsplit(".", 1)[1]
         if field in ("file_sha256", "sha256"):
-            assert a[k] == new_sha
+            assert a[k] == hashlib.sha256((REPO / path).read_bytes()).hexdigest()
         elif field == "bytes":
-            assert a[k] == (REPO / "observability/operator_api/app.py").stat().st_size
+            assert a[k] == (REPO / path).stat().st_size
         elif field == "line":
-            assert moved.get(b[k]) == a[k], (k, b[k], a[k])
+            assert moved[path].get(b[k]) == a[k], (k, b[k], a[k])
         else:
             raise AssertionError(f"écart non revu : {k}")
