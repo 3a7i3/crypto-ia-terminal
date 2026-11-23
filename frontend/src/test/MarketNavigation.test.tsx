@@ -182,7 +182,7 @@ describe("M1-C1 historical bookmarks and Radar sub-views", () => {
     at(RADAR);
     render(<App />);
     await screen.findByRole("heading", { name: "Classement du jour" });
-    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Classement du jour", "Terminal live", "Radar Spot"]);
+    expect(within(screen.getByRole("group", { name: "Produit du scanner" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Classement du jour", "Terminal live", "Radar Spot", "Radar de signaux · Démo"]);
     const before = window.history.length;
     fireEvent.click(screen.getByRole("button", { name: "Terminal live" }));
     await waitFor(() => expect(where()).toBe(RADAR + "?product=live"));

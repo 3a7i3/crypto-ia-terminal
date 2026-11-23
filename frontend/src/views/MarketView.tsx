@@ -1,6 +1,11 @@
 import { SpotRadarMap } from "./SpotRadarMap";
 import { SymbolScanner } from "./SymbolScanner";
 import { LiveTerminal } from "./LiveTerminal";
+import { SignalsRadar, type SignalsDoc } from "./SignalsRadar";
+// Démo uniquement : sortie de référence SYNTHÉTIQUE du contrat cat.signals.indicators.v1
+// (tests/signals_indicators/fixtures/btc_reference_expected.json @30965e8e, copiée telle quelle).
+// Aucune requête vers un service de signaux ; aucune ligne n'entre dans le Scanner strict.
+import signalsDemo from "../demo/signalsIndicators-v1-btc-reference.json";
 import { ScannerUniverse, useScannerUniverse } from "./ScannerUniverse";
 import { admittedMexcSpot, admittedKeys } from "../lib/scannerUniverseClient";
 import React, { useEffect, useRef, useState } from "react";
@@ -18,13 +23,14 @@ export const MARKET_VIEWS = [
   { slug: "lmi", label: "Microstructure" },
 ] as const;
 
-export type MarketProduct = "spot" | "live" | "spot-radar";
+export type MarketProduct = "spot" | "live" | "spot-radar" | "signals-demo";
 // Scanner refonte (2026-11-23): Bulles Intraday is retired. An old bookmark
 // (`intraday=1`, `product=intraday`) opens the Classement du jour and its obsolete
 // parameter is dropped with replace, like `radar=0` since M1-C3 (EO-024).
 export function marketProduct(params: URLSearchParams): MarketProduct {
   if (params.get("product") === "spot-radar") return "spot-radar";
   if (params.get("product") === "live") return "live";
+  if (params.get("product") === "signals-demo") return "signals-demo";
   return "spot";
 }
 const OBSOLETE = (params: URLSearchParams) => params.has("radar") || params.has("intraday") || params.get("product") === "intraday";
@@ -61,8 +67,10 @@ const RadarPanel: React.FC = () => {
       <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Classement du jour</button>
       <button type="button" aria-pressed={product === "live"} onClick={() => select("live")}>Terminal live</button>
       <button type="button" aria-pressed={product === "spot-radar"} onClick={() => select("spot-radar")}>Radar Spot</button>
+      <button type="button" aria-pressed={product === "signals-demo"} onClick={() => select("signals-demo")}>Radar de signaux · Démo</button>
     </div>
-    {legacy ? null : product === "spot-radar" ? <SpotRadarMap gate={gate} />
+    {legacy ? null : product === "signals-demo" ? <SignalsRadar doc={signalsDemo as unknown as SignalsDoc} demo />
+      : product === "spot-radar" ? <SpotRadarMap gate={gate} />
       : product === "live" ? <LiveTerminal gate={gate} />
       : <SymbolScanner selection={selection} onSelect={toggleSelection} gate={gate} />}
   </>;

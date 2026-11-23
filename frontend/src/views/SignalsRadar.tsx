@@ -52,7 +52,7 @@ function value(v: Value | undefined) {
   return show(v.closed, p);
 }
 
-export function SignalsRadar({ doc }: { doc: SignalsDoc }) {
+export function SignalsRadar({ doc, demo = false }: { doc: SignalsDoc; demo?: boolean }) {
   const [shown, setShown] = useState<ReadonlySet<SignalMarket>>(new Set(SIGNAL_MARKETS));
   const [base, setBase] = useState(doc.symbols[0]?.base ?? "");
   const symbol = doc.symbols.find(s => s.base === base);
@@ -62,9 +62,9 @@ export function SignalsRadar({ doc }: { doc: SignalsDoc }) {
   const indicators = symbol ? ORDER.filter(k => SIGNAL_MARKETS.some(m => verified(m) && symbol.markets[m]?.values?.[k])) : [];
   const basis = symbol?.gaps.basis_pct?.spot_vs_perp;
   return <section className="signals-radar" aria-label="Radar de signaux">
-    <header><h2>Radar de signaux</h2>
+    <header><h2>Radar de signaux{demo ? " · Démo" : ""}</h2>
       <p>Indicateurs publiés par le module de signaux, par marché. Lecture seule, aucun score.</p>
-      {doc.provenance?.fixture === "SYNTHETIC" && <p className="signals-draft" role="note">◆ Données SYNTHÉTIQUES · {doc.schema}</p>}
+      {doc.provenance?.fixture === "SYNTHETIC" && <p className="signals-draft" role="note">◆ Données SYNTHÉTIQUES · {doc.schema}{demo ? " · démonstration, aucune donnée de marché réelle" : ""}</p>}
     </header>
     <div className="signals-tools">
       <label>Symbole<select value={base} onChange={e => setBase(e.target.value)}>{doc.symbols.map(s => <option key={s.base} value={s.base}>{s.base}</option>)}</select></label>
@@ -78,10 +78,10 @@ export function SignalsRadar({ doc }: { doc: SignalsDoc }) {
         return <li key={m} className={b?.check === "VERIFIED" ? (book ? "warn" : "ok") : "ko"}><strong>{SHORT[m]}</strong> {b?.instrument ?? "—"} · {CHECK[b?.check ?? ""] ?? b?.check ?? "absent"}{b?.reason ? ` (${b.reason})` : ""}{book}</li>;
       })}</ul>
       {basis && <p className="signals-basis" aria-label="Base Spot–Perpétuel">Base Spot–Perpétuel : MEXC {show(basis.mexc).text}{basis.mexc?.state === "OK" ? " %" : ""} · Kraken {show(basis.kraken).text}{basis.kraken?.state === "OK" ? " %" : ""}</p>}
-      <p className="signals-meta">Unité {symbol.timeframe} · valeur de la dernière bougie close, bougie en cours et motifs au survol</p>
+      <p className="signals-meta">Unité {symbol.timeframe} · valeur de la dernière bougie close, bougie en cours et motifs au survol · « Écart global » = dispersion publiée par le producteur sur ses marchés utilisables, inchangée par le filtre</p>
       {indicators.length === 0 ? <p role="status">Aucun indicateur publié pour {symbol.base} : aucun marché vérifié.</p> :
       <div className="signals-scroll"><table className="signals-table" aria-label={`Indicateurs ${symbol.base}`}>
-        <thead><tr><th scope="col">Indicateur</th>{markets.map(m => <th key={m} scope="col" title={LONG[m]}>{SHORT[m]}</th>)}<th scope="col" title="Dispersion publiée par le producteur entre les marchés utilisables">Écart</th></tr></thead>
+        <thead><tr><th scope="col">Indicateur</th>{markets.map(m => <th key={m} scope="col" title={LONG[m]}>{SHORT[m]}</th>)}<th scope="col" title="Dispersion publiée par le producteur sur tous ses marchés utilisables ; le filtre ne la recalcule pas">Écart global</th></tr></thead>
         <tbody>{indicators.map(k => {
           const d = symbol.gaps[k]?.dispersion;
           const gap = symbol.not_compared?.includes(k) ? { text: "n.c.", title: "non comparé entre marchés", na: true }

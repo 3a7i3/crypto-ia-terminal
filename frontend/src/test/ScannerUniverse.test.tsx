@@ -135,6 +135,20 @@ describe("Marché → Scanner", () => {
     expect(screen.queryByRole("button", { name: /^BTC\/USDT/ })).toBeNull();
   });
 
+  it("keeps the synthetic signals demo apart from a verified empty strict universe, without any signals request", async () => {
+    universe = () => json(universeFixture([]));
+    open("?product=signals-demo");
+    expect(await screen.findByText(/Univers vide vérifié/)).toBeInTheDocument();
+    const demo = screen.getByRole("region", { name: "Radar de signaux" });
+    expect(within(demo).getByRole("note")).toHaveTextContent("Données SYNTHÉTIQUES · cat.signals.indicators.v1");
+    expect(within(demo).getByRole("table", { name: "Indicateurs BTC" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Classement du jour" }));
+    await screen.findByText("Univers commun vide vérifié : aucune ligne n’est affichée.");
+    expect(screen.queryByRole("button", { name: /^BTC\/USDT/ })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Radar de signaux" })).toBeNull();
+    expect(fetchMock.mock.calls.map(([u]) => String(u)).filter(u => /signal/i.test(u))).toEqual([]);
+  });
+
   it("treats an unconfigured or failing universe source as unavailable, never as empty", async () => {
     universe = () => json({ error_code: "SCANNER_UNIVERSE_NOT_CONFIGURED" }, 503);
     open();

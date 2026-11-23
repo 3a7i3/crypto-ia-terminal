@@ -13,10 +13,11 @@
 .signals-checks .ko strong { color: #a3263f; }
 .signals-meta, .signals-foot { font-size: .75rem; opacity: .75; }
 .signals-scroll { max-width: 100%; overflow-x: auto; }
-.signals-table { width: 100%; border-collapse: collapse; font-size: .78rem; font-variant-numeric: tabular-nums; }
-.signals-table th, .signals-table td { padding: .35rem .2rem; border-bottom: 1px solid #cbd2da66; text-align: right; white-space: nowrap; }
+.signals-table { width: 100%; border-collapse: collapse; font-size: clamp(.7rem, 3.1vw, .8rem); font-variant-numeric: tabular-nums; }
+.signals-table th, .signals-table td { padding: .35rem .15rem; border-bottom: 1px solid #cbd2da66; text-align: right; white-space: nowrap; }
 .signals-table th[scope="row"], .signals-table thead th:first-child { text-align: left; white-space: normal; }
-.signals-table th[scope="row"], .signals-table thead th:first-child { position: sticky; left: 0; background: var(--bg-dark, #f3f7fc); z-index: 1; min-width: 5.5rem; }
+.signals-table th[scope="row"], .signals-table thead th:first-child { position: sticky; left: 0; background: var(--bg-dark, #f3f7fc); z-index: 1; min-width: 4.6rem; }
+.signals-table thead th { white-space: normal; vertical-align: bottom; }
 .signals-table td.na { opacity: .55; font-style: italic; }
 .signals-table td.gap { font-weight: 600; }
 .signals-checks .warn strong { color: #8a5a00; }

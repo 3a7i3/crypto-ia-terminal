@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { SignalsRadar, type SignalsDoc } from "../views/SignalsRadar";
-import fixture from "./fixtures/signalsIndicators-v1-reference-synthetic.json";
+import fixture from "../demo/signalsIndicators-v1-btc-reference.json";
 afterEach(cleanup);
 const doc = fixture as unknown as SignalsDoc;
 const row = (name: RegExp) => within(screen.getByRole("table", { name: "Indicateurs BTC" })).getByRole("row", { name });
@@ -21,7 +21,12 @@ it("keeps a rejected book visible with its reason, never as a value", () => {
   const checks = within(screen.getByRole("list", { name: "Vérification des marchés" })).getAllByRole("listitem");
   expect(checks[2]).toHaveTextContent("KR·S BTC/USD · vérifié · carnet rejeté (STALE_BOOK)");
   expect(checks[2]).toHaveClass("warn");
+  expect(cells(/^RSI 14/)[2]).toHaveTextContent("54.9745");
+  expect(cells(/^RSI 14/)[2].getAttribute("title")).toMatch(/^valeur exacte 54.97452041/);
+  expect(cells(/^Spread pb/)[2]).toHaveTextContent("n.d.");
+  expect(cells(/^Spread pb/)[2].getAttribute("title")).toMatch(/BOOK_REJECTED/);
   expect(cells(/^IMB 10 niveaux/)[2]).toHaveTextContent("n.d.");
+  expect(cells(/^IMB 10 niveaux/)[2].getAttribute("title")).toMatch(/BOOK_REJECTED/);
   expect(cells(/^ADX 14/)[3]).toHaveTextContent("n.d.");
   expect(cells(/^ADX 14/)[3].getAttribute("title")).toMatch(/^INSUFFICIENT_BARS/);
 });
@@ -37,7 +42,7 @@ it("marks CVD as not compared and shows the published Spot–Perp basis", () => 
 it("filters markets with the chips and keeps at least one", () => {
   render(<SignalsRadar doc={doc} />);
   for (const m of ["KR·S", "KR·P", "MX·S"]) fireEvent.click(screen.getByRole("button", { name: m }));
-  expect(within(screen.getByRole("table")).getAllByRole("columnheader").map(h => h.textContent)).toEqual(["Indicateur", "MX·P", "Écart"]);
+  expect(within(screen.getByRole("table")).getAllByRole("columnheader").map(h => h.textContent)).toEqual(["Indicateur", "MX·P", "Écart global"]);
   fireEvent.click(screen.getByRole("button", { name: "MX·P" }));
   expect(screen.getByRole("button", { name: "MX·P" })).toHaveAttribute("aria-pressed", "true");
 });
