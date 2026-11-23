@@ -68,6 +68,7 @@
 .miniterm-msg-bad { border-color: #e5484d; }
 .miniterm-title { font-weight: 600; margin-bottom: 0.25rem; }
 .miniterm-status-PARTIAL { color: #f5a524; } .miniterm-status-COMPLETE { color: #30a46c; } .miniterm-status-FAILED, .miniterm-status-BLOCKED { color: #e5484d; }
+.miniterm-check-WARN b { color: #f5a524; } .miniterm-check-ALERT b { color: #e5484d; } .miniterm-check-UNKNOWN b { color: #8b8d98; }
 .miniterm-meta { opacity: 0.7; font-size: 0.7rem; }
 .miniterm-ft { margin-top: 0.3rem; text-align: right; font-size: 0.7rem; opacity: 0.7; }
 .miniterm-foot { margin: 0; padding: 0 1rem 0.6rem; font-size: 0.7rem; opacity: 0.7; }

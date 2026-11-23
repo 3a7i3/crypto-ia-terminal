@@ -72,6 +72,19 @@
       "legacy_blocked": false
     },
     {
+      "id": "market-observer",
+      "display_name": "Market Observer",
+      "family": "OBSERVATION",
+      "mission": "Observer les données de marché servies sur le VPS : fraîcheur, couverture, états des instruments.",
+      "source_path": ".github/agents/market-observer.agent.md",
+      "source_blob_sha1": "d7a4946e6064d8e50b42b308f465aff3b3c78d5f",
+      "validation_status": "MIGRATION_CANDIDATE",
+      "validation_note": "Observateur de données runtime (décision opérateur 2026-11-23) : GET loopback seulement, runner obs-market-ro-01.",
+      "wiring_status": "VERIFIED",
+      "runner_id": "obs-market-ro-01",
+      "legacy_blocked": false
+    },
+    {
       "id": "mission-preparation-researcher",
       "display_name": "Mission Preparation Researcher",
       "family": "RECHERCHE",

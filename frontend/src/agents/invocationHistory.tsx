@@ -32,6 +32,10 @@ export interface HistoryItem {
     errors: string[];
     /** Chaîne de provenance (Data Provenance Auditor seulement) : maillons et niveaux de preuve. */
     chain?: { links: number; levels: Record<string, number>; hops?: { hop: string; level: string }[]; inferred: number; runtime_required: number };
+    /** Observateur de données runtime : un contrôle par ligne, verdict du serveur affiché tel quel. */
+    checks?: { code: string; verdict: string; observed: string | number | boolean | null; note: string | null }[];
+    verdict_counts?: Record<string, number> | null;
+    domain?: string | null;
   };
 }
 export type HistoryState =
@@ -119,6 +123,24 @@ const Bubble: React.FC<{ item: HistoryItem; previous?: HistoryItem }> = ({ item,
       </div>
       {same ? (
         <div>Identique au précédent (révision analysée {item.analysed_sha?.slice(0, 8)} inchangée).</div>
+      ) : s.checks ? (
+        <ul data-testid="miniterm-checks">
+          <li>
+            <b>Contrôles</b> : {(["OK", "WARN", "ALERT", "UNKNOWN"] as const)
+              .map((v) => `${s.verdict_counts?.[v] ?? "?"} ${v}`)
+              .join(" · ")}
+          </li>
+          {s.checks
+            .filter((k) => k.verdict !== "OK")
+            .map((k) => (
+              <li key={k.code} className={`miniterm-check miniterm-check-${k.verdict}`}>
+                <b>{k.verdict}</b> {k.code}
+                {k.observed !== null ? ` = ${String(k.observed)}` : ""}
+                {k.note ? ` · ${k.note}` : ""}
+              </li>
+            ))}
+          <li><b>Non conclu</b> : {s.not_concluded.length ? s.not_concluded.map((u) => u.reason ?? "?").join(" ; ") : "rien"}</li>
+        </ul>
       ) : s.chain ? (
         <ul>
           <li><b>Vu</b> : {s.seen.sources} sources consultées, chaîne de {s.chain.links} maillons</li>

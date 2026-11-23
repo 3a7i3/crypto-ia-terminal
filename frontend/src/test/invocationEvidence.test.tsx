@@ -169,8 +169,8 @@ function fakeFetch() {
   const calls: Pending[] = [];
   const impl = (u: string, init: RequestInit) =>
     // L'historique du mini terminal a sa propre requête : hors du décompte de la preuve.
-    // Le bloc du Data Provenance Auditor a ses propres lectures : hors du décompte du cartographe.
-    String(u).includes("data-provenance-auditor")
+    // Les blocs du DPA et de l'Observateur Marché ont leurs propres lectures : hors du décompte du cartographe.
+    String(u).includes("data-provenance-auditor") || String(u).includes("market-observer")
       ? new Promise<Response>(() => undefined)
       : String(u).endsWith("/history")
       ? Promise.resolve(new Response(JSON.stringify({ contract: "cat.observation.invocation.v1", read_only: true, connection: "ABSENT", connection_reason: null, total: 0, items: [] }), { status: 200 }))

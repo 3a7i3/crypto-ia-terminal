@@ -145,3 +145,51 @@ describe("bloc du Data Provenance Auditor", () => {
     expect(posts).toEqual([{ url: `${BASE}/data-provenance-auditor/schedule`, body: '{"rhythm":"10min"}' }]);
   });
 });
+
+describe("bloc de l'Observateur Marché", () => {
+  it("affiche les contrôles non OK publiés par le serveur, sans les recalculer", async () => {
+    vi.useFakeTimers({ now: T0 });
+    const marketHistory = {
+      ...dpaHistory,
+      items: [
+        {
+          ...dpaHistory.items[0],
+          analysed_sha: null,
+          result_status: "COMPLETE",
+          summary: {
+            seen: { sources: 3, imports: 0, calls: 0 },
+            found: ["MARKET_SNAPSHOT_FRESHNESS"],
+            not_concluded: [],
+            write_templates: 0,
+            limits: 4,
+            errors: [],
+            domain: "MARKET",
+            verdict_counts: { OK: 12, WARN: 0, ALERT: 1, UNKNOWN: 0 },
+            checks: [
+              { code: "INSTRUMENTS_LIVE", verdict: "OK", observed: "30/30", note: null },
+              { code: "MARKET_SNAPSHOT_FRESHNESS", verdict: "ALERT", observed: 2146345.9, note: "généré 2026-10-29T05:32:36Z · classé STALE" },
+            ],
+          },
+        },
+      ],
+    };
+    vi.stubGlobal("fetch", (u: string) => {
+      if (u === `${BASE}/market-observer/history`) return respond(marketHistory);
+      if (u === `${BASE}/market-observer`)
+        return respond({ ...dpaSummary, agent_id: "market-observer", runner_id: "obs-market-ro-01", last_result: "COMPLETE" });
+      return new Promise<Response>(() => undefined);
+    });
+    const { AgentRegistryLiveForTest } = await import("../views/AgentRegistryView");
+    render(<AgentRegistryLiveForTest pollMs={10 * 60_000} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const m = within(screen.getByTestId("live-agent-market-observer"));
+    expect(m.getByRole("heading", { name: "Market Observer" })).toBeInTheDocument();
+    const checks = m.getByTestId("miniterm-checks");
+    expect(checks).toHaveTextContent("12 OK · 0 WARN · 1 ALERT · 0 UNKNOWN");
+    expect(checks).toHaveTextContent("ALERT MARKET_SNAPSHOT_FRESHNESS = 2146345.9 · généré 2026-10-29T05:32:36Z · classé STALE");
+    expect(checks).not.toHaveTextContent("INSTRUMENTS_LIVE");
+    expect(m.getByTestId("miniterm-giro")).toHaveAttribute("data-light", "RED");
+  });
+});

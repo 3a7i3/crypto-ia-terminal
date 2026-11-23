@@ -11,6 +11,7 @@ import "../agents/agentRegistry.css";
 import {
   DPA_IDENTITY,
   EXPECTED_IDENTITY,
+  MARKET_OBSERVER_IDENTITY,
   INVOCATION_FLAG_ON,
   invocationUrl,
   localExpiryMs,
@@ -317,6 +318,7 @@ interface LiveAgent {
 const LIVE_AGENTS: LiveAgent[] = [
   { identity: EXPECTED_IDENTITY, title: "Repository Cartographer" },
   { identity: DPA_IDENTITY, title: "Data Provenance Auditor" },
+  { identity: MARKET_OBSERVER_IDENTITY, title: "Market Observer" },
 ];
 
 interface LiveAgentData {
@@ -372,13 +374,14 @@ export const AgentRegistryLiveForTest: React.FC<{ pollMs?: number }> = ({ pollMs
   // Nombre d'agents fixe (constante du module) : l'ordre des hooks reste stable.
   const carto = useLiveAgent(LIVE_AGENTS[0], pollMs);
   const dpa = useLiveAgent(LIVE_AGENTS[1], pollMs);
+  const market = useLiveAgent(LIVE_AGENTS[2], pollMs);
   return (
     <AgentRegistryPanel
       registry={AGENT_REGISTRY}
       evidence={carto.evidence}
-      evidenceByAgent={{ [DPA_IDENTITY.id]: dpa.evidence }}
-      nowMs={Math.max(carto.nowMs, dpa.nowMs)}
-      slots={{ [EXPECTED_IDENTITY.id]: carto.slot, [DPA_IDENTITY.id]: dpa.slot }}
+      evidenceByAgent={{ [DPA_IDENTITY.id]: dpa.evidence, [MARKET_OBSERVER_IDENTITY.id]: market.evidence }}
+      nowMs={Math.max(carto.nowMs, dpa.nowMs, market.nowMs)}
+      slots={{ [EXPECTED_IDENTITY.id]: carto.slot, [DPA_IDENTITY.id]: dpa.slot, [MARKET_OBSERVER_IDENTITY.id]: market.slot }}
     />
   );
 };

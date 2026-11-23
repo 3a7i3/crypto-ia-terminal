@@ -20,10 +20,10 @@ describe("AgentRegistryView", () => {
     expect(within(card).queryAllByTestId(/agent-profile-/)).toHaveLength(0);
   });
 
-  it("affiche les 10 profils avec un voyant gris et un motif lisible", () => {
+  it("affiche les 11 profils avec un voyant gris et un motif lisible", () => {
     render(<AgentRegistryView />);
     const lights = screen.getAllByTestId("agent-activity");
-    expect(lights).toHaveLength(10);
+    expect(lights).toHaveLength(11);
     for (const l of lights) {
       expect(l).toHaveAttribute("data-light", "GRAY");
       expect(l).toHaveTextContent(/Gris · Non attesté/);

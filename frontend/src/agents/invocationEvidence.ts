@@ -42,6 +42,8 @@ export const INVOCATION_FLAG_ON = import.meta.env.VITE_CARTOGRAPHER_INVOCATION =
 export const EXPECTED_IDENTITY = { id: "repository-cartographer", runner_id: "obs-repo-cartographer-ro-01" } as const;
 /** Data Provenance Auditor : même bloc que le cartographe (opérateur, 2026-11-23). */
 export const DPA_IDENTITY = { id: "data-provenance-auditor", runner_id: "obs-data-provenance-ro-01" } as const;
+/** Observateur Marché : données du VPS (opérateur, 2026-11-23). */
+export const MARKET_OBSERVER_IDENTITY = { id: "market-observer", runner_id: "obs-market-ro-01" } as const;
 export type ExpectedIdentity = { id: string; runner_id: string | null };
 
 const CONNECTIONS = ["AVAILABLE", "ABSENT", "ACCESS_DENIED", "UNREADABLE", "INCOMPLETE", "INVALID"] as const;
