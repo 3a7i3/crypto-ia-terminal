@@ -134,6 +134,14 @@ class Ambiguity(unittest.TestCase):
         doc = universe(kp=kraken_pairs({"base": "XXBT", "quote": "USDT", "wsname": "BTC/USDT"}))
         self.assertEqual(exclusion(doc, "BTC/USDT")["KRAKEN_SPOT"], "AMBIGUOUS_MAPPING")
 
+    def test_non_ascii_native_symbol_is_kept_but_never_keyed(self):
+        # Real MEXC catalogues list symbols such as GOLD(XAUT)USDT or non-ASCII names.
+        doc = universe(ms=mexc_spot(("BTC", "USDT"), ("GOLD(XAUT)", "USDT"), ("牛来", "USDT")))
+        self.assertEqual(doc["status"], "VERIFIED")
+        catalogue = parse_all(documents(ms=mexc_spot(("GOLD(XAUT)", "USDT"))))["MEXC_SPOT"]
+        self.assertEqual(catalogue.state, "COMPLETE")
+        self.assertEqual((catalogue.records[0].key, catalogue.records[0].exclusion), (None, "AMBIGUOUS_MAPPING"))
+
     def test_perpetual_without_base_quote_fields(self):
         raw = json.loads(kraken_perp(("BTC", "USDT")))
         raw["instruments"].append({"symbol": "PI_XBTUSD", "type": "futures_inverse", "tradeable": True})

@@ -61,7 +61,6 @@ EXCLUSION_REASONS = (
 )
 CONTRACT_TYPES = ("SPOT", "LINEAR_PERPETUAL", "INVERSE_PERPETUAL", "FIXED_MATURITY", "UNKNOWN")
 _ASSET = re.compile(r"[A-Z0-9]{1,20}")
-_NATIVE = re.compile(r"[A-Za-z0-9/_.:-]{1,60}")
 
 
 @dataclass(frozen=True)
@@ -159,7 +158,10 @@ def _asset(value) -> str | None:
 
 
 def _native(value) -> bool:
-    return isinstance(value, str) and bool(_NATIVE.fullmatch(value))
+    """A native symbol is kept as published (MEXC lists e.g. non-ASCII or
+    ``GOLD(XAUT)USDT`` symbols); only non-printable or blank values are malformed.
+    Such symbols cannot form a canonical key and end as AMBIGUOUS_MAPPING."""
+    return isinstance(value, str) and 0 < len(value) <= 60 and value.isprintable() and not any(c.isspace() for c in value)
 
 
 def _finish(market, collected_ms, hashes, records):
