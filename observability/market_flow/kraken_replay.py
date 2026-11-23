@@ -12,7 +12,10 @@ What it does, in receipt order and up to an optional receipt bound:
   pins both to the same book and the same breaks); every other venue is ignored;
 - emits one RAW_EVENT per Kraken event, and a BOOK_STATE + QUALITY_REPORT after
   every Kraken event that can change the book or its integrity;
-- lists the silences under the liveness policy declared below.
+- lists the silences under the liveness policy declared below: a proof received at
+  ``p`` attests ``[p, p + 2000)`` ms, so a silence starts when that delay expires
+  and cites the last proof; at the receipt bound, the silence that the prefix can
+  already see is listed with no end, so nothing after the bound is ever read.
 
 Declared rules (fixed before any real replay, see the CH1-01 contract):
 - integrity: a checksum match attests the top ``depth`` levels at that message only;
@@ -31,7 +34,7 @@ from decimal import Decimal
 
 from . import perception as pc
 
-REPLAY_VERSION = "ch1-02-kraken-replay-0.1.0"
+REPLAY_VERSION = "ch1-02-kraken-replay-0.2.0"
 ARTIFACT = "CH1_02_KRAKEN_BOOK_REPLAY"
 VENUE = "kraken"
 OP_TEXT = 1
@@ -40,16 +43,25 @@ MS_TO_NS = 1_000_000
 
 # Liveness policy, declared before any real replay. Liveness concerns the connection,
 # never the book: it does not make a book fresh and it does not validate one.
+# Intervals are half-open in integer milliseconds. ``bbo_book.source_state`` still
+# counts the instant p + 2000 itself as alive (``t - alive > L``); this replay does not.
 LIVENESS_MAX_GAP_MS = 2_000  # = parameters_primary.liveness_max_ms pre-registered by the BBO pilot
 LIVENESS_POLICY = {
     "attesting_events": ["ws_open", "ws_control", "ws_message:valid_json_text"],
     "not_attesting": ["sent", "rest", "checksum_mismatch", "closed_by_pilot", "other"],
     "max_gap_ms": str(LIVENESS_MAX_GAP_MS),
-    "time_axis": "t_ms (manifest anchor + monotonic receipt delta)",
-    "gap_rule": "two consecutive attesting events of one connection more than max_gap_ms apart",
-    "no_proof": "before the first proof, after a disconnection and after the last proof: SILENCE_UNATTESTED",
+    "time_axis": "t_ms in integer milliseconds (manifest anchor + monotonic receipt delta)",
+    "attestation": "a proof received at p attests [p, p + max_gap_ms); the delay expires at p + max_gap_ms",
+    "gap": "next proof q with q - p > max_gap_ms: SILENCE_GAP_EXCEEDS_MAX over [p + max_gap_ms, q), citing p and q",
+    "disconnect": ("ws_close, ws_error or gave_up at c: SILENCE_UNATTESTED_AFTER_DISCONNECT over [c, next proof), "
+                   "after a SILENCE_GAP_EXCEEDS_MAX over [p + max_gap_ms, c) when c - p > max_gap_ms"),
+    "no_proof": "before the first proof: SILENCE_UNATTESTED_BEFORE_FIRST_PROOF, with no start",
+    "bound": ("at the receipt bound, the open silence, or SILENCE_UNATTESTED_AFTER_LAST_PROOF from p + max_gap_ms, "
+              "is listed with no end; no event after the bound is read"),
     "scope": "connection liveness only; book freshness stays UNKNOWN",
 }
+SILENCE_KEYS = frozenset({"reason", "starts_at_t_ms", "ends_before_t_ms", "last_proof_receipt_seq",
+                          "last_proof_t_ms", "opened_by_receipt_seq", "closed_by_receipt_seq"})
 
 _SYMBOL = re.compile(r"[A-Z0-9]{1,16}/[A-Z0-9]{1,16}", re.ASCII)
 _PLAIN_DEC = re.compile(r"[0-9]+(\.[0-9]+)?", re.ASCII)
@@ -147,6 +159,17 @@ def load_journal(manifest_bytes, events_bytes, frames_bytes):
     if len(events) != _int(sealed.get("events"), "SEAL_COUNT_INVALID"):
         raise ReplayRefusal("EVENT_COUNT_DIFFERS_FROM_SEAL")
     return manifest, events
+
+
+def _seal(manifest_bytes, events_bytes, frames_bytes, count):
+    return {"manifest_sha256": _sha(manifest_bytes), "events_sha256": _sha(events_bytes),
+            "frames_sha256": _sha(frames_bytes), "events_total": str(count)}
+
+
+def verify_seal(manifest_bytes, events_bytes, frames_bytes):
+    """Verify the sealed journal without replaying it; return its seal summary."""
+    _manifest, events = load_journal(manifest_bytes, events_bytes, frames_bytes)
+    return _seal(manifest_bytes, events_bytes, frames_bytes, len(events))
 
 
 # ------------------------------------------------------------------ book
@@ -298,6 +321,61 @@ class _KrakenBook:
         return "VALID"
 
 
+# ------------------------------------------------------------------ liveness
+
+
+class _Liveness:
+    """Silences of the Kraken connection under LIVENESS_POLICY, from received events only.
+
+    Exactly one of ``open`` (an unattested interval still running) and ``last_proof``
+    (receipt_seq, t_ms) is set at any time.
+    """
+
+    def __init__(self):
+        self.silences = []
+        self.last_proof = None
+        self.open = self._entry("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None)
+
+    def _entry(self, reason, starts_at, opened_by=None):
+        proof = self.last_proof
+        return {"reason": reason, "starts_at_t_ms": None if starts_at is None else str(starts_at),
+                "ends_before_t_ms": None,
+                "last_proof_receipt_seq": None if proof is None else str(proof[0]),
+                "last_proof_t_ms": None if proof is None else str(proof[1]),
+                "opened_by_receipt_seq": None if opened_by is None else str(opened_by),
+                "closed_by_receipt_seq": None}
+
+    def _close(self, entry, ev):
+        entry["ends_before_t_ms"], entry["closed_by_receipt_seq"] = str(ev["t_ms"]), str(ev["seq"])
+        self.silences.append(entry)
+
+    def _gap_until(self, ev):
+        expiry = self.last_proof[1] + LIVENESS_MAX_GAP_MS
+        if ev["t_ms"] > expiry:
+            self._close(self._entry("SILENCE_GAP_EXCEEDS_MAX", expiry), ev)
+
+    def proof(self, ev):
+        if self.open is not None:
+            self._close(self.open, ev)
+            self.open = None
+        else:
+            self._gap_until(ev)
+        self.last_proof = (ev["seq"], ev["t_ms"])
+
+    def disconnect(self, ev):
+        if self.open is None:
+            self._gap_until(ev)
+            self.open = self._entry("SILENCE_UNATTESTED_AFTER_DISCONNECT", ev["t_ms"], ev["seq"])
+            self.last_proof = None
+
+    def at_bound(self):
+        """Every silence the prefix can see; the last one has no end."""
+        if self.open is not None:
+            return self.silences + [self.open]
+        expiry = self.last_proof[1] + LIVENESS_MAX_GAP_MS
+        return self.silences + [self._entry("SILENCE_UNATTESTED_AFTER_LAST_PROOF", expiry)]
+
+
 # ------------------------------------------------------------------ replay
 
 
@@ -386,23 +464,7 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
     ident = _identity(manifest)
     book = _KrakenBook(ident["native_symbol"], int(ident["subscribed_depth"]))
 
-    records, silences, ignored = [], [], {}
-    last_proof = None  # (seq, t_ms) of the last liveness proof of the current connection
-
-    def silence(start, end, reason):
-        silences.append({"from_receipt_seq": None if start is None else str(start[0]),
-                         "from_t_ms": None if start is None else str(start[1]),
-                         "to_receipt_seq": None if end is None else str(end[0]),
-                         "to_t_ms": None if end is None else str(end[1]), "reason": reason})
-
-    def prove(ev):
-        nonlocal last_proof
-        here = (ev["seq"], ev["t_ms"])
-        if last_proof is None:
-            silence(None, here, "SILENCE_UNATTESTED_BEFORE_PROOF")
-        elif ev["t_ms"] - last_proof[1] > LIVENESS_MAX_GAP_MS:
-            silence(last_proof, here, "SILENCE_GAP_EXCEEDS_MAX")
-        last_proof = here
+    records, ignored, live = [], {}, _Liveness()
 
     for ev in prefix:
         if ev["venue"] != VENUE:
@@ -411,18 +473,16 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
         kind, channel, native_time, touched = ev["kind"], None, None, False
         if kind == "ws_open":
             book.connected = True
-            prove(ev)
+            live.proof(ev)
             touched = True
         elif kind in ("ws_close", "ws_error", "gave_up"):
-            if last_proof is not None:
-                silence(last_proof, None, "SILENCE_UNATTESTED_AFTER_DISCONNECT")
-            last_proof = None
+            live.disconnect(ev)
             if kind == "gave_up":
                 book.unavailable = True
             book.disconnect(ev["seq"], "GAVE_UP" if kind == "gave_up" else "DISCONNECTED")
             touched = True
         elif kind == "ws_control":
-            prove(ev)
+            live.proof(ev)
         elif kind == "sent":
             try:
                 doc = _json_keep_numbers(ev["payload"], refusal="SENT")
@@ -443,7 +503,7 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
                     doc = None
                     book.count("text_invalid")
                 if doc is not None:
-                    prove(ev)
+                    live.proof(ev)
                 if isinstance(doc, dict):
                     channel = doc.get("channel") if type(doc.get("channel")) is str else None
                     if channel == "trade":
@@ -473,8 +533,6 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
             state, native = _book_state(book, ev["seq"], ident["subscribed_depth"])
             records.append({"type": "BOOK_STATE", "record": state})
             records.append({"type": "QUALITY_REPORT", "record": _quality(book, native, ev["seq"], evidence_kind)})
-    if last_proof is not None:
-        silence(last_proof, None, "SILENCE_UNATTESTED_AFTER_LAST_PROOF")
 
     last = prefix[-1] if prefix else None
     prefix_frames_end = max((e["offset"] + e["bytes"] for e in prefix), default=0)
@@ -490,15 +548,13 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
             "frames_prefix_end_offset": str(prefix_frames_end),
         },
         "liveness_policy": LIVENESS_POLICY,
-        "silences": silences,
+        "silences": live.at_bound(),
         "breaks": book.breaks,
         "counters": {k: str(v) for k, v in sorted(book.counters.items())},
         "ignored_events_by_venue": {k: str(v) for k, v in sorted(ignored.items())},
         "records": records,
     }
-    seal = {"manifest_sha256": _sha(manifest_bytes), "events_sha256": _sha(events_bytes),
-            "frames_sha256": _sha(frames_bytes), "events_total": str(len(events))}
-    return canonical(result), seal
+    return canonical(result), _seal(manifest_bytes, events_bytes, frames_bytes, len(events))
 
 
 def _line(ev):

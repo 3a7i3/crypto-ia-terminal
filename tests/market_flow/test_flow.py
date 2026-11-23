@@ -344,8 +344,21 @@ def test_package_has_no_transport_clock_write_or_float_and_nobody_imports_it():
             if p.suffix in (".py", ".ts", ".tsx") and p.is_file() and not rel.startswith("observability/market_flow/"):
                 if "market_flow" in p.read_text(errors="ignore"):
                     hits.append(rel)
-    # The only consumer is the GET-only presentation reader and its route.
-    assert sorted(hits) == ["observability/operator_api/app.py", "observability/operator_api/market_flow_reader.py"]
+    # The consumers are the GET-only presentation reader and its route, and the operator CLI
+    # of the CH1-02 replay (sealed files in, one document out at a destination the operator names).
+    assert sorted(hits) == ["observability/market_perception_replay.py", "observability/operator_api/app.py",
+                            "observability/operator_api/market_flow_reader.py"]
+    cli = ast.parse((ROOT / "observability/market_perception_replay.py").read_text())
+    cli_imports = set()
+    for n in ast.walk(cli):
+        if isinstance(n, ast.Import):
+            cli_imports |= {a.name for a in n.names}
+        elif isinstance(n, ast.ImportFrom):
+            assert n.level == 0 and n.module
+            cli_imports |= {f"{n.module}.{a.name}" if n.module.startswith("observability") else n.module for a in n.names}
+    # It takes only the replay from the package, and nothing that reaches a network, a clock or a runtime.
+    assert cli_imports == {"argparse", "hashlib", "json", "os", "re", "stat", "sys", "tempfile",
+                           "observability.market_flow.kraken_replay"}
 
 
 def test_bars_never_include_a_trade_received_after_as_of_even_if_its_event_time_is_inside():

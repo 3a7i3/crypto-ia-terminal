@@ -190,12 +190,62 @@ réel reste un geste d'opérateur.
 | --- | --- |
 | Événements qui attestent la vivacité | `ws_open`, `ws_control`, trame texte `ws_message` au JSON valide (heartbeat, pong, statut, accusé, carnet) |
 | Événements qui ne l'attestent pas | `sent`, `rest`, `checksum_mismatch`, `closed_by_pilot`, autres |
-| Délai maximal entre deux preuves | 2 000 ms, valeur pré-enregistrée `liveness_max_ms` du pilote BBO |
-| Axe de temps | `t_ms` (ancre du manifeste + délai monotone de réception) |
-| Sans preuve | avant la première preuve, après une déconnexion, après la dernière preuve : `SILENCE_UNATTESTED_*` |
+| Délai attesté par une preuve | 2 000 ms, valeur pré-enregistrée `liveness_max_ms` du pilote BBO |
+| Axe de temps | `t_ms` en millisecondes entières (ancre du manifeste + délai monotone de réception) |
+| Attestation | une preuve reçue en p atteste `[p, p + 2000)` ; le délai expire en p + 2000 |
+| Écart entre deux preuves | si q − p > 2000 : `SILENCE_GAP_EXCEEDS_MAX` sur `[p + 2000, q)`, qui cite p et q |
+| Déconnexion | `ws_close`, `ws_error` ou `gave_up` en c : `SILENCE_UNATTESTED_AFTER_DISCONNECT` sur `[c, preuve suivante)`, précédé d'un écart sur `[p + 2000, c)` si c − p > 2000 |
+| Avant toute preuve | `SILENCE_UNATTESTED_BEFORE_FIRST_PROOF`, sans début |
+| À la borne de rejeu | le silence ouvert, ou `SILENCE_UNATTESTED_AFTER_LAST_PROOF` à partir de p + 2000, est listé sans fin ; aucun événement après la borne n'est lu |
 | Portée | vivacité de la connexion seulement ; elle ne rend pas le carnet frais et ne le valide pas |
+
+Exemples fixés par les tests : deux preuves séparées de 2 001 ms donnent un
+silence `[p + 2000, p + 2001)` qui cite la dernière preuve p et la preuve q qui
+le ferme ; séparées de 2 000 ms, elles n'en donnent aucun. Un rejeu borné avant
+la trame q donne le même verdict, octet pour octet, que q arrive à 2 000 ms ou
+à 2 001 ms, et que le journal s'arrête ou non à la borne : la vivacité est
+attestée jusqu'à p + 2000 exclu, puis le silence est ouvert et ne cite pas q.
+
+Chaque silence a les clés `reason`, `starts_at_t_ms` (inclus, `null` avant toute
+preuve), `ends_before_t_ms` (exclu, `null` s'il est encore ouvert à la borne),
+`last_proof_receipt_seq`, `last_proof_t_ms`, `opened_by_receipt_seq` (la
+déconnexion) et `closed_by_receipt_seq` (la preuve ou la déconnexion qui le
+ferme). `bbo_book.source_state` compte encore l'instant p + 2000 comme vivant
+(`t - alive > L`) ; ce rejeu ne le fait pas. La différence porte sur cet instant
+seulement.
 
 Un heartbeat établit la vivacité de la connexion ; le checksum atteste
 l'intégrité du carnet au message vérifié ; la fraîcheur du carnet reste UNKNOWN.
-Les silences sont listés avec leurs références de réception ; leur effet sur
-les fenêtres est décidé à l'étape de disponibilité.
+L'effet des silences sur les fenêtres est décidé à l'étape de disponibilité.
+
+### Commande de l'opérateur
+
+Module : `observability/market_perception_replay.py`, hors de `market_flow`.
+Le test d'architecture l'autorise comme consommateur précis : il n'importe que
+`kraken_replay` du paquet, et aucun module réseau, horloge ou runtime. Tests :
+`tests/market_flow/test_replay_cli.py`, sur journaux SYNTHETIC.
+
+```
+python -m observability.market_perception_replay verify \
+    --manifest M --events E --frames F [--manifest-sha256 HEX]
+python -m observability.market_perception_replay replay \
+    --manifest M --events E --frames F --receipt-bound N \
+    --corpus-id ID --evidence-kind {SYNTHETIC,HISTORICAL} --out FICHIER [--manifest-sha256 HEX]
+```
+
+- `verify` n'écrit rien ; il affiche le sceau et le nombre d'événements scellés,
+  qui est la borne d'un rejeu complet.
+- Les chemins, la borne, l'identifiant du corpus et le type de preuve sont
+  explicites. `HISTORICAL` exige `--manifest-sha256` : le manifeste porte les
+  empreintes des deux autres fichiers, donc l'épingler lie le rejeu au corpus
+  admis.
+- Le sceau est vérifié avant toute écriture. La destination ne doit pas exister
+  et son dossier doit exister. Le document est écrit dans un fichier temporaire
+  privé à côté, synchronisé, lié à sa place sans jamais remplacer un fichier,
+  puis relu et son SHA-256 contrôlé.
+- En cas de succès, la commande affiche le nombre d'enregistrements par type, la
+  taille exacte en octets et le SHA-256 du document.
+- Codes de sortie : 0 fait, 2 usage, 3 refus (rien d'écrit), 4 écriture en échec
+  (rien laissé à la destination).
+- Volume : quelques dizaines de Mo estimés pour le corpus Kraken admis ; le
+  premier rejeu réel donnera la mesure.

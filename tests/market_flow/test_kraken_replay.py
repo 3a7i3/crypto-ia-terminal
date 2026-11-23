@@ -49,6 +49,55 @@ def entries_of(events_bytes):
     return [json.loads(line) for line in events_bytes.decode().splitlines()]
 
 
+WALL0, MONO0 = 1_795_000_000_000, 40_000
+HEARTBEAT = b'{"channel":"heartbeat"}'
+SUBSCRIBE = b'{"method":"subscribe","params":{"channel":"book","symbol":["BTC/USDT"],"depth":10}}'
+
+
+def snapshot_frame():
+    """A one-level Kraken snapshot whose CRC32 matches its literals."""
+    checksum = kr.kraken_checksum([("100.6", "2")], [("100.5", "1.25")])
+    return ('{"channel":"book","type":"snapshot","data":[{"symbol":"BTC/USDT",'
+            '"bids":[{"price":100.5,"qty":1.25}],"asks":[{"price":100.6,"qty":2}],'
+            '"checksum":%d,"timestamp":"2026-11-20T07:06:32.000000Z"}]}' % checksum).encode()
+
+
+def build(spec):
+    """From-scratch SYNTHETIC sealed journal; spec = [(t offset in ms, venue, kind, payload)]."""
+    frames, entries = b"", []
+    for seq, (t, venue, kind, payload) in enumerate(spec, 1):
+        entry = {"seq": seq, "venue": venue, "kind": kind, "recv_wall_ms": WALL0 + t, "recv_mono_ms": MONO0 + t,
+                 "t_ms": WALL0 + t, "offset": len(frames), "bytes": len(payload),
+                 "sha256": hashlib.sha256(payload).hexdigest()}
+        if kind == "ws_message":
+            entry["opcode"] = 2 if venue == "mexc" else 1
+        frames += payload
+        entries.append(entry)
+    manifest = {"clock_anchor": {"wall_ms": WALL0, "mono_ms": MONO0}, "evidence_kind": "SYNTHETIC",
+                "instrument": {"base_asset_id": "BTC", "quote_asset_id": "USDT"}, "market_type": "SPOT",
+                "ws": {"kraken": {"symbol": "BTC/USDT", "depth": 10}}, "sealed": {}}
+    return reseal(json.dumps(manifest).encode(), entries, frames)
+
+
+def truncated(journal, bound):
+    """The same journal physically cut after ``bound`` events and sealed again."""
+    manifest, events, frames = journal
+    entries = entries_of(events)[:bound]
+    return reseal(manifest, entries, frames[:max((e["offset"] + e["bytes"] for e in entries), default=0)])
+
+
+def silence(reason, starts, ends, last_proof, opened_by=None, closed_by=None):
+    def ms(offset):
+        return None if offset is None else str(WALL0 + offset)
+
+    def seq(value):
+        return None if value is None else str(value)
+
+    return {"reason": reason, "starts_at_t_ms": ms(starts), "ends_before_t_ms": ms(ends),
+            "last_proof_receipt_seq": seq(last_proof and last_proof[0]), "last_proof_t_ms": ms(last_proof and last_proof[1]),
+            "opened_by_receipt_seq": seq(opened_by), "closed_by_receipt_seq": seq(closed_by)}
+
+
 def append_kraken_text(journal, payload):
     manifest, events, frames = journal
     entries = entries_of(events)
@@ -176,11 +225,90 @@ def test_checksum_function_matches_the_pilot(journal):
 def test_silences_follow_the_declared_policy(full):
     doc = full[1]
     assert doc["liveness_policy"]["max_gap_ms"] == "2000"
-    reasons = [s["reason"] for s in doc["silences"]]
-    assert reasons[0] == "SILENCE_UNATTESTED_BEFORE_PROOF" and reasons[-1] == "SILENCE_UNATTESTED_AFTER_LAST_PROOF"
-    gaps = [s for s in doc["silences"] if s["reason"] == "SILENCE_GAP_EXCEEDS_MAX"]
-    assert len(gaps) == 1  # the scheduled Kraken silence of the synthetic profile
-    assert int(gaps[0]["to_t_ms"]) - int(gaps[0]["from_t_ms"]) > kr.LIVENESS_MAX_GAP_MS
+    silences = doc["silences"]
+    assert all(set(s) == kr.SILENCE_KEYS for s in silences)
+    assert [s["reason"] for s in silences] == ["SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", "SILENCE_GAP_EXCEEDS_MAX",
+                                               "SILENCE_UNATTESTED_AFTER_LAST_PROOF"]
+    gap = silences[1]  # the scheduled Kraken silence of the synthetic profile
+    assert int(gap["starts_at_t_ms"]) == int(gap["last_proof_t_ms"]) + kr.LIVENESS_MAX_GAP_MS
+    assert int(gap["ends_before_t_ms"]) > int(gap["starts_at_t_ms"])
+    raw = {r["receipt_seq"] for r in records(doc, "RAW_EVENT")}
+    assert {gap["last_proof_receipt_seq"], gap["closed_by_receipt_seq"]} <= raw
+    last = silences[-1]
+    assert int(last["starts_at_t_ms"]) == int(last["last_proof_t_ms"]) + kr.LIVENESS_MAX_GAP_MS
+    assert last["ends_before_t_ms"] is None and last["closed_by_receipt_seq"] is None
+
+
+def two_proofs(apart_ms):
+    """Proof p at +100 ms, then only frames that attest nothing about Kraken, then proof q."""
+    return build([
+        (0, "kraken", "ws_open", b""),                        # 1  proof
+        (10, "kraken", "sent", SUBSCRIBE),                    # 2  our own frame
+        (100, "kraken", "ws_message", snapshot_frame()),      # 3  proof p
+        (1100, "mexc", "ws_message", b"\x0a\x00"),            # 4  another venue
+        (1600, "kraken", "sent", b'{"method":"ping"}'),       # 5  our own frame
+        (2100, "mexc", "ws_message", b"\x0a\x01"),            # 6  another venue, at the expiry of p
+        (100 + apart_ms, "kraken", "ws_message", HEARTBEAT),  # 7  proof q
+        (600 + apart_ms, "kraken", "ws_message", HEARTBEAT),  # 8  proof
+    ])
+
+
+def test_proofs_2001_ms_apart_open_a_silence_at_the_expiry_of_the_first():
+    doc = json.loads(kr.replay(*two_proofs(2001), corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_GAP_EXCEEDS_MAX", 2100, 2101, (3, 100), closed_by=7),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 4601, None, (8, 2601)),
+    ]
+    assert records(doc, "QUALITY_REPORT")[-1]["book_integrity"]["state"] == "VERIFIED"
+    assert records(doc, "QUALITY_REPORT")[-1]["book_freshness"]["state"] == "UNKNOWN"  # liveness is not freshness
+
+
+def test_proofs_2000_ms_apart_leave_no_silence_between_them():
+    doc = json.loads(kr.replay(*two_proofs(2000), corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 4600, None, (8, 2600)),
+    ]
+
+
+@pytest.mark.parametrize("bound", [3, 5, 6])
+def test_a_replay_bounded_before_the_next_frame_only_knows_what_was_received(bound):
+    """Two futures, one prefix: the verdict at the bound is the same and never cites q."""
+    late, on_time = two_proofs(2001), two_proofs(2000)
+    verdicts = [kr.replay(*j, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=bound)[0]
+                for j in (late, on_time, truncated(late, bound), truncated(on_time, bound))]
+    assert len(set(verdicts)) == 1  # byte-identical, including a journal that stops at the bound
+    doc = json.loads(verdicts[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 2100, None, (3, 100)),
+    ]
+    assert doc["journal_prefix"]["receipt_bound"] == str(bound)
+
+
+def test_a_disconnection_is_unattested_until_the_reconnection_proves_again():
+    snap = snapshot_frame()
+    after_expiry = build([(0, "kraken", "ws_open", b""), (100, "kraken", "ws_message", snap),
+                          (2500, "kraken", "ws_close", b""), (4000, "kraken", "ws_open", b""),
+                          (4010, "kraken", "sent", SUBSCRIBE), (4100, "kraken", "ws_message", snap)])
+    doc = json.loads(kr.replay(*after_expiry, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_GAP_EXCEEDS_MAX", 2100, 2500, (2, 100), closed_by=3),
+        silence("SILENCE_UNATTESTED_AFTER_DISCONNECT", 2500, 4000, (2, 100), opened_by=3, closed_by=4),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 6100, None, (6, 4100)),
+    ]
+    before_expiry = build([(0, "kraken", "ws_open", b""), (100, "kraken", "ws_message", snap),
+                           (1500, "kraken", "ws_error", b""), (1700, "kraken", "ws_close", b""),
+                           (4000, "kraken", "ws_open", b"")])
+    doc = json.loads(kr.replay(*before_expiry, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_UNATTESTED_AFTER_DISCONNECT", 1500, 4000, (2, 100), opened_by=3, closed_by=5),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 6000, None, (5, 4000)),
+    ]
+    assert [b["reason"] for b in doc["breaks"]] == ["DISCONNECTED"]
 
 
 # ------------------------------------------------------------------ bound and prefix
@@ -188,12 +316,21 @@ def test_silences_follow_the_declared_policy(full):
 
 def test_prefix_replay_reproduces_every_record_up_to_the_bound(journal, full):
     doc = full[1]
-    for bound in (9, 18, 2000, 5023, 5029):
+    gap = doc["silences"][1]
+    last_proof, closing = int(gap["last_proof_receipt_seq"]), int(gap["closed_by_receipt_seq"])
+    for bound in (9, 18, 2000, 5023, 5029, last_proof, closing - 1, closing):
         part = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=bound)[0])
         expected = [r for r in doc["records"]
                     if int(r["record"].get("receipt_seq") or r["record"]["as_of_receipt_seq"]) <= bound]
         assert part["records"] == expected, bound
         assert part["journal_prefix"]["receipt_bound"] == str(bound)
+        closed = [s for s in doc["silences"]
+                  if s["closed_by_receipt_seq"] is not None and int(s["closed_by_receipt_seq"]) <= bound]
+        assert part["silences"][:-1] == closed, bound  # what the bound has seen closing, nothing more
+        assert part["silences"][-1]["ends_before_t_ms"] is None, bound
+    inside = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=closing - 1)[0])
+    assert inside["silences"][-1] == {**gap, "reason": "SILENCE_UNATTESTED_AFTER_LAST_PROOF",
+                                      "ends_before_t_ms": None, "closed_by_receipt_seq": None}
 
 
 def test_appending_events_after_the_bound_never_changes_the_result(journal):
