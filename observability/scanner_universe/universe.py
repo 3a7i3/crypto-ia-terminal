@@ -3,7 +3,14 @@
     Univers Scanner = MEXC Spot négociable ∩ MEXC Perpétuel négociable
                     ∩ Kraken Spot négociable ∩ Kraken Perpétuel négociable
 
-Key = canonical ``BASE/QUOTE``. ``USD``, ``USDT`` and ``USDC`` stay distinct;
+Key = canonical ``BASE/QUOTE``.
+
+Since ``scanner-universe/1.1.0`` (Mathieu, 2026-11-23 08:59Z « Par actif, devise
+affichée ») the same publication also groups every admissible instrument by
+**base asset** (``assets``): for each base listed on at least one Spot and one
+Perpetual market, the native instrument(s) of each market with their own quote
+currency. Quotes are listed, never equated (``USD`` ≠ ``USDT``). The strict
+``pairs`` intersection and its status are unchanged. ``USD``, ``USDT`` and ``USDC`` stay distinct;
 only the explicit Kraken aliases of ``catalogues.KRAKEN_ASSET_ALIASES`` are
 applied. No network, file or clock access: ``now_ms`` is always an argument.
 
@@ -22,7 +29,8 @@ import json
 
 from .catalogues import COMPLETE, MARKETS, MarketCatalogue
 
-SCHEMA_VERSION = "scanner-universe/1.0.0"
+SCHEMA_VERSION = "scanner-universe/1.1.0"
+SCHEMA_VERSIONS = ("scanner-universe/1.0.0", SCHEMA_VERSION)
 # Producer cadence: one run every 900 s (same as the D1-RC1 Spot collector,
 # which reloads MEXC exchangeInfo at each 900 s campaign). A catalogue stays
 # current for two cadences (one missed run tolerated) plus 300 s for timer
@@ -62,12 +70,40 @@ def _index(catalogue: MarketCatalogue):
     return admissible, everything
 
 
+SPOT_MARKETS = tuple(m for m in MARKETS if m.endswith("_SPOT"))
+PERPETUAL_MARKETS = tuple(m for m in MARKETS if m.endswith("_PERPETUAL"))
+
+
+def group_by_asset(indexes: dict) -> list:
+    """Admissible instruments grouped by base asset. A base enters only when at
+    least one Spot and one Perpetual market admit it (feasibility, not selection).
+    Each market lists its own instruments and quote currencies, sorted by quote."""
+    by_base: dict = {}
+    for m in MARKETS:
+        for key, record in indexes[m][0].items():
+            base, quote = key.split("/")
+            by_base.setdefault(base, {}).setdefault(m, []).append({
+                "native_symbol": record.native_symbol, "quote": quote,
+                "contract_type": record.contract_type, "settlement_asset": record.settlement_asset,
+            })
+    assets = []
+    for base, listed in by_base.items():
+        if not (any(m in listed for m in SPOT_MARKETS) and any(m in listed for m in PERPETUAL_MARKETS)):
+            continue
+        markets = {m: sorted(listed[m], key=lambda r: (r["quote"], r["native_symbol"])) for m in MARKETS if m in listed}
+        assets.append({"base": base, "market_count": len(markets),
+                       "quotes": sorted({r["quote"] for rows in markets.values() for r in rows}),
+                       "markets": markets})
+    assets.sort(key=lambda a: (-a["market_count"], a["base"]))
+    return assets
+
+
 def _digest(value) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def compute_universe(catalogues: dict, now_ms: int, previous: dict | None = None) -> dict:
-    """Return a ``scanner-universe/1.0.0`` document. Pure and deterministic."""
+    """Return a ``scanner-universe/1.1.0`` document. Pure and deterministic."""
     if set(catalogues) != set(MARKETS):
         raise ValueError("the four market catalogues are required")
     if type(now_ms) is not int or now_ms <= 0:
@@ -118,6 +154,8 @@ def compute_universe(catalogues: dict, now_ms: int, previous: dict | None = None
     truncated = len(exclusions) > MAX_EXCLUSIONS
     exclusions = exclusions[:MAX_EXCLUSIONS]
 
+    assets = group_by_asset(indexes) if certifiable else []
+
     sources = [{**catalogues[m].summary(), **{k: v for k, v in s.items() if k != "market"}}
                for m, s in zip(MARKETS, statuses)]
     if certifiable:
@@ -137,14 +175,14 @@ def compute_universe(catalogues: dict, now_ms: int, previous: dict | None = None
         }
     elif not certifiable and previous and previous.get("reference"):
         reference = previous["reference"]
-    universe_sha = _digest({"status": status, "pairs": candidate_pairs,
+    universe_sha = _digest({"status": status, "pairs": candidate_pairs, "assets": assets,
                             "sources": [s["raw_sha256"] for s in sources]})
     return {
         "schema_version": SCHEMA_VERSION,
         "product": "ScannerCommonUniverse",
         "authority": "OBSERVATIONAL_TELEMETRY",
         "execution_authority": False,
-        "rule": "MEXC_SPOT ∩ MEXC_PERPETUAL ∩ KRAKEN_SPOT ∩ KRAKEN_PERPETUAL on BASE/QUOTE",
+        "rule": "MEXC_SPOT ∩ MEXC_PERPETUAL ∩ KRAKEN_SPOT ∩ KRAKEN_PERPETUAL on BASE/QUOTE; assets grouped by BASE (≥1 Spot and ≥1 Perpetual), quotes listed, never equated",
         "freshness_max_age_ms": FRESHNESS_MAX_AGE_MS,
         "cadence_ms": CADENCE_MS,
         "computed_ms": now_ms,
@@ -153,6 +191,8 @@ def compute_universe(catalogues: dict, now_ms: int, previous: dict | None = None
         "sources": sources,
         "pairs": candidate_pairs,
         "pair_count": len(candidate_pairs),
+        "assets": assets,
+        "asset_count": len(assets),
         "exclusions": exclusions,
         "exclusions_truncated": truncated,
         "reference": reference,
@@ -183,6 +223,7 @@ def requalify(doc: dict, now_ms: int) -> dict:
     if doc["status"] in ("VERIFIED", "VERIFIED_EMPTY") and stale:
         out.update(
             status="UNVERIFIABLE", blocking_sources=stale, pairs=[], pair_count=0,
+            **({"assets": [], "asset_count": 0} if "assets" in doc else {}),
             reference={"universe_sha256": doc["universe_sha256"], "status": doc["status"],
                        "computed_ms": doc["computed_ms"], "keys": [p["key"] for p in doc["pairs"]],
                        "current": False},

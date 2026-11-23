@@ -1,4 +1,4 @@
-"""Structural and semantic validation of a ``scanner-universe/1.0.0`` publication.
+"""Structural and semantic validation of a ``scanner-universe/1.0.0`` or ``1.1.0`` publication.
 
 Used by the GET-only Operator API reader: a publication that fails any rule is
 refused as INVALID_SCHEMA, never shown as an empty or partial universe.
@@ -6,7 +6,7 @@ refused as INVALID_SCHEMA, never shown as an empty or partial universe.
 from __future__ import annotations
 
 from .catalogues import CONTRACT_TYPES, MARKET_LABELS, MARKETS
-from .universe import SCHEMA_VERSION
+from .universe import PERPETUAL_MARKETS, SCHEMA_VERSION, SCHEMA_VERSIONS, SPOT_MARKETS
 
 STATUSES = ("VERIFIED", "VERIFIED_EMPTY", "UNVERIFIABLE")
 _TOP = {
@@ -30,9 +30,10 @@ def validate_publication(doc) -> list[str]:
     if not isinstance(doc, dict):
         return ["NOT_OBJECT"]
     keys = set(doc) - {"served_ms"}
-    if keys != _TOP:
+    v11 = doc.get("schema_version") == SCHEMA_VERSION
+    if keys != (_TOP | {"assets", "asset_count"} if v11 else _TOP):
         return ["TOP_LEVEL_KEYS"]
-    if doc["schema_version"] != SCHEMA_VERSION or doc["product"] != "ScannerCommonUniverse":
+    if doc["schema_version"] not in SCHEMA_VERSIONS or doc["product"] != "ScannerCommonUniverse":
         errors.append("VERSION")
     if doc["execution_authority"] is not False or doc["authority"] != "OBSERVATIONAL_TELEMETRY":
         errors.append("AUTHORITY")
@@ -90,4 +91,48 @@ def validate_publication(doc) -> list[str]:
             perpetual = proof["contract_type"] in ("LINEAR_PERPETUAL", "INVERSE_PERPETUAL")
             if (market_type == "PERPETUAL") != perpetual or (market_type == "SPOT") != (proof["contract_type"] == "SPOT"):
                 errors.append("PROOF_CONTRACT_TYPE")
+    if v11:
+        errors += _validate_assets(doc, all_current)
     return sorted(set(errors))
+
+
+_LISTING = {"native_symbol", "quote", "contract_type", "settlement_asset"}
+
+
+def _validate_assets(doc, all_current) -> list[str]:
+    errors = []
+    assets = doc["assets"]
+    if not isinstance(assets, list) or not _int(doc["asset_count"]) or len(assets) != doc["asset_count"]:
+        return ["ASSETS"]
+    if assets and (doc["status"] == "UNVERIFIABLE" or not all_current):
+        errors.append("ASSETS_WITHOUT_CURRENT_SOURCES")
+    seen = set()
+    for asset in assets:
+        if not isinstance(asset, dict) or set(asset) != {"base", "market_count", "quotes", "markets"}:
+            errors.append("ASSET_SHAPE")
+            continue
+        markets = asset["markets"]
+        if asset["base"] in seen or not isinstance(markets, dict) or not set(markets) <= set(MARKETS):
+            errors.append("ASSET_KEY")
+            continue
+        seen.add(asset["base"])
+        if asset["market_count"] != len(markets):
+            errors.append("ASSET_MARKET_COUNT")
+        if not (set(markets) & set(SPOT_MARKETS)) or not (set(markets) & set(PERPETUAL_MARKETS)):
+            errors.append("ASSET_NOT_SPOT_AND_PERPETUAL")
+        quotes = set()
+        for market, rows in markets.items():
+            if not isinstance(rows, list) or not rows:
+                errors.append("ASSET_LISTING")
+                continue
+            for row in rows:
+                if not isinstance(row, dict) or set(row) != _LISTING or not isinstance(row["native_symbol"], str) or not row["native_symbol"]:
+                    errors.append("ASSET_LISTING")
+                    continue
+                spot = market in SPOT_MARKETS
+                if (row["contract_type"] == "SPOT") != spot or (not spot and row["contract_type"] not in ("LINEAR_PERPETUAL", "INVERSE_PERPETUAL")):
+                    errors.append("ASSET_CONTRACT_TYPE")
+                quotes.add(row["quote"])
+        if asset["quotes"] != sorted(quotes):
+            errors.append("ASSET_QUOTES")
+    return errors
