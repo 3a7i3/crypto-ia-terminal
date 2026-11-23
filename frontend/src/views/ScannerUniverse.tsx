@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   fetchScannerUniverse, universeView, UniverseError, MARKET_LABEL, MARKET_SHORT, UNIVERSE_MARKETS,
-  type ScannerUniverse as Universe, type UniverseView, type UniversePair, type UniverseMarket, type UniverseAsset,
+  type ScannerUniverse as Universe, type UniverseView, type UniversePair, type UniverseMarket, type UniverseAsset, ASSET_CLASS_LABEL,
 } from "../lib/scannerUniverseClient";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 import "./scanner-universe.css";
@@ -74,7 +74,9 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
   const setup = view.state === "UNAVAILABLE" && !view.doc ? marketSourceSetup(view.code) : null;
   const byAsset = doc?.schema_version === "scanner-universe/1.1.0";
   const assets = view.state === "VERIFIED" || view.state === "VERIFIED_EMPTY" ? view.assets : [];
-  const tier = (n: number) => assets.filter(a => a.market_count === n);
+  const crypto = assets.filter(a => a.asset_class === "CRYPTO");
+  const others = assets.filter(a => a.asset_class !== "CRYPTO");
+  const tier = (n: number) => crypto.filter(a => a.market_count === n);
   const asset = assets.find(a => a.base === activeAsset);
   const blocked = new Map(view.state === "UNAVAILABLE" ? view.blocking.filter(b => b.market).map(b => [b.market!, b.reason]) : []);
 
@@ -96,14 +98,18 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
       : <p role="alert" className="universe-banner ko"><strong>Univers indisponible</strong> · {view.blocking.map(b => (b.market ? MARKET_LABEL[b.market] + " : " : "") + reasonLabel(b.reason)).join(" · ")}. Aucune paire n’est présentée comme courante.</p>)}
     {view.state === "UNAVAILABLE" && view.doc?.reference && <p className="universe-reference">Dernière liste vérifiée, <strong>non courante</strong>, calculée le {utc(view.doc.reference.computed_ms)} : {view.doc.reference.keys.length ? view.doc.reference.keys.join(", ") : "univers vide"}.</p>}
     {byAsset && (view.state === "VERIFIED" || view.state === "VERIFIED_EMPTY") && <>
-      <p role="status" className="universe-banner ok"><strong>{tier(4).length} actif{tier(4).length > 1 ? "s" : ""} sur les 4 marchés</strong> · {tier(3).length} sur 3 · {tier(2).length} sur 2 · calcul {utc(view.doc.computed_ms)}</p>
+      <p role="status" className="universe-banner ok"><strong>{tier(4).length} crypto-actif{tier(4).length > 1 ? "s" : ""} sur les 4 marchés</strong> · {tier(3).length} sur 3 · {tier(2).length} sur 2 · calcul {utc(view.doc.computed_ms)}</p>
       <p className="universe-strict">Paires strictes (même devise sur les 4 marchés) : {view.state === "VERIFIED" ? view.pairs.length : 0}.</p>
-      {tier(4).length > 0 && <details className="universe-exclusions"><summary>Voir les {tier(4).length} actifs sur les 4 marchés</summary><ul className="universe-pairs universe-assets" aria-label="Actifs sur les quatre marchés">{tier(4).map(a =>
+      {tier(4).length > 0 && <details className="universe-exclusions"><summary>Voir les {tier(4).length} crypto-actifs sur les 4 marchés</summary><ul className="universe-pairs universe-assets" aria-label="Actifs sur les quatre marchés">{tier(4).map(a =>
         <li key={a.base}><button type="button" onClick={e => { trigger.current = e.currentTarget; setActiveAsset(a.base); }} aria-label={`${a.base} · 4 marchés · devises ${a.quotes.join(", ")}`}>
           <strong>{a.base}</strong><span className="market-count-badge">4/4</span></button></li>)}</ul></details>}
       {tier(3).length + tier(2).length > 0 && <details className="universe-exclusions">
-        <summary>{tier(3).length + tier(2).length} actifs sur 3 ou 2 marchés</summary>
+        <summary>{tier(3).length + tier(2).length} crypto-actifs sur 3 ou 2 marchés</summary>
         <ul>{[...tier(3), ...tier(2)].map(a => <li key={a.base}><button type="button" className="asset-link" onClick={e => { trigger.current = e.currentTarget; setActiveAsset(a.base); }}><strong>{a.base}</strong></button> · {a.market_count}/4 · {UNIVERSE_MARKETS.filter(m => a.markets[m]).map(m => MARKET_SHORT[m]).join(" ")}</li>)}</ul>
+      </details>}
+      {others.length > 0 && <details className="universe-exclusions">
+        <summary>{others.length} devise{others.length > 1 ? "s" : ""} et stablecoin{others.length > 1 ? "s" : ""}, non comptés</summary>
+        <ul>{others.map(a => <li key={a.base}><button type="button" className="asset-link" onClick={e => { trigger.current = e.currentTarget; setActiveAsset(a.base); }}><strong>{a.base}</strong></button> · {ASSET_CLASS_LABEL[a.asset_class]} · {a.market_count}/4</li>)}</ul>
       </details>}
     </>}
     {!byAsset && view.state === "VERIFIED_EMPTY" && <p role="status" className="universe-banner empty"><strong>Univers vide vérifié</strong> · les quatre catalogues sont complets et frais ; aucune paire n’est négociable sur les quatre marchés avec la même devise de cotation.</p>}
@@ -131,7 +137,7 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
       open={typeof HTMLDialogElement.prototype.showModal !== "function" || undefined} onClose={close}
       onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); e.currentTarget.close?.(); close(); } }}>
       <form method="dialog"><button type="button" onClick={e => { e.currentTarget.closest("dialog")?.close?.(); close(); }}>Fermer</button></form>
-      <h3>{asset.base} · {asset.market_count}/4 marchés</h3>
+      <h3>{asset.base} · {ASSET_CLASS_LABEL[asset.asset_class]} · {asset.market_count}/4 marchés</h3>
       <AssetDetail asset={asset} />
       <p><small>Devises listées telles que publiées : {asset.quotes.join(", ")}. Aucune devise n’est assimilée à une autre · observation uniquement, aucune autorisation de trading.</small></p>
     </dialog>}

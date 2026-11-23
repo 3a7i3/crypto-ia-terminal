@@ -160,19 +160,20 @@ describe("Marché → Scanner", () => {
   describe("by base asset (scanner-universe/1.1.0)", () => {
     it("validates the asset groups and refuses merged or premature ones", () => {
       const doc = JSON.parse(JSON.stringify(assetUniverseFixture()));
-      expect(validateUniverse(doc).assets).toHaveLength(3);
+      expect(validateUniverse(doc).assets).toHaveLength(4);
       const spotOnly = JSON.parse(JSON.stringify(doc)); spotOnly.assets[2].markets = { MEXC_SPOT: spotOnly.assets[2].markets.MEXC_SPOT }; spotOnly.assets[2].market_count = 1;
       expect(() => validateUniverse(spotOnly)).toThrow(UniverseError);
       const merged = JSON.parse(JSON.stringify(doc)); merged.assets[0].quotes = ["USDT"];
       expect(() => validateUniverse(merged)).toThrow(UniverseError);
-      const premature = { ...JSON.parse(JSON.stringify(assetUniverseFixture({ status: "UNVERIFIABLE" }))), assets: doc.assets, asset_count: 3 };
+      const premature = { ...JSON.parse(JSON.stringify(assetUniverseFixture({ status: "UNVERIFIABLE" }))), assets: doc.assets, asset_count: 4 };
       expect(() => validateUniverse(premature)).toThrow(UniverseError);
     });
 
     it("counts assets per number of markets and keeps the strict pair count apart", async () => {
       universe = () => json(assetUniverseFixture());
       open();
-      expect((await screen.findByText(/1 actif sur les 4 marchés/)).closest("p")).toHaveTextContent("1 actif sur les 4 marchés · 1 sur 3 · 1 sur 2");
+      expect((await screen.findByText(/1 crypto-actif sur les 4 marchés/)).closest("p")).toHaveTextContent("1 crypto-actif sur les 4 marchés · 1 sur 3 · 1 sur 2");
+      expect(screen.getByText(/devise et stablecoin|devises et stablecoins/)).toHaveTextContent("1 devise et stablecoin, non comptés");
       expect(screen.getByText(/Paires strictes/)).toHaveTextContent("Paires strictes (même devise sur les 4 marchés) : 0.");
       expect(screen.queryByText(/Univers vide vérifié/)).toBeNull();
       fireEvent.click(within(screen.getByRole("list", { name: "Actifs sur les quatre marchés" })).getByRole("button", { name: /^BTC · 4 marchés · devises USD, USDT/ }));
@@ -188,6 +189,7 @@ describe("Marché → Scanner", () => {
       const btc = within(table).getByRole("button", { name: "BTC/USDT" }).closest("td")!;
       expect(btc).toHaveTextContent("4/4");
       expect(within(table).getByRole("button", { name: "DOGE/USDT" }).closest("td")).toHaveTextContent("2/4");
+      expect(within(table).getByRole("button", { name: "USDC/USDT" }).closest("td")).toHaveTextContent("stablecoin · 2/4");
       expect(within(table).queryByRole("button", { name: "ATOM/USDT" })).toBeNull();
     });
 

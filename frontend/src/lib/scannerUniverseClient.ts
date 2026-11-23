@@ -35,7 +35,9 @@ export interface UniverseExclusion { key: string; reasons: Record<UniverseMarket
 /** Since scanner-universe/1.1.0: admissible instruments grouped by base asset
  *  (≥1 Spot and ≥1 Perpetual market), each market with its own quote currencies. */
 export interface UniverseListing { native_symbol: string; quote: string; contract_type: string; settlement_asset: string | null }
-export interface UniverseAsset { base: string; market_count: number; quotes: string[]; markets: Partial<Record<UniverseMarket, UniverseListing[]>> }
+export type AssetClass = "CRYPTO" | "STABLECOIN" | "FIAT";
+export const ASSET_CLASS_LABEL: Record<AssetClass, string> = { CRYPTO: "crypto", STABLECOIN: "stablecoin", FIAT: "devise" };
+export interface UniverseAsset { base: string; asset_class: AssetClass; market_count: number; quotes: string[]; markets: Partial<Record<UniverseMarket, UniverseListing[]>> }
 export const UNIVERSE_SCHEMAS = ["scanner-universe/1.0.0", "scanner-universe/1.1.0"] as const;
 export interface ScannerUniverse {
   schema_version: typeof UNIVERSE_SCHEMAS[number]; assets?: UniverseAsset[]; asset_count?: number; product: "ScannerCommonUniverse"; status: UniverseStatus;
@@ -89,7 +91,7 @@ function validateAssets(d: ScannerUniverse, allCurrent: boolean) {
   if (d.assets.length && (d.status === "UNVERIFIABLE" || !allCurrent)) return fail();
   const seen = new Set<string>();
   for (const a of d.assets) {
-    if (!isObj(a) || typeof a.base !== "string" || seen.has(a.base) || !isObj(a.markets)) return fail();
+    if (!isObj(a) || typeof a.base !== "string" || seen.has(a.base) || !isObj(a.markets) || !(a.asset_class in ASSET_CLASS_LABEL)) return fail();
     seen.add(a.base);
     const markets = Object.keys(a.markets) as UniverseMarket[];
     if (!markets.every(m => UNIVERSE_MARKETS.includes(m)) || a.market_count !== markets.length) return fail();
@@ -160,10 +162,14 @@ export function admittedMexcSpot(view: UniverseView): ReadonlySet<string> {
 }
 /** MEXC Spot native symbol -> number of markets (1–4) listing its base asset, as published. */
 export function mexcSpotMarkets(view: UniverseView): ReadonlyMap<string, number> {
-  const out = new Map<string, number>();
+  return new Map([...mexcSpotAssets(view)].map(([k, v]) => [k, v.count]));
+}
+/** MEXC Spot native symbol -> published market count and asset class (1.1.0). */
+export function mexcSpotAssets(view: UniverseView): ReadonlyMap<string, { count: number; cls: AssetClass | null }> {
+  const out = new Map<string, { count: number; cls: AssetClass | null }>();
   if (view.state !== "VERIFIED" && view.state !== "VERIFIED_EMPTY") return out;
-  for (const a of view.assets) for (const r of a.markets.MEXC_SPOT ?? []) out.set(r.native_symbol, a.market_count);
-  if (view.state === "VERIFIED") for (const p of view.pairs) out.set(p.proofs.MEXC_SPOT.native_symbol, 4);
+  for (const a of view.assets) for (const r of a.markets.MEXC_SPOT ?? []) out.set(r.native_symbol, { count: a.market_count, cls: a.asset_class });
+  if (view.state === "VERIFIED") for (const p of view.pairs) if (!out.has(p.proofs.MEXC_SPOT.native_symbol)) out.set(p.proofs.MEXC_SPOT.native_symbol, { count: 4, cls: null });
   return out;
 }
 export function admittedKeys(view: UniverseView): ReadonlySet<string> {
@@ -171,11 +177,14 @@ export function admittedKeys(view: UniverseView): ReadonlySet<string> {
 }
 
 /** Filter handed to every Scanner sub-view. Built only from the universe view. */
-export interface ScannerGate { admitted: ReadonlySet<string>; keys: ReadonlySet<string>; state: UniverseView["state"]; markets?: ReadonlyMap<string, number>; byAsset?: boolean }
+export interface ScannerGate { admitted: ReadonlySet<string>; keys: ReadonlySet<string>; state: UniverseView["state"]; markets?: ReadonlyMap<string, number>; classes?: ReadonlyMap<string, AssetClass | null>; byAsset?: boolean }
 /** Short badge: number of the four markets listing the row's base asset. */
 export const marketBadge = (gate: ScannerGate | undefined, native: string) => {
   const n = gate?.byAsset ? gate.markets?.get(native) : undefined;
-  return n === undefined ? null : { text: `${n}/4`, title: `Actif négocié sur ${n} des 4 marchés (MEXC Spot, MEXC Perpétuel, Kraken Spot, Kraken Perpétuel), chacun dans sa devise` };
+  if (n === undefined) return null;
+  const cls = gate?.classes?.get(native);
+  const tag = cls && cls !== "CRYPTO" ? `${ASSET_CLASS_LABEL[cls]} · ` : "";
+  return { text: `${tag}${n}/4`, title: `${cls ? `Classe publiée : ${ASSET_CLASS_LABEL[cls]}. ` : ""}Actif négocié sur ${n} des 4 marchés (MEXC Spot, MEXC Perpétuel, Kraken Spot, Kraken Perpétuel), chacun dans sa devise` };
 };
 export function gateNotice(state: UniverseView["state"], byAsset = false): string {
   return byAsset && (state === "VERIFIED" || state === "VERIFIED_EMPTY") ? "Aucune ligne observée n’appartient à un actif publié (Spot et Perpétuel)."

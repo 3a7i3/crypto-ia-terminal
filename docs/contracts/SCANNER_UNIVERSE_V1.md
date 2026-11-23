@@ -116,7 +116,12 @@ ajoute une section **additive** :
   devise de cotation (`native_symbol`, `quote`, `contract_type`, `settlement_asset`).
   `market_count` = nombre de marchés (2 à 4) ; `quotes` = devises listées, triées.
   Les devises ne sont **jamais assimilées** (`USD` ≠ `USDT`) : elles sont affichées.
-- `asset_count` = longueur de `assets`. Tri : `market_count` décroissant, puis base.
+- `asset_class` (2026-11-23 09:05Z, demande de l'opérateur) : `FIAT` (table explicite de
+  devises : USD, EUR, GBP…), `STABLECOIN` (table explicite : USDT, USDC, USD1, DAI, EURC…)
+  ou `CRYPTO` par règle (« ni devise ni stablecoin listés »). Les compteurs de l'écran ne
+  portent que sur `CRYPTO` ; devises et stablecoins restent visibles à part.
+- `asset_count` = longueur de `assets`. Tri : classe (CRYPTO, STABLECOIN, FIAT), puis
+  `market_count` décroissant, puis base.
 - Sans quatre sources courantes (`UNVERIFIABLE`, ou source périmée à la lecture),
   `assets` est vide, comme `pairs`.
 - Ce n'est pas une sélection : la liste sert de filtre de faisabilité. Le choix des

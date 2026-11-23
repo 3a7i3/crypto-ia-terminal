@@ -43,13 +43,15 @@ export function assetUniverseFixture(opts: { now?: number; status?: "VERIFIED_EM
   const doc = universeFixture([], { now: opts.now, status });
   const row = (native_symbol: string, quote: string, perp = false) => ({ native_symbol, quote, contract_type: perp ? "LINEAR_PERPETUAL" : "SPOT", settlement_asset: perp ? quote : null });
   const assets = status === "UNVERIFIABLE" ? [] : [
-    { base: "BTC", market_count: 4, quotes: ["USD", "USDT"], markets: {
+    { base: "BTC", asset_class: "CRYPTO", market_count: 4, quotes: ["USD", "USDT"], markets: {
       MEXC_SPOT: [row("BTCUSDT", "USDT")], MEXC_PERPETUAL: [row("BTC_USDT", "USDT", true)],
       KRAKEN_SPOT: [row("XBTUSD", "USD"), row("XBTUSDT", "USDT")], KRAKEN_PERPETUAL: [row("PF_XBTUSD", "USD", true)] } },
-    { base: "ETH", market_count: 3, quotes: ["USD", "USDT"], markets: {
+    { base: "ETH", asset_class: "CRYPTO", market_count: 3, quotes: ["USD", "USDT"], markets: {
       MEXC_SPOT: [row("ETHUSDT", "USDT")], MEXC_PERPETUAL: [row("ETH_USDT", "USDT", true)], KRAKEN_PERPETUAL: [row("PF_ETHUSD", "USD", true)] } },
-    { base: "DOGE", market_count: 2, quotes: ["USDT"], markets: {
+    { base: "DOGE", asset_class: "CRYPTO", market_count: 2, quotes: ["USDT"], markets: {
       MEXC_SPOT: [row("DOGEUSDT", "USDT")], MEXC_PERPETUAL: [row("DOGE_USDT", "USDT", true)] } },
+    { base: "USDC", asset_class: "STABLECOIN", market_count: 2, quotes: ["USDT"], markets: {
+      MEXC_SPOT: [row("USDCUSDT", "USDT")], MEXC_PERPETUAL: [row("USDC_USDT", "USDT", true)] } },
   ];
   return { ...doc, schema_version: "scanner-universe/1.1.0", assets, asset_count: assets.length } as ScannerUniverse;
 }

@@ -6,7 +6,7 @@ refused as INVALID_SCHEMA, never shown as an empty or partial universe.
 from __future__ import annotations
 
 from .catalogues import CONTRACT_TYPES, MARKET_LABELS, MARKETS
-from .universe import PERPETUAL_MARKETS, SCHEMA_VERSION, SCHEMA_VERSIONS, SPOT_MARKETS
+from .universe import ASSET_CLASSES, PERPETUAL_MARKETS, asset_class, SCHEMA_VERSION, SCHEMA_VERSIONS, SPOT_MARKETS
 
 STATUSES = ("VERIFIED", "VERIFIED_EMPTY", "UNVERIFIABLE")
 _TOP = {
@@ -108,7 +108,7 @@ def _validate_assets(doc, all_current) -> list[str]:
         errors.append("ASSETS_WITHOUT_CURRENT_SOURCES")
     seen = set()
     for asset in assets:
-        if not isinstance(asset, dict) or set(asset) != {"base", "market_count", "quotes", "markets"}:
+        if not isinstance(asset, dict) or set(asset) != {"base", "asset_class", "market_count", "quotes", "markets"}:
             errors.append("ASSET_SHAPE")
             continue
         markets = asset["markets"]
@@ -116,6 +116,8 @@ def _validate_assets(doc, all_current) -> list[str]:
             errors.append("ASSET_KEY")
             continue
         seen.add(asset["base"])
+        if asset["asset_class"] not in ASSET_CLASSES or asset["asset_class"] != asset_class(asset["base"]):
+            errors.append("ASSET_CLASS")
         if asset["market_count"] != len(markets):
             errors.append("ASSET_MARKET_COUNT")
         if not (set(markets) & set(SPOT_MARKETS)) or not (set(markets) & set(PERPETUAL_MARKETS)):

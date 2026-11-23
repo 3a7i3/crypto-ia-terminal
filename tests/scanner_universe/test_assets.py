@@ -52,6 +52,16 @@ class AssetsByBase(unittest.TestCase):
         self.assertEqual((served["status"], served["assets"]), ("UNVERIFIABLE", []))
         self.assertEqual(validate_publication(served), [])
 
+    def test_currencies_and_stablecoins_are_classed_apart_and_listed_after_crypto(self):
+        doc = universe(ms=mexc_spot(("BTC", "USDT"), ("EUR", "USDT"), ("USDC", "USDT")),
+                       mp=mexc_perp(("BTC", "USDT"), ("EUR", "USDT"), ("USDC", "USDT")),
+                       kp=kraken_pairs(("XXBT", "ZUSD")), kf=kraken_perp(("BTC", "USD")))
+        self.assertEqual([(a["base"], a["asset_class"]) for a in doc["assets"]],
+                         [("BTC", "CRYPTO"), ("USDC", "STABLECOIN"), ("EUR", "FIAT")])
+        relabelled = json.loads(json.dumps(doc))
+        relabelled["assets"][2]["asset_class"] = "CRYPTO"
+        self.assertIn("ASSET_CLASS", validate_publication(relabelled))
+
     def test_schema_guards(self):
         doc = universe(**REAL_SHAPE)
         spot_only = json.loads(json.dumps(doc))

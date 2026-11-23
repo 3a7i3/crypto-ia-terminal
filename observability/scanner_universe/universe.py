@@ -70,6 +70,23 @@ def _index(catalogue: MarketCatalogue):
     return admissible, everything
 
 
+# Asset classes (Mathieu, 2026-11-23 09:05Z: distinguish currencies from crypto-assets).
+# Explicit, reviewed tables; a base in neither table is classed CRYPTO by rule
+# ("not listed as a fiat currency nor as a stablecoin"), which the contract states.
+FIAT = frozenset({"USD", "EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "BRL", "TRY", "MXN", "ARS", "COP",
+                  "NGN", "ZAR", "PLN", "UAH", "RUB", "KRW", "INR", "IDR", "VND", "PHP", "THB", "HKD",
+                  "SGD", "NZD", "SEK", "NOK", "DKK", "CZK", "HUF", "AED", "SAR", "KZT", "ILS"})
+STABLECOINS = frozenset({"USDT", "USDC", "USD1", "DAI", "USDE", "USDF", "FDUSD", "TUSD", "PYUSD", "USDP",
+                         "USDQ", "USDD", "USDG", "RLUSD", "USDS", "GUSD", "LUSD", "FRAX", "SUSD", "BUSD",
+                         "EURC", "EURCV", "EUROP", "EURQ", "EURT", "EURI", "AEUR", "XSGD", "BRZ", "TRYB",
+                         "ZUSD", "USTC", "USDX", "USDR", "USD0", "CUSD", "AUSD", "FDUSD"})
+ASSET_CLASSES = ("CRYPTO", "STABLECOIN", "FIAT")
+
+
+def asset_class(base: str) -> str:
+    return "FIAT" if base in FIAT else "STABLECOIN" if base in STABLECOINS else "CRYPTO"
+
+
 SPOT_MARKETS = tuple(m for m in MARKETS if m.endswith("_SPOT"))
 PERPETUAL_MARKETS = tuple(m for m in MARKETS if m.endswith("_PERPETUAL"))
 
@@ -91,10 +108,10 @@ def group_by_asset(indexes: dict) -> list:
         if not (any(m in listed for m in SPOT_MARKETS) and any(m in listed for m in PERPETUAL_MARKETS)):
             continue
         markets = {m: sorted(listed[m], key=lambda r: (r["quote"], r["native_symbol"])) for m in MARKETS if m in listed}
-        assets.append({"base": base, "market_count": len(markets),
+        assets.append({"base": base, "asset_class": asset_class(base), "market_count": len(markets),
                        "quotes": sorted({r["quote"] for rows in markets.values() for r in rows}),
                        "markets": markets})
-    assets.sort(key=lambda a: (-a["market_count"], a["base"]))
+    assets.sort(key=lambda a: (ASSET_CLASSES.index(a["asset_class"]), -a["market_count"], a["base"]))
     return assets
 
 
