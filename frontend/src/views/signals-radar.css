@@ -16,5 +16,8 @@
 .signals-table { width: 100%; border-collapse: collapse; font-size: .78rem; font-variant-numeric: tabular-nums; }
 .signals-table th, .signals-table td { padding: .35rem .2rem; border-bottom: 1px solid #cbd2da66; text-align: right; white-space: nowrap; }
 .signals-table th[scope="row"], .signals-table thead th:first-child { text-align: left; white-space: normal; }
+.signals-table th[scope="row"], .signals-table thead th:first-child { position: sticky; left: 0; background: var(--bg-dark, #f3f7fc); z-index: 1; min-width: 5.5rem; }
 .signals-table td.na { opacity: .55; font-style: italic; }
 .signals-table td.gap { font-weight: 600; }
+.signals-checks .warn strong { color: #8a5a00; }
+.signals-basis { font-size: .82rem; margin: .3rem 0; font-variant-numeric: tabular-nums; }
