@@ -25,7 +25,7 @@ const LABEL: Record<string, string> = {
   vwap_session_dist_pct: "Écart VWAP séance %", ema20_dist_pct: "Écart EMA 20 %", ema20_slope_pct: "Pente EMA 20 %",
   ema50_dist_pct: "Écart EMA 50 %", ema50_slope_pct: "Pente EMA 50 %", atr14_pct: "ATR 14 %",
   volume_rel_20: "Volume relatif 20", delta_pct_volume: "Delta % volume", cvd_session: "CVD séance",
-  imb_top10: "IMB 10 niveaux", spread_bps: "Spread pb", oi_change_pct: "Variation OI %", funding_rate: "Funding",
+  imb_top10: "IMB 10 niveaux", spread_bps: "Spread pb", oi_change_pct: "Variation OI %", funding_rate: "Funding", funding_rate_hourly: "Funding horaire",
 };
 const ORDER = Object.keys(LABEL);
 const CHECK: Record<string, string> = { VERIFIED: "vérifié", REJECTED: "rejeté", NOT_LISTED: "non coté", UNRESOLVED: "non résolu" };
