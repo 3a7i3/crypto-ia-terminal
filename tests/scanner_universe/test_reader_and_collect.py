@@ -53,6 +53,21 @@ class Producer(unittest.TestCase):
             runs = sorted((Path(tmp) / "runs").iterdir())
             self.assertEqual(collect.encode(collect.replay(runs[-1])), (Path(tmp) / collect.PUBLICATION).read_bytes())
 
+    def test_publication_is_world_readable_and_runs_are_bounded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            for i in range(4):
+                collect.run(out, fake_fetcher(), clock(T0 + i * 1_000_000))
+            self.assertEqual((out / collect.PUBLICATION).stat().st_mode & 0o777, 0o644)
+            (out / "runs" / "notes").mkdir()
+            before = sorted(p.name for p in (out / "runs").iterdir())
+            removed = collect.prune_runs(out, 2)
+            self.assertEqual(removed, before[:2])
+            self.assertEqual(sorted(p.name for p in (out / "runs").iterdir()), before[2:4] + ["notes"])
+            self.assertEqual(collect.prune_runs(out, 2), [])
+            with self.assertRaises(ValueError):
+                collect.prune_runs(out, 0)
+
     def test_fetch_maps_transport_and_http_errors(self):
         def http_error(request, timeout):
             raise urllib.error.HTTPError(request.full_url, 451, "x", {}, io.BytesIO(b""))

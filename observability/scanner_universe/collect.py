@@ -11,7 +11,9 @@ Usage (on the host that is allowed to reach the exchanges)::
 
 ``--out-dir`` keeps every raw response under ``DIR/runs/<run_id>/`` with a
 ``manifest.json`` (reception time, HTTP status, sha256) and atomically replaces
-``DIR/scanner-universe.json``. ``--replay`` recomputes the publication of a run
+``DIR/scanner-universe.json`` (mode 0644, read by the Operator API under another
+account). ``--keep-runs N`` keeps only the N most recent run folders (raw
+responses are about 5 MB per run). ``--replay`` recomputes the publication of a run
 from its raw responses at the run's own evaluation time and prints it, so the
 same intersection can be checked byte for byte. Collected data stays on the
 host disk; nothing is written to Git.
@@ -21,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 import tempfile
 import time
@@ -34,6 +37,8 @@ from .universe import compute_universe
 TIMEOUT_S = 20
 USER_AGENT = "cat-scanner-universe/1.0 (public catalogue read)"
 PUBLICATION = "scanner-universe.json"
+PUBLICATION_MODE = 0o644
+RUN_ID_LENGTH = len("20261123T023238Z")
 
 
 def _now_ms() -> int:
@@ -63,6 +68,7 @@ def _atomic_write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=".json")
     try:
+        os.fchmod(fd, PUBLICATION_MODE)
         with os.fdopen(fd, "wb") as stream:
             stream.write(data)
             stream.flush()
@@ -76,6 +82,24 @@ def _atomic_write(path: Path, data: bytes) -> None:
 
 def encode(doc: dict) -> bytes:
     return (json.dumps(doc, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n").encode()
+
+
+def prune_runs(out_dir: Path, keep: int) -> list[str]:
+    """Removes the oldest run folders beyond ``keep``. Only folders named like a
+    run id are considered; a symlink or any other entry is left untouched."""
+    if keep < 1:
+        raise ValueError("keep must be >= 1")
+    runs_dir = Path(out_dir) / "runs"
+    if runs_dir.is_symlink() or not runs_dir.is_dir():
+        return []
+    runs = sorted(p.name for p in runs_dir.iterdir()
+                  if len(p.name) == RUN_ID_LENGTH and p.name[8] == "T" and p.name.endswith("Z")
+                  and p.name[:8].isdigit() and p.name[9:15].isdigit()
+                  and p.is_dir() and not p.is_symlink())
+    removed = runs[:-keep]
+    for name in removed:
+        shutil.rmtree(runs_dir / name)
+    return removed
 
 
 def run(out_dir: Path, fetcher=fetch, now_fn=_now_ms) -> dict:
@@ -133,11 +157,16 @@ def main(argv=None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--out-dir", type=Path)
     group.add_argument("--replay", type=Path)
+    parser.add_argument("--keep-runs", type=int, default=None, help="keep only the N most recent run folders")
     args = parser.parse_args(argv)
+    if args.keep_runs is not None and (args.replay or args.keep_runs < 1):
+        parser.error("--keep-runs N (N >= 1) goes with --out-dir")
     if args.replay:
         sys.stdout.buffer.write(encode(replay(args.replay)))
         return 0
     publication = run(args.out_dir)
+    if args.keep_runs is not None:
+        prune_runs(args.out_dir, args.keep_runs)
     summary = {k: publication[k] for k in ("status", "pair_count", "computed_ms", "universe_sha256", "blocking_sources")}
     summary["admissible"] = {s["market"]: s["admissible"] for s in publication["sources"]}
     print(json.dumps(summary, sort_keys=True))

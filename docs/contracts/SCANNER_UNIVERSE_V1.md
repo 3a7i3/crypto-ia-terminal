@@ -80,12 +80,27 @@ python -m pytest tests/scanner_universe
 
 ## Déploiement (non effectué) et retour arrière
 
-1. Producteur : unité systemd oneshot + timer 900 s sous un utilisateur sans
-   privilège, `--out-dir /var/lib/cat-data/scanner-universe` (module stockage), sortie
-   réseau vers les 3 hôtes publics seulement.
-2. API : `OPERATOR_SCANNER_UNIVERSE_PATH=<out-dir>/scanner-universe.json`, redémarrage
-   de `crypto-operator-api` ; vérifier `GET /api/operator/v1/scanner-universe`.
-3. Web : publier le build ; sans producteur configuré, le Scanner affiche
-   « Univers indisponible » et aucune ligne (comportement voulu).
-4. Retour arrière : arrêter le timer, retirer la variable d'environnement,
-   republier la release web précédente. Les relevés restent sur disque.
+Scripts : `deploy/scanner_universe/prep.sh` (sans root, construit l'API et le web
+par-dessus les versions en service, vérifie que les fichiers remplacés sont
+identiques à ceux en service, reconstruit le web en service à l'identique comme
+témoin, lance les tests et un passage à blanc du producteur) et
+`deploy/scanner_universe/cat-scanner-universe-root.sh` (phases `install`, `invoke`,
+`api`, `web`, `status`, `rollback`, une à la fois, chacune sur GO de l'opérateur).
+
+1. Producteur : compte système `cat-scanner-universe`, checkout immuable
+   `/opt/cat-scanner-universe/checkout/<sha>`, service oneshot + timer `*:7/15`
+   (900 s), `--out-dir /var/lib/cat-scanner-universe --keep-runs 24` (≈ 5 Mo de
+   réponses brutes par relevé, 6 h conservées). Publication en mode 0644, lue par
+   l'API sous un autre compte. Réseau : HTTPS public ; boucle locale (sauf le
+   résolveur 127.0.0.53), réseaux privés et métadonnées refusés. Les hôtes des
+   exchanges sont derrière des CDN : la restriction aux trois hôtes est portée par
+   le code (`catalogues.ENDPOINTS`), pas par une liste d'adresses IP.
+2. API : release = version en service + fichiers `scanner_universe` + 18 lignes
+   ajoutées à `app.py` ; drop-in avec `OPERATOR_SCANNER_UNIVERSE_PATH=/var/lib/cat-scanner-universe/scanner-universe.json`,
+   redémarrage de `crypto-operator-api` ; contrôle de la session PAPER (inchangée)
+   et des routes existantes, retour arrière automatique en cas d'échec.
+3. Web : dist = source en service + fichiers du Scanner ; drop-in de
+   `crypto-operator-web` ; page et bundle servis comparés au build.
+4. Retour arrière : `rollback` retire les deux drop-ins, arrête et retire le timer
+   et le service, redémarre API et web sur le bloc précédent. Les relevés, le
+   checkout et le compte restent sur disque.
