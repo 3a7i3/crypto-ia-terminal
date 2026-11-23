@@ -57,7 +57,7 @@ install)
   [ ! -e $U.service ] && [ ! -e $U.timer ] || fail "unités déjà présentes"
   id $SVC_USER >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin $SVC_USER || fail "création du compte $SVC_USER"
   # Un checkout présent mais incomplet (essai interrompu) est refait ; il ne contient que du code.
-  if [ -d $CK ] && [ "$(git -C $CK rev-parse -q --verify HEAD 2>/dev/null)" != $S ]; then rm -rf $CK; fi
+  if [ -d $CK ] && { [ "$(git -C $CK rev-parse -q --verify HEAD 2>/dev/null)" != $S ] || [ -n "$(git -C $CK status --porcelain 2>/dev/null)" ]; }; then rm -rf $CK; fi
   if [ ! -d $CK ]; then
     runuser -u lecanada26 -- git -C $SRC cat-file -e $S^{commit} || fail "commit $S absent de $SRC (lancer prep.sh)"
     # Le commit n'est qu'une branche distante dans $SRC : une branche locale le rend clonable.
@@ -71,6 +71,8 @@ install)
     chown -R root:root $CK.tmp
     find $CK.tmp -type d -exec chmod 0555 {} +
     find $CK.tmp -type f -exec chmod 0444 {} +
+    # Les fichiers exécutables suivis par Git gardent leur bit x (sinon « checkout modifié »).
+    git -C $CK.tmp ls-files -s | awk '$1=="100755"{print $4}' | (cd $CK.tmp && xargs -r chmod 0555)
     mv $CK.tmp $CK || fail "mise en place du checkout"
   fi
   [ "$(git -C $CK rev-parse HEAD)" = $S ] || fail "checkout != $S"
