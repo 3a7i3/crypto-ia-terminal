@@ -40,6 +40,10 @@ candidats et critères des stratégies. Les verdicts et classements proviennent
 de publications Research identifiées. Le frontend ne les calcule pas et ne
 possède aucune autorité de trading.
 
+## Livraison d'observation du 16 novembre 2026
+
+Le radar MEXC public est consultable dans l'application existante : [bilan daté, écarts roadmap, preuves et limites](docs/operations/operational-recovery-2026-11-16/README.md), suivi [#576](https://github.com/3a7i3/crypto-ia-terminal/issues/576). Collecte supervisée par campagnes, fiches et chandeliers démontrés sur Samsung. Cette livraison ne certifie ni signaux A9, ni U8/L4, ni l'alignement du code déployé avec main. Les états source historiques ci-dessous restent datés.
+
 ## Commencer ici
 
 | Besoin | Entrée canonique |

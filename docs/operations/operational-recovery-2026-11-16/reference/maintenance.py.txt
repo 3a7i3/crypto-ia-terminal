@@ -1,0 +1,53 @@
+"""Bounded retention for OR-LIVE disposable observations only; run between collectors."""
+import os,json,re,time,sys,shutil,stat
+from pathlib import Path
+ROOT=Path(sys.argv[1]) if len(sys.argv)>1 else None
+HEX=re.compile(r'^[a-f0-9]{64}$')
+def maintain(root):
+ root=Path(root)
+ if not root.is_absolute() or root.is_symlink() or root.resolve()!=root or not root.name.startswith('OR-LIVE-') or not (root/'OR_LIVE_MANAGED').is_file():raise ValueError('unmanaged root')
+ if any(p.is_symlink() for p in root.rglob('*')):raise ValueError('symlink refused')
+ store=root/'live-store';cut=time.time()-3600;keep=set();queue=[]
+ def collect(x):
+  if isinstance(x,dict):
+   for v in x.values():collect(v)
+  elif isinstance(x,list):
+   for v in x:collect(v)
+  elif isinstance(x,str) and HEX.fullmatch(x) and x not in keep:keep.add(x);queue.append(x)
+ pointer=store/'current.json'
+ if pointer.exists():
+  d=json.loads(pointer.read_text());collect(d)
+  generation=store/'generations'/(d['snapshot_id']+'.json')
+  if not generation.is_file():raise ValueError('missing current generation')
+  collect(json.loads(generation.read_text()))
+ # Protect recent generations, candle documents and raw evidence (one hour).
+ for kind in ('generations','candles','raw'):
+  for p in (store/kind).glob('*.json'):
+   if p.stat().st_mtime>=cut:collect(p.stem)
+ seen=set()
+ while queue:
+  h=queue.pop()
+  if h in seen:continue
+  seen.add(h)
+  for kind in ('generations','candles','raw'):
+   p=store/kind/(h+'.json')
+   if p.is_file():collect(json.loads(p.read_text()))
+ removed=0
+ for kind in ('generations','candles','raw'):
+  for p in (store/kind).glob('*.json'):
+   if HEX.fullmatch(p.stem) and p.stem not in keep and p.stat().st_mtime<cut:
+    p.unlink();removed+=1
+ # Only operational journal files in this new managed corpus: 4 backups + active.
+ evidence=root/'evidence'
+ for p in evidence.glob('*.jsonl'):
+  if p.stat().st_size>2*1024**2:
+   for n in range(4,0,-1):
+    src=Path(str(p)+'.'+str(n));dst=Path(str(p)+'.'+str(n+1))
+    if src.exists():
+     if n==4:src.unlink()
+     else:src.rename(dst)
+   p.rename(Path(str(p)+'.1'))
+ size=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+ print(json.dumps({'managed_root':str(root),'retention_seconds':3600,'removed_unreferenced':removed,'bytes':size}),flush=True)
+ if size>4*1024**3 or shutil.disk_usage(root).free<5*1024**3:raise RuntimeError('disk safety limit: collector held')
+if __name__=='__main__':maintain(ROOT)
