@@ -72,6 +72,24 @@ def _inside(path, root) -> bool:
     return real == root or real.startswith(root + os.sep)
 
 
+def _walk_relative(path):
+    """A name ``refs`` opens relative to a directory descriptor, placed under that directory.
+
+    ``os.open(name, dir_fd=...)`` audits only the relative name; ``refs.WALK``
+    holds the absolute directory being walked so that the read check still
+    applies (an unknown relative name stays relative and is judged as such).
+    """
+    refs_mod = sys.modules.get(__package__ + ".refs")
+    walk = getattr(refs_mod, "WALK", None)
+    try:
+        name = os.fsdecode(os.fspath(path))
+    except TypeError:
+        return path
+    if walk and not os.path.isabs(name) and "/" not in name:
+        return os.path.join(walk[-1], name)
+    return path
+
+
 def _hook(event, args):
     if event.startswith(_BLOCKED_PREFIXES):
         _GUARD["blocked"].append(event)
@@ -85,6 +103,8 @@ def _hook(event, args):
             _GUARD["blocked"].append(event)
             raise PermissionError("RADAR_WRITE_OUTSIDE_STATE_DIR")
         readable = _GUARD["read_roots"]
+        if not writing and readable is not None and isinstance(path, (str, bytes, os.PathLike)):
+            path = _walk_relative(path)
         if not writing and readable is not None and isinstance(path, (str, bytes, os.PathLike)) \
                 and not any(_inside(path, r) for r in readable) \
                 and not (_is_code(path) and any(_inside(path, r) for r in _GUARD["code_roots"])):
@@ -630,7 +650,7 @@ def _one(session: Session, argv: list, out, err) -> int:
                 "COMMIT_EXPECTED", "CORPUS_ID", "COVERAGE_EMPTY", "UNKNOWN_REASONS", "BLOBS_EXPECTED",
                 "UNKNOWN_REASON_FOR_PRESENT_VALUE", "HISTORICAL_OBSERVATION_WITHOUT_SOURCE",
                 "L2_VERIFIED_NOT_ALLOWED_FROM_SOURCE", "L2_SCOPE_ONLY_FOR_TOP_N", "L2_TOP_N_SCOPE_REQUIRED",
-                "L2_TOP_N_DEPTH_LEVELS_REQUIRED", "L2_SCOPE_COUNTS", "EVIDENCE_ROOT_MISSING",
+                "L2_TOP_N_DEPTH_LEVELS_REQUIRED", "L2_SCOPE_COUNTS", "EXCLUDED_INSTANTS_BOUND", "EVIDENCE_ROOT_MISSING",
                 "EVIDENCE_ROOT_NOT_A_DIRECTORY")
         err.write(f"{'ENTRÉE REFUSÉE' if refused_input else 'REFUSÉ'}: {exc}\n")
         return EXIT_INPUT if refused_input else EXIT_REFUSED

@@ -21,8 +21,8 @@ Exécutés localement dans l'environnement isolé. Aucune CI lancée.
 
 | Contrôle | Python 3.13.18 | Python 3.11 |
 |---|---|---|
-| `tests/radar_selection` (72 R0 inchangés + 57 R1-B) | 129 réussis | 129 réussis |
-| `radar_selection` + `scanner_universe` + `radar_composite` + `market_flow` | 474 réussis, 3 ignorés | 474 réussis, 3 ignorés |
+| `tests/radar_selection` (72 R0 inchangés + 60 R1-B) | 132 réussis | 132 réussis |
+| `radar_selection` + `scanner_universe` + `radar_composite` + `market_flow` | 477 réussis, 3 ignorés | 477 réussis, 3 ignorés |
 | Gate ruff du dépôt (`scripts/ci/ruff_baseline_gate.py check`, ruff 0.15.8) | 0 nouvelle violation | — |
 | `build_batches --check` (reproductibilité octet pour octet) | aucune différence | — |
 
@@ -71,7 +71,55 @@ sont étrangers à R1-B.
   critères `PARTIAL` (L2 TOP_N, spread sans profondeur) apparaissent dans
   « manquants », avec leur détail dans `inspect`. Comportement R0 conservé.
 
-## 5. Limites
+## 5. Contre-revue du 2026-11-24 (L2 sécurité, L3 à L6)
+
+### 5.1 Défaut bloquant corrigé : sortie de la racine par course sur un parent
+
+`refs.read_ref` vérifiait chaque composant par `lstat` sur le chemin joint, puis
+ouvrait le chemin complet avec `O_NOFOLLOW`, qui ne protège que le dernier
+composant. Un test de concurrence isolé (un processus remplace en boucle
+`root/sub` par un lien vers un dossier extérieur contenant un fichier de même
+nom) a montré que le lecteur **renvoyait le contenu du fichier extérieur** :
+132 lectures sur 200 000, et 12 040 ouvertures de descripteurs hors racine.
+Le contrôle d'inode ne suffisait pas : le `lstat` du fichier passait lui-même
+par le parent remplacé.
+
+Correction minimale : traversée par descripteurs de répertoire. La racine est
+ouverte (`O_DIRECTORY | O_NOFOLLOW`) et comparée à l'identité relevée par
+`evidence_root` ; chaque composant est examiné et ouvert relativement au
+descripteur de son parent avec `O_NOFOLLOW`, puis comparé par inode. Plafonds,
+codes de refus, contrôle d'inode et SHA-256 sont conservés ; nouveau code
+`REF_PLATFORM_UNSUPPORTED` si l'ouverture relative n'existe pas. Le garde
+d'audit replace les noms relatifs sous le répertoire parcouru
+(`refs.WALK`) pour continuer à refuser toute lecture hors racine.
+
+Après correction, même sonde : 0 contenu extérieur, 0 descripteur extérieur.
+Tests ajoutés : `test_R10_parent_swapped_during_read_never_leaves_the_root`
+(échoue sur l'ancien code, passe sur le nouveau) et
+`test_R10_evidence_root_replaced_after_resolution_is_refused`.
+
+### 5.2 Défaut mineur corrigé
+
+`EXCLUDED_INSTANTS_BOUND` (refus de forme) sortait en code `2` au lieu de `3`
+dans le terminal. Corrigé ; test
+`test_R14_every_batch_shape_refusal_exits_as_input_refused`.
+
+### 5.3 Points de revue L3 à L6
+
+| # | Point | Constat | Preuve |
+|---|---|---|---|
+| 1 | Catalogues en octets bruts | conformes : octets d'origine vérifiés (taille, SHA-256, entrée du manifeste) puis `parse_all` ; aucune re-sérialisation ; fractionnaires lus en `Decimal` par le Scanner | T02, T03, R11 |
+| 2 | Ancrage SHA-256 BBO | conforme : ancre épinglée, manifeste lié par ses empreintes scellées, chaque fenêtre présente dans l'ancre à sa position | T04, R09, T12 |
+| 3 | Provenance par observation | conforme : `source_id`, `evidence_ref` `bbo:<corpus>#<venue>`, commit producteur égal à `collection_commit`, observation re-dérivée et comparée | R13, T04 |
+| 4 | Kraken/MEXC, Spot/Perp, USD/USDT | conforme : symbole natif tiré des `bindings` du journal, type `SPOT` exigé, jointure par `(venue, type, symbole natif)`, conflit base/quote non admissible | T06, T07 |
+| 5 | MID_BBO exact | conforme : égalité `Decimal` exacte, refus `MID_REPRESENTATION_MISMATCH`, aucune correction | R07 |
+| 6 | Instants invalides | conformes : omis, cités avec motif dans la portée | T10 |
+| 7 | Activité, profondeur absentes | UNKNOWN avec motif, jamais 0 | T08, T09 |
+| 8 | `VERIFIED_TOP_N = 40` | conforme, avec `depth_levels`, `scope` et motif ; jamais `VERIFIED` depuis une source | R03 à R06 |
+| 9 | Lecture, mémoire, stockage | plafonds par référence et par lot appliqués ; écriture atomique et bornée à `--state-dir`. **Limite ouverte** : volume maximal lu ≈ 99 Mo, au-dessus du budget mémoire de test (contrat § 8) | T13, T18, R14 |
+| 10 | Réseau, collecte, rejeu, PAPER, autorité | aucun import réseau ni producteur ; garde d'audit en sous-processus ; `admission: NONE` ; aucun job lancé | T14, T15 |
+
+## 6. Limites
 
 - Toutes les preuves du dépôt sont SYNTHETIC (transport simulé `FakeVenues`,
   catalogues inventés). Aucune valeur n'est calibrée.

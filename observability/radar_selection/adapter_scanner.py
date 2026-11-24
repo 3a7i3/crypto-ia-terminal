@@ -16,7 +16,7 @@ from observability.scanner_universe.catalogues import strict_json
 from .fixture import CATALOGUE_DOCUMENTS, RadarRefusal
 
 _HEX64 = re.compile(r"[0-9a-f]{64}", re.ASCII)
-_ERROR = re.compile(r"[A-Za-z0-9_]{1,80}", re.ASCII)  # Scanner codes: HTTP_404, TRANSPORT_URLError...
+_ERROR = re.compile(r"[A-Za-z0-9_]{1,80}", re.ASCII)  # Scanner codes (HTTP_404, TRANSPORT_URLERROR); tolerant
 
 
 def sha256_hex(data: bytes) -> str:

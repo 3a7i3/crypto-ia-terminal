@@ -14,7 +14,8 @@ from tests.radar_selection._helpers import NAMES, ROOT, clone, cli, doc, ev, pat
 
 PACKAGE = ROOT / "observability" / "radar_selection"
 STDLIB_ALLOWED = {"__future__", "hashlib", "json", "re", "decimal", "dataclasses", "pathlib", "os", "sys",
-                  "shlex", "textwrap", "time", "tracemalloc", "stat"}
+                  "shlex", "textwrap", "time", "tracemalloc", "stat",
+                  "errno"}  # errno: R1-B security review, ELOOP from O_NOFOLLOW in refs.py
 # R1-B (plan accepted 2026-11-24, lot L4): the BBO adapter reuses the existing pure
 # validators of the replayed windows and of their anchor instead of a second validator.
 # Their import chain opens no transport (checked below by the forbidden-module tests).

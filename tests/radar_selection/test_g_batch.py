@@ -703,3 +703,83 @@ def test_R10_global_refusal_versus_local_degradation_in_the_cli(tmp_path):
     os.symlink(tmp_path / "elsewhere.json", window)
     rc, out, err = cli(["--batch", str(ev_dir / bb.BATCH), "--evidence-root", str(ev_dir), "status"], tmp_path)
     assert rc == 3 and "REF_SYMLINK" in err and out == ""
+
+
+def _flip_parent(base: str, stop) -> None:
+    """Swap root/sub between the real directory and a symbolic link to an outside directory."""
+    root = os.path.join(base, "root")
+    while not stop.is_set():
+        os.rename(os.path.join(root, "sub"), os.path.join(base, "parked"))
+        os.symlink(os.path.join(base, "outside"), os.path.join(root, "sub"))
+        os.unlink(os.path.join(root, "sub"))
+        os.rename(os.path.join(base, "parked"), os.path.join(root, "sub"))
+
+
+def test_R10_parent_swapped_during_read_never_leaves_the_root(tmp_path, monkeypatch):
+    """Security review of L2: a parent directory replaced by a symbolic link between the
+    check and the open must never let the reader open or return a file outside the root."""
+    import multiprocessing
+    from observability.radar_selection import refs as refs_mod
+    base = str(tmp_path)
+    os.makedirs(os.path.join(base, "root", "sub"))
+    os.makedirs(os.path.join(base, "outside"))
+    (tmp_path / "root" / "sub" / "f.json").write_bytes(b"INSIDE")
+    (tmp_path / "outside" / "f.json").write_bytes(b"SECRET")
+    root = evidence_root(tmp_path / "root")
+    outside = {(s.st_dev, s.st_ino) for s in (os.stat(tmp_path / "outside"), os.stat(tmp_path / "outside" / "f.json"))}
+    opened_outside = []
+    real_open = os.open
+
+    def spy(p, flags, mode=0o777, *, dir_fd=None):
+        fd = real_open(p, flags, mode, dir_fd=dir_fd)
+        st = os.fstat(fd)
+        if (st.st_dev, st.st_ino) in outside:
+            opened_outside.append(p)
+        return fd
+    monkeypatch.setattr(refs_mod.os, "open", spy)
+    ctx = multiprocessing.get_context("fork")
+    stop = ctx.Event()
+    proc = ctx.Process(target=_flip_parent, args=(base, stop))
+    proc.start()
+    import time
+    seen, n, deadline = {}, 0, time.monotonic() + 10
+    try:
+        while n < 20_000 or (len(seen) < 2 and time.monotonic() < deadline):
+            n += 1
+            try:
+                out = read_ref(root, "sub/f.json", 100).decode()
+            except RadarRefusal as exc:
+                out = exc.code
+            seen[out] = seen.get(out, 0) + 1
+    finally:
+        stop.set()
+        proc.join(10)
+    assert "SECRET" not in seen and opened_outside == []
+    assert set(seen) <= {"INSIDE", "REF_MISSING", "REF_SYMLINK", "REF_CHANGED_DURING_READ", "REF_OUTSIDE_ROOT"}
+    assert len(seen) > 1, seen   # the race really ran
+
+
+def test_R10_evidence_root_replaced_after_resolution_is_refused(tmp_path):
+    (tmp_path / "root").mkdir()
+    (tmp_path / "root" / "f.json").write_bytes(b"A")
+    root = evidence_root(tmp_path / "root")
+    os.rename(tmp_path / "root", tmp_path / "old")
+    (tmp_path / "root").mkdir()
+    (tmp_path / "root" / "f.json").write_bytes(b"B")
+    with pytest.raises(RadarRefusal) as e:
+        read_ref(root, "f.json", 100)
+    assert e.value.code == "REF_CHANGED_DURING_READ"
+
+
+def test_R14_every_batch_shape_refusal_exits_as_input_refused(tmp_path):
+    """Contract § 9: a shape refusal is a global input refusal (exit 3), never a command refusal."""
+    import shutil
+    ev_dir = tmp_path / "ev"
+    shutil.copytree(EVIDENCE, ev_dir)
+    d = batch_doc()
+    k = next(o for o in d["observations"] if o["l2"] and o["l2"]["scope"])
+    k["l2"]["scope"]["excluded_instants"].extend([{"t_ms": 1, "reason": "X"}] * (c.MAX_EXCLUDED_INSTANTS + 1))
+    (ev_dir / "batches" / "bad.json").write_bytes(canonical(d))
+    rc, out, err = cli(["--batch", str(ev_dir / "batches" / "bad.json"), "--evidence-root", str(ev_dir),
+                        "status"], tmp_path)
+    assert rc == 3 and "ENTRÉE REFUSÉE: EXCLUDED_INSTANTS_BOUND" in err

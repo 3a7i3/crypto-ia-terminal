@@ -96,11 +96,19 @@ Seule la CLI lit des fichiers (`refs.py`) ; le cœur reçoit `{ref: octets}`.
   (`EVIDENCE_ROOT_MISSING`, `EVIDENCE_ROOT_NOT_A_DIRECTORY`).
 - Grammaire d'une `ref` : `[A-Za-z0-9._-]{1,80}(/[A-Za-z0-9._-]{1,80}){0,7}`,
   sans composant `.` ni `..` (`REF_SYNTAX`).
-- Chaque composant est vérifié par `lstat` (pas de lien : `REF_SYMLINK`) ; la
-  cible est un fichier régulier (`REF_NOT_REGULAR`), sous la racine
-  (`REF_OUTSIDE_ROOT`), dans son plafond (`REF_TOO_LARGE`), ouvert avec
-  `O_NOFOLLOW` et du même inode que celui vérifié
-  (`REF_CHANGED_DURING_READ`). Une référence absente (`REF_MISSING`) est
+- La référence est parcourue **par descripteurs de répertoire** : la racine
+  est ouverte (`O_DIRECTORY | O_NOFOLLOW`) et doit avoir l'identité
+  (périphérique, inode) relevée à sa résolution ; chaque composant est examiné
+  par `lstat` relatif à son parent (lien : `REF_SYMLINK`), puis ouvert relatif
+  au descripteur du parent avec `O_NOFOLLOW` (et `O_DIRECTORY` pour un
+  répertoire), et doit être le même inode que celui examiné
+  (`REF_CHANGED_DURING_READ`). Un parent remplacé par un lien pendant la
+  lecture ne peut donc mener hors de la racine.
+- La cible est un fichier régulier (`REF_NOT_REGULAR`), dans son plafond
+  (`REF_TOO_LARGE`). Sous Linux, le chemin réel du descripteur ouvert doit
+  encore être sous la racine (`REF_OUTSIDE_ROOT`, défense en profondeur). Une
+  plateforme sans ouverture relative sans suivi de lien est refusée
+  (`REF_PLATFORM_UNSUPPORTED`). Une référence absente (`REF_MISSING`) est
   signalée par la vérification, pas ignorée.
 - Le hook d'audit refuse toute lecture hors de `--evidence-root` et
   `--state-dir` (`RADAR_READ_OUTSIDE_EVIDENCE_ROOT`), sauf les fichiers de
@@ -188,6 +196,12 @@ Plafonds de test R0 (`TEST_BUDGETS`), plus :
 | Fenêtres par source | 8 (240 points ≤ 256 échantillons) | `ARTIFACTS_BOUND` |
 | Instants exclus listés | 256 | `EXCLUDED_INSTANTS_BOUND` |
 
+Volume maximal lu pour une évaluation : cinq catalogues de 8 000 000 octets
+et 59 autres références de 1 000 000 octets, soit environ 99 Mo en mémoire.
+Ce maximum dépasse le budget mémoire de test R0 (64 MiB) ; le lot SYNTHETIC du
+dépôt en lit environ 260 Ko. Le maximum n'est pas mesuré : **limite ouverte**,
+à traiter avant tout lot réel volumineux.
+
 Les plafonds de production restent `NOT_MEASURED`.
 
 ## 9. Refus global et dégradation locale
@@ -199,7 +213,7 @@ compté comme zéro.
 
 | Niveau | Déclencheur | Effet |
 |---|---|---|
-| **Refus global** (sortie `3`, aucune évaluation, rien n'est écrit) | forme du lot (clé, type, version, nature, `LIVE`, plafond de taille ou de nombre, grammaire d'une `ref`) ; racine de preuves invalide ; référence présente mais dangereuse ou hors plafond (`REF_SYMLINK`, `REF_OUTSIDE_ROOT`, `REF_NOT_REGULAR`, `REF_TOO_LARGE`, `REF_CHANGED_DURING_READ`) ; lecture hors racine ; spécification ou construction d'un lot (`batch_build`) en échec | le lot n'est pas lu à moitié |
+| **Refus global** (sortie `3`, aucune évaluation, rien n'est écrit) | forme du lot (clé, type, version, nature, `LIVE`, plafond de taille ou de nombre, grammaire d'une `ref`) ; racine de preuves invalide ; référence présente mais dangereuse ou hors plafond (`REF_SYMLINK`, `REF_OUTSIDE_ROOT`, `REF_NOT_REGULAR`, `REF_TOO_LARGE`, `REF_CHANGED_DURING_READ`, `REF_PLATFORM_UNSUPPORTED`) ; lecture hors racine ; spécification ou construction d'un lot (`batch_build`) en échec | le lot n'est pas lu à moitié |
 | **Dégradation : catalogues** | manifeste Scanner absent, altéré ou mal formé | les cinq catalogues `REFUSED` (`CATALOGUE_MANIFEST_*`) ; marchés de ces sources `UNAVAILABLE` ; évaluation produite |
 | **Dégradation : un catalogue** | document absent, empreinte ou taille fausse, entrée différente du manifeste, erreur Scanner | ce catalogue seul `REFUSED` ou `UNAVAILABLE` avec son code |
 | **Dégradation : une source** | ancre, manifeste de journal, fenêtre absente ou altérée, nature, commit ou corpus incohérents | source `REFUSED` ; toutes ses observations écartées, leurs marchés UNKNOWN avec le code ; autres sources intactes |
