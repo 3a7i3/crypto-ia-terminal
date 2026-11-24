@@ -264,6 +264,22 @@ est comparé à la référence d’admission versionnée dans perception.py.
 Une empreinte fournie par l’opérateur à la CLI constitue un contrôle
 d’égalité supplémentaire. La référence documentaire ne certifie pas un rejeu.
 
+### Unités du manifeste Kraken Spot (C2-R2)
+
+La base et la cotation établissent les unités implicites de ce contrat Spot.
+Les champs facultatifs quantity_unit, price_quote_unit et price_unit sont
+contrôlés à la racine, dans instrument et dans ws.kraken. Ils doivent
+respectivement correspondre à la base, à la cotation et à cotation/base.
+Chaque déclaration explicite est contrôlée, même si un autre niveau donne la
+bonne valeur. Un champ d'unité inconnu donne KRAKEN_UNIT_FIELD_UNKNOWN, une
+valeur malformée KRAKEN_UNIT_MALFORMED, et une unité différente de l'attendu
+KRAKEN_UNIT_MISMATCH, avec le chemin concerné. Le code d'identité préexistant
+KRAKEN_SPOT_IDENTITY_MISMATCH demeure applicable.
+
+Quand les unités ne sont pas déclarées, la projection conserve les
+conventions de l'instrument Spot. L'absence ne constitue aucune attestation
+de l'exchange ni de provenance historique.
+
 ### Rejeu Kraken C2-R
 
 Les plages des événements pavent frames.bin dans l’ordre des reçus, y compris

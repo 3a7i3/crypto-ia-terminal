@@ -71,12 +71,23 @@ def _refuse(code, path):
     raise PerceptionRefusal(f"{code}:{path}")
 
 
-def validate_kraken_spot_identity(venue, market_type, symbol, base, quote):
+def validate_kraken_spot_identity(venue, market_type, symbol, base, quote, *, unit_declarations=()):
     """Return the units established by a coherent Kraken Spot instrument."""
     if (venue != "kraken" or market_type != "SPOT"
             or any(type(asset) is not str or not _ASSET.fullmatch(asset) for asset in (base, quote))
             or base == quote or symbol != f"{base}/{quote}"):
         raise PerceptionRefusal("KRAKEN_SPOT_IDENTITY_MISMATCH")
+    expected_units = {"quantity_unit": base, "price_quote_unit": quote, "price_unit": f"{quote}/{base}"}
+    for scope, fields in unit_declarations:
+        for name, value in fields.items():
+            if "unit" not in name.casefold():
+                continue
+            if name not in expected_units:
+                _refuse("KRAKEN_UNIT_FIELD_UNKNOWN", f"{scope}.{name}")
+            if type(value) is not str or not re.fullmatch(r"[A-Z0-9]{1,16}(?:/[A-Z0-9]{1,16})?", value, _A):
+                _refuse("KRAKEN_UNIT_MALFORMED", f"{scope}.{name}")
+            if value != expected_units[name]:
+                _refuse("KRAKEN_UNIT_MISMATCH", f"{scope}.{name}")
     return {"quantity_unit": base, "price_quote_unit": quote}
 
 
