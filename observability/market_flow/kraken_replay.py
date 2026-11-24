@@ -34,7 +34,7 @@ from decimal import Decimal
 
 from . import perception as pc
 
-REPLAY_VERSION = "ch1-02-kraken-replay-0.3.0"
+REPLAY_VERSION = "ch1-02-kraken-replay-0.4.0"
 ARTIFACT = "CH1_02_KRAKEN_BOOK_REPLAY"
 VENUE = "kraken"
 OP_TEXT = 1
@@ -47,7 +47,7 @@ MS_TO_NS = 1_000_000
 # counts the instant p + 2000 itself as alive (``t - alive > L``); this replay does not.
 LIVENESS_MAX_GAP_MS = 2_000  # = parameters_primary.liveness_max_ms pre-registered by the BBO pilot
 LIVENESS_POLICY = {
-    "attesting_events": ["ws_open", "ws_control", "ws_message:valid_json_text"],
+    "attesting_events": ["ws_open", "ws_control", "ws_message:validated_envelope"],
     "not_attesting": ["sent", "rest", "checksum_mismatch", "closed_by_pilot", "other"],
     "max_gap_ms": str(LIVENESS_MAX_GAP_MS),
     "time_axis": "t_ms in integer milliseconds (manifest anchor + monotonic receipt delta)",
@@ -410,7 +410,10 @@ def _identity(manifest):
     if not 0 < depth <= CHECKSUM_LEVELS:
         raise ReplayRefusal("MANIFEST_IDENTITY_INVALID")
     try:
-        units = pc.validate_kraken_spot_identity(VENUE, market_type, symbol, base, quote)
+        units = pc.validate_kraken_spot_identity(
+            VENUE, market_type, symbol, base, quote,
+            unit_declarations=(("manifest", manifest), ("instrument", instrument), ("ws.kraken", kraken)),
+        )
     except pc.PerceptionRefusal as exc:
         raise ReplayRefusal(str(exc)) from None
     for field, expected in (("market_kind", market_type), ("contract_identity", "SPOT"),
@@ -419,6 +422,74 @@ def _identity(manifest):
             raise ReplayRefusal("KRAKEN_SPOT_IDENTITY_MISMATCH")
     return {"venue": VENUE, "market_type": market_type, "native_symbol": symbol, "base": base,
             "quote": quote, "subscribed_depth": str(depth), **units}
+
+
+_CONTROL_TIME = re.compile(
+    r"[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T"
+    r"(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?Z", re.ASCII)
+_RESPONSE_FIELDS = {"method", "success", "error", "req_id", "time_in", "time_out"}
+
+
+def _control_response_fields_valid(doc, *, synthetic):
+    if "req_id" in doc and (type(doc["req_id"]) is not _Num
+                            or not re.fullmatch(r"-?[0-9]+", doc["req_id"])):
+        return False
+    for field in ("time_in", "time_out"):
+        if field not in doc:
+            continue
+        value = doc[field]
+        if type(value) is not str or not (_CONTROL_TIME.fullmatch(value) or (synthetic and value == "x")):
+            return False
+    success = doc.get("success", True)
+    return type(success) is bool and (
+        "error" not in doc if success else type(doc.get("error")) is str and bool(doc["error"])
+    )
+
+
+def _valid_control(doc, book, *, synthetic):
+    """Classify only supported Kraken Spot v2 control envelopes."""
+    channel, method = doc.get("channel"), doc.get("method")
+    if channel == "heartbeat":
+        return "heartbeat" if doc.keys() == {"channel"} else None
+    if channel == "status":
+        if doc.keys() != {"channel", "type", "data"} or doc["type"] != "update":
+            return None
+        data = doc["data"]
+        if not isinstance(data, list) or len(data) != 1 or not isinstance(data[0], dict):
+            return None
+        status = data[0]
+        if (status.keys() == {"api_version", "connection_id", "system", "version"}
+                and status["api_version"] == "v2" and type(status["connection_id"]) is _Num
+                and re.fullmatch(r"[0-9]+", status["connection_id"])
+                and status["system"] in ("online", "cancel_only", "maintenance", "post_only")
+                and type(status["version"]) is str and status["version"]):
+            return "status"
+        return None
+    if method not in ("pong", "subscribe", "unsubscribe"):
+        return None
+    fields = _RESPONSE_FIELDS if method == "pong" else _RESPONSE_FIELDS | {"result"}
+    if doc.keys() - fields or not _control_response_fields_valid(doc, synthetic=synthetic):
+        return None
+    if method == "pong":
+        return "pong" if doc.get("success", True) else "ack_refused"
+    if doc.get("success") is False:
+        return "ack_refused" if "result" not in doc else None
+    result = doc.get("result")
+    if doc.get("success") is not True or not isinstance(result, dict):
+        return None
+    symbol = result.get("symbol")
+    if (result.keys() - {"channel", "symbol", "depth", "snapshot", "warnings"}
+            or result.get("channel") != "book"
+            or (symbol != book.symbol and not (synthetic and symbol == [book.symbol]))):
+        return None
+    if "depth" in result and (type(result["depth"]) is not _Num or result["depth"] != str(book.depth)):
+        return None
+    if "snapshot" in result and type(result["snapshot"]) is not bool:
+        return None
+    if "warnings" in result and (not isinstance(result["warnings"], list)
+                                 or any(type(item) is not str for item in result["warnings"])):
+        return None
+    return "ack_unsubscribe" if method == "unsubscribe" else "ack_ok"
 
 
 def _raw_event(session_id, ident, ev, channel, native_time):
@@ -513,7 +584,11 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
             book.disconnect(ev["seq"], "GAVE_UP" if kind == "gave_up" else "DISCONNECTED")
             touched = True
         elif kind == "ws_control":
-            live.proof(ev)
+            if ev["opcode"] in (_Num("9"), _Num("10")) and len(ev["payload"]) <= 125 and book.connected:
+                live.proof(ev)
+            else:
+                book.lose(ev["seq"], "WS_CONTROL_INVALID")
+                touched = True
         elif kind == "sent":
             try:
                 doc = _json_keep_numbers(ev["payload"], refusal="SENT")
@@ -541,15 +616,13 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
                     book.count("text_invalid")
                     book.lose(ev["seq"], "DATA_ENVELOPE_INVALID")
                     touched = True
-                if doc is not None:
-                    live.proof(ev)
                 if isinstance(doc, dict):
                     channel = doc.get("channel") if type(doc.get("channel")) is str else None
                     if channel == "trade":
                         raise ReplayRefusal("TRADE_CHANNEL_OUT_OF_SCOPE")
                     if channel == "book":
                         data = doc.get("data")
-                        if (doc.get("type") not in ("snapshot", "update")
+                        if ("method" in doc or doc.get("type") not in ("snapshot", "update")
                                 or not isinstance(data, list) or len(data) != 1
                                 or not isinstance(data[0], dict) or data[0].get("symbol") != book.symbol):
                             book.lose(ev["seq"], "BOOK_ENVELOPE_INVALID")
@@ -559,18 +632,23 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
                             if type(item.get("timestamp")) is str:
                                 native_time = item["timestamp"]
                             touched = book.apply_book(ev["seq"], doc["type"], item)
-                    elif channel == "heartbeat":
-                        book.count("heartbeat")
-                    elif doc.get("method") == "pong":
-                        book.count("pong")
-                    elif channel == "status":
-                        book.count("status")
-                    elif doc.get("method") in ("subscribe", "unsubscribe"):
-                        book.count("ack_" + ("ok" if doc.get("success") is True else "refused"))
+                            if book.last_book_seq == ev["seq"]:
+                                live.proof(ev)
                     else:
-                        book.count("text_other")
-                        book.lose(ev["seq"], "DATA_ENVELOPE_UNCLASSIFIED")
-                        touched = True
+                        control = _valid_control(doc, book, synthetic=evidence_kind == "SYNTHETIC")
+                        if control is None or not book.connected:
+                            book.count("text_other")
+                            reason = ("CONTROL_ENVELOPE_INVALID"
+                                      if "method" in doc or channel in ("heartbeat", "status")
+                                      else "DATA_ENVELOPE_UNCLASSIFIED")
+                            book.lose(ev["seq"], reason)
+                            touched = True
+                        else:
+                            live.proof(ev)
+                            book.count("ack_ok" if control == "ack_unsubscribe" else control)
+                            if control == "ack_unsubscribe" and book.continuity == "SYNCED":
+                                book.lose(ev["seq"], "BOOK_UNSUBSCRIBED")
+                                touched = True
         else:
             book.count("not_replayed_" + str(kind))
         if channel is not None and (type(channel) is not str or not channel.isprintable() or len(channel) > 64):

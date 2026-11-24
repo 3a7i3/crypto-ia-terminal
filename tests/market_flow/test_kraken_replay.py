@@ -486,3 +486,115 @@ def test_manifest_instrument_metadata_matches_kraken_spot(field, value):
     doc["instrument"][field] = value
     with pytest.raises(kr.ReplayRefusal, match="KRAKEN_SPOT_IDENTITY_MISMATCH"):
         kr.replay(json.dumps(doc).encode(), events, frames, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+
+
+@pytest.mark.parametrize("scope,field,value,reason", [
+    ("instrument", "quantity_unit", "CONTRACTS", "KRAKEN_UNIT_MISMATCH"),
+    ("instrument", "quantity_unit", "ETH", "KRAKEN_UNIT_MISMATCH"),
+    ("instrument", "quote_asset_id", "USD", "KRAKEN_SPOT_IDENTITY_MISMATCH"),
+    ("manifest", "market_type", "PERP", "KRAKEN_SPOT_IDENTITY_MISMATCH"),
+    ("instrument", "amount_unit", "BTC", "KRAKEN_UNIT_FIELD_UNKNOWN"),
+    ("instrument", "price_unit", 42, "KRAKEN_UNIT_MALFORMED"),
+    ("kraken", "price_unit", "USDT/ETH", "KRAKEN_UNIT_MISMATCH"),
+])
+def test_manifest_refused_before_any_book_processing(scope, field, value, reason, monkeypatch):
+    manifest, events, frames = build([(0, "kraken", "ws_open", b""),
+                                     (1, "kraken", "ws_message", snapshot_frame())])
+    doc = json.loads(manifest)
+    scopes = {"instrument": doc["instrument"], "manifest": doc, "kraken": doc["ws"]["kraken"]}
+    scopes[scope][field] = value
+
+    def unexpected_book(*args, **kwargs):
+        pytest.fail("a refused identity must never construct a book")
+
+    monkeypatch.setattr(kr, "_KrakenBook", unexpected_book)
+    with pytest.raises(kr.ReplayRefusal, match=reason):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+
+
+def test_explicit_and_implicit_kraken_spot_units_yield_same_book():
+    manifest, events, frames = build([(0, "kraken", "ws_open", b""),
+                                     (1, "kraken", "ws_message", snapshot_frame())])
+    doc = json.loads(manifest)
+    doc["instrument"].update(quantity_unit="BTC", price_quote_unit="USDT", price_unit="USDT/BTC")
+    kwargs = {"corpus_id": CORPUS, "evidence_kind": "SYNTHETIC"}
+    implicit, _ = kr.replay(manifest, events, frames, **kwargs)
+    explicit, _ = kr.replay(json.dumps(doc).encode(), events, frames, **kwargs)
+    assert implicit == explicit
+    assert json.loads(explicit)["session"]["quantity_unit"] == "BTC"
+
+
+PONG = (b'{"method":"pong","success":true,"req_id":1,'
+        b'"time_in":"2026-11-20T07:06:32.000Z","time_out":"2026-11-20T07:06:32.001Z"}')
+
+
+@pytest.mark.parametrize("frame,reason", [
+    (b'{"method":"pong","data":42}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"pong","data":[]}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"unknown"}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"pong","req_id":"1"}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"channel":"heartbeat","type":"update"}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"channel":"status","type":"update","data":42}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"subscribe","success":true,"result":{"channel":"book"}}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"pong"', "DATA_ENVELOPE_INVALID"),
+])
+def test_invalid_control_cannot_attest_or_keep_a_verified_book(frame, reason):
+    snapshot = snapshot_frame()
+    update = snapshot.replace(b'"snapshot"', b'"update"')
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (10, "kraken", "ws_message", snapshot),
+                     (2011, "kraken", "ws_message", frame),
+                     (2012, "kraken", "ws_message", update),
+                     (2013, "kraken", "ws_message", PONG),
+                     (2014, "kraken", "ws_message", snapshot)])
+    kwargs = {"corpus_id": CORPUS, "evidence_kind": "SYNTHETIC"}
+    result = json.loads(kr.replay(*journal, **kwargs)[0])
+    assert result["anomalies"] == [{"receipt_seq": "3", "reason": reason}]
+    states = {q["as_of_receipt_seq"]: q["book_integrity"]["state"] for q in records(result, "QUALITY_REPORT")}
+    assert states == {"1": "NOT_AVAILABLE", "2": "VERIFIED", "3": "INVALID", "6": "VERIFIED"}
+    assert result["breaks"][0]["resolved_receipt_seq"] == "6"
+    assert result["silences"][1] == silence("SILENCE_GAP_EXCEEDS_MAX", 2010, 2013, (2, 10), closed_by=5)
+    assert kr.replay(*journal, **kwargs, receipt_bound=2)[0] == kr.replay(*truncated(journal, 2), **kwargs)[0]
+
+
+@pytest.mark.parametrize("apart", [2000, 2001])
+def test_valid_pong_attests_connection_without_new_book_proof(apart):
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (10, "kraken", "ws_message", snapshot_frame()),
+                     (10 + apart, "kraken", "ws_message", PONG)])
+    result = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert result["counters"]["pong"] == "1"
+    assert not result["anomalies"]
+    assert [q["as_of_receipt_seq"] for q in records(result, "QUALITY_REPORT")] == ["1", "2"]
+    gaps = [s for s in result["silences"] if s["reason"] == "SILENCE_GAP_EXCEEDS_MAX"]
+    assert gaps == ([silence("SILENCE_GAP_EXCEEDS_MAX", 2010, 2011, (2, 10), closed_by=3)]
+                    if apart == 2001 else [])
+
+
+def test_pong_after_reconnection_cannot_verify_book():
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (10, "kraken", "ws_message", snapshot_frame()),
+                     (20, "kraken", "ws_close", b""),
+                     (30, "kraken", "ws_open", b""),
+                     (40, "kraken", "ws_message", PONG)])
+    result = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert records(result, "QUALITY_REPORT")[-1]["book_integrity"]["state"] == "INVALID"
+    assert result["breaks"][0]["resolved_receipt_seq"] is None
+
+
+def test_documented_control_shapes_and_fixture_exceptions():
+    book = kr._KrakenBook("BTC/USDT", 10)
+    decode = lambda payload: kr._json_keep_numbers(payload, refusal="FIXTURE")  # noqa: E731
+    envelopes = [
+        (PONG, "pong"),
+        (HEARTBEAT, "heartbeat"),
+        (b'{"channel":"status","type":"update","data":[{"api_version":"v2","connection_id":2,'
+         b'"system":"online","version":"2.0"}]}', "status"),
+        (b'{"method":"subscribe","success":true,"result":{"channel":"book","symbol":"BTC/USDT",'
+         b'"depth":10,"snapshot":true}}', "ack_ok"),
+    ]
+    for payload, expected in envelopes:
+        assert kr._valid_control(decode(payload), book, synthetic=False) == expected
+    fixture = decode(b'{"method":"pong","req_id":1,"time_in":"x","time_out":"x"}')
+    assert kr._valid_control(fixture, book, synthetic=True) == "pong"
+    assert kr._valid_control(fixture, book, synthetic=False) is None

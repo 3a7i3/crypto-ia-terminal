@@ -264,6 +264,18 @@ est comparé à la référence d’admission versionnée dans perception.py.
 Une empreinte fournie par l’opérateur à la CLI constitue un contrôle
 d’égalité supplémentaire. La référence documentaire ne certifie pas un rejeu.
 
+### Rejeu Kraken C2-R
+
+Les plages des événements pavent frames.bin dans l’ordre des reçus, y compris
+les plages vides. Les tailles du sceau, si présentes, doivent correspondre
+aux fichiers. Une trame book doit contenir un seul élément pour l’instrument
+souscrit. Une enveloppe ambiguë, un opcode inattendu ou un carnet non
+bilatéral après checksum invalide la continuité. Les anomalies portent le
+numéro du reçu, y compris pendant une rupture déjà ouverte. La reprise
+exige un snapshot bilatéral, non croisé, avec checksum valide, sur une
+connexion observée. Une souscription ou un heartbeat seuls ne rétablissent
+pas le carnet. Le rejeu garde la règle de vivacité des intervalles semi-ouverts.
+
 ### Unités du manifeste Kraken Spot (C2-R2)
 
 La base et la cotation établissent les unités implicites de ce contrat Spot.
@@ -280,14 +292,25 @@ Quand les unités ne sont pas déclarées, la projection conserve les
 conventions de l'instrument Spot. L'absence ne constitue aucune attestation
 de l'exchange ni de provenance historique.
 
-### Rejeu Kraken C2-R
+### Contrôles de connexion Kraken Spot v2 (C2-R2)
 
-Les plages des événements pavent frames.bin dans l’ordre des reçus, y compris
-les plages vides. Les tailles du sceau, si présentes, doivent correspondre
-aux fichiers. Une trame book doit contenir un seul élément pour l’instrument
-souscrit. Une enveloppe ambiguë, un opcode inattendu ou un carnet non
-bilatéral après checksum invalide la continuité. Les anomalies portent le
-numéro du reçu, y compris pendant une rupture déjà ouverte. La reprise
-exige un snapshot bilatéral, non croisé, avec checksum valide, sur une
-connexion observée. Une souscription ou un heartbeat seuls ne rétablissent
-pas le carnet. Le rejeu garde la règle de vivacité des intervalles semi-ouverts.
+Les enveloppes de contrôle sont validées avant d'attester la connexion.
+Heartbeat est limité au champ channel. Pong accepte les métadonnées de
+réponse documentées, sans champ data. Status et acquittements book sont
+limités aux structures de base documentées et à la souscription du pilote.
+Les extensions non prises en charge sont classées de manière conservatrice.
+Les représentations abrégées du générateur BBO (horodatage x et symbole en
+liste dans les acquittements) sont réservées au mode SYNTHETIC.
+Un ping/pong WebSocket natif exige un opcode de contrôle et au plus 125 octets
+sur une connexion ouverte. Une enveloppe ambiguë ou malformée conserve son
+reçu et rompt la continuité sans prolonger la vivacité. Un désabonnement book
+confirmé invalide le carnet courant. Un contrôle valide n'actualise jamais le
+carnet. La réparation exige un snapshot admissible. Les preuves book de
+connexion proviennent de trames appliquées avec checksum valide et carnet
+admissible. Les bornes de silence demeurent à 2 000 et 2 001 ms.
+
+Références Kraken Spot v2 :
+[Ping](https://docs.kraken.com/exchange/api-reference/spot-websocket-v2/ping),
+[Heartbeat](https://docs.kraken.com/exchange/api-reference/spot-websocket-v2/heartbeat),
+[Status](https://docs.kraken.com/exchange/api-reference/spot-websocket-v2/status),
+[Book](https://docs.kraken.com/exchange/api-reference/spot-websocket-v2/book).
