@@ -1,0 +1,600 @@
+"""CH1-02 step 1: Kraken-only replay of a sealed BBO journal. SYNTHETIC journals only.
+
+The reference journal is produced offline by ``bbo_pilot.dry_run`` (fake clock, fake
+venues, scheduled faults: one Kraken bad checksum, one Kraken silence). Nothing here
+is provider output or runtime proof.
+"""
+
+from decimal import Decimal
+import hashlib
+import json
+
+import pytest
+
+from observability.market_flow import kraken_replay as kr
+from observability.market_flow import perception as pc
+from observability.radar_composite import bbo_book, bbo_pilot
+
+CORPUS = "SYNTH-BBO-BTC"
+
+
+@pytest.fixture(scope="module")
+def journal(tmp_path_factory):
+    out = tmp_path_factory.mktemp("bbo") / "run"
+    _pilot, code = bbo_pilot.dry_run("BTC", out)
+    assert code == 0
+    return tuple((out / name).read_bytes() for name in ("manifest.json", "events.jsonl", "frames.bin"))
+
+
+@pytest.fixture(scope="module")
+def full(journal):
+    out, seal = kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    return out, json.loads(out), seal
+
+
+def records(doc, kind):
+    return [r["record"] for r in doc["records"] if r["type"] == kind]
+
+
+def reseal(manifest_bytes, entries, frames):
+    """Rebuild a consistent sealed journal from event entries (synthetic tampering helper)."""
+    events = b"".join((json.dumps(e, sort_keys=True) + "\n").encode() for e in entries)
+    manifest = json.loads(manifest_bytes)
+    manifest["sealed"].update(events=len(entries), events_sha256=hashlib.sha256(events).hexdigest(),
+                              frames_sha256=hashlib.sha256(frames).hexdigest(),
+                              events_bytes=len(events), frames_bytes=len(frames))
+    return json.dumps(manifest, indent=2, sort_keys=True).encode() + b"\n", events, frames
+
+
+def entries_of(events_bytes):
+    return [json.loads(line) for line in events_bytes.decode().splitlines()]
+
+
+WALL0, MONO0 = 1_795_000_000_000, 40_000
+HEARTBEAT = b'{"channel":"heartbeat"}'
+SUBSCRIBE = b'{"method":"subscribe","params":{"channel":"book","symbol":["BTC/USDT"],"depth":10}}'
+
+
+def snapshot_frame():
+    """A one-level Kraken snapshot whose CRC32 matches its literals."""
+    checksum = kr.kraken_checksum([("100.6", "2")], [("100.5", "1.25")])
+    return ('{"channel":"book","type":"snapshot","data":[{"symbol":"BTC/USDT",'
+            '"bids":[{"price":100.5,"qty":1.25}],"asks":[{"price":100.6,"qty":2}],'
+            '"checksum":%d,"timestamp":"2026-11-20T07:06:32.000000Z"}]}' % checksum).encode()
+
+
+def build(spec):
+    """From-scratch SYNTHETIC sealed journal; spec = [(t offset in ms, venue, kind, payload)]."""
+    frames, entries = b"", []
+    for seq, (t, venue, kind, payload) in enumerate(spec, 1):
+        entry = {"seq": seq, "venue": venue, "kind": kind, "recv_wall_ms": WALL0 + t, "recv_mono_ms": MONO0 + t,
+                 "t_ms": WALL0 + t, "offset": len(frames), "bytes": len(payload),
+                 "sha256": hashlib.sha256(payload).hexdigest()}
+        if kind == "ws_message":
+            entry["opcode"] = 2 if venue == "mexc" else 1
+        frames += payload
+        entries.append(entry)
+    manifest = {"clock_anchor": {"wall_ms": WALL0, "mono_ms": MONO0}, "evidence_kind": "SYNTHETIC",
+                "instrument": {"base_asset_id": "BTC", "quote_asset_id": "USDT"}, "market_type": "SPOT",
+                "ws": {"kraken": {"symbol": "BTC/USDT", "depth": 10}}, "sealed": {}}
+    return reseal(json.dumps(manifest).encode(), entries, frames)
+
+
+def truncated(journal, bound):
+    """The same journal physically cut after ``bound`` events and sealed again."""
+    manifest, events, frames = journal
+    entries = entries_of(events)[:bound]
+    return reseal(manifest, entries, frames[:max((e["offset"] + e["bytes"] for e in entries), default=0)])
+
+
+def silence(reason, starts, ends, last_proof, opened_by=None, closed_by=None):
+    def ms(offset):
+        return None if offset is None else str(WALL0 + offset)
+
+    def seq(value):
+        return None if value is None else str(value)
+
+    return {"reason": reason, "starts_at_t_ms": ms(starts), "ends_before_t_ms": ms(ends),
+            "last_proof_receipt_seq": seq(last_proof and last_proof[0]), "last_proof_t_ms": ms(last_proof and last_proof[1]),
+            "opened_by_receipt_seq": seq(opened_by), "closed_by_receipt_seq": seq(closed_by)}
+
+
+def append_kraken_text(journal, payload):
+    manifest, events, frames = journal
+    entries = entries_of(events)
+    last = entries[-1]
+    mono = last["recv_mono_ms"] + 10
+    anchor = json.loads(manifest)["clock_anchor"]
+    entries.append({"seq": last["seq"] + 1, "venue": "kraken", "kind": "ws_message", "opcode": 1,
+                    "recv_wall_ms": mono, "recv_mono_ms": mono,
+                    "t_ms": anchor["wall_ms"] + mono - anchor["mono_ms"], "offset": len(frames),
+                    "bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()})
+    return reseal(manifest, entries, frames + payload)
+
+
+# ------------------------------------------------------------------ determinism and contract
+
+
+def test_two_runs_give_the_same_bytes(journal, full):
+    again, _ = kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    assert again == full[0]
+    assert hashlib.sha256(again).hexdigest() == hashlib.sha256(full[0]).hexdigest()
+
+
+def test_every_record_satisfies_the_ch1_01_contract(full):
+    _out, doc, _seal = full
+    assert {r["type"] for r in doc["records"]} == {"RAW_EVENT", "BOOK_STATE", "QUALITY_REPORT"}
+    for r in doc["records"]:
+        pc.validate_record(r["type"], r["record"])
+    raw = records(doc, "RAW_EVENT")
+    assert {r["venue"] for r in raw} == {"kraken"}
+    assert {(r["market_type"], r["native_symbol"]) for r in raw} == {("SPOT", "BTC/USDT")}
+    assert doc["session"]["base"] == "BTC" and doc["session"]["quote"] == "USDT"
+    assert doc["ignored_events_by_venue"]["mexc"] != "0"  # MEXC frames stay out of the projection
+
+
+def test_receipt_order_and_states_follow_their_raw_event(full):
+    doc = full[1]
+    seqs = [int(r["record"].get("receipt_seq") or r["record"]["as_of_receipt_seq"]) for r in doc["records"]]
+    assert seqs == sorted(seqs)
+    raw_seqs = {r["receipt_seq"] for r in records(doc, "RAW_EVENT")}
+    for state in records(doc, "BOOK_STATE"):
+        assert state["as_of_receipt_seq"] in raw_seqs
+
+
+def test_dimensions_that_this_journal_cannot_attest_stay_unknown(full):
+    for q in records(full[1], "QUALITY_REPORT"):
+        assert q["evidence_kind"] == "SYNTHETIC"
+        assert (q["trade_coverage"]["state"], q["trade_coverage"]["reason"]) == ("UNKNOWN", "TRADE_CHANNEL_NOT_CAPTURED")
+        assert (q["book_freshness"]["state"], q["book_freshness"]["reason"]) == ("UNKNOWN", "BOOK_FRESHNESS_NOT_ATTESTED")
+        assert q["event_time_quality"]["state"] == "UNKNOWN"
+
+
+def test_receipt_times_keep_their_millisecond_origin(full):
+    doc = full[1]
+    assert doc["session"]["receipt_time_resolution_ns"] == "1000000"
+    for r in records(doc, "RAW_EVENT"):
+        assert int(r["receive_utc_ns"]) % 1_000_000 == 0 and r["native_sequence"] is None
+
+
+# ------------------------------------------------------------------ book and breaks
+
+
+def test_checksum_break_invalidates_then_resyncs_only_through_a_snapshot(full):
+    doc = full[1]
+    assert [b["reason"] for b in doc["breaks"]] == ["CHECKSUM_MISMATCH"]
+    brk, resolved = int(doc["breaks"][0]["receipt_seq"]), int(doc["breaks"][0]["resolved_receipt_seq"])
+    timeline = [(int(q["as_of_receipt_seq"]), q["book_integrity"]["state"]) for q in records(doc, "QUALITY_REPORT")]
+    assert (brk, "INVALID") in timeline
+    between = [s for seq, s in timeline if brk < seq < resolved]
+    assert between and set(between) <= {"INVALID", "RESYNCING"} and "RESYNCING" in between
+    assert (resolved, "VERIFIED") in timeline
+    states = {int(s["as_of_receipt_seq"]): s for s in records(doc, "BOOK_STATE")}
+    assert states[brk]["bids"] is None and states[brk]["native_state"] == "CONTINUITY_LOST"
+    assert states[resolved]["native_state"] == "VALID" and states[resolved]["bids"]
+
+
+def test_verified_integrity_points_to_the_checksum_matched_message(full):
+    doc = full[1]
+    states = {s["as_of_receipt_seq"]: s for s in records(doc, "BOOK_STATE")}
+    for q in records(doc, "QUALITY_REPORT"):
+        if q["book_integrity"]["state"] == "VERIFIED":
+            state = states[q["as_of_receipt_seq"]]
+            assert q["book_integrity"]["evidence_receipt_seq"] == state["last_book_receipt_seq"] is not None
+
+
+def test_differential_against_bbo_book_engine(journal):
+    """Same journal, same Kraken book and continuity as the pilot's own engine."""
+    _manifest, events = kr.load_journal(*journal)
+    engine = bbo_book.Engine("BTCUSDT", "unused", "BTC/USDT", 10)
+    doc = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    states = {int(s["as_of_receipt_seq"]): s for s in records(doc, "BOOK_STATE")}
+    checked = 0
+    for ev in events:
+        if ev["venue"] != "kraken":
+            continue
+        engine.apply({"venue": "kraken", "kind": ev["kind"], "t_ms": ev["t_ms"],
+                      "opcode": None if ev["opcode"] is None else int(ev["opcode"]), "payload": ev["payload"],
+                      "status": None})
+        state = states.get(ev["seq"])
+        if state is None:
+            continue
+        snap = engine.snapshot()["kraken"]
+        expected = {"SYNCED": "VALID", "NOT_INITIALIZED": "NOT_INITIALIZED",
+                    "CONTINUITY_LOST": "CONTINUITY_LOST"}[snap["continuity"]]
+        if expected == "NOT_INITIALIZED" and not snap["connected"]:
+            expected = "SOURCE_UNAVAILABLE"
+        assert state["native_state"] == expected, ev["seq"]
+        if expected == "VALID":
+            bid, bid_qty, ask, ask_qty = snap["top"]
+            assert (Decimal(state["bids"][0][0]), Decimal(state["bids"][0][1])) == (bid, bid_qty)
+            assert (Decimal(state["asks"][0][0]), Decimal(state["asks"][0][1])) == (ask, ask_qty)
+            checked += 1
+    assert checked > 1000
+    assert [b["reason"] for b in engine.sources["kraken"].breaks] == [b["reason"] for b in doc["breaks"]]
+
+
+def test_checksum_function_matches_the_pilot(journal):
+    asks = [("62018.6", "0.5"), ("62018.7", "0.00100000")]
+    bids = [("62018.5", "0.00064908"), ("62018.4", "1")]
+    assert kr.kraken_checksum(asks, bids) == bbo_book.kraken_checksum(asks, bids)
+
+
+# ------------------------------------------------------------------ liveness
+
+
+def test_silences_follow_the_declared_policy(full):
+    doc = full[1]
+    assert doc["liveness_policy"]["max_gap_ms"] == "2000"
+    silences = doc["silences"]
+    assert all(set(s) == kr.SILENCE_KEYS for s in silences)
+    assert [s["reason"] for s in silences] == ["SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", "SILENCE_GAP_EXCEEDS_MAX",
+                                               "SILENCE_UNATTESTED_AFTER_LAST_PROOF"]
+    gap = silences[1]  # the scheduled Kraken silence of the synthetic profile
+    assert int(gap["starts_at_t_ms"]) == int(gap["last_proof_t_ms"]) + kr.LIVENESS_MAX_GAP_MS
+    assert int(gap["ends_before_t_ms"]) > int(gap["starts_at_t_ms"])
+    raw = {r["receipt_seq"] for r in records(doc, "RAW_EVENT")}
+    assert {gap["last_proof_receipt_seq"], gap["closed_by_receipt_seq"]} <= raw
+    last = silences[-1]
+    assert int(last["starts_at_t_ms"]) == int(last["last_proof_t_ms"]) + kr.LIVENESS_MAX_GAP_MS
+    assert last["ends_before_t_ms"] is None and last["closed_by_receipt_seq"] is None
+
+
+def two_proofs(apart_ms):
+    """Proof p at +100 ms, then only frames that attest nothing about Kraken, then proof q."""
+    return build([
+        (0, "kraken", "ws_open", b""),                        # 1  proof
+        (10, "kraken", "sent", SUBSCRIBE),                    # 2  our own frame
+        (100, "kraken", "ws_message", snapshot_frame()),      # 3  proof p
+        (1100, "mexc", "ws_message", b"\x0a\x00"),            # 4  another venue
+        (1600, "kraken", "sent", b'{"method":"ping"}'),       # 5  our own frame
+        (2100, "mexc", "ws_message", b"\x0a\x01"),            # 6  another venue, at the expiry of p
+        (100 + apart_ms, "kraken", "ws_message", HEARTBEAT),  # 7  proof q
+        (600 + apart_ms, "kraken", "ws_message", HEARTBEAT),  # 8  proof
+    ])
+
+
+def test_proofs_2001_ms_apart_open_a_silence_at_the_expiry_of_the_first():
+    doc = json.loads(kr.replay(*two_proofs(2001), corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_GAP_EXCEEDS_MAX", 2100, 2101, (3, 100), closed_by=7),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 4601, None, (8, 2601)),
+    ]
+    assert records(doc, "QUALITY_REPORT")[-1]["book_integrity"]["state"] == "VERIFIED"
+    assert records(doc, "QUALITY_REPORT")[-1]["book_freshness"]["state"] == "UNKNOWN"  # liveness is not freshness
+
+
+def test_proofs_2000_ms_apart_leave_no_silence_between_them():
+    doc = json.loads(kr.replay(*two_proofs(2000), corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 4600, None, (8, 2600)),
+    ]
+
+
+@pytest.mark.parametrize("bound", [3, 5, 6])
+def test_a_replay_bounded_before_the_next_frame_only_knows_what_was_received(bound):
+    """Two futures, one prefix: the verdict at the bound is the same and never cites q."""
+    late, on_time = two_proofs(2001), two_proofs(2000)
+    verdicts = [kr.replay(*j, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=bound)[0]
+                for j in (late, on_time, truncated(late, bound), truncated(on_time, bound))]
+    assert len(set(verdicts)) == 1  # byte-identical, including a journal that stops at the bound
+    doc = json.loads(verdicts[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 2100, None, (3, 100)),
+    ]
+    assert doc["journal_prefix"]["receipt_bound"] == str(bound)
+
+
+def test_a_disconnection_is_unattested_until_the_reconnection_proves_again():
+    snap = snapshot_frame()
+    after_expiry = build([(0, "kraken", "ws_open", b""), (100, "kraken", "ws_message", snap),
+                          (2500, "kraken", "ws_close", b""), (4000, "kraken", "ws_open", b""),
+                          (4010, "kraken", "sent", SUBSCRIBE), (4100, "kraken", "ws_message", snap)])
+    doc = json.loads(kr.replay(*after_expiry, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_GAP_EXCEEDS_MAX", 2100, 2500, (2, 100), closed_by=3),
+        silence("SILENCE_UNATTESTED_AFTER_DISCONNECT", 2500, 4000, (2, 100), opened_by=3, closed_by=4),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 6100, None, (6, 4100)),
+    ]
+    before_expiry = build([(0, "kraken", "ws_open", b""), (100, "kraken", "ws_message", snap),
+                           (1500, "kraken", "ws_error", b""), (1700, "kraken", "ws_close", b""),
+                           (4000, "kraken", "ws_open", b"")])
+    doc = json.loads(kr.replay(*before_expiry, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert doc["silences"] == [
+        silence("SILENCE_UNATTESTED_BEFORE_FIRST_PROOF", None, 0, None, closed_by=1),
+        silence("SILENCE_UNATTESTED_AFTER_DISCONNECT", 1500, 4000, (2, 100), opened_by=3, closed_by=5),
+        silence("SILENCE_UNATTESTED_AFTER_LAST_PROOF", 6000, None, (5, 4000)),
+    ]
+    assert [b["reason"] for b in doc["breaks"]] == ["DISCONNECTED"]
+
+
+# ------------------------------------------------------------------ bound and prefix
+
+
+def test_prefix_replay_reproduces_every_record_up_to_the_bound(journal, full):
+    doc = full[1]
+    gap = doc["silences"][1]
+    last_proof, closing = int(gap["last_proof_receipt_seq"]), int(gap["closed_by_receipt_seq"])
+    for bound in (9, 18, 2000, 5023, 5029, last_proof, closing - 1, closing):
+        part = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=bound)[0])
+        expected = [r for r in doc["records"]
+                    if int(r["record"].get("receipt_seq") or r["record"]["as_of_receipt_seq"]) <= bound]
+        assert part["records"] == expected, bound
+        assert part["journal_prefix"]["receipt_bound"] == str(bound)
+        closed = [s for s in doc["silences"]
+                  if s["closed_by_receipt_seq"] is not None and int(s["closed_by_receipt_seq"]) <= bound]
+        assert part["silences"][:-1] == closed, bound  # what the bound has seen closing, nothing more
+        assert part["silences"][-1]["ends_before_t_ms"] is None, bound
+    inside = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=closing - 1)[0])
+    assert inside["silences"][-1] == {**gap, "reason": "SILENCE_UNATTESTED_AFTER_LAST_PROOF",
+                                      "ends_before_t_ms": None, "closed_by_receipt_seq": None}
+
+
+def test_appending_events_after_the_bound_never_changes_the_result(journal):
+    bound = len(entries_of(journal[1]))
+    longer = append_kraken_text(journal, b'{"channel":"heartbeat"}')
+    a, seal_a = kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=bound)
+    b, seal_b = kr.replay(*longer, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=bound)
+    assert a == b and seal_a != seal_b
+
+
+# ------------------------------------------------------------------ refusals
+
+
+def test_journal_integrity_failures_refuse_the_whole_replay(journal):
+    manifest, events, frames = journal
+    tampered = bytearray(frames)
+    tampered[-1] ^= 1
+    with pytest.raises(kr.ReplayRefusal, match="FRAMES_HASH_MISMATCH"):
+        kr.load_journal(manifest, events, bytes(tampered))
+    with pytest.raises(kr.ReplayRefusal, match="EVENTS_HASH_MISMATCH"):
+        kr.load_journal(manifest, events + b"\n", frames)
+    with pytest.raises(kr.ReplayRefusal, match="FRAME_HASH_MISMATCH"):
+        kr.load_journal(*reseal(manifest, entries_of(events), bytes(tampered)))
+    entries = entries_of(events)
+    entries[5]["seq"] = 99
+    with pytest.raises(kr.ReplayRefusal, match="EVENT_SEQ_NOT_CONTIGUOUS"):
+        kr.load_journal(*reseal(manifest, entries, frames))
+    entries = entries_of(events)
+    entries[5]["t_ms"] += 1
+    with pytest.raises(kr.ReplayRefusal, match="EVENT_TIME_INCONSISTENT_WITH_ANCHOR"):
+        kr.load_journal(*reseal(manifest, entries, frames))
+    unsealed = json.loads(manifest)
+    del unsealed["sealed"]
+    with pytest.raises(kr.ReplayRefusal, match="JOURNAL_NOT_SEALED"):
+        kr.load_journal(json.dumps(unsealed).encode(), events, frames)
+
+
+def test_a_synthetic_journal_cannot_be_declared_historical(journal):
+    with pytest.raises(kr.ReplayRefusal, match="SYNTHETIC_JOURNAL_DECLARED_HISTORICAL"):
+        kr.replay(*journal, corpus_id=CORPUS, evidence_kind="HISTORICAL")
+    with pytest.raises(kr.ReplayRefusal, match="EVIDENCE_KIND_REFUSED"):
+        kr.replay(*journal, corpus_id=CORPUS, evidence_kind="LIVE")
+
+
+def test_a_trade_frame_is_refused_not_silently_ignored(journal):
+    longer = append_kraken_text(journal, b'{"channel":"trade","type":"update","data":[]}')
+    with pytest.raises(kr.ReplayRefusal, match="TRADE_CHANNEL_OUT_OF_SCOPE"):
+        kr.replay(*longer, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+
+
+def test_a_malformed_provider_frame_is_traced_not_dropped(journal):
+    longer = append_kraken_text(journal, b'{"channel":"book","type":"update","data":[{"symbol":"BTC/USDT","bids":[{"price":1e3,"qty":1}],"asks":[],"checksum":1}]}')
+    doc = json.loads(kr.replay(*longer, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    last_raw = records(doc, "RAW_EVENT")[-1]
+    assert last_raw["receipt_seq"] == str(len(entries_of(longer[1])))
+    assert doc["breaks"][-1]["reason"] == "MESSAGE_INVALID"
+    assert records(doc, "QUALITY_REPORT")[-1]["book_integrity"]["state"] == "INVALID"
+
+
+def test_invalid_arguments_are_refused(journal):
+    for kwargs, code in (({"corpus_id": "bad id"}, "CORPUS_ID_INVALID"),
+                         ({"receipt_bound": 0}, "RECEIPT_BOUND_INVALID"),
+                         ({"receipt_bound": 10**9}, "RECEIPT_BOUND_INVALID")):
+        args = {"corpus_id": CORPUS, "evidence_kind": "SYNTHETIC", **kwargs}
+        with pytest.raises(kr.ReplayRefusal, match=code):
+            kr.replay(*journal, **args)
+
+
+@pytest.mark.parametrize("failure", ["overlap", "gap", "oversize", "tail", "size", "venue"])
+def test_verified_journal_requires_complete_frame_coverage(failure):
+    manifest, events, frames = build([(0, "kraken", "ws_open", b""),
+                                     (1, "kraken", "ws_message", HEARTBEAT),
+                                     (2, "kraken", "ws_control", b"")])
+    assert kr.verify_seal(manifest, events, frames)["events_total"] == "3"
+    entries = entries_of(events)
+    if failure == "size":
+        doc = json.loads(manifest)
+        doc["sealed"]["frames_bytes"] += 1
+        with pytest.raises(kr.ReplayRefusal, match="SEAL_SIZE_MISMATCH"):
+            kr.verify_seal(json.dumps(doc).encode(), events, frames)
+        return
+    if failure == "tail":
+        frames += b"orphan"
+    elif failure == "oversize":
+        entries[1]["bytes"] += 1
+    elif failure == "venue":
+        entries[1]["venue"] = "unknown"
+    else:
+        entries[-1]["offset"] += -1 if failure == "overlap" else 1
+    expected = {"tail": "UNREFERENCED_FRAME_BYTES", "venue": "EVENT_IDENTITY_INVALID"}.get(
+        failure, "FRAME_RANGE_NOT_CONTIGUOUS")
+    with pytest.raises(kr.ReplayRefusal, match=expected):
+        kr.verify_seal(*reseal(manifest, entries, frames))
+
+
+@pytest.mark.parametrize("bad_frame,reason", [
+    (b'{', "DATA_ENVELOPE_INVALID"),
+    (b'[]', "DATA_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":[]}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":42}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":[{}]}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":[{"symbol":"ETH/USDT"}]}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"unknown"}', "DATA_ENVELOPE_UNCLASSIFIED"),
+])
+def test_indeterminate_frame_invalidates_until_valid_snapshot(bad_frame, reason):
+    snapshot = snapshot_frame()
+    update = snapshot.replace(b'"snapshot"', b'"update"')
+    crossed_crc = kr.kraken_checksum([("100.4", "2")], [("100.5", "1.25")])
+    crossed = snapshot.replace(b"100.6", b"100.4")
+    valid_crc = kr.kraken_checksum([("100.6", "2")], [("100.5", "1.25")])
+    crossed = crossed.replace(str(valid_crc).encode(), str(crossed_crc).encode())
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (1, "kraken", "ws_message", snapshot),
+                     (2, "kraken", "ws_message", bad_frame),
+                     (3, "kraken", "ws_message", bad_frame),
+                     (4, "kraken", "ws_message", update),
+                     (5, "kraken", "ws_message", crossed),
+                     (6, "kraken", "ws_message", snapshot)])
+    blob, _ = kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    result = json.loads(blob)
+    assert result["anomalies"] == [{"receipt_seq": seq, "reason": reason} for seq in ("3", "4")] + [
+        {"receipt_seq": "6", "reason": "BOOK_SIDES_INVALID"},
+    ]
+    assert result["breaks"][0]["resolved_receipt_seq"] == "7"
+    quality = {q["as_of_receipt_seq"]: q["book_integrity"]["state"] for q in records(result, "QUALITY_REPORT")}
+    assert quality == {"1": "NOT_AVAILABLE", "2": "VERIFIED", "3": "INVALID", "4": "INVALID",
+                       "6": "INVALID", "7": "VERIFIED"}
+    prefix, _ = kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=3)
+    cut, _ = kr.replay(*truncated(journal, 3), corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    assert prefix == cut
+    assert json.loads(prefix)["breaks"][0]["resolved_receipt_seq"] is None
+
+
+def test_manifest_identity_and_historical_pin_are_independent():
+    manifest, events, frames = build([(0, "kraken", "ws_open", b"")])
+    doc = json.loads(manifest)
+    doc["instrument"]["quote_asset_id"] = "USD"
+    with pytest.raises(kr.ReplayRefusal, match="KRAKEN_SPOT_IDENTITY_MISMATCH"):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    doc["instrument"]["quote_asset_id"] = "USDT"
+    del doc["evidence_kind"]
+    with pytest.raises(kr.ReplayRefusal, match="HISTORICAL_MANIFEST_NOT_ADMITTED"):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id="BBO-BTC-20261120T070632Z",
+                  evidence_kind="HISTORICAL")
+
+
+@pytest.mark.parametrize("field,value", [("market_kind", "PERP"), ("contract_identity", "FUTURES"),
+                                         ("settlement_asset_id", "USD")])
+def test_manifest_instrument_metadata_matches_kraken_spot(field, value):
+    manifest, events, frames = build([(0, "kraken", "ws_open", b"")])
+    doc = json.loads(manifest)
+    doc["instrument"][field] = value
+    with pytest.raises(kr.ReplayRefusal, match="KRAKEN_SPOT_IDENTITY_MISMATCH"):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+
+
+@pytest.mark.parametrize("scope,field,value,reason", [
+    ("instrument", "quantity_unit", "CONTRACTS", "KRAKEN_UNIT_MISMATCH"),
+    ("instrument", "quantity_unit", "ETH", "KRAKEN_UNIT_MISMATCH"),
+    ("instrument", "quote_asset_id", "USD", "KRAKEN_SPOT_IDENTITY_MISMATCH"),
+    ("manifest", "market_type", "PERP", "KRAKEN_SPOT_IDENTITY_MISMATCH"),
+    ("instrument", "amount_unit", "BTC", "KRAKEN_UNIT_FIELD_UNKNOWN"),
+    ("instrument", "price_unit", 42, "KRAKEN_UNIT_MALFORMED"),
+    ("kraken", "price_unit", "USDT/ETH", "KRAKEN_UNIT_MISMATCH"),
+])
+def test_manifest_refused_before_any_book_processing(scope, field, value, reason, monkeypatch):
+    manifest, events, frames = build([(0, "kraken", "ws_open", b""),
+                                     (1, "kraken", "ws_message", snapshot_frame())])
+    doc = json.loads(manifest)
+    scopes = {"instrument": doc["instrument"], "manifest": doc, "kraken": doc["ws"]["kraken"]}
+    scopes[scope][field] = value
+
+    def unexpected_book(*args, **kwargs):
+        pytest.fail("a refused identity must never construct a book")
+
+    monkeypatch.setattr(kr, "_KrakenBook", unexpected_book)
+    with pytest.raises(kr.ReplayRefusal, match=reason):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+
+
+def test_explicit_and_implicit_kraken_spot_units_yield_same_book():
+    manifest, events, frames = build([(0, "kraken", "ws_open", b""),
+                                     (1, "kraken", "ws_message", snapshot_frame())])
+    doc = json.loads(manifest)
+    doc["instrument"].update(quantity_unit="BTC", price_quote_unit="USDT", price_unit="USDT/BTC")
+    kwargs = {"corpus_id": CORPUS, "evidence_kind": "SYNTHETIC"}
+    implicit, _ = kr.replay(manifest, events, frames, **kwargs)
+    explicit, _ = kr.replay(json.dumps(doc).encode(), events, frames, **kwargs)
+    assert implicit == explicit
+    assert json.loads(explicit)["session"]["quantity_unit"] == "BTC"
+
+
+PONG = (b'{"method":"pong","success":true,"req_id":1,'
+        b'"time_in":"2026-11-20T07:06:32.000Z","time_out":"2026-11-20T07:06:32.001Z"}')
+
+
+@pytest.mark.parametrize("frame,reason", [
+    (b'{"method":"pong","data":42}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"pong","data":[]}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"unknown"}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"pong","req_id":"1"}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"channel":"heartbeat","type":"update"}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"channel":"status","type":"update","data":42}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"subscribe","success":true,"result":{"channel":"book"}}', "CONTROL_ENVELOPE_INVALID"),
+    (b'{"method":"pong"', "DATA_ENVELOPE_INVALID"),
+])
+def test_invalid_control_cannot_attest_or_keep_a_verified_book(frame, reason):
+    snapshot = snapshot_frame()
+    update = snapshot.replace(b'"snapshot"', b'"update"')
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (10, "kraken", "ws_message", snapshot),
+                     (2011, "kraken", "ws_message", frame),
+                     (2012, "kraken", "ws_message", update),
+                     (2013, "kraken", "ws_message", PONG),
+                     (2014, "kraken", "ws_message", snapshot)])
+    kwargs = {"corpus_id": CORPUS, "evidence_kind": "SYNTHETIC"}
+    result = json.loads(kr.replay(*journal, **kwargs)[0])
+    assert result["anomalies"] == [{"receipt_seq": "3", "reason": reason}]
+    states = {q["as_of_receipt_seq"]: q["book_integrity"]["state"] for q in records(result, "QUALITY_REPORT")}
+    assert states == {"1": "NOT_AVAILABLE", "2": "VERIFIED", "3": "INVALID", "6": "VERIFIED"}
+    assert result["breaks"][0]["resolved_receipt_seq"] == "6"
+    assert result["silences"][1] == silence("SILENCE_GAP_EXCEEDS_MAX", 2010, 2013, (2, 10), closed_by=5)
+    assert kr.replay(*journal, **kwargs, receipt_bound=2)[0] == kr.replay(*truncated(journal, 2), **kwargs)[0]
+
+
+@pytest.mark.parametrize("apart", [2000, 2001])
+def test_valid_pong_attests_connection_without_new_book_proof(apart):
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (10, "kraken", "ws_message", snapshot_frame()),
+                     (10 + apart, "kraken", "ws_message", PONG)])
+    result = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert result["counters"]["pong"] == "1"
+    assert not result["anomalies"]
+    assert [q["as_of_receipt_seq"] for q in records(result, "QUALITY_REPORT")] == ["1", "2"]
+    gaps = [s for s in result["silences"] if s["reason"] == "SILENCE_GAP_EXCEEDS_MAX"]
+    assert gaps == ([silence("SILENCE_GAP_EXCEEDS_MAX", 2010, 2011, (2, 10), closed_by=3)]
+                    if apart == 2001 else [])
+
+
+def test_pong_after_reconnection_cannot_verify_book():
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (10, "kraken", "ws_message", snapshot_frame()),
+                     (20, "kraken", "ws_close", b""),
+                     (30, "kraken", "ws_open", b""),
+                     (40, "kraken", "ws_message", PONG)])
+    result = json.loads(kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")[0])
+    assert records(result, "QUALITY_REPORT")[-1]["book_integrity"]["state"] == "INVALID"
+    assert result["breaks"][0]["resolved_receipt_seq"] is None
+
+
+def test_documented_control_shapes_and_fixture_exceptions():
+    book = kr._KrakenBook("BTC/USDT", 10)
+    decode = lambda payload: kr._json_keep_numbers(payload, refusal="FIXTURE")  # noqa: E731
+    envelopes = [
+        (PONG, "pong"),
+        (HEARTBEAT, "heartbeat"),
+        (b'{"channel":"status","type":"update","data":[{"api_version":"v2","connection_id":2,'
+         b'"system":"online","version":"2.0"}]}', "status"),
+        (b'{"method":"subscribe","success":true,"result":{"channel":"book","symbol":"BTC/USDT",'
+         b'"depth":10,"snapshot":true}}', "ack_ok"),
+    ]
+    for payload, expected in envelopes:
+        assert kr._valid_control(decode(payload), book, synthetic=False) == expected
+    fixture = decode(b'{"method":"pong","req_id":1,"time_in":"x","time_out":"x"}')
+    assert kr._valid_control(fixture, book, synthetic=True) == "pong"
+    assert kr._valid_control(fixture, book, synthetic=False) is None
