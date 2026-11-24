@@ -1,0 +1,36 @@
+.scanner-universe { padding: clamp(.7rem, 3vw, 1.5rem); border: 1px solid #77879a66; border-radius: 1rem; min-width: 0; margin-bottom: .8rem; }
+.scanner-universe header p { opacity: .8; margin-top: .2rem; overflow-wrap: anywhere; }
+.universe-sources { list-style: none; padding: 0; margin: .6rem 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .4rem; }
+.universe-sources li { display: grid; gap: .1rem; padding: .45rem .55rem; border-radius: .55rem; border: 1px solid; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
+.universe-sources li.ok { border-color: #2f8f6b; background: #2f8f6b1f; }
+.universe-sources li.ko { border-color: #c4574f; background: #c4574f1f; }
+.universe-sources small { opacity: .75; }
+.universe-banner { padding: .6rem .7rem; border-radius: .55rem; overflow-wrap: anywhere; }
+.universe-banner.ok { background: #2f8f6b26; border-left: 4px solid #2f8f6b; }
+.universe-banner.empty { background: #4b6a9126; border-left: 4px solid #6c8fbf; }
+.universe-banner.ko { background: #c4574f26; border-left: 4px solid #c4574f; }
+.universe-reference { font-size: .85rem; opacity: .85; overflow-wrap: anywhere; }
+.universe-pairs { list-style: none; padding: 0; margin: .5rem 0; display: grid; gap: .35rem; }
+.universe-pairs button { width: 100%; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; padding: .45rem .6rem; border-radius: .5rem; border: 1px solid #77879a88; background: transparent; color: inherit; text-align: left; }
+.universe-badges { display: flex; flex-wrap: wrap; gap: .25rem; }
+.universe-badges span { font-size: .72rem; padding: .1rem .3rem; border-radius: .3rem; background: #2f8f6b33; }
+.universe-exclusions { font-size: .85rem; margin-top: .5rem; }
+.universe-exclusions summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.universe-exclusions ul { padding-left: 1rem; max-height: 22rem; overflow: auto; }
+.universe-exclusions li { overflow-wrap: anywhere; margin: .2rem 0; }
+.universe-detail { box-sizing: border-box; width: min(32rem, calc(100% - 1.5rem)); max-height: 85dvh; overflow: auto; border: 1px solid #6e829c; border-radius: 1rem; padding: 1rem; background: #121d2f; color: #edf4ff; }
+.universe-detail::backdrop { background: #080e18b0; }
+.universe-detail form { text-align: right; }
+.universe-detail button { min-height: 44px; }
+.universe-detail dt { color: #acd0ed; margin-top: .6rem; }
+.universe-detail dd { margin: .15rem 0; overflow-wrap: anywhere; }
+.scanner-gate-notice { padding: .6rem .7rem; border-radius: .55rem; border: 1px dashed #77879a; overflow-wrap: anywhere; }
+
+/* Scanner V1.1 — regroupement par actif */
+.market-count-badge { display: inline-block; margin-left: .35rem; padding: 0 .35rem; border-radius: 999px; border: 1px solid currentColor; font-size: .7rem; font-weight: 600; opacity: .8; vertical-align: middle; }
+.universe-strict { margin: .25rem 0 .5rem; font-size: .85rem; opacity: .8; }
+.universe-assets { display: flex; flex-wrap: wrap; gap: .35rem; }
+.universe-assets button { min-height: 44px; }
+.asset-listing { display: block; }
+.asset-link { background: none; border: 0; padding: 0; min-height: 32px; color: inherit; text-decoration: underline; cursor: pointer; }
+.universe-assets button { width: auto; }

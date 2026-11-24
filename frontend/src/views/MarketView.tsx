@@ -1,5 +1,12 @@
 import { SpotRadarMap } from "./SpotRadarMap";
 import { SymbolScanner } from "./SymbolScanner";
+import { SignalsRadar, type SignalsDoc } from "./SignalsRadar";
+// Démo uniquement : sortie de référence SYNTHÉTIQUE du contrat cat.signals.indicators.v1
+// (tests/signals_indicators/fixtures/btc_reference_expected.json @30965e8e, copiée telle quelle).
+// Aucune requête vers un service de signaux ; aucune ligne n'entre dans le Scanner strict.
+import signalsDemo from "../demo/signalsIndicators-v1-btc-reference.json";
+import { ScannerUniverse, useScannerUniverse } from "./ScannerUniverse";
+import { admittedMexcSpot, admittedKeys, mexcSpotAssets } from "../lib/scannerUniverseClient";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, MemoryRouter, Navigate, Route, Routes, useInRouterContext, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MarketMicrostructureView } from "./MarketMicrostructureView";
@@ -15,29 +22,35 @@ export const MARKET_VIEWS = [
   { slug: "lmi", label: "Microstructure" },
 ] as const;
 
-export type MarketProduct = "spot" | "intraday" | "spot-radar";
-// `intraday=1` or its alias `product=intraday` (D-C2) selects Bulles Intraday;
-// anything else shows the ranked Scanner. M1-C3 (EO-024): CryptoRadar historique is
-// no longer offered; an old `?radar=0` bookmark opens Radar Spot (or Intraday when
-// it also carries intraday=1) and the obsolete parameter is dropped with replace.
+export type MarketProduct = "spot" | "spot-radar" | "signals-demo";
+// Scanner refonte (2026-11-23): Bulles Intraday is retired. An old bookmark
+// (`intraday=1`, `product=intraday`) opens the Classement du jour and its obsolete
+// parameter is dropped with replace, like `radar=0` since M1-C3 (EO-024).
 export function marketProduct(params: URLSearchParams): MarketProduct {
-  if (params.get("intraday") === "1" || params.get("product") === "intraday") return "intraday";
   if (params.get("product") === "spot-radar") return "spot-radar";
+  if (params.get("product") === "signals-demo") return "signals-demo";
   return "spot";
 }
+// Terminal live was merged into the Moniteur de marché (2026-11-23): `product=live` is obsolete too.
+const OBSOLETE = (params: URLSearchParams) => params.has("radar") || params.has("intraday") || params.get("product") === "intraday" || params.get("product") === "live";
 
 const RadarPanel: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const product = marketProduct(params);
   const [selection, setSelection] = useState<string[]>([]);
+  // Scanner V1: every sub-view below shows only rows admitted by the current
+  // common universe (four market proofs). No universe => no current row.
+  const universe = useScannerUniverse();
+  const byAsset = universe.state !== "LOADING" && universe.doc?.schema_version === "scanner-universe/1.1.0";
+  const gate = { admitted: admittedMexcSpot(universe), keys: admittedKeys(universe), state: universe.state, byAsset, ...(() => { const a = mexcSpotAssets(universe); return { markets: new Map([...a].map(([k, v]) => [k, v.count])), classes: new Map([...a].map(([k, v]) => [k, v.cls])) }; })() };
   const toggleSelection = (id: string) => setSelection(previous =>
     previous.includes(id) ? previous.filter(item => item !== id) : [...previous, id]);
-  const scanner = <SymbolScanner bubbles={product === "intraday"} selection={selection} onSelect={toggleSelection} />;
-  const legacy = params.has("radar");
+  const legacy = OBSOLETE(params);
   useEffect(() => {
     if (!legacy) return;
     const query = new URLSearchParams(params);
-    query.delete("radar");
+    query.delete("radar"); query.delete("intraday");
+    if (query.get("product") === "intraday" || query.get("product") === "live") query.delete("product");
     setParams(query, { replace: true });
   }, [legacy, params, setParams]);
   // Product choice is a sub-view of Radar: written to the URL with replace so it
@@ -49,12 +62,15 @@ const RadarPanel: React.FC = () => {
     setParams(query, { replace: true });
   };
   return <>
+    <ScannerUniverse view={universe} />
     <div className="market-display-choice" role="group" aria-label="Produit du scanner">
-      <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Scanner classé</button>
-      <button type="button" aria-pressed={product === "intraday"} onClick={() => select("intraday")}>Bulles Intraday</button>
+      <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Moniteur de marché</button>
       <button type="button" aria-pressed={product === "spot-radar"} onClick={() => select("spot-radar")}>Radar Spot</button>
+      <button type="button" aria-pressed={product === "signals-demo"} onClick={() => select("signals-demo")}>Radar de signaux · Démo</button>
     </div>
-    {legacy ? null : product === "spot-radar" ? <SpotRadarMap /> : scanner}
+    {legacy ? null : product === "signals-demo" ? <SignalsRadar doc={signalsDemo as unknown as SignalsDoc} demo />
+      : product === "spot-radar" ? <SpotRadarMap gate={gate} />
+      : <SymbolScanner selection={selection} onSelect={toggleSelection} gate={gate} />}
   </>;
 };
 

@@ -97,7 +97,7 @@ try {
     await shot("scanner-apres-flux");
 
     await page.goto(`${base}/paper-live/market/radar?product=spot-radar`, { waitUntil: "load" });
-    await page.getByRole("button", { name: "Composite historique" }).click();
+    await page.getByText("Composite historique · aperçu hors live").click();
     await page.getByRole("region", { name: "Composite historique BBO Spot" }).waitFor();
     check(`${vp.name} aperçu BBO historique`, await noHScroll());
     await shot("bbo-historique");

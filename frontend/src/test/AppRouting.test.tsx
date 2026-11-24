@@ -53,7 +53,7 @@ describe("Module workspace routing", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     const urls = fetchMock.mock.calls.map((call) => String(call[0]));
     expect(urls.length).toBeGreaterThan(0);
-    expect(urls.every((url) => url.startsWith("/api/operator/v1/spot-radar/"))).toBe(true);
+    expect(urls.every((url) => url.startsWith("/api/operator/v1/spot-radar/") || url === "/api/operator/v1/scanner-universe")).toBe(true);
     expect(urls).not.toContain("/api/operator/v1/burn-in");
     expect(urls).not.toContain("/api/operator/v1/snapshot");
     expect(urls).not.toContain("/api/operator/v1/market");
@@ -70,8 +70,8 @@ describe("Module workspace routing", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 20));
     const urls = fetchMock.mock.calls.map(call => String(call[0]));
-    expect(new Set(urls)).toEqual(new Set(["/api/operator/v1/spot-radar/scanner"]));
-    expect(urls.length).toBeLessThanOrEqual(2);
+    expect(new Set(urls)).toEqual(new Set(["/api/operator/v1/spot-radar/scanner", "/api/operator/v1/scanner-universe"]));
+    expect(urls.length).toBeLessThanOrEqual(4);
   });
 
   // M1-C1 reconciliation (EO-022). Was: a "Décisions" card of the Direction home.
