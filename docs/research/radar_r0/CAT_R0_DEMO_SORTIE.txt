@@ -1,0 +1,637 @@
+# Sortie réelle du terminal RADAR R0 — fixtures SYNTHETIC, générée le 2026-11-24T08:40Z dans un environnement isolé, Python 3.13.18.
+
+$ python -m observability.radar_selection --fixture calm help
+RADAR — commandes
+status
+   Tableau de bord : univers, référence, candidats
+universe [--venue V] [--type T] [--search Q] [--decision D]
+   Tous les marchés, filtrables
+scan
+   Évalue l'univers et conserve le résultat (historique borné)
+candidates
+   Les trois propositions détaillées
+inspect <id>
+   Les six critères, la décision et le score
+evidence <id>
+   Références de preuve et motifs UNKNOWN
+select | unselect <id>
+   Choisir un candidat manuel (aucune collecte)
+pin | unpin <id>
+   Épingler un marché (gates inchangées)
+exclude | include <id>
+   Exclure de la sélection automatique
+reset
+   Réinitialiser les préférences
+history
+   Résultats de sélection conservés
+export
+   Évaluation complète en JSON canonique
+bench [N]
+   Mesure locale temps / mémoire / taille
+help
+   Cette aide
+quit
+   Quitter le shell
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture calm status
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-01-CALM (SYNTHETIC, sha256 3ffef8e0b689…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+UNIVERS
+Marchés découverts: 23
+Autorisés: 21
+Admis (ADMISSIBLE): 21
+À qualifier: 0
+Inconnus (UNKNOWN): 0
+Non admissibles: 2
+Exclus manuellement: 0
+
+RÉFÉRENCE
+Kraken | SPOT | BTC/USDT
+Statut: NOT YET HISTORICALLY ADMITTED
+Radar: ADMISSIBLE (DEEP_OBSERVATION) · score 88.00
+Hors classement automatique.
+
+CANDIDATS DE RECHERCHE
+1. kraken:perp:BTC/USD
+   KRAKEN | PERPETUAL | BTC/USD | CALM
+   Motif : Meilleur score du régime CALM : score 94.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 1.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité COMPLETE
+2. mexc:perp:DOGE/USDT
+   MEXC | PERPETUAL | DOGE/USDT | CALM
+   Motif : Meilleur score restant avec un autre actif de base : score 82.00/100
+     ; continuité GOOD (1.0000) ; spread médian 2.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+3. mexc:spot:PEPE/USDT
+   MEXC | SPOT | PEPE/USDT | ACTIVE
+   Motif : Meilleur score du régime ACTIVE : score 64.50/100 ; continuité GOOD
+     (1.0000) ; spread médian 16.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+Aucune analyse approfondie, collecte L2 ou expérience n'est lancée.
+
+COMMANDES
+universe · scan · candidates · inspect <id> · evidence <id> · select <id> · pin
+  <id> · exclude <id> · reset · history · status · help · quit
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture calm universe --venue kraken --type PERPETUAL
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-01-CALM (SYNTHETIC, sha256 3ffef8e0b689…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+UNIVERS (3/23)
+kraken:perp:BTC/USD
+   KRAKEN | PERPETUAL | BTC/USD | PF_XBTUSD
+   ADMISSIBLE · score 94.00 · BASELINE
+kraken:perp:ETH/USD
+   KRAKEN | PERPETUAL | ETH/USD | PF_ETHUSD
+   ADMISSIBLE · score 79.00 · BASELINE
+kraken:perp:SOL/USD
+   KRAKEN | PERPETUAL | SOL/USD | PF_SOLUSD
+   ADMISSIBLE · score 71.00 · BASELINE
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture volatile --state-dir radar-state scan
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-02-VOLATILE (SYNTHETIC, sha256 49d7947bdd64…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+UNIVERS
+Marchés découverts: 23
+Autorisés: 21
+Admis (ADMISSIBLE): 19
+À qualifier: 0
+Inconnus (UNKNOWN): 2
+Non admissibles: 2
+Exclus manuellement: 0
+
+CANDIDATS DE RECHERCHE
+1. kraken:perp:BTC/USD
+   KRAKEN | PERPETUAL | BTC/USD | ACTIVE
+   Motif : Meilleur score du régime ACTIVE : score 94.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 2.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité COMPLETE
+2. mexc:perp:ETH/USDT
+   MEXC | PERPETUAL | ETH/USDT | VOLATILE
+   Motif : Meilleur score du régime VOLATILE : score 82.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 1.200 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+3. mexc:spot:ADA/USDT
+   MEXC | SPOT | ADA/USDT | CALM
+   Motif : Meilleur score du régime CALM : score 71.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 4.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+Aucune analyse approfondie, collecte L2 ou expérience n'est lancée.
+
+RÉSULTAT
+SHA-256 de l'évaluation:
+  c9c9458e55045e6ce6d0ed998806cf04744f1995517938da20fc1082b1416113
+Historique : 1/20 évaluations conservées.
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture volatile candidates
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-02-VOLATILE (SYNTHETIC, sha256 49d7947bdd64…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+CANDIDATS DE RECHERCHE
+1. kraken:perp:BTC/USD
+   KRAKEN | PERPETUAL | BTC/USD | ACTIVE
+   Motif : Meilleur score du régime ACTIVE : score 94.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 2.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité COMPLETE
+   Critères disponibles : activity_volatility, collection_cost, continuity,
+     diversity, l2_quality, spread_depth
+   Critères manquants : aucun
+   Coût : ESTIMATED · réseau 600 KiB/s · stockage 40 MiB/h · 1 connexion(s)
+   Provenance du coût : SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non
+     mesuré
+   Limites : Données SYNTHETIC : aucune valeur LIVE ; Coût estimé, non mesuré ;
+     Régime sur une seule fenêtre (29 retours)
+2. mexc:perp:ETH/USDT
+   MEXC | PERPETUAL | ETH/USDT | VOLATILE
+   Motif : Meilleur score du régime VOLATILE : score 82.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 1.200 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+   Critères disponibles : activity_volatility, collection_cost, continuity,
+     diversity
+   Critères manquants : l2_quality, spread_depth
+   Coût : ESTIMATED · réseau 120 KiB/s · stockage 40 MiB/h · 1 connexion(s)
+   Provenance du coût : SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non
+     mesuré
+   Limites : Données SYNTHETIC : aucune valeur LIVE ; Intégrité L2 non prouvée ;
+     Profondeur non mesurée ; Coût estimé, non mesuré ; Régime sur une seule
+     fenêtre (29 retours)
+3. mexc:spot:ADA/USDT
+   MEXC | SPOT | ADA/USDT | CALM
+   Motif : Meilleur score du régime CALM : score 71.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 4.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+   Critères disponibles : activity_volatility, collection_cost, continuity,
+     diversity
+   Critères manquants : l2_quality, spread_depth
+   Coût : ESTIMATED · réseau 120 KiB/s · stockage 40 MiB/h · 1 connexion(s)
+   Provenance du coût : SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non
+     mesuré
+   Limites : Données SYNTHETIC : aucune valeur LIVE ; Intégrité L2 non prouvée ;
+     Profondeur non mesurée ; Coût estimé, non mesuré ; Régime sur une seule
+     fenêtre (29 retours)
+Aucune analyse approfondie, collecte L2 ou expérience n'est lancée.
+
+RÉFÉRENCE
+Kraken | SPOT | BTC/USDT
+Statut: NOT YET HISTORICALLY ADMITTED
+Radar: ADMISSIBLE (DEEP_OBSERVATION) · score 83.00
+Hors classement automatique.
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps inspect kraken:spot:SOL/USDT
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-03-ACTIVE-GAPS (SYNTHETIC, sha256 e56641f97a94…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+MARCHÉ
+kraken:spot:SOL/USDT
+  KRAKEN | SPOT | SOL/USDT
+  Symbole natif: SOLUSDT
+  Contrat: SPOT · règlement n/a
+
+CHAÎNE DE QUALIFICATION
+  Découvert: oui
+  Autorisé: oui
+  Source: ACCESSIBLE
+  Données récentes: STALE
+  Admissibilité: A_QUALIFIER (DEEP_OBSERVATION)
+  Catalogue: LISTED · ADDED
+
+SIX CRITÈRES
+1. Qualité L2 : UNKNOWN · preuve UNKNOWN
+   motif : L2_NOT_PROVIDED
+2. Continuité : PARTIAL · PARTIAL 0.5000 (15/30) · trous 1 · fraîcheur STALE
+  (931000 ms)
+   motif : SOURCE_STALE
+3. Spread et profondeur : PARTIAL · spread 2.000 bps (BBO) · profondeur UNKNOWN
+   motif : L2_NOT_PROVIDED
+4. Activité et volatilité : AVAILABLE · 1500 trades · vol 8.854 bps/pas (ACTIVE)
+5. Coût de collecte : AVAILABLE · ESTIMATED · réseau 120 KiB/s · CPU 3 % · mém.
+  60 MiB · stockage 40 MiB/h
+6. Diversité : AVAILABLE · régime ACTIVE
+
+DÉCISION
+  - A_QUALIFIER : CONTINUITY_PARTIAL
+  - A_QUALIFIER : SOURCE_STALE
+  Score: non calculé (marché non ADMISSIBLE)
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps evidence kraken:spot:ADA/USDT
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-03-ACTIVE-GAPS (SYNTHETIC, sha256 e56641f97a94…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+PREUVES
+kraken:spot:ADA/USDT
+  Jeu de données: R0-SYN-03-ACTIVE-GAPS
+  SHA-256 du jeu:
+    e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503
+  Catalogue: KRAKEN_SPOT · SYNTHETIC_FIXTURE_CATALOGUE
+  Statut natif: status=online key=ADAUSDT
+  Exclusion catalogue: aucune
+  Collecté (ms): 1795601650000
+  Métadonnées: courantes
+  SHA-256 kraken_asset_pairs:
+    9e7bf0524756b80171d2396480319b5f4235b11cfb2bc77d078185855ddbfd66
+  SHA-256 kraken_assets:
+    ca24b17347902eaf2b2a1bc7db37983566fd593309ece3d661a3c7cddc95df22
+  Observation: SYN:R0-SYN-03-ACTIVE-GAPS:kraken:SPOT:ADAUSDT
+  Nature du prix: LAST_TRADE
+  Échantillons: 30
+  Horodatage: CERTIFIED
+  Activité: SYN:R0-SYN-03-ACTIVE-GAPS:trades:ADAUSDT
+  Coût: ESTIMATED · SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non
+    mesuré
+
+UNKNOWN ET MOTIFS
+  - l2_quality : UNKNOWN (L2_NOT_PROVIDED)
+  - spread_depth : UNKNOWN (BBO_NOT_PROVIDED)
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state select kraken:spot:BTC/USD
+SELECT enregistré (préférence locale, séquence 1).
+Marché: kraken:spot:BTC/USD
+Admissibilité actuelle: A_QUALIFIER — NON présenté comme admissible
+Aucune collecte, aucun job d'observation, aucune expérience n'a été lancé.
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state pin mexc:spot:ETH/USDT
+PIN enregistré (préférence locale, séquence 2).
+Marché: mexc:spot:ETH/USDT
+Admissibilité actuelle: ADMISSIBLE
+Aucune collecte, aucun job d'observation, aucune expérience n'a été lancé.
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state exclude kraken:perp:BTC/USD
+EXCLUDE enregistré (préférence locale, séquence 3).
+Marché: kraken:perp:BTC/USD
+Admissibilité actuelle: ADMISSIBLE
+Aucune collecte, aucun job d'observation, aucune expérience n'a été lancé.
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state select kraken:spot:NOPE/USDT
+REFUSÉ: UNKNOWN_MARKET:kraken:spot:NOPE/USDT
+[code de sortie 2]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state select kraken:spot:USDC/USDT
+REFUSÉ: MARKET_NOT_AUTHORIZED:ASSET_CLASS_NOT_AUTHORIZED
+[code de sortie 2]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state status
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-03-ACTIVE-GAPS (SYNTHETIC, sha256 e56641f97a94…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+UNIVERS
+Marchés découverts: 24
+Autorisés: 23
+Admis (ADMISSIBLE): 8
+À qualifier: 4
+Inconnus (UNKNOWN): 9
+Non admissibles: 4
+Exclus manuellement: 1
+Retirés / source non courante: 1
+
+RÉFÉRENCE
+Kraken | SPOT | BTC/USDT
+Statut: NOT YET HISTORICALLY ADMITTED
+Radar: ADMISSIBLE (DEEP_OBSERVATION) · score 76.00
+Hors classement automatique.
+
+CANDIDATS DE RECHERCHE
+1. mexc:spot:SOL/USDT
+   MEXC | SPOT | SOL/USDT | ACTIVE
+   Motif : Meilleur score du régime ACTIVE : score 82.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 2.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+2. mexc:spot:DOGE/USDT
+   MEXC | SPOT | DOGE/USDT | CALM
+   Motif : Meilleur score du régime CALM : score 77.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 3.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+3. mexc:spot:WIF/USDT
+   MEXC | SPOT | WIF/USDT | VOLATILE
+   Motif : Meilleur score du régime VOLATILE : score 64.50/100 ; continuité GOOD
+     (1.0000) ; spread médian 12.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+Aucune analyse approfondie, collecte L2 ou expérience n'est lancée.
+
+CONTRÔLE MANUEL
+Sélection manuelle : kraken:spot:BTC/USD
+   NON présenté comme admissible (A_QUALIFIER)
+Épinglés : mexc:spot:ETH/USDT
+   admissible
+Exclus : kraken:perp:BTC/USD
+   admissible
+
+COMMANDES
+universe · scan · candidates · inspect <id> · evidence <id> · select <id> · pin
+  <id> · exclude <id> · reset · history · status · help · quit
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state reset
+RESET enregistré (préférence locale, séquence 4).
+Aucune collecte, aucun job d'observation, aucune expérience n'a été lancé.
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture incoherent universe --decision NON_ADMISSIBLE
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-04-INCOHERENT (SYNTHETIC, sha256 d3d14ac42c98…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+UNIVERS (12/22)
+kraken:perp-inv:BTC/USD
+   KRAKEN | PERPETUAL | BTC/USD | PI_XBTUSD
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : CATALOGUE_DUPLICATE_KEY, NO_OBSERVATION, SOURCE_ACCESS_UNKNOWN,
+     CATALOGUE_METADATA_STALE
+kraken:perp:BTC/USD
+   KRAKEN | PERPETUAL | BTC/USD | PF_XBTUSD
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : CATALOGUE_DUPLICATE_KEY, SOURCE_ACCESS_UNKNOWN,
+     CATALOGUE_METADATA_STALE
+kraken:spot:ADA/USDT
+   KRAKEN | SPOT | ADA/USDT | ADAUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : CONTRADICTORY_VALUES_MID_PRICE_MISMATCH
+kraken:spot:ATOM/USDT
+   KRAKEN | SPOT | ATOM/USDT | ATOMUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : DUPLICATE_OBSERVATION
+kraken:spot:BTC/USD
+   KRAKEN | SPOT | BTC/USD | XBTUSD
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : IDENTITY_CONFLICT_DECLARED_QUOTE
+kraken:spot:DOT/USDT
+   KRAKEN | SPOT | DOT/USDT | DOTUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : CATALOGUE_AMBIGUOUS_MAPPING
+kraken:spot:ETH/USDT
+   KRAKEN | SPOT | ETH/USDT | ETHUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : CONTRADICTORY_VALUES_CROSSED_OR_LOCKED_BOOK
+kraken:spot:SOL/USDT
+   KRAKEN | SPOT | SOL/USDT | SOLUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : TIMESTAMP_NOT_STRICTLY_INCREASING
+kraken:spot:USDC/USDT
+   KRAKEN | SPOT | USDC/USDT | USDCUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : ASSET_CLASS_NOT_AUTHORIZED,
+     NOT_EVALUATED_OUTSIDE_AUTHORIZED_UNIVERSE
+kraken:unknown-contract:ADA/USD
+   KRAKEN | PERPETUAL | ADA/USD | PF_ADAUSD
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : CATALOGUE_AMBIGUOUS_CONTRACT, NO_OBSERVATION, SOURCE_ACCESS_UNKNOWN,
+     CATALOGUE_METADATA_STALE
+mexc:spot:ETH/USDT
+   MEXC | SPOT | ETH/USDT | ETHUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : IDENTITY_CONFLICT_DECLARED_QUOTE
+mexc:spot:USDC/USDT
+   MEXC | SPOT | USDC/USDT | USDCUSDT
+   NON_ADMISSIBLE · score — · BASELINE
+   Motifs : ASSET_CLASS_NOT_AUTHORIZED,
+     NOT_EVALUATED_OUTSIDE_AUTHORIZED_UNIVERSE
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps --state-dir radar-state history
+
+HISTORIQUE (BORNÉ À 20)
+1. R0-SYN-02-VOLATILE · DEEP_OBSERVATION · c9c9458e5504…
+   Candidats : kraken:perp:BTC/USD, mexc:perp:ETH/USDT, mexc:spot:ADA/USDT
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture calm --width 48 status
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED
+L2 COLLECTION: DISABLED
+PAPER: DISABLED
+DATASET: R0-SYN-01-CALM (SYNTHETIC, sha256
+  3ffef8e0b689…)
+CONTRAT: radar-evaluation/1.0.0 ·
+  radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+UNIVERS
+Marchés découverts: 23
+Autorisés: 21
+Admis (ADMISSIBLE): 21
+À qualifier: 0
+Inconnus (UNKNOWN): 0
+Non admissibles: 2
+Exclus manuellement: 0
+
+RÉFÉRENCE
+Kraken | SPOT | BTC/USDT
+Statut: NOT YET HISTORICALLY ADMITTED
+Radar: ADMISSIBLE (DEEP_OBSERVATION) · score
+  88.00
+Hors classement automatique.
+
+CANDIDATS DE RECHERCHE
+1. kraken:perp:BTC/USD
+   KRAKEN | PERPETUAL | BTC/USD | CALM
+   Motif : Meilleur score du régime CALM : score
+     94.00/100 ; continuité GOOD (1.0000) ;
+     spread médian 1.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité
+     COMPLETE
+2. mexc:perp:DOGE/USDT
+   MEXC | PERPETUAL | DOGE/USDT | CALM
+   Motif : Meilleur score restant avec un autre
+     actif de base : score 82.00/100 ;
+     continuité GOOD (1.0000) ; spread médian
+     2.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité
+     INCOMPLETE
+3. mexc:spot:PEPE/USDT
+   MEXC | SPOT | PEPE/USDT | ACTIVE
+   Motif : Meilleur score du régime ACTIVE :
+     score 64.50/100 ; continuité GOOD (1.0000)
+     ; spread médian 16.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité
+     INCOMPLETE
+Aucune analyse approfondie, collecte L2 ou
+  expérience n'est lancée.
+
+COMMANDES
+universe · scan · candidates · inspect <id> ·
+  evidence <id> · select <id> · pin <id> ·
+  exclude <id> · reset · history · status · help
+  · quit
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture calm bench 5
+RADAR — mesure locale (non représentative de la production)
+Jeu: R0-SYN-01-CALM · 23 marchés
+Exécutions: 5
+Durée max (ms): 189.0 / plafond 2000
+Mémoire pic (octets): 700468 / plafond 67108864
+Entrée (octets): 109901 / plafond 2000000
+Sortie (octets): 69628 / plafond 1000000
+Empreintes distinctes: 1
+Budget de test: RESPECTÉ
+Budget de production: NOT_MEASURED
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture volatile bench 5
+RADAR — mesure locale (non représentative de la production)
+Jeu: R0-SYN-02-VOLATILE · 23 marchés
+Exécutions: 5
+Durée max (ms): 151.6 / plafond 2000
+Mémoire pic (octets): 664912 / plafond 67108864
+Entrée (octets): 100472 / plafond 2000000
+Sortie (octets): 68227 / plafond 1000000
+Empreintes distinctes: 1
+Budget de test: RESPECTÉ
+Budget de production: NOT_MEASURED
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture gaps bench 5
+RADAR — mesure locale (non représentative de la production)
+Jeu: R0-SYN-03-ACTIVE-GAPS · 25 marchés
+Exécutions: 5
+Durée max (ms): 106.0 / plafond 2000
+Mémoire pic (octets): 589469 / plafond 67108864
+Entrée (octets): 75426 / plafond 2000000
+Sortie (octets): 68124 / plafond 1000000
+Empreintes distinctes: 1
+Budget de test: RESPECTÉ
+Budget de production: NOT_MEASURED
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture incoherent bench 5
+RADAR — mesure locale (non représentative de la production)
+Jeu: R0-SYN-04-INCOHERENT · 22 marchés
+Exécutions: 5
+Durée max (ms): 83.0 / plafond 2000
+Mémoire pic (octets): 577344 / plafond 67108864
+Entrée (octets): 85347 / plafond 2000000
+Sortie (octets): 60917 / plafond 1000000
+Empreintes distinctes: 1
+Budget de test: RESPECTÉ
+Budget de production: NOT_MEASURED
+[code de sortie 0]
+
+$ python -m observability.radar_selection --fixture calm export | sha256sum   (deux fois)
+8a769e75c0b0eadfffd628c274faf47e17957a44f2f8e319f47bb0de12209b0d  -
+8a769e75c0b0eadfffd628c274faf47e17957a44f2f8e319f47bb0de12209b0d  -
+
+$ printf 'candidates\nquit\n' | python -m observability.radar_selection --fixture incoherent shell
+RADAR — shell local (SYNTHETIC / OFFLINE). 'help' pour l'aide, 'quit' pour sortir.
+CAT MARKET INTELLIGENCE
+RADAR — Surveillance et sélection
+
+MODE: SYNTHETIC / OFFLINE
+NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
+DATASET: R0-SYN-04-INCOHERENT (SYNTHETIC, sha256 d3d14ac42c98…)
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
+MISSION: DEEP_OBSERVATION
+
+CANDIDATS DE RECHERCHE
+1. mexc:spot:BTC/USDT
+   MEXC | SPOT | BTC/USDT | CALM
+   Motif : Meilleur score du régime CALM : score 82.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 0.800 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+   Critères disponibles : activity_volatility, collection_cost, continuity,
+     diversity
+   Critères manquants : l2_quality, spread_depth
+   Coût : ESTIMATED · réseau 120 KiB/s · stockage 40 MiB/h · 1 connexion(s)
+   Provenance du coût : SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non
+     mesuré
+   Limites : Données SYNTHETIC : aucune valeur LIVE ; Intégrité L2 non prouvée ;
+     Profondeur non mesurée ; Coût estimé, non mesuré ; Régime sur une seule
+     fenêtre (29 retours)
+2. mexc:spot:SOL/USDT
+   MEXC | SPOT | SOL/USDT | ACTIVE
+   Motif : Meilleur score du régime ACTIVE : score 82.00/100 ; continuité GOOD
+     (1.0000) ; spread médian 2.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+   Critères disponibles : activity_volatility, collection_cost, continuity,
+     diversity
+   Critères manquants : l2_quality, spread_depth
+   Coût : ESTIMATED · réseau 120 KiB/s · stockage 40 MiB/h · 1 connexion(s)
+   Provenance du coût : SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non
+     mesuré
+   Limites : Données SYNTHETIC : aucune valeur LIVE ; Intégrité L2 non prouvée ;
+     Profondeur non mesurée ; Coût estimé, non mesuré ; Régime sur une seule
+     fenêtre (29 retours)
+3. mexc:spot:DOGE/USDT
+   MEXC | SPOT | DOGE/USDT | CALM
+   Motif : Meilleur score restant avec un autre actif de base : score 77.00/100
+     ; continuité GOOD (1.0000) ; spread médian 4.000 bps (BBO)
+   Statut : PROPOSÉ, NON AUTORISÉ · qualité INCOMPLETE
+   Critères disponibles : activity_volatility, collection_cost, continuity,
+     diversity
+   Critères manquants : l2_quality, spread_depth
+   Coût : ESTIMATED · réseau 120 KiB/s · stockage 40 MiB/h · 1 connexion(s)
+   Provenance du coût : SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non
+     mesuré
+   Limites : Données SYNTHETIC : aucune valeur LIVE ; Intégrité L2 non prouvée ;
+     Profondeur non mesurée ; Coût estimé, non mesuré ; Régime sur une seule
+     fenêtre (29 retours)
+Aucune analyse approfondie, collecte L2 ou expérience n'est lancée.
+
+RÉFÉRENCE
+Kraken | SPOT | BTC/USDT
+Statut: NOT YET HISTORICALLY ADMITTED
+Radar: ADMISSIBLE (DEEP_OBSERVATION) · score 88.00
+Hors classement automatique.
+
+Fin de session RADAR. Préférences et historique déjà enregistrés atomiquement ; rien en cours.
+[code de sortie 0]

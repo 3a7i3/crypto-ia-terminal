@@ -1,0 +1,3321 @@
+{
+ "catalogues": {
+  "kraken_asset_pairs": {
+   "body": {
+    "error": [],
+    "result": {
+     "ADAUSDT": {
+      "altname": "ADAUSDT",
+      "base": "ADA",
+      "quote": "USDT",
+      "status": "online",
+      "wsname": "ADA/USDT"
+     },
+     "ATOMUSDT": {
+      "altname": "ATOMUSDT",
+      "base": "ATOM",
+      "quote": "USDT",
+      "status": "online",
+      "wsname": "ATOM/USDT"
+     },
+     "ETHUSDT": {
+      "altname": "ETHUSDT",
+      "base": "XETH",
+      "quote": "USDT",
+      "status": "online",
+      "wsname": "ETH/USDT"
+     },
+     "SOLUSDT": {
+      "altname": "SOLUSDT",
+      "base": "SOL",
+      "quote": "USDT",
+      "status": "online",
+      "wsname": "SOL/USDT"
+     },
+     "USDCUSDT": {
+      "altname": "USDCUSDT",
+      "base": "USDC",
+      "quote": "USDT",
+      "status": "online",
+      "wsname": "USDC/USDT"
+     },
+     "XBTUSDT": {
+      "altname": "XBTUSDT",
+      "base": "XXBT",
+      "quote": "USDT",
+      "status": "online",
+      "wsname": "XBT/USDT"
+     },
+     "XDGUSDT": {
+      "altname": "XDGUSDT",
+      "base": "XXDG",
+      "quote": "USDT",
+      "status": "online",
+      "wsname": "XDG/USDT"
+     },
+     "XXBTZUSD": {
+      "altname": "XBTUSD",
+      "base": "XXBT",
+      "quote": "ZUSD",
+      "status": "online",
+      "wsname": "XBT/USD"
+     }
+    }
+   },
+   "error": null,
+   "received_ms": 1795601650000
+  },
+  "kraken_assets": {
+   "body": {
+    "error": [],
+    "result": {
+     "ADA": {
+      "aclass": "currency",
+      "altname": "ADA",
+      "decimals": 8
+     },
+     "ATOM": {
+      "aclass": "currency",
+      "altname": "ATOM",
+      "decimals": 8
+     },
+     "DOT": {
+      "aclass": "currency",
+      "altname": "DOT",
+      "decimals": 8
+     },
+     "SOL": {
+      "aclass": "currency",
+      "altname": "SOL",
+      "decimals": 8
+     },
+     "USDC": {
+      "aclass": "currency",
+      "altname": "USDC",
+      "decimals": 8
+     },
+     "USDT": {
+      "aclass": "currency",
+      "altname": "USDT",
+      "decimals": 8
+     },
+     "XETH": {
+      "aclass": "currency",
+      "altname": "ETH",
+      "decimals": 8
+     },
+     "XXBT": {
+      "aclass": "currency",
+      "altname": "XBT",
+      "decimals": 8
+     },
+     "XXDG": {
+      "aclass": "currency",
+      "altname": "XDG",
+      "decimals": 8
+     },
+     "ZUSD": {
+      "aclass": "currency",
+      "altname": "USD",
+      "decimals": 8
+     }
+    }
+   },
+   "error": null,
+   "received_ms": 1795601650000
+  },
+  "kraken_futures_instruments": {
+   "body": {
+    "instruments": [
+     {
+      "base": "XBT",
+      "contractSize": 1,
+      "isExpired": false,
+      "pair": "XBT:USD",
+      "postOnly": false,
+      "quote": "USD",
+      "suspended": false,
+      "symbol": "PF_XBTUSD",
+      "tradeable": true,
+      "type": "flexible_futures"
+     },
+     {
+      "base": "ETH",
+      "contractSize": 1,
+      "isExpired": false,
+      "pair": "ETH:USD",
+      "postOnly": false,
+      "quote": "USD",
+      "suspended": false,
+      "symbol": "PF_ETHUSD",
+      "tradeable": true,
+      "type": "flexible_futures"
+     },
+     {
+      "base": "SOL",
+      "contractSize": 1,
+      "isExpired": false,
+      "pair": "SOL:USD",
+      "postOnly": false,
+      "quote": "USD",
+      "suspended": false,
+      "symbol": "PF_SOLUSD",
+      "tradeable": true,
+      "type": "flexible_futures"
+     }
+    ],
+    "result": "success",
+    "serverTime": "2026-11-24T00:00:00Z"
+   },
+   "error": null,
+   "received_ms": 1795601650000
+  },
+  "mexc_contract_detail": {
+   "body": {
+    "code": 0,
+    "data": [
+     {
+      "apiAllowed": true,
+      "baseCoin": "BTC",
+      "futureType": 1,
+      "isHidden": false,
+      "quoteCoin": "USDT",
+      "settleCoin": "USDT",
+      "state": 0,
+      "symbol": "BTC_USDT"
+     },
+     {
+      "apiAllowed": true,
+      "baseCoin": "ETH",
+      "futureType": 1,
+      "isHidden": false,
+      "quoteCoin": "USDT",
+      "settleCoin": "USDT",
+      "state": 0,
+      "symbol": "ETH_USDT"
+     },
+     {
+      "apiAllowed": true,
+      "baseCoin": "SOL",
+      "futureType": 1,
+      "isHidden": false,
+      "quoteCoin": "USDT",
+      "settleCoin": "USDT",
+      "state": 0,
+      "symbol": "SOL_USDT"
+     },
+     {
+      "apiAllowed": true,
+      "baseCoin": "DOGE",
+      "futureType": 1,
+      "isHidden": false,
+      "quoteCoin": "USDT",
+      "settleCoin": "USDT",
+      "state": 0,
+      "symbol": "DOGE_USDT"
+     }
+    ],
+    "success": true
+   },
+   "error": null,
+   "received_ms": 1795601650000
+  },
+  "mexc_spot_exchange_info": {
+   "body": {
+    "serverTime": 1795600000000,
+    "symbols": [
+     {
+      "baseAsset": "BTC",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "BTCUSDT"
+     },
+     {
+      "baseAsset": "ETH",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "ETHUSDT"
+     },
+     {
+      "baseAsset": "SOL",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "SOLUSDT"
+     },
+     {
+      "baseAsset": "ATOM",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "ATOMUSDT"
+     },
+     {
+      "baseAsset": "ADA",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "ADAUSDT"
+     },
+     {
+      "baseAsset": "DOGE",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "DOGEUSDT"
+     },
+     {
+      "baseAsset": "PEPE",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "PEPEUSDT"
+     },
+     {
+      "baseAsset": "USDC",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "USDCUSDT"
+     },
+     {
+      "baseAsset": "WIF",
+      "fullName": "fixture",
+      "isSpotTradingAllowed": true,
+      "quoteAsset": "USDT",
+      "status": "1",
+      "symbol": "WIFUSDT"
+     }
+    ],
+    "timezone": "CST"
+   },
+   "error": null,
+   "received_ms": 1795601650000
+  }
+ },
+ "dataset_id": "R0-SYN-03-ACTIVE-GAPS",
+ "description": "Univers actif avec lacunes : trous, source ancienne, horodatages et BBO manquants, marché retiré et ajouté (SYNTHETIC).",
+ "evaluation_time_ms": 1795601770000,
+ "evidence_kind": "SYNTHETIC",
+ "fixture_schema": "radar-fixture/1.0.0",
+ "observations": [
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:XBTUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 4000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:SPOT:XBTUSDT",
+   "l2": {
+    "depth_levels": 10,
+    "depth_quote_10bps": null,
+    "evidence_ref": "SOURCE:bbo_pilot Kraken WS v2 book depth 10 + CRC32 (compatibilité technique, aucune intégrité prouvée)",
+    "status": "TECHNICALLY_COMPATIBLE"
+   },
+   "market_type": "SPOT",
+   "native_symbol": "XBTUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "92009.2",
+     "bid": "91990.8",
+     "price": "92000",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "92092.00828",
+     "bid": "92073.59172",
+     "price": "92082.8",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "92108.5848414904",
+     "bid": "92090.1649665096",
+     "price": "92099.374904",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "92058.846205675995",
+     "bid": "92040.436277427685",
+     "price": "92049.64124155184",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "92058.798482370122",
+     "bid": "92040.388563665519",
+     "price": "92049.59352301782",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "92108.510233550602",
+     "bid": "92090.090373489898",
+     "price": "92099.30030352025",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "92091.930701708563",
+     "bid": "92073.51415722267",
+     "price": "92082.722429465616",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "92009.047964077025",
+     "bid": "91990.647994481169",
+     "price": "91999.847979279097",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "92042.171221344093",
+     "bid": "92023.764627759183",
+     "price": "92032.967924551638",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "92009.036039704409",
+     "bid": "91990.636072493189",
+     "price": "91999.836056098799",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "92091.844172140143",
+     "bid": "92073.427644958433",
+     "price": "92082.635908549288",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "92108.420704091128",
+     "bid": "92090.000861934526",
+     "price": "92099.210783012827",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "92058.682156910919",
+     "bid": "92040.272261469081",
+     "price": "92049.47720919",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "92124.964408063895",
+     "bid": "92106.541257497339",
+     "price": "92115.752832780617",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "92124.964408063895",
+     "bid": "92106.541257497339",
+     "price": "92115.752832780617",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "92108.346096284282",
+     "bid": "92089.926269047748",
+     "price": "92099.136182666015",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "92091.76659398695",
+     "bid": "92073.35008231932",
+     "price": "92082.558338153135",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "92008.884004052362",
+     "bid": "91990.484067245232",
+     "price": "91999.684035648797",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "92042.007202293821",
+     "bid": "92023.600641509441",
+     "price": "92032.803921901631",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "92008.872079700995",
+     "bid": "91990.472145278497",
+     "price": "91999.672112489746",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "92091.680064572726",
+     "bid": "92073.263570209248",
+     "price": "92082.471817390987",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "92108.256566984349",
+     "bid": "92089.836757651886",
+     "price": "92099.046662318117",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "92058.518108438178",
+     "bid": "92040.108245802754",
+     "price": "92049.313177120466",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "92124.800241476253",
+     "bid": "92106.377123739732",
+     "price": "92115.588682607992",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "92124.800241476253",
+     "bid": "92106.377123739732",
+     "price": "92115.588682607992",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "92058.47038530239",
+     "bid": "92040.060532210639",
+     "price": "92049.265458756515",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "92108.181959310454",
+     "bid": "92089.762164898033",
+     "price": "92098.972062104243",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:XBTUSD",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 4200
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:SPOT:XBTUSD",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "XBTUSD",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "92019.201",
+     "bid": "92000.799",
+     "price": "92010",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "91969.51063146",
+     "bid": "91951.11856854",
+     "price": "91960.3146",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "92035.728679114651",
+     "bid": "92017.323373909349",
+     "price": "92026.526026512",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "92035.728679114651",
+     "bid": "92017.323373909349",
+     "price": "92026.526026512",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "91969.462954465689",
+     "bid": "91951.070901080134",
+     "price": "91960.266927772911",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "92019.1264644611",
+     "bid": "92000.724479366717",
+     "price": "92009.925471913909",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "92002.563021697497",
+     "bid": "91984.164348960431",
+     "price": "91993.363685328964",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "91919.760714977969",
+     "bid": "91901.378601046367",
+     "price": "91910.569658012168",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "91919.585001283328",
+     "bid": "91901.202922490951",
+     "price": "91910.39396188714",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "92002.312627784483",
+     "bid": "91983.914005121193",
+     "price": "91993.113316452838",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "92018.873044057484",
+     "bid": "92000.471109642114",
+     "price": "92009.672076849799",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "91969.182852613693",
+     "bid": "91950.790855242908",
+     "price": "91959.986853928301",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "92035.400664267575",
+     "bid": "92016.995424658683",
+     "price": "92026.198044463129",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "92035.400664267575",
+     "bid": "92016.995424658683",
+     "price": "92026.198044463129",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "91969.135175789303",
+     "bid": "91950.743187952928",
+     "price": "91959.939181871115",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "92018.798508784229",
+     "bid": "92000.396589274423",
+     "price": "92009.597549029326",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "92002.235125052648",
+     "bid": "91983.836517888354",
+     "price": "91993.035821470501",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "91919.4331134401",
+     "bid": "91901.051065022254",
+     "price": "91910.242089231177",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:ETHUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 2000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:SPOT:ETHUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "ETHUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "3200.32",
+     "bid": "3199.68",
+     "price": "3200",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "3200.32",
+     "bid": "3199.68",
+     "price": "3200",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "3199.534046173174",
+     "bid": "3198.894203348222",
+     "price": "3199.214124760698",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "3197.23038165993",
+     "bid": "3196.590999521812",
+     "price": "3196.910690590871",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "3200.299722826323",
+     "bid": "3199.659726881352",
+     "price": "3199.979724853838",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "3200.299722826323",
+     "bid": "3199.659726881352",
+     "price": "3199.979724853838",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "3197.22743509241",
+     "bid": "3196.588053543546",
+     "price": "3196.907744317978",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "3199.529438845677",
+     "bid": "3198.889596942098",
+     "price": "3199.209517893887",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "3198.761551780354",
+     "bid": "3198.121863438832",
+     "price": "3198.441707609593",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "3194.923037918217",
+     "bid": "3194.284117202705",
+     "price": "3194.603577560461",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "3196.456600976418",
+     "bid": "3195.817373578962",
+     "price": "3196.13698727769",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "3194.922301807949",
+     "bid": "3194.283381239644",
+     "price": "3194.602841523797",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:SOLUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 1500
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:SPOT:SOLUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "SOLUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "150.015",
+     "bid": "149.985",
+     "price": "150",
+     "t_ms": 1795599099000
+    },
+    {
+     "ask": "150.1410126",
+     "bid": "150.1109874",
+     "price": "150.126",
+     "t_ms": 1795599159000
+    },
+    {
+     "ask": "150.098973116472",
+     "bid": "150.068956323528",
+     "price": "150.08396472",
+     "t_ms": 1795599219000
+    },
+    {
+     "ask": "149.888834554109",
+     "bid": "149.858859784675",
+     "price": "149.873847169392",
+     "t_ms": 1795599279000
+    },
+    {
+     "ask": "149.972772301459",
+     "bid": "149.942780746154",
+     "price": "149.957776523807",
+     "t_ms": 1795599339000
+    },
+    {
+     "ask": "149.88878754897",
+     "bid": "149.858812788937",
+     "price": "149.873800168954",
+     "t_ms": 1795599399000
+    },
+    {
+     "ask": "150.098631851539",
+     "bid": "150.068615126841",
+     "price": "150.08362348919",
+     "t_ms": 1795599459000
+    },
+    {
+     "ask": "150.140659468457",
+     "bid": "150.110634339077",
+     "price": "150.125646903767",
+     "t_ms": 1795599519000
+    },
+    {
+     "ask": "150.014541314504",
+     "bid": "149.984541406232",
+     "price": "149.999541360368",
+     "t_ms": 1795599579000
+    },
+    {
+     "ask": "150.182557600776",
+     "bid": "150.152524092607",
+     "price": "150.167540846691",
+     "t_ms": 1795599639000
+    },
+    {
+     "ask": "150.182557600776",
+     "bid": "150.152524092607",
+     "price": "150.167540846691",
+     "t_ms": 1795599699000
+    },
+    {
+     "ask": "150.014353136263",
+     "bid": "149.984353265623",
+     "price": "149.999353200943",
+     "t_ms": 1795599759000
+    },
+    {
+     "ask": "150.140365192898",
+     "bid": "150.110340122366",
+     "price": "150.125352657632",
+     "t_ms": 1795599819000
+    },
+    {
+     "ask": "150.098325890644",
+     "bid": "150.068309227132",
+     "price": "150.083317558888",
+     "t_ms": 1795599879000
+    },
+    {
+     "ask": "149.888188234397",
+     "bid": "149.858213594214",
+     "price": "149.873200914305",
+     "t_ms": 1795599939000
+    },
+    {
+     "ask": "149.972125619808",
+     "bid": "149.942134193827",
+     "price": "149.957129906817",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "149.888141229461",
+     "bid": "149.858166598678",
+     "price": "149.87315391407",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "150.097984627182",
+     "bid": "150.067968031916",
+     "price": "150.082976329549",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "150.140012062878",
+     "bid": "150.109987062965",
+     "price": "150.124999562922",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "150.013894452745",
+     "bid": "149.983894673832",
+     "price": "149.998894563289",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "150.181910014532",
+     "bid": "150.151876635867",
+     "price": "150.1668933252",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "150.181910014532",
+     "bid": "150.151876635867",
+     "price": "150.1668933252",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "150.013706275316",
+     "bid": "149.983706534035",
+     "price": "149.998706404675",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "150.139717788587",
+     "bid": "150.109692847523",
+     "price": "150.124705318055",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "150.097678667606",
+     "bid": "150.067662133526",
+     "price": "150.082670400566",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "149.887541917472",
+     "bid": "149.857567406539",
+     "price": "149.872554662005",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "149.971478940945",
+     "bid": "149.941487644287",
+     "price": "149.956483292616",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "149.887494912739",
+     "bid": "149.857520411206",
+     "price": "149.872507661972",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "150.097337405616",
+     "bid": "150.067320939782",
+     "price": "150.082329172699",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "150.13936466009",
+     "bid": "150.109339789645",
+     "price": "150.124352224867",
+     "t_ms": 1795600839000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:ATOMUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 300
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:SPOT:ATOMUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "ATOMUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "6.80068",
+     "bid": "6.79932",
+     "price": "6.8",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "6.793199252",
+     "bid": "6.791840748",
+     "price": "6.79252",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "6.796188259671",
+     "bid": "6.794829157929",
+     "price": "6.7955087088",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "6.793197936837",
+     "bid": "6.7918394331",
+     "price": "6.792518684968",
+     "t_ms": null
+    },
+    {
+     "ask": "6.800670454567",
+     "bid": "6.799310456476",
+     "price": "6.799990455522",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "6.802166602067",
+     "bid": "6.800806304776",
+     "price": "6.801486453422",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "6.79767717211",
+     "bid": "6.796317772615",
+     "price": "6.796997472363",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "6.803659128021",
+     "bid": "6.802298532255",
+     "price": "6.802978830138",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "6.803659128021",
+     "bid": "6.802298532255",
+     "price": "6.802978830138",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "6.797671907989",
+     "bid": "6.796312509547",
+     "price": "6.796992208768",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "6.802158371448",
+     "bid": "6.800798075803",
+     "price": "6.801478223625",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "6.800661896606",
+     "bid": "6.799301900226",
+     "price": "6.799981898416",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "6.79318116852",
+     "bid": "6.791822668136",
+     "price": "6.792501918328",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "6.796170168234",
+     "bid": "6.79481107011",
+     "price": "6.795490619172",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "6.79317985336",
+     "bid": "6.791821353239",
+     "price": "6.7925006033",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "6.800652351199",
+     "bid": "6.799292356728",
+     "price": "6.799972353963",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "6.802148494716",
+     "bid": "6.800788201046",
+     "price": "6.801468347881",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "6.797659076709",
+     "bid": "6.796299680834",
+     "price": "6.796979378772",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "6.803641016697",
+     "bid": "6.802280424553",
+     "price": "6.802960720625",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "6.803641016697",
+     "bid": "6.802280424553",
+     "price": "6.802960720625",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "6.797653812602",
+     "bid": "6.796294417779",
+     "price": "6.796974115191",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "6.802140264119",
+     "bid": "6.800779972095",
+     "price": "6.801460118107",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "6.80064379326",
+     "bid": "6.799283800501",
+     "price": "6.799963796881",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "6.793163085088",
+     "bid": "6.791804588321",
+     "price": "6.792483836704",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "6.796152076845",
+     "bid": "6.794792982339",
+     "price": "6.795472529592",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "6.793161769932",
+     "bid": "6.791803273427",
+     "price": "6.792482521679",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "6.800634247878",
+     "bid": "6.799274257028",
+     "price": "6.799954252453",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "6.802130387413",
+     "bid": "6.800770097364",
+     "price": "6.801450242389",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "6.797640981357",
+     "bid": "6.7962815891",
+     "price": "6.796961285229",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "6.803622905421",
+     "bid": "6.802262316899",
+     "price": "6.80294261116",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:ADAUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 500
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:SPOT:ADAUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "ADAUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.65",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.64974",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.65038974",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650519817948",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650129506057",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650649609662",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650649609662",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650129089974",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650519167428",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650389063595",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.649738674531",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.649998570001",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.649738570573",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650388309144",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650518386805",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650128075773",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650648178234",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650648178234",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650127659691",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650517736287",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.65038763274",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.649737245107",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.649997140005",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.649737141149",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.65038687829",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650516955666",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650126645493",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650646746809",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650646746809",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": null,
+     "bid": null,
+     "price": "0.650126229412",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:PF_XBTUSD",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 9000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:PERPETUAL:PF_XBTUSD",
+   "l2": {
+    "depth_levels": 10,
+    "depth_quote_10bps": {
+     "ask": null,
+     "bid": "300000"
+    },
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:l2-proof:PF_XBTUSD",
+    "status": "VERIFIED"
+   },
+   "market_type": "PERPETUAL",
+   "native_symbol": "PF_XBTUSD",
+   "price_kind": "MARK",
+   "samples": [
+    {
+     "ask": "92059.205",
+     "bid": "92040.795",
+     "price": "92050",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "92077.616841",
+     "bid": "92059.203159",
+     "price": "92068.41",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "92022.3702708954",
+     "bid": "92003.9676371046",
+     "price": "92013.168954",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "92095.988167112116",
+     "bid": "92077.570811214284",
+     "price": "92086.7794891632",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "92095.988167112116",
+     "bid": "92077.570811214284",
+     "price": "92086.7794891632",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "92022.311376578427",
+     "bid": "92003.908754565312",
+     "price": "92013.110065571869",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "92077.524763404374",
+     "bid": "92059.111099818051",
+     "price": "92068.317931611213",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "92059.109258451693",
+     "bid": "92040.699277598088",
+     "price": "92049.90426802489",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "91967.050149193241",
+     "bid": "91948.65857832049",
+     "price": "91957.854363756865",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "92003.836969252918",
+     "bid": "91985.438041751818",
+     "price": "91994.637505502368",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "92059.002469899682",
+     "bid": "92040.592510401652",
+     "price": "92049.797490150667",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "92077.414270393662",
+     "bid": "92059.000628903733",
+     "price": "92068.207449648698",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "92022.167821831426",
+     "bid": "92003.76522852639",
+     "price": "92012.966525178908",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "92095.785556088891",
+     "bid": "92077.368240709212",
+     "price": "92086.576898399051",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "92095.785556088891",
+     "bid": "92077.368240709212",
+     "price": "92086.576898399051",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "92022.10892764402",
+     "bid": "92003.706346116644",
+     "price": "92012.907636880332",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "92077.322193000607",
+     "bid": "92058.908569924314",
+     "price": "92068.11538146246",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "92058.906728562007",
+     "bid": "92040.496788210329",
+     "price": "92049.701758386168",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "91966.847821833445",
+     "bid": "91948.456291422119",
+     "price": "91957.652056627782",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "92003.634560962178",
+     "bid": "91985.235673938688",
+     "price": "91994.435117450433",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "91966.833107137793",
+     "bid": "91948.441579669112",
+     "price": "91957.637343403453",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "92058.799940244931",
+     "bid": "92040.390021248781",
+     "price": "92049.594980746856",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "92077.21170023298",
+     "bid": "92058.798099253031",
+     "price": "92068.004899743005",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "92021.96537321284",
+     "bid": "92003.562820393479",
+     "price": "92012.76409680316",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "92095.58294551141",
+     "bid": "92077.165670649794",
+     "price": "92086.374308080602",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "92095.58294551141",
+     "bid": "92077.165670649794",
+     "price": "92086.374308080602",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "92021.906479155001",
+     "bid": "92003.503938113274",
+     "price": "92012.705208634138",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "92077.119623042494",
+     "bid": "92058.706040476142",
+     "price": "92067.912831759318",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "92058.704199117886",
+     "bid": "92040.294299268047",
+     "price": "92049.499249192966",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": null,
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:kraken:PERPETUAL:PF_ETHUSD",
+   "l2": null,
+   "market_type": "PERPETUAL",
+   "native_symbol": "PF_ETHUSD",
+   "price_kind": "MARK",
+   "samples": [
+    {
+     "ask": "3205.3205",
+     "bid": "3204.6795",
+     "price": "3205",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "3208.65403332",
+     "bid": "3208.01236668",
+     "price": "3208.3332",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "3208.65403332",
+     "bid": "3208.01236668",
+     "price": "3208.3332",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "3205.317033125347",
+     "bid": "3204.676033818653",
+     "price": "3204.996533472",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "3207.817180411185",
+     "bid": "3207.175681125031",
+     "price": "3207.496430768108",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "3206.983147944278",
+     "bid": "3206.341815447939",
+     "price": "3206.662481696108",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "3202.814069851951",
+     "bid": "3202.173571087857",
+     "price": "3202.493820469904",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "3204.479533168274",
+     "bid": "3203.838701344822",
+     "price": "3204.159117256548",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "3202.813203811026",
+     "bid": "3202.172705220123",
+     "price": "3202.492954515574",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "3206.97686097598",
+     "bid": "3206.335529736909",
+     "price": "3206.656195356445",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "3207.810674959834",
+     "bid": "3207.169176974641",
+     "price": "3207.489925967237",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "3205.308582633365",
+     "bid": "3204.6675850166",
+     "price": "3204.988083824983",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "3208.642103559304",
+     "bid": "3208.000439305018",
+     "price": "3208.321271432161",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "3208.642103559304",
+     "bid": "3208.000439305018",
+     "price": "3208.321271432161",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "3205.305115771602",
+     "bid": "3204.66411884814",
+     "price": "3204.984617309871",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "3207.805253761904",
+     "bid": "3207.163756860842",
+     "price": "3207.484505311373",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "3206.971224395926",
+     "bid": "3206.329894284058",
+     "price": "3206.650559339992",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "3202.802161804212",
+     "bid": "3202.161665421489",
+     "price": "3202.48191361285",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "3204.46761892835",
+     "bid": "3203.826789487508",
+     "price": "3204.147204207929",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "3202.801295766507",
+     "bid": "3202.160799556975",
+     "price": "3202.481047661741",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "3206.964937451003",
+     "bid": "3206.323608596399",
+     "price": "3206.644273023701",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "3207.798748334741",
+     "bid": "3207.157252734634",
+     "price": "3207.478000534687",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "3205.29666531104",
+     "bid": "3204.655670077501",
+     "price": "3204.97616769427",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "3208.630173842963",
+     "bid": "3207.988511974381",
+     "price": "3208.309342908672",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "3208.630173842963",
+     "bid": "3207.988511974381",
+     "price": "3208.309342908672",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "3205.293198462166",
+     "bid": "3204.652203921928",
+     "price": "3204.972701192047",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "3207.793327156967",
+     "bid": "3207.151832640987",
+     "price": "3207.472579898977",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "3206.959300891906",
+     "bid": "3206.3179731645",
+     "price": "3206.638637028203",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "3202.790253800747",
+     "bid": "3202.149759799387",
+     "price": "3202.470006800067",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "3204.455704732723",
+     "bid": "3203.814877674482",
+     "price": "3204.135291203603",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "kraken",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:BTCUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 20000
+   },
+   "cost": null,
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:mexc:SPOT:BTCUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "BTCUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "91994.5995",
+     "bid": "91985.4005",
+     "price": "91990",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "91928.36338836",
+     "bid": "91919.17101164",
+     "price": "91923.7672",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "91978.004704589714",
+     "bid": "91968.807363986286",
+     "price": "91973.406034288",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "91961.448663742888",
+     "bid": "91952.252978660768",
+     "price": "91956.850821201828",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "91878.68335994552",
+     "bid": "91869.495950979973",
+     "price": "91874.089655462747",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "91911.7596859551",
+     "bid": "91902.568969522326",
+     "price": "91907.164327738713",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "91878.671452468156",
+     "bid": "91869.484044693298",
+     "price": "91874.077748580727",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "91961.362256775378",
+     "bid": "91952.166580333522",
+     "price": "91956.76441855445",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "91977.915301981597",
+     "bid": "91968.717970317982",
+     "price": "91973.31663614979",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "91928.247227718527",
+     "bid": "91919.05486261401",
+     "price": "91923.651045166269",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "91994.435565722484",
+     "bid": "91985.236582115093",
+     "price": "91989.836073918788",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "91994.435565722484",
+     "bid": "91985.236582115093",
+     "price": "91989.836073918788",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "91928.199572115164",
+     "bid": "91919.00721177597",
+     "price": "91923.603391945567",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "91977.840799884106",
+     "bid": "91968.643475670329",
+     "price": "91973.242137777218",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "91961.284788540127",
+     "bid": "91952.089119844708",
+     "price": "91956.686954192418",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "91878.519632230441",
+     "bid": "91869.332239636848",
+     "price": "91873.925935933644",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "91911.595899298044",
+     "bid": "91902.405199243117",
+     "price": "91907.000549270581",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "91878.507724774297",
+     "bid": "91869.32033337139",
+     "price": "91873.914029072843",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "91961.198381726594",
+     "bid": "91952.002721671424",
+     "price": "91956.600551699009",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "91977.751397435304",
+     "bid": "91968.554082161325",
+     "price": "91973.152739798315",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "91928.083411680689",
+     "bid": "91918.891062956958",
+     "price": "91923.487237318823",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "91994.271631737099",
+     "bid": "91985.072664522287",
+     "price": "91989.672148129693",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "91994.271631737099",
+     "bid": "91985.072664522287",
+     "price": "91989.672148129693",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "91928.035756162249",
+     "bid": "91918.84341220383",
+     "price": "91923.43958418304",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "91977.676895470576",
+     "bid": "91968.479587646421",
+     "price": "91973.078241558498",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "91961.120913629392",
+     "bid": "91951.925261320644",
+     "price": "91956.523087475018",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "91878.355904807125",
+     "bid": "91869.168528585456",
+     "price": "91873.76221669629",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "91911.432112932856",
+     "bid": "91902.241429255746",
+     "price": "91906.836771094301",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "91878.3439973722",
+     "bid": "91869.156622341214",
+     "price": "91873.750309856707",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "91961.034506969835",
+     "bid": "91951.838863301321",
+     "price": "91956.436685135578",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "mexc",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:ETHUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 12000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:mexc:SPOT:ETHUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "ETHUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "3198.4561162568",
+     "bid": "3198.0083637432",
+     "price": "3198.23224",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "3194.617968917292",
+     "bid": "3194.170753706708",
+     "price": "3194.394361312",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "3196.151385542372",
+     "bid": "3195.703955668487",
+     "price": "3195.92767060543",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "3194.617232877312",
+     "bid": "3194.170017769767",
+     "price": "3194.393625323539",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "3198.450773556765",
+     "bid": "3198.00302179109",
+     "price": "3198.226897673927",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "3199.218401742418",
+     "bid": "3198.77054251632",
+     "price": "3198.994472129369",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "3196.914964493164",
+     "bid": "3196.467427725708",
+     "price": "3196.691196109436",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "3199.984002859077",
+     "bid": "3199.536036456325",
+     "price": "3199.760019657701",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "3199.984002859077",
+     "bid": "3199.536036456325",
+     "price": "3199.760019657701",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "3196.912018216332",
+     "bid": "3196.464481861327",
+     "price": "3196.68825003883",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "3199.213794869448",
+     "bid": "3198.765936288267",
+     "price": "3198.989865578858",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "3198.445983558679",
+     "bid": "3197.998232463558",
+     "price": "3198.222108011119",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "3194.607848378409",
+     "bid": "3194.160634584602",
+     "price": "3194.384241481505",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "3196.141260145631",
+     "bid": "3195.693831689202",
+     "price": "3195.917545917416",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "3194.607112340761",
+     "bid": "3194.159898649991",
+     "price": "3194.383505495376",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "3198.44064087557",
+     "bid": "3197.992890528371",
+     "price": "3198.216765701971",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "3199.20826662938",
+     "bid": "3198.760408822098",
+     "price": "3198.984337725739",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "3196.904836677407",
+     "bid": "3196.457301327746",
+     "price": "3196.681069002577",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "3199.973865320617",
+     "bid": "3199.525900337021",
+     "price": "3199.749882828819",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "3199.973865320617",
+     "bid": "3199.525900337021",
+     "price": "3199.749882828819",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "3196.901890409909",
+     "bid": "3196.454355472697",
+     "price": "3196.678122941303",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "3199.203659771004",
+     "bid": "3198.755802608638",
+     "price": "3198.979731189821",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "3198.435850892659",
+     "bid": "3197.988101216012",
+     "price": "3198.211976054335",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "3194.597727871588",
+     "bid": "3194.150515494552",
+     "price": "3194.37412168307",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "3196.131134780966",
+     "bid": "3195.68370774199",
+     "price": "3195.907421261478",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "3194.596991836272",
+     "bid": "3194.149779562274",
+     "price": "3194.373385699273",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "3198.430508226475",
+     "bid": "3197.982759297748",
+     "price": "3198.206633762112",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "3199.198131548449",
+     "bid": "3198.75027515998",
+     "price": "3198.974203354215",
+     "t_ms": 1795601679000
+    }
+   ],
+   "venue": "mexc",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:SOLUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 8000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": null,
+    "memory_mib": null,
+    "network_kib_s": "90",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:mexc:SPOT:SOLUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "SOLUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "149.81498",
+     "bid": "149.78502",
+     "price": "149.8",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "149.904868988",
+     "bid": "149.874891012",
+     "price": "149.88988",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "149.814926066607",
+     "bid": "149.784966077393",
+     "price": "149.799946072",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "150.039648455707",
+     "bid": "150.009643526509",
+     "price": "150.024645991108",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "150.084660350244",
+     "bid": "150.054646419567",
+     "price": "150.069653384905",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "149.949584155929",
+     "bid": "149.919597237789",
+     "price": "149.934590696859",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "150.129523656916",
+     "bid": "150.099500754475",
+     "price": "150.114512205695",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "150.129523656916",
+     "bid": "150.099500754475",
+     "price": "150.114512205695",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "149.949368228527",
+     "bid": "149.919381353569",
+     "price": "149.934374791048",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "150.084322659933",
+     "bid": "150.054308796787",
+     "price": "150.06931572836",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "150.039297363135",
+     "bid": "150.009292504148",
+     "price": "150.024294933642",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "149.81423841709",
+     "bid": "149.784278565392",
+     "price": "149.799258491241",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "149.904126960141",
+     "bid": "149.874149132531",
+     "price": "149.889138046336",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "149.814184483965",
+     "bid": "149.784224643052",
+     "price": "149.799204563508",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "150.038905760691",
+     "bid": "150.008900980016",
+     "price": "150.023903370353",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "150.083917432419",
+     "bid": "150.05390365031",
+     "price": "150.068910541365",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "149.94884190673",
+     "bid": "149.918855137025",
+     "price": "149.933848521877",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "150.128780517018",
+     "bid": "150.09875776319",
+     "price": "150.113769140104",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "150.128780517018",
+     "bid": "150.09875776319",
+     "price": "150.113769140104",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "149.948625980397",
+     "bid": "149.918639253874",
+     "price": "149.933632617135",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "150.08357974378",
+     "bid": "150.053566029202",
+     "price": "150.068572886491",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "150.038554669856",
+     "bid": "150.008549959394",
+     "price": "150.023552314625",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "149.813496837852",
+     "bid": "149.783537134454",
+     "price": "149.798516986153",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "149.903384935954",
+     "bid": "149.873407256735",
+     "price": "149.888396096345",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "149.813442904993",
+     "bid": "149.783483212381",
+     "price": "149.798463058687",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "150.03816306935",
+     "bid": "150.0081584372",
+     "price": "150.023160753275",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "150.083174518271",
+     "bid": "150.053160884731",
+     "price": "150.068167701501",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "149.948099661205",
+     "bid": "149.918113039935",
+     "price": "149.93310635057",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "150.128037380798",
+     "bid": "150.098014775582",
+     "price": "150.11302607819",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "150.128037380798",
+     "bid": "150.098014775582",
+     "price": "150.11302607819",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "mexc",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:WIFUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 6000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:mexc:SPOT:WIFUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "WIFUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "2.10126",
+     "bid": "2.09874",
+     "price": "2.1",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "2.10861441",
+     "bid": "2.10608559",
+     "price": "2.10735",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "2.110090440087",
+     "bid": "2.107559849913",
+     "price": "2.108825145",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "2.105659250163",
+     "bid": "2.103133974228",
+     "price": "2.104396612196",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "2.111555096063",
+     "bid": "2.109022749356",
+     "price": "2.11028892271",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "2.111555096063",
+     "bid": "2.109022749356",
+     "price": "2.11028892271",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "2.105642741794",
+     "bid": "2.103117485658",
+     "price": "2.104380113726",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "2.110064591552",
+     "bid": "2.107534032378",
+     "price": "2.108799311965",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "2.108587546338",
+     "bid": "2.106058758555",
+     "price": "2.107323152447",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "2.101207489926",
+     "bid": "2.0986875529",
+     "price": "2.099947521413",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "2.104149180412",
+     "bid": "2.101625715474",
+     "price": "2.102887447943",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "2.101203371559",
+     "bid": "2.098683439472",
+     "price": "2.099943405516",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "2.10855758336",
+     "bid": "2.106028831511",
+     "price": "2.107293207435",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "2.110033573668",
+     "bid": "2.107503051693",
+     "price": "2.10876831268",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "2.105602503163",
+     "bid": "2.103077295284",
+     "price": "2.104339899224",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "2.111498190172",
+     "bid": "2.108965911711",
+     "price": "2.110232050942",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "2.111498190172",
+     "bid": "2.108965911711",
+     "price": "2.110232050942",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "2.10558599524",
+     "bid": "2.103060807158",
+     "price": "2.104323401199",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "2.11000772583",
+     "bid": "2.107477234853",
+     "price": "2.108742480341",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "2.108530720422",
+     "bid": "2.106002000789",
+     "price": "2.107266360605",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "2.1011508629",
+     "bid": "2.098630993786",
+     "price": "2.099890928343",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "2.104092474108",
+     "bid": "2.101569077177",
+     "price": "2.102830775643",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "2.101146744644",
+     "bid": "2.098626880469",
+     "price": "2.099886812557",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "2.108500758251",
+     "bid": "2.105972074551",
+     "price": "2.107236416401",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "2.109976708781",
+     "bid": "2.107446255003",
+     "price": "2.108711481892",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "2.105545757693",
+     "bid": "2.103020617868",
+     "price": "2.10428318778",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "2.111441285814",
+     "bid": "2.108909075598",
+     "price": "2.110175180706",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "2.111441285814",
+     "bid": "2.108909075598",
+     "price": "2.110175180706",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "2.105529250214",
+     "bid": "2.103004130186",
+     "price": "2.1042666902",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "2.10995086164",
+     "bid": "2.107420438859",
+     "price": "2.10868565025",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "mexc",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:DOGEUSDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 7000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:mexc:SPOT:DOGEUSDT",
+   "l2": null,
+   "market_type": "SPOT",
+   "native_symbol": "DOGEUSDT",
+   "price_kind": "LAST_TRADE",
+   "samples": [
+    {
+     "ask": "0.1700255",
+     "bid": "0.1699745",
+     "price": "0.17",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "0.16998469388",
+     "bid": "0.16993370612",
+     "price": "0.1699592",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "0.170039088982",
+     "bid": "0.169988084906",
+     "price": "0.170013586944",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "0.170039088982",
+     "bid": "0.169988084906",
+     "price": "0.170013586944",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "0.169984676474",
+     "bid": "0.169933688719",
+     "price": "0.169959182596",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "0.170025472796",
+     "bid": "0.169974472804",
+     "price": "0.1699999728",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "0.170011870758",
+     "bid": "0.169960874846",
+     "price": "0.169986372802",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "0.16994386601",
+     "bid": "0.169892890496",
+     "price": "0.169918378253",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "0.169971057028",
+     "bid": "0.169920073359",
+     "price": "0.169945565194",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "0.169943861659",
+     "bid": "0.169892886147",
+     "price": "0.169918373903",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "0.170011839204",
+     "bid": "0.169960843302",
+     "price": "0.169986341253",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "0.170025440151",
+     "bid": "0.169974440169",
+     "price": "0.16999994016",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "0.169984634045",
+     "bid": "0.169933646303",
+     "price": "0.169959140174",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "0.170039029128",
+     "bid": "0.16998802507",
+     "price": "0.170013527099",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "0.170039029128",
+     "bid": "0.16998802507",
+     "price": "0.170013527099",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "0.169984616639",
+     "bid": "0.169933628902",
+     "price": "0.169959122771",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "0.170025412947",
+     "bid": "0.169974412973",
+     "price": "0.16999991296",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "0.170011810914",
+     "bid": "0.16996081502",
+     "price": "0.169986312967",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "0.16994380619",
+     "bid": "0.169892830694",
+     "price": "0.169918318442",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "0.169970997199",
+     "bid": "0.169920013547",
+     "price": "0.169945505373",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "0.169943801839",
+     "bid": "0.169892826345",
+     "price": "0.169918314092",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "0.17001177936",
+     "bid": "0.169960783475",
+     "price": "0.169986281418",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "0.170025380302",
+     "bid": "0.169974380338",
+     "price": "0.16999988032",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "0.169984574211",
+     "bid": "0.169933586487",
+     "price": "0.169959080349",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "0.170038969275",
+     "bid": "0.169987965234",
+     "price": "0.170013467254",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "0.170038969275",
+     "bid": "0.169987965234",
+     "price": "0.170013467254",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "0.169984556804",
+     "bid": "0.169933569086",
+     "price": "0.169959062945",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "0.170025353098",
+     "bid": "0.169974353142",
+     "price": "0.16999985312",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "0.17001175107",
+     "bid": "0.169960755194",
+     "price": "0.169986253132",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "0.169943746369",
+     "bid": "0.169892770892",
+     "price": "0.169918258631",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "mexc",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:BTC_USDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 30000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:mexc:PERPETUAL:BTC_USDT",
+   "l2": null,
+   "market_type": "PERPETUAL",
+   "native_symbol": "BTC_USDT",
+   "price_kind": "MARK",
+   "samples": [
+    {
+     "ask": "92023.6808",
+     "bid": "92016.3192",
+     "price": "92020",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "92023.6808",
+     "bid": "92016.3192",
+     "price": "92020",
+     "t_ms": 1795600059000
+    },
+    {
+     "ask": "91957.423749824",
+     "bid": "91950.067450176",
+     "price": "91953.7456",
+     "t_ms": 1795600119000
+    },
+    {
+     "ask": "92007.080758648905",
+     "bid": "91999.720486599095",
+     "price": "92003.400622624",
+     "t_ms": 1795600179000
+    },
+    {
+     "ask": "91990.519484112348",
+     "bid": "91983.160536911507",
+     "price": "91986.840010511928",
+     "t_ms": 1795600239000
+    },
+    {
+     "ask": "91907.728016576647",
+     "bid": "91900.375692428287",
+     "price": "91904.051854502467",
+     "t_ms": 1795600299000
+    },
+    {
+     "ask": "91940.814798662615",
+     "bid": "91933.459827677561",
+     "price": "91937.137313170088",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "91907.716105335096",
+     "bid": "91900.363782139597",
+     "price": "91904.039943737347",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "91990.433049829898",
+     "bid": "91983.074109543523",
+     "price": "91986.75357968671",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "92006.991327778867",
+     "bid": "91999.631062883241",
+     "price": "92003.311195331054",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "91957.307552461866",
+     "bid": "91949.951262109284",
+     "price": "91953.629407285575",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "92023.516813899639",
+     "bid": "92016.155227018002",
+     "price": "92019.836020458821",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "92023.516813899639",
+     "bid": "92016.155227018002",
+     "price": "92019.836020458821",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "91957.259881793631",
+     "bid": "91949.903595254549",
+     "price": "91953.58173852409",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "92006.9168021298",
+     "bid": "91999.556543195987",
+     "price": "92003.236672662893",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "91990.355557105416",
+     "bid": "91982.996623018212",
+     "price": "91986.676090061814",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "91907.564237104022",
+     "bid": "91900.211926057495",
+     "price": "91903.888081580758",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "91940.650960229379",
+     "bid": "91933.296002350876",
+     "price": "91936.973481290127",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "91907.552325883696",
+     "bid": "91900.20001579003",
+     "price": "91903.876170836863",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "91990.269122976992",
+     "bid": "91982.910195804241",
+     "price": "91986.589659390616",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "92006.827371419128",
+     "bid": "91999.467119639485",
+     "price": "92003.147245529306",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "91957.143684638561",
+     "bid": "91949.78740739488",
+     "price": "91953.465546016721",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "92023.352828091501",
+     "bid": "92015.991254328204",
+     "price": "92019.672041209853",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "92023.352828091501",
+     "bid": "92015.991254328204",
+     "price": "92019.672041209853",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "91957.096014055275",
+     "bid": "91949.739740625088",
+     "price": "91953.417877340182",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "92006.752845902865",
+     "bid": "91999.392600085026",
+     "price": "92003.072722993945",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "91990.191630390603",
+     "bid": "91982.83270941701",
+     "price": "91986.512169903806",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "91907.400457923251",
+     "bid": "91900.048159978535",
+     "price": "91903.724308950893",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "91940.487122088103",
+     "bid": "91933.132177316127",
+     "price": "91936.809649702115",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "91907.388546724152",
+     "bid": "91900.036249732293",
+     "price": "91903.712398228223",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "mexc",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  },
+  {
+   "activity": {
+    "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:trades:SOL_USDT",
+    "kind": "TRADE_COUNT_WINDOW",
+    "value": 9000
+   },
+   "cost": {
+    "basis": "ESTIMATED",
+    "connections": 1,
+    "cpu_pct": "3",
+    "memory_mib": "60",
+    "network_kib_s": "120",
+    "provenance": "SYNTHETIC_ESTIMATE_R0 : ordre de grandeur inventé, non mesuré",
+    "rate_limit_note": "SYNTHETIC : limite non qualifiée",
+    "storage_mib_h": "40"
+   },
+   "declared_base": null,
+   "declared_quote": null,
+   "evidence_ref": "SYN:R0-SYN-03-ACTIVE-GAPS:mexc:PERPETUAL:SOL_USDT",
+   "l2": null,
+   "market_type": "PERPETUAL",
+   "native_symbol": "SOL_USDT",
+   "price_kind": "MARK",
+   "samples": [
+    {
+     "ask": "150.113509",
+     "bid": "150.086491",
+     "price": "150.1",
+     "t_ms": 1795599999000
+    },
+    {
+     "ask": "150.209089468811",
+     "bid": "150.182054265875",
+     "price": "150.195571867343",
+     "t_ms": 1795600359000
+    },
+    {
+     "ask": "150.257156377441",
+     "bid": "150.23011252324",
+     "price": "150.24363445034",
+     "t_ms": 1795600419000
+    },
+    {
+     "ask": "150.112909507319",
+     "bid": "150.085891615217",
+     "price": "150.099400561268",
+     "t_ms": 1795600479000
+    },
+    {
+     "ask": "150.305054031488",
+     "bid": "150.278001556485",
+     "price": "150.291527793986",
+     "t_ms": 1795600539000
+    },
+    {
+     "ask": "150.305054031488",
+     "bid": "150.278001556485",
+     "price": "150.291527793986",
+     "t_ms": 1795600599000
+    },
+    {
+     "ask": "150.112663562328",
+     "bid": "150.085645714493",
+     "price": "150.09915463841",
+     "t_ms": 1795600659000
+    },
+    {
+     "ask": "150.256771719347",
+     "bid": "150.229727934379",
+     "price": "150.243249826863",
+     "t_ms": 1795600719000
+    },
+    {
+     "ask": "150.208689552397",
+     "bid": "150.18165442144",
+     "price": "150.195171986918",
+     "t_ms": 1795600779000
+    },
+    {
+     "ask": "149.968355649113",
+     "bid": "149.941363774365",
+     "price": "149.954859711739",
+     "t_ms": 1795600839000
+    },
+    {
+     "ask": "150.064335396729",
+     "bid": "150.037326247181",
+     "price": "150.050830821955",
+     "t_ms": 1795600899000
+    },
+    {
+     "ask": "149.968294222075",
+     "bid": "149.941302358383",
+     "price": "149.954798290229",
+     "t_ms": 1795600959000
+    },
+    {
+     "ask": "150.20824349283",
+     "bid": "150.181208442156",
+     "price": "150.194725967493",
+     "t_ms": 1795601019000
+    },
+    {
+     "ask": "150.256310130748",
+     "bid": "150.229266428858",
+     "price": "150.242788279803",
+     "t_ms": 1795601079000
+    },
+    {
+     "ask": "150.112064073022",
+     "bid": "150.085046333086",
+     "price": "150.098555203054",
+     "t_ms": 1795601139000
+    },
+    {
+     "ask": "150.304207515036",
+     "bid": "150.277155192392",
+     "price": "150.290681353714",
+     "t_ms": 1795601199000
+    },
+    {
+     "ask": "150.304207515036",
+     "bid": "150.277155192392",
+     "price": "150.290681353714",
+     "t_ms": 1795601259000
+    },
+    {
+     "ask": "150.111818129417",
+     "bid": "150.084800433746",
+     "price": "150.098309281581",
+     "t_ms": 1795601319000
+    },
+    {
+     "ask": "150.255925474821",
+     "bid": "150.228881842162",
+     "price": "150.242403658492",
+     "t_ms": 1795601379000
+    },
+    {
+     "ask": "150.207843578669",
+     "bid": "150.180808599973",
+     "price": "150.194326089321",
+     "t_ms": 1795601439000
+    },
+    {
+     "ask": "149.967511028943",
+     "bid": "149.940519306213",
+     "price": "149.954015167578",
+     "t_ms": 1795601499000
+    },
+    {
+     "ask": "150.063490236002",
+     "bid": "150.036481238569",
+     "price": "150.049985737285",
+     "t_ms": 1795601559000
+    },
+    {
+     "ask": "149.967449602251",
+     "bid": "149.940457890576",
+     "price": "149.953953746413",
+     "t_ms": 1795601619000
+    },
+    {
+     "ask": "150.207397521614",
+     "bid": "150.180362623201",
+     "price": "150.193880072408",
+     "t_ms": 1795601679000
+    },
+    {
+     "ask": "150.255463888821",
+     "bid": "150.228420339241",
+     "price": "150.241942114031",
+     "t_ms": 1795601739000
+    }
+   ],
+   "venue": "mexc",
+   "window": {
+    "points": 30,
+    "start_ms": 1795600000000,
+    "step_ms": 60000
+   }
+  }
+ ],
+ "policy": {
+  "asset_classes": [
+   "CRYPTO"
+  ],
+  "deny": [],
+  "market_types": [
+   "SPOT",
+   "PERPETUAL"
+  ],
+  "quotes": [
+   "USD",
+   "USDT"
+  ],
+  "venues": [
+   "kraken",
+   "mexc"
+  ]
+ },
+ "previous_universe": [
+  {
+   "contract_type": "SPOT",
+   "market_id": "kraken:spot:BTC/USDT",
+   "native_symbol": "XBTUSDT",
+   "settlement_asset": null
+  },
+  {
+   "contract_type": "SPOT",
+   "market_id": "kraken:spot:ETH/USDT",
+   "native_symbol": "ETHUSDT",
+   "settlement_asset": null
+  },
+  {
+   "contract_type": "SPOT",
+   "market_id": "mexc:spot:BTC/USDT",
+   "native_symbol": "BTCUSDT",
+   "settlement_asset": null
+  },
+  {
+   "contract_type": "SPOT",
+   "market_id": "mexc:spot:LUNA/USDT",
+   "native_symbol": "LUNAUSDT",
+   "settlement_asset": null
+  },
+  {
+   "contract_type": "LINEAR_PERPETUAL",
+   "market_id": "mexc:perp:BTC/USDT",
+   "native_symbol": "BTC_USDT",
+   "settlement_asset": "BTC"
+  },
+  {
+   "contract_type": "LINEAR_PERPETUAL",
+   "market_id": "kraken:perp:BTC/USD",
+   "native_symbol": "PF_XBTUSD",
+   "settlement_asset": "USD"
+  }
+ ],
+ "source_access": {
+  "KRAKEN_PERPETUAL": {
+   "reason": null,
+   "state": "ACCESSIBLE"
+  },
+  "KRAKEN_SPOT": {
+   "reason": null,
+   "state": "ACCESSIBLE"
+  },
+  "MEXC_PERPETUAL": {
+   "reason": "SYNTHETIC_HTTP_429_BACKOFF",
+   "state": "DEGRADED"
+  },
+  "MEXC_SPOT": {
+   "reason": null,
+   "state": "ACCESSIBLE"
+  }
+ }
+}
