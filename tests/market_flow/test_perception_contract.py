@@ -202,7 +202,10 @@ def test_published_book_is_sorted_bounded_and_without_zero():
     refused("BOOK_STATE", book(asks=[["61918.1", "1"], ["61918.10", "1"]]), "SIDE_NOT_STRICTLY_SORTED")
     refused("BOOK_STATE", book(subscribed_depth="1"), "DEPTH_EXCEEDED")
     refused("BOOK_STATE", book(bids=[["61917.6", "0"]]), "POSITIVE_REQUIRED")
-    pc.validate_record("BOOK_STATE", book(bids=[], asks=[["61918.1", "1"]]))
+    refused("BOOK_STATE", book(bids=[]), "VERIFIED_BOOK_REQUIRES_SIDES_AND_RECEIPT")
+    refused("BOOK_STATE", book(bids=None, asks=None), "VERIFIED_BOOK_REQUIRES_SIDES_AND_RECEIPT")
+    refused("BOOK_STATE", book(last_book_receipt_seq=None), "VERIFIED_BOOK_REQUIRES_SIDES_AND_RECEIPT")
+    refused("BOOK_STATE", book(last_book_receipt_seq="0"), "VERIFIED_BOOK_REQUIRES_SIDES_AND_RECEIPT")
 
 
 @pytest.mark.parametrize("ask", ["61917.6", "61917.60", "61900"])
@@ -347,3 +350,27 @@ def test_projection_is_deterministic():
     runs = {json.dumps(proj(o, s, reason="R", evidence_receipt_seq="1"), sort_keys=True)
             for o, natives in pc.ORIGINS.items() for s in natives for _ in range(2)}
     assert len(runs) == sum(len(n) for n in pc.ORIGINS.values())
+
+
+@pytest.mark.parametrize("identity", [
+    ("mexc", "SPOT", "BTC/USDT", "BTC", "USDT"),
+    ("kraken", "PERP", "BTC/USDT", "BTC", "USDT"),
+    ("kraken", "SPOT", "BTC/USDT", "BTC", "USD"),
+    ("kraken", "SPOT", "BTC/USDT", "ETH", "USDT"),
+    ("kraken", "SPOT", "BTC/BTC", "BTC", "BTC"),
+])
+def test_kraken_spot_identity_requires_coherent_market(identity):
+    with pytest.raises(pc.PerceptionRefusal, match="KRAKEN_SPOT_IDENTITY_MISMATCH"):
+        pc.validate_kraken_spot_identity(*identity)
+
+
+def test_kraken_spot_units_and_independent_manifest_reference():
+    assert pc.validate_kraken_spot_identity("kraken", "SPOT", "BTC/USDT", "BTC", "USDT") == {
+        "quantity_unit": "BTC", "price_quote_unit": "USDT",
+    }
+    corpus = "BBO-BTC-20261120T070632Z"
+    admitted = "9ee3185daaf05faf646686466d6faf18374ba54ade5ae30a1bf883b3f58da910"
+    pc.require_admitted_kraken_manifest(corpus, admitted)
+    for corpus_id, digest in ((corpus, "0" * 64), ("other", admitted)):
+        with pytest.raises(pc.PerceptionRefusal, match="HISTORICAL_MANIFEST_NOT_ADMITTED"):
+            pc.require_admitted_kraken_manifest(corpus_id, digest)

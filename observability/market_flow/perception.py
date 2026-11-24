@@ -57,6 +57,10 @@ _DEC = re.compile(r"[0-9]{1,30}(\.[0-9]{1,30})?", _A)  # finite decimal, no sign
 _CODE = re.compile(r"[A-Z][A-Z0-9_\-]{0,63}", _A)
 _HEX64 = re.compile(r"[0-9a-f]{64}", _A)
 _TEXT_MAX = 256
+_ASSET = re.compile(r"[A-Z0-9]{1,16}", _A)
+_ADMITTED_KRAKEN_MANIFESTS = {
+    "BBO-BTC-20261120T070632Z": "9ee3185daaf05faf646686466d6faf18374ba54ade5ae30a1bf883b3f58da910",
+}
 
 
 class PerceptionRefusal(ValueError):
@@ -65,6 +69,22 @@ class PerceptionRefusal(ValueError):
 
 def _refuse(code, path):
     raise PerceptionRefusal(f"{code}:{path}")
+
+
+def validate_kraken_spot_identity(venue, market_type, symbol, base, quote):
+    """Return the units established by a coherent Kraken Spot instrument."""
+    if (venue != "kraken" or market_type != "SPOT"
+            or any(type(asset) is not str or not _ASSET.fullmatch(asset) for asset in (base, quote))
+            or base == quote or symbol != f"{base}/{quote}"):
+        raise PerceptionRefusal("KRAKEN_SPOT_IDENTITY_MISMATCH")
+    return {"quantity_unit": base, "price_quote_unit": quote}
+
+
+def require_admitted_kraken_manifest(corpus_id, manifest_sha256):
+    """Check the documented admission reference independently of CLI arguments."""
+    expected = _ADMITTED_KRAKEN_MANIFESTS.get(corpus_id)
+    if expected is None or manifest_sha256 != expected:
+        raise PerceptionRefusal("HISTORICAL_MANIFEST_NOT_ADMITTED")
 
 
 # ------------------------------------------------------------------ strict JSON
@@ -236,6 +256,8 @@ def validate_book_state(doc, path="$"):
     bids, asks = doc["bids"], doc["asks"]
     if (bids is None) != (asks is None):
         _refuse("BOOK_SIDES_NULL_TOGETHER", path)
+    if doc["native_state"] in ("VALID", "UNCHANGED_VERIFIED") and (not bids or not asks or not last):
+        _refuse("VERIFIED_BOOK_REQUIRES_SIDES_AND_RECEIPT", path)
     if bids is None:
         return doc
     # A zero size removes a level, so a published book never shows one.

@@ -155,3 +155,17 @@ Décision opérateur consignée dans le fil de projet, sans URL publique :
 - Scanner/Radar, Flux/CVD/Heatmap et Footprint sont conservés ; leur raccord
   à la recherche attend une expérience qui le justifie (trades à couverture
   vérifiée pour Flux).
+
+### Exigences d’admission C2-R
+
+Une session Kraken Spot vérifie que le symbole natif correspond exactement à
+base/quote. La quantité est exprimée en unités de base et le prix en unités de
+cotation par unité de base. Les autres places du journal sont hors projection.
+Un état VALID ou UNCHANGED_VERIFIED exige deux côtés non vides et un reçu
+strictement positif, à la borne ou avant. Le producteur doit relier ce reçu
+au carnet reconstruit et à son contrôle natif.
+
+Pour HISTORICAL, le couple identifiant du corpus et SHA-256 du manifeste
+est comparé à la référence d’admission versionnée dans perception.py.
+Une empreinte fournie par l’opérateur à la CLI constitue un contrôle
+d’égalité supplémentaire. La référence documentaire ne certifie pas un rejeu.
