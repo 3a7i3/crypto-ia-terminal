@@ -34,7 +34,7 @@ from decimal import Decimal
 
 from . import perception as pc
 
-REPLAY_VERSION = "ch1-02-kraken-replay-0.2.0"
+REPLAY_VERSION = "ch1-02-kraken-replay-0.3.0"
 ARTIFACT = "CH1_02_KRAKEN_BOOK_REPLAY"
 VENUE = "kraken"
 OP_TEXT = 1
@@ -63,7 +63,6 @@ LIVENESS_POLICY = {
 SILENCE_KEYS = frozenset({"reason", "starts_at_t_ms", "ends_before_t_ms", "last_proof_receipt_seq",
                           "last_proof_t_ms", "opened_by_receipt_seq", "closed_by_receipt_seq"})
 
-_SYMBOL = re.compile(r"[A-Z0-9]{1,16}/[A-Z0-9]{1,16}", re.ASCII)
 _PLAIN_DEC = re.compile(r"[0-9]+(\.[0-9]+)?", re.ASCII)
 _CORPUS = re.compile(r"[A-Z0-9][A-Z0-9_\-]{0,127}", re.ASCII)
 
@@ -98,7 +97,7 @@ def _json_keep_numbers(raw, *, refusal):
 
 
 def _int(value, code):
-    if type(value) is _Num and re.fullmatch(r"0|[1-9][0-9]*", value, re.ASCII):
+    if type(value) is _Num and re.fullmatch(r"0|[1-9][0-9]{0,19}", value, re.ASCII):
         return int(value)
     raise ReplayRefusal(code)
 
@@ -127,16 +126,26 @@ def load_journal(manifest_bytes, events_bytes, frames_bytes):
         raise ReplayRefusal("EVENTS_HASH_MISMATCH")
     if _sha(frames_bytes) != sealed.get("frames_sha256"):
         raise ReplayRefusal("FRAMES_HASH_MISMATCH")
-    anchor = manifest.get("clock_anchor") or {}
+    for field, data in (("events_bytes", events_bytes), ("frames_bytes", frames_bytes)):
+        if field in sealed and _int(sealed[field], "SEAL_SIZE_INVALID") != len(data):
+            raise ReplayRefusal("SEAL_SIZE_MISMATCH")
+    anchor = manifest.get("clock_anchor")
+    if not isinstance(anchor, dict):
+        raise ReplayRefusal("ANCHOR_INVALID")
     wall0 = _int(anchor.get("wall_ms"), "ANCHOR_INVALID")
     mono0 = _int(anchor.get("mono_ms"), "ANCHOR_INVALID")
     if not events_bytes.endswith(b"\n"):
         raise ReplayRefusal("EVENTS_TRUNCATED")
     events, prev_seq, prev_mono = [], 0, None
+    next_offset = 0
     for line in events_bytes.split(b"\n")[:-1]:
         entry = _json_keep_numbers(line, refusal="EVENT")
         if not isinstance(entry, dict):
             raise ReplayRefusal("EVENT_NOT_OBJECT")
+        if (type(entry.get("venue")) is not str or entry["venue"] not in ("kraken", "mexc")
+                or type(entry.get("kind")) is not str or not entry["kind"].isprintable()
+                or len(entry["kind"]) > 256):
+            raise ReplayRefusal("EVENT_IDENTITY_INVALID")
         seq = _int(entry.get("seq"), "EVENT_SEQ_INVALID")
         mono = _int(entry.get("recv_mono_ms"), "EVENT_TIME_INVALID")
         wall = _int(entry.get("recv_wall_ms"), "EVENT_TIME_INVALID")
@@ -149,13 +158,18 @@ def load_journal(manifest_bytes, events_bytes, frames_bytes):
             raise ReplayRefusal("EVENT_RECEIPT_CLOCK_REWIND")
         if t_ms != wall0 + mono - mono0:
             raise ReplayRefusal("EVENT_TIME_INCONSISTENT_WITH_ANCHOR")
-        payload = frames_bytes[offset:offset + size]
+        if offset != next_offset or offset + size > len(frames_bytes):
+            raise ReplayRefusal("FRAME_RANGE_NOT_CONTIGUOUS")
+        next_offset = offset + size
+        payload = frames_bytes[offset:next_offset]
         if len(payload) != size or _sha(payload) != entry.get("sha256"):
             raise ReplayRefusal("FRAME_HASH_MISMATCH")
         prev_seq, prev_mono = seq, mono
         events.append({"seq": seq, "venue": entry.get("venue"), "kind": entry.get("kind"),
                        "opcode": entry.get("opcode"), "t_ms": t_ms, "wall_ms": wall, "mono_ms": mono,
                        "offset": offset, "bytes": size, "sha256": entry["sha256"], "payload": payload})
+    if next_offset != len(frames_bytes):
+        raise ReplayRefusal("UNREFERENCED_FRAME_BYTES")
     if len(events) != _int(sealed.get("events"), "SEAL_COUNT_INVALID"):
         raise ReplayRefusal("EVENT_COUNT_DIFFERS_FROM_SEAL")
     return manifest, events
@@ -214,6 +228,7 @@ class _KrakenBook:
         self.snapshot_expected = False
         self.last_book_seq = None
         self.breaks = []
+        self.anomalies = []
         self.counters = {}
 
     def count(self, key):
@@ -224,6 +239,7 @@ class _KrakenBook:
         self.asks.clear()
 
     def lose(self, seq, reason):
+        self.anomalies.append({"receipt_seq": str(seq), "reason": reason})
         if self.continuity == "CONTINUITY_LOST" and self.breaks and self.breaks[-1]["resolved_receipt_seq"] is None:
             self.count("break_while_lost")
         else:
@@ -269,9 +285,9 @@ class _KrakenBook:
 
     def apply_book(self, seq, kind, item):
         """One ``data`` item of a book message. Returns True when the book state was touched."""
-        if not isinstance(item, dict) or item.get("symbol") != self.symbol:
-            self.count("foreign_item")
-            return False
+        if not self.connected or self.unavailable:
+            self.lose(seq, "BOOK_WITHOUT_OPEN_CONNECTION")
+            return True
         if kind == "update" and self.continuity != "SYNCED":
             self.count("update_ignored_not_synced")
             return False
@@ -279,7 +295,7 @@ class _KrakenBook:
             if kind == "snapshot":
                 self.clear()
             for side, key in (("bid", "bids"), ("ask", "asks")):
-                levels = item.get(key) or []
+                levels = item.get(key, [])
                 if not isinstance(levels, list):
                     raise ValueError("LEVELS_NOT_LIST")
                 for level in levels:
@@ -298,6 +314,9 @@ class _KrakenBook:
             self.lose(seq, "CHECKSUM_MISMATCH")
             return True
         self.count("checksum_ok")
+        if not self.bids or not self.asks or min(self.asks) <= max(self.bids):
+            self.lose(seq, "BOOK_SIDES_INVALID")
+            return True
         self.last_book_seq = seq
         if kind == "snapshot":
             self.synced(seq)
@@ -388,13 +407,18 @@ def _identity(manifest):
         market_type = manifest["market_type"]
     except (KeyError, TypeError):
         raise ReplayRefusal("MANIFEST_IDENTITY_MISSING") from None
-    if type(symbol) is not str or not _SYMBOL.fullmatch(symbol) or not 0 < depth <= CHECKSUM_LEVELS:
+    if not 0 < depth <= CHECKSUM_LEVELS:
         raise ReplayRefusal("MANIFEST_IDENTITY_INVALID")
-    for value in (base, quote, market_type):
-        if type(value) is not str or not value:
-            raise ReplayRefusal("MANIFEST_IDENTITY_INVALID")
+    try:
+        units = pc.validate_kraken_spot_identity(VENUE, market_type, symbol, base, quote)
+    except pc.PerceptionRefusal as exc:
+        raise ReplayRefusal(str(exc)) from None
+    for field, expected in (("market_kind", market_type), ("contract_identity", "SPOT"),
+                            ("settlement_asset_id", quote)):
+        if field in instrument and instrument[field] != expected:
+            raise ReplayRefusal("KRAKEN_SPOT_IDENTITY_MISMATCH")
     return {"venue": VENUE, "market_type": market_type, "native_symbol": symbol, "base": base,
-            "quote": quote, "subscribed_depth": str(depth)}
+            "quote": quote, "subscribed_depth": str(depth), **units}
 
 
 def _raw_event(session_id, ident, ev, channel, native_time):
@@ -457,6 +481,11 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
     manifest, events = load_journal(manifest_bytes, events_bytes, frames_bytes)
     if manifest.get("evidence_kind") == "SYNTHETIC" and evidence_kind != "SYNTHETIC":
         raise ReplayRefusal("SYNTHETIC_JOURNAL_DECLARED_HISTORICAL")
+    if evidence_kind == "HISTORICAL":
+        try:
+            pc.require_admitted_kraken_manifest(corpus_id, _sha(manifest_bytes))
+        except pc.PerceptionRefusal as exc:
+            raise ReplayRefusal(str(exc)) from None
     if receipt_bound is not None and (type(receipt_bound) is not int or not 0 < receipt_bound <= len(events)):
         raise ReplayRefusal("RECEIPT_BOUND_INVALID")
     bound = len(events) if receipt_bound is None else receipt_bound
@@ -472,7 +501,9 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
             continue
         kind, channel, native_time, touched = ev["kind"], None, None, False
         if kind == "ws_open":
-            book.connected = True
+            if book.continuity == "SYNCED":
+                book.lose(ev["seq"], "CONNECTION_REOPENED")
+            book.connected, book.unavailable = True, False
             live.proof(ev)
             touched = True
         elif kind in ("ws_close", "ws_error", "gave_up"):
@@ -488,7 +519,10 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
                 doc = _json_keep_numbers(ev["payload"], refusal="SENT")
             except ReplayRefusal:
                 doc = None
-            if isinstance(doc, dict) and doc.get("method") == "subscribe" and book.connected:
+            params = doc.get("params") if isinstance(doc, dict) else None
+            if (book.connected and isinstance(params, dict) and doc.get("method") == "subscribe"
+                    and params.get("channel") == "book" and params.get("symbol") == [book.symbol]
+                    and type(params.get("depth")) is _Num and params["depth"] == str(book.depth)):
                 if book.continuity == "CONTINUITY_LOST":
                     book.resync_engaged, touched = True, True
                 elif book.continuity == "NOT_INITIALIZED":
@@ -496,24 +530,35 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
         elif kind == "ws_message":
             if ev["opcode"] != _Num(str(OP_TEXT)) and ev["opcode"] != OP_TEXT:
                 book.count("unexpected_opcode")
+                book.lose(ev["seq"], "UNEXPECTED_DATA_OPCODE")
+                touched = True
             else:
                 try:
                     doc = _json_keep_numbers(ev["payload"], refusal="FRAME")
                 except ReplayRefusal:
                     doc = None
+                if not isinstance(doc, dict):
                     book.count("text_invalid")
+                    book.lose(ev["seq"], "DATA_ENVELOPE_INVALID")
+                    touched = True
                 if doc is not None:
                     live.proof(ev)
                 if isinstance(doc, dict):
                     channel = doc.get("channel") if type(doc.get("channel")) is str else None
                     if channel == "trade":
                         raise ReplayRefusal("TRADE_CHANNEL_OUT_OF_SCOPE")
-                    if channel == "book" and doc.get("type") in ("snapshot", "update"):
-                        data = doc.get("data") or []
-                        if len(data) == 1 and isinstance(data[0], dict) and type(data[0].get("timestamp")) is str:
-                            native_time = data[0]["timestamp"]
-                        for item in data if isinstance(data, list) else []:
-                            touched = book.apply_book(ev["seq"], doc["type"], item) or touched
+                    if channel == "book":
+                        data = doc.get("data")
+                        if (doc.get("type") not in ("snapshot", "update")
+                                or not isinstance(data, list) or len(data) != 1
+                                or not isinstance(data[0], dict) or data[0].get("symbol") != book.symbol):
+                            book.lose(ev["seq"], "BOOK_ENVELOPE_INVALID")
+                            touched = True
+                        else:
+                            item = data[0]
+                            if type(item.get("timestamp")) is str:
+                                native_time = item["timestamp"]
+                            touched = book.apply_book(ev["seq"], doc["type"], item)
                     elif channel == "heartbeat":
                         book.count("heartbeat")
                     elif doc.get("method") == "pong":
@@ -524,6 +569,8 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
                         book.count("ack_" + ("ok" if doc.get("success") is True else "refused"))
                     else:
                         book.count("text_other")
+                        book.lose(ev["seq"], "DATA_ENVELOPE_UNCLASSIFIED")
+                        touched = True
         else:
             book.count("not_replayed_" + str(kind))
         if channel is not None and (type(channel) is not str or not channel.isprintable() or len(channel) > 64):
@@ -550,6 +597,7 @@ def replay(manifest_bytes, events_bytes, frames_bytes, *, corpus_id, evidence_ki
         "liveness_policy": LIVENESS_POLICY,
         "silences": live.at_bound(),
         "breaks": book.breaks,
+        "anomalies": book.anomalies,
         "counters": {k: str(v) for k, v in sorted(book.counters.items())},
         "ignored_events_by_venue": {k: str(v) for k, v in sorted(ignored.items())},
         "records": records,

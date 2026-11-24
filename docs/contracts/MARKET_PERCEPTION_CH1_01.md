@@ -237,15 +237,41 @@ python -m observability.market_perception_replay replay \
   qui est la borne d'un rejeu complet.
 - Les chemins, la borne, l'identifiant du corpus et le type de preuve sont
   explicites. `HISTORICAL` exige `--manifest-sha256` : le manifeste porte les
-  empreintes des deux autres fichiers, donc l'épingler lie le rejeu au corpus
-  admis.
+  empreintes des deux autres fichiers. Le rejeu exige aussi que cet identifiant
+  et ce SHA figurent dans la référence d’admission versionnée.
 - Le sceau est vérifié avant toute écriture. La destination ne doit pas exister
   et son dossier doit exister. Le document est écrit dans un fichier temporaire
-  privé à côté, synchronisé, lié à sa place sans jamais remplacer un fichier,
-  puis relu et son SHA-256 contrôlé.
+  privé à côté, synchronisé et relu pour vérifier son SHA-256, puis lié à sa
+  place sans remplacer un fichier.
 - En cas de succès, la commande affiche le nombre d'enregistrements par type, la
   taille exacte en octets et le SHA-256 du document.
 - Codes de sortie : 0 fait, 2 usage, 3 refus (rien d'écrit), 4 écriture en échec
   (rien laissé à la destination).
 - Volume : quelques dizaines de Mo estimés pour le corpus Kraken admis ; le
   premier rejeu réel donnera la mesure.
+
+### Exigences d’admission C2-R
+
+Une session Kraken Spot vérifie que le symbole natif correspond exactement à
+base/quote. La quantité est exprimée en unités de base et le prix en unités de
+cotation par unité de base. Les autres places du journal sont hors projection.
+Un état VALID ou UNCHANGED_VERIFIED exige deux côtés non vides et un reçu
+strictement positif, à la borne ou avant. Le producteur doit relier ce reçu
+au carnet reconstruit et à son contrôle natif.
+
+Pour HISTORICAL, le couple identifiant du corpus et SHA-256 du manifeste
+est comparé à la référence d’admission versionnée dans perception.py.
+Une empreinte fournie par l’opérateur à la CLI constitue un contrôle
+d’égalité supplémentaire. La référence documentaire ne certifie pas un rejeu.
+
+### Rejeu Kraken C2-R
+
+Les plages des événements pavent frames.bin dans l’ordre des reçus, y compris
+les plages vides. Les tailles du sceau, si présentes, doivent correspondre
+aux fichiers. Une trame book doit contenir un seul élément pour l’instrument
+souscrit. Une enveloppe ambiguë, un opcode inattendu ou un carnet non
+bilatéral après checksum invalide la continuité. Les anomalies portent le
+numéro du reçu, y compris pendant une rupture déjà ouverte. La reprise
+exige un snapshot bilatéral, non croisé, avec checksum valide, sur une
+connexion observée. Une souscription ou un heartbeat seuls ne rétablissent
+pas le carnet. Le rejeu garde la règle de vivacité des intervalles semi-ouverts.

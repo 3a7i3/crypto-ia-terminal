@@ -219,3 +219,26 @@ def test_the_module_runs_as_an_operator_command(run_dir, total):
                            *journal_args(run_dir)], cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert proc.returncode == 0, proc.stderr
     assert json.loads(proc.stdout)["events_total"] == total
+
+
+def test_cli_self_pin_does_not_admit_a_synthetic_copy(run_dir, total, tmp_path, capsys):
+    doc = json.loads((run_dir / "manifest.json").read_bytes())
+    del doc["evidence_kind"]
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(doc))
+    out = tmp_path / "historical.json"
+    argv = replay_args(run_dir, out, total, "--manifest-sha256", hashlib.sha256(manifest.read_bytes()).hexdigest())
+    argv[argv.index("--manifest") + 1] = str(manifest)
+    argv[argv.index("--evidence-kind") + 1] = "HISTORICAL"
+    argv[argv.index("--corpus-id") + 1] = "BBO-BTC-20261120T070632Z"
+    code, _, stderr = call(capsys, argv)
+    assert (code, json.loads(stderr)["reason"]) == (cli.EXIT_REFUSED, "HISTORICAL_MANIFEST_NOT_ADMITTED")
+    assert not out.exists()
+
+
+def test_dangling_symlink_is_not_replaced(run_dir, total, tmp_path, capsys):
+    out, target = tmp_path / "out.json", tmp_path / "absent"
+    out.symlink_to(target)
+    code, _, stderr = call(capsys, replay_args(run_dir, out, total))
+    assert (code, json.loads(stderr)["reason"]) == (cli.EXIT_REFUSED, "OUTPUT_EXISTS")
+    assert out.is_symlink() and not target.exists()

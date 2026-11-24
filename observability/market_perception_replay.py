@@ -16,8 +16,8 @@ bound and publishes one canonical JSON document at a destination the operator ch
 - ``--manifest-sha256`` is required for HISTORICAL: the manifest carries the hashes of
   the two other files, so pinning it binds the replay to the admitted corpus.
 - The destination must not exist and its directory must exist. The document is written
-  to a private temporary file next to it, flushed, linked into place without ever
-  replacing a file, then read back and its SHA-256 checked.
+  to a private temporary file next to it, flushed, read back and checked by SHA-256, then
+  linked into place without ever replacing a file.
 - Nothing is written when an input, the pin, the seal or the replay is refused.
 - On success it prints the number of records, the exact size in bytes and the SHA-256
   of the document.
@@ -150,6 +150,12 @@ def publish(out, data):
             os.fsync(fd)
         finally:
             os.close(fd)
+        try:
+            written = read_regular_file(temporary, "out")
+        except CliRefusal:
+            raise WriteFailure("OUTPUT_READBACK_FAILED") from None
+        if hashlib.sha256(written).hexdigest() != digest:
+            raise WriteFailure("OUTPUT_READBACK_MISMATCH")
         os.link(temporary, out)  # refuses an existing destination, unlike a rename
     except FileExistsError:
         raise CliRefusal("OUTPUT_EXISTS", "out") from None
@@ -158,14 +164,6 @@ def publish(out, data):
     finally:
         _remove(temporary)
     _sync_directory(directory)
-    try:
-        written = read_regular_file(out, "out")
-    except CliRefusal:
-        _remove(out)
-        raise WriteFailure("OUTPUT_READBACK_FAILED") from None
-    if hashlib.sha256(written).hexdigest() != digest:
-        _remove(out)
-        raise WriteFailure("OUTPUT_READBACK_MISMATCH")
     return digest
 
 

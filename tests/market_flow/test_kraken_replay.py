@@ -41,7 +41,8 @@ def reseal(manifest_bytes, entries, frames):
     events = b"".join((json.dumps(e, sort_keys=True) + "\n").encode() for e in entries)
     manifest = json.loads(manifest_bytes)
     manifest["sealed"].update(events=len(entries), events_sha256=hashlib.sha256(events).hexdigest(),
-                              frames_sha256=hashlib.sha256(frames).hexdigest())
+                              frames_sha256=hashlib.sha256(frames).hexdigest(),
+                              events_bytes=len(events), frames_bytes=len(frames))
     return json.dumps(manifest, indent=2, sort_keys=True).encode() + b"\n", events, frames
 
 
@@ -397,3 +398,91 @@ def test_invalid_arguments_are_refused(journal):
         args = {"corpus_id": CORPUS, "evidence_kind": "SYNTHETIC", **kwargs}
         with pytest.raises(kr.ReplayRefusal, match=code):
             kr.replay(*journal, **args)
+
+
+@pytest.mark.parametrize("failure", ["overlap", "gap", "oversize", "tail", "size", "venue"])
+def test_verified_journal_requires_complete_frame_coverage(failure):
+    manifest, events, frames = build([(0, "kraken", "ws_open", b""),
+                                     (1, "kraken", "ws_message", HEARTBEAT),
+                                     (2, "kraken", "ws_control", b"")])
+    assert kr.verify_seal(manifest, events, frames)["events_total"] == "3"
+    entries = entries_of(events)
+    if failure == "size":
+        doc = json.loads(manifest)
+        doc["sealed"]["frames_bytes"] += 1
+        with pytest.raises(kr.ReplayRefusal, match="SEAL_SIZE_MISMATCH"):
+            kr.verify_seal(json.dumps(doc).encode(), events, frames)
+        return
+    if failure == "tail":
+        frames += b"orphan"
+    elif failure == "oversize":
+        entries[1]["bytes"] += 1
+    elif failure == "venue":
+        entries[1]["venue"] = "unknown"
+    else:
+        entries[-1]["offset"] += -1 if failure == "overlap" else 1
+    expected = {"tail": "UNREFERENCED_FRAME_BYTES", "venue": "EVENT_IDENTITY_INVALID"}.get(
+        failure, "FRAME_RANGE_NOT_CONTIGUOUS")
+    with pytest.raises(kr.ReplayRefusal, match=expected):
+        kr.verify_seal(*reseal(manifest, entries, frames))
+
+
+@pytest.mark.parametrize("bad_frame,reason", [
+    (b'{', "DATA_ENVELOPE_INVALID"),
+    (b'[]', "DATA_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":[]}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":42}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":[{}]}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"book","type":"update","data":[{"symbol":"ETH/USDT"}]}', "BOOK_ENVELOPE_INVALID"),
+    (b'{"channel":"unknown"}', "DATA_ENVELOPE_UNCLASSIFIED"),
+])
+def test_indeterminate_frame_invalidates_until_valid_snapshot(bad_frame, reason):
+    snapshot = snapshot_frame()
+    update = snapshot.replace(b'"snapshot"', b'"update"')
+    crossed_crc = kr.kraken_checksum([("100.4", "2")], [("100.5", "1.25")])
+    crossed = snapshot.replace(b"100.6", b"100.4")
+    valid_crc = kr.kraken_checksum([("100.6", "2")], [("100.5", "1.25")])
+    crossed = crossed.replace(str(valid_crc).encode(), str(crossed_crc).encode())
+    journal = build([(0, "kraken", "ws_open", b""),
+                     (1, "kraken", "ws_message", snapshot),
+                     (2, "kraken", "ws_message", bad_frame),
+                     (3, "kraken", "ws_message", bad_frame),
+                     (4, "kraken", "ws_message", update),
+                     (5, "kraken", "ws_message", crossed),
+                     (6, "kraken", "ws_message", snapshot)])
+    blob, _ = kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    result = json.loads(blob)
+    assert result["anomalies"] == [{"receipt_seq": seq, "reason": reason} for seq in ("3", "4")] + [
+        {"receipt_seq": "6", "reason": "BOOK_SIDES_INVALID"},
+    ]
+    assert result["breaks"][0]["resolved_receipt_seq"] == "7"
+    quality = {q["as_of_receipt_seq"]: q["book_integrity"]["state"] for q in records(result, "QUALITY_REPORT")}
+    assert quality == {"1": "NOT_AVAILABLE", "2": "VERIFIED", "3": "INVALID", "4": "INVALID",
+                       "6": "INVALID", "7": "VERIFIED"}
+    prefix, _ = kr.replay(*journal, corpus_id=CORPUS, evidence_kind="SYNTHETIC", receipt_bound=3)
+    cut, _ = kr.replay(*truncated(journal, 3), corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    assert prefix == cut
+    assert json.loads(prefix)["breaks"][0]["resolved_receipt_seq"] is None
+
+
+def test_manifest_identity_and_historical_pin_are_independent():
+    manifest, events, frames = build([(0, "kraken", "ws_open", b"")])
+    doc = json.loads(manifest)
+    doc["instrument"]["quote_asset_id"] = "USD"
+    with pytest.raises(kr.ReplayRefusal, match="KRAKEN_SPOT_IDENTITY_MISMATCH"):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
+    doc["instrument"]["quote_asset_id"] = "USDT"
+    del doc["evidence_kind"]
+    with pytest.raises(kr.ReplayRefusal, match="HISTORICAL_MANIFEST_NOT_ADMITTED"):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id="BBO-BTC-20261120T070632Z",
+                  evidence_kind="HISTORICAL")
+
+
+@pytest.mark.parametrize("field,value", [("market_kind", "PERP"), ("contract_identity", "FUTURES"),
+                                         ("settlement_asset_id", "USD")])
+def test_manifest_instrument_metadata_matches_kraken_spot(field, value):
+    manifest, events, frames = build([(0, "kraken", "ws_open", b"")])
+    doc = json.loads(manifest)
+    doc["instrument"][field] = value
+    with pytest.raises(kr.ReplayRefusal, match="KRAKEN_SPOT_IDENTITY_MISMATCH"):
+        kr.replay(json.dumps(doc).encode(), events, frames, corpus_id=CORPUS, evidence_kind="SYNTHETIC")
