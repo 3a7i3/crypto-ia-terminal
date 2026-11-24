@@ -14,7 +14,7 @@ FIXTURE_SCHEMA = "radar-fixture/1.0.0"
 PREFERENCES_SCHEMA = "radar-preferences/1.0.0"
 HISTORY_SCHEMA = "radar-history/1.0.0"
 RULES_VERSION = "radar-rules/1.0.0"
-RANKING_VERSION = "radar-ranking/1.0.0"
+RANKING_VERSION = "radar-ranking/1.1.0"
 
 # R0 is offline and synthetic only. Anything else is refused at load time.
 EVIDENCE_KINDS = ("SYNTHETIC",)

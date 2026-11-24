@@ -156,3 +156,26 @@ def test_C10_ranking_reasons_are_reproducible_and_auditable():
                 assert set(s["components"]) | set(s["missing"]) == set(c.WEIGHTS)
         ranks = [x["rank"] for x in e1["candidates"]]
         assert ranks == list(range(1, len(ranks) + 1))
+
+
+def test_C11_complete_scores_rank_before_incomplete():
+    """UNKNOWN != 0 : un score INCOMPLETE ne devance jamais un score COMPLETE."""
+    from observability.radar_selection.selection import select_candidates
+
+    def entry(mid, base, value, quality, regime="CALM"):
+        return {"market_id": mid, "base": base, "score": {"value": value, "quality": quality},
+                "criteria": {"diversity": {"regime": regime}}}
+
+    pool = [entry("x:spot:AAA/USDT", "AAA", "82.00", "INCOMPLETE"),
+            entry("x:spot:BBB/USDT", "BBB", "80.00", "COMPLETE"),
+            entry("x:spot:CCC/USDT", "CCC", "90.00", "INCOMPLETE")]
+    import observability.radar_selection.selection as sel
+    orig = sel._candidate
+    sel._candidate = lambda e, rank, rule: (e["market_id"], rule)
+    try:
+        chosen = select_candidates(pool, set(), "ref")
+    finally:
+        sel._candidate = orig
+    ids = [x[0] for x in (chosen[0] if isinstance(chosen, tuple) else chosen)]
+    assert ids[0] == "x:spot:BBB/USDT"
+    assert ids[1:] == ["x:spot:CCC/USDT", "x:spot:AAA/USDT"]

@@ -44,6 +44,20 @@ Les 3 échecs de la suite complète :
 Lint : ruff 0.15.8 OK ; `scripts/ci/ruff_baseline_gate.py check` : 0 nouvelle
 violation. Garde de publication Sphinx : OK.
 
+### Résultat CI définitif (PR #607, HEAD `d8edf17`)
+
+28 checks : 26 succès, 2 ignorés (Walk-forward validation et publish-docs,
+conditionnels), 0 échec, dont TEST REGRESSION GATE, LINT REGRESSION GATE,
+COVERAGE REGRESSION BASELINE et CROSS-STACK COMPATIBILITY GATE. Les échecs 1
+et 2 ne se reproduisent pas en CI (utilisateur non privilégié), ce qui confirme
+leur origine d'environnement. L'échec 3 était antérieur au commit validé.
+
+### Contre-revue (classement `radar-ranking/1.1.0`)
+
+Les candidats `COMPLETE` sont classés avant les `INCOMPLETE` (décision
+opérateur du 2026-11-24, test C11). Les quatre univers donnent les mêmes
+candidats qu'en 1.0.0, chacun n'ayant qu'un marché `COMPLETE` au plus.
+
 ## 3. Performances locales (`bench 5`)
 
 | Univers | Marchés | Durée max | Mémoire pic | Entrée | Sortie | Empreintes |

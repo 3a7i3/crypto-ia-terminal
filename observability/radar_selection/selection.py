@@ -241,7 +241,8 @@ def select_candidates(entries: list, excluded: set, reference_id: str) -> tuple:
     """Up to three candidates with diversity of regimes. Deterministic and order-free."""
     pool = sorted((e for e in entries if e["score"] is not None and e["market_id"] not in excluded
                    and e["market_id"] != reference_id),
-                  key=lambda e: (-D(e["score"]["value"]), e["market_id"]))
+                  key=lambda e: (e["score"]["quality"] != "COMPLETE",
+                                 -D(e["score"]["value"]), e["market_id"]))
     chosen, rules = [], []
     for regime in c.DIVERSITY_ORDER:
         for e in pool:
@@ -266,7 +267,8 @@ def select_candidates(entries: list, excluded: set, reference_id: str) -> tuple:
             chosen.append(e)
             rules.append("SCORE")
     # Present by score order; the rule that admitted each one is kept.
-    pairs = sorted(zip(chosen, rules), key=lambda p: (-D(p[0]["score"]["value"]), p[0]["market_id"]))
+    pairs = sorted(zip(chosen, rules), key=lambda p: (p[0]["score"]["quality"] != "COMPLETE",
+                                                      -D(p[0]["score"]["value"]), p[0]["market_id"]))
     candidates = [_candidate(e, i + 1, r) for i, (e, r) in enumerate(pairs)]
     if candidates:
         return candidates, None

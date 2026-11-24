@@ -41,7 +41,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-01-CALM (SYNTHETIC, sha256 3ffef8e0b689…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 UNIVERS
@@ -89,7 +89,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-01-CALM (SYNTHETIC, sha256 3ffef8e0b689…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 UNIVERS (3/23)
@@ -111,7 +111,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-02-VOLATILE (SYNTHETIC, sha256 49d7947bdd64…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 UNIVERS
@@ -154,7 +154,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-02-VOLATILE (SYNTHETIC, sha256 49d7947bdd64…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 CANDIDATS DE RECHERCHE
@@ -215,7 +215,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-03-ACTIVE-GAPS (SYNTHETIC, sha256 e56641f97a94…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 MARCHÉ
@@ -258,7 +258,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-03-ACTIVE-GAPS (SYNTHETIC, sha256 e56641f97a94…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 PREUVES
@@ -324,7 +324,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-03-ACTIVE-GAPS (SYNTHETIC, sha256 e56641f97a94…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 UNIVERS
@@ -386,7 +386,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-04-INCOHERENT (SYNTHETIC, sha256 d3d14ac42c98…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 UNIVERS (12/22)
@@ -463,7 +463,7 @@ PAPER: DISABLED
 DATASET: R0-SYN-01-CALM (SYNTHETIC, sha256
   3ffef8e0b689…)
 CONTRAT: radar-evaluation/1.0.0 ·
-  radar-rules/1.0.0 · radar-ranking/1.0.0
+  radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 UNIVERS
@@ -579,7 +579,7 @@ RADAR — Surveillance et sélection
 MODE: SYNTHETIC / OFFLINE
 NETWORK: DISABLED · L2 COLLECTION: DISABLED · PAPER: DISABLED
 DATASET: R0-SYN-04-INCOHERENT (SYNTHETIC, sha256 d3d14ac42c98…)
-CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.0.0
+CONTRAT: radar-evaluation/1.0.0 · radar-rules/1.0.0 · radar-ranking/1.1.0
 MISSION: DEEP_OBSERVATION
 
 CANDIDATS DE RECHERCHE

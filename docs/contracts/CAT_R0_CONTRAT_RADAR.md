@@ -1,7 +1,7 @@
 # CAT R0 — Contrat du Radar de sélection des marchés
 
 Gate R0-2. Contrat `radar-evaluation/1.0.0`, règles `radar-rules/1.0.0`,
-classement `radar-ranking/1.0.0`. Code : `observability/radar_selection/`
+classement `radar-ranking/1.1.0`. Code : `observability/radar_selection/`
 (constantes dans `contract.py`). Statut : **source seule, SYNTHETIC, hors
 réseau**. Ce contrat n'autorise ni collecte, ni déploiement, ni expérience.
 
@@ -167,7 +167,7 @@ Motifs et décision (le plus grave l'emporte ; tous les motifs sont publiés) :
 | `A_QUALIFIER` | métadonnées anciennes ; source `DEGRADED` ; données `STALE` ; continuité `PARTIAL` ; BBO partiel ; L2 `TO_QUALIFY` ou profondeur incomplète (mission L2) |
 | `ADMISSIBLE` | aucun motif |
 
-### 4.3 Étape 2 — Classement (`radar-ranking/1.0.0`)
+### 4.3 Étape 2 — Classement (`radar-ranking/1.1.0`)
 
 Seuls les marchés `ADMISSIBLE` reçoivent un score sur 100 :
 
@@ -186,8 +186,10 @@ Aucun score n'est produit pour un marché non `ADMISSIBLE`.
 
 ### 4.4 Sélection et diversité
 
-Pool = marchés notés, non exclus manuellement, hors référence. Tri par score
-décroissant puis `market_id`. Règles dans l'ordre :
+Pool = marchés notés, non exclus manuellement, hors référence. Tri : scores
+`COMPLETE` avant scores `INCOMPLETE`, puis score décroissant, puis `market_id`
+(1.1.0 : une composante inconnue ne fait jamais perdre de rang face à un
+marché complet ; `UNKNOWN ≠ 0`). Règles dans l'ordre :
 
 1. `REGIME_SLOT` : le meilleur de chaque régime, `CALM`, puis `ACTIVE`, puis
    `VOLATILE` ;
@@ -257,3 +259,17 @@ entrée + mêmes préférences + même mission ⇒ mêmes octets.
 - Régimes estimés sur une seule fenêtre.
 - Coûts comparés sur le réseau seulement ; quotes USD et USDT non converties.
 - Vocabulaire à aligner avec CH1-01 lorsque #604 sera fusionnée.
+
+## Frontière Radar → Admission scientifique → Observation approfondie
+
+Les gates C2-C (admission scientifique) et C2-D (observation approfondie) ne
+sont pas définies dans le dépôt ; leur état est `UNKNOWN`. Ce contrat ne les
+définit pas. Il fixe seulement ce que le Radar leur doit :
+
+1. L'entrée d'un étage suivant est un export Radar figé, identifié par son
+   `evaluation_sha256`, jamais un appel au Radar.
+2. Aucune transition automatique : chaque passage exige une décision humaine
+   traçable ; `deep_observation_jobs` reste vide.
+3. Un critère `UNKNOWN` au Radar reste `UNKNOWN` en entrée d'admission.
+4. La référence `kraken:spot:BTC/USDT` reste `NOT_YET_HISTORICALLY_ADMITTED`
+   tant que C2-C n'existe pas.
