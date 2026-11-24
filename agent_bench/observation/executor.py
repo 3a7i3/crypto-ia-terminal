@@ -353,37 +353,48 @@ def run_once(*, mission, checkout: Path, reports: Path, runner_id, agent_id="rep
         except OSError as exc:
             raise Refused("PUBLICATION_FAILED", f"dossier de preuves non sûr ({type(exc).__name__})") from exc
 
-        invocation_id = secrets.token_hex(16)
-        started_ts = clock()
-        lock.write(inv.make_lock(agent_id=agent_id, runner_id=runner_id, mission_id=mission["mission_id"],
-                                 invocation_id=invocation_id, pid=os.getpid(), now=started_ts,
-                                 lease_s=min(lease_s, inv.MAX_LEASE_S)))
-        limits = {"max_files": mission["budget"]["max_files"], "max_run_s": max_run_s,
-                  "max_bytes": mission["budget"]["max_bytes"], "lease_s": min(lease_s, inv.MAX_LEASE_S)}
-        report, state, exit_code, reason = None, "FAILED", 1, None
-
-        def _alarm(_s, _f):
-            raise _Timeout()
-
-        def _term(_s, _f):
-            raise _Interrupted()
-
-        old_alarm = signal.signal(signal.SIGALRM, _alarm)
-        old_term = signal.signal(signal.SIGTERM, _term)
+        # SIGTERM est bloqué AVANT que le verrou ne devienne lisible (EN_COURS) et jusqu'à
+        # l'installation du gestionnaire : un SIGTERM reçu dans cette fenêtre reste en attente
+        # puis est délivré au déblocage, dans le try, et devient INTERRUPTED (jamais une mort
+        # silencieuse avec verrou écrit et aucune enveloppe).
+        old_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM})
         try:
-            signal.setitimer(signal.ITIMER_REAL, max_run_s)
-            report = rc.audit_zone(mission, analysed_tree or checkout, checkout, clock=lambda: int(clock() * 1e9))
-            state, exit_code = "COMPLETED", 0
-        except _Timeout:
-            state, exit_code, reason = "TIMEOUT", None, f"durée > {max_run_s} s"
-        except (_Interrupted, KeyboardInterrupt):
-            state, exit_code, reason = "INTERRUPTED", None, "interruption contrôlée (SIGTERM/SIGINT)"
-        except Exception as exc:  # noqa: BLE001 — une panne devient FAILED, jamais un succès
-            state, exit_code, reason = "FAILED", 1, type(exc).__name__
+            invocation_id = secrets.token_hex(16)
+            started_ts = clock()
+            lock.write(inv.make_lock(agent_id=agent_id, runner_id=runner_id, mission_id=mission["mission_id"],
+                                     invocation_id=invocation_id, pid=os.getpid(), now=started_ts,
+                                     lease_s=min(lease_s, inv.MAX_LEASE_S)))
+            limits = {"max_files": mission["budget"]["max_files"], "max_run_s": max_run_s,
+                      "max_bytes": mission["budget"]["max_bytes"], "lease_s": min(lease_s, inv.MAX_LEASE_S)}
+            report, state, exit_code, reason = None, "FAILED", 1, None
+
+            def _alarm(_s, _f):
+                raise _Timeout()
+
+            def _term(_s, _f):
+                raise _Interrupted()
+
+            old_alarm = signal.signal(signal.SIGALRM, _alarm)
+            old_term = signal.signal(signal.SIGTERM, _term)
+            try:
+                signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)  # SIGTERM en attente délivré ici
+                signal.setitimer(signal.ITIMER_REAL, max_run_s)
+                report = rc.audit_zone(mission, analysed_tree or checkout, checkout,
+                                       clock=lambda: int(clock() * 1e9))
+                state, exit_code = "COMPLETED", 0
+            except _Timeout:
+                state, exit_code, reason = "TIMEOUT", None, f"durée > {max_run_s} s"
+            except (_Interrupted, KeyboardInterrupt):
+                state, exit_code, reason = "INTERRUPTED", None, "interruption contrôlée (SIGTERM/SIGINT)"
+            except Exception as exc:  # noqa: BLE001 — une panne devient FAILED, jamais un succès
+                state, exit_code, reason = "FAILED", 1, type(exc).__name__
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                signal.signal(signal.SIGALRM, old_alarm)
+                signal.signal(signal.SIGTERM, old_term)
         finally:
-            signal.setitimer(signal.ITIMER_REAL, 0)
-            signal.signal(signal.SIGALRM, old_alarm)
-            signal.signal(signal.SIGTERM, old_term)
+            # Masque initial rétabli sur tous les chemins (y compris exception avant le try interne).
+            signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
 
         env = inv.make_envelope(
             invocation_id=invocation_id, agent_id=agent_id, runner_id=runner_id, mission=mission,
