@@ -1,0 +1,149 @@
+{
+ "error": [],
+ "result": {
+  "XBTUSDT": {
+   "altname": "XBTUSDT",
+   "wsname": "XBT/USDT",
+   "base": "XXBT",
+   "quote": "USDT",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  },
+  "XXBTZUSD": {
+   "altname": "XBTUSD",
+   "wsname": "XBT/USD",
+   "base": "XXBT",
+   "quote": "ZUSD",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  },
+  "ETHUSDT": {
+   "altname": "ETHUSDT",
+   "wsname": "ETH/USDT",
+   "base": "XETH",
+   "quote": "USDT",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  },
+  "SOLUSDT": {
+   "altname": "SOLUSDT",
+   "wsname": "SOL/USDT",
+   "base": "SOL",
+   "quote": "USDT",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  },
+  "ATOMUSDT": {
+   "altname": "ATOMUSDT",
+   "wsname": "ATOM/USDT",
+   "base": "ATOM",
+   "quote": "USDT",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  },
+  "ADAUSDT": {
+   "altname": "ADAUSDT",
+   "wsname": "ADA/USDT",
+   "base": "ADA",
+   "quote": "USDT",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  },
+  "XDGUSDT": {
+   "altname": "XDGUSDT",
+   "wsname": "XDG/USDT",
+   "base": "XXDG",
+   "quote": "USDT",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  },
+  "USDCUSDT": {
+   "altname": "USDCUSDT",
+   "wsname": "USDC/USDT",
+   "base": "USDC",
+   "quote": "USDT",
+   "status": "online",
+   "fees": [
+    [
+     0,
+     0.26
+    ],
+    [
+     50000,
+     0.24
+    ]
+   ],
+   "ordermin": "0.0001"
+  }
+ }
+}

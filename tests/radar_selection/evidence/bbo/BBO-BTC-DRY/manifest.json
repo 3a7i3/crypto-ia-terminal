@@ -1,0 +1,198 @@
+{
+  "bindings": {
+    "kraken": {
+      "alias_evidence": "kraken.Assets:XXBT.altname=XBT",
+      "instrument_id": "1538143c61ef6d58a04b3db2",
+      "native_symbol": "XBTUSDT",
+      "response_key": "XBTUSDT",
+      "venue": "kraken"
+    },
+    "mexc": {
+      "alias_evidence": null,
+      "instrument_id": "1538143c61ef6d58a04b3db2",
+      "native_symbol": "BTCUSDT",
+      "response_key": "BTCUSDT",
+      "venue": "mexc"
+    }
+  },
+  "budget": {
+    "max_frame_bytes": 524288,
+    "max_frames": 200000,
+    "max_reconnects_per_venue": 3,
+    "max_resyncs_per_source": 3,
+    "max_seconds": 780,
+    "max_storage_bytes": 314572800,
+    "rest": {
+      "kraken.assetPairs": 1,
+      "kraken.assets": 1,
+      "kraken.time": 2,
+      "mexc.depth": 4,
+      "mexc.exchangeInfo": 1,
+      "mexc.time": 2
+    },
+    "storage": {
+      "manifest_max_bytes": 32768,
+      "reserve_bytes": 65536,
+      "scope": "frames.bin + events.jsonl + manifest.json"
+    },
+    "timeouts_s": {
+      "capped_by_remaining_budget": true,
+      "close": 1.0,
+      "connect": 6.0,
+      "rest": 4.0,
+      "send": 2.0
+    },
+    "watchdog_s": 780
+  },
+  "clock_anchor": {
+    "mono_ms": 1795127880000,
+    "wall_ms": 1795127880000
+  },
+  "clock_end": {
+    "kraken_offset_ms": -180,
+    "mexc_offset_ms": 0
+  },
+  "code": {
+    "files_sha256": {
+      "bbo_book.py": "c9000740d6321cc8d40a504121438a67abcf62908bf04a50b56838f116d13765",
+      "bbo_pilot.py": "5faa508ff9ca9a6e777c6c7b46c1e83ac7ccc900526da4f1ca73ad807858b4ae",
+      "bbo_schema.py": "26084733b935b1d9a5ec6a383d033c935d622eb2706c8448c8feb12f1eae0184",
+      "bbo_wire.py": "b6fe213ca12e1c2feac44c9749a82873924f39ee9d49f81308ef6e8559152d92",
+      "composite.py": "a049ab8c8dcd832276cff42a1ea2d9cfb141fac7d6156902a7503d5764aa62e5",
+      "decoders.py": "4914c8d9a6e234a3e784daac3527dcd15df92dd26879fec361510c8d4e1f16b4",
+      "instruments.py": "4e7732340f917e69c7645af7b3e91f6983c1a4c860888113bc0628fcd531fcc8",
+      "pilot.py": "096466e0aa527a8ae80031601abaca2c3ecb2bbadbd9710d9aaecc07d81408b4"
+    },
+    "git_head": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823"
+  },
+  "created_wall_ms": 1795127880000,
+  "elapsed_ms": 666240,
+  "end_ms": 1795128591000,
+  "ended_wall_ms": 1795128591240,
+  "endpoints": {
+    "kraken.assetPairs": "https://api.kraken.com/0/public/AssetPairs?pair=XBTUSDT",
+    "kraken.assets": "https://api.kraken.com/0/public/Assets?asset=XXBT",
+    "kraken.time": "https://api.kraken.com/0/public/Time",
+    "mexc.depth": "https://api.mexc.com/api/v3/depth?symbol=BTCUSDT&limit=5000",
+    "mexc.exchangeInfo": "https://api.mexc.com/api/v3/exchangeInfo?symbol=BTCUSDT",
+    "mexc.time": "https://api.mexc.com/api/v3/time"
+  },
+  "evidence_kind": "SYNTHETIC",
+  "exit_code": 0,
+  "frames": 5851,
+  "grid": {
+    "ping_every_ms": 1000,
+    "points_per_window": 30,
+    "preflight_lead_ms": 75000,
+    "step_ms": 10000,
+    "warmup_ms": 60000
+  },
+  "host": "vm",
+  "hypotheses": {
+    "A-ORDER": "the server sends on one connection in order: a PONG received after earlier diffs proves those diffs were delivered (to qualify at runtime)",
+    "SOURCE_TIMES_INFORMATIVE": "MEXC sendTime/createTime and Kraken timestamp are kept but never used for freshness"
+  },
+  "instrument": {
+    "base_asset_id": "BTC",
+    "contract_identity": "SPOT",
+    "market_kind": "SPOT",
+    "quote_asset_id": "USDT",
+    "settlement_asset_id": "USDT"
+  },
+  "market_type": "SPOT",
+  "mode": "collect",
+  "pair": "BTC",
+  "parameters_primary": {
+    "gap_boundary": "CLOSED",
+    "gap_max_bps": "50",
+    "liveness_max_ms": 2000,
+    "points_per_window": 30,
+    "reference_venue": "mexc",
+    "step_ms": 10000,
+    "weights": "EQUAL"
+  },
+  "pilot": "CAT-RADAR-KRAKEN-MEXC-01/BBO",
+  "pilot_version": 1,
+  "pre_registered": {
+    "flux_viable_ratio": 0.95,
+    "partial_ratio": 0.5,
+    "sensitivity_gap_bps": [
+      10,
+      25,
+      50,
+      100
+    ],
+    "sensitivity_liveness_s": [
+      1,
+      2,
+      5,
+      10
+    ],
+    "viable_ratio": 0.8
+  },
+  "preflight": {
+    "kraken_clock_offset_ms": -300,
+    "kraken_identity": "XBTUSDT base=XXBT altname=XBT",
+    "mexc_clock_offset_ms": 0,
+    "mexc_identity": "LISTED",
+    "mexc_margin": "NOT_CHECKED_DRY_RUN"
+  },
+  "probe": null,
+  "python": "3.13.18",
+  "reconnects": {
+    "kraken": 0,
+    "mexc": 0
+  },
+  "rest_used": {
+    "kraken.assetPairs": 1,
+    "kraken.assets": 1,
+    "kraken.time": 2,
+    "mexc.depth": 2,
+    "mexc.exchangeInfo": 1,
+    "mexc.time": 2
+  },
+  "resyncs": {
+    "kraken": 1,
+    "mexc": 1
+  },
+  "sealed": {
+    "events": 7171,
+    "events_bytes": 1884013,
+    "events_sha256": "e0ad1a561f20b9d1e7293b1e424b12fbe8df4c46c3d6893a18422ab22b6801ea",
+    "frames_bytes": 5329540,
+    "frames_sha256": "3e199eaab718b9cbe6e26b7f23ad4f57c38bf52adbef86e49c9bdda3c0f58bb0",
+    "storage_cap_bytes": 314572800,
+    "storage_scope": "frames.bin + events.jsonl + manifest.json (replay/ excluded)"
+  },
+  "status": "COMPLETED",
+  "stop_class": null,
+  "stop_code": null,
+  "stop_detail": null,
+  "stop_rules": {
+    "consecutive_rest_failures": 3,
+    "http": [
+      403,
+      418,
+      429,
+      451
+    ],
+    "mexc_margin_required": true,
+    "provider_error": true,
+    "ws_refused": true
+  },
+  "watchdog": "ARMED_780s",
+  "window_start_ms": 1795128000000,
+  "windows": 2,
+  "ws": {
+    "kraken": {
+      "depth": 10,
+      "symbol": "BTC/USDT",
+      "url": "wss://ws.kraken.com/v2"
+    },
+    "mexc": {
+      "channel": "spot@public.aggre.depth.v3.api.pb@100ms@BTCUSDT",
+      "symbol": "BTCUSDT",
+      "url": "wss://wbs-api.mexc.com/ws"
+    }
+  }
+}

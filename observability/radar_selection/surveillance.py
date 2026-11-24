@@ -175,10 +175,15 @@ def _observe(obs: dict, now_ms: int) -> dict:
     return out
 
 
+def _unknown_reason(obs, key, default):
+    """Explicit reason of an absent field (radar-batch ``unknown_reasons``), else the R0 default."""
+    return (obs.get("unknown_reasons") or {}).get(key) or default
+
+
 def _activity(obs):
     a = obs["activity"]
     if a is None:
-        return {"state": "UNKNOWN", "reason": "ACTIVITY_NOT_PROVIDED"}
+        return {"state": "UNKNOWN", "reason": _unknown_reason(obs, "activity", "ACTIVITY_NOT_PROVIDED")}
     if a["kind"] not in c.ACTIVITY_KINDS:
         return {"state": "UNKNOWN", "reason": "ACTIVITY_KIND_NOT_SUPPORTED", "kind": a["kind"]}
     if a["value"] is None:
@@ -195,7 +200,7 @@ def _l2(obs):
         return {"state": "UNKNOWN", "reason": "L2_CLAIM_WITHOUT_EVIDENCE", "status": None, "depth": None}
     depth = l2["depth_quote_10bps"]
     if depth is None:
-        d = {"state": "UNKNOWN", "reason": "DEPTH_NOT_PROVIDED", "basis": "L2"}
+        d = {"state": "UNKNOWN", "reason": _unknown_reason(obs, "depth", "DEPTH_NOT_PROVIDED"), "basis": "L2"}
     elif depth["bid"] is None or depth["ask"] is None:
         d = {"state": "PARTIAL", "reason": "DEPTH_ONE_SIDE_MISSING", "basis": "L2",
              "bid_quote_10bps": depth["bid"], "ask_quote_10bps": depth["ask"]}
@@ -204,6 +209,12 @@ def _l2(obs):
              "bid_quote_10bps": depth["bid"], "ask_quote_10bps": depth["ask"]}
     if l2["status"] == "TECHNICALLY_COMPATIBLE" and d["state"] != "UNKNOWN":
         d = {**d, "state": "PARTIAL", "reason": "DEPTH_FROM_UNVERIFIED_L2"}
+    if l2["status"] == "VERIFIED_TOP_N":
+        # Operator D3: only the first depth_levels levels are attested, on valid instants
+        # only. Never presented as a verified book; the scope stays attached.
+        return {"state": "PARTIAL", "status": l2["status"], "evidence_ref": l2["evidence_ref"],
+                "depth_levels": l2["depth_levels"], "scope": l2["scope"], "depth": d,
+                "reason": "L2_VERIFIED_TOP_N_ONLY"}
     return {"state": "AVAILABLE" if l2["status"] == "VERIFIED" else "PARTIAL",
             "status": l2["status"], "evidence_ref": l2["evidence_ref"],
             "depth_levels": l2["depth_levels"], "depth": d,
@@ -213,7 +224,7 @@ def _l2(obs):
 def _cost(obs):
     cost = obs["cost"]
     if cost is None:
-        return {"state": "UNKNOWN", "reason": "COST_NOT_PROVIDED", "basis": None}
+        return {"state": "UNKNOWN", "reason": _unknown_reason(obs, "cost", "COST_NOT_PROVIDED"), "basis": None}
     fields = ("network_kib_s", "cpu_pct", "memory_mib", "storage_mib_h", "connections")
     missing = [k for k in fields if cost[k] is None]
     return {"state": "AVAILABLE" if not missing else "PARTIAL", "basis": cost["basis"],

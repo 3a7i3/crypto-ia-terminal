@@ -14,9 +14,13 @@ from tests.radar_selection._helpers import NAMES, ROOT, clone, cli, doc, ev, pat
 
 PACKAGE = ROOT / "observability" / "radar_selection"
 STDLIB_ALLOWED = {"__future__", "hashlib", "json", "re", "decimal", "dataclasses", "pathlib", "os", "sys",
-                  "shlex", "textwrap", "time", "tracemalloc"}
+                  "shlex", "textwrap", "time", "tracemalloc", "stat"}
+# R1-B (plan accepted 2026-11-24, lot L4): the BBO adapter reuses the existing pure
+# validators of the replayed windows and of their anchor instead of a second validator.
+# Their import chain opens no transport (checked below by the forbidden-module tests).
 INTERNAL_ALLOWED = {"observability.scanner_universe.catalogues", "observability.scanner_universe.universe",
-                    "observability.radar_selection.terminal"}
+                    "observability.radar_selection.terminal",
+                    "observability.radar_composite.bbo_schema", "observability.radar_composite.bbo_history"}
 # urllib.parse is pure string handling (imported by pathlib on Python 3.11): only
 # the transport modules are forbidden.
 FORBIDDEN_EXACT = ("urllib.request", "http.client", "http.server", "ftplib", "smtplib", "xmlrpc.client")

@@ -1,0 +1,6 @@
+{
+ "generator": "tests/radar_selection/build_batches.py --refresh-bbo",
+ "git_head_at_generation": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+ "note": "events.jsonl and frames.bin are not kept; the adapter only reads manifests, windows and anchor",
+ "transport": "bbo_pilot.FakeVenues (SYNTHETIC, no network)"
+}

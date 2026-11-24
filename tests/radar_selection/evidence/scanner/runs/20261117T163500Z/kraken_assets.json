@@ -1,0 +1,55 @@
+{
+ "error": [],
+ "result": {
+  "XXBT": {
+   "aclass": "currency",
+   "altname": "XBT",
+   "decimals": 8
+  },
+  "XXDG": {
+   "aclass": "currency",
+   "altname": "XDG",
+   "decimals": 8
+  },
+  "ZUSD": {
+   "aclass": "currency",
+   "altname": "USD",
+   "decimals": 8
+  },
+  "USDT": {
+   "aclass": "currency",
+   "altname": "USDT",
+   "decimals": 8
+  },
+  "USDC": {
+   "aclass": "currency",
+   "altname": "USDC",
+   "decimals": 8
+  },
+  "XETH": {
+   "aclass": "currency",
+   "altname": "ETH",
+   "decimals": 8
+  },
+  "SOL": {
+   "aclass": "currency",
+   "altname": "SOL",
+   "decimals": 8
+  },
+  "ATOM": {
+   "aclass": "currency",
+   "altname": "ATOM",
+   "decimals": 8
+  },
+  "ADA": {
+   "aclass": "currency",
+   "altname": "ADA",
+   "decimals": 8
+  },
+  "DOT": {
+   "aclass": "currency",
+   "altname": "DOT",
+   "decimals": 8
+  }
+ }
+}

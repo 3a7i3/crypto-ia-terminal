@@ -1,0 +1,54 @@
+{
+ "success": true,
+ "code": 0,
+ "data": [
+  {
+   "state": 0,
+   "futureType": 1,
+   "isHidden": false,
+   "apiAllowed": true,
+   "baseCoin": "BTC",
+   "quoteCoin": "USDT",
+   "settleCoin": "USDT",
+   "symbol": "BTC_USDT",
+   "contractSize": 0.0001,
+   "takerFeeRate": 0.0002
+  },
+  {
+   "state": 0,
+   "futureType": 1,
+   "isHidden": false,
+   "apiAllowed": true,
+   "baseCoin": "ETH",
+   "quoteCoin": "USDT",
+   "settleCoin": "USDT",
+   "symbol": "ETH_USDT",
+   "contractSize": 0.0001,
+   "takerFeeRate": 0.0002
+  },
+  {
+   "state": 0,
+   "futureType": 1,
+   "isHidden": false,
+   "apiAllowed": true,
+   "baseCoin": "SOL",
+   "quoteCoin": "USDT",
+   "settleCoin": "USDT",
+   "symbol": "SOL_USDT",
+   "contractSize": 0.0001,
+   "takerFeeRate": 0.0002
+  },
+  {
+   "state": 0,
+   "futureType": 1,
+   "isHidden": false,
+   "apiAllowed": true,
+   "baseCoin": "DOGE",
+   "quoteCoin": "USDT",
+   "settleCoin": "USDT",
+   "symbol": "DOGE_USDT",
+   "contractSize": 0.0001,
+   "takerFeeRate": 0.0002
+  }
+ ]
+}

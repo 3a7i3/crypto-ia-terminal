@@ -24,14 +24,47 @@ def _observation_index(observations: list) -> dict:
 
 def evaluate(raw: bytes, prefs: dict | None = None, mission: str = c.DEFAULT_MISSION,
              budgets: c.Budgets = c.TEST_BUDGETS) -> dict:
+    """One cycle over a radar-fixture/1.0.0 document (SYNTHETIC, catalogues embedded)."""
     if mission not in c.MISSIONS:
         raise RadarRefusal("UNKNOWN_MISSION:" + str(mission)[:40])
-    prefs = prefs or empty_preferences()
     loaded = load_fixture(raw, budgets)
     doc = loaded["doc"]
+    dataset = {"id": doc["dataset_id"], "schema": c.FIXTURE_SCHEMA, "sha256": loaded["sha256"],
+               "bytes": loaded["bytes"], "evidence_kind": doc["evidence_kind"],
+               "admission": c.ADMISSION, "description": doc["description"]}
+    return _cycle(doc, build_universe(doc), dataset, None, prefs, mission, budgets)
+
+
+def evaluate_batch(raw: bytes, blobs: dict, prefs: dict | None = None, mission: str = c.DEFAULT_MISSION,
+                   budgets: c.Budgets = c.TEST_BUDGETS) -> dict:
+    """One cycle over a radar-batch/1.0.0 document and the bytes of its references (R1-B).
+
+    ``blobs`` maps each reference to the bytes the caller read (see ``refs``). Every
+    fingerprint is checked here; nothing is read, fetched or re-serialised.
+    """
+    from .batch import load_batch, verify_batch
+    if mission not in c.MISSIONS:
+        raise RadarRefusal("UNKNOWN_MISSION:" + str(mission)[:40])
+    loaded = load_batch(raw, budgets)
+    doc = loaded["doc"]
+    verified = verify_batch(doc, blobs)
+    universe = build_universe(doc, verified["documents"], "SCANNER_RAW_CATALOGUE")
+    dataset = {"id": doc["dataset_id"], "schema": c.BATCH_SCHEMA, "sha256": loaded["sha256"],
+               "bytes": loaded["bytes"], "evidence_kind": doc["evidence_kind"],
+               "admission": c.ADMISSION, "description": doc["description"],
+               "adapter_version": doc["adapter_version"]}
+    work = {**doc, "observations": verified["observations"]}
+    return _cycle(work, universe, dataset, verified["inputs"], prefs, mission, budgets)
+
+
+def _cycle(doc: dict, universe: dict, dataset: dict, inputs: dict | None, prefs: dict | None,
+           mission: str, budgets: c.Budgets) -> dict:
+    prefs = prefs or empty_preferences()
     now = doc["evaluation_time_ms"]
-    universe = build_universe(doc)
     obs_index = _observation_index(doc["observations"])
+    # radar-batch: observations refused at verification stay visible as UNKNOWN with their code.
+    refused = {(r["venue"], r["market_type"], r["native_symbol"]): r["reason"]
+               for r in (inputs or {}).get("refused_observations", [])}
     used_keys = set()
     excluded = set(prefs["excluded"])
 
@@ -61,6 +94,8 @@ def evaluate(raw: bytes, prefs: dict | None = None, mission: str = c.DEFAULT_MIS
                     if obs[field] is not None and obs[field] != value:
                         extra.append((c.NON_ADMISSIBLE, "IDENTITY_CONFLICT_" + field.upper()))
             seen = observe(obs, now)
+            if obs is None and key in refused:
+                seen["reason"] = refused[key]
         crit = criteria(market, seen)
         adm = admissibility(market, seen, crit, mission, extra)
         entry = {
@@ -75,6 +110,8 @@ def evaluate(raw: bytes, prefs: dict | None = None, mission: str = c.DEFAULT_MIS
                 "scientific": adm["decision"],
             },
             "observation": {"present": seen["present"], "reason": seen["reason"],
+                            "evidence_kind": doc["evidence_kind"],
+                            "source_id": obs.get("source_id") if obs else None,
                             "evidence_ref": seen.get("evidence_ref"), "price_kind": seen.get("price_kind"),
                             "window": seen.get("window"), "sample_count": seen.get("sample_count"),
                             "time": seen["time"], "contradictions": seen["contradictions"]},
@@ -114,10 +151,10 @@ def evaluate(raw: bytes, prefs: dict | None = None, mission: str = c.DEFAULT_MIS
         "schema_version": c.EVALUATION_SCHEMA,
         "rules_version": c.RULES_VERSION,
         "ranking_version": c.RANKING_VERSION,
-        "mode": dict(c.MODE),
+        "mode": {**c.MODE, "evidence": doc["evidence_kind"]},
         "authority": dict(c.AUTHORITY),
-        "dataset": {"id": doc["dataset_id"], "sha256": loaded["sha256"], "bytes": loaded["bytes"],
-                    "evidence_kind": doc["evidence_kind"], "description": doc["description"]},
+        "dataset": dataset,
+        "inputs": inputs,
         "mission": {"id": mission, **c.MISSIONS[mission]},
         "evaluation_time_ms": now,
         "preferences_sha256": preferences_digest(prefs),
@@ -132,7 +169,7 @@ def evaluate(raw: bytes, prefs: dict | None = None, mission: str = c.DEFAULT_MIS
         "markets": entries,
         "budgets": {"profile": budgets.profile, "limits": budgets.as_dict(),
                     "production": {"status": c.PRODUCTION_BUDGETS_STATUS, "values": c.PRODUCTION_BUDGETS},
-                    "usage": {"input_bytes": loaded["bytes"], "instruments_listed": len(entries),
+                    "usage": {"input_bytes": dataset["bytes"], "instruments_listed": len(entries),
                               "instruments_evaluated": evaluated,
                               "observations": len(doc["observations"])}},
         "deep_observation_jobs": [],

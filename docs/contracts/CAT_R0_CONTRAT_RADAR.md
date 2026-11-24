@@ -1,7 +1,7 @@
 # CAT R0 — Contrat du Radar de sélection des marchés
 
 Gate R0-2. Contrat `radar-evaluation/1.0.0`, règles `radar-rules/1.0.0`,
-classement `radar-ranking/1.1.0`. Code : `observability/radar_selection/`
+classement `radar-ranking/1.1.0` (amendés par R1-B, section 9). Code : `observability/radar_selection/`
 (constantes dans `contract.py`). Statut : **source seule, SYNTHETIC, hors
 réseau**. Ce contrat n'autorise ni collecte, ni déploiement, ni expérience.
 
@@ -259,6 +259,30 @@ entrée + mêmes préférences + même mission ⇒ mêmes octets.
 - Régimes estimés sur une seule fenêtre.
 - Coûts comparés sur le réseau seulement ; quotes USD et USDT non converties.
 - Vocabulaire à aligner avec CH1-01 lorsque #604 sera fusionnée.
+
+## 9. Amendement R1-B (2026-11-24)
+
+Contrat associé : [CAT_R1B_CONTRAT_LOT_RADAR.md](CAT_R1B_CONTRAT_LOT_RADAR.md)
+(décisions opérateur D1 à D4). Les sections 1 à 8 restent la référence de la
+version R0 ; les changements suivants s'y ajoutent.
+
+| Élément | R0 | R1-B |
+|---|---|---|
+| Évaluation | `radar-evaluation/1.0.0` | `radar-evaluation/1.1.0` : `mode.evidence`, `dataset` (`schema`, `admission: NONE`, `adapter_version` pour un lot), `inputs` (vérification des références), `source_id` et `evidence_kind` par observation, portée L2 |
+| Règles | `radar-rules/1.0.0` | `radar-rules/1.1.0` : statut `VERIFIED_TOP_N` (preuve `PROVEN_TOP_N`, état `PARTIAL`, motif `L2_VERIFIED_TOP_N_ONLY`), nature `HISTORICAL` réservée à `radar-batch`, motifs d'absence `unknown_reasons` |
+| Classement | `radar-ranking/1.1.0` | `radar-ranking/1.2.0` : entrée L2 `VERIFIED_TOP_N → 40`, rien d'autre ne change |
+| Entrées | `radar-fixture/1.0.0` | inchangée (SYNTHETIC seulement) ; nouvelle entrée `radar-batch/1.0.0` (`SYNTHETIC` ou `HISTORICAL`, jamais `LIVE`) |
+
+- Les 40 points de `VERIFIED_TOP_N` sont une **pondération transitoire**. Ils
+  n'affirment pas une fiabilité égale à `TECHNICALLY_COMPATIBLE` et ne peuvent
+  être relevés sans protocole de calibration et validation séparés.
+- Une évaluation `HISTORICAL` n'est pas une admission : `dataset.admission`
+  vaut toujours `NONE`, la référence reste `NOT_YET_HISTORICALLY_ADMITTED`, et
+  chaque candidat porte la limite « Données HISTORICAL hors ligne ».
+- Équivalence scientifique : une fixture R0 et le même contenu passé en lot
+  donnent les mêmes critères, décisions, scores et candidats, à version
+  identique (test T17). Seuls l'identité du jeu de données, `inputs` et
+  l'étiquette de provenance du catalogue diffèrent.
 
 ## Frontière Radar → Admission scientifique → Observation approfondie
 

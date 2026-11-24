@@ -14,6 +14,8 @@ from decimal import Decimal
 from . import contract as c
 
 D = Decimal
+# Proof level of each L2 status. VERIFIED_TOP_N is proven on its top levels only.
+L2_PROOF = {"VERIFIED": "PROVEN", "VERIFIED_TOP_N": "PROVEN_TOP_N", "TECHNICALLY_COMPATIBLE": "TO_QUALIFY"}
 
 
 def criteria(market: dict, seen: dict) -> dict:
@@ -33,9 +35,11 @@ def criteria(market: dict, seen: dict) -> dict:
         crit_l2 = {"state": c.CRIT_UNKNOWN, "reason": l2["reason"], "proof": "UNKNOWN"}
     else:
         crit_l2 = {"state": l2["state"], "reason": l2["reason"],
-                   "proof": "PROVEN" if l2["status"] == "VERIFIED" else "TO_QUALIFY",
+                   "proof": L2_PROOF[l2["status"]],
                    "status": l2["status"], "evidence_ref": l2["evidence_ref"],
                    "depth_levels": l2["depth_levels"]}
+        if "scope" in l2:
+            crit_l2["scope"] = l2["scope"]
 
     time = seen["time"]
     if time["state"] == "INCOHERENT" or seen["contradictions"]:
@@ -136,6 +140,8 @@ def admissibility(market: dict, seen: dict, crit: dict, mission: str, extra: lis
                 proof = crit["l2_quality"].get("proof")
                 if proof == "TO_QUALIFY":
                     reasons.append((c.TO_QUALIFY, "L2_TO_QUALIFY_AFTER_AUTHORIZATION"))
+                elif proof == "PROVEN_TOP_N":
+                    reasons.append((c.TO_QUALIFY, "L2_VERIFIED_TOP_N_ONLY"))
                 elif proof != "PROVEN":
                     reasons.append((c.UNKNOWN, "L2_NOT_PROVEN"))
                 elif crit["spread_depth"]["depth"]["state"] != c.AVAILABLE:
@@ -190,10 +196,19 @@ def score(crit: dict, decision: str) -> dict | None:
             "max_reachable": str((D(100) - sum(D(c.WEIGHTS[k]) for k in missing)).quantize(D("0.01")))}
 
 
+EVIDENCE_LIMITS = {
+    "SYNTHETIC": "Données SYNTHETIC : aucune valeur LIVE",
+    "HISTORICAL": "Données HISTORICAL hors ligne : aucune valeur LIVE, aucune admission",
+}
+
+
 def _limits(entry: dict) -> list:
     crit = entry["criteria"]
-    out = ["Données SYNTHETIC : aucune valeur LIVE"]
-    if crit["l2_quality"].get("proof") != "PROVEN":
+    out = [EVIDENCE_LIMITS[entry["observation"].get("evidence_kind", "SYNTHETIC")]]
+    l2 = crit["l2_quality"]
+    if l2.get("proof") == "PROVEN_TOP_N":
+        out.append(f"Intégrité L2 prouvée sur {l2['depth_levels']} niveaux seulement, pas sur le carnet complet")
+    elif l2.get("proof") != "PROVEN":
         out.append("Intégrité L2 non prouvée")
     if crit["spread_depth"]["depth"]["state"] != c.AVAILABLE:
         out.append("Profondeur non mesurée")

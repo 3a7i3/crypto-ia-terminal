@@ -46,10 +46,16 @@ def _authorize(policy: dict, venue: str, market_type: str, base, quote, market_i
     return True, None
 
 
-def build_universe(doc: dict) -> dict:
-    """Return {"markets": [...], "sources": [...]} sorted by market_id. Pure."""
+def build_universe(doc: dict, documents: dict | None = None,
+                   provenance: str = "SYNTHETIC_FIXTURE_CATALOGUE") -> dict:
+    """Return {"markets": [...], "sources": [...]} sorted by market_id. Pure.
+
+    ``documents`` is the ``parse_all`` input. A radar-fixture builds it from its
+    embedded bodies; a radar-batch passes the original catalogue bytes, already
+    checked against their SHA-256 (R1-B, operator D1), so nothing is re-serialised.
+    """
     now = doc["evaluation_time_ms"]
-    catalogues = parse_all(catalogue_documents(doc))
+    catalogues = parse_all(catalogue_documents(doc) if documents is None else documents)
     sources = []
     for market in sorted(catalogues):
         cat = catalogues[market]
@@ -112,7 +118,7 @@ def build_universe(doc: dict) -> dict:
                 "native_base": row["native_base"], "native_quote": row["native_quote"],
                 "collected_ms": row["collected_ms"], "metadata_current": src["metadata_current"],
                 "metadata_reason": src["metadata_reason"], "raw_sha256": src["raw_sha256"],
-                "provenance": "SYNTHETIC_FIXTURE_CATALOGUE",
+                "provenance": provenance,
             },
             "discovered": True, "authorized": authorized, "authorization_reason": auth_reason,
             "source_access": src["access"], "source_access_reason": src["access_reason"],

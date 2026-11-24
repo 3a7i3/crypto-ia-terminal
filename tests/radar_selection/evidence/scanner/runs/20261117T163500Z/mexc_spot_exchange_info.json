@@ -1,0 +1,70 @@
+{
+ "timezone": "CST",
+ "serverTime": 1795600000000,
+ "symbols": [
+  {
+   "symbol": "BTCUSDT",
+   "baseAsset": "BTC",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  },
+  {
+   "symbol": "ETHUSDT",
+   "baseAsset": "ETH",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  },
+  {
+   "symbol": "SOLUSDT",
+   "baseAsset": "SOL",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  },
+  {
+   "symbol": "ATOMUSDT",
+   "baseAsset": "ATOM",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  },
+  {
+   "symbol": "ADAUSDT",
+   "baseAsset": "ADA",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  },
+  {
+   "symbol": "DOGEUSDT",
+   "baseAsset": "DOGE",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  },
+  {
+   "symbol": "PEPEUSDT",
+   "baseAsset": "PEPE",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  },
+  {
+   "symbol": "USDCUSDT",
+   "baseAsset": "USDC",
+   "quoteAsset": "USDT",
+   "status": "1",
+   "isSpotTradingAllowed": true,
+   "fullName": "fixture"
+  }
+ ]
+}
