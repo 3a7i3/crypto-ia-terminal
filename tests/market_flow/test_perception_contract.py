@@ -374,3 +374,27 @@ def test_kraken_spot_units_and_independent_manifest_reference():
     for corpus_id, digest in ((corpus, "0" * 64), ("other", admitted)):
         with pytest.raises(pc.PerceptionRefusal, match="HISTORICAL_MANIFEST_NOT_ADMITTED"):
             pc.require_admitted_kraken_manifest(corpus_id, digest)
+
+
+def test_kraken_spot_unit_declarations_agree_with_derived_units():
+    identity = ("kraken", "SPOT", "BTC/USDT", "BTC", "USDT")
+    units = {"quantity_unit": "BTC", "price_quote_unit": "USDT"}
+    assert pc.validate_kraken_spot_identity(*identity, unit_declarations=(
+        ("instrument", {**units, "price_unit": "USDT/BTC"}),
+    )) == units
+    assert pc.validate_kraken_spot_identity(*identity) == units
+
+
+@pytest.mark.parametrize("field,value,reason", [
+    ("quantity_unit", "CONTRACTS", "KRAKEN_UNIT_MISMATCH"),
+    ("quantity_unit", "ETH", "KRAKEN_UNIT_MISMATCH"),
+    ("price_unit", "USD/BTC", "KRAKEN_UNIT_MISMATCH"),
+    ("price_quote_unit", "USD", "KRAKEN_UNIT_MISMATCH"),
+    ("quantity_unit", None, "KRAKEN_UNIT_MALFORMED"),
+    ("price_unit", [], "KRAKEN_UNIT_MALFORMED"),
+    ("amount_unit", "BTC", "KRAKEN_UNIT_FIELD_UNKNOWN"),
+])
+def test_kraken_spot_refuses_unrecognized_or_conflicting_unit_fields(field, value, reason):
+    with pytest.raises(pc.PerceptionRefusal, match=rf"^{reason}:instrument\.{field}$"):
+        pc.validate_kraken_spot_identity("kraken", "SPOT", "BTC/USDT", "BTC", "USDT",
+                                        unit_declarations=(("instrument", {field: value}),))
