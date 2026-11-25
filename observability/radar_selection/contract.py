@@ -9,15 +9,22 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-EVALUATION_SCHEMA = "radar-evaluation/1.0.0"
+EVALUATION_SCHEMA = "radar-evaluation/1.1.0"
 FIXTURE_SCHEMA = "radar-fixture/1.0.0"
+BATCH_SCHEMA = "radar-batch/1.0.0"
+ADAPTER_VERSION = "radar-adapter/1.0.0"
 PREFERENCES_SCHEMA = "radar-preferences/1.0.0"
 HISTORY_SCHEMA = "radar-history/1.0.0"
-RULES_VERSION = "radar-rules/1.0.0"
-RANKING_VERSION = "radar-ranking/1.1.0"
+RULES_VERSION = "radar-rules/1.1.0"
+RANKING_VERSION = "radar-ranking/1.2.0"
 
-# R0 is offline and synthetic only. Anything else is refused at load time.
+# A radar-fixture document is offline and synthetic only. Anything else is refused at load time.
 EVIDENCE_KINDS = ("SYNTHETIC",)
+# A radar-batch document (R1-B) may also carry HISTORICAL evidence: offline input
+# derived from sealed artifacts whose fingerprints are verified. LIVE is refused.
+# HISTORICAL is never an admission (C2-C / C2-D stay outside the Radar).
+BATCH_EVIDENCE_KINDS = ("SYNTHETIC", "HISTORICAL")
+ADMISSION = "NONE"
 MODE = {"evidence": "SYNTHETIC", "network": "DISABLED", "l2_collection": "DISABLED",
         "paper": "DISABLED", "deep_observation": "DISABLED"}
 AUTHORITY = {"execution_authority": False, "collection_authority": False,
@@ -48,7 +55,15 @@ LISTED, RETIRED, SOURCE_NOT_CURRENT = "LISTED", "RETIRED", "SOURCE_NOT_CURRENT"
 CHANGES = ("BASELINE", "ADDED", "UNCHANGED", "METADATA_CHANGED", "RETIRED", "SOURCE_NOT_CURRENT")
 SOURCE_ACCESS = ("ACCESSIBLE", "DEGRADED", "UNAVAILABLE", "UNKNOWN")
 RECENT_DATA = ("FRESH", "STALE", "ABSENT", "UNKNOWN")
-L2_STATUSES = ("VERIFIED", "TECHNICALLY_COMPATIBLE")
+# VERIFIED: the whole book is verified. VERIFIED_TOP_N (R1-B, operator D3): only the
+# first ``depth_levels`` levels are attested by a native checksum, on valid instants
+# only; ``depth_levels`` and ``scope`` are mandatory. TECHNICALLY_COMPATIBLE: rebuilt
+# book without checksum.
+L2_STATUSES = ("VERIFIED", "VERIFIED_TOP_N", "TECHNICALLY_COMPATIBLE")
+# radar-fixture/1.0.0 keeps its original L2 vocabulary (no scope field).
+FIXTURE_L2_STATUSES = ("VERIFIED", "TECHNICALLY_COMPATIBLE")
+L2_SCOPE_KEYS = {"verified_by", "valid_instants", "grid_instants", "excluded_instants"}
+L2_VERIFIERS = ("KRAKEN_CRC32",)
 PRICE_KINDS = ("LAST_TRADE", "MID_BBO", "MARK")
 ACTIVITY_KINDS = ("TRADE_COUNT_WINDOW",)
 COST_BASES = ("MEASURED", "ESTIMATED")
@@ -90,7 +105,10 @@ CONTINUITY_POINTS = (("0.95", 100), ("0.80", 60))
 SPREAD_POINTS_BPS = (("2", 100), ("5", 80), ("10", 60), ("25", 30))  # else 10
 SPREAD_FLOOR_POINTS = 10
 ACTIVITY_POINTS = ((1000, 100), (100, 70), (10, 40), (1, 20))  # 0 trades -> 0
-L2_POINTS = {"VERIFIED": 100, "TECHNICALLY_COMPATIBLE": 40}
+# VERIFIED_TOP_N = 40 (operator D4, 2026-11-24): a TRANSITIONAL ranking weight equal to
+# TECHNICALLY_COMPATIBLE. It does not state that both states are equally reliable and
+# must not be raised without a separate calibration and validation protocol.
+L2_POINTS = {"VERIFIED": 100, "VERIFIED_TOP_N": 40, "TECHNICALLY_COMPATIBLE": 40}
 COST_POINTS_KIB_S = (("50", 100), ("200", 70), ("1000", 40))  # else 10
 COST_FLOOR_POINTS = 10
 MAX_CANDIDATES = 3
@@ -145,5 +163,22 @@ PRODUCTION_BUDGETS_STATUS = "NOT_MEASURED"
 # Bounded lists in documents. The input size itself is bounded by max_input_bytes;
 # the instrument ceiling bounds the work of a cycle, not the input shape.
 MAX_FIXTURE_RECORDS = 5_000
+
+# ---------------------------------------------------------------- batch (R1-B)
+# Ceilings of one radar-batch document and of its referenced artifacts.
+MAX_BATCH_SOURCES = 16
+MAX_REFS = 64                       # catalogue documents + manifests + anchors + windows
+# Total bytes of the references one batch may make the CLI read (R1-B memory reserve,
+# 2026-11-25). Test capacity, not a production capacity: a batch reading ~1.0 MB of
+# dense SYNTHETIC catalogues peaked at ~47 MiB (tracemalloc) for ~3 800 markets, under
+# the 64 MiB test memory budget; memory grows with the number of markets, about
+# 45 times the bytes read. Checked on declared sizes before reading, then on the
+# actual bytes while reading (REFS_BYTES_BOUND).
+MAX_BATCH_REF_BYTES = 1_000_000
+MAX_ARTIFACT_BYTES = 1_000_000      # one non-catalogue artifact (window, anchor, manifest)
+MAX_WINDOWS_PER_OBSERVATION = 8     # 8 x 30 points <= max_samples_per_observation
+MAX_EXCLUDED_INSTANTS = 256
+UNKNOWN_REASON_KEYS = ("activity", "depth", "cost")
+SOURCE_KINDS = ("BBO_REPLAY_WINDOWS",)
 MAX_REASON_CODES = 16
 MAX_PREF_LOG = 50

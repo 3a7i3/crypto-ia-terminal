@@ -49,7 +49,17 @@ _PATH_EVENTS = {"os.remove": (0,), "os.rename": (0, 1), "os.mkdir": (0,), "os.rm
                 "os.link": (0, 1), "os.utime": (0,), "shutil.rmtree": (0,), "shutil.move": (0, 1),
                 "shutil.copyfile": (1,), "shutil.copytree": (1,)}
 _WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
-_GUARD = {"installed": False, "root": None, "blocked": []}
+_GUARD = {"installed": False, "root": None, "blocked": [], "read_roots": None, "code_roots": []}
+# Under the import directories only code may be read: sys.path holds the working
+# directory, which must not open every data file below it.
+_CODE_SUFFIXES = (".py", ".pyc", ".so", ".pyd", ".pth", ".zip")
+
+
+def _is_code(path) -> bool:
+    try:
+        return os.fsdecode(os.fspath(path)).endswith(_CODE_SUFFIXES)
+    except TypeError:
+        return False
 
 
 def _inside(path, root) -> bool:
@@ -60,6 +70,24 @@ def _inside(path, root) -> bool:
     except TypeError:
         return False
     return real == root or real.startswith(root + os.sep)
+
+
+def _walk_relative(path):
+    """A name ``refs`` opens relative to a directory descriptor, placed under that directory.
+
+    ``os.open(name, dir_fd=...)`` audits only the relative name; ``refs.WALK``
+    holds the absolute directory being walked so that the read check still
+    applies (an unknown relative name stays relative and is judged as such).
+    """
+    refs_mod = sys.modules.get(__package__ + ".refs")
+    walk = getattr(refs_mod, "WALK", None)
+    try:
+        name = os.fsdecode(os.fspath(path))
+    except TypeError:
+        return path
+    if walk and not os.path.isabs(name) and "/" not in name:
+        return os.path.join(walk[-1], name)
+    return path
 
 
 def _hook(event, args):
@@ -74,6 +102,14 @@ def _hook(event, args):
         if writing and not _inside(path, root):
             _GUARD["blocked"].append(event)
             raise PermissionError("RADAR_WRITE_OUTSIDE_STATE_DIR")
+        readable = _GUARD["read_roots"]
+        if not writing and readable is not None and isinstance(path, (str, bytes, os.PathLike)):
+            path = _walk_relative(path)
+        if not writing and readable is not None and isinstance(path, (str, bytes, os.PathLike)) \
+                and not any(_inside(path, r) for r in readable) \
+                and not (_is_code(path) and any(_inside(path, r) for r in _GUARD["code_roots"])):
+            _GUARD["blocked"].append(event)
+            raise PermissionError("RADAR_READ_OUTSIDE_EVIDENCE_ROOT")
     elif event in _PATH_EVENTS:
         for i in _PATH_EVENTS[event]:
             if i < len(args) and not _inside(args[i], root):
@@ -81,8 +117,26 @@ def _hook(event, args):
                 raise PermissionError(f"RADAR_WRITE_OUTSIDE_STATE_DIR:{event}")
 
 
-def install_offline_guard(state_dir: Path | None) -> None:
-    """Irreversible for the process: network, processes and outside writes refused."""
+def _code_roots() -> list:
+    """Directories the interpreter imports code from (sys.path and the installation prefixes)."""
+    roots = set()
+    for entry in [*sys.path, sys.prefix, sys.base_prefix, sys.exec_prefix, sys.base_exec_prefix]:
+        try:
+            real = os.path.realpath(entry or os.getcwd())
+        except (TypeError, ValueError, OSError):
+            continue
+        if os.path.isdir(real):
+            roots.add(real)
+    return sorted(roots)
+
+
+def install_offline_guard(state_dir: Path | None, read_roots: list | None = None) -> None:
+    """Irreversible for the process: network, processes and outside writes refused.
+
+    With ``read_roots`` (R1-B, ``--evidence-root``) reads are also refused outside
+    those roots and ``--state-dir``, except code files (``_CODE_SUFFIXES``) under
+    the directories code is imported from.
+    """
     sys.dont_write_bytecode = True
     root = None
     if state_dir is not None:
@@ -93,6 +147,9 @@ def install_offline_guard(state_dir: Path | None) -> None:
             raise UsageError("STATE_DIR_NOT_A_DIRECTORY")
         root = os.path.realpath(state_dir)
     _GUARD["root"] = root
+    if read_roots is not None:
+        _GUARD["read_roots"] = sorted({os.path.realpath(r) for r in read_roots} | ({root} if root else set()))
+        _GUARD["code_roots"] = _code_roots()
     if not _GUARD["installed"]:
         sys.addaudithook(_hook)
         _GUARD["installed"] = True
@@ -138,8 +195,8 @@ def header(s: Screen, ev: dict) -> None:
     s.add("CAT MARKET INTELLIGENCE")
     s.add("RADAR — Surveillance et sélection")
     s.add("")
-    s.kv("MODE", "SYNTHETIC / OFFLINE")
     mode = ev["mode"]
+    s.kv("MODE", f"{mode['evidence']} / OFFLINE")
     if s.narrow:
         s.kv("NETWORK", mode["network"])
         s.kv("L2 COLLECTION", mode["l2_collection"])
@@ -147,6 +204,9 @@ def header(s: Screen, ev: dict) -> None:
     else:
         s.add(f"NETWORK: {mode['network']} · L2 COLLECTION: {mode['l2_collection']} · PAPER: {mode['paper']}")
     s.kv("DATASET", f"{ev['dataset']['id']} ({ev['dataset']['evidence_kind']}, sha256 {_short(ev['dataset']['sha256'])})")
+    if ev["dataset"]["schema"] == c.BATCH_SCHEMA:
+        s.kv("LOT", f"{ev['dataset']['schema']} · {ev['dataset']['adapter_version']}")
+        s.kv("ADMISSION", f"{ev['dataset']['admission']} (aucune admission C2-C/C2-D)")
     s.kv("CONTRAT", f"{ev['schema_version']} · {ev['rules_version']} · {ev['ranking_version']}")
     s.kv("MISSION", ev["mission"]["id"])
 
@@ -245,7 +305,12 @@ def universe_list(s: Screen, ev: dict, venue=None, mtype=None, search=None, deci
 def _crit_line(name: str, crit: dict) -> str:
     st = crit["state"]
     if name == "l2_quality":
-        return f"{st} · preuve {crit.get('proof')}" + (f" · {crit.get('status')}" if crit.get("status") else "")
+        line = f"{st} · preuve {crit.get('proof')}" + (f" · {crit.get('status')}" if crit.get("status") else "")
+        scope = crit.get("scope")
+        if crit.get("status") == "VERIFIED_TOP_N" and scope:
+            line += (f" · carnet vérifié sur {crit['depth_levels']} niveaux ({scope['verified_by']}), "
+                     f"{scope['valid_instants']} instants valides sur {scope['grid_instants']}")
+        return line
     if name == "continuity":
         if crit.get("class"):
             return (f"{st} · {crit['class']} {crit['ratio']} ({crit['covered']}/{crit['expected']}) · "
@@ -326,6 +391,10 @@ def evidence(s: Screen, ev: dict, m: dict) -> None:
         s.kv(f"SHA-256 {name}", digest, 2)
     o = m["observation"]
     s.kv("Observation", o["evidence_ref"] or f"absente ({o['reason']})", 2)
+    if o.get("source_id"):
+        src = next((x for x in (ev.get("inputs") or {}).get("sources", []) if x["source_id"] == o["source_id"]), None)
+        s.kv("Source", o["source_id"] + (f" · {src['state']} · corpus {src['corpus_id']} · producteur "
+                                         f"{src['producer_commit'][:12]}" if src else ""), 2)
     if o["present"]:
         s.kv("Nature du prix", o["price_kind"], 2)
         s.kv("Échantillons", o["sample_count"], 2)
@@ -386,24 +455,37 @@ def help_screen(s: Screen) -> None:
 # ------------------------------------------------------------------ commands
 
 class Session:
-    def __init__(self, fixture: Path, state_dir: Path | None, width: int, mission: str,
-                 budgets: c.Budgets = c.TEST_BUDGETS):
+    def __init__(self, fixture: Path | None, state_dir: Path | None, width: int, mission: str,
+                 budgets: c.Budgets = c.TEST_BUDGETS, batch: Path | None = None,
+                 evidence_root: str | None = None):
         self.fixture = fixture
+        self.batch = batch
+        self.evidence_root = evidence_root
         self.state_dir = state_dir
         self.width = width
         self.mission = mission
         self.budgets = budgets
 
     def _raw(self) -> bytes:
-        size = self.fixture.stat().st_size
+        source = self.batch if self.batch is not None else self.fixture
+        size = source.stat().st_size
         if size > self.budgets.max_input_bytes:
             raise RadarRefusal(f"INPUT_TOO_LARGE:{size}>{self.budgets.max_input_bytes}")
-        return self.fixture.read_bytes()
+        return source.read_bytes()
+
+    def _run(self, raw: bytes, prefs: dict) -> dict:
+        from .engine import evaluate, evaluate_batch
+        if self.batch is None:
+            return evaluate(raw, prefs, self.mission, self.budgets)
+        from .batch import load_batch, refs
+        from .refs import read_all
+        blobs = read_all(self.evidence_root, refs(load_batch(raw, self.budgets)["doc"]),
+                         total=c.MAX_BATCH_REF_BYTES)
+        return evaluate_batch(raw, blobs, prefs, self.mission, self.budgets)
 
     def evaluate(self) -> dict:
-        from .engine import evaluate
         from .manual import load_preferences
-        return evaluate(self._raw(), load_preferences(self.state_dir), self.mission, self.budgets)
+        return self._run(self._raw(), load_preferences(self.state_dir))
 
     def _market(self, ev: dict, mid: str | None) -> dict:
         if not mid:
@@ -483,7 +565,6 @@ class Session:
     def bench(self, runs: int) -> str:
         import time
         import tracemalloc
-        from .engine import evaluate
         from .manual import load_preferences
         if not 1 <= runs <= 50:
             raise UsageError("BENCH_RUNS_1_TO_50")
@@ -494,7 +575,7 @@ class Session:
         for _ in range(runs):
             tracemalloc.start()
             t0 = time.perf_counter()
-            ev = evaluate(raw, prefs, self.mission, self.budgets)
+            ev = self._run(raw, prefs)
             times.append((time.perf_counter() - t0) * 1000)
             peaks.append(tracemalloc.get_traced_memory()[1])
             tracemalloc.stop()
@@ -563,14 +644,23 @@ def _one(session: Session, argv: list, out, err) -> int:
                             "EVIDENCE_KIND_NOT_ALLOWED_IN_R0", "OBSERVATION_TOO_LARGE", "SAMPLES_BOUND",
                             "OUTPUT_TOO_LARGE", "BODY_XOR_ERROR", "CATALOGUE_VALUE", "CATALOGUE_TOO_DEEP",
                             "DATASET_ID", "ERROR_CODE", "SOURCE_ACCESS", "PREVIOUS_UNIVERSE", "MARKET_ID",
-                            "OBSERVATIONS_BOUND", "DUPLICATE_VALUE")
+                            "OBSERVATIONS_BOUND", "DUPLICATE_VALUE") \
+            or exc.code.startswith("REF_") or exc.code in (
+                "BATCH_SCHEMA", "ADAPTER_VERSION", "EVIDENCE_KIND_NOT_ALLOWED", "SOURCES_BOUND", "SOURCE_ID",
+                "DUPLICATE_SOURCE_ID", "UNKNOWN_SOURCE_ID", "REFS_BOUND", "REFS_BYTES_BOUND", "DUPLICATE_REF", "ARTIFACTS_BOUND", "SHA256_EXPECTED",
+                "COMMIT_EXPECTED", "CORPUS_ID", "COVERAGE_EMPTY", "UNKNOWN_REASONS", "BLOBS_EXPECTED",
+                "UNKNOWN_REASON_FOR_PRESENT_VALUE", "HISTORICAL_OBSERVATION_WITHOUT_SOURCE",
+                "L2_VERIFIED_NOT_ALLOWED_FROM_SOURCE", "L2_SCOPE_ONLY_FOR_TOP_N", "L2_TOP_N_SCOPE_REQUIRED",
+                "L2_TOP_N_DEPTH_LEVELS_REQUIRED", "L2_SCOPE_COUNTS", "EXCLUDED_INSTANTS_BOUND", "EVIDENCE_ROOT_MISSING",
+                "EVIDENCE_ROOT_NOT_A_DIRECTORY")
         err.write(f"{'ENTRÉE REFUSÉE' if refused_input else 'REFUSÉ'}: {exc}\n")
         return EXIT_INPUT if refused_input else EXIT_REFUSED
 
 
 def shell(session: Session, stdin, out, err) -> int:
     interactive = hasattr(stdin, "isatty") and stdin.isatty()
-    out.write("RADAR — shell local (SYNTHETIC / OFFLINE). 'help' pour l'aide, 'quit' pour sortir.\n")
+    kind = "LOT / OFFLINE" if session.batch is not None else "SYNTHETIC / OFFLINE"
+    out.write(f"RADAR — shell local ({kind}). 'help' pour l'aide, 'quit' pour sortir.\n")
     last = EXIT_OK
     while True:
         if interactive:
@@ -598,6 +688,8 @@ def shell(session: Session, stdin, out, err) -> int:
 
 USAGE = ("usage: python -m observability.radar_selection --fixture NAME|PATH [--state-dir DIR] "
          "[--width N] [--mission M] COMMAND [ARGS]\n"
+         "       python -m observability.radar_selection --batch PATH --evidence-root DIR [--state-dir DIR] "
+         "[--width N] [--mission M] COMMAND [ARGS]\n"
          f"  NAME: {', '.join(NAMED_FIXTURES)}\n  missions: {', '.join(c.MISSIONS)}\n"
          "  commands: status universe scan candidates inspect evidence select unselect pin unpin "
          "exclude include reset history export bench help shell\n")
@@ -606,7 +698,8 @@ USAGE = ("usage: python -m observability.radar_selection --fixture NAME|PATH [--
 def main(argv: list | None = None, stdin=None, stdout=None, stderr=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     stdin, out, err = stdin or sys.stdin, stdout or sys.stdout, stderr or sys.stderr
-    opts = {"--fixture": None, "--state-dir": None, "--width": None, "--mission": c.DEFAULT_MISSION}
+    opts = {"--fixture": None, "--state-dir": None, "--width": None, "--mission": c.DEFAULT_MISSION,
+            "--batch": None, "--evidence-root": None}
     try:
         while argv and argv[0] in opts:
             if len(argv) < 2:
@@ -617,12 +710,33 @@ def main(argv: list | None = None, stdin=None, stdout=None, stderr=None) -> int:
             out.write(USAGE)
             return EXIT_OK if argv else EXIT_USAGE
         state_dir = Path(opts["--state-dir"]) if opts["--state-dir"] else None
-        install_offline_guard(state_dir)
-        if opts["--fixture"] is None:
-            raise UsageError("FIXTURE_REQUIRED")
-        if opts["--mission"] not in c.MISSIONS:
-            raise UsageError("UNKNOWN_MISSION")
-        session = Session(_resolve_fixture(opts["--fixture"]), state_dir, _width(opts["--width"]), opts["--mission"])
+        if opts["--batch"] is not None:
+            # R1-B: a radar-batch and the evidence root its references live under.
+            if opts["--fixture"] is not None or opts["--evidence-root"] is None:
+                raise UsageError("BATCH_NEEDS_EVIDENCE_ROOT_AND_NO_FIXTURE")
+            from .refs import evidence_root
+            try:
+                root = evidence_root(opts["--evidence-root"])
+            except RadarRefusal as exc:
+                raise UsageError(exc.code) from None
+            install_offline_guard(state_dir, read_roots=[root])
+            if opts["--mission"] not in c.MISSIONS:
+                raise UsageError("UNKNOWN_MISSION")
+            batch = Path(opts["--batch"])
+            if not batch.is_file():
+                raise UsageError("BATCH_NOT_FOUND")
+            session = Session(None, state_dir, _width(opts["--width"]), opts["--mission"],
+                              batch=batch, evidence_root=root)
+        else:
+            if opts["--evidence-root"] is not None:
+                raise UsageError("EVIDENCE_ROOT_ONLY_WITH_BATCH")
+            install_offline_guard(state_dir)
+            if opts["--fixture"] is None:
+                raise UsageError("FIXTURE_REQUIRED")
+            if opts["--mission"] not in c.MISSIONS:
+                raise UsageError("UNKNOWN_MISSION")
+            session = Session(_resolve_fixture(opts["--fixture"]), state_dir, _width(opts["--width"]),
+                              opts["--mission"])
     except UsageError as exc:
         err.write(f"USAGE: {exc}\n")
         return EXIT_USAGE

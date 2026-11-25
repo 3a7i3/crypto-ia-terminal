@@ -183,7 +183,7 @@ def _observation(o, i, budgets):
     l2 = o["l2"]
     if l2 is not None:
         _keys(l2, L2_KEYS, path + ".l2")
-        if l2["status"] not in c.L2_STATUSES:
+        if l2["status"] not in c.FIXTURE_L2_STATUSES:
             _refuse("VALUE_NOT_ALLOWED", path + ".l2.status")
         _text(l2["evidence_ref"], path + ".l2.evidence_ref")
         _opt_int(l2["depth_levels"], path + ".l2.depth_levels", 1, 10_000)

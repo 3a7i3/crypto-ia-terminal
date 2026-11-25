@@ -1,0 +1,72 @@
+{
+ "bbo_sources": [
+  {
+   "anchor_ref": "bbo/bbo-composite-history.json",
+   "anchor_sha256": "e9e2eb637e6d0dbac5dcb57c9808b8cbaccd4a2d8e7792d17cdec5c3c2f460ab",
+   "manifest_ref": "bbo/BBO-BTC-DRY/manifest.json",
+   "manifest_sha256": "492383142d55cdbe6ec317c572e063d6ff165ea7e5175b2de9d3bdacfc6544c5",
+   "pair": "BTC",
+   "window_refs": [
+    "bbo/BBO-BTC-DRY/replay/window_0_primary.json",
+    "bbo/BBO-BTC-DRY/replay/window_1_primary.json"
+   ]
+  },
+  {
+   "anchor_ref": "bbo/bbo-composite-history.json",
+   "anchor_sha256": "e9e2eb637e6d0dbac5dcb57c9808b8cbaccd4a2d8e7792d17cdec5c3c2f460ab",
+   "manifest_ref": "bbo/BBO-ATOM-DRY/manifest.json",
+   "manifest_sha256": "21d16177ad26a778a2d0fb0a8137664498dd2093a89d136315c863af4564d57b",
+   "pair": "ATOM",
+   "window_refs": [
+    "bbo/BBO-ATOM-DRY/replay/window_0_primary.json",
+    "bbo/BBO-ATOM-DRY/replay/window_1_primary.json",
+    "bbo/BBO-ATOM-DRY/replay/window_2_primary.json"
+   ]
+  }
+ ],
+ "dataset_id": "R1B-SYN-01-BTC-ATOM",
+ "description": "R1-B SYNTHETIC : catalogues Scanner inventés et fenêtres BBO du transport simulé",
+ "evaluation_time_ms": 1795128900000,
+ "evidence_kind": "SYNTHETIC",
+ "policy": {
+  "asset_classes": [
+   "CRYPTO"
+  ],
+  "deny": [],
+  "market_types": [
+   "SPOT",
+   "PERPETUAL"
+  ],
+  "quotes": [
+   "USDT",
+   "USD",
+   "USDC"
+  ],
+  "venues": [
+   "kraken",
+   "mexc"
+  ]
+ },
+ "previous_universe": null,
+ "scanner_manifest_sha256": "50c45694e2daa7f9ef93e7e2d8191b90637e109536ef286af7bcf0dec5c1f2f5",
+ "scanner_run": "scanner/runs/20261117T163500Z",
+ "source_access": {
+  "KRAKEN_PERPETUAL": {
+   "reason": null,
+   "state": "ACCESSIBLE"
+  },
+  "KRAKEN_SPOT": {
+   "reason": null,
+   "state": "ACCESSIBLE"
+  },
+  "MEXC_PERPETUAL": {
+   "reason": null,
+   "state": "ACCESSIBLE"
+  },
+  "MEXC_SPOT": {
+   "reason": null,
+   "state": "ACCESSIBLE"
+  }
+ },
+ "spec_schema": "radar-batch-spec/1.0.0"
+}

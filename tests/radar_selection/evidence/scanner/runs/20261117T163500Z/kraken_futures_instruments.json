@@ -1,0 +1,45 @@
+{
+ "result": "success",
+ "instruments": [
+  {
+   "type": "flexible_futures",
+   "tradeable": true,
+   "suspended": false,
+   "isExpired": false,
+   "postOnly": false,
+   "contractSize": 1,
+   "base": "XBT",
+   "quote": "USD",
+   "symbol": "PF_XBTUSD",
+   "pair": "XBT:USD",
+   "tickSize": 0.5
+  },
+  {
+   "type": "flexible_futures",
+   "tradeable": true,
+   "suspended": false,
+   "isExpired": false,
+   "postOnly": false,
+   "contractSize": 1,
+   "base": "ETH",
+   "quote": "USD",
+   "symbol": "PF_ETHUSD",
+   "pair": "ETH:USD",
+   "tickSize": 0.5
+  },
+  {
+   "type": "flexible_futures",
+   "tradeable": true,
+   "suspended": false,
+   "isExpired": false,
+   "postOnly": false,
+   "contractSize": 1,
+   "base": "SOL",
+   "quote": "USD",
+   "symbol": "PF_SOLUSD",
+   "pair": "SOL:USD",
+   "tickSize": 0.5
+  }
+ ],
+ "serverTime": "2026-11-24T00:00:00Z"
+}
