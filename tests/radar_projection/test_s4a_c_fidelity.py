@@ -12,7 +12,7 @@ import sys
 import pytest
 
 from observability.radar_projection import contract as pc
-from observability.radar_projection.projection import build_projection, project, projection_bytes
+from observability.radar_projection.projection import project, project_bytes
 from observability.radar_projection.verifier import IDENTITY_KEYS, verify_export
 from observability.radar_selection.fixture import canonical, sha256_hex
 from tests.radar_projection._exports import BATCH, CASES, ROOT, export, loads, prefs
@@ -151,10 +151,11 @@ def test_SA6_unknown_population_is_visible():
 def test_SA8_projection_is_a_pure_function_of_the_bytes(source, mission):
     raw = export(source, mission)
     a, b = project(raw), project(bytes(raw))
-    assert projection_bytes(a) == projection_bytes(b)
+    assert project_bytes(raw) == project_bytes(bytearray(raw)) == canonical(a) + b"\n"
+    assert canonical(a) == canonical(b)
     body = {k: v for k, v in a.items() if k != "projection_sha256"}
     assert a["projection_sha256"] == sha256_hex(canonical(body))
-    assert build_projection(verify_export(raw)) == a
+    assert verify_export(raw)["doc"]["evaluation_sha256"] == a["source"]["evaluation_sha256"]
 
 
 def test_SA8_projection_does_not_depend_on_the_final_newline_except_for_the_export_digest():
@@ -170,8 +171,8 @@ def test_SA8_identical_bytes_across_processes_and_hash_seeds(tmp_path):
     raw = export(BATCH)
     src = tmp_path / "export.json"
     src.write_bytes(raw)
-    code = ("import sys;from observability.radar_projection.projection import project,projection_bytes;"
-            "sys.stdout.buffer.write(projection_bytes(project(open(sys.argv[1],'rb').read())))")
+    code = ("import sys;from observability.radar_projection.projection import project_bytes;"
+            "sys.stdout.buffer.write(project_bytes(open(sys.argv[1],'rb').read()))")
     outs = []
     for seed in ("0", "1", "4242"):
         env = {"PYTHONPATH": str(ROOT), "PYTHONHASHSEED": seed, "PYTHONDONTWRITEBYTECODE": "1",
@@ -180,7 +181,7 @@ def test_SA8_identical_bytes_across_processes_and_hash_seeds(tmp_path):
                               cwd=tmp_path, timeout=60)
         assert proc.returncode == 0, proc.stderr
         outs.append(proc.stdout)
-    assert outs[0] == outs[1] == outs[2] == projection_bytes(project(raw))
+    assert outs[0] == outs[1] == outs[2] == project_bytes(raw)
 
 
 def test_SA8_no_clock_is_read(monkeypatch):

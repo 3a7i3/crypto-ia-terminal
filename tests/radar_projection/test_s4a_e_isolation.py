@@ -19,7 +19,7 @@ from observability.radar_projection.projection import project
 from tests.radar_projection._exports import BATCH, ROOT, export
 
 PACKAGE = ROOT / "observability" / "radar_projection"
-ALLOWED_IMPORTS = {"__future__", "copy", "re", "observability.radar_selection.fixture"}
+ALLOWED_IMPORTS = {"__future__", "copy", "re", "decimal", "observability.radar_selection.fixture"}
 FORBIDDEN_NAMES = {"open", "exec", "eval", "compile", "__import__"}
 
 

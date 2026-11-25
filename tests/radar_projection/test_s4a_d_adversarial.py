@@ -144,6 +144,7 @@ def _unknown_scored(d):
     m["score"]["components"]["l2"] = 40
     m["score"]["missing"] = []
     m["score"]["quality"] = "COMPLETE"
+    m["score"]["max_reachable"] = "100.00"
 
 
 def _swap_ranks(d):
@@ -243,7 +244,8 @@ SCIENCE_CASES = {
     "mission_id_type": (_set(["mission", "id"], ["DEEP_OBSERVATION"]), "VALUE_NOT_ALLOWED"),
     "decision_type": (_set(["markets", 0, "admissibility", "decision"], {"x": 1}), "VALUE_NOT_ALLOWED"),
     "criterion_missing": (lambda d: d["markets"][0]["criteria"].pop("diversity"), "KEYS_MISMATCH"),
-    "criterion_state_forged": (_set(["markets", 0, "criteria", "continuity", "state"], "GOOD"), "VALUE_NOT_ALLOWED"),
+    "criterion_state_forged": (lambda d: market(d, TOP)["criteria"]["continuity"].update(state="GOOD"),
+                               "VALUE_NOT_ALLOWED"),
     "catalogue_hash_forged": (_set(["markets", 0, "catalogue", "raw_sha256", "kraken_futures_instruments"], "x"),
                               "SHA256_EXPECTED"),
     "authorized_as_string": (_set(["markets", 0, "lifecycle", "authorized"], "true"), "BOOLEAN_EXPECTED"),
@@ -251,13 +253,13 @@ SCIENCE_CASES = {
                                  "SCORE_COMPONENTS"),
     "admissible_without_observation": (lambda d: (market(d, TOP)["observation"].update(present=False, reason="X"),
                                                   market(d, TOP)["lifecycle"].update(recent_data="ABSENT")),
-                                       "ADMISSIBLE_WITHOUT_OBSERVATION"),
+                                       "ABSENT_OBSERVATION_WITH_DATA"),
     "criterion_without_state": (_set(["markets", 0, "criteria", "diversity"], {"regime": None}), "CRITERION_SHAPE"),
     "negative_sample_count": (_set(["markets", 1, "observation", "sample_count"], -1), "INTEGER_EXPECTED"),
     "orphan_reason_not_a_code": (_set(["orphan_observations", 0, "reason"], "no such market"), "CODE_EXPECTED"),
     "policy_duplicate_value": (_set(["policy", "venues"], ["kraken", "kraken"]), "DUPLICATE_VALUE"),
-    "unanticipated_shape": (lambda d: market(d, TOP)["criteria"]["spread_depth"].update(spread=[1]),
-                            "STRUCTURE_INVALID"),
+    "spread_not_an_object": (lambda d: market(d, TOP)["criteria"]["spread_depth"].update(spread=[1]),
+                             "OBJECT_EXPECTED"),
 }
 
 

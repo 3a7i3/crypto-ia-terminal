@@ -18,6 +18,7 @@ on its own, after the seal; a resealed malicious export is still refused.
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 
 from observability.radar_selection.fixture import RadarRefusal, canonical, sha256_hex, strict_loads
 
@@ -25,8 +26,13 @@ from . import contract as pc
 
 _SHA = re.compile(r"[0-9a-f]{64}", re.ASCII)
 _CODE = re.compile(r"[A-Z][A-Z0-9_:]{0,95}", re.ASCII)
-_SCORE = re.compile(r"(100|[0-9]{1,2})\.[0-9]{2}", re.ASCII)
-_VERSION = re.compile(r"radar-evaluation/([0-9]+)\.([0-9]+)\.([0-9]+)", re.ASCII)
+# Two decimals, no leading zero (as the engine writes it); 0.00..100.00 is checked on the value.
+_SCORE = re.compile(r"(100|[1-9]?[0-9])\.[0-9]{2}", re.ASCII)
+_DEC = re.compile(r"[0-9]{1,30}(\.[0-9]{1,30})?", re.ASCII)
+_COMMIT = re.compile(r"[0-9a-f]{40}", re.ASCII)
+_RATIO = re.compile(r"[01]\.[0-9]{4}", re.ASCII)
+_D = pc.MAX_VERSION_DIGITS
+_VERSION = re.compile(rf"radar-evaluation/([0-9]{{1,{_D}}})\.([0-9]{{1,{_D}}})\.([0-9]{{1,{_D}}})", re.ASCII)
 _MAX_MS = 2**53 - 1
 
 TOP_KEYS = {"schema_version", "rules_version", "ranking_version", "mode", "authority", "dataset", "inputs",
@@ -59,6 +65,11 @@ SOURCE_KEYS = {"market", "catalogue_state", "catalogue_reason", "collected_ms", 
 POLICY_KEYS = {"venues", "market_types", "quotes", "asset_classes", "deny"}
 INPUTS_KEYS = {"catalogue_manifest", "catalogues", "sources", "refused_observations"}
 REF_STATES = ("VERIFIED", "REFUSED")
+INPUT_SOURCE_KEYS = {"source_id", "kind", "corpus_id", "producer_commit", "anchor_sha256", "artifacts", "state",
+                     "reason"}
+CATALOGUE_NAMES = ("mexc_spot_exchange_info", "mexc_contract_detail", "kraken_asset_pairs", "kraken_assets",
+                   "kraken_futures_instruments")
+CATALOGUE_STATES = ("COMPLETE", "INCOMPLETE", "UNAVAILABLE")
 COUNT_KEYS = {"discovered", "listed", "retired_or_source_not_current", "authorized", "not_authorized",
               "identity_unknown", "evaluated", "admissible", "a_qualifier", "non_admissible", "unknown",
               "scored", "manually_excluded", "candidates", "orphan_observations"}
@@ -71,6 +82,8 @@ class ProjectionRefusal(RadarRefusal):
 
 
 def _refuse(code: str, path: str = "") -> None:
+    # The detail is bounded: a refusal never echoes an unbounded piece of the input.
+    path = str(path)[:pc.MAX_REFUSAL_DETAIL]
     raise ProjectionRefusal(f"{code}:{path}" if path else code)
 
 
@@ -147,6 +160,29 @@ def _same(a, b) -> bool:
     return canonical(a) == canonical(b)
 
 
+def _score_decimal(v, path):
+    """A score or ceiling: a string with exactly two decimals, between 0.00 and 100.00."""
+    if not isinstance(v, str) or not _SCORE.fullmatch(v) or not Decimal(0) <= Decimal(v) <= Decimal(100):
+        _refuse("SCORE_DECIMAL_EXPECTED", path)
+    return v
+
+
+def _dec(v, path, nullable=True):
+    """A non-negative decimal string as the engine writes it (no float, no exponent)."""
+    if v is None and nullable:
+        return v
+    if not isinstance(v, str) or not _DEC.fullmatch(v):
+        _refuse("DECIMAL_STRING_EXPECTED", path)
+    return v
+
+
+def _ratio(v, path):
+    """A ratio written with four decimals, between 0.0000 and 1.0000."""
+    if not isinstance(v, str) or not _RATIO.fullmatch(v) or Decimal(v) > 1:
+        _refuse("RATIO_EXPECTED", path)
+    return v
+
+
 def _sha_map(v, path):
     if not isinstance(v, dict) or len(v) > 16:
         _refuse("OBJECT_EXPECTED", path)
@@ -166,11 +202,13 @@ def _parse(raw) -> dict:
         raise
     except RadarRefusal as exc:
         # Same typed codes as the Radar reader (INPUT_EMPTY, INPUT_MALFORMED, DUPLICATE_KEY,
-        # FLOAT_NOT_ALLOWED, NONFINITE_NUMBER), re-raised under the verifier's type.
-        raise ProjectionRefusal(str(exc)) from None
-    except ValueError:
+        # FLOAT_NOT_ALLOWED, NONFINITE_NUMBER), re-raised under the verifier's type with a
+        # bounded detail (a duplicate key may be as long as the input).
+        code, _, detail = str(exc).partition(":")
+        _refuse(code, detail)
+    except (ValueError, RecursionError) as exc:
         # e.g. an integer literal beyond the interpreter's digit limit.
-        _refuse("INPUT_MALFORMED", "ValueError")
+        _refuse("INPUT_MALFORMED", type(exc).__name__)
     if not isinstance(doc, dict):
         _refuse("OBJECT_EXPECTED", "$")
     return doc
@@ -180,6 +218,9 @@ def _versions(doc: dict) -> None:
     schema = doc.get("schema_version")
     if not isinstance(schema, str):
         _refuse("EVALUATION_SCHEMA_MISSING")
+    if len(schema) > pc.MAX_SCHEMA_CHARS:
+        # Bounded before any regex or int(): thousands of digits are a typed refusal.
+        _refuse("UNSUPPORTED_EVALUATION_SCHEMA", f"length={len(schema)}")
     if schema in pc.PRE_RREF_SCHEMAS:
         _refuse("PRE_RREF_EVALUATION", schema)
     m = _VERSION.fullmatch(schema)
@@ -195,8 +236,8 @@ def _versions(doc: dict) -> None:
 def _canonical_and_seal(raw: bytes, doc: dict) -> str:
     try:
         form = canonical(doc)
-    except UnicodeEncodeError:
-        _refuse("INPUT_MALFORMED", "UnicodeEncodeError")
+    except (UnicodeEncodeError, ValueError, RecursionError) as exc:
+        _refuse("INPUT_MALFORMED", type(exc).__name__)
     if bytes(raw) not in (form, form + b"\n"):
         _refuse("NOT_CANONICAL")
     seal = doc.get("evaluation_sha256")
@@ -275,18 +316,30 @@ def _inputs(inputs) -> None:
         _refuse("OBJECT_EXPECTED", "$.inputs.catalogues")
     for name, r in cats.items():
         _ref(r, f"$.inputs.catalogues.{name}")
+    if not set(cats) <= set(CATALOGUE_NAMES):
+        _refuse("VALUE_NOT_ALLOWED", "$.inputs.catalogues")
     for i, s in enumerate(_list(inputs["sources"], "$.inputs.sources", 64)):
         p = f"$.inputs.sources[{i}]"
-        if not isinstance(s, dict):
-            _refuse("OBJECT_EXPECTED", p)
-        _str(s.get("source_id"), p + ".source_id")
-        _one_of(s.get("state"), REF_STATES, p + ".state")
-        _code(s.get("reason"), p + ".reason")
+        _obj(s, INPUT_SOURCE_KEYS, p)
+        _str(s["source_id"], p + ".source_id")
+        _one_of(s["kind"], ("BBO_REPLAY_WINDOWS",), p + ".kind")
+        _str(s["corpus_id"], p + ".corpus_id")
+        if not isinstance(s["producer_commit"], str) or not _COMMIT.fullmatch(s["producer_commit"]):
+            _refuse("COMMIT_EXPECTED", p + ".producer_commit")
+        _sha(s["anchor_sha256"], p + ".anchor_sha256")
+        _int(s["artifacts"], p + ".artifacts", hi=pc.MAX_LIST)
+        _one_of(s["state"], REF_STATES, p + ".state")
+        _code(s["reason"], p + ".reason")
+        if (s["state"] == "VERIFIED") != (s["reason"] is None):
+            _refuse("REF_STATE_REASON", p)
     for i, r in enumerate(_list(inputs["refused_observations"], "$.inputs.refused_observations")):
         p = f"$.inputs.refused_observations[{i}]"
-        if not isinstance(r, dict):
-            _refuse("OBJECT_EXPECTED", p)
-        _code(r.get("reason"), p + ".reason", nullable=False)
+        _obj(r, {"venue", "market_type", "native_symbol", "source_id", "reason"}, p)
+        _one_of(r["venue"], pc.VENUES, p + ".venue")
+        _one_of(r["market_type"], pc.MARKET_TYPES, p + ".market_type")
+        _str(r["native_symbol"], p + ".native_symbol")
+        _str(r["source_id"], p + ".source_id")
+        _code(r["reason"], p + ".reason", nullable=False)
 
 
 def _mission(doc: dict) -> str:
@@ -298,18 +351,348 @@ def _mission(doc: dict) -> str:
     return m["id"]
 
 
-def _criteria(crit, path) -> None:
+# ---------------------------------------------------------------- sub-structures (S4A-RV-02)
+# Shapes of the measures and criteria published by radar-rules/1.2.0, taken from the
+# engine (surveillance.py, selection.criteria). Each sub-structure is checked for its
+# exact keys, types and vocabulary per state; the combinations the engine applies
+# (an aggregate state from its parts, the L2 proof from its status, the regime of the
+# diversity criterion) are checked as consistency. Nothing is recomputed from data.
+def _variant(v, variants, path):
+    """``v`` must be an object whose key set is one of ``variants``."""
+    if not isinstance(v, dict):
+        _refuse("OBJECT_EXPECTED", path)
+    if set(v) not in variants:
+        _refuse("KEYS_MISMATCH", path)
+    return v
+
+
+def _state_reason(c, states, path):
+    """State in ``states``; reason is null if and only if the state is AVAILABLE."""
+    _one_of(c.get("state"), states, path + ".state")
+    if c["state"] == "AVAILABLE":
+        if c["reason"] is not None:
+            _refuse("REASON_ON_AVAILABLE", path + ".reason")
+    else:
+        # UNKNOWN, INVALID and PARTIAL always say why: an unknown is never silent, never 0.
+        if c["reason"] is None:
+            _refuse("UNKNOWN_WITHOUT_REASON", path)
+        _code(c["reason"], path + ".reason", nullable=False)
+    return c["state"]
+
+
+def _aggregate(parts, invalid):
+    if invalid:
+        return "INVALID"
+    if parts == ["AVAILABLE", "AVAILABLE"]:
+        return "AVAILABLE"
+    if parts == ["UNKNOWN", "UNKNOWN"]:
+        return "UNKNOWN"
+    return "PARTIAL"
+
+
+def _l2(c, path):
+    if not isinstance(c, dict):
+        _refuse("CRITERION_SHAPE", path)
+    if c.get("state") == "UNKNOWN":
+        _obj(c, {"state", "reason", "proof"}, path)
+        _state_reason(c, ("UNKNOWN",), path)
+        if c["proof"] != "UNKNOWN":
+            _refuse("L2_PROOF_MISMATCH", path + ".proof")
+        return
+    status = _one_of(c.get("status"), pc.L2_STATUSES, path + ".status")
+    keys = {"state", "reason", "proof", "status", "evidence_ref", "depth_levels"}
+    _obj(c, keys | {"scope"} if status == "VERIFIED_TOP_N" else keys, path)
+    _state_reason(c, ("AVAILABLE", "PARTIAL"), path)
+    if c["proof"] != pc.L2_PROOF[status]:
+        _refuse("L2_PROOF_MISMATCH", path + ".proof")
+    if (c["state"], c["reason"]) != pc.L2_STATE[status]:
+        _refuse("L2_STATE_MISMATCH", path)
+    _str(c["evidence_ref"], path + ".evidence_ref", nullable=status != "VERIFIED")
+    _int(c["depth_levels"], path + ".depth_levels", nullable=status != "VERIFIED_TOP_N", lo=1, hi=10_000)
+    if status == "VERIFIED_TOP_N":
+        sc = _obj(c["scope"], {"verified_by", "valid_instants", "grid_instants", "excluded_instants"},
+                  path + ".scope")
+        _one_of(sc["verified_by"], pc.L2_VERIFIERS, path + ".scope.verified_by")
+        _int(sc["valid_instants"], path + ".scope.valid_instants")
+        _int(sc["grid_instants"], path + ".scope.grid_instants")
+        if sc["valid_instants"] > sc["grid_instants"]:
+            _refuse("L2_SCOPE_BOUNDS", path + ".scope")
+        for j, e in enumerate(_list(sc["excluded_instants"], path + ".scope.excluded_instants",
+                                    pc.MAX_EXCLUDED_INSTANTS)):
+            ep = f"{path}.scope.excluded_instants[{j}]"
+            _obj(e, {"t_ms", "reason"}, ep)
+            _int(e["t_ms"], ep + ".t_ms")
+            _code(e["reason"], ep + ".reason", nullable=False)
+
+
+def _continuity(c, path):
+    if not isinstance(c, dict):
+        _refuse("CRITERION_SHAPE", path)
+    if c.get("state") in ("UNKNOWN", "INVALID"):
+        _obj(c, {"state", "reason", "time"}, path)
+        state = _state_reason(c, ("UNKNOWN", "INVALID"), path)
+        time = _one_of(c["time"], pc.TIME_STATES, path + ".time")
+        allowed = ("UNKNOWN", "UNCERTIFIED") if state == "UNKNOWN" else ("INCOHERENT", "CERTIFIED")
+        if time not in allowed:
+            _refuse("CONTINUITY_TIME_MISMATCH", path + ".time")
+        return
+    _obj(c, {"state", "reason", "time", "class", "ratio", "covered", "expected", "gaps", "longest_gap",
+             "freshness", "age_ms"}, path)
+    state = _state_reason(c, ("AVAILABLE", "PARTIAL"), path)
+    if c["time"] != "CERTIFIED":
+        _refuse("CONTINUITY_TIME_MISMATCH", path + ".time")
+    _one_of(c["class"], pc.CONTINUITY_CLASSES, path + ".class")
+    _ratio(c["ratio"], path + ".ratio")
+    for k in ("covered", "expected", "gaps", "longest_gap"):
+        _int(c[k], f"{path}.{k}", hi=10_000)
+    if c["covered"] > c["expected"] or c["longest_gap"] > c["expected"]:
+        _refuse("CONTINUITY_BOUNDS", path)
+    fresh = _one_of(c["freshness"], pc.FRESHNESS_CLASSES, path + ".freshness")
+    if (state, c["reason"]) != (("AVAILABLE", None) if fresh == "FRESH" else ("PARTIAL", "SOURCE_STALE")):
+        _refuse("FRESHNESS_STATE_MISMATCH", path)
+    _int(c["age_ms"], path + ".age_ms", lo=-pc.FUTURE_TOLERANCE_MS)
+
+
+def _spread(v, path):
+    if isinstance(v, dict) and v.get("state") == "UNKNOWN":
+        _variant(v, ({"state", "reason"}, {"state", "reason", "basis"}), path)
+        _state_reason(v, ("UNKNOWN",), path)
+        if v.get("basis") is not None:
+            _refuse("VALUE_NOT_ALLOWED", path + ".basis")
+        return "UNKNOWN"
+    _obj(v, {"state", "basis", "median_bps", "bbo_samples", "bbo_coverage", "reason"}, path)
+    state = _state_reason(v, ("AVAILABLE", "PARTIAL"), path)
+    if v["basis"] != "BBO":
+        _refuse("VALUE_NOT_ALLOWED", path + ".basis")
+    _dec(v["median_bps"], path + ".median_bps", nullable=False)
+    _int(v["bbo_samples"], path + ".bbo_samples", lo=1, hi=10_000)
+    _ratio(v["bbo_coverage"], path + ".bbo_coverage")
+    return state
+
+
+def _depth(v, path):
+    if isinstance(v, dict) and v.get("state") == "UNKNOWN":
+        _variant(v, ({"state", "reason"}, {"state", "reason", "basis"}), path)
+        _state_reason(v, ("UNKNOWN",), path)
+        if v.get("basis") not in (None, "L2"):
+            _refuse("VALUE_NOT_ALLOWED", path + ".basis")
+        return "UNKNOWN"
+    _obj(v, {"state", "reason", "basis", "bid_quote_10bps", "ask_quote_10bps"}, path)
+    state = _state_reason(v, ("AVAILABLE", "PARTIAL"), path)
+    if v["basis"] != "L2":
+        _refuse("VALUE_NOT_ALLOWED", path + ".basis")
+    for k in ("bid_quote_10bps", "ask_quote_10bps"):
+        _dec(v[k], f"{path}.{k}", nullable=state == "PARTIAL")
+    return state
+
+
+def _spread_depth(c, invalid, path):
+    _obj(c, {"state", "spread", "depth", "reason"}, path)
+    state = _state_reason(c, pc.CRITERION_STATES, path)
+    parts = [_spread(c["spread"], path + ".spread"), _depth(c["depth"], path + ".depth")]
+    if state != _aggregate(parts, invalid):
+        _refuse("AGGREGATE_STATE_MISMATCH", path + ".state")
+
+
+def _activity(v, path):
+    if isinstance(v, dict) and v.get("state") == "UNKNOWN":
+        _variant(v, ({"state", "reason"}, {"state", "reason", "kind"}), path)
+        _state_reason(v, ("UNKNOWN",), path)
+        if "kind" in v:
+            _str(v["kind"], path + ".kind")
+        return "UNKNOWN"
+    _obj(v, {"state", "kind", "value", "evidence_ref", "reason"}, path)
+    _state_reason(v, ("AVAILABLE",), path)
+    _one_of(v["kind"], pc.ACTIVITY_KINDS, path + ".kind")
+    _int(v["value"], path + ".value")
+    _str(v["evidence_ref"], path + ".evidence_ref", nullable=True)
+    return "AVAILABLE"
+
+
+def _volatility(v, path):
+    if isinstance(v, dict) and v.get("state") == "UNKNOWN":
+        _variant(v, ({"state", "reason"}, {"state", "reason", "returns", "min_returns"}), path)
+        _state_reason(v, ("UNKNOWN",), path)
+        for k in ("returns", "min_returns"):
+            if k in v:
+                _int(v[k], f"{path}.{k}", hi=10_000)
+        return None
+    _obj(v, {"state", "rms_step_bps", "returns", "regime", "price_kind", "reason"}, path)
+    _state_reason(v, ("AVAILABLE",), path)
+    _dec(v["rms_step_bps"], path + ".rms_step_bps", nullable=False)
+    _int(v["returns"], path + ".returns", lo=1, hi=10_000)
+    _one_of(v["price_kind"], pc.PRICE_KINDS, path + ".price_kind")
+    return _one_of(v["regime"], pc.REGIMES, path + ".regime")
+
+
+def _activity_volatility(c, invalid, path):
+    _obj(c, {"state", "activity", "volatility", "reason"}, path)
+    state = _state_reason(c, pc.CRITERION_STATES, path)
+    act = _activity(c["activity"], path + ".activity")
+    regime = _volatility(c["volatility"], path + ".volatility")
+    vol = "AVAILABLE" if regime is not None else "UNKNOWN"
+    if state != _aggregate([act, vol], invalid):
+        _refuse("AGGREGATE_STATE_MISMATCH", path + ".state")
+    return regime
+
+
+def _cost(c, path):
+    if isinstance(c, dict) and c.get("state") == "UNKNOWN":
+        _obj(c, {"state", "reason", "basis"}, path)
+        _state_reason(c, ("UNKNOWN",), path)
+        if c["basis"] is not None:
+            _refuse("VALUE_NOT_ALLOWED", path + ".basis")
+        return
+    _obj(c, {"state", "reason", "basis", "provenance", *pc.COST_FIELDS, "rate_limit_note", "missing"}, path)
+    state = _state_reason(c, ("AVAILABLE", "PARTIAL"), path)
+    _one_of(c["basis"], pc.COST_BASES, path + ".basis")
+    _str(c["provenance"], path + ".provenance")
+    for k in ("network_kib_s", "cpu_pct", "memory_mib", "storage_mib_h"):
+        _dec(c[k], f"{path}.{k}")
+    _int(c["connections"], path + ".connections", nullable=True, hi=1000)
+    _str(c["rate_limit_note"], path + ".rate_limit_note", nullable=True)
+    missing = [k for k in pc.COST_FIELDS if c[k] is None]
+    if not _same(c["missing"], missing):
+        _refuse("COST_MISSING_MISMATCH", path + ".missing")
+    if (state, c["reason"]) != (("AVAILABLE", None) if not missing else ("PARTIAL", "COST_FIELDS_MISSING")):
+        _refuse("COST_STATE_MISMATCH", path)
+
+
+def _diversity(c, regime, path):
+    if isinstance(c, dict) and c.get("state") == "AVAILABLE":
+        _obj(c, {"state", "regime", "reason"}, path)
+        _state_reason(c, ("AVAILABLE",), path)
+        _one_of(c["regime"], pc.REGIMES, path + ".regime")
+    else:
+        _obj(c, {"state", "regime", "reason"}, path)
+        _state_reason(c, ("UNKNOWN",), path)
+        if c["regime"] is not None:
+            _refuse("VALUE_NOT_ALLOWED", path + ".regime")
+    if c["regime"] != regime:
+        _refuse("DIVERSITY_REGIME_MISMATCH", path + ".regime")
+
+
+def _criteria(crit, ob, path) -> None:
     _obj(crit, set(pc.CRITERIA), path)
     for name in pc.CRITERIA:
-        c = crit[name]
-        if not isinstance(c, dict) or "state" not in c or "reason" not in c:
+        if not isinstance(crit[name], dict) or "state" not in crit[name] or "reason" not in crit[name]:
             _refuse("CRITERION_SHAPE", f"{path}.{name}")
-        _one_of(c["state"], pc.CRITERION_STATES, f"{path}.{name}.state")
-        if c["reason"] is not None:
-            _str(c["reason"], f"{path}.{name}.reason")
-        # A missing criterion always says why: UNKNOWN is never silent and never 0.
-        if c["state"] in ("UNKNOWN", "INVALID") and c["reason"] is None:
-            _refuse("UNKNOWN_WITHOUT_REASON", f"{path}.{name}")
+    if not ob["present"]:
+        # No observation: every criterion is UNKNOWN with the reason of the absence (SA6).
+        for name in pc.CRITERIA:
+            c = crit[name]
+            if c["state"] != "UNKNOWN" or c["reason"] != ob["reason"]:
+                _refuse("CRITERION_WITHOUT_OBSERVATION", f"{path}.{name}")
+    _l2(crit["l2_quality"], path + ".l2_quality")
+    _continuity(crit["continuity"], path + ".continuity")
+    invalid = crit["continuity"]["state"] == "INVALID"
+    if ob["present"]:
+        time = ob["time"]["state"]
+        if crit["continuity"]["time"] != time:
+            _refuse("CONTINUITY_TIME_MISMATCH", path + ".continuity.time")
+        if invalid != (time == "INCOHERENT" or bool(ob["contradictions"])):
+            _refuse("CONTINUITY_INVALID_MISMATCH", path + ".continuity.state")
+    _spread_depth(crit["spread_depth"], invalid, path + ".spread_depth")
+    regime = _activity_volatility(crit["activity_volatility"], invalid, path + ".activity_volatility")
+    _cost(crit["collection_cost"], path + ".collection_cost")
+    _diversity(crit["diversity"], regime, path + ".diversity")
+
+
+def _observation(ob, lc, evidence, path) -> None:
+    _obj(ob, OBSERVATION_KEYS, path)
+    present = _bool(ob["present"], path + ".present")
+    if ob["evidence_kind"] != evidence:
+        _refuse("EVIDENCE_MIXED", path + ".evidence_kind")
+    t = ob["time"]
+    _variant(t, ({"state", "reason"}, {"state", "reason", "missing"}), path + ".time")
+    _one_of(t["state"], pc.TIME_STATES, path + ".time.state")
+    if (t["state"] == "CERTIFIED") != (t["reason"] is None):
+        _refuse("UNKNOWN_WITHOUT_REASON", path + ".time")
+    _code(t["reason"], path + ".time.reason")
+    if "missing" in t:
+        _int(t["missing"], path + ".time.missing", lo=1)
+    for j, code in enumerate(_list(ob["contradictions"], path + ".contradictions", 16)):
+        _code(code, f"{path}.contradictions[{j}]", nullable=False)
+    if ob["contradictions"] != sorted(set(ob["contradictions"])):
+        _refuse("DUPLICATE_VALUE", path + ".contradictions")
+    _str(ob["source_id"], path + ".source_id", nullable=True)
+    if not present:
+        if ob["reason"] is None:
+            _refuse("UNKNOWN_WITHOUT_REASON", path)
+        _code(ob["reason"], path + ".reason", nullable=False)
+        if t["state"] != "UNKNOWN" or ob["contradictions"] or any(
+                ob[k] is not None for k in ("window", "sample_count", "price_kind", "evidence_ref")):
+            _refuse("ABSENT_OBSERVATION_WITH_DATA", path)
+        expected = "ABSENT" if ob["reason"] == "NO_OBSERVATION" else "UNKNOWN"
+        if lc["recent_data"] in ("FRESH", "STALE"):
+            _refuse("FRESHNESS_WITHOUT_OBSERVATION", path.replace(".observation", ".lifecycle.recent_data"))
+        if lc["recent_data"] != expected:
+            _refuse("RECENT_DATA_MISMATCH", path.replace(".observation", ".lifecycle.recent_data"))
+        return
+    if ob["reason"] is not None:
+        _refuse("VALUE_NOT_ALLOWED", path + ".reason")
+    _str(ob["evidence_ref"], path + ".evidence_ref")
+    _one_of(ob["price_kind"], pc.PRICE_KINDS, path + ".price_kind")
+    _int(ob["sample_count"], path + ".sample_count", hi=pc.MAX_LIST)
+    w = _obj(ob["window"], {"start_ms", "end_ms", "step_ms", "points"}, path + ".window")
+    _int(w["start_ms"], path + ".window.start_ms", lo=1)
+    _int(w["step_ms"], path + ".window.step_ms", lo=1, hi=86_400_000)
+    _int(w["points"], path + ".window.points", lo=2, hi=pc.MAX_LIST)
+    _int(w["end_ms"], path + ".window.end_ms", lo=1)
+    if w["end_ms"] != w["start_ms"] + (w["points"] - 1) * w["step_ms"]:
+        _refuse("WINDOW_BOUNDS", path + ".window")
+
+
+def _recent_data(m, path) -> None:
+    """recent_data of an observed market = freshness of its continuity, UNKNOWN when uncertified."""
+    if not m["observation"]["present"]:
+        return
+    cont = m["criteria"]["continuity"]
+    expected = cont["freshness"] if cont["state"] in ("AVAILABLE", "PARTIAL") else "UNKNOWN"
+    if m["lifecycle"]["recent_data"] != expected:
+        _refuse("RECENT_DATA_MISMATCH", path + ".lifecycle.recent_data")
+
+
+def _catalogue(m, sources, path) -> None:
+    cat = _obj(m["catalogue"], CATALOGUE_KEYS, path + ".catalogue")
+    cp = path + ".catalogue"
+    _one_of(cat["lifecycle"], pc.CATALOGUE_LIFECYCLES, cp + ".lifecycle")
+    _sha_map(cat["raw_sha256"], cp + ".raw_sha256")
+    _int(cat["collected_ms"], cp + ".collected_ms", nullable=True)
+    _code(cat["exclusion"], cp + ".exclusion")
+    _bool(cat["metadata_current"], cp + ".metadata_current")
+    _code(cat["metadata_reason"], cp + ".metadata_reason")
+    for k in ("native_base", "native_quote", "native_status"):
+        _str(cat[k], f"{cp}.{k}", nullable=True)
+    _str(cat["provenance"], cp + ".provenance")
+    market = _one_of(cat["source_market"], pc.SCANNER_MARKETS, cp + ".source_market")
+    # Identity and fingerprints of the catalogue agree with its source (sources[]).
+    if pc.SCANNER_MARKETS[market] != (m["venue"], m["market_type"]):
+        _refuse("CATALOGUE_SOURCE_MISMATCH", cp + ".source_market")
+    src = sources.get(market)
+    if src is None:
+        _refuse("CATALOGUE_SOURCE_UNKNOWN", cp + ".source_market")
+    for k in ("raw_sha256", "collected_ms", "metadata_current"):
+        if not _same(cat[k], src[k]):
+            _refuse("CATALOGUE_SOURCE_MISMATCH", f"{cp}.{k}")
+
+
+def _identity(m, path) -> None:
+    """market_id = venue:type-code:BASE/QUOTE (or ?NATIVE when the identity is insufficient),
+    with an optional ~NATIVE suffix when two instruments share the same base id."""
+    prefix = f"{m['venue']}:{pc.TYPE_CODES.get(m['contract_type'], 'unknown-contract')}:"
+    if m["base"] is None or m["quote"] is None:
+        core = f"?{m['native_symbol']}"
+    else:
+        core = f"{m['base']}/{m['quote']}"
+    if m["market_id"] not in (prefix + core, f"{prefix}{core}~{m['native_symbol']}"):
+        _refuse("MARKET_ID_IDENTITY_MISMATCH", path + ".market_id")
+    prev = m["previous"]
+    if prev is not None:
+        _obj(prev, {"market_id", "native_symbol", "contract_type", "settlement_asset"}, path + ".previous")
+        _str(prev["market_id"], path + ".previous.market_id")
+        for k in ("native_symbol", "contract_type", "settlement_asset"):
+            _str(prev[k], f"{path}.previous.{k}", nullable=True)
 
 
 def _admissibility(m, mission, path) -> str:
@@ -358,8 +741,14 @@ def _score(m, decision, path) -> None:
     if s["quality"] != ("COMPLETE" if not s["missing"] else "INCOMPLETE"):
         _refuse("SCORE_QUALITY_MISMATCH", path + ".score.quality")
     for k in ("value", "max_reachable"):
-        if not isinstance(s[k], str) or not _SCORE.fullmatch(s[k]):
-            _refuse("SCORE_DECIMAL_EXPECTED", f"{path}.score.{k}")
+        _score_decimal(s[k], f"{path}.score.{k}")
+    # Ceiling: 100 minus the weights of the missing components (weights are not
+    # redistributed). The value can never exceed it. No score is recomputed.
+    ceiling = Decimal(100) - sum(Decimal(pc.WEIGHTS[k]) for k in s["missing"])
+    if Decimal(s["max_reachable"]) != ceiling:
+        _refuse("SCORE_CEILING_MISMATCH", path + ".score.max_reachable")
+    if Decimal(s["value"]) > Decimal(s["max_reachable"]):
+        _refuse("SCORE_ABOVE_CEILING", path + ".score.value")
     # An unknown input never scores (SA6): a component is present only if its criterion is known.
     crit = m["criteria"]
     known = {
@@ -377,7 +766,7 @@ def _score(m, decision, path) -> None:
         _refuse("ADMISSIBLE_WITHOUT_OBSERVATION", path)
 
 
-def _market(m, i, mission, evidence) -> str:
+def _market(m, i, mission, evidence, sources) -> str:
     path = f"$.markets[{i}]"
     _obj(m, MARKET_KEYS, path)
     _str(m["market_id"], path + ".market_id")
@@ -387,34 +776,20 @@ def _market(m, i, mission, evidence) -> str:
         _str(m[k], f"{path}.{k}")
     for k in ("base", "quote", "settlement_asset"):
         _str(m[k], f"{path}.{k}", nullable=True)
-    cat = _obj(m["catalogue"], CATALOGUE_KEYS, path + ".catalogue")
-    _one_of(cat["lifecycle"], pc.CATALOGUE_LIFECYCLES, path + ".catalogue.lifecycle")
-    _sha_map(cat["raw_sha256"], path + ".catalogue.raw_sha256")
-    _int(cat["collected_ms"], path + ".catalogue.collected_ms", nullable=True)
+    _identity(m, path)
+    _catalogue(m, sources, path)
     _one_of(m["change"], pc.CHANGES, path + ".change")
-    if m["previous"] is not None and not isinstance(m["previous"], dict):
-        _refuse("OBJECT_EXPECTED", path + ".previous")
     lc = _obj(m["lifecycle"], LIFECYCLE_KEYS, path + ".lifecycle")
     _bool(lc["discovered"], path + ".lifecycle.discovered")
     _bool(lc["authorized"], path + ".lifecycle.authorized", nullable=True)
+    _str(lc["authorization_reason"], path + ".lifecycle.authorization_reason", nullable=True)
     _one_of(lc["source_access"], pc.SOURCE_ACCESS, path + ".lifecycle.source_access")
+    _code(lc["source_access_reason"], path + ".lifecycle.source_access_reason")
     _one_of(lc["recent_data"], pc.RECENT_DATA, path + ".lifecycle.recent_data")
     _one_of(lc["scientific"], pc.DECISIONS, path + ".lifecycle.scientific")
-    ob = _obj(m["observation"], OBSERVATION_KEYS, path + ".observation")
-    _bool(ob["present"], path + ".observation.present")
-    if ob["evidence_kind"] != evidence:
-        _refuse("EVIDENCE_MIXED", path + ".observation.evidence_kind")
-    if not ob["present"] and ob["reason"] is None:
-        _refuse("UNKNOWN_WITHOUT_REASON", path + ".observation")
-    if not ob["present"] and lc["recent_data"] in ("FRESH", "STALE"):
-        _refuse("FRESHNESS_WITHOUT_OBSERVATION", path + ".lifecycle.recent_data")
-    _int(ob["sample_count"], path + ".observation.sample_count", nullable=True)
-    _list(ob["contradictions"], path + ".observation.contradictions")
-    if ob["window"] is not None:
-        w = _obj(ob["window"], {"start_ms", "end_ms", "step_ms", "points"}, path + ".observation.window")
-        for k in ("start_ms", "end_ms", "step_ms", "points"):
-            _int(w[k], f"{path}.observation.window.{k}", nullable=True)
-    _criteria(m["criteria"], path + ".criteria")
+    _observation(m["observation"], lc, evidence, path + ".observation")
+    _criteria(m["criteria"], m["observation"], path + ".criteria")
+    _recent_data(m, path)
     man = _obj(m["manual"], set(MANUAL_FLAGS), path + ".manual")
     for k in MANUAL_FLAGS:
         _bool(man[k], f"{path}.manual.{k}")
@@ -425,10 +800,11 @@ def _market(m, i, mission, evidence) -> str:
 
 def _markets(doc: dict, mission: str, evidence: str) -> dict:
     markets = _list(doc["markets"], "$.markets", pc.MAX_MARKETS)
+    sources = {s["market"]: s for s in doc["sources"]}
     by_id = {}
     previous = None
     for i, m in enumerate(markets):
-        _market(m, i, mission, evidence)
+        _market(m, i, mission, evidence, sources)
         mid = m["market_id"]
         if mid in by_id:
             _refuse("DUPLICATE_MARKET", mid[:80])
@@ -448,6 +824,7 @@ def _candidates(doc: dict, by_id: dict) -> None:
     for i, cd in enumerate(cands):
         p = f"$.candidates[{i}]"
         _obj(cd, CANDIDATE_KEYS, p)
+        _int(cd["rank"], p + ".rank", lo=1, hi=pc.MAX_CANDIDATES)  # a boolean is not a rank
         if cd["rank"] != i + 1:
             _refuse("RANK_SEQUENCE", p + ".rank")
         mid = _str(cd["market_id"], p + ".market_id")
@@ -476,8 +853,15 @@ def _candidates(doc: dict, by_id: dict) -> None:
         if set(cd["criteria_available"]) | set(cd["criteria_missing"]) != set(pc.CRITERIA) or \
                 set(cd["criteria_available"]) & set(cd["criteria_missing"]):
             _refuse("CANDIDATE_CRITERIA_PARTITION", p)
-        if not isinstance(cd["cost"], dict):
-            _refuse("OBJECT_EXPECTED", p + ".cost")
+        # Available / missing criteria are those of the market, in the engine's order.
+        crit = m["criteria"]
+        if cd["criteria_available"] != sorted(k for k in pc.CRITERIA if crit[k]["state"] == "AVAILABLE") or \
+                cd["criteria_missing"] != sorted(k for k in pc.CRITERIA if crit[k]["state"] != "AVAILABLE"):
+            _refuse("CANDIDATE_CRITERIA_MISMATCH", p)
+        # The candidate's cost is a copy of the market's collection_cost fields.
+        cost = crit["collection_cost"]
+        if not _same(cd["cost"], {k: cost.get(k) for k in pc.CANDIDATE_COST_FIELDS}):
+            _refuse("CANDIDATE_COST_MISMATCH", p + ".cost")
         _str_list(cd["limits"], p + ".limits")
         order.append((cd["quality"] != "COMPLETE", cd["score"], mid))
     # Presentation order of the published values (no ranking is recomputed): quality,
@@ -511,6 +895,7 @@ def _manual(doc: dict, by_id: dict) -> None:
             _str(it["market_id"], p + ".market_id")
             _bool(it["present"], p + ".present")
             _bool(it["presented_as_admissible"], p + ".presented_as_admissible")
+            _code(it["note"], p + ".note", nullable=False)
             m = by_id.get(it["market_id"])
             if it["present"] != (m is not None):
                 _refuse("MANUAL_PRESENCE_MISMATCH", p)
@@ -554,8 +939,12 @@ def _counts(doc: dict, by_id: dict) -> None:
 def _budgets(doc: dict) -> None:
     b = _obj(doc["budgets"], BUDGET_KEYS, "$.budgets")
     _str(b["profile"], "$.budgets.profile")
-    if not isinstance(b["limits"], dict):
-        _refuse("OBJECT_EXPECTED", "$.budgets.limits")
+    lim = _obj(b["limits"], set(pc.BUDGET_LIMIT_KEYS) | {"future_cycle_interval_s", "profile"}, "$.budgets.limits")
+    for k in pc.BUDGET_LIMIT_KEYS:
+        _int(lim[k], f"$.budgets.limits.{k}", lo=1)
+    _int(lim["future_cycle_interval_s"], "$.budgets.limits.future_cycle_interval_s", nullable=True, lo=1)
+    if lim["profile"] != b["profile"]:
+        _refuse("BUDGET_PROFILE_MISMATCH", "$.budgets.limits.profile")
     if not _same(b["production"], {"status": pc.PRODUCTION_BUDGETS_STATUS, "values": None}):
         _refuse("PRODUCTION_BUDGETS_INVARIANT", "$.budgets.production")
     u = _obj(b["usage"], USAGE_KEYS, "$.budgets.usage")
@@ -573,14 +962,28 @@ def _context(doc: dict) -> None:
     p = _obj(doc["policy"], POLICY_KEYS, "$.policy")
     for k in POLICY_KEYS:
         _str_list(p[k], f"$.policy.{k}")
-    for i, s in enumerate(_list(doc["sources"], "$.sources", 16)):
+    markets = []
+    for i, s in enumerate(_list(doc["sources"], "$.sources", len(pc.SCANNER_MARKETS))):
         sp = f"$.sources[{i}]"
         _obj(s, SOURCE_KEYS, sp)
+        markets.append(_one_of(s["market"], pc.SCANNER_MARKETS, sp + ".market"))
+        _one_of(s["catalogue_state"], CATALOGUE_STATES, sp + ".catalogue_state")
+        _code(s["catalogue_reason"], sp + ".catalogue_reason")
+        _int(s["collected_ms"], sp + ".collected_ms", nullable=True)
+        _bool(s["metadata_current"], sp + ".metadata_current")
+        _code(s["metadata_reason"], sp + ".metadata_reason")
         _sha_map(s["raw_sha256"], sp + ".raw_sha256")
-        _int(s["instruments"], sp + ".instruments", nullable=True)
+        _int(s["instruments"], sp + ".instruments", hi=pc.MAX_LIST)
+        _one_of(s["access"], pc.SOURCE_ACCESS, sp + ".access")
+        _code(s["access_reason"], sp + ".access_reason")
+    if markets != sorted(set(markets)):
+        _refuse("SOURCES_NOT_ORDERED_OR_DUPLICATED", "$.sources")
     for i, o in enumerate(_list(doc["orphan_observations"], "$.orphan_observations")):
         op = f"$.orphan_observations[{i}]"
         _obj(o, ORPHAN_KEYS, op)
+        _one_of(o["venue"], pc.VENUES, op + ".venue")
+        _one_of(o["market_type"], pc.MARKET_TYPES, op + ".market_type")
+        _str(o["native_symbol"], op + ".native_symbol")
         _str_list(o["evidence_refs"], op + ".evidence_refs")
         _code(o["reason"], op + ".reason", nullable=False)
     _list(doc["deep_observation_jobs"], "$.deep_observation_jobs")
@@ -597,7 +1000,7 @@ def verify_export(raw: bytes) -> dict:
         _structure(doc)
     except ProjectionRefusal:
         raise
-    except (TypeError, KeyError, AttributeError, ValueError) as exc:
+    except (TypeError, KeyError, AttributeError, ValueError, ArithmeticError, RecursionError) as exc:
         # Safety net: a shape no explicit check anticipated is still a typed refusal.
         _refuse("STRUCTURE_INVALID", type(exc).__name__)
     return {"doc": doc, "export_sha256": sha256_hex(bytes(raw)), "export_bytes": len(raw)}

@@ -9,6 +9,13 @@ verifier performed, and fixed statements of integrity and authority.
 Deterministic: a pure function of the export bytes. No clock, no publication time,
 no environment value enters the projection. Publication freshness (E2) belongs to
 the serving layer (S4-b), outside this document.
+
+Publication boundary (S4A-RV-03). The only public ways to obtain a projection start
+from BYTES: ``project(raw)`` and ``project_bytes(raw)``. Both run the verifier first
+and build on a private deep copy of what it returned. The builder is private and is
+never given a document that did not come out of ``verify_export`` in the same call,
+so no public interface can attach ``integrity.seal = VERIFIED`` to an arbitrary,
+unverified document. S4-b must serve the bytes of ``project_bytes(raw)`` as they are.
 """
 from __future__ import annotations
 
@@ -17,7 +24,7 @@ import copy
 from observability.radar_selection.fixture import canonical, sha256_hex
 
 from . import contract as pc
-from .verifier import IDENTITY_KEYS, verify_export
+from .verifier import IDENTITY_KEYS, ProjectionRefusal, verify_export
 
 
 def _instrument(m: dict, rank: int | None) -> dict:
@@ -36,8 +43,11 @@ def _instrument(m: dict, rank: int | None) -> dict:
     }
 
 
-def build_projection(verified: dict) -> dict:
-    """Projection of a document already returned by ``verify_export``."""
+__all__ = ["project", "project_bytes"]
+
+
+def _build_projection(verified: dict) -> dict:
+    """Private: projection of what ``verify_export`` returned in the same ``project`` call."""
     d = copy.deepcopy(verified["doc"])
     ranks = {cd["market_id"]: cd["rank"] for cd in d["candidates"]}
     out = {
@@ -81,10 +91,18 @@ def build_projection(verified: dict) -> dict:
 
 
 def project(raw: bytes) -> dict:
-    """Verify one frozen export and return its ``radar-projection/1.0.0`` document."""
-    return build_projection(verify_export(raw))
+    """Verify one frozen export and return its ``radar-projection/1.0.0`` document.
+
+    The single public entry point that produces a verified projection.
+    """
+    verified = verify_export(raw)
+    try:
+        return _build_projection(verified)
+    except (TypeError, KeyError, ValueError, RecursionError) as exc:
+        # Unreachable for a verified document (every field is bounded); kept typed anyway.
+        raise ProjectionRefusal(f"STRUCTURE_INVALID:{type(exc).__name__}") from None
 
 
-def projection_bytes(projection: dict) -> bytes:
-    """Canonical serialisation (same canonical form as the Radar seal), newline-terminated."""
-    return canonical(projection) + b"\n"
+def project_bytes(raw: bytes) -> bytes:
+    """``project(raw)`` in canonical form (the Radar seal's form), newline-terminated."""
+    return canonical(project(raw)) + b"\n"

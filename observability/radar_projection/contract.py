@@ -31,6 +31,11 @@ MAX_EXPORT_BYTES = 1_000_001
 MAX_MARKETS = 5_000          # = radar_selection MAX_FIXTURE_RECORDS
 MAX_LIST = 5_000             # any other list of the export
 MAX_TEXT = 4_096
+# S4A-RV-04: a version string is bounded BEFORE any numeric conversion, and a refusal
+# message never carries more than this many characters of input after its code.
+MAX_SCHEMA_CHARS = 64
+MAX_VERSION_DIGITS = 6
+MAX_REFUSAL_DETAIL = 120
 
 # ---------------------------------------------------------------- evidence (E3, Phase D)
 # S4-a projects SYNTHETIC evaluations only. HISTORICAL exists in radar-batch/1.0.0 but
@@ -49,6 +54,9 @@ MODE_DISABLED = {"network": "DISABLED", "l2_collection": "DISABLED", "paper": "D
                  "deep_observation": "DISABLED"}
 CANDIDATE_STATUS = "PROPOSED_NOT_AUTHORIZED"
 PRODUCTION_BUDGETS_STATUS = "NOT_MEASURED"
+BUDGET_LIMIT_KEYS = ("max_instruments_per_cycle", "max_observation_bytes", "max_samples_per_observation",
+                     "max_input_bytes", "max_kept_evaluations", "max_memory_bytes", "max_cycle_ms",
+                     "max_output_bytes")
 
 # ---------------------------------------------------------------- vocabulary of radar-rules/1.2.0
 ADMISSIBLE, TO_QUALIFY, NON_ADMISSIBLE, UNKNOWN = "ADMISSIBLE", "A_QUALIFIER", "NON_ADMISSIBLE", "UNKNOWN"
@@ -64,6 +72,32 @@ CATALOGUE_LIFECYCLES = ("LISTED", "RETIRED", "SOURCE_NOT_CURRENT")
 CHANGES = ("BASELINE", "ADDED", "UNCHANGED", "METADATA_CHANGED", "RETIRED", "SOURCE_NOT_CURRENT")
 VENUES = ("kraken", "mexc")
 MARKET_TYPES = ("SPOT", "PERPETUAL")
+SCANNER_MARKETS = {"MEXC_SPOT": ("mexc", "SPOT"), "MEXC_PERPETUAL": ("mexc", "PERPETUAL"),
+                   "KRAKEN_SPOT": ("kraken", "SPOT"), "KRAKEN_PERPETUAL": ("kraken", "PERPETUAL")}
+TYPE_CODES = {"SPOT": "spot", "LINEAR_PERPETUAL": "perp", "INVERSE_PERPETUAL": "perp-inv",
+              "FIXED_MATURITY": "dated", "UNKNOWN": "unknown-contract"}
+
+# ---------------------------------------------------------------- sub-structures (S4A-RV-02)
+# Vocabulary of the measures and criteria the engine publishes (radar_selection
+# surveillance.py and selection.criteria). Checked as shapes; never recomputed.
+TIME_STATES = ("CERTIFIED", "UNCERTIFIED", "INCOHERENT", "UNKNOWN")
+CONTINUITY_CLASSES = ("GOOD", "VIABLE", "PARTIAL", "INSUFFICIENT")
+FRESHNESS_CLASSES = ("FRESH", "STALE")
+L2_STATUSES = ("VERIFIED", "VERIFIED_TOP_N", "TECHNICALLY_COMPATIBLE")
+L2_PROOF = {"VERIFIED": "PROVEN", "VERIFIED_TOP_N": "PROVEN_TOP_N", "TECHNICALLY_COMPATIBLE": "TO_QUALIFY"}
+# State and reason the engine attaches to each L2 status (surveillance._l2).
+L2_STATE = {"VERIFIED": ("AVAILABLE", None),
+            "VERIFIED_TOP_N": ("PARTIAL", "L2_VERIFIED_TOP_N_ONLY"),
+            "TECHNICALLY_COMPATIBLE": ("PARTIAL", "L2_TO_QUALIFY_AFTER_AUTHORIZATION")}
+L2_VERIFIERS = ("KRAKEN_CRC32",)
+MAX_EXCLUDED_INSTANTS = 256
+PRICE_KINDS = ("LAST_TRADE", "MID_BBO", "MARK")
+ACTIVITY_KINDS = ("TRADE_COUNT_WINDOW",)
+COST_BASES = ("MEASURED", "ESTIMATED")
+COST_FIELDS = ("network_kib_s", "cpu_pct", "memory_mib", "storage_mib_h", "connections")
+CANDIDATE_COST_FIELDS = ("state", "basis", "provenance", "network_kib_s", "storage_mib_h", "connections")
+REGIMES = ("CALM", "ACTIVE", "VOLATILE")
+FUTURE_TOLERANCE_MS = 5_000
 
 # ---------------------------------------------------------------- vocabulary of radar-ranking/1.3.0
 WEIGHTS = {"continuity": 30, "spread": 25, "activity": 20, "l2": 15, "cost": 10}

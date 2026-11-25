@@ -46,6 +46,13 @@ def test_SA1_supported_source_is_pinned_to_the_current_engine():
     assert {k: v for k, v in rc.MODE.items() if k != "evidence"} == pc.MODE_DISABLED
     assert {k: (v["needs_bbo"], v["needs_l2_verified"]) for k, v in rc.MISSIONS.items()} == pc.MISSIONS
     assert pc.PRODUCTION_BUDGETS_STATUS == rc.PRODUCTION_BUDGETS_STATUS
+    assert set(pc.BUDGET_LIMIT_KEYS) | {"future_cycle_interval_s", "profile"} == set(rc.TEST_BUDGETS.as_dict())
+    assert pc.L2_STATUSES == rc.L2_STATUSES and pc.PRICE_KINDS == rc.PRICE_KINDS
+    assert pc.ACTIVITY_KINDS == rc.ACTIVITY_KINDS and pc.COST_BASES == rc.COST_BASES
+    assert pc.REGIMES == rc.REGIMES and pc.L2_VERIFIERS == rc.L2_VERIFIERS
+    assert pc.TYPE_CODES == rc.TYPE_CODES and pc.FUTURE_TOLERANCE_MS == rc.FUTURE_TOLERANCE_MS
+    assert pc.MAX_EXCLUDED_INSTANTS == rc.MAX_EXCLUDED_INSTANTS
+    assert pc.L2_PROOF == selection.L2_PROOF
     assert pc.MAX_EXPORT_BYTES == rc.TEST_BUDGETS.max_output_bytes + 1
     assert set(pc.SCHEMA_EVIDENCE[pc.FIXTURE_SCHEMA]) == set(rc.EVIDENCE_KINDS)
     assert set(pc.SCHEMA_EVIDENCE[pc.BATCH_SCHEMA]) == set(rc.BATCH_EVIDENCE_KINDS)
