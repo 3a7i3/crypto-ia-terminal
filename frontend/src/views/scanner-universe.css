@@ -92,3 +92,31 @@
 .universe-assets button { min-height: 44px; width: auto; }
 .asset-listing { display: block; }
 .asset-link { background: none; border: 0; padding: 0 .2rem; min-height: 44px; min-width: 44px; color: inherit; text-decoration: underline; cursor: pointer; }
+
+/* S3 — Liste des actifs publiés : recherche, filtres 4/4 · 3/4 · 2/4, lignes compactes */
+.su-assets { display: grid; gap: .45rem; min-width: 0; }
+.su-assets .su-block-head { margin-bottom: 0; }
+.su-search { box-sizing: border-box; width: 100%; min-height: 44px; padding: 0 .7rem; border-radius: .55rem; border: 1px solid var(--bg-border-strong); background: var(--bg-card); color: var(--text-pri); font: inherit; font-size: 1rem; text-transform: uppercase; }
+.su-search::placeholder { text-transform: none; color: var(--text-muted); }
+.su-search:disabled, .su-chip-filter:disabled { opacity: .6; cursor: not-allowed; }
+.su-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .3rem; }
+.su-chip-filter { min-height: 44px; min-width: 0; padding: 0 .3rem; border-radius: 999px; border: 1px solid var(--bg-border-strong); background: transparent; color: var(--text-sec); font: inherit; font-size: .9rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.su-chip-filter[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan-dim); color: var(--text-pri); }
+.su-chip-count { font-variant-numeric: tabular-nums; color: var(--heading); }
+.su-results { margin: 0; font-size: .86rem; color: var(--text-muted); }
+.su-list-msg { margin: 0; padding: .55rem .7rem; border-radius: .55rem; border: 1px dashed var(--bg-border-strong); color: var(--text-sec); overflow-wrap: anywhere; }
+.su-asset-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .3rem; }
+.su-asset-row { box-sizing: border-box; width: 100%; min-height: 48px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .15rem .5rem; padding: .3rem .6rem; border-radius: .55rem; border: 1px solid var(--bg-border); background: var(--bg-card-soft); color: var(--text-pri); font: inherit; font-size: .9rem; text-align: left; cursor: pointer; }
+.su-asset-row:focus-visible, .su-chip-filter:focus-visible, .su-more:focus-visible, .su-search:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.su-row-main { display: flex; align-items: baseline; gap: .35rem; min-width: 0; flex-wrap: wrap; }
+.su-row-main strong { font-size: .98rem; color: var(--heading); }
+.su-row-main .market-count-badge { margin-left: 0; font-size: .86rem; }
+.su-class, .su-via { font-size: .86rem; color: var(--text-muted); overflow-wrap: anywhere; }
+.su-row-meta { display: flex; align-items: baseline; gap: .5rem; font-size: .86rem; color: var(--text-sec); min-width: 0; }
+.su-mkts { display: inline-flex; gap: .3rem; font-variant-numeric: tabular-nums; }
+.su-mkts .su-off { color: var(--text-muted); opacity: .55; text-decoration: line-through; }
+.su-quotes { white-space: nowrap; }
+.su-group-head { margin: .3rem 0 0; font-size: .86rem; font-weight: 700; color: var(--text-sec); }
+.su-more { min-height: 44px; border-radius: .55rem; border: 1px solid var(--bg-border-strong); background: var(--bg-card-soft); color: var(--text-pri); font: inherit; font-weight: 600; cursor: pointer; }
+.su-instrument-rows { list-style: none; padding: 0; margin: .15rem 0 0; display: grid; gap: .25rem; }
+.su-instrument-rows li { overflow-wrap: anywhere; }

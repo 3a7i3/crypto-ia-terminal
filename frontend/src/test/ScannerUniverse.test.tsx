@@ -177,12 +177,13 @@ describe("Marché → Scanner", () => {
       expect(await screen.findByTestId("coverage-tier-4")).toHaveTextContent("4 marchés1");
       expect(screen.getByTestId("coverage-tier-3")).toHaveTextContent("3 marchés1");
       expect(screen.getByTestId("coverage-tier-2")).toHaveTextContent("2 marchés1");
-      expect(screen.getByText(/devise et stablecoin, non comptés$/, { selector: "summary" })).toHaveTextContent("1 devise et stablecoin, non comptés");
+      // S3 (D3): the S2 collapsible lists became one asset list; currencies and stablecoins form its final, uncounted group.
+      expect(screen.getByRole("list", { name: "Devises et stablecoins · non comptés dans la couverture" })).toHaveTextContent("USDC");
       expect(screen.getByTestId("coverage-strict")).toHaveTextContent(/^Paires strictes0$/);
       expect(screen.queryByText(/Univers vide vérifié/)).toBeNull();
-      fireEvent.click(within(screen.getByRole("list", { name: "Actifs sur les quatre marchés" })).getByRole("button", { name: /^BTC · 4 marchés · devises USD, USDT/ }));
+      fireEvent.click(within(screen.getByRole("list", { name: "Crypto-actifs" })).getByRole("button", { name: /^BTC, 4 marchés sur 4, devises USD et USDT/ }));
       const dialog = await screen.findByRole("dialog", { name: "Instruments BTC" });
-      for (const text of ["BTCUSDT · USDT", "BTC_USDT · USDT", "XBTUSD · USD", "XBTUSDT · USDT", "PF_XBTUSD · USD"]) expect(dialog).toHaveTextContent(text);
+      for (const text of ["BTCUSDT · BTC / USDT", "BTC_USDT · BTC / USDT", "XBTUSD · BTC / USD", "XBTUSDT · BTC / USDT", "PF_XBTUSD · BTC / USD"]) expect(dialog).toHaveTextContent(text);
     });
 
     it("shows observed MEXC Spot rows of published assets with their market count, and nothing else", async () => {

@@ -11,6 +11,7 @@ import {
   type ScannerUniverse as Universe, type UniverseView, type UniversePair, type UniverseMarket, type UniverseAsset, type UniverseSource, ASSET_CLASS_LABEL,
 } from "../lib/scannerUniverseClient";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
+import { ScannerAssetList, useLocalAssetSearch, type AssetListState, type AssetSearch } from "./ScannerAssetList";
 import "./scanner-universe.css";
 
 const utc = (ms: number | null | undefined) => ms == null ? "Non disponible" : new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC";
@@ -117,10 +118,14 @@ const Proof = ({ market, pair }: { market: UniverseMarket; pair: UniversePair })
     <small>{p.status}</small><br /><small>Relevé {utc(p.collected_ms)}</small></dd></div>;
 };
 
-const AssetDetail = ({ asset }: { asset: UniverseAsset }) => <dl>{SOURCE_ORDER.map(m => {
+const CONTRACT: Record<string, string> = { SPOT: "Spot", LINEAR_PERPETUAL: "Perpétuel linéaire", INVERSE_PERPETUAL: "Perpétuel inverse" };
+/** S3: every published native instrument of every market, one line each, never truncated. */
+const AssetDetail = ({ asset }: { asset: UniverseAsset }) => <dl className="su-instruments">{SOURCE_ORDER.map(m => {
   const rows = asset.markets[m];
-  return <div className="universe-proof" key={m}><dt>{MARKET_LABEL[m]}</dt><dd>{rows
-    ? rows.map(r => <span key={r.native_symbol} className="asset-listing"><strong>{r.native_symbol}</strong> · {r.quote}{r.contract_type === "INVERSE_PERPETUAL" ? " · inverse" : ""}</span>)
+  return <div className="universe-proof" key={m} data-market={m}><dt>{MARKET_LABEL[m]}{rows ? ` · ${rows.length} instrument${rows.length > 1 ? "s" : ""}` : ""}</dt><dd>{rows
+    ? <ul className="su-instrument-rows">{rows.map(r => <li key={r.native_symbol}>
+        <strong>{r.native_symbol}</strong> · {asset.base} / {r.quote} · {CONTRACT[r.contract_type] ?? r.contract_type} · règlement {r.settlement_asset
+          ?? (r.contract_type === "SPOT" ? "sans objet (Spot)" : "non publié")}</li>)}</ul>
     : <em>non négocié</em>}</dd></div>;
 })}</dl>;
 
@@ -130,7 +135,9 @@ const CountValue = ({ count }: { count: Count }) => "value" in count
   ? <strong className="su-count">{count.value}</strong>
   : <span className="su-count missing" title={count.missing}><span aria-hidden="true">—</span><span className="su-sr">{count.missing}</span></span>;
 
-export function ScannerUniverse({ view }: { view: UniverseView }) {
+export function ScannerUniverse({ view, search }: { view: UniverseView; search?: AssetSearch }) {
+  const localSearch = useLocalAssetSearch();
+  const assetSearch = search ?? localSearch;
   const [active, setActive] = useState<string | null>(null);
   const [activeAsset, setActiveAsset] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -146,6 +153,9 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
   const others = assets.filter(a => a.asset_class !== "CRYPTO");
   const tier = (n: number) => crypto.filter(a => a.market_count === n);
   const asset = assets.find(a => a.base === activeAsset);
+  // A detail whose asset left the publication (or a publication that became unavailable) closes.
+  useEffect(() => { if (activeAsset !== null && !asset) setActiveAsset(null); }, [activeAsset, asset]);
+  const listState: AssetListState = view.state === "LOADING" ? "LOADING" : !verified ? "UNAVAILABLE" : !byAsset ? "NOT_PUBLISHED" : assets.length ? "READY" : "EMPTY";
   const status = globalStatus(view, byAsset);
   const cards = sourceCards(view);
   const serverNow = view.state !== "LOADING" && doc ? view.serverNow ?? doc.served_ms ?? doc.computed_ms : null;
@@ -210,6 +220,9 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
       : <p role="status" className="universe-banner empty"><strong>Univers vide vérifié</strong> · les quatre catalogues sont complets et frais ; aucune paire n’est négociable sur les quatre marchés avec la même devise de cotation.</p>)}
     {view.state === "VERIFIED" && <p role="status" className="universe-banner ok"><strong>{view.pairs.length} paire{view.pairs.length > 1 ? "s" : ""} vérifiée{view.pairs.length > 1 ? "s" : ""}</strong> · même devise de cotation sur les quatre marchés, quatre preuves chacune.</p>}
 
+    {/* S3 — Liste des actifs publiés : recherche, filtres, détail par instrument */}
+    <ScannerAssetList state={listState} assets={assets} search={assetSearch} onOpen={(e, base) => { trigger.current = e.currentTarget; setActiveAsset(base); }} />
+
     {/* D — Détails, au toucher */}
     <div className="su-details" aria-label="Détails">
       {view.state === "VERIFIED" && <details className="universe-exclusions">
@@ -219,17 +232,6 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
             <strong>{p.key}</strong>
             <span className="universe-badges" aria-hidden="true">{UNIVERSE_MARKETS.map(m => <span key={m}>✓ {MARKET_SHORT[m]}</span>)}</span>
           </button></li>)}</ul></details>}
-      {byAsset && verified && tier(4).length > 0 && <details className="universe-exclusions"><summary>Voir les {tier(4).length} crypto-actifs sur les 4 marchés</summary><ul className="universe-pairs universe-assets" aria-label="Actifs sur les quatre marchés">{tier(4).map(a =>
-        <li key={a.base}><button type="button" onClick={open(setActiveAsset, a.base)} aria-label={`${a.base} · 4 marchés · devises ${a.quotes.join(", ")}`}>
-          <strong>{a.base}</strong><span className="market-count-badge">4/4</span></button></li>)}</ul></details>}
-      {byAsset && verified && tier(3).length + tier(2).length > 0 && <details className="universe-exclusions">
-        <summary>{tier(3).length + tier(2).length} crypto-actifs sur 3 ou 2 marchés</summary>
-        <ul className="su-asset-rows">{[...tier(3), ...tier(2)].map(a => <li key={a.base}><button type="button" className="asset-link" onClick={open(setActiveAsset, a.base)}><strong>{a.base}</strong> <span className="market-count-badge">{a.market_count}/4</span></button> <span className="su-where">{SOURCE_ORDER.filter(m => a.markets[m]).map(m => MARKET_SHORT[m]).join(" ")}</span></li>)}</ul>
-      </details>}
-      {byAsset && verified && others.length > 0 && <details className="universe-exclusions">
-        <summary>{others.length} devise{others.length > 1 ? "s" : ""} et stablecoin{others.length > 1 ? "s" : ""}, non comptés</summary>
-        <ul className="su-asset-rows">{others.map(a => <li key={a.base}><button type="button" className="asset-link" onClick={open(setActiveAsset, a.base)}><strong>{a.base}</strong> <span className="market-count-badge">{a.market_count}/4</span></button> <span className="su-where">{ASSET_CLASS_LABEL[a.asset_class]}</span></li>)}</ul>
-      </details>}
       {!byAsset && doc && doc.exclusions.length > 0 && <details className="universe-exclusions">
         <summary>{doc.exclusions.length}{doc.exclusions_truncated ? "+" : ""} paire{doc.exclusions.length > 1 ? "s" : ""} présente{doc.exclusions.length > 1 ? "s" : ""} sur trois marchés au moins, exclue{doc.exclusions.length > 1 ? "s" : ""}</summary>
         <ul>{doc.exclusions.map(e => <li key={e.key}><strong>{e.key}</strong> · {SOURCE_ORDER.filter(m => e.reasons[m] !== null && e.reasons[m] !== undefined).map(m => `${MARKET_LABEL[m]} : ${reasonLabel(e.reasons[m])}`).join(" · ")}</li>)}</ul>
