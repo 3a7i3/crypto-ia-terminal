@@ -21,8 +21,8 @@ Exécutés localement dans l'environnement isolé. Aucune CI lancée.
 
 | Contrôle | Python 3.13.18 | Python 3.11 |
 |---|---|---|
-| `tests/radar_selection` (72 R0 inchangés + 60 R1-B) | 132 réussis | 132 réussis |
-| `radar_selection` + `scanner_universe` + `radar_composite` + `market_flow` | 477 réussis, 3 ignorés | 477 réussis, 3 ignorés |
+| `tests/radar_selection` (72 R0 inchangés + 68 R1-B) | 140 réussis | 140 réussis |
+| `radar_selection` + `scanner_universe` + `radar_composite` + `market_flow` | 485 réussis, 3 ignorés | 485 réussis, 3 ignorés |
 | Gate ruff du dépôt (`scripts/ci/ruff_baseline_gate.py check`, ruff 0.15.8) | 0 nouvelle violation | — |
 | `build_batches --check` (reproductibilité octet pour octet) | aucune différence | — |
 
@@ -116,10 +116,37 @@ dans le terminal. Corrigé ; test
 | 6 | Instants invalides | conformes : omis, cités avec motif dans la portée | T10 |
 | 7 | Activité, profondeur absentes | UNKNOWN avec motif, jamais 0 | T08, T09 |
 | 8 | `VERIFIED_TOP_N = 40` | conforme, avec `depth_levels`, `scope` et motif ; jamais `VERIFIED` depuis une source | R03 à R06 |
-| 9 | Lecture, mémoire, stockage | plafonds par référence et par lot appliqués ; écriture atomique et bornée à `--state-dir`. **Limite ouverte** : volume maximal lu ≈ 99 Mo, au-dessus du budget mémoire de test (contrat § 8) | T13, T18, R14 |
+| 9 | Lecture, mémoire, stockage | plafonds par référence et par lot appliqués ; écriture atomique et bornée à `--state-dir`. Réserve levée le 2026-11-25 : budget agrégé de 1 000 000 octets, références répétées refusées, pic mesuré au plafond 45,7 MiB (section 6) | T13, T18, R14, R15 |
 | 10 | Réseau, collecte, rejeu, PAPER, autorité | aucun import réseau ni producteur ; garde d'audit en sous-processus ; `admission: NONE` ; aucun job lancé | T14, T15 |
 
-## 6. Limites
+## 6. Réserve « budget mémoire agrégé » (2026-11-25)
+
+Avant cette réserve, un lot pouvait faire lire jusqu'à environ 99 Mo : cinq
+catalogues de 8 Mo et 59 références de 1 Mo, chacune dans son propre plafond.
+Correction minimale, sans toucher aux adaptateurs ni à la sélection :
+
+- `contract.MAX_BATCH_REF_BYTES = 1 000 000` ;
+- `batch.load_batch` refuse un lot dont les tailles déclarées dépassent ce
+  total, avant toute lecture (`REFS_BYTES_BOUND`), ainsi que toute référence
+  répétée (`DUPLICATE_REF`). Une ancre reste partageable par plusieurs
+  sources avec la même empreinte ;
+- `refs.read_all(..., total=...)` compte les octets réels, y compris ceux des
+  manifestes et des ancres qui ne déclarent pas de taille, et refuse le lot
+  au dépassement. Le terminal et `batch_build` lui passent ce total ;
+- les deux codes produisent un refus d'entrée global (sortie `3`).
+
+Mesures et lecture : contrat § 8. Au plafond, le pic est de 45,7 MiB, sous le
+budget mémoire de test de 64 MiB. Au-delà, le lot est refusé avant lecture
+(0,15 MiB), alors que sans le plafond le pic aurait été de 73,5 MiB. Outil
+reproductible : `python -m tests.radar_selection.measure_batch_memory`. Tests :
+`test_R15_*`, qui couvrent le dépassement déclaré, le dépassement réel en
+lecture, cinq formes de répétition et le pic mesuré.
+
+Limite qui demeure : la mémoire croît avec le nombre de marchés, et le plafond
+de sortie R0 limite l'évaluation à quelques centaines de marchés. Aucune
+capacité de production n'est certifiée.
+
+## 7. Limites
 
 - Toutes les preuves du dépôt sont SYNTHETIC (transport simulé `FakeVenues`,
   catalogues inventés). Aucune valeur n'est calibrée.

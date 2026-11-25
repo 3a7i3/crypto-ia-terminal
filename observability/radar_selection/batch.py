@@ -283,7 +283,43 @@ def load_batch(raw: bytes, budgets: c.Budgets = c.TEST_BUDGETS) -> dict:
             _refuse("UNKNOWN_SOURCE_ID", f"$.observations[{i}].source_id")
     if len(refs(doc)) > c.MAX_REFS:
         _refuse("REFS_BOUND", "$")
+    _unique_refs(doc)
+    if declared_bytes(doc) > c.MAX_BATCH_REF_BYTES:
+        _refuse("REFS_BYTES_BOUND", "$")
     return {"doc": doc, "sha256": sha256_hex(bytes(raw)), "bytes": len(raw)}
+
+
+def _unique_refs(doc: dict) -> None:
+    """Each reference names one piece of evidence once (no ceiling is counted twice).
+
+    Only an anchor may be shared, by several sources, with the same pin: one
+    publication covers several pairs. Any other repetition, inside one role or
+    across roles, is refused, so that a repeated reference can neither inflate the
+    work nor take the ceiling of another role.
+    """
+    seen, anchors = set(), {}
+    others = [doc["catalogue_manifest"]["ref"]]
+    others += [e["ref"] for e in doc["catalogue_refs"].values() if e["ref"] is not None]
+    for s in doc["sources"]:
+        others.append(s["manifest"]["ref"])
+        others += [a["ref"] for a in s["artifacts"]]
+        a = s["anchor"]
+        if anchors.setdefault(a["ref"], a["sha256"]) != a["sha256"]:
+            _refuse("DUPLICATE_REF", "$.sources.anchor")
+    for r in others:
+        if r in seen or r in anchors:
+            _refuse("DUPLICATE_REF", "$")
+        seen.add(r)
+
+
+def declared_bytes(doc: dict) -> int:
+    """Sum of the sizes the batch declares (catalogues and BBO artifacts), checked before any read.
+
+    Manifests and anchors declare no size: their actual bytes are counted while
+    reading, against the same total (``refs.read_all``).
+    """
+    total = sum(e["bytes"] for e in doc["catalogue_refs"].values() if e["bytes"] is not None)
+    return total + sum(a["bytes"] for s in doc["sources"] for a in s["artifacts"])
 
 
 def refs(doc: dict) -> dict:

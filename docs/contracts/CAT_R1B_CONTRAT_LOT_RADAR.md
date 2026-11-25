@@ -191,16 +191,55 @@ Plafonds de test R0 (`TEST_BUDGETS`), plus :
 |---|---|---|
 | Sources par lot | 16 | `SOURCES_BOUND` |
 | Références par lot | 64 | `REFS_BOUND` |
+| **Octets de toutes les références d'un lot** | 1 000 000 | `REFS_BYTES_BOUND` |
+| Répétition d'une référence (sauf ancre partagée au même épinglage) | 0 | `DUPLICATE_REF` |
 | Octets par artefact BBO / ancre / manifeste | 1 000 000 | `REF_TOO_LARGE` |
 | Octets par catalogue | `MAX_RAW_BYTES` du Scanner | `REF_TOO_LARGE` |
 | Fenêtres par source | 8 (240 points ≤ 256 échantillons) | `ARTIFACTS_BOUND` |
 | Instants exclus listés | 256 | `EXCLUDED_INSTANTS_BOUND` |
 
-Volume maximal lu pour une évaluation : cinq catalogues de 8 000 000 octets
-et 59 autres références de 1 000 000 octets, soit environ 99 Mo en mémoire.
-Ce maximum dépasse le budget mémoire de test R0 (64 MiB) ; le lot SYNTHETIC du
-dépôt en lit environ 260 Ko. Le maximum n'est pas mesuré : **limite ouverte**,
-à traiter avant tout lot réel volumineux.
+**Budget agrégé (réserve mémoire du 2026-11-25).** Le total des octets que
+la CLI peut lire pour un lot (`MAX_BATCH_REF_BYTES`, 1 000 000) est contrôlé
+deux fois, toujours avant toute analyse :
+
+1. avant toute lecture, sur les tailles déclarées par le lot (catalogues et
+   fenêtres BBO) : un dépassement refuse le lot au chargement ;
+2. pendant la lecture, sur les octets réels, y compris le manifeste Scanner,
+   les manifestes de journal et les ancres qui ne déclarent pas de taille :
+   chaque référence est lue avec le plus petit de son plafond et du reste du
+   budget, et un dépassement refuse tout le lot.
+
+Une référence ne peut figurer qu'une fois dans un lot, quel que soit son rôle.
+Seule exception : une ancre partagée par plusieurs sources, avec la même
+empreinte. Une référence répétée ne peut donc ni multiplier le travail ni
+emprunter le plafond d'un autre rôle (`DUPLICATE_REF`).
+
+Mesure (SYNTHETIC, `python -m tests.radar_selection.measure_batch_memory`,
+catalogues JSON compacts gonflés de marchés inventés, pic `tracemalloc` de la
+lecture et de l'évaluation, Python 3.13) :
+
+| Octets lus | Pic mémoire | Résultat |
+|---|---|---|
+| 268 896 | 1,4 MiB | évalué |
+| 338 886 | 5,2 MiB | évalué |
+| 378 971 | 7,7 MiB | refus `OUTPUT_TOO_LARGE` (plafond de sortie R0) |
+| 958 880 | 43,2 MiB | refus `OUTPUT_TOO_LARGE` |
+| 998 996 (au plafond) | 45,7 MiB | refus `OUTPUT_TOO_LARGE` |
+| 1 459 132 déclarés | 0,15 MiB | refus `REFS_BYTES_BOUND` avant lecture (sans plafond : 73,5 MiB) |
+
+Lecture des résultats :
+
+- au plafond, le pic reste sous le budget mémoire de test R0 (64 MiB) ;
+  au-delà, rien n'est lu ;
+- la mémoire croît avec le **nombre de marchés** (environ 45 fois les octets
+  lus), pas avec les octets eux-mêmes ;
+- le plafond de sortie R0 (1 000 000 octets) limite déjà l'évaluation à
+  quelques centaines de marchés : un catalogue réel complet serait refusé
+  proprement (`OUTPUT_TOO_LARGE` ou `REFS_BYTES_BOUND`), jamais tronqué.
+
+Ces valeurs sont une **capacité de test**. Elles ne certifient aucune capacité
+de production, qui exige une mesure sur des catalogues réels et une décision
+séparée.
 
 Les plafonds de production restent `NOT_MEASURED`.
 
@@ -213,7 +252,7 @@ compté comme zéro.
 
 | Niveau | Déclencheur | Effet |
 |---|---|---|
-| **Refus global** (sortie `3`, aucune évaluation, rien n'est écrit) | forme du lot (clé, type, version, nature, `LIVE`, plafond de taille ou de nombre, grammaire d'une `ref`) ; racine de preuves invalide ; référence présente mais dangereuse ou hors plafond (`REF_SYMLINK`, `REF_OUTSIDE_ROOT`, `REF_NOT_REGULAR`, `REF_TOO_LARGE`, `REF_CHANGED_DURING_READ`, `REF_PLATFORM_UNSUPPORTED`) ; lecture hors racine ; spécification ou construction d'un lot (`batch_build`) en échec | le lot n'est pas lu à moitié |
+| **Refus global** (sortie `3`, aucune évaluation, rien n'est écrit) | forme du lot (clé, type, version, nature, `LIVE`, plafond de taille ou de nombre, grammaire d'une `ref`) ; racine de preuves invalide ; référence présente mais dangereuse ou hors plafond (`REF_SYMLINK`, `REF_OUTSIDE_ROOT`, `REF_NOT_REGULAR`, `REF_TOO_LARGE`, `REF_CHANGED_DURING_READ`, `REF_PLATFORM_UNSUPPORTED`) ; budget agrégé dépassé ou référence répétée (`REFS_BYTES_BOUND`, `DUPLICATE_REF`) ; lecture hors racine ; spécification ou construction d'un lot (`batch_build`) en échec | le lot n'est pas lu à moitié |
 | **Dégradation : catalogues** | manifeste Scanner absent, altéré ou mal formé | les cinq catalogues `REFUSED` (`CATALOGUE_MANIFEST_*`) ; marchés de ces sources `UNAVAILABLE` ; évaluation produite |
 | **Dégradation : un catalogue** | document absent, empreinte ou taille fausse, entrée différente du manifeste, erreur Scanner | ce catalogue seul `REFUSED` ou `UNAVAILABLE` avec son code |
 | **Dégradation : une source** | ancre, manifeste de journal, fenêtre absente ou altérée, nature, commit ou corpus incohérents | source `REFUSED` ; toutes ses observations écartées, leurs marchés UNKNOWN avec le code ; autres sources intactes |

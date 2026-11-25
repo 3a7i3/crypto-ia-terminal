@@ -479,7 +479,8 @@ class Session:
             return evaluate(raw, prefs, self.mission, self.budgets)
         from .batch import load_batch, refs
         from .refs import read_all
-        blobs = read_all(self.evidence_root, refs(load_batch(raw, self.budgets)["doc"]))
+        blobs = read_all(self.evidence_root, refs(load_batch(raw, self.budgets)["doc"]),
+                         total=c.MAX_BATCH_REF_BYTES)
         return evaluate_batch(raw, blobs, prefs, self.mission, self.budgets)
 
     def evaluate(self) -> dict:
@@ -646,7 +647,7 @@ def _one(session: Session, argv: list, out, err) -> int:
                             "OBSERVATIONS_BOUND", "DUPLICATE_VALUE") \
             or exc.code.startswith("REF_") or exc.code in (
                 "BATCH_SCHEMA", "ADAPTER_VERSION", "EVIDENCE_KIND_NOT_ALLOWED", "SOURCES_BOUND", "SOURCE_ID",
-                "DUPLICATE_SOURCE_ID", "UNKNOWN_SOURCE_ID", "REFS_BOUND", "ARTIFACTS_BOUND", "SHA256_EXPECTED",
+                "DUPLICATE_SOURCE_ID", "UNKNOWN_SOURCE_ID", "REFS_BOUND", "REFS_BYTES_BOUND", "DUPLICATE_REF", "ARTIFACTS_BOUND", "SHA256_EXPECTED",
                 "COMMIT_EXPECTED", "CORPUS_ID", "COVERAGE_EMPTY", "UNKNOWN_REASONS", "BLOBS_EXPECTED",
                 "UNKNOWN_REASON_FOR_PRESENT_VALUE", "HISTORICAL_OBSERVATION_WITHOUT_SOURCE",
                 "L2_VERIFIED_NOT_ALLOWED_FROM_SOURCE", "L2_SCOPE_ONLY_FOR_TOP_N", "L2_TOP_N_SCOPE_REQUIRED",

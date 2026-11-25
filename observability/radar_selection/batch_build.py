@@ -166,9 +166,10 @@ def main(argv: list | None = None, out=None, err=None) -> int:
         state_dir = Path(opts["--state-dir"])
         install_offline_guard(state_dir, read_roots=[root])
         spec = load_spec(read_ref(root, opts["--spec"], MAX_SPEC_BYTES))
-        blobs = read_all(root, spec_refs(spec))
+        blobs = read_all(root, spec_refs(spec), total=c.MAX_BATCH_REF_BYTES)
         batch = build_batch(spec, blobs)
-        blobs.update(read_all(root, refs(batch)))
+        blobs.update(read_all(root, {r: m for r, m in refs(batch).items() if r not in blobs},
+                              total=c.MAX_BATCH_REF_BYTES - sum(map(len, blobs.values()))))
         verify_batch(batch, blobs)
         data = canonical(batch)
         dest = _write_new(Path(os.path.realpath(state_dir)), opts["--out"], data)

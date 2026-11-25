@@ -143,13 +143,27 @@ def read_ref(root: str, ref: str, max_bytes: int) -> bytes:
             os.close(f)
 
 
-def read_all(root: str, wanted: dict) -> dict:
-    """{ref: ceiling} -> {ref: bytes}. A missing reference is left out (the verifier reports it)."""
-    out = {}
+def read_all(root: str, wanted: dict, total: int | None = None) -> dict:
+    """{ref: ceiling} -> {ref: bytes}. A missing reference is left out (the verifier reports it).
+
+    With ``total``, the bytes read together may not exceed it: each reference is
+    read with the smaller of its own ceiling and what remains, and going over the
+    total refuses the whole batch (``REFS_BYTES_BOUND``) before anything is parsed.
+    """
+    out, used = {}, 0
     for ref in sorted(wanted):
+        ceiling = wanted[ref]
+        if total is not None:
+            remaining = total - used
+            if remaining < ceiling:
+                ceiling = remaining
         try:
-            out[ref] = read_ref(root, ref, wanted[ref])
+            out[ref] = read_ref(root, ref, max(ceiling, 0))
         except RadarRefusal as exc:
+            if exc.code == "REF_TOO_LARGE" and total is not None and ceiling < wanted[ref]:
+                raise RadarRefusal("REFS_BYTES_BOUND:" + ref) from None
             if exc.code != "REF_MISSING":
                 raise
+            continue
+        used += len(out[ref])
     return out

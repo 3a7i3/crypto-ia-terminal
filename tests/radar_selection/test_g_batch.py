@@ -783,3 +783,86 @@ def test_R14_every_batch_shape_refusal_exits_as_input_refused(tmp_path):
     rc, out, err = cli(["--batch", str(ev_dir / "batches" / "bad.json"), "--evidence-root", str(ev_dir),
                         "status"], tmp_path)
     assert rc == 3 and "ENTRÉE REFUSÉE: EXCLUDED_INSTANTS_BOUND" in err
+
+
+# ------------------------------------------------------------------ aggregate byte budget (2026-11-25)
+
+def test_R15_declared_bytes_over_the_total_are_refused_before_any_read(tmp_path):
+    d = batch_doc()
+    d["sources"][0]["artifacts"][0]["bytes"] = c.MAX_ARTIFACT_BYTES   # each ref within its own ceiling
+    from observability.radar_selection.batch import declared_bytes
+    assert declared_bytes(d) > c.MAX_BATCH_REF_BYTES
+    with pytest.raises(RadarRefusal) as e:
+        load_batch(canonical(d))
+    assert e.value.code == "REFS_BYTES_BOUND"
+    import shutil
+    ev_dir = tmp_path / "ev"
+    shutil.copytree(EVIDENCE, ev_dir)
+    (ev_dir / "batches" / "big.json").write_bytes(canonical(d))
+    rc, out, err = cli(["--batch", str(ev_dir / "batches" / "big.json"), "--evidence-root", str(ev_dir), "status"],
+                       tmp_path)
+    assert rc == 3 and "ENTRÉE REFUSÉE: REFS_BYTES_BOUND" in err
+
+
+def test_R15_actual_bytes_count_against_the_total_while_reading(tmp_path):
+    (tmp_path / "a.json").write_bytes(b"a" * 600)
+    (tmp_path / "b.json").write_bytes(b"b" * 600)
+    root = evidence_root(tmp_path)
+    from observability.radar_selection.refs import read_all
+    wanted = {"a.json": 1000, "b.json": 1000, "absent.json": 1000}
+    assert set(read_all(root, wanted, total=1200)) == {"a.json", "b.json"}
+    with pytest.raises(RadarRefusal) as e:
+        read_all(root, wanted, total=1100)
+    assert e.value.code == "REFS_BYTES_BOUND"
+    assert set(read_all(root, wanted)) == {"a.json", "b.json"}   # no total: unchanged behaviour
+    # An undeclared reference (anchor) grown inside its own ceiling still counts in the total.
+    import shutil
+    ev_dir = tmp_path / "ev"
+    shutil.copytree(EVIDENCE, ev_dir)
+    (ev_dir / "bbo" / "bbo-composite-history.json").write_bytes(b" " * (c.MAX_ARTIFACT_BYTES - 1))
+    rc, out, err = cli(["--batch", str(ev_dir / bb.BATCH), "--evidence-root", str(ev_dir), "status"], tmp_path)
+    assert rc == 3 and "ENTRÉE REFUSÉE: REFS_BYTES_BOUND" in err
+
+
+def _dup_artifact_across_sources(d):
+    d["sources"][1]["artifacts"][0] = copy.deepcopy(d["sources"][0]["artifacts"][0])
+
+
+def _artifact_is_a_catalogue(d):
+    cat = d["catalogue_refs"]["kraken_assets"]
+    d["sources"][0]["artifacts"][0].update(ref=cat["ref"])
+
+
+def _manifest_shared(d):
+    d["sources"][1]["manifest"] = copy.deepcopy(d["sources"][0]["manifest"])
+
+
+def _anchor_shared_with_another_pin(d):
+    d["sources"][1]["anchor"]["sha256"] = "0" * 64
+
+
+def _catalogue_manifest_as_artifact(d):
+    d["sources"][0]["artifacts"][0].update(ref=d["catalogue_manifest"]["ref"])
+
+
+@pytest.mark.parametrize("mutate", [_dup_artifact_across_sources, _artifact_is_a_catalogue, _manifest_shared,
+                                    _anchor_shared_with_another_pin, _catalogue_manifest_as_artifact])
+def test_R15_repeated_references_cannot_bypass_the_ceilings(mutate):
+    d = batch_doc()
+    assert d["sources"][0]["anchor"] == d["sources"][1]["anchor"]   # shared anchor, same pin: allowed
+    mutate(d)
+    with pytest.raises(RadarRefusal) as e:
+        load_batch(canonical(d))
+    assert e.value.code == "DUPLICATE_REF"
+
+
+def test_R15_peak_memory_near_the_total_and_refusal_above_it():
+    """Near the cap the evaluation stays within the test memory budget; above it nothing is read."""
+    from tests.radar_selection.measure_batch_memory import measure
+    near = measure(740_000)
+    assert c.MAX_BATCH_REF_BYTES * 0.95 <= near["bytes_read"] <= c.MAX_BATCH_REF_BYTES
+    assert near["peak_bytes"] < c.TEST_BUDGETS.max_memory_bytes
+    assert near["result"] in ("EVALUATED", "OUTPUT_TOO_LARGE")   # a clean result or a clean refusal
+    above = measure(1_200_000)
+    assert above["result"] == "REFS_BYTES_BOUND" and above["bytes_read"] is None
+    assert above["peak_bytes"] < 4 * 1024 * 1024

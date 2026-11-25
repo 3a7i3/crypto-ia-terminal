@@ -168,6 +168,13 @@ MAX_FIXTURE_RECORDS = 5_000
 # Ceilings of one radar-batch document and of its referenced artifacts.
 MAX_BATCH_SOURCES = 16
 MAX_REFS = 64                       # catalogue documents + manifests + anchors + windows
+# Total bytes of the references one batch may make the CLI read (R1-B memory reserve,
+# 2026-11-25). Test capacity, not a production capacity: a batch reading ~1.0 MB of
+# dense SYNTHETIC catalogues peaked at ~47 MiB (tracemalloc) for ~3 800 markets, under
+# the 64 MiB test memory budget; memory grows with the number of markets, about
+# 45 times the bytes read. Checked on declared sizes before reading, then on the
+# actual bytes while reading (REFS_BYTES_BOUND).
+MAX_BATCH_REF_BYTES = 1_000_000
 MAX_ARTIFACT_BYTES = 1_000_000      # one non-catalogue artifact (window, anchor, manifest)
 MAX_WINDOWS_PER_OBSERVATION = 8     # 8 x 30 points <= max_samples_per_observation
 MAX_EXCLUDED_INSTANTS = 256
