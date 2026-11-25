@@ -174,11 +174,11 @@ describe("Marché → Scanner", () => {
       universe = () => json(assetUniverseFixture());
       open();
       // S2: the counts moved from one sentence to the coverage tiles; same published values.
-      expect(await screen.findByTestId("coverage-tier-4")).toHaveTextContent("Sur 4 marchés1");
-      expect(screen.getByTestId("coverage-tier-3")).toHaveTextContent("Sur 3 marchés1");
-      expect(screen.getByTestId("coverage-tier-2")).toHaveTextContent("Sur 2 marchés1");
+      expect(await screen.findByTestId("coverage-tier-4")).toHaveTextContent("4 marchés1");
+      expect(screen.getByTestId("coverage-tier-3")).toHaveTextContent("3 marchés1");
+      expect(screen.getByTestId("coverage-tier-2")).toHaveTextContent("2 marchés1");
       expect(screen.getByText(/devise et stablecoin, non comptés$/, { selector: "summary" })).toHaveTextContent("1 devise et stablecoin, non comptés");
-      expect(screen.getByTestId("coverage-strict")).toHaveTextContent(/Paires strictes.*même devise de cotation sur les 4 marchés0$/);
+      expect(screen.getByTestId("coverage-strict")).toHaveTextContent(/^Paires strictes0$/);
       expect(screen.queryByText(/Univers vide vérifié/)).toBeNull();
       fireEvent.click(within(screen.getByRole("list", { name: "Actifs sur les quatre marchés" })).getByRole("button", { name: /^BTC · 4 marchés · devises USD, USDT/ }));
       const dialog = await screen.findByRole("dialog", { name: "Instruments BTC" });

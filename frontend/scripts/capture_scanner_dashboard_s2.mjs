@@ -1,10 +1,12 @@
-// Preuve visuelle locale — CAT SCANNER-UI S2 : tableau de bord mobile de l'univers
+// Preuve visuelle locale — CAT SCANNER-UI S2 / S2.1 : tableau de bord mobile de l'univers
 // (Marché → Scanner, /paper-live/market/radar). Publications 100 % SYNTHÉTIQUES
 // construites ici ; aucune API réelle, aucune donnée runtime. Les autres API
 // répondent depuis la fixture de test Radar Spot.
 // Vérifie à 360, 384 et 412 px : aucun défilement horizontal de page, quatre
 // cartes de source, cibles tactiles ≥ 44 px dans le tableau de bord, et que
 // l'en-tête, les sources et la couverture tiennent dans le premier écran.
+// S2.1 : cartes compactes 2 × 2 (hauteur mesurée), quatre indicateurs de
+// couverture sur une seule ligne, thèmes clair et sombre pour chaque état.
 // Usage : npm run build && npx vite preview --port 4173 &
 //         node scripts/capture_scanner_dashboard_s2.mjs
 const { chromium } = (await import(process.env.PLAYWRIGHT_MODULE || "playwright")).default ?? await import(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -58,6 +60,7 @@ const states = [
   ["2-strict-vide-multi-1.1.0", () => ({ json: publication({ assets: ASSETS }) })],
   ["3-source-indisponible", () => ({ json: publication({ assets: ASSETS, status: "UNVERIFIABLE", blocked: "KRAKEN_PERPETUAL" }) })],
   ["4-source-perimee", () => ({ json: publication({ assets: ASSETS, ages: { MEXC_PERPETUAL: 2_280_000 } }) })],
+  ["6-sans-regroupement-1.0.0-vide", () => ({ json: publication({}) })],
   ["5-publication-invalide", () => ({ json: { ...publication({ pairs: [["BTC", "USDT"]] }), schema_version: "scanner-universe/9.9.9" } })],
   ["0-chargement", () => null],
 ];
@@ -86,21 +89,30 @@ async function capture(vp, state, make, theme = "light", interact = false) {
       .map(e => ({ t: (e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 40), h: e.getBoundingClientRect().height, w: e.getBoundingClientRect().width }))
       .filter(r => r.h < 44 || r.w < 44);
     const cov = root.querySelector(".su-coverage").getBoundingClientRect();
-    const fs = [...root.querySelectorAll(".su-sources li, .su-tiers dt, .su-note, .su-nature")].map(e => parseFloat(getComputedStyle(e).fontSize));
-    return { scroll: document.documentElement.scrollWidth, width: window.innerWidth, state: root.dataset.state, code: root.dataset.code ?? null,
+    const fs = [...root.querySelectorAll(".su-sources li *, .su-tile dt, .su-tile dd, .su-note, .su-meta, .su-block-head")].map(e => parseFloat(getComputedStyle(e).fontSize));
+    const cardBoxes = [...root.querySelectorAll(".su-sources li")].map(e => e.getBoundingClientRect());
+    const tiles = [...root.querySelectorAll(".su-tiles > div")].map(e => e.getBoundingClientRect());
+    return { cardHeights: cardBoxes.map(b => Math.round(b.height)), cardColumns: new Set(cardBoxes.map(b => Math.round(b.left))).size,
+      tileRows: new Set(tiles.map(b => Math.round(b.top))).size, tiles: tiles.length,
+      scroll: document.documentElement.scrollWidth, width: window.innerWidth, state: root.dataset.state, code: root.dataset.code ?? null,
       cards: root.querySelectorAll(".su-sources li").length, coverageBottom: Math.round(cov.bottom + window.scrollY), viewportHeight: window.innerHeight,
       pill: root.querySelector(".su-pill").textContent, smallTargets: small, minFontPx: Math.min(...fs) };
   });
   const tag = `${vp.name} ${state} ${theme}`;
   assert(m.scroll <= m.width, `${tag}: défilement horizontal ${m.scroll} > ${m.width}`);
   assert(m.cards === 4, `${tag}: ${m.cards} cartes de source`);
+  assert(m.cardColumns === 2, `${tag}: grille des sources sur ${m.cardColumns} colonnes`);
+  assert(m.tiles === 4 && m.tileRows === 1, `${tag}: ${m.tiles} indicateurs sur ${m.tileRows} lignes`);
+  assert(Math.max(...m.cardHeights) <= 90, `${tag}: carte de source trop haute ${m.cardHeights}`);
+  assert(m.coverageBottom <= m.viewportHeight, `${tag}: couverture sous le premier écran ${m.coverageBottom} > ${m.viewportHeight}`);
+  assert(m.minFontPx >= 12, `${tag}: police ${m.minFontPx} px`);
   assert(!m.smallTargets.length, `${tag}: cibles tactiles < 44 px ${JSON.stringify(m.smallTargets)}`);
   const file = `${out}/s2-${state}-${theme}-${vp.name}`;
   await page.screenshot({ path: `${file}-ecran.png` });
   await page.locator(".scanner-universe").screenshot({ path: `${file}-tableau.png` });
   const extra = [];
   if (interact) {
-    await page.getByText("Détail des sources et de la publication").tap();
+    await page.getByText("Détail technique des sources et de la publication").tap();
     await page.waitForTimeout(200);
     await page.locator(".scanner-universe").screenshot({ path: `${file}-details-sources.png` });
     extra.push(`${file}-details-sources.png`);
@@ -122,8 +134,8 @@ async function capture(vp, state, make, theme = "light", interact = false) {
   await context.close();
 }
 for (const vp of viewports) for (const [state, make] of states) await capture(vp, state, make, "light", vp.width === 384 && state.startsWith("2-"));
-for (const [state, make] of states.filter(([s]) => /^(2|3)-/.test(s))) await capture(viewports[0], state, make, "dark");
+for (const vp of viewports) for (const [state, make] of states) await capture(vp, state, make, "dark");
 await browser.close();
 await writeFile(`${out}/mobile_layout_results.json`, JSON.stringify(results, null, 1) + "\n");
-console.log(`${results.length} captures OK · aucun défilement horizontal · 4 sources · cibles ≥ 44 px · 1 lecture de l'univers par page`);
-for (const r of results) console.log(r.viewport, r.state, r.theme, "pill=" + r.pill, "couverture bas=" + r.coverageBottom + "/" + r.viewportHeight, "police min=" + r.minFontPx);
+console.log(`${results.length} captures OK · aucun défilement horizontal · sources 2 × 2 · 4 indicateurs sur une ligne · couverture dans le premier écran · cibles ≥ 44 px · police ≥ 12 px · 1 lecture de l'univers par page`);
+for (const r of results) console.log(r.viewport, r.state, r.theme, "pill=" + r.pill, "cartes=" + r.cardHeights.join("/"), "couverture bas=" + r.coverageBottom + "/" + r.viewportHeight, "police min=" + r.minFontPx);

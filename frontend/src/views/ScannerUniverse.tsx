@@ -14,7 +14,7 @@ import { marketSourceSetup } from "../lib/marketSourceSetup";
 import "./scanner-universe.css";
 
 const utc = (ms: number | null | undefined) => ms == null ? "Non disponible" : new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC";
-const clock = (ms: number) => new Date(ms).toISOString().slice(11, 16) + " UTC";
+const minute = (ms: number) => new Date(ms).toISOString().replace("T", " ").slice(0, 16) + " UTC";
 const iso = (ms: number) => new Date(ms).toISOString();
 /** Elapsed time, rounded down to its unit. Formatting only. */
 export const ageLabel = (ms: number) => {
@@ -65,6 +65,8 @@ export function useScannerUniverse(pollMs = 60_000): UniverseView {
   return universeView(doc, error, received.current, now);
 }
 
+/** Short card names, still unambiguous (venue + market type); full names stay in aria-label and details. */
+export const MARKET_CARD: Record<UniverseMarket, string> = { KRAKEN_SPOT: "Kraken Spot", KRAKEN_PERPETUAL: "Kraken Perp.", MEXC_SPOT: "MEXC Spot", MEXC_PERPETUAL: "MEXC Perp." };
 /** Display order asked for the operator: Kraken first, Spot before Perpetual. */
 export const SOURCE_ORDER: UniverseMarket[] = ["KRAKEN_SPOT", "KRAKEN_PERPETUAL", "MEXC_SPOT", "MEXC_PERPETUAL"];
 
@@ -89,8 +91,8 @@ function sourceCards(view: UniverseView): SourceCard[] {
     const reason = blocked.get(market) ?? (source.current ? null : source.reason ?? "UNVERIFIABLE");
     if (!reason && source.collected_ms === null) return { ...base, tone: "ko", label: "Indisponible", why: "relevé sans horodatage" };
     if (reason === "STALE" || (!reason && stale))
-      return { ...base, tone: "warn", label: "Périmée", why: `relevé plus vieux que la limite (${ageLabel(doc.freshness_max_age_ms)})` };
-    if (reason) return { ...base, tone: "ko", label: source.catalogue_state === "INCOMPLETE" ? "Incomplète" : "Indisponible", why: reasonLabel(reason) };
+      return { ...base, tone: "warn", label: "Périmée", why: `limite ${ageLabel(doc.freshness_max_age_ms)} dépassée` };
+    if (reason) return { ...base, tone: "ko", label: source.catalogue_state === "INCOMPLETE" ? "Incomplète" : "Indisponible", why: reasonLabel(reason).replace(/^catalogue /, "") };
     if (unconfirmed) return { ...base, tone: "wait", label: "Non confirmée", why: "dernière publication reçue, plus confirmée" };
     return { ...base, tone: "ok", label: "Disponible", why: null };
   });
@@ -126,7 +128,7 @@ const AssetDetail = ({ asset }: { asset: UniverseAsset }) => <dl>{SOURCE_ORDER.m
 type Count = { value: number } | { missing: string };
 const CountValue = ({ count }: { count: Count }) => "value" in count
   ? <strong className="su-count">{count.value}</strong>
-  : <span className="su-count missing">{count.missing}</span>;
+  : <span className="su-count missing" title={count.missing}><span aria-hidden="true">—</span><span className="su-sr">{count.missing}</span></span>;
 
 export function ScannerUniverse({ view }: { view: UniverseView }) {
   const [active, setActive] = useState<string | null>(null);
@@ -156,43 +158,45 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
 
   return <section className="scanner-universe" aria-label="Scanner scientifique" data-state={view.state}
     data-code={view.state === "UNAVAILABLE" ? view.code : undefined}>
-    {/* A — En-tête */}
+    {/* A — En-tête : statut, dernier relevé vérifié, âge de publication, nature */}
     <header className="su-head">
       <div className="su-title"><h2>Scanner scientifique</h2>
         <span className="su-pill" data-tone={status.tone} aria-live="polite">{status.label}</span></div>
-      <p className="su-checked">
-        {verified ? <>Dernier relevé vérifié : <time dateTime={iso(view.doc.computed_ms)}>{utc(view.doc.computed_ms)}</time>
-          {serverNow !== null && <> · il y a {ageLabel(serverNow - view.doc.computed_ms)}</>}</>
-          : view.state === "LOADING" ? "Dernier relevé vérifié : lecture en cours"
-          : doc?.reference ? <>Dernier relevé vérifié : <time dateTime={iso(doc.reference.computed_ms)}>{utc(doc.reference.computed_ms)}</time> · <strong>non courant</strong></>
-          : doc && doc.status !== "UNVERIFIABLE" ? <>Dernier relevé vérifié : <time dateTime={iso(doc.computed_ms)}>{utc(doc.computed_ms)}</time> · <strong>plus courant</strong></>
-          : "Dernier relevé vérifié : aucun relevé courant"}
+      <p className="su-meta">
+        <span className="su-checked">{verified ? <>Relevé vérifié <time dateTime={iso(view.doc.computed_ms)} title={utc(view.doc.computed_ms)}>{minute(view.doc.computed_ms)}</time>
+          {serverNow !== null && <> · publié il y a {ageLabel(serverNow - view.doc.computed_ms)}</>}</>
+          : view.state === "LOADING" ? "Relevé vérifié : lecture en cours"
+          : doc?.reference ? <>Dernier relevé vérifié <time dateTime={iso(doc.reference.computed_ms)} title={utc(doc.reference.computed_ms)}>{minute(doc.reference.computed_ms)}</time> · <strong>non courant</strong></>
+          : doc && doc.status !== "UNVERIFIABLE" ? <>Dernier relevé vérifié <time dateTime={iso(doc.computed_ms)} title={utc(doc.computed_ms)}>{minute(doc.computed_ms)}</time> · <strong>plus courant</strong></>
+          : "Relevé vérifié : aucun relevé courant"}</span>
+        <span className="su-nature"><span className="su-tag">Catalogues</span> pas de cotation LIVE</span>
       </p>
-      <p className="su-nature"><span className="su-tag">Catalogues d’instruments</span> Fraîcheur des catalogues, <strong>pas des prix</strong> : aucune cotation LIVE.</p>
     </header>
 
-    {/* B — Quatre sources */}
+    {/* B — Quatre sources, cartes compactes 2 × 2 */}
+    <div className="su-block-head" aria-hidden="true"><span>Sources</span><span>âge du relevé</span></div>
     <ul className="su-sources" aria-label="État des quatre sources">{cards.map(c =>
       <li key={c.market} data-tone={c.tone} aria-label={`${MARKET_LABEL[c.market]} : ${c.label}`}>
-        <strong className="su-source-name">{MARKET_LABEL[c.market]}</strong>
-        <span className="su-chip" data-tone={c.tone}>{c.label}</span>
-        {c.source?.collected_ms != null
-          ? <span className="su-age">Relevé il y a {c.ageMs !== null ? ageLabel(c.ageMs) : "?"} · <time dateTime={iso(c.source.collected_ms)} title={utc(c.source.collected_ms)}>{clock(c.source.collected_ms)}</time></span>
-          : <span className="su-age">Relevé : non disponible</span>}
-        {c.why && <span className="su-why">{c.why}</span>}
+        <span className="su-source-line"><strong className="su-source-name">{MARKET_CARD[c.market]}</strong>
+          {c.source?.collected_ms != null
+            ? <time className="su-age" dateTime={iso(c.source.collected_ms)} title={`Relevé ${utc(c.source.collected_ms)}`}>{c.ageMs !== null ? ageLabel(c.ageMs) : "?"}</time>
+            : <span className="su-age" title="Relevé non disponible">—</span>}</span>
+        <span className="su-chip" data-tone={c.tone}><span className="su-dot" aria-hidden="true" />{c.label}</span>
+        {c.why && (c.tone === "ko" || c.tone === "warn") && <span className="su-why">{c.why}</span>}
       </li>)}</ul>
 
-    {/* C — Couverture */}
+    {/* C — Couverture : actifs multi-marchés et paires strictes, quatre indicateurs */}
     <section className="su-coverage" aria-label="Couverture de l’univers">
-      <h3>Actifs multi-marchés <small>(même actif, devises possiblement différentes)</small></h3>
-      <dl className="su-tiers">
-        {[4, 3, 2].map(n => <div key={n} data-testid={`coverage-tier-${n}`}><dt>Sur {n} marchés</dt><dd><CountValue count={tierCount(n)} /></dd></div>)}
+      <div className="su-block-head"><h3>Couverture</h3><span>actifs multi-marchés ≠ paires strictes</span></div>
+      <dl className="su-tiles">
+        {[4, 3, 2].map(n => <div key={n} className="su-tile" data-testid={`coverage-tier-${n}`}><dt>{n} marchés</dt><dd><CountValue count={tierCount(n)} /></dd></div>)}
+        <div className="su-tile su-strict" data-testid="coverage-strict"><dt>Paires strictes</dt><dd><CountValue count={strict} /></dd></div>
       </dl>
-      {byAsset && verified && <p className="su-note">{tier(4).length + tier(3).length + tier(2).length} crypto-actif{tier(4).length + tier(3).length + tier(2).length > 1 ? "s" : ""} au total{others.length > 0 ? ` · ${others.length} devise${others.length > 1 ? "s" : ""} et stablecoin${others.length > 1 ? "s" : ""} non compté${others.length > 1 ? "s" : ""}` : ""}.</p>}
-      {!byAsset && verified && <p className="su-note">Le schéma {doc!.schema_version} ne publie pas le regroupement par actif.</p>}
-      <dl className="su-strict" data-testid="coverage-strict">
-        <div><dt>Paires strictes <small>même base et même devise de cotation sur les 4 marchés</small></dt><dd><CountValue count={strict} /></dd></div>
-      </dl>
+      <p className="su-note">
+        {!verified ? `— : ${missing.toLowerCase()}, aucun compte n’est présenté comme courant.`
+          : !byAsset ? `— : non publié, le schéma ${doc!.schema_version} ne regroupe pas par actif.`
+          : `${tier(4).length + tier(3).length + tier(2).length} crypto-actif${tier(4).length + tier(3).length + tier(2).length > 1 ? "s" : ""} au total${others.length > 0 ? ` · ${others.length} devise${others.length > 1 ? "s" : ""} et stablecoin${others.length > 1 ? "s" : ""} non compté${others.length > 1 ? "s" : ""}` : ""}.`}
+        {" "}Paire stricte : même base et même devise de cotation sur les 4 marchés.</p>
     </section>
 
     {/* Pourquoi : indisponible, strict vide ou liste vérifiée */}
@@ -231,10 +235,10 @@ export function ScannerUniverse({ view }: { view: UniverseView }) {
         <ul>{doc.exclusions.map(e => <li key={e.key}><strong>{e.key}</strong> · {SOURCE_ORDER.filter(m => e.reasons[m] !== null && e.reasons[m] !== undefined).map(m => `${MARKET_LABEL[m]} : ${reasonLabel(e.reasons[m])}`).join(" · ")}</li>)}</ul>
       </details>}
       {doc && <details className="universe-exclusions su-publication">
-        <summary>Détail des sources et de la publication</summary>
+        <summary>Détail technique des sources et de la publication</summary>
         <dl className="su-source-detail">{SOURCE_ORDER.map(m => { const s = doc.sources.find(x => x.market === m); const c = cards.find(x => x.market === m)!;
           return <div key={m}><dt>{MARKET_LABEL[m]}</dt><dd>{s ? <>
-            {c.label} · catalogue {s.catalogue_state}{s.reason ? ` (${s.reason})` : ""}<br />
+            {c.label}{c.why ? ` · ${c.why}` : ""} · catalogue {s.catalogue_state}{s.reason ? ` (${s.reason})` : ""}<br />
             {s.instruments} instruments · {s.admissible} admissibles<br />
             Relevé {utc(s.collected_ms)}{c.ageMs !== null ? ` · âge ${ageLabel(c.ageMs)}` : ""}</> : "Absente de la publication"}</dd></div>; })}
           <div><dt>Publication</dt><dd>
