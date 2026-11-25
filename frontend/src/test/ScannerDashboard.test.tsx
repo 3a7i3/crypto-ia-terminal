@@ -165,7 +165,7 @@ describe("S2 · changement de publication", () => {
   it("6b · un détail ouvert se ferme si son actif disparaît de la nouvelle publication", () => {
     const first = assetUniverseFixture({ now: NOW });
     const { rerender } = render(<ScannerUniverse view={universeView(first, null, NOW, NOW)} />);
-    fireEvent.click(screen.getByRole("button", { name: /^BTC · 4 marchés/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^BTC, 4 marchés sur 4/ }));
     expect(screen.getByRole("dialog", { name: "Instruments BTC" })).toBeInTheDocument();
     const second = { ...first, assets: first.assets!.filter(a => a.base !== "BTC"), asset_count: 3, universe_sha256: "d".repeat(64) } as Universe;
     rerender(<ScannerUniverse view={universeView(second, null, NOW, NOW)} />);
@@ -192,10 +192,10 @@ describe("S2 · navigation mobile, réseau et anciennes vues", () => {
     expect(detail).toHaveTextContent("Kraken Perpétuel");
     expect(detail).toHaveTextContent("scanner-universe/1.1.0 · statut publié VERIFIED_EMPTY");
     expect(detail).toHaveTextContent(/Relevé \d{4}-\d\d-\d\d \d\d:\d\d:\d\d UTC · âge 1 min/);
-    const doge = screen.getByRole("button", { name: /DOGE/ });
+    const doge = screen.getByRole("button", { name: /^DOGE, 2 marchés sur 4/ });
     fireEvent.click(doge);
     const dialog = screen.getByRole("dialog", { name: "Instruments DOGE" });
-    expect(dialog).toHaveTextContent("DOGEUSDT · USDT");
+    expect(dialog).toHaveTextContent("DOGEUSDT · DOGE / USDT · Spot · règlement sans objet (Spot)");
     fireEvent.click(within(dialog).getByRole("button", { name: "Fermer" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(doge).toHaveFocus();
@@ -210,7 +210,7 @@ describe("S2 · navigation mobile, réseau et anciennes vues", () => {
     expect(before.filter(u => u === UNIVERSE_ENDPOINT)).toHaveLength(1);
     expect(new Set(before.map(u => u.split("?")[0]))).toEqual(new Set([UNIVERSE_ENDPOINT, "/api/operator/v1/spot-radar/scanner"]));
     for (const s of dashboard().querySelectorAll("summary")) fireEvent.click(s);
-    fireEvent.click(screen.getByRole("button", { name: /^BTC · 4 marchés/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^BTC, 4 marchés sur 4/ }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Fermer" }));
     expect(fetchMock.mock.calls.map(([u]) => String(u))).toEqual(before);
   });
