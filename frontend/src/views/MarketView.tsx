@@ -7,6 +7,7 @@ import { SignalsRadar, type SignalsDoc } from "./SignalsRadar";
 import signalsDemo from "../demo/signalsIndicators-v1-btc-reference.json";
 import { ScannerUniverse, useScannerUniverse } from "./ScannerUniverse";
 import { admittedMexcSpot, admittedKeys, mexcSpotAssets } from "../lib/scannerUniverseClient";
+import { normalizeQuery, parseCoverage, withAssetSearch } from "../lib/scannerAssetSearch";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, MemoryRouter, Navigate, Route, Routes, useInRouterContext, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MarketMicrostructureView } from "./MarketMicrostructureView";
@@ -61,8 +62,18 @@ const RadarPanel: React.FC = () => {
     if (next !== "spot") query.set("product", next);
     setParams(query, { replace: true });
   };
+  // Scanner S3: search (q) and coverage filter (cov) live in the URL, written with
+  // replace; every other parameter (product…) is kept. Values read from the URL
+  // are bounded here; an out-of-bounds value is rewritten, never trusted.
+  const assetQuery = normalizeQuery(params.get("q"));
+  const assetCov = parseCoverage(params.get("cov"));
+  useEffect(() => {
+    const clean = withAssetSearch(params, assetQuery, assetCov);
+    if (clean.toString() !== params.toString()) setParams(clean, { replace: true });
+  }, [params, assetQuery, assetCov, setParams]);
+  const assetSearch = { q: assetQuery, cov: assetCov, set: (q: string, cov: typeof assetCov) => setParams(withAssetSearch(params, q, cov), { replace: true }) };
   return <>
-    <ScannerUniverse view={universe} />
+    <ScannerUniverse view={universe} search={assetSearch} />
     <div className="market-display-choice" role="group" aria-label="Produit du scanner">
       <button type="button" aria-pressed={product === "spot"} onClick={() => select("spot")}>Moniteur de marché</button>
       <button type="button" aria-pressed={product === "spot-radar"} onClick={() => select("spot-radar")}>Radar Spot</button>

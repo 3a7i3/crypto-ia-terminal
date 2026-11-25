@@ -55,3 +55,31 @@ export function assetUniverseFixture(opts: { now?: number; status?: "VERIFIED_EM
   ];
   return { ...doc, schema_version: "scanner-universe/1.1.0", assets, asset_count: assets.length } as ScannerUniverse;
 }
+
+/** One source collected `ageMs` before the publication was served; the others unchanged.
+ *  The publication keeps its published status: only the client age check sees it. */
+export function withSourceAge(doc: ScannerUniverse, market: UniverseMarket, ageMs: number): ScannerUniverse {
+  const served = doc.served_ms ?? doc.computed_ms;
+  return { ...doc, sources: doc.sources.map(s => s.market === market ? { ...s, collected_ms: served - ageMs, age_ms: ageMs } : s) };
+}
+
+/** scanner-universe/1.1.0 with `n` invented crypto-assets (SYN001…), for paging tests.
+ *  SYNTHETIC: the bases, symbols and counts are made up. */
+export function manyAssetsFixture(n: number, opts: { now?: number } = {}): ScannerUniverse {
+  const doc = assetUniverseFixture({ now: opts.now });
+  const assets = Array.from({ length: n }, (_, i) => {
+    const base = `SYN${String(i + 1).padStart(3, "0")}`;
+    return { base, asset_class: "CRYPTO", market_count: 2, quotes: ["USDT"], markets: {
+      MEXC_SPOT: [{ native_symbol: `${base}USDT`, quote: "USDT", contract_type: "SPOT", settlement_asset: null }],
+      MEXC_PERPETUAL: [{ native_symbol: `${base}_USDT`, quote: "USDT", contract_type: "LINEAR_PERPETUAL", settlement_asset: "USDT" }] } };
+  });
+  return { ...doc, assets, asset_count: n } as ScannerUniverse;
+}
+
+/** The 1.1.0 fixture with an inverse perpetual added to BTC on Kraken (invented PI_XBTUSD, settled in BTC). */
+export function inverseAssetFixture(opts: { now?: number } = {}): ScannerUniverse {
+  const doc = assetUniverseFixture(opts);
+  const assets = doc.assets!.map(a => a.base !== "BTC" ? a : { ...a, markets: { ...a.markets, KRAKEN_PERPETUAL: [
+    ...a.markets.KRAKEN_PERPETUAL!, { native_symbol: "PI_XBTUSD", quote: "USD", contract_type: "INVERSE_PERPETUAL", settlement_asset: "BTC" }] } });
+  return { ...doc, assets } as ScannerUniverse;
+}
