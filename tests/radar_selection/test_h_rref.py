@@ -95,19 +95,71 @@ def test_RR1_no_identity_privilege_in_the_engine():
             assert not re.search(pattern, text), (name, pattern)
 
 
-def test_RR1_selection_does_not_depend_on_market_identity():
-    """Renaming every market changes no rank: selection reads scores, regimes and bases only."""
+def test_RR1_order_preserving_renaming_keeps_the_calm_ranking():
+    """Scope: no fixed identity is privileged. Renaming every market while keeping the
+    lexicographic order of the identifiers (same prefix added to all) gives the same
+    ranking, mapped to the new names; no name is looked up.
+
+    It does not claim that selection ignores market_id. The calm fixture has ties
+    (e.g. seven markets at 82.00 INCOMPLETE, regime CALM), and among tied markets the
+    ascending market_id decides (see the tie test below): an order-changing renaming
+    may legitimately pick another member of a tie group.
+    """
     calm = ev("calm")
     entries = calm["markets"]
+    groups: dict = {}
+    for m in entries:
+        if m["score"] is not None:
+            groups.setdefault((m["score"]["quality"], m["score"]["value"]), []).append(m["market_id"])
+    assert len(groups[("INCOMPLETE", "82.00")]) == 7  # ties exist in this fixture
     base, _ = select_candidates(entries, set())
-    renamed = []
-    for e in entries:
-        x = dict(e)
-        x["market_id"] = "zz:" + e["market_id"][::-1]
-        renamed.append(x)
+    renamed = [dict(e, market_id="zz:" + e["market_id"]) for e in entries]
     again, _ = select_candidates(renamed, set())
+    assert [x["market_id"] for x in again] == ["zz:" + x["market_id"] for x in base]
     assert [(x["score"], x["regime"], x["base"], x["selection_rule"]) for x in again] == \
            [(x["score"], x["regime"], x["base"], x["selection_rule"]) for x in base]
+    # The second candidate is the first of its tie group by market_id, not a privileged name.
+    second = base[1]
+    tie = sorted(groups[(second["quality"], second["score"])])
+    assert second["selection_rule"] == "BASE_DIVERSITY" and second["market_id"] in tie
+    bases_before = {base[0]["base"]}
+    eligible = [mid for mid in tie if next(m for m in entries if m["market_id"] == mid)["base"] not in bases_before]
+    assert second["market_id"] == eligible[0]
+
+
+def test_RR1_ties_are_broken_by_market_id_only_not_by_a_fixed_privilege(monkeypatch):
+    """Two markets with the same quality, score, regime and base: the order is the
+    ascending market_id, whatever the input order. The former reference wins or loses
+    such a tie by the same lexicographic rule as any market, never by a fixed rank."""
+    import itertools
+
+    import observability.radar_selection.selection as sel
+    monkeypatch.setattr(sel, "_candidate", lambda e, rank, rule: (e["market_id"], rule))
+
+    def entry(mid, base="BTC", value="88.00", quality="COMPLETE", regime="CALM"):
+        return {"market_id": mid, "base": base, "score": {"value": value, "quality": quality},
+                "criteria": {"diversity": {"regime": regime}}}
+
+    def ranked(pool):
+        return [x[0] for x in select_candidates(pool, set())[0]]
+
+    # The former reference sorts before its twin: it comes first, and only because "kraken" < "mexc".
+    pair = [entry(FORMER_REFERENCE), entry("mexc:spot:BTC/USDT")]
+    for order in itertools.permutations(pair):
+        assert ranked(list(order)) == [FORMER_REFERENCE, "mexc:spot:BTC/USDT"]
+    # Same tie against a market that sorts before it: the former reference comes second.
+    pair = [entry(FORMER_REFERENCE), entry("binance:spot:BTC/USDT")]
+    for order in itertools.permutations(pair):
+        assert ranked(list(order)) == ["binance:spot:BTC/USDT", FORMER_REFERENCE]
+    # With a third market of another base, the tie still decides which twin takes the slot.
+    trio = [entry(FORMER_REFERENCE), entry("mexc:spot:BTC/USDT"), entry("mexc:spot:ETH/USDT", base="ETH")]
+    results = {tuple(ranked(list(order))) for order in itertools.permutations(trio)}
+    assert results == {(FORMER_REFERENCE, "mexc:spot:BTC/USDT", "mexc:spot:ETH/USDT")}
+    # A real difference of score or quality always beats the identifier.
+    pair = [entry(FORMER_REFERENCE, value="87.99"), entry("mexc:spot:BTC/USDT")]
+    assert ranked(pair) == ["mexc:spot:BTC/USDT", FORMER_REFERENCE]
+    pair = [entry(FORMER_REFERENCE, quality="INCOMPLETE", value="95.00"), entry("mexc:spot:BTC/USDT")]
+    assert ranked(pair) == ["mexc:spot:BTC/USDT", FORMER_REFERENCE]
 
 
 # ------------------------------------------------------------------ RR2
@@ -258,9 +310,15 @@ def test_DIFF_expected_ranking_changes_are_exactly_these():
     expected_old = ["mexc:spot:BTC/USDT", "mexc:spot:SOL/USDT", "mexc:spot:DOGE/USDT"]
     assert changed == {("r0_syn_04_incoherent", m): (expected_old, expected_new)
                        for m in ("PRICE_STUDY", "DEEP_OBSERVATION")}
-    # Why: same base BTC, same regime; the Kraken spot market scores higher and was only set aside by identity.
-    e = ev("incoherent")
-    assert Decimal(market(e, FORMER_REFERENCE)["score"]["value"]) > Decimal(market(e, "mexc:spot:BTC/USDT")["score"]["value"])
+    # Why: same base BTC, same regime CALM; Kraken scores 88.00 COMPLETE against MEXC
+    # 82.00 INCOMPLETE (l2 missing), so it wins on quality and score, not on its identifier.
+    # It was only set aside by the former fixed reference rule.
+    for mission in ("PRICE_STUDY", "DEEP_OBSERVATION"):
+        e = ev("incoherent", mission=mission)
+        k, m = market(e, FORMER_REFERENCE), market(e, "mexc:spot:BTC/USDT")
+        assert (k["score"]["value"], k["score"]["quality"]) == ("88.00", "COMPLETE")
+        assert (m["score"]["value"], m["score"]["quality"], m["score"]["missing"]) == ("82.00", "INCOMPLETE", ["l2"])
+        assert k["criteria"]["diversity"]["regime"] == m["criteria"]["diversity"]["regime"] == "CALM"
 
 
 # ------------------------------------------------------------------ RR6

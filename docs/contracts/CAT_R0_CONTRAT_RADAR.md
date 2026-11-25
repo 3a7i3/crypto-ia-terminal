@@ -315,9 +315,24 @@ admissible d'office. Aucun poids ni aucun seuil ne change.
 scores et motifs sont identiques octet pour octet aux sorties archivées
 `radar-evaluation/1.1.0`. Le classement ne change que pour la fixture
 `r0_syn_04_incoherent` en missions `PRICE_STUDY` et `DEEP_OBSERVATION` :
-`kraken:spot:BTC/USDT` (score supérieur, même base, même régime) remplace
-`mexc:spot:BTC/USDT`. Exclure manuellement `kraken:spot:BTC/USDT` reproduit
-exactement les candidats archivés dans les 15 cas.
+`kraken:spot:BTC/USDT` remplace `mexc:spot:BTC/USDT` : même base BTC, même
+régime CALM, mais 88.00 `COMPLETE` contre 82.00 `INCOMPLETE` (composante L2
+manquante). Il l'emporte par la qualité et le score, pas par son identifiant.
+Exclure manuellement `kraken:spot:BTC/USDT` reproduit exactement les candidats
+archivés dans les 15 cas.
+
+**Privilège fixe et départage des ex æquo.** R-REF retire tout privilège fixe
+lié à l'identité : aucun marché n'est mis de côté, ni placé d'office, parce
+qu'il s'appelle `kraken:spot:BTC/USDT` ou parce que sa base est BTC. Le tri
+reste en revanche entièrement déterministe : qualité `COMPLETE` avant
+`INCOMPLETE`, puis score décroissant, puis `market_id` croissant. Entre deux
+marchés de même qualité, même score, même régime et même base, le
+`market_id` départage donc les ex æquo, quel que soit l'ordre de lecture. Ce
+départage lexicographique s'applique de la même façon à tous les marchés,
+l'ancienne référence comprise (elle gagne ou perd un ex æquo selon l'ordre
+alphabétique des identifiants) ; il ne constitue pas un privilège et n'est
+jamais appliqué avant une différence réelle de qualité ou de score (tests
+`test_RR1_*`).
 
 **Archive (D-R1).** Les sorties des moteurs antérieurs sont conservées sans
 réécriture dans `docs/research/radar_rref/archive/` : R0 au commit
