@@ -15,6 +15,10 @@ d'inventaire lecture seule par l'opérateur.
 
 ## Étapes 1 et 2 — versions installées et comparaison avec `main`
 
+> **Mise à jour S4-B-RV1 (2026-11-25).** Faits VPS transmis par l'opérateur et lignée exacte :
+> voir [CAT_S4B_RV1_RECONCILIATION_PRODUCTION_20261125.md](../audits/CAT_S4B_RV1_RECONCILIATION_PRODUCTION_20261125.md).
+> Le script d'inventaire a été révisé (liste fermée, montages du web résolus).
+
 **Non observées.** Ce conteneur n'a aucun accès au VPS (ni SSH ni secret, conformément aux règles).
 Ce que la source permet d'établir (preuves dans le dépôt, datées) :
 

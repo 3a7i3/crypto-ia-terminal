@@ -106,6 +106,64 @@ def test_SB2_symlinked_parent_is_refused(tmp_path):
         "RADAR_PROJECTION_INVALID_PATH"
 
 
+def _swap_on_first_open(monkeypatch, real_dir, alias_target):
+    """Replace ``real_dir`` by a symlink after every name-based check, at the reader's first open."""
+    real_open = os.open
+
+    def racing_open(name, flags, *args, **kwargs):
+        if not real_dir.is_symlink():
+            real_dir.rename(alias_target)
+            real_dir.symlink_to(alias_target)
+        return real_open(name, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", racing_open)
+
+
+def test_SB2_parent_swapped_for_symlink_during_resolution_is_refused(tmp_path, monkeypatch):
+    # S4-B-RV1: the parent is a real directory when the path is examined and becomes a symlink
+    # just before it is opened. The component-wise O_NOFOLLOW walk must refuse it.
+    pub = tmp_path / "pub"
+    pub.mkdir()
+    write(pub, export("r0_syn_01_calm"))
+    _swap_on_first_open(monkeypatch, pub, tmp_path / "elsewhere")
+    assert RadarProjectionReader(pub / "radar-export.json").read().error_code == "RADAR_PROJECTION_INVALID_PATH"
+
+
+def test_SB2_final_component_swapped_for_symlink_is_refused(tmp_path, monkeypatch):
+    target = write(tmp_path, export("r0_syn_01_calm"), name="real.json")
+    p = tmp_path / "radar-export.json"
+    real_open = os.open
+
+    def racing_open(name, flags, *args, **kwargs):
+        if name == "radar-export.json" and not p.is_symlink():
+            p.symlink_to(target)
+        return real_open(name, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", racing_open)
+    assert RadarProjectionReader(p).read().error_code == "RADAR_PROJECTION_INVALID_PATH"
+
+
+def test_SB2_no_name_based_symlink_check_is_relied_upon(tmp_path, monkeypatch):
+    # Even if every name-based check lied, the kernel-level refusal still holds.
+    real = tmp_path / "real"
+    real.mkdir()
+    write(real, export("r0_syn_01_calm"))
+    (tmp_path / "alias").symlink_to(real)
+    monkeypatch.setattr(Path, "is_symlink", lambda self: False)
+    assert RadarProjectionReader(tmp_path / "alias" / "radar-export.json").read().error_code == \
+        "RADAR_PROJECTION_INVALID_PATH"
+
+
+def test_SB2_dotdot_is_refused_and_relative_path_is_read(tmp_path, monkeypatch):
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    write(tmp_path, export("r0_syn_01_calm"))
+    assert RadarProjectionReader(sub / ".." / "radar-export.json").read().error_code == \
+        "RADAR_PROJECTION_INVALID_PATH"
+    monkeypatch.chdir(tmp_path)
+    assert RadarProjectionReader(Path("./radar-export.json")).read().ok
+
+
 def test_SB2_file_changing_during_read_is_refused(tmp_path, monkeypatch):
     p = write(tmp_path, export("r0_syn_01_calm"))
     real = os.fstat
