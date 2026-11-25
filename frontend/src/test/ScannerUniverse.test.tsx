@@ -181,7 +181,7 @@ describe("Marché → Scanner", () => {
       expect(screen.getByRole("list", { name: "Devises et stablecoins · non comptés dans la couverture" })).toHaveTextContent("USDC");
       expect(screen.getByTestId("coverage-strict")).toHaveTextContent(/^Paires strictes0$/);
       expect(screen.queryByText(/Univers vide vérifié/)).toBeNull();
-      fireEvent.click(within(screen.getByRole("list", { name: "Crypto-actifs" })).getByRole("button", { name: /^BTC, 4 marchés sur 4, devises USD et USDT/ }));
+      fireEvent.click(within(screen.getByRole("list", { name: "Crypto-actifs" })).getByRole("button", { name: /^BTC, 4 marchés sur 4 : .*, devises USD et USDT/ }));
       const dialog = await screen.findByRole("dialog", { name: "Instruments BTC" });
       for (const text of ["BTCUSDT · BTC / USDT", "BTC_USDT · BTC / USDT", "XBTUSD · BTC / USD", "XBTUSDT · BTC / USDT", "PF_XBTUSD · BTC / USD"]) expect(dialog).toHaveTextContent(text);
     });

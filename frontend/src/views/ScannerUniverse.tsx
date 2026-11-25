@@ -126,7 +126,7 @@ const AssetDetail = ({ asset }: { asset: UniverseAsset }) => <dl className="su-i
     ? <ul className="su-instrument-rows">{rows.map(r => <li key={r.native_symbol}>
         <strong>{r.native_symbol}</strong> · {asset.base} / {r.quote} · {CONTRACT[r.contract_type] ?? r.contract_type} · règlement {r.settlement_asset
           ?? (r.contract_type === "SPOT" ? "sans objet (Spot)" : "non publié")}</li>)}</ul>
-    : <em>non négocié</em>}</dd></div>;
+    : <em>Aucun instrument publié pour ce marché</em>}</dd></div>;
 })}</dl>;
 
 /** A count as published, or the reason it cannot be shown. Never a zero by default. */

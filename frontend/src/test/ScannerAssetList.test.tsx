@@ -88,7 +88,7 @@ describe("S3 · liste, comptes et filtres", () => {
     expect(search()).toHaveValue("XBT");
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toHaveTextContent("via XBTUSD");
-    expect(rows()[0]).toHaveAccessibleName("BTC, 4 marchés sur 4, devises USD et USDT, trouvé via XBTUSD, ouvrir les instruments");
+    expect(rows()[0]).toHaveAccessibleName("BTC, 4 marchés sur 4 : Kraken Spot présent, Kraken Perpétuel présent, MEXC Spot présent, MEXC Perpétuel présent, devises USD et USDT, trouvé via XBTUSD, ouvrir les instruments");
   });
 
   it("A4 · aucun résultat : message explicite, jamais une liste vide muette", () => {
@@ -101,7 +101,7 @@ describe("S3 · liste, comptes et filtres", () => {
 });
 
 describe("S3 · détail par instrument", () => {
-  it("A5 · tous les instruments natifs publiés, un par ligne ; USD et USDT séparés ; inverse étiqueté ; marché absent « non négocié »", () => {
+  it("A5 · tous les instruments natifs publiés, un par ligne ; USD et USDT séparés ; inverse étiqueté ; marché absent « Aucun instrument publié pour ce marché »", () => {
     const doc = inverseAssetFixture({ now: NOW });
     show(doc);
     fireEvent.click(screen.getByRole("button", { name: /^BTC, 4 marchés sur 4/ }));
@@ -120,7 +120,7 @@ describe("S3 · détail par instrument", () => {
     expect(dialog.querySelector('[data-market="KRAKEN_SPOT"]')).toHaveTextContent("Kraken Spot · 2 instruments");
     fireEvent.click(within(dialog).getByRole("button", { name: "Fermer" }));
     fireEvent.click(screen.getByRole("button", { name: /^ETH, 3 marchés sur 4/ }));
-    expect(screen.getByRole("dialog", { name: "Instruments ETH" }).querySelector('[data-market="KRAKEN_SPOT"]')).toHaveTextContent("non négocié");
+    expect(screen.getByRole("dialog", { name: "Instruments ETH" }).querySelector('[data-market="KRAKEN_SPOT"]')).toHaveTextContent("Kraken SpotAucun instrument publié pour ce marché");
   });
 });
 
@@ -191,16 +191,30 @@ describe("S3 · accessibilité, réseau, URL et limites", () => {
     const chips = within(screen.getByRole("group", { name: "Filtrer par couverture" })).getAllByRole("button");
     expect(chips.map(c => c.getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false"]);
     expect(rows().map(r => r.getAttribute("aria-label"))).toEqual([
-      "BTC, 4 marchés sur 4, devises USD et USDT, ouvrir les instruments",
-      "ETH, 3 marchés sur 4, devises USD et USDT, ouvrir les instruments",
-      "DOGE, 2 marchés sur 4, devise USDT, ouvrir les instruments",
-      "USDC, stablecoin, 2 marchés sur 4, devise USDT, ouvrir les instruments",
+      "BTC, 4 marchés sur 4 : Kraken Spot présent, Kraken Perpétuel présent, MEXC Spot présent, MEXC Perpétuel présent, devises USD et USDT, ouvrir les instruments",
+      "ETH, 3 marchés sur 4 : Kraken Spot absent, Kraken Perpétuel présent, MEXC Spot présent, MEXC Perpétuel présent, devises USD et USDT, ouvrir les instruments",
+      "DOGE, 2 marchés sur 4 : Kraken Spot absent, Kraken Perpétuel absent, MEXC Spot présent, MEXC Perpétuel présent, devise USDT, ouvrir les instruments",
+      "USDC, stablecoin, 2 marchés sur 4 : Kraken Spot absent, Kraken Perpétuel absent, MEXC Spot présent, MEXC Perpétuel présent, devise USDT, ouvrir les instruments",
     ]);
     const eth = rows()[1];
     fireEvent.click(eth);
     fireEvent.click(within(screen.getByRole("dialog", { name: "Instruments ETH" })).getByRole("button", { name: "Fermer" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(eth).toHaveFocus();
+  });
+
+  it("C1 · lignes 3/4 et 2/4 : noms complets des quatre marchés et présence ou absence lisibles, pas seulement par la couleur", () => {
+    show(assetUniverseFixture({ now: NOW }));
+    const eth = screen.getByRole("button", { name: /^ETH,/ });
+    const doge = screen.getByRole("button", { name: /^DOGE,/ });
+    expect(eth).toHaveAccessibleName("ETH, 3 marchés sur 4 : Kraken Spot absent, Kraken Perpétuel présent, MEXC Spot présent, MEXC Perpétuel présent, devises USD et USDT, ouvrir les instruments");
+    expect(doge).toHaveAccessibleName("DOGE, 2 marchés sur 4 : Kraken Spot absent, Kraken Perpétuel absent, MEXC Spot présent, MEXC Perpétuel présent, devise USDT, ouvrir les instruments");
+    // Compact visual line: an absent market is struck through and titled, not only greyed.
+    const off = [...doge.querySelectorAll(".su-mkts span")].map(e => [e.textContent, e.className, e.getAttribute("title")]);
+    expect(off).toEqual([
+      ["KR·S", "su-off", "Kraken Spot absent"], ["KR·P", "su-off", "Kraken Perpétuel absent"],
+      ["MX·S", "", "MEXC Spot présent"], ["MX·P", "", "MEXC Perpétuel présent"],
+    ]);
   });
 
   it("A8 · aucune requête réseau en cherchant, filtrant, paginant ou ouvrant un détail", async () => {

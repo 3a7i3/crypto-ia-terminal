@@ -4,7 +4,7 @@
  *  price, no score, no Radar admissibility. Rows exist only while the universe
  *  is verified: an unavailable publication leaves no former row on screen. */
 import { useEffect, useState, type MouseEvent } from "react";
-import { MARKET_SHORT, ASSET_CLASS_LABEL, type UniverseAsset, type UniverseMarket } from "../lib/scannerUniverseClient";
+import { MARKET_LABEL, MARKET_SHORT, ASSET_CLASS_LABEL, type UniverseAsset, type UniverseMarket } from "../lib/scannerUniverseClient";
 import { COVERAGES, PAGE_SIZE, chipCounts, filterAssets, normalizeQuery, type AssetMatch, type Coverage } from "../lib/scannerAssetSearch";
 
 const ORDER: UniverseMarket[] = ["KRAKEN_SPOT", "KRAKEN_PERPETUAL", "MEXC_SPOT", "MEXC_PERPETUAL"];
@@ -20,8 +20,10 @@ export function useLocalAssetSearch(): AssetSearch {
   return { ...s, set: (q, cov) => setS({ q: normalizeQuery(q), cov }) };
 }
 
+/** Full market names with presence or absence, in card order: what the compact KR·S … MX·P line shows. */
+const presence = (a: UniverseAsset) => ORDER.map(k => `${MARKET_LABEL[k]} ${a.markets[k] ? "présent" : "absent"}`).join(", ");
 const rowLabel = (a: UniverseAsset, via: string | null) =>
-  `${a.base}, ${a.asset_class === "CRYPTO" ? "" : ASSET_CLASS_LABEL[a.asset_class] + ", "}${a.market_count} marchés sur 4, ${plural(a.quotes.length, "devise")} ${joinFr(a.quotes)}${via ? `, trouvé via ${via}` : ""}, ouvrir les instruments`;
+  `${a.base}, ${a.asset_class === "CRYPTO" ? "" : ASSET_CLASS_LABEL[a.asset_class] + ", "}${a.market_count} marchés sur 4 : ${presence(a)}, ${plural(a.quotes.length, "devise")} ${joinFr(a.quotes)}${via ? `, trouvé via ${via}` : ""}, ouvrir les instruments`;
 
 const Row = ({ m, onOpen }: { m: AssetMatch; onOpen: (e: MouseEvent<HTMLButtonElement>, base: string) => void }) => {
   const a = m.asset;
@@ -30,7 +32,7 @@ const Row = ({ m, onOpen }: { m: AssetMatch; onOpen: (e: MouseEvent<HTMLButtonEl
       {a.asset_class !== "CRYPTO" && <span className="su-class">{ASSET_CLASS_LABEL[a.asset_class]}</span>}
       {m.via && <span className="su-via">via {m.via}</span>}</span>
     <span className="su-row-meta" aria-hidden="true">
-      <span className="su-mkts">{ORDER.map(k => <span key={k} className={a.markets[k] ? undefined : "su-off"}>{MARKET_SHORT[k]}</span>)}</span>
+      <span className="su-mkts">{ORDER.map(k => <span key={k} className={a.markets[k] ? undefined : "su-off"} title={`${MARKET_LABEL[k]} ${a.markets[k] ? "présent" : "absent"}`}>{MARKET_SHORT[k]}</span>)}</span>
       <span className="su-quotes">{a.quotes.join(" · ")}</span></span>
   </button></li>;
 };
