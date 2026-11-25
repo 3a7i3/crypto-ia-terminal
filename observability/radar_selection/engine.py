@@ -129,8 +129,7 @@ def _cycle(doc: dict, universe: dict, dataset: dict, inputs: dict | None, prefs:
         key=lambda o: (o["venue"], o["market_type"], o["native_symbol"]))
 
     by_id = {e["market_id"]: e for e in entries}
-    candidates, empty_reason = select_candidates(entries, excluded, c.REFERENCE["market_id"])
-    reference = _reference(by_id.get(c.REFERENCE["market_id"]), mission)
+    candidates, empty_reason = select_candidates(entries, excluded)
     manual = {k: [_manual_item(mid, by_id.get(mid)) for mid in prefs[k]] for k in ("selected", "pinned", "excluded")}
 
     counts = {
@@ -161,7 +160,6 @@ def _cycle(doc: dict, universe: dict, dataset: dict, inputs: dict | None, prefs:
         "policy": doc["policy"],
         "sources": universe["sources"],
         "counts": counts,
-        "reference": reference,
         "candidates": candidates,
         "candidates_empty_reason": empty_reason,
         "manual": manual,
@@ -186,17 +184,6 @@ def _recent(seen: dict) -> str:
         return "ABSENT" if seen["reason"] == "NO_OBSERVATION" else "UNKNOWN"
     fr = seen["measures"].get("freshness", {})
     return fr.get("class", "UNKNOWN") if fr.get("state") == "AVAILABLE" else "UNKNOWN"
-
-
-def _reference(entry: dict | None, mission: str) -> dict:
-    base = {**c.REFERENCE, "in_ranking": False, "historical_admission": c.REFERENCE_HISTORICAL_STATUS,
-            "note": c.REFERENCE_NOTE, "mission": mission}
-    if entry is None:
-        return {**base, "present": False, "radar_decision": c.UNKNOWN,
-                "reasons": [{"decision": c.UNKNOWN, "code": "REFERENCE_NOT_IN_UNIVERSE"}], "score": None}
-    return {**base, "present": True, "radar_decision": entry["admissibility"]["decision"],
-            "reasons": entry["admissibility"]["reasons"],
-            "score": entry["score"]["value"] if entry["score"] else None}
 
 
 def _manual_item(mid: str, entry: dict | None) -> dict:

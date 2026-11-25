@@ -1,0 +1,644 @@
+{
+ "admission": "NONE",
+ "created_for": "R-REF (radar-rules/1.2.0, radar-ranking/1.3.0, radar-evaluation/1.2.0)",
+ "engines": {
+  "r0_ca0354f": {
+   "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+   "stage": "R0"
+  },
+  "r1b_77bd30e": {
+   "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+   "stage": "R1-B"
+  }
+ },
+ "entries": [
+  {
+   "bytes": 69629,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "286aec5aaa03c56be0febf3180ce7c4333f7af1b83c915a4c048de1e794f4ec7",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r0_ca0354f/r0_syn_01_calm.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_01_calm.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "859bae6533263663e5bb1c8d4810f3ca1abc9815712ae7c88f947a24cd1e3666",
+   "source": {
+    "dataset_id": "R0-SYN-01-CALM",
+    "dataset_sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_01_calm.json",
+    "sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5"
+   }
+  },
+  {
+   "bytes": 64204,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "42a25613581d4d4fd726f07d300582c34cf019c8e4fd19dcc09fc4cda0b6cc0c",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r0_ca0354f/r0_syn_01_calm.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_01_calm.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "f8287d8933e6dfe4a7b9d591cda9a91bab256f74db46a6aafc235eb048e0ee33",
+   "source": {
+    "dataset_id": "R0-SYN-01-CALM",
+    "dataset_sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_01_calm.json",
+    "sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5"
+   }
+  },
+  {
+   "bytes": 69488,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "f2a70614184e759227324684eab11cd2b91fad92019efdcae55b1cebed4f3b9f",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r0_ca0354f/r0_syn_01_calm.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_01_calm.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "332efe434b5094e277b76502d2041d25fd52e46d315e554e03aa49772817a6a7",
+   "source": {
+    "dataset_id": "R0-SYN-01-CALM",
+    "dataset_sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_01_calm.json",
+    "sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5"
+   }
+  },
+  {
+   "bytes": 68228,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "c08921cac7d543ffb0b603a83231fae336ff57c1974149bee75b72940dccc8a2",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r0_ca0354f/r0_syn_02_volatile.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_02_volatile.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "82fa469ec408391dc3d6e95a2c0a9444c349a14bf5ffbd0614f53c8ce078c486",
+   "source": {
+    "dataset_id": "R0-SYN-02-VOLATILE",
+    "dataset_sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_02_volatile.json",
+    "sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509"
+   }
+  },
+  {
+   "bytes": 63190,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "886c2542834e46a7e4ee3ce2c057dbf00d4f73c83a64075bce283e0e785e0276",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r0_ca0354f/r0_syn_02_volatile.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_02_volatile.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "3f5e14351b36e20d5d2da0bd26f354a0f3d050c0873217845ed42f107a158216",
+   "source": {
+    "dataset_id": "R0-SYN-02-VOLATILE",
+    "dataset_sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_02_volatile.json",
+    "sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509"
+   }
+  },
+  {
+   "bytes": 68087,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "7aece74e1bdeb112f53047b7ac31bc26807172d0834eb57bcc35cb21b28af950",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r0_ca0354f/r0_syn_02_volatile.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_02_volatile.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "ac8e5842e9f75472708e2d58c6b1d09f3b8e9375495818f08128649edf23f0fa",
+   "source": {
+    "dataset_id": "R0-SYN-02-VOLATILE",
+    "dataset_sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_02_volatile.json",
+    "sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509"
+   }
+  },
+  {
+   "bytes": 68125,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "afb348fe62a2f3dd9b1b78f3936e96af210f34b43fece92a231eb480ee3ba124",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r0_ca0354f/r0_syn_03_active_gaps.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_03_active_gaps.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "ffca8af6292fe44209e518715ff88aa6f837044a507fa31e446557243fc9f95e",
+   "source": {
+    "dataset_id": "R0-SYN-03-ACTIVE-GAPS",
+    "dataset_sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_03_active_gaps.json",
+    "sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503"
+   }
+  },
+  {
+   "bytes": 64295,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "a9a95af9fc9f6a20375fcb12d2e6b4b97a10a11a151c8c6131d1c0bfe84815f9",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r0_ca0354f/r0_syn_03_active_gaps.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_03_active_gaps.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "ccea4349c278b4a45885126b894dcaef604d6e030414e0a141456531d221d4e0",
+   "source": {
+    "dataset_id": "R0-SYN-03-ACTIVE-GAPS",
+    "dataset_sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_03_active_gaps.json",
+    "sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503"
+   }
+  },
+  {
+   "bytes": 68146,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "bf576ee1b93bf8a913e59c4bd7db9ca430d2932105baf5a34f60a241f33a19cd",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r0_ca0354f/r0_syn_03_active_gaps.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_03_active_gaps.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "09f685080b52d40e3d46a159c64ebfeb18e2dc48196a7d5b91b34b7ee88939f3",
+   "source": {
+    "dataset_id": "R0-SYN-03-ACTIVE-GAPS",
+    "dataset_sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_03_active_gaps.json",
+    "sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503"
+   }
+  },
+  {
+   "bytes": 60918,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "8fb17f040de1d9a27649d78187ec02aa5157bfeef57635aaf9edd0bbf92d12cb",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r0_ca0354f/r0_syn_04_incoherent.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_04_incoherent.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "04585065351d5df1f36a00edeeef1f6cac3314b84700c2850b226a4286cad619",
+   "source": {
+    "dataset_id": "R0-SYN-04-INCOHERENT",
+    "dataset_sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_04_incoherent.json",
+    "sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238"
+   }
+  },
+  {
+   "bytes": 57784,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "f24b25c06370413f78d6948af74567a036716aa46dc82f9948b62f0238896220",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r0_ca0354f/r0_syn_04_incoherent.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_04_incoherent.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "87b9aa989ae3aac668b16ce8c72d479d96f61f62ae34151371dcd672cb56950b",
+   "source": {
+    "dataset_id": "R0-SYN-04-INCOHERENT",
+    "dataset_sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_04_incoherent.json",
+    "sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238"
+   }
+  },
+  {
+   "bytes": 60782,
+   "engine": {
+    "commit": "ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823",
+    "stage": "R0"
+   },
+   "evaluation_sha256": "16ca1c7bd09cbd9cf6f7487e2a53fd79f818d6d8611f0f24af8e1fb4fff80d7c",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r0_ca0354f/r0_syn_04_incoherent.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_04_incoherent.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.1.0",
+   "rules_version": "radar-rules/1.0.0",
+   "schema_version": "radar-evaluation/1.0.0",
+   "sha256": "9966c20bface1a875437e3e35797c21867e7c539d904924af730735ffe293d33",
+   "source": {
+    "dataset_id": "R0-SYN-04-INCOHERENT",
+    "dataset_sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_04_incoherent.json",
+    "sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238"
+   }
+  },
+  {
+   "bytes": 70728,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "576b3c7196b50dc9a730fbf542ebf498f334c79f1cadb43ada0117b980a1106f",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r1b_77bd30e/r0_syn_01_calm.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_01_calm.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "0afc968a4a28ef7935f465a8fb14f28754a1bc953daf7b09d39a9b7938858add",
+   "source": {
+    "dataset_id": "R0-SYN-01-CALM",
+    "dataset_sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_01_calm.json",
+    "sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5"
+   }
+  },
+  {
+   "bytes": 65303,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "5c04bd73c2e4129d1e05aa1ffb86193a33c6d583bb0e67967a6259114735fe08",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r1b_77bd30e/r0_syn_01_calm.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_01_calm.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "38ebebef2b6fdb6bf17345f6dd1ea4ed58658c91fa9f76fc1175993f0ac3f29e",
+   "source": {
+    "dataset_id": "R0-SYN-01-CALM",
+    "dataset_sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_01_calm.json",
+    "sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5"
+   }
+  },
+  {
+   "bytes": 70587,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "631e298bf1cb7567154e08bc7c8f2c106db7942cbc8e1792463254aa72e0d8eb",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r1b_77bd30e/r0_syn_01_calm.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_01_calm.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "c8609ae84bf1b8f3038f104dbe8649d973d9c103eacc17cb1d23f35cd5b23e68",
+   "source": {
+    "dataset_id": "R0-SYN-01-CALM",
+    "dataset_sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_01_calm.json",
+    "sha256": "3ffef8e0b689982a219c2cba2f90ce0b489d9d64c7291e95cc843db8a0da60c5"
+   }
+  },
+  {
+   "bytes": 69327,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "69decd38663b1dec9c719235f2a4312e590c89b186d6cf009dbfda66db6db018",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r1b_77bd30e/r0_syn_02_volatile.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_02_volatile.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "cdf15ff1173f408dec130683096494bdac76ccdc9bd87b3da2b01bdded878edd",
+   "source": {
+    "dataset_id": "R0-SYN-02-VOLATILE",
+    "dataset_sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_02_volatile.json",
+    "sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509"
+   }
+  },
+  {
+   "bytes": 64289,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "184da3f96b2add134980256d7061fa563b2395ddb229d130f416e54d9ebb7e07",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r1b_77bd30e/r0_syn_02_volatile.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_02_volatile.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "cd3faa9d7531c131bc3fbec0f0e3c719e5bcc9f1c9c95ccac9c840cac07c085e",
+   "source": {
+    "dataset_id": "R0-SYN-02-VOLATILE",
+    "dataset_sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_02_volatile.json",
+    "sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509"
+   }
+  },
+  {
+   "bytes": 69186,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "d845815e87e9b1e0b56ec8a1e1b995443794ff0eabdff433455b1865bd7b998c",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r1b_77bd30e/r0_syn_02_volatile.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_02_volatile.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "f9b99beddb41c1c4e66263c83e560a4fc04eadcd04577af7a35ffaff670519d3",
+   "source": {
+    "dataset_id": "R0-SYN-02-VOLATILE",
+    "dataset_sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_02_volatile.json",
+    "sha256": "49d7947bdd64e03d1d0c44fb5cfa0307b13d97d8be8611470d11e55b65fdc509"
+   }
+  },
+  {
+   "bytes": 69314,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "661e51ccf65f6e21dde7729fe8c4acc9ce1d002c2e47ab003e8e87b9c24de79f",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r1b_77bd30e/r0_syn_03_active_gaps.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_03_active_gaps.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "3d0d81620433cf707f18bc3e85a0dff5f7dc1525fc61e1a8cea52384b5aac329",
+   "source": {
+    "dataset_id": "R0-SYN-03-ACTIVE-GAPS",
+    "dataset_sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_03_active_gaps.json",
+    "sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503"
+   }
+  },
+  {
+   "bytes": 65484,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "5e1889e361a1e7a4f8d8e48783e014a21bac9becd0569da3d696881eb30a39ed",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r1b_77bd30e/r0_syn_03_active_gaps.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_03_active_gaps.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "834b8d6f0c1541526cfd753e4c52a4eaa90183e920af1b1b1ffd48cf2dbc58b2",
+   "source": {
+    "dataset_id": "R0-SYN-03-ACTIVE-GAPS",
+    "dataset_sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_03_active_gaps.json",
+    "sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503"
+   }
+  },
+  {
+   "bytes": 69335,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "bfe9020f8ba007ab082022146b03b461d2cc90c1fd7500a2a7d4ab3c759f844a",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r1b_77bd30e/r0_syn_03_active_gaps.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_03_active_gaps.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "9318bf9c936b47bf5a7d95365317d26e32825ae3340d821c8a279a27b895c9bd",
+   "source": {
+    "dataset_id": "R0-SYN-03-ACTIVE-GAPS",
+    "dataset_sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_03_active_gaps.json",
+    "sha256": "e56641f97a9415a1dc7172aabbee4da67a0ba673db05510164d223fc5f09b503"
+   }
+  },
+  {
+   "bytes": 61972,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "bfa44049bd3f0b751fb83f2e8be7172d241b706264b471ad48dc398cefd31766",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r1b_77bd30e/r0_syn_04_incoherent.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_04_incoherent.json --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "edbae9740f684849cb729261b1f16535acbd2aac9fe39439ee5e354dbc64d67f",
+   "source": {
+    "dataset_id": "R0-SYN-04-INCOHERENT",
+    "dataset_sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_04_incoherent.json",
+    "sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238"
+   }
+  },
+  {
+   "bytes": 58838,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "a02d280c835bb6f9cfba128c93e6e10bd46ae1ca855793e6e308b6f717f13f05",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r1b_77bd30e/r0_syn_04_incoherent.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_04_incoherent.json --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "848b1559fdc66846e945b6e9fdbe69b3aa6f369b7ca31e85376274e1b0c9d231",
+   "source": {
+    "dataset_id": "R0-SYN-04-INCOHERENT",
+    "dataset_sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_04_incoherent.json",
+    "sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238"
+   }
+  },
+  {
+   "bytes": 61836,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "e53bd375cee008af8f845191e0c57b694668d75a778342f3195923f5d89bca2c",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r1b_77bd30e/r0_syn_04_incoherent.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --fixture observability/radar_selection/fixtures/r0_syn_04_incoherent.json --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "f8fffdfb1033fe38db7be958259e488f8e9fab6d4da5f2d6511dc1f45070d3d0",
+   "source": {
+    "dataset_id": "R0-SYN-04-INCOHERENT",
+    "dataset_sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238",
+    "kind": "radar-fixture",
+    "path": "observability/radar_selection/fixtures/r0_syn_04_incoherent.json",
+    "sha256": "d3d14ac42c9862dc3b26d1457a6dfbe08c1b74001421b3d69ca5627ec076b238"
+   }
+  },
+  {
+   "bytes": 56400,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "1d039e37992fc8ccb45b4536d20ab61551ed5dcb0c6e2201d202d4827a7b3402",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "DEEP_OBSERVATION",
+   "path": "r1b_77bd30e/r1b_syn_01_btc_atom.DEEP_OBSERVATION.json",
+   "producing_command": "python -m observability.radar_selection --batch tests/radar_selection/evidence/batches/r1b_syn_01_btc_atom.json --evidence-root tests/radar_selection/evidence --mission DEEP_OBSERVATION export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "bee1fe4065711cff4e7d8227ede5824b21e4137943b85cfbc1943344c3e5ffbc",
+   "source": {
+    "dataset_id": "R1B-SYN-01-BTC-ATOM",
+    "dataset_sha256": "ca023bb167413e29e6190923ab3d2dfd1cff49077018fce7781b38e9510a920d",
+    "evidence_root": "tests/radar_selection/evidence",
+    "kind": "radar-batch",
+    "path": "tests/radar_selection/evidence/batches/r1b_syn_01_btc_atom.json",
+    "sha256": "ca023bb167413e29e6190923ab3d2dfd1cff49077018fce7781b38e9510a920d"
+   }
+  },
+  {
+   "bytes": 54538,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "9cdc5dfbe53f4f6b3bb8e018ee9bfae748228b99866f1a4cd620dd6ef7d4753c",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "L2_DEPTH_STUDY",
+   "path": "r1b_77bd30e/r1b_syn_01_btc_atom.L2_DEPTH_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --batch tests/radar_selection/evidence/batches/r1b_syn_01_btc_atom.json --evidence-root tests/radar_selection/evidence --mission L2_DEPTH_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "1ee729240acf4b38eb3d5a397e22650254497bc69ad27358ed433a13f0b51d4a",
+   "source": {
+    "dataset_id": "R1B-SYN-01-BTC-ATOM",
+    "dataset_sha256": "ca023bb167413e29e6190923ab3d2dfd1cff49077018fce7781b38e9510a920d",
+    "evidence_root": "tests/radar_selection/evidence",
+    "kind": "radar-batch",
+    "path": "tests/radar_selection/evidence/batches/r1b_syn_01_btc_atom.json",
+    "sha256": "ca023bb167413e29e6190923ab3d2dfd1cff49077018fce7781b38e9510a920d"
+   }
+  },
+  {
+   "bytes": 56259,
+   "engine": {
+    "commit": "77bd30e2888a11207c2c0dbce19eaa62fd4421ac",
+    "stage": "R1-B"
+   },
+   "evaluation_sha256": "d9ca3c715704f858f3a176059834ca72fc5789a301c2e86206689dd463fafc86",
+   "evidence_kind": "SYNTHETIC",
+   "mission": "PRICE_STUDY",
+   "path": "r1b_77bd30e/r1b_syn_01_btc_atom.PRICE_STUDY.json",
+   "producing_command": "python -m observability.radar_selection --batch tests/radar_selection/evidence/batches/r1b_syn_01_btc_atom.json --evidence-root tests/radar_selection/evidence --mission PRICE_STUDY export",
+   "ranking_version": "radar-ranking/1.2.0",
+   "rules_version": "radar-rules/1.1.0",
+   "schema_version": "radar-evaluation/1.1.0",
+   "sha256": "0c4f238eb5b68de2acf0fe7be41ec7e04496c913bc07f85dbecb92485d221962",
+   "source": {
+    "dataset_id": "R1B-SYN-01-BTC-ATOM",
+    "dataset_sha256": "ca023bb167413e29e6190923ab3d2dfd1cff49077018fce7781b38e9510a920d",
+    "evidence_root": "tests/radar_selection/evidence",
+    "kind": "radar-batch",
+    "path": "tests/radar_selection/evidence/batches/r1b_syn_01_btc_atom.json",
+    "sha256": "ca023bb167413e29e6190923ab3d2dfd1cff49077018fce7781b38e9510a920d"
+   }
+  }
+ ],
+ "evidence_kind": "SYNTHETIC",
+ "purpose": "Sorties des moteurs Radar antérieurs à R-REF (D-R1), conservées telles qu'elles ont été produites. Elles sont vérifiées par empreinte ; ce dépôt ne les recalcule pas et ne garde aucun moteur historique actif.",
+ "replay_note": "producing_command est la commande lancée à la racine d'un checkout du commit moteur indiqué. Vérifier un fichier archivé (empreinte) n'est pas rejouer son calcul historique ; un rejeu exige un checkout séparé de ce commit.",
+ "schema": "radar-archive-manifest/1.0.0"
+}

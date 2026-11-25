@@ -46,7 +46,7 @@ fichiers sont régénérés à l'identique par
 
 | Commande | Effet |
 |---|---|
-| `status` | Tableau de bord : mode, univers, référence BTC, trois candidats |
+| `status` | Tableau de bord : mode, univers, trois candidats (plus de référence BTC depuis R-REF) |
 | `universe [--venue V] [--type T] [--search Q] [--decision D]` | Tous les marchés, filtrables (`--type SPOT\|PERPETUAL`, `--decision ADMISSIBLE\|A_QUALIFIER\|NON_ADMISSIBLE\|UNKNOWN`) |
 | `scan` | Évalue l'univers ; avec `--state-dir`, ajoute le résultat à l'historique borné (20) |
 | `candidates` | Les trois propositions détaillées : critères, coût et provenance, limites |
@@ -104,8 +104,9 @@ interactif, il affiche `radar>`.
   sont toujours affichés : aucune valeur n'est LIVE.
 - **Univers** : découverts, autorisés, admis, à qualifier, inconnus, non
   admissibles, exclus manuellement.
-- **Référence** : `Kraken | SPOT | BTC/USDT`, `NOT YET HISTORICALLY ADMITTED`,
-  sa décision Radar, hors classement.
+- **Référence** : écran retiré par R-REF (`radar-evaluation/1.2.0`). Aucun
+  marché n'est une référence ; `Kraken | SPOT | BTC/USDT` est classé comme les
+  autres et peut être exclu par `exclude`.
 - **Candidats** : `PROPOSÉ, NON AUTORISÉ`. Une proposition ne lance rien.
 - Un marché choisi ou épinglé qui n'est pas `ADMISSIBLE` est affiché
   « NON présenté comme admissible ».
