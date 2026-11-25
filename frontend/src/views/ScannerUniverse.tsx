@@ -1,20 +1,36 @@
-/** Scanner V1: the common MEXC × Kraken universe (Spot × Perpetual) as published
- *  by the server. Every listed pair carries its four market proofs; an empty
- *  verified universe and an unavailable one are shown apart. Nothing is computed here. */
-import { useEffect, useRef, useState } from "react";
+/** Scanner scientifique (S2): mobile dashboard of the MEXC × Kraken universe
+ *  (Spot × Perpetual) as published by the server. First screen: global status,
+ *  the four catalogue sources with their age, and the coverage counts as
+ *  published (assets on 4/3/2 markets kept apart from strict same-quote pairs).
+ *  Native instruments and proofs stay one tap away. Nothing is computed here
+ *  beyond formatting: an unavailable value is shown as such, never as zero, and
+ *  catalogue freshness is never presented as a live price. */
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import {
-  fetchScannerUniverse, universeView, UniverseError, MARKET_LABEL, MARKET_SHORT, UNIVERSE_MARKETS,
-  type ScannerUniverse as Universe, type UniverseView, type UniversePair, type UniverseMarket, type UniverseAsset, ASSET_CLASS_LABEL,
+  fetchScannerUniverse, universeView, sourceFreshness, UniverseError, MARKET_LABEL, MARKET_SHORT, UNIVERSE_MARKETS,
+  type ScannerUniverse as Universe, type UniverseView, type UniversePair, type UniverseMarket, type UniverseAsset, type UniverseSource, ASSET_CLASS_LABEL,
 } from "../lib/scannerUniverseClient";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 import "./scanner-universe.css";
 
 const utc = (ms: number | null | undefined) => ms == null ? "Non disponible" : new Date(ms).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+const clock = (ms: number) => new Date(ms).toISOString().slice(11, 16) + " UTC";
+const iso = (ms: number) => new Date(ms).toISOString();
+/** Elapsed time, rounded down to its unit. Formatting only. */
+export const ageLabel = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  if (s < 172_800) return `${Math.floor(s / 3600)} h`;
+  return `${Math.floor(s / 86_400)} j`;
+};
 const REASON: Record<string, string> = {
   ABSENT: "absente du catalogue", NOT_TRADABLE: "non négociable", NOT_PERPETUAL: "contrat à échéance",
   AMBIGUOUS_MAPPING: "correspondance ambiguë", AMBIGUOUS_CONTRACT: "contrat ambigu", DUPLICATE_KEY: "deux instruments pour la même paire",
   DARK_POOL_PAIR: "carnet dark pool", STALE: "relevé périmé", COLLECTED_IN_FUTURE: "horodatage incohérent",
   READ_TOO_OLD: "dernière lecture trop ancienne", UNVERIFIABLE: "non vérifiable",
+  INVALID_UNIVERSE_CONTRACT: "publication invalide (contrat scanner-universe non respecté)", INVALID_JSON: "réponse illisible",
+  RESPONSE_LIMIT: "réponse trop volumineuse", TIMEOUT: "délai de lecture dépassé", TRANSPORT_ERROR: "lecture impossible (réseau)",
 };
 export const reasonLabel = (reason: string | null) => {
   if (!reason) return "valide";
@@ -22,6 +38,7 @@ export const reasonLabel = (reason: string | null) => {
   if (head === "INCOMPLETE") return `catalogue incomplet (${tail})`;
   if (head === "UNAVAILABLE") return `catalogue inaccessible (${tail})`;
   if (head.startsWith("SOURCE_")) return "source non vérifiée";
+  if (/^HTTP_\d{3}$/.test(head)) return `erreur du serveur (${head})`;
   return REASON[head] ?? reason;
 };
 
@@ -48,6 +65,47 @@ export function useScannerUniverse(pollMs = 60_000): UniverseView {
   return universeView(doc, error, received.current, now);
 }
 
+/** Display order asked for the operator: Kraken first, Spot before Perpetual. */
+export const SOURCE_ORDER: UniverseMarket[] = ["KRAKEN_SPOT", "KRAKEN_PERPETUAL", "MEXC_SPOT", "MEXC_PERPETUAL"];
+
+type Tone = "ok" | "empty" | "warn" | "ko" | "wait";
+type SourceCard = { market: UniverseMarket; tone: Tone; label: string; why: string | null; source: UniverseSource | null; ageMs: number | null };
+
+/** One card per catalogue, read from the publication and the client's own age check. */
+function sourceCards(view: UniverseView): SourceCard[] {
+  const doc = view.state === "LOADING" ? null : view.doc;
+  if (!doc) return SOURCE_ORDER.map(market => ({ market, tone: "wait", label: "Inconnue", source: null, ageMs: null,
+    why: view.state === "LOADING" ? "publication en cours de lecture" : "publication non reçue ou illisible" }));
+  const serverNow = view.state !== "LOADING" && view.serverNow !== undefined ? view.serverNow : doc.served_ms ?? doc.computed_ms;
+  const fresh = sourceFreshness(doc, serverNow);
+  const blocked = new Map(view.state === "UNAVAILABLE" ? view.blocking.filter(b => b.market).map(b => [b.market!, b.reason]) : []);
+  // A failed refresh or a too old read leaves every value unconfirmed, whatever it said.
+  const unconfirmed = view.state === "UNAVAILABLE" && view.blocking.some(b => b.market === null);
+  return SOURCE_ORDER.map(market => {
+    const source = doc.sources.find(s => s.market === market) ?? null;
+    const { ageMs = null, stale = true } = fresh.get(market) ?? {};
+    const base = { market, source, ageMs };
+    if (!source) return { ...base, tone: "ko", label: "Absente", why: "source absente de la publication" };
+    const reason = blocked.get(market) ?? (source.current ? null : source.reason ?? "UNVERIFIABLE");
+    if (!reason && source.collected_ms === null) return { ...base, tone: "ko", label: "Indisponible", why: "relevé sans horodatage" };
+    if (reason === "STALE" || (!reason && stale))
+      return { ...base, tone: "warn", label: "Périmée", why: `relevé plus vieux que la limite (${ageLabel(doc.freshness_max_age_ms)})` };
+    if (reason) return { ...base, tone: "ko", label: source.catalogue_state === "INCOMPLETE" ? "Incomplète" : "Indisponible", why: reasonLabel(reason) };
+    if (unconfirmed) return { ...base, tone: "wait", label: "Non confirmée", why: "dernière publication reçue, plus confirmée" };
+    return { ...base, tone: "ok", label: "Disponible", why: null };
+  });
+}
+
+function globalStatus(view: UniverseView, byAsset: boolean): { tone: Tone; label: string } {
+  if (view.state === "LOADING") return { tone: "wait", label: "Chargement" };
+  if (view.state === "VERIFIED") return { tone: "ok", label: "Vérifié" };
+  if (view.state === "VERIFIED_EMPTY") return { tone: byAsset ? "ok" : "empty", label: "Vérifié · strict vide" };
+  if (view.code === "SOURCE_STALE") return { tone: "warn", label: "Source périmée" };
+  if (view.code === "READ_TOO_OLD") return { tone: "warn", label: "Publication trop ancienne" };
+  if (view.code === "INVALID_UNIVERSE_CONTRACT") return { tone: "ko", label: "Publication invalide" };
+  return { tone: "ko", label: "Indisponible" };
+}
+
 const Proof = ({ market, pair }: { market: UniverseMarket; pair: UniversePair }) => {
   const p = pair.proofs[market];
   return <div className="universe-proof"><dt>{MARKET_LABEL[market]}</dt><dd>
@@ -57,80 +115,143 @@ const Proof = ({ market, pair }: { market: UniverseMarket; pair: UniversePair })
     <small>{p.status}</small><br /><small>Relevé {utc(p.collected_ms)}</small></dd></div>;
 };
 
-const AssetDetail = ({ asset }: { asset: UniverseAsset }) => <dl>{UNIVERSE_MARKETS.map(m => {
+const AssetDetail = ({ asset }: { asset: UniverseAsset }) => <dl>{SOURCE_ORDER.map(m => {
   const rows = asset.markets[m];
   return <div className="universe-proof" key={m}><dt>{MARKET_LABEL[m]}</dt><dd>{rows
     ? rows.map(r => <span key={r.native_symbol} className="asset-listing"><strong>{r.native_symbol}</strong> · {r.quote}{r.contract_type === "INVERSE_PERPETUAL" ? " · inverse" : ""}</span>)
     : <em>non négocié</em>}</dd></div>;
 })}</dl>;
 
+/** A count as published, or the reason it cannot be shown. Never a zero by default. */
+type Count = { value: number } | { missing: string };
+const CountValue = ({ count }: { count: Count }) => "value" in count
+  ? <strong className="su-count">{count.value}</strong>
+  : <span className="su-count missing">{count.missing}</span>;
+
 export function ScannerUniverse({ view }: { view: UniverseView }) {
   const [active, setActive] = useState<string | null>(null);
   const [activeAsset, setActiveAsset] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const close = () => { setActive(null); setActiveAsset(null); trigger.current?.focus(); };
+  const open = (setter: (k: string) => void, key: string) => (e: MouseEvent<HTMLButtonElement>) => { trigger.current = e.currentTarget; setter(key); };
   const doc = view.state === "LOADING" ? null : view.doc;
+  const verified = view.state === "VERIFIED" || view.state === "VERIFIED_EMPTY";
   const detail = view.state === "VERIFIED" ? view.pairs.find(p => p.key === active) : undefined;
   const setup = view.state === "UNAVAILABLE" && !view.doc ? marketSourceSetup(view.code) : null;
   const byAsset = doc?.schema_version === "scanner-universe/1.1.0";
-  const assets = view.state === "VERIFIED" || view.state === "VERIFIED_EMPTY" ? view.assets : [];
+  const assets = verified ? view.assets : [];
   const crypto = assets.filter(a => a.asset_class === "CRYPTO");
   const others = assets.filter(a => a.asset_class !== "CRYPTO");
   const tier = (n: number) => crypto.filter(a => a.market_count === n);
   const asset = assets.find(a => a.base === activeAsset);
-  const blocked = new Map(view.state === "UNAVAILABLE" ? view.blocking.filter(b => b.market).map(b => [b.market!, b.reason]) : []);
+  const status = globalStatus(view, byAsset);
+  const cards = sourceCards(view);
+  const serverNow = view.state !== "LOADING" && doc ? view.serverNow ?? doc.served_ms ?? doc.computed_ms : null;
+  const strictCount = view.state === "VERIFIED" ? view.pairs.length : view.state === "VERIFIED_EMPTY" ? 0 : null;
 
-  return <section className="scanner-universe" aria-label="Univers commun du Scanner" data-state={view.state}>
-    <header><h2>{byAsset ? "Actifs MEXC × Kraken" : "Univers commun"}</h2>
-      <p>{byAsset ? "Actifs négociés sur au moins un Spot et un Perpétuel · chaque marché dans sa propre devise, jamais confondues (USD ≠ USDT)."
-        : "MEXC Spot ∩ MEXC Perpétuel ∩ Kraken Spot ∩ Kraken Perpétuel · même base, même devise de cotation."}</p></header>
-    {doc && <ul className="universe-sources" aria-label="État des quatre catalogues">{doc.sources.map(s => {
-      const reason = blocked.get(s.market) ?? (s.current ? null : s.reason ?? "UNVERIFIABLE");
-      const ok = s.current && !reason;
-      return <li key={s.market} className={ok ? "ok" : "ko"}>
-        <strong>{ok ? "✓" : "✗"} {MARKET_LABEL[s.market]}</strong>
-        <span>{ok ? `${s.admissible} négociables` : reasonLabel(reason)}</span>
-        <small>{utc(s.collected_ms)}</small></li>;
-    })}</ul>}
-    {view.state === "LOADING" && <p role="status">Chargement de l’univers commun…</p>}
+  const missing = view.state === "LOADING" ? "En chargement" : "Indisponible";
+  const tierCount = (n: number): Count => !verified ? { missing } : byAsset ? { value: tier(n).length } : { missing: "Non publié" };
+  const strict: Count = strictCount === null ? { missing } : { value: strictCount };
+  const reasons = view.state === "UNAVAILABLE" ? view.blocking.map(b => (b.market ? MARKET_LABEL[b.market] + " : " : "") + reasonLabel(b.reason)).join(" · ") : "";
+
+  return <section className="scanner-universe" aria-label="Scanner scientifique" data-state={view.state}
+    data-code={view.state === "UNAVAILABLE" ? view.code : undefined}>
+    {/* A — En-tête */}
+    <header className="su-head">
+      <div className="su-title"><h2>Scanner scientifique</h2>
+        <span className="su-pill" data-tone={status.tone} aria-live="polite">{status.label}</span></div>
+      <p className="su-checked">
+        {verified ? <>Dernier relevé vérifié : <time dateTime={iso(view.doc.computed_ms)}>{utc(view.doc.computed_ms)}</time>
+          {serverNow !== null && <> · il y a {ageLabel(serverNow - view.doc.computed_ms)}</>}</>
+          : view.state === "LOADING" ? "Dernier relevé vérifié : lecture en cours"
+          : doc?.reference ? <>Dernier relevé vérifié : <time dateTime={iso(doc.reference.computed_ms)}>{utc(doc.reference.computed_ms)}</time> · <strong>non courant</strong></>
+          : doc && doc.status !== "UNVERIFIABLE" ? <>Dernier relevé vérifié : <time dateTime={iso(doc.computed_ms)}>{utc(doc.computed_ms)}</time> · <strong>plus courant</strong></>
+          : "Dernier relevé vérifié : aucun relevé courant"}
+      </p>
+      <p className="su-nature"><span className="su-tag">Catalogues d’instruments</span> Fraîcheur des catalogues, <strong>pas des prix</strong> : aucune cotation LIVE.</p>
+    </header>
+
+    {/* B — Quatre sources */}
+    <ul className="su-sources" aria-label="État des quatre sources">{cards.map(c =>
+      <li key={c.market} data-tone={c.tone} aria-label={`${MARKET_LABEL[c.market]} : ${c.label}`}>
+        <strong className="su-source-name">{MARKET_LABEL[c.market]}</strong>
+        <span className="su-chip" data-tone={c.tone}>{c.label}</span>
+        {c.source?.collected_ms != null
+          ? <span className="su-age">Relevé il y a {c.ageMs !== null ? ageLabel(c.ageMs) : "?"} · <time dateTime={iso(c.source.collected_ms)} title={utc(c.source.collected_ms)}>{clock(c.source.collected_ms)}</time></span>
+          : <span className="su-age">Relevé : non disponible</span>}
+        {c.why && <span className="su-why">{c.why}</span>}
+      </li>)}</ul>
+
+    {/* C — Couverture */}
+    <section className="su-coverage" aria-label="Couverture de l’univers">
+      <h3>Actifs multi-marchés <small>(même actif, devises possiblement différentes)</small></h3>
+      <dl className="su-tiers">
+        {[4, 3, 2].map(n => <div key={n} data-testid={`coverage-tier-${n}`}><dt>Sur {n} marchés</dt><dd><CountValue count={tierCount(n)} /></dd></div>)}
+      </dl>
+      {byAsset && verified && <p className="su-note">{tier(4).length + tier(3).length + tier(2).length} crypto-actif{tier(4).length + tier(3).length + tier(2).length > 1 ? "s" : ""} au total{others.length > 0 ? ` · ${others.length} devise${others.length > 1 ? "s" : ""} et stablecoin${others.length > 1 ? "s" : ""} non compté${others.length > 1 ? "s" : ""}` : ""}.</p>}
+      {!byAsset && verified && <p className="su-note">Le schéma {doc!.schema_version} ne publie pas le regroupement par actif.</p>}
+      <dl className="su-strict" data-testid="coverage-strict">
+        <div><dt>Paires strictes <small>même base et même devise de cotation sur les 4 marchés</small></dt><dd><CountValue count={strict} /></dd></div>
+      </dl>
+    </section>
+
+    {/* Pourquoi : indisponible, strict vide ou liste vérifiée */}
+    {view.state === "LOADING" && <p role="status" className="universe-banner wait">Chargement de l’univers commun…</p>}
     {view.state === "UNAVAILABLE" && (setup
       ? <p role="alert" className="universe-banner ko"><strong>Univers indisponible</strong> · source non configurée sur ce serveur ({view.code}). Aucune liste courante.</p>
-      : <p role="alert" className="universe-banner ko"><strong>Univers indisponible</strong> · {view.blocking.map(b => (b.market ? MARKET_LABEL[b.market] + " : " : "") + reasonLabel(b.reason)).join(" · ")}. Aucune paire n’est présentée comme courante.</p>)}
+      : <p role="alert" className={`universe-banner ${status.tone}`}><strong>Univers indisponible</strong> · {reasons}. Aucune paire n’est présentée comme courante.</p>)}
     {view.state === "UNAVAILABLE" && view.doc?.reference && <p className="universe-reference">Dernière liste vérifiée, <strong>non courante</strong>, calculée le {utc(view.doc.reference.computed_ms)} : {view.doc.reference.keys.length ? view.doc.reference.keys.join(", ") : "univers vide"}.</p>}
-    {byAsset && (view.state === "VERIFIED" || view.state === "VERIFIED_EMPTY") && <>
-      <p role="status" className="universe-banner ok"><strong>{tier(4).length} crypto-actif{tier(4).length > 1 ? "s" : ""} sur les 4 marchés</strong> · {tier(3).length} sur 3 · {tier(2).length} sur 2 · calcul {utc(view.doc.computed_ms)}</p>
-      <p className="universe-strict">Paires strictes (même devise sur les 4 marchés) : {view.state === "VERIFIED" ? view.pairs.length : 0}.</p>
-      {tier(4).length > 0 && <details className="universe-exclusions"><summary>Voir les {tier(4).length} crypto-actifs sur les 4 marchés</summary><ul className="universe-pairs universe-assets" aria-label="Actifs sur les quatre marchés">{tier(4).map(a =>
-        <li key={a.base}><button type="button" onClick={e => { trigger.current = e.currentTarget; setActiveAsset(a.base); }} aria-label={`${a.base} · 4 marchés · devises ${a.quotes.join(", ")}`}>
+    {view.state === "VERIFIED_EMPTY" && (byAsset
+      ? <p role="status" className="universe-banner empty"><strong>Aucune paire stricte</strong> · catalogues complets et frais, mais aucune paire n’a la même devise de cotation sur les quatre marchés. Les actifs multi-marchés sont comptés à part.</p>
+      : <p role="status" className="universe-banner empty"><strong>Univers vide vérifié</strong> · les quatre catalogues sont complets et frais ; aucune paire n’est négociable sur les quatre marchés avec la même devise de cotation.</p>)}
+    {view.state === "VERIFIED" && <p role="status" className="universe-banner ok"><strong>{view.pairs.length} paire{view.pairs.length > 1 ? "s" : ""} vérifiée{view.pairs.length > 1 ? "s" : ""}</strong> · même devise de cotation sur les quatre marchés, quatre preuves chacune.</p>}
+
+    {/* D — Détails, au toucher */}
+    <div className="su-details" aria-label="Détails">
+      {view.state === "VERIFIED" && <details className="universe-exclusions">
+        <summary>Paires strictes ({view.pairs.length}) · preuves natives</summary>
+        <ul className="universe-pairs" aria-label="Paires vérifiées sur quatre marchés">{view.pairs.map(p =>
+          <li key={p.key}><button type="button" onClick={open(setActive, p.key)} aria-label={`${p.key} · vérifiée sur ${UNIVERSE_MARKETS.map(m => MARKET_LABEL[m]).join(", ")}`}>
+            <strong>{p.key}</strong>
+            <span className="universe-badges" aria-hidden="true">{UNIVERSE_MARKETS.map(m => <span key={m}>✓ {MARKET_SHORT[m]}</span>)}</span>
+          </button></li>)}</ul></details>}
+      {byAsset && verified && tier(4).length > 0 && <details className="universe-exclusions"><summary>Voir les {tier(4).length} crypto-actifs sur les 4 marchés</summary><ul className="universe-pairs universe-assets" aria-label="Actifs sur les quatre marchés">{tier(4).map(a =>
+        <li key={a.base}><button type="button" onClick={open(setActiveAsset, a.base)} aria-label={`${a.base} · 4 marchés · devises ${a.quotes.join(", ")}`}>
           <strong>{a.base}</strong><span className="market-count-badge">4/4</span></button></li>)}</ul></details>}
-      {tier(3).length + tier(2).length > 0 && <details className="universe-exclusions">
+      {byAsset && verified && tier(3).length + tier(2).length > 0 && <details className="universe-exclusions">
         <summary>{tier(3).length + tier(2).length} crypto-actifs sur 3 ou 2 marchés</summary>
-        <ul>{[...tier(3), ...tier(2)].map(a => <li key={a.base}><button type="button" className="asset-link" onClick={e => { trigger.current = e.currentTarget; setActiveAsset(a.base); }}><strong>{a.base}</strong></button> · {a.market_count}/4 · {UNIVERSE_MARKETS.filter(m => a.markets[m]).map(m => MARKET_SHORT[m]).join(" ")}</li>)}</ul>
+        <ul className="su-asset-rows">{[...tier(3), ...tier(2)].map(a => <li key={a.base}><button type="button" className="asset-link" onClick={open(setActiveAsset, a.base)}><strong>{a.base}</strong> <span className="market-count-badge">{a.market_count}/4</span></button> <span className="su-where">{SOURCE_ORDER.filter(m => a.markets[m]).map(m => MARKET_SHORT[m]).join(" ")}</span></li>)}</ul>
       </details>}
-      {others.length > 0 && <details className="universe-exclusions">
+      {byAsset && verified && others.length > 0 && <details className="universe-exclusions">
         <summary>{others.length} devise{others.length > 1 ? "s" : ""} et stablecoin{others.length > 1 ? "s" : ""}, non comptés</summary>
-        <ul>{others.map(a => <li key={a.base}><button type="button" className="asset-link" onClick={e => { trigger.current = e.currentTarget; setActiveAsset(a.base); }}><strong>{a.base}</strong></button> · {ASSET_CLASS_LABEL[a.asset_class]} · {a.market_count}/4</li>)}</ul>
+        <ul className="su-asset-rows">{others.map(a => <li key={a.base}><button type="button" className="asset-link" onClick={open(setActiveAsset, a.base)}><strong>{a.base}</strong> <span className="market-count-badge">{a.market_count}/4</span></button> <span className="su-where">{ASSET_CLASS_LABEL[a.asset_class]}</span></li>)}</ul>
       </details>}
-    </>}
-    {!byAsset && view.state === "VERIFIED_EMPTY" && <p role="status" className="universe-banner empty"><strong>Univers vide vérifié</strong> · les quatre catalogues sont complets et frais ; aucune paire n’est négociable sur les quatre marchés avec la même devise de cotation.</p>}
-    {view.state === "VERIFIED" && <>
-      <p role="status" className="universe-banner ok"><strong>{view.pairs.length} paire{view.pairs.length > 1 ? "s" : ""} vérifiée{view.pairs.length > 1 ? "s" : ""}</strong> · quatre preuves de marché chacune · calcul {utc(view.doc.computed_ms)}</p>
-      <ul className="universe-pairs" aria-label="Paires vérifiées sur quatre marchés">{view.pairs.map(p =>
-        <li key={p.key}><button type="button" onClick={e => { trigger.current = e.currentTarget; setActive(p.key); }} aria-label={`${p.key} · vérifiée sur ${UNIVERSE_MARKETS.map(m => MARKET_LABEL[m]).join(", ")}`}>
-          <strong>{p.key}</strong>
-          <span className="universe-badges" aria-hidden="true">{UNIVERSE_MARKETS.map(m => <span key={m}>✓ {MARKET_SHORT[m]}</span>)}</span>
-        </button></li>)}</ul>
-    </>}
-    {!byAsset && doc && doc.exclusions.length > 0 && <details className="universe-exclusions">
-      <summary>{doc.exclusions.length}{doc.exclusions_truncated ? "+" : ""} paire{doc.exclusions.length > 1 ? "s" : ""} présente{doc.exclusions.length > 1 ? "s" : ""} sur trois marchés au moins, exclue{doc.exclusions.length > 1 ? "s" : ""}</summary>
-      <ul>{doc.exclusions.map(e => <li key={e.key}><strong>{e.key}</strong> · {UNIVERSE_MARKETS.filter(m => e.reasons[m] !== null).map(m => `${MARKET_LABEL[m]} : ${reasonLabel(e.reasons[m])}`).join(" · ")}</li>)}</ul>
-    </details>}
+      {!byAsset && doc && doc.exclusions.length > 0 && <details className="universe-exclusions">
+        <summary>{doc.exclusions.length}{doc.exclusions_truncated ? "+" : ""} paire{doc.exclusions.length > 1 ? "s" : ""} présente{doc.exclusions.length > 1 ? "s" : ""} sur trois marchés au moins, exclue{doc.exclusions.length > 1 ? "s" : ""}</summary>
+        <ul>{doc.exclusions.map(e => <li key={e.key}><strong>{e.key}</strong> · {SOURCE_ORDER.filter(m => e.reasons[m] !== null && e.reasons[m] !== undefined).map(m => `${MARKET_LABEL[m]} : ${reasonLabel(e.reasons[m])}`).join(" · ")}</li>)}</ul>
+      </details>}
+      {doc && <details className="universe-exclusions su-publication">
+        <summary>Détail des sources et de la publication</summary>
+        <dl className="su-source-detail">{SOURCE_ORDER.map(m => { const s = doc.sources.find(x => x.market === m); const c = cards.find(x => x.market === m)!;
+          return <div key={m}><dt>{MARKET_LABEL[m]}</dt><dd>{s ? <>
+            {c.label} · catalogue {s.catalogue_state}{s.reason ? ` (${s.reason})` : ""}<br />
+            {s.instruments} instruments · {s.admissible} admissibles<br />
+            Relevé {utc(s.collected_ms)}{c.ageMs !== null ? ` · âge ${ageLabel(c.ageMs)}` : ""}</> : "Absente de la publication"}</dd></div>; })}
+          <div><dt>Publication</dt><dd>
+            {doc.schema_version} · statut publié {doc.status}<br />
+            Calcul {utc(doc.computed_ms)}{doc.served_ms !== undefined ? <> · service {utc(doc.served_ms)}</> : null}<br />
+            Limite de fraîcheur {ageLabel(doc.freshness_max_age_ms)} · cadence {ageLabel(doc.cadence_ms)}<br />
+            Empreinte <code className="su-sha">{doc.universe_sha256}</code></dd></div>
+        </dl>
+      </details>}
+    </div>
+
     {detail && <dialog className="universe-detail" aria-label={`Preuves ${detail.key}`} ref={node => { if (node && !node.open) node.showModal?.(); }}
       open={typeof HTMLDialogElement.prototype.showModal !== "function" || undefined} onClose={close}
       onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); e.currentTarget.close?.(); close(); } }}>
       <form method="dialog"><button type="button" onClick={e => { e.currentTarget.closest("dialog")?.close?.(); close(); }}>Fermer</button></form>
       <h3>{detail.key} · quatre preuves</h3>
-      <dl>{UNIVERSE_MARKETS.map(m => <Proof key={m} market={m} pair={detail} />)}</dl>
+      <dl>{SOURCE_ORDER.map(m => <Proof key={m} market={m} pair={detail} />)}</dl>
       <p><small>Empreinte de l’univers {view.state === "VERIFIED" ? view.doc.universe_sha256.slice(0, 16) : ""}… · observation uniquement, aucune autorisation de trading.</small></p>
     </dialog>}
     {asset && <dialog className="universe-detail" aria-label={`Instruments ${asset.base}`} ref={node => { if (node && !node.open) node.showModal?.(); }}

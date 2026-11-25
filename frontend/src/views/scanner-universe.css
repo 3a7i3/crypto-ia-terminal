@@ -1,36 +1,91 @@
-.scanner-universe { padding: clamp(.7rem, 3vw, 1.5rem); border: 1px solid #77879a66; border-radius: 1rem; min-width: 0; margin-bottom: .8rem; }
-.scanner-universe header p { opacity: .8; margin-top: .2rem; overflow-wrap: anywhere; }
-.universe-sources { list-style: none; padding: 0; margin: .6rem 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .4rem; }
-.universe-sources li { display: grid; gap: .1rem; padding: .45rem .55rem; border-radius: .55rem; border: 1px solid; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
-.universe-sources li.ok { border-color: #2f8f6b; background: #2f8f6b1f; }
-.universe-sources li.ko { border-color: #c4574f; background: #c4574f1f; }
-.universe-sources small { opacity: .75; }
-.universe-banner { padding: .6rem .7rem; border-radius: .55rem; overflow-wrap: anywhere; }
-.universe-banner.ok { background: #2f8f6b26; border-left: 4px solid #2f8f6b; }
-.universe-banner.empty { background: #4b6a9126; border-left: 4px solid #6c8fbf; }
-.universe-banner.ko { background: #c4574f26; border-left: 4px solid #c4574f; }
-.universe-reference { font-size: .85rem; opacity: .85; overflow-wrap: anywhere; }
-.universe-pairs { list-style: none; padding: 0; margin: .5rem 0; display: grid; gap: .35rem; }
-.universe-pairs button { width: 100%; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; padding: .45rem .6rem; border-radius: .5rem; border: 1px solid #77879a88; background: transparent; color: inherit; text-align: left; }
-.universe-badges { display: flex; flex-wrap: wrap; gap: .25rem; }
-.universe-badges span { font-size: .72rem; padding: .1rem .3rem; border-radius: .3rem; background: #2f8f6b33; }
-.universe-exclusions { font-size: .85rem; margin-top: .5rem; }
-.universe-exclusions summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+/* Scanner scientifique (S2) — tableau de bord mobile-first.
+   Couleurs : jetons CAT (tokens.css / workspace.css), donc thèmes clair et sombre.
+   Chaque teinte est toujours doublée d'un libellé texte. */
+.scanner-universe { padding: clamp(.7rem, 3vw, 1.25rem); border: 1px solid var(--bg-border); border-radius: 1rem; background: var(--bg-card); min-width: 0; margin-bottom: .8rem; display: grid; gap: .7rem; }
+.scanner-universe > * { margin: 0; min-width: 0; }
+.scanner-universe [data-tone="ok"] { --tone: var(--ok); --tone-bg: var(--ok-dim); }
+.scanner-universe [data-tone="empty"] { --tone: var(--cyan); --tone-bg: var(--cyan-dim); }
+.scanner-universe [data-tone="warn"] { --tone: var(--warn); --tone-bg: var(--warn-dim); }
+.scanner-universe [data-tone="ko"] { --tone: var(--danger); --tone-bg: var(--danger-dim); }
+.scanner-universe [data-tone="wait"] { --tone: var(--neutral); --tone-bg: var(--neutral-dim); }
+
+/* A — En-tête */
+.su-head { display: grid; gap: .3rem; }
+.su-head p { margin: 0; }
+.su-title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .6rem; }
+.su-title h2 { margin: 0; font-size: 1.15rem; color: var(--heading); }
+.su-pill { display: inline-flex; align-items: center; min-height: 28px; padding: .1rem .65rem; border-radius: 999px; border: 1px solid var(--tone); background: var(--tone-bg); color: var(--tone); font-weight: 700; font-size: .9rem; }
+.su-checked { font-size: .92rem; color: var(--text-sec); overflow-wrap: anywhere; }
+.su-nature { font-size: .88rem; color: var(--text-muted); overflow-wrap: anywhere; }
+.su-tag { display: inline-block; margin-right: .35rem; padding: 0 .4rem; border-radius: .3rem; border: 1px solid var(--bg-border-strong); font-weight: 600; color: var(--text-sec); }
+
+/* B — Quatre sources : 2 × 2 dès 340 px, une colonne en dessous */
+.su-sources { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr; gap: .45rem; }
+@media (min-width: 340px) { .su-sources { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .su-sources { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.su-sources li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: .1rem .4rem; padding: .45rem .55rem; border-radius: .65rem; border: 1px solid var(--bg-border); border-left: 4px solid var(--tone); background: var(--tone-bg); min-width: 0; overflow-wrap: anywhere; font-size: .9rem; line-height: 1.35; color: var(--text-sec); }
+.su-source-name { grid-column: 1 / -1; color: var(--text-pri); font-size: .95rem; }
+.su-chip { grid-column: 1 / -1; font-size: .88rem; font-weight: 700; color: var(--tone); }
+.su-age, .su-why { grid-column: 1 / -1; }
+.su-age { color: var(--text-pri); }
+.su-why { color: var(--text-muted); }
+
+/* Bandeaux : pourquoi l'univers est vérifié, vide ou indisponible */
+.universe-banner { padding: .6rem .7rem; border-radius: .55rem; overflow-wrap: anywhere; color: var(--text-pri); }
+.universe-banner.ok { background: var(--ok-dim); border-left: 4px solid var(--ok); }
+.universe-banner.empty { background: var(--cyan-dim); border-left: 4px solid var(--cyan); }
+.universe-banner.warn { background: var(--warn-dim); border-left: 4px solid var(--warn); }
+.universe-banner.ko { background: var(--danger-dim); border-left: 4px solid var(--danger); }
+.universe-banner.wait { background: var(--neutral-dim); border-left: 4px solid var(--neutral); }
+.universe-reference { font-size: .9rem; color: var(--text-sec); overflow-wrap: anywhere; }
+
+/* C — Couverture : actifs multi-marchés et paires strictes séparés */
+.su-coverage { display: grid; gap: .4rem; padding: .5rem .55rem; border-radius: .75rem; border: 1px solid var(--bg-border); background: var(--bg-card-soft); }
+.su-coverage h3 { margin: 0; font-size: .95rem; color: var(--heading); }
+.su-coverage h3 small, .su-strict dt small { display: block; font-weight: 400; font-size: .86rem; color: var(--text-muted); }
+.su-coverage dl { margin: 0; }
+.su-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; }
+.su-tiers > div, .su-strict > div { min-width: 0; padding: .35rem .5rem; border-radius: .55rem; border: 1px solid var(--bg-border); background: var(--bg-card); }
+.su-tiers dt { font-size: .88rem; color: var(--text-sec); }
+.su-tiers dd, .su-strict dd { margin: .1rem 0 0; }
+.su-count { display: block; font-size: 1.5rem; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--heading); }
+.su-count.missing { font-size: .88rem; font-weight: 600; line-height: 1.6; color: var(--text-muted); font-style: italic; }
+.su-strict > div { display: flex; align-items: center; justify-content: space-between; gap: .6rem; border-style: dashed; border-color: var(--bg-border-strong); }
+.su-strict dt { font-weight: 600; color: var(--text-pri); font-size: .88rem; min-width: 0; }
+.su-strict dd { flex: none; text-align: right; }
+.su-note { margin: 0; font-size: .86rem; color: var(--text-muted); overflow-wrap: anywhere; }
+
+/* D — Détails secondaires, au toucher */
+.su-details { display: grid; gap: .3rem; }
+.universe-exclusions { font-size: .88rem; border: 1px solid var(--bg-border); border-radius: .6rem; padding: 0 .6rem; background: var(--bg-card); min-width: 0; }
+.universe-exclusions summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--text-pri); overflow-wrap: anywhere; }
+.universe-exclusions[open] summary { border-bottom: 1px solid var(--bg-border); }
 .universe-exclusions ul { padding-left: 1rem; max-height: 22rem; overflow: auto; }
 .universe-exclusions li { overflow-wrap: anywhere; margin: .2rem 0; }
-.universe-detail { box-sizing: border-box; width: min(32rem, calc(100% - 1.5rem)); max-height: 85dvh; overflow: auto; border: 1px solid #6e829c; border-radius: 1rem; padding: 1rem; background: #121d2f; color: #edf4ff; }
+.universe-pairs { list-style: none; padding: 0 !important; margin: .5rem 0; display: grid; gap: .35rem; }
+.universe-pairs button { width: 100%; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; padding: .45rem .6rem; border-radius: .5rem; border: 1px solid var(--bg-border-strong); background: transparent; color: inherit; text-align: left; }
+.universe-badges { display: flex; flex-wrap: wrap; gap: .25rem; }
+.universe-badges span { font-size: .86rem; padding: .1rem .3rem; border-radius: .3rem; background: var(--ok-dim); color: var(--ok); }
+.su-asset-rows { list-style: none; padding: 0 !important; }
+.su-asset-rows li { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .6rem; }
+.su-where { font-size: .86rem; color: var(--text-muted); }
+.su-source-detail { margin: .4rem 0 .6rem; font-size: .9rem; }
+.su-source-detail dt { font-weight: 600; color: var(--text-pri); margin-top: .45rem; }
+.su-source-detail dd { margin: .1rem 0 0; color: var(--text-sec); overflow-wrap: anywhere; }
+.su-sha { font-size: .86rem; overflow-wrap: anywhere; word-break: break-all; }
+
+.universe-detail { box-sizing: border-box; margin: auto; width: min(32rem, calc(100% - 1.5rem)); max-height: 85dvh; overflow: auto; border: 1px solid var(--bg-border-strong); border-radius: 1rem; padding: 1rem; background: var(--bg-card); color: var(--text-pri); }
 .universe-detail::backdrop { background: #080e18b0; }
 .universe-detail form { text-align: right; }
-.universe-detail button { min-height: 44px; }
-.universe-detail dt { color: #acd0ed; margin-top: .6rem; }
+.universe-detail button { min-height: 44px; min-width: 44px; padding: 0 1rem; border-radius: .55rem; border: 1px solid var(--bg-border-strong); background: var(--bg-card-soft); color: var(--text-pri); font-weight: 600; cursor: pointer; }
+.universe-detail dt { color: var(--cyan); margin-top: .6rem; }
 .universe-detail dd { margin: .15rem 0; overflow-wrap: anywhere; }
-.scanner-gate-notice { padding: .6rem .7rem; border-radius: .55rem; border: 1px dashed #77879a; overflow-wrap: anywhere; }
+.scanner-gate-notice { padding: .6rem .7rem; border-radius: .55rem; border: 1px dashed var(--bg-border-strong); overflow-wrap: anywhere; }
 
 /* Scanner V1.1 — regroupement par actif */
 .market-count-badge { display: inline-block; margin-left: .35rem; padding: 0 .35rem; border-radius: 999px; border: 1px solid currentColor; font-size: .7rem; font-weight: 600; opacity: .8; vertical-align: middle; }
-.universe-strict { margin: .25rem 0 .5rem; font-size: .85rem; opacity: .8; }
+.scanner-universe .market-count-badge { font-size: .86rem; }
 .universe-assets { display: flex; flex-wrap: wrap; gap: .35rem; }
-.universe-assets button { min-height: 44px; }
+.universe-assets button { min-height: 44px; width: auto; }
 .asset-listing { display: block; }
-.asset-link { background: none; border: 0; padding: 0; min-height: 32px; color: inherit; text-decoration: underline; cursor: pointer; }
-.universe-assets button { width: auto; }
+.asset-link { background: none; border: 0; padding: 0 .2rem; min-height: 44px; min-width: 44px; color: inherit; text-decoration: underline; cursor: pointer; }

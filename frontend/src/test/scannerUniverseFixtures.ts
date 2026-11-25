@@ -55,3 +55,10 @@ export function assetUniverseFixture(opts: { now?: number; status?: "VERIFIED_EM
   ];
   return { ...doc, schema_version: "scanner-universe/1.1.0", assets, asset_count: assets.length } as ScannerUniverse;
 }
+
+/** One source collected `ageMs` before the publication was served; the others unchanged.
+ *  The publication keeps its published status: only the client age check sees it. */
+export function withSourceAge(doc: ScannerUniverse, market: UniverseMarket, ageMs: number): ScannerUniverse {
+  const served = doc.served_ms ?? doc.computed_ms;
+  return { ...doc, sources: doc.sources.map(s => s.market === market ? { ...s, collected_ms: served - ageMs, age_ms: ageMs } : s) };
+}

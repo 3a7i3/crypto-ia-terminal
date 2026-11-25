@@ -173,9 +173,12 @@ describe("Marché → Scanner", () => {
     it("counts assets per number of markets and keeps the strict pair count apart", async () => {
       universe = () => json(assetUniverseFixture());
       open();
-      expect((await screen.findByText(/1 crypto-actif sur les 4 marchés/)).closest("p")).toHaveTextContent("1 crypto-actif sur les 4 marchés · 1 sur 3 · 1 sur 2");
-      expect(screen.getByText(/devise et stablecoin|devises et stablecoins/)).toHaveTextContent("1 devise et stablecoin, non comptés");
-      expect(screen.getByText(/Paires strictes/)).toHaveTextContent("Paires strictes (même devise sur les 4 marchés) : 0.");
+      // S2: the counts moved from one sentence to the coverage tiles; same published values.
+      expect(await screen.findByTestId("coverage-tier-4")).toHaveTextContent("Sur 4 marchés1");
+      expect(screen.getByTestId("coverage-tier-3")).toHaveTextContent("Sur 3 marchés1");
+      expect(screen.getByTestId("coverage-tier-2")).toHaveTextContent("Sur 2 marchés1");
+      expect(screen.getByText(/devise et stablecoin, non comptés$/, { selector: "summary" })).toHaveTextContent("1 devise et stablecoin, non comptés");
+      expect(screen.getByTestId("coverage-strict")).toHaveTextContent(/Paires strictes.*même devise de cotation sur les 4 marchés0$/);
       expect(screen.queryByText(/Univers vide vérifié/)).toBeNull();
       fireEvent.click(within(screen.getByRole("list", { name: "Actifs sur les quatre marchés" })).getByRole("button", { name: /^BTC · 4 marchés · devises USD, USDT/ }));
       const dialog = await screen.findByRole("dialog", { name: "Instruments BTC" });
