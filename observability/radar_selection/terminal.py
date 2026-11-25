@@ -227,17 +227,6 @@ def universe_counts(s: Screen, ev: dict) -> None:
         s.kv("Observations orphelines", k["orphan_observations"])
 
 
-def reference(s: Screen, ev: dict) -> None:
-    r = ev["reference"]
-    s.title("Référence")
-    s.add(f"{r['venue'].capitalize()} | {r['market_type']} | {r['base']}/{r['quote']}")
-    s.kv("Statut", "NOT YET HISTORICALLY ADMITTED")
-    s.kv("Radar", f"{r['radar_decision']} ({r['mission']})" + (f" · score {r['score']}" if r["score"] else ""))
-    for reason in r["reasons"][:4]:
-        s.add(f"- {reason['code']}", 2)
-    s.add("Hors classement automatique.", 0)
-
-
 def candidates(s: Screen, ev: dict, full: bool = False) -> None:
     s.title("Candidats de recherche")
     if not ev["candidates"]:
@@ -275,7 +264,6 @@ def manual(s: Screen, ev: dict) -> None:
 def status(s: Screen, ev: dict) -> None:
     header(s, ev)
     universe_counts(s, ev)
-    reference(s, ev)
     candidates(s, ev)
     manual(s, ev)
     s.title("Commandes")
@@ -427,7 +415,7 @@ def history(s: Screen, entries: list, max_kept: int) -> None:
 
 
 HELP = [
-    ("status", "Tableau de bord : univers, référence, candidats"),
+    ("status", "Tableau de bord : univers, candidats"),
     ("universe [--venue V] [--type T] [--search Q] [--decision D]", "Tous les marchés, filtrables"),
     ("scan", "Évalue l'univers et conserve le résultat (historique borné)"),
     ("candidates", "Les trois propositions détaillées"),
@@ -516,7 +504,6 @@ class Session:
         elif cmd == "candidates":
             header(s, ev)
             candidates(s, ev, full=True)
-            reference(s, ev)
         elif cmd == "scan":
             from .manual import append_history
             header(s, ev)

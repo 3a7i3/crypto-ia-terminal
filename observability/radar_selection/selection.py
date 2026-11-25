@@ -252,10 +252,13 @@ def _candidate(entry: dict, rank: int, rule: str) -> dict:
     }
 
 
-def select_candidates(entries: list, excluded: set, reference_id: str) -> tuple:
-    """Up to three candidates with diversity of regimes. Deterministic and order-free."""
-    pool = sorted((e for e in entries if e["score"] is not None and e["market_id"] not in excluded
-                   and e["market_id"] != reference_id),
+def select_candidates(entries: list, excluded: set) -> tuple:
+    """Up to three candidates with diversity of regimes. Deterministic and order-free.
+
+    Every scored market competes under the same rules; only an operator exclusion
+    (``excluded``) removes one. No market is set aside because of its identity (R-REF).
+    """
+    pool = sorted((e for e in entries if e["score"] is not None and e["market_id"] not in excluded),
                   key=lambda e: (e["score"]["quality"] != "COMPLETE",
                                  -D(e["score"]["value"]), e["market_id"]))
     chosen, rules = [], []
@@ -290,4 +293,4 @@ def select_candidates(entries: list, excluded: set, reference_id: str) -> tuple:
     admissible = [e for e in entries if e["score"] is not None]
     if not admissible:
         return [], "NO_ADMISSIBLE_MARKET_FOR_MISSION"
-    return [], "ADMISSIBLE_MARKETS_ALL_EXCLUDED_OR_REFERENCE"
+    return [], "ADMISSIBLE_MARKETS_ALL_EXCLUDED"

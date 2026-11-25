@@ -1,7 +1,9 @@
 # CAT R0 — Contrat du Radar de sélection des marchés
 
 Gate R0-2. Contrat `radar-evaluation/1.0.0`, règles `radar-rules/1.0.0`,
-classement `radar-ranking/1.1.0` (amendés par R1-B, section 9). Code : `observability/radar_selection/`
+classement `radar-ranking/1.1.0` (amendés par R1-B, section 9, puis par R-REF,
+section 10 : versions courantes `radar-evaluation/1.2.0`, `radar-rules/1.2.0`,
+`radar-ranking/1.3.0`). Code : `observability/radar_selection/`
 (constantes dans `contract.py`). Statut : **source seule, SYNTHETIC, hors
 réseau**. Ce contrat n'autorise ni collecte, ni déploiement, ni expérience.
 
@@ -186,7 +188,8 @@ Aucun score n'est produit pour un marché non `ADMISSIBLE`.
 
 ### 4.4 Sélection et diversité
 
-Pool = marchés notés, non exclus manuellement, hors référence. Tri : scores
+Pool = marchés notés, non exclus manuellement (R0 à R1-B : « hors référence » ;
+supprimé par R-REF, section 10). Tri : scores
 `COMPLETE` avant scores `INCOMPLETE`, puis score décroissant, puis `market_id`
 (1.1.0 : une composante inconnue ne fait jamais perdre de rang face à un
 marché complet ; `UNKNOWN ≠ 0`). Règles dans l'ordre :
@@ -201,7 +204,8 @@ plateforme, type, contrat, régime, règle et motif, score et qualité, critère
 disponibles et manquants, coût (base, provenance), limites, statut
 `PROPOSED_NOT_AUTHORIZED`. Liste vide justifiée par
 `NO_ADMISSIBLE_MARKET_FOR_MISSION` ou
-`ADMISSIBLE_MARKETS_ALL_EXCLUDED_OR_REFERENCE`. Le résultat ne dépend pas de
+`ADMISSIBLE_MARKETS_ALL_EXCLUDED` (R0 à R1-B :
+`ADMISSIBLE_MARKETS_ALL_EXCLUDED_OR_REFERENCE`). Le résultat ne dépend pas de
 l'ordre de lecture.
 
 ## 5. R0-D — Contrôle manuel et référence
@@ -216,7 +220,7 @@ l'ordre de lecture.
 - Un marché choisi ou épinglé garde sa décision réelle ;
   `presented_as_admissible` n'est vrai que pour `ADMISSIBLE`. Aucun choix ne
   lance de collecte.
-- **Référence** `kraken:spot:BTC/USDT`, publiée à part (`in_ranking: false`),
+- **Référence (R0 à R1-B, retirée par R-REF, section 10).** `kraken:spot:BTC/USDT`, publiée à part (`in_ranking: false`),
   avec sa décision Radar et `historical_admission:
   NOT_YET_HISTORICALLY_ADMITTED`. Elle reste soumise à l'intégrité de ses
   données et aux gates C2-C, C2-D et suivantes ; aucun passage PAPER n'en
@@ -244,7 +248,8 @@ représentatif n'existe. `bench` mesure localement temps, mémoire et taille.
 Clés : `schema_version`, `rules_version`, `ranking_version`, `mode`,
 `authority`, `dataset` (id, sha256, octets, nature), `mission`,
 `evaluation_time_ms`, `preferences_sha256`, `policy`, `sources`, `counts`,
-`reference`, `candidates`, `candidates_empty_reason`, `manual`,
+`reference` (absent depuis `radar-evaluation/1.2.0`, section 10), `candidates`,
+`candidates_empty_reason`, `manual`,
 `orphan_observations`, `markets[]`, `budgets`, `deep_observation_jobs`,
 `evaluation_sha256` (SHA-256 du JSON canonique sans ce champ).
 
@@ -284,6 +289,64 @@ version R0 ; les changements suivants s'y ajoutent.
   identique (test T17). Seuls l'identité du jeu de données, `inputs` et
   l'étiquette de provenance du catalogue diffèrent.
 
+## 10. Amendement R-REF (2026-11-25)
+
+Décisions opérateur D-R1 (option A renforcée) et D-R2. Base :
+`main@77bd30e2888a11207c2c0dbce19eaa62fd4421ac`.
+
+**Sémantique.** Le Radar n'a plus de marché de référence obligatoire. Aucun
+marché n'est exclu du classement, ni publié hors classement, en raison de son
+identité (`market_id`, plateforme ou actif de base). Chaque marché passe par
+les mêmes critères, la même admissibilité et le même classement. Seule une
+préférence opérateur `exclude` retire un marché des candidats, sans changer sa
+décision. Un marché sans preuve reste `UNKNOWN` ou `A_QUALIFIER` et n'est jamais
+admissible d'office. Aucun poids ni aucun seuil ne change.
+
+| Élément | R1-B | R-REF |
+|---|---|---|
+| Évaluation | `radar-evaluation/1.1.0` | `radar-evaluation/1.2.0` : le champ `reference` disparaît ; motif vide `ADMISSIBLE_MARKETS_ALL_EXCLUDED_OR_REFERENCE` renommé `ADMISSIBLE_MARKETS_ALL_EXCLUDED` ; tout le reste est identique |
+| Règles | `radar-rules/1.1.0` | `radar-rules/1.2.0` : plus de constante `REFERENCE` ni de statut `NOT_YET_HISTORICALLY_ADMITTED` ; aucune règle ne cite un marché par son nom |
+| Classement | `radar-ranking/1.2.0` | `radar-ranking/1.3.0` : le pool ne retire plus la référence (`select_candidates(entries, excluded)`) ; poids, paliers, tri et diversité inchangés |
+| Entrées | `radar-fixture/1.0.0`, `radar-batch/1.0.0` | inchangées |
+| Terminal | écran « Référence » | supprimé |
+
+**Effet mesuré sur les entrées SYNTHETIC** (tests différentiels
+`tests/radar_selection/test_h_rref.py`) : marchés, critères, décisions,
+scores et motifs sont identiques octet pour octet aux sorties archivées
+`radar-evaluation/1.1.0`. Le classement ne change que pour la fixture
+`r0_syn_04_incoherent` en missions `PRICE_STUDY` et `DEEP_OBSERVATION` :
+`kraken:spot:BTC/USDT` remplace `mexc:spot:BTC/USDT` : même base BTC, même
+régime CALM, mais 88.00 `COMPLETE` contre 82.00 `INCOMPLETE` (composante L2
+manquante). Il l'emporte par la qualité et le score, pas par son identifiant.
+Exclure manuellement `kraken:spot:BTC/USDT` reproduit exactement les candidats
+archivés dans les 15 cas.
+
+**Privilège fixe et départage des ex æquo.** R-REF retire tout privilège fixe
+lié à l'identité : aucun marché n'est mis de côté, ni placé d'office, parce
+qu'il s'appelle `kraken:spot:BTC/USDT` ou parce que sa base est BTC. Le tri
+reste en revanche entièrement déterministe : qualité `COMPLETE` avant
+`INCOMPLETE`, puis score décroissant, puis `market_id` croissant. Entre deux
+marchés de même qualité, même score, même régime et même base, le
+`market_id` départage donc les ex æquo, quel que soit l'ordre de lecture. Ce
+départage lexicographique s'applique de la même façon à tous les marchés,
+l'ancienne référence comprise (elle gagne ou perd un ex æquo selon l'ordre
+alphabétique des identifiants) ; il ne constitue pas un privilège et n'est
+jamais appliqué avant une différence réelle de qualité ou de score (tests
+`test_RR1_*`).
+
+**Archive (D-R1).** Les sorties des moteurs antérieurs sont conservées sans
+réécriture dans `docs/research/radar_rref/archive/` : R0 au commit
+`ca0354f99b2ec2c8fa5ec8ba61c21280f91ed823` (`radar-evaluation/1.0.0`,
+12 sorties : 4 fixtures × 3 missions) et R1-B au commit
+`77bd30e2888a11207c2c0dbce19eaa62fd4421ac` (`radar-evaluation/1.1.0`,
+15 sorties : 4 fixtures et 1 lot × 3 missions). `MANIFEST.json` donne pour
+chaque sortie son schéma et ses versions, son SHA-256, sa source (chemin et
+empreinte de la fixture ou du lot), le commit du moteur, la commande de
+production et la nature SYNTHETIC. Le moteur courant n'émet que les nouvelles
+versions ; aucun moteur historique n'est maintenu actif. Vérifier une sortie
+archivée (empreintes, sceau `evaluation_sha256`) n'est pas rejouer son calcul :
+un rejeu exige un checkout séparé du commit moteur cité.
+
 ## Frontière Radar → Admission scientifique → Observation approfondie
 
 Les gates C2-C (admission scientifique) et C2-D (observation approfondie) ne
@@ -295,5 +358,6 @@ définit pas. Il fixe seulement ce que le Radar leur doit :
 2. Aucune transition automatique : chaque passage exige une décision humaine
    traçable ; `deep_observation_jobs` reste vide.
 3. Un critère `UNKNOWN` au Radar reste `UNKNOWN` en entrée d'admission.
-4. La référence `kraken:spot:BTC/USDT` reste `NOT_YET_HISTORICALLY_ADMITTED`
-   tant que C2-C n'existe pas.
+4. Aucun marché n'est admis historiquement par le Radar. Depuis R-REF
+   (section 10), aucun marché n'a de statut de référence ; `kraken:spot:BTC/USDT`
+   est évalué comme les autres, et son admission éventuelle relève de C2-C.

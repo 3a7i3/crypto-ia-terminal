@@ -75,7 +75,7 @@ dans `--state-dir` et ne remplace jamais un fichier existant. Codes de sortie :
   `INCOMPLETE`.
 - Les instants non synchronisés ou sans BBO sont omis et cités dans la portée
   L2, jamais remplacés.
-- Un lot `HISTORICAL` est une entrée hors ligne : `ADMISSION: NONE`, la
-  référence BTC reste hors classement, et chaque candidat porte la limite
+- Un lot `HISTORICAL` est une entrée hors ligne : `ADMISSION: NONE`, aucun
+  marché n'est une référence depuis R-REF, et chaque candidat porte la limite
   « Données HISTORICAL hors ligne ». Aucun lot HISTORICAL n'est livré ici :
   le dépôt ne contient que des preuves SYNTHETIC.

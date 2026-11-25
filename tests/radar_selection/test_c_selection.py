@@ -64,7 +64,8 @@ def test_C04_documented_preference_for_diverse_conditions():
     pepe = next(x for x in calm["candidates"] if x["market_id"] == "mexc:spot:PEPE/USDT")
     assert pepe["regime"] == "ACTIVE" and pepe["selection_rule"] == "REGIME_SLOT"
     # Pure score order would have taken three higher-scored CALM markets instead.
-    scored = sorted((m for m in calm["markets"] if m["score"] and m["market_id"] != c.REFERENCE["market_id"]),
+    # R-REF: every scored market competes, the former reference included.
+    scored = sorted((m for m in calm["markets"] if m["score"]),
                     key=lambda m: (-Decimal(m["score"]["value"]), m["market_id"]))
     assert "mexc:spot:PEPE/USDT" not in [m["market_id"] for m in scored[:3]]
     # With one regime only, a different base asset is preferred over a higher score.
@@ -98,19 +99,23 @@ def test_C06_unknown_criterion_never_becomes_a_favourable_score():
     assert zero["components"]["activity"] == 0 and "activity" not in zero["missing"]
 
 
-def test_C07_reference_is_independent_of_automatic_ranking():
+def test_C07_no_market_is_set_aside_by_identity():
+    """R-REF (radar-rules/1.2.0): replaces the former "reference out of ranking" test.
+
+    The former Kraken BTC/USDT reference is ranked like any market; only an operator
+    exclusion removes it, and that exclusion never changes its decision.
+    """
+    former = "kraken:spot:BTC/USDT"
     for name in NAMES:
         e = ev(name)
-        assert c.REFERENCE["market_id"] not in [x["market_id"] for x in e["candidates"]]
-        assert e["reference"]["in_ranking"] is False
-        assert e["reference"]["historical_admission"] == "NOT_YET_HISTORICALLY_ADMITTED"
-    calm = ev("calm")
-    ref_score = Decimal(calm["reference"]["score"])
-    assert ref_score > min(Decimal(x["score"]) for x in calm["candidates"])  # would have ranked
-    prefs = empty_preferences() | {"excluded": [c.REFERENCE["market_id"]]}
-    excluded = ev("calm", prefs=prefs)
-    assert excluded["candidates"] == calm["candidates"]
-    assert excluded["reference"]["radar_decision"] == calm["reference"]["radar_decision"]
+        assert "reference" not in e
+    inc = ev("incoherent")
+    assert former in [x["market_id"] for x in inc["candidates"]]
+    prefs = empty_preferences() | {"excluded": [former]}
+    excluded = ev("incoherent", prefs=prefs)
+    assert former not in [x["market_id"] for x in excluded["candidates"]]
+    assert market(excluded, former)["admissibility"] == market(inc, former)["admissibility"]
+    assert market(excluded, former)["score"] == market(inc, former)["score"]
 
 
 def test_C08_no_eligible_candidate_gives_justified_empty_list():
@@ -122,7 +127,7 @@ def test_C08_no_eligible_candidate_gives_justified_empty_list():
     admissible = [m["market_id"] for m in ev("incoherent")["markets"] if m["score"]]
     prefs = empty_preferences() | {"excluded": sorted(admissible)}
     e2 = ev("incoherent", prefs=prefs)
-    assert e2["candidates"] == [] and e2["candidates_empty_reason"] == "ADMISSIBLE_MARKETS_ALL_EXCLUDED_OR_REFERENCE"
+    assert e2["candidates"] == [] and e2["candidates_empty_reason"] == "ADMISSIBLE_MARKETS_ALL_EXCLUDED"
 
 
 def test_C09_estimated_costs_distinct_from_measured():
@@ -173,7 +178,7 @@ def test_C11_complete_scores_rank_before_incomplete():
     orig = sel._candidate
     sel._candidate = lambda e, rank, rule: (e["market_id"], rule)
     try:
-        chosen = select_candidates(pool, set(), "ref")
+        chosen = select_candidates(pool, set())  # R-REF: no reference_id parameter
     finally:
         sel._candidate = orig
     ids = [x[0] for x in (chosen[0] if isinstance(chosen, tuple) else chosen)]

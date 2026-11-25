@@ -31,9 +31,11 @@ références de preuve de ces informations. Il n'a **aucune autorité**.
 - Aucune donnée brute de marché n'est recopiée dans le lot : elle reste chez
   son producteur (passage Scanner, fenêtres BBO rejouées et ancre scellée).
 - Toute évaluation d'un lot porte `dataset.admission = "NONE"`.
-- La référence `kraken:spot:BTC/USDT` reste hors classement
-  (`in_ranking: false`, `NOT_YET_HISTORICALLY_ADMITTED`), y compris en
-  `HISTORICAL`.
+- Jusqu'à R1-B (`radar-evaluation/1.1.0`), la référence `kraken:spot:BTC/USDT`
+  restait hors classement (`in_ranking: false`, `NOT_YET_HISTORICALLY_ADMITTED`),
+  y compris en `HISTORICAL`. Depuis R-REF (`radar-evaluation/1.2.0`, contrat R0
+  section 10), aucun marché n'est une référence : `kraken:spot:BTC/USDT` est
+  évalué comme les autres, et une évaluation `HISTORICAL` n'admet toujours rien.
 
 ## 2. Nature de la preuve
 
@@ -161,7 +163,7 @@ observations UNKNOWN avec le code ; le reste du lot est évalué) :
 
 ## 7. Intégrité L2 (D3, D4)
 
-| Statut | Sens | Critère `l2_quality` | Points (`radar-ranking/1.2.0`) |
+| Statut | Sens | Critère `l2_quality` | Points (`radar-ranking/1.2.0`, inchangés en 1.3.0) |
 |---|---|---|---|
 | `VERIFIED` | carnet complet vérifié (fixture SYNTHETIC seulement) | `AVAILABLE`, `PROVEN` | 100 |
 | `VERIFIED_TOP_N` | `depth_levels` premiers niveaux attestés par checksum natif, sur les instants valides | `PARTIAL`, `PROVEN_TOP_N`, motif `L2_VERIFIED_TOP_N_ONLY` | **40** (transitoire) |

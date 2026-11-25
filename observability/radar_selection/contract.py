@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-EVALUATION_SCHEMA = "radar-evaluation/1.1.0"
+EVALUATION_SCHEMA = "radar-evaluation/1.2.0"
 FIXTURE_SCHEMA = "radar-fixture/1.0.0"
 BATCH_SCHEMA = "radar-batch/1.0.0"
 ADAPTER_VERSION = "radar-adapter/1.0.0"
 PREFERENCES_SCHEMA = "radar-preferences/1.0.0"
 HISTORY_SCHEMA = "radar-history/1.0.0"
-RULES_VERSION = "radar-rules/1.1.0"
-RANKING_VERSION = "radar-ranking/1.2.0"
+RULES_VERSION = "radar-rules/1.2.0"
+RANKING_VERSION = "radar-ranking/1.3.0"
 
 # A radar-fixture document is offline and synthetic only. Anything else is refused at load time.
 EVIDENCE_KINDS = ("SYNTHETIC",)
@@ -116,13 +116,14 @@ MAX_CANDIDATES = 3
 # different base asset when possible, then by score.
 DIVERSITY_ORDER = REGIMES
 
-# ---------------------------------------------------------------- reference
-REFERENCE = {"venue": "kraken", "market_type": "SPOT", "base": "BTC", "quote": "USDT",
-             "market_id": "kraken:spot:BTC/USDT"}
-REFERENCE_HISTORICAL_STATUS = "NOT_YET_HISTORICALLY_ADMITTED"
-REFERENCE_NOTE = ("Référence expérimentale conservée hors classement. Aucune admission "
-                  "historique n'est établie par le Radar ; elle reste soumise à l'intégrité "
-                  "de ses données et aux gates C2-C, C2-D et suivantes.")
+# ---------------------------------------------------------------- no reference (R-REF)
+# radar-rules/1.2.0, radar-ranking/1.3.0, radar-evaluation/1.2.0 (R-REF, operator
+# decisions D-R1/D-R2, 2026-11-25): no market is a mandatory reference. No market is
+# excluded from the ranking, or published outside it, because of its identity; every
+# market goes through the same rules. Only an operator preference (``excluded``)
+# removes a market from the candidates. Outputs of the former engines are archived,
+# with their fingerprints and engine commits, in ``docs/research/radar_rref/archive/``;
+# they are verified there, never recomputed by this engine.
 
 
 # ---------------------------------------------------------------- budgets

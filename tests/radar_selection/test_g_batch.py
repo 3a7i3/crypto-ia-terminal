@@ -370,18 +370,21 @@ def test_T14_imports_and_offline_guard_with_evidence_root(tmp_path):
     assert "RADAR_WRITE_OUTSIDE_STATE_DIR" in lines[2]
 
 
-def test_T15_reference_stays_out_of_ranking_even_historical():
+def test_T15_no_reference_and_no_admission_even_historical():
+    """R-REF: replaces "reference stays out of ranking". No reference is published; Kraken
+    BTC/USDT is judged by the same rules (A_QUALIFIER here, so not a candidate), and
+    HISTORICAL evidence still admits nothing."""
     ev = run(batch_doc())
-    assert ev["reference"]["market_id"] == KRAKEN_BTC and ev["reference"]["in_ranking"] is False
-    assert ev["reference"]["historical_admission"] == "NOT_YET_HISTORICALLY_ADMITTED"
+    assert "reference" not in ev
+    assert market(ev, KRAKEN_BTC)["admissibility"]["decision"] == c.TO_QUALIFY
     assert KRAKEN_BTC not in [x["market_id"] for x in ev["candidates"]]
     assert ev["dataset"]["admission"] == "NONE"
     hist = historical_batch()
     ev = run(*hist)
     assert ev["dataset"]["evidence_kind"] == "HISTORICAL" and ev["mode"]["evidence"] == "HISTORICAL"
     assert ev["dataset"]["admission"] == "NONE"
+    assert "reference" not in ev
     assert KRAKEN_BTC not in [x["market_id"] for x in ev["candidates"]]
-    assert ev["reference"]["historical_admission"] == "NOT_YET_HISTORICALLY_ADMITTED"
     for cand in ev["candidates"]:
         assert cand["limits"][0].startswith("Données HISTORICAL hors ligne")
         assert cand["status"] == "PROPOSED_NOT_AUTHORIZED"
@@ -533,7 +536,7 @@ def test_R05_top_n_is_to_qualify_for_l2_depth_study():
 
 def test_R06_top_n_weight_is_the_transitional_40_points():
     assert c.L2_POINTS == {"VERIFIED": 100, "VERIFIED_TOP_N": 40, "TECHNICALLY_COMPATIBLE": 40}
-    assert c.RANKING_VERSION == "radar-ranking/1.2.0"
+    assert c.RANKING_VERSION == "radar-ranking/1.3.0"
     ev = run(batch_doc())
     k, m = market(ev, KRAKEN_ATOM), market(ev, MEXC_ATOM)
     assert k["score"]["components"]["l2"] == 40 == m["score"]["components"]["l2"]

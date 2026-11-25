@@ -101,5 +101,5 @@ def test_A08_empty_universe_is_verified_without_crash():
     assert e["candidates_empty_reason"] == "NO_ADMISSIBLE_MARKET_FOR_MISSION"
     assert e["counts"]["discovered"] == 0
     assert all(s["catalogue_state"] == "UNAVAILABLE" for s in e["sources"])
-    assert e["reference"]["present"] is False
-    assert e["reference"]["reasons"][0]["code"] == "REFERENCE_NOT_IN_UNIVERSE"
+    # R-REF: no mandatory reference is published, present or not (radar-evaluation/1.2.0).
+    assert "reference" not in e
