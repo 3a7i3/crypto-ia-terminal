@@ -26,7 +26,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from observability.operator_api.event_center_reader import EventCenterReader
-from observability.operator_api.storage_reader import StorageSnapshotReader
+from observability.operator_api.storage_reader import StorageSnapshotReader, read_storage_inventory
 from observability.operator_api.venue_comparison_reader import VenueComparisonReader
 from observability.operator_api.market_flow_reader import MarketFlowReader
 from observability.operator_api.bbo_history_reader import BboHistoryReader
@@ -150,6 +150,55 @@ def get_storage() -> Any:
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code})
     return result.snapshot
+
+
+@app.get("/api/operator/v1/storage-inventory")
+def get_storage_inventory() -> Any:
+    snapshot = read_storage_inventory()
+    if snapshot is None:
+        return JSONResponse(status_code=503, content={"error_code": "STORAGE_INVENTORY_UNAVAILABLE"}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=snapshot, headers={"Cache-Control": "no-store"})
+
+
+
+@app.get("/api/operator/v1/lab-experiments")
+def get_lab_experiments() -> Any:
+    """Serve the bounded presentation registry, not raw experiment results."""
+    from pathlib import Path
+    import re
+    from observability.runtime_service_artifact import read_document
+    from observability.event_center_contract import utc_seconds
+
+    headers = {"Cache-Control": "no-store"}
+    try:
+        doc, _ = read_document(Path("/var/lib/cat-lab-registry/index.json"))
+        rows = doc["experiments"]
+        if set(doc) != {"experiments"} or not isinstance(rows, list) or len(rows) > 25:
+            raise ValueError("invalid registry")
+        ids = set()
+        for row in rows:
+            summary = row["summary"]
+            key = row["experiment_id"]
+            if (
+                set(row) != {"experiment_id", "execution_host", "published_at", "result_sha256",
+                             "summary", "schema_version", "status", "kind", "data_kind"}
+                or not re.fullmatch(r"publication-smoke-[0-9]{8}T[0-9]{12}Z", key)
+                or key in ids
+                or row["execution_host"] != "cat-c1-16m-qual-01"
+                or utc_seconds(row["published_at"]) is None
+                or not re.fullmatch(r"[0-9a-f]{64}", row["result_sha256"])
+                or type(row["schema_version"]) is not int or row["schema_version"] != 1
+                or row["status"] != "completed" or row["kind"] != "publication_smoke"
+                or row["data_kind"] != "synthetic"
+                or set(summary) != {"observations", "net_change"}
+                or type(summary["observations"]) is not int or not 1 <= summary["observations"] <= 10000
+                or type(summary["net_change"]) is not int or abs(summary["net_change"]) >= 2**53
+            ):
+                raise ValueError("invalid card")
+            ids.add(key)
+    except (OSError, ValueError, TypeError, KeyError, OverflowError, RecursionError):
+        return JSONResponse(status_code=503, content={"error_code": "LAB_REGISTRY_UNAVAILABLE"}, headers=headers)
+    return JSONResponse(content=doc, headers=headers)
 
 
 def configure_event_center_reader(path, *, now_fn=None) -> EventCenterReader:
@@ -526,7 +575,7 @@ def get_agent_schedule(agent_id: str) -> Any:
 async def post_agent_schedule(agent_id: str, request: Request) -> Any:
     """SEULE écriture de l'API (exception gouvernée) : dépose une demande de rythme. Ne lance rien."""
     h = {"Cache-Control": "no-store"}
-    if agent_id not in agent_schedule.SCHEDULABLE:
+    if agent_id not in agent_schedule.WRITABLE:
         return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"}, headers=h)
     if request.headers.get("x-cat-operator") != "schedule":
         return JSONResponse(status_code=403, content={"error_code": "MISSING_OPERATOR_HEADER"}, headers=h)
