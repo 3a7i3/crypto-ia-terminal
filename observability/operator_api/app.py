@@ -26,10 +26,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from observability.operator_api.event_center_reader import EventCenterReader
-from observability.operator_api.storage_reader import StorageSnapshotReader
+from observability.operator_api.storage_reader import StorageSnapshotReader, read_storage_inventory
 from observability.operator_api.venue_comparison_reader import VenueComparisonReader
 from observability.operator_api.market_flow_reader import MarketFlowReader
-from observability.operator_api.bbo_history_reader import BboHistoryReader
+from observability.operator_api.scanner_universe_reader import ScannerUniverseReader
 from observability.operator_api import agent_schedule
 from observability.operator_api.agent_invocation_reader import TARGETS as AGENT_INVOCATION_TARGETS, read_agent_invocation, read_agent_history
 
@@ -149,6 +149,55 @@ def get_storage() -> Any:
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code})
     return result.snapshot
+
+
+@app.get("/api/operator/v1/storage-inventory")
+def get_storage_inventory() -> Any:
+    snapshot = read_storage_inventory()
+    if snapshot is None:
+        return JSONResponse(status_code=503, content={"error_code": "STORAGE_INVENTORY_UNAVAILABLE"}, headers={"Cache-Control": "no-store"})
+    return JSONResponse(content=snapshot, headers={"Cache-Control": "no-store"})
+
+
+
+@app.get("/api/operator/v1/lab-experiments")
+def get_lab_experiments() -> Any:
+    """Serve the bounded presentation registry, not raw experiment results."""
+    from pathlib import Path
+    import re
+    from observability.runtime_service_artifact import read_document
+    from observability.event_center_contract import utc_seconds
+
+    headers = {"Cache-Control": "no-store"}
+    try:
+        doc, _ = read_document(Path("/var/lib/cat-lab-registry/index.json"))
+        rows = doc["experiments"]
+        if set(doc) != {"experiments"} or not isinstance(rows, list) or len(rows) > 25:
+            raise ValueError("invalid registry")
+        ids = set()
+        for row in rows:
+            summary = row["summary"]
+            key = row["experiment_id"]
+            if (
+                set(row) != {"experiment_id", "execution_host", "published_at", "result_sha256",
+                             "summary", "schema_version", "status", "kind", "data_kind"}
+                or not re.fullmatch(r"publication-smoke-[0-9]{8}T[0-9]{12}Z", key)
+                or key in ids
+                or row["execution_host"] != "cat-c1-16m-qual-01"
+                or utc_seconds(row["published_at"]) is None
+                or not re.fullmatch(r"[0-9a-f]{64}", row["result_sha256"])
+                or type(row["schema_version"]) is not int or row["schema_version"] != 1
+                or row["status"] != "completed" or row["kind"] != "publication_smoke"
+                or row["data_kind"] != "synthetic"
+                or set(summary) != {"observations", "net_change"}
+                or type(summary["observations"]) is not int or not 1 <= summary["observations"] <= 10000
+                or type(summary["net_change"]) is not int or abs(summary["net_change"]) >= 2**53
+            ):
+                raise ValueError("invalid card")
+            ids.add(key)
+    except (OSError, ValueError, TypeError, KeyError, OverflowError, RecursionError):
+        return JSONResponse(status_code=503, content={"error_code": "LAB_REGISTRY_UNAVAILABLE"}, headers=headers)
+    return JSONResponse(content=doc, headers=headers)
 
 
 def configure_event_center_reader(path, *, now_fn=None) -> EventCenterReader:
@@ -687,17 +736,18 @@ def get_market_flow():
     return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
 
 
-# CAT-RADAR-KRAKEN-MEXC-01/BBO: one explicitly configured historical publication; no collection or calculation here.
-_bbo_history_reader = BboHistoryReader()
+# SCANNER-V1 (univers commun MEXC × Kraken): one explicitly configured publication;
+# no collection here, only validation and serving-time freshness withdrawal.
+_scanner_universe_reader = ScannerUniverseReader()
 
-def configure_bbo_history_reader(path=None):
-    global _bbo_history_reader
-    _bbo_history_reader = BboHistoryReader(path)
-    return _bbo_history_reader
+def configure_scanner_universe_reader(path=None, *, now_fn=None):
+    global _scanner_universe_reader
+    _scanner_universe_reader = ScannerUniverseReader(path, now_fn=now_fn)
+    return _scanner_universe_reader
 
-@app.get("/api/operator/v1/bbo-composite-history")
-def get_bbo_composite_history():
-    result = _bbo_history_reader.read()
+@app.get("/api/operator/v1/scanner-universe")
+def get_scanner_universe():
+    result = _scanner_universe_reader.read()
     if not result.ok:
         return JSONResponse(status_code=503, content={"error_code": result.error_code}, headers={"Cache-Control": "no-store"})
     return JSONResponse(content=result.snapshot, headers={"Cache-Control": "no-store"})
