@@ -73,13 +73,15 @@ suite("Venue publication through real offline producer/reader/API", () => {
   it.each(["S_market_venues_stale","S_market_venues_unresolved"])("preserves %s rather than substituting zero",async name=>{
     vi.stubGlobal("fetch",vi.fn().mockResolvedValue(response(fixture(name))));
     render(<MarketVenuesView/>);await screen.findByTestId("venue-synthetic");
-    expect(screen.getByRole("status")).toHaveTextContent(name.includes("stale")?"Publication périmée":"Qualité temporelle indisponible");
+    // The derivatives-stress source shares the tab: scope to the comparison section.
+    expect(within(screen.getByTestId("venue-comparison-view")).getByRole("status")).toHaveTextContent(name.includes("stale")?"Publication périmée":"Qualité temporelle indisponible");
     if(name.includes("unresolved"))expect(screen.getAllByText("Source non reçue").length).toBeGreaterThan(0);
   });
   it("missing publication is unavailable, not an empty market",async()=>{
     vi.stubGlobal("fetch",vi.fn().mockResolvedValue(response({error_code:"VENUE_COMPARISON_NOT_CONFIGURED"},503)));
     render(<MarketVenuesView/>);await screen.findByText("Aucune publication de comparaison disponible.");
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();expect(screen.getByText(/ne sont pas déclarés vides/)).toBeInTheDocument();
+    const view=within(screen.getByTestId("venue-comparison-view"));
+    expect(view.queryByRole("table")).not.toBeInTheDocument();expect(view.getByText(/ne sont pas déclarés vides/)).toBeInTheDocument();
   });
   it("shows an unavailable scanner without requesting the retired venue comparison", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL) =>

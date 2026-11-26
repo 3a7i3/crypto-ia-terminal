@@ -55,7 +55,7 @@ jobs:
           pip install -r requirements-ci.txt
 
       - name: Python producer/reader/API integration tests
-        run: pytest -q tests/cross_stack/ tests/market_venues/
+        run: pytest -q tests/cross_stack/ tests/market_venues/ tests/market_stress/
 
       - uses: actions/setup-node@v4
         with:
@@ -72,6 +72,7 @@ jobs:
           python -m tests.cross_stack.generate_fixtures --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_market_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_venue_comparison_fixture --out frontend/.cross-stack-fixtures
+          python -m tests.cross_stack.generate_derivatives_stress_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_pilot_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_scanner_fixture --out frontend/.cross-stack-fixtures
           python -m tests.cross_stack.generate_microstructure_fixture --out frontend/.cross-stack-fixtures
@@ -90,7 +91,7 @@ jobs:
         working-directory: frontend
         env:
           CROSS_STACK_FIXTURES_DIR: ${{ github.workspace }}/frontend/.cross-stack-fixtures
-        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/marketCatalogue.compat.test.tsx src/test/venueComparison.compat.test.tsx src/test/venueFreshness.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx src/test/LmiDetail.compat.test.tsx src/test/marketFlowExact.test.ts src/test/marketFlowJson.test.ts src/test/marketFlowValidation.test.ts src/test/marketFlowClient.test.ts src/test/marketFlow.compat.test.ts src/test/MarketFlowView.test.tsx src/test/MarketView.test.tsx
+        run: npx vitest run src/test/crossStack.compat.test.tsx src/test/marketCatalogue.compat.test.tsx src/test/venueComparison.compat.test.tsx src/test/derivativesStress.compat.test.tsx src/test/venueFreshness.compat.test.tsx src/test/ResearchStrategyBoardView.test.tsx src/test/EventsView.test.tsx src/test/StorageView.test.tsx src/test/LmiDetail.compat.test.tsx src/test/marketFlowExact.test.ts src/test/marketFlowJson.test.ts src/test/marketFlowValidation.test.ts src/test/marketFlowClient.test.ts src/test/marketFlow.compat.test.ts src/test/MarketFlowView.test.tsx src/test/MarketView.test.tsx
 
       - name: Install browser for Events and Storage desktop/mobile proof
         working-directory: frontend

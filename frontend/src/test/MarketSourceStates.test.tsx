@@ -35,9 +35,11 @@ describe("marketSourceSetup", () => {
   });
 });
 
+// Flux and Comparaison also host the derivatives-stress source (component level; the views are not mounted in the app).
+const DERIVATIVES_STRESS_URL = ["/api/operator/v1/derivatives-stress"];
 const cases: { name: string; view: () => JSX.Element; endpoint: string; also?: string[]; code: string; label: string; otherCode: string; otherText: RegExp }[] = [
-  { name: "Flux", view: () => <MarketFlowView/>, endpoint: "/api/operator/v1/market-flow", code: "MARKET_FLOW_NOT_CONFIGURED", label: "Source Flux non configurée", otherCode: "MARKET_FLOW_UNREADABLE", otherText: /Flux indisponible · HTTP 503 · MARKET_FLOW_UNREADABLE/ },
-  { name: "Comparaison des plateformes", view: () => <MarketVenuesView/>, endpoint: "/api/operator/v1/venue-comparison", code: "VENUE_COMPARISON_NOT_CONFIGURED", label: "Source Comparaison des plateformes non configurée", otherCode: "VENUE_COMPARISON_MISSING", otherText: /Aucune publication de comparaison disponible/ },
+  { name: "Flux", view: () => <MarketFlowView/>, endpoint: "/api/operator/v1/market-flow", also: DERIVATIVES_STRESS_URL, code: "MARKET_FLOW_NOT_CONFIGURED", label: "Source Flux non configurée", otherCode: "MARKET_FLOW_UNREADABLE", otherText: /Flux indisponible · HTTP 503 · MARKET_FLOW_UNREADABLE/ },
+  { name: "Comparaison des plateformes", view: () => <MarketVenuesView/>, endpoint: "/api/operator/v1/venue-comparison", also: DERIVATIVES_STRESS_URL, code: "VENUE_COMPARISON_NOT_CONFIGURED", label: "Source Comparaison des plateformes non configurée", otherCode: "VENUE_COMPARISON_MISSING", otherText: /Aucune publication de comparaison disponible/ },
   { name: "Microstructure", view: () => <MarketMicrostructureView/>, endpoint: "/api/operator/v1/market-microstructure", also: [FOOTPRINT_REPLAY_URL], code: "SOURCE_NOT_DEPLOYED", label: "Source Microstructure non déployée", otherCode: "MICROSTRUCTURE_MISSING", otherText: /SOURCE INDISPONIBLE · HTTP 503 · MICROSTRUCTURE_MISSING/ },
   { name: "Radar Spot", view: () => <SpotRadarMap/>, endpoint: "/api/operator/v1/spot-radar/scanner", code: "SPOT_RADAR_NOT_CONFIGURED", label: "Source Radar Spot non configurée", otherCode: "SPOT_RADAR_MISSING", otherText: /API indisponible · SPOT_RADAR_MISSING/ },
 ];
@@ -46,7 +48,8 @@ describe.each(cases)("$name", ({ view, endpoint, also = [], code, label, otherCo
   it("shows an unconfigured source apart from a failure, with its exact code and no empty market", async () => {
     const calls = stub(() => json({ error_code: code }, 503));
     render(view());
-    const notice = await screen.findByTestId("market-source-not-configured");
+    // Flux and Comparaison now also host the derivatives-stress source: pick this view's own notice.
+    const notice = (await screen.findAllByTestId("market-source-not-configured")).find(n => n.textContent?.includes(label))!;
     expect(notice).toHaveTextContent(label);
     expect(notice).toHaveTextContent(code);
     expect(notice).toHaveTextContent("ni marché vide, ni valeur nulle");
