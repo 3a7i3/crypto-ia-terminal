@@ -1,86 +1,104 @@
-"""CAT-PREPROD-01 / S4-B-RV1 — rapproche un inventaire de production des objets git du dépôt local.
+"""Compare a v3 inventory against explicitly selected Git histories.
 
-Usage (poste de travail, dépôt à jour avec toutes les branches et refs de PR) :
-    git fetch origin '+refs/heads/*:refs/remotes/origin/*' '+refs/pull/*/head:refs/remotes/pr/*'
-    python3 -I deploy/preprod/cat_inventory_match.py cat-prod-inventory.json [--ref origin/main] > match.json
-
-Pour chaque fichier servi (API, web, sources de build), classe son blob :
-  SAME_AS_REF     : identique au fichier de même chemin dans --ref ;
-  IN_GITHUB_OTHER : l'objet existe dans le dépôt (autre version, autre branche) mais diffère de --ref ;
-  ABSENT          : l'objet n'existe dans aucune ref récupérée : source non publiée sur GitHub.
-Lecture seule : n'écrit rien dans le dépôt, n'accède à aucun réseau.
+Pass --scope-ref for each ref in the intended search. ABSENT applies only
+within that scope, and only when the entire selected history was readable.
+An inventory records files in a process view, not Python's loaded modules.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import subprocess
-import sys
-from collections import Counter
+from pathlib import Path
+
+OID = re.compile(r"[0-9a-f]{40}")
 
 
-def git(*args: str, data: str | None = None) -> str:
-    return subprocess.run(["git", *args], input=data, capture_output=True, text=True, check=False).stdout
+def git(*args: str) -> str | None:
+    try:
+        return subprocess.run(
+            ("git", "--no-optional-locks", "--no-replace-objects", *args),
+            # Strictly local: GIT_NO_LAZY_FETCH stops lazy fetches on Git >= 2.44 (the CLI option is
+            # rejected by older Git); an empty GIT_ALLOW_PROTOCOL forbids every transport, which also
+            # blocks the lazy fetch of a missing object on Git 2.43. Per call, never global.
+            env={**os.environ, "GIT_NO_LAZY_FETCH": "1", "GIT_ALLOW_PROTOCOL": ""},
+            check=True, timeout=120, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
 
 
-def existing(blobs: set[str]) -> set[str]:
-    out = git("cat-file", "--batch-check=%(objectname) %(objecttype)", data="".join(b + "\n" for b in sorted(blobs)))
-    return {line.split()[0] for line in out.splitlines() if line.endswith(" blob")}
+def resolve(ref: str) -> str | None:
+    oid = git("rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}")
+    return oid if oid is not None and OID.fullmatch(oid) else None
 
 
-def ref_blob(ref: str, path: str) -> str | None:
-    sha = git("rev-parse", "-q", "--verify", f"{ref}:{path}").strip()
-    return sha or None
+def inventory_blobs(inventory: dict) -> dict[str, str | None]:
+    if inventory.get("inventory_schema") != "cat-prod-inventory/3.0.0":
+        raise ValueError("unsupported inventory schema")
+    blobs = {}
+    for path, row in inventory["files"].items():
+        if any(part in ("", ".", "..") for part in path.split("/")) or not re.fullmatch(r"[A-Za-z0-9._/-]+", path):
+            raise ValueError("invalid inventory path")
+        observed = row["observation"]
+        oid = observed.get("git_blob_sha1")
+        blobs[path] = oid if observed.get("state") == "OBSERVED" and isinstance(oid, str) and OID.fullmatch(oid) else None
+    return blobs
 
 
-def groups(inv: dict) -> dict[str, tuple[str, dict]]:
-    g = {}
-    api = inv.get("api_tree", {}).get("files")
-    if isinstance(api, dict):
-        g["api"] = ("", api)
-    dist = inv.get("web_dist", {}).get("files")
-    if isinstance(dist, dict):
-        g["web_dist"] = (None, dist)  # built bundle: compared by existence only
-    srv = inv.get("web_server", {}).get("host_dir_files")
-    if isinstance(srv, dict):
-        g["web_server"] = ("frontend/scripts/", srv)
-    for name, files in (inv.get("build_sources") or {}).items():
-        if isinstance(files, dict):
-            g["build:" + name] = ("frontend/" if "frontend" in name else "", files)
-    return g
+def compare(inventory: dict, reference: str, scope_refs: list[str]) -> dict:
+    blobs = inventory_blobs(inventory)
+    scope = {ref: resolve(ref) for ref in dict.fromkeys([reference, *scope_refs])}
+    base = scope[reference]
+    covered = all(scope.values()) and git("rev-parse", "--is-shallow-repository") == "false"
+    reachable = None
+    if covered:
+        reachable = git("rev-list", "--objects", "--no-object-names", "--missing=error", *sorted(set(scope.values())))
+    wanted = {oid for oid in blobs.values() if oid is not None}
+    matches = wanted.intersection(reachable.splitlines()) if reachable is not None else set()
+    exact = None
+    if base:
+        tree = git("ls-tree", "-r", "--full-tree", base, "--", *blobs) if blobs else ""
+        if tree is not None:
+            exact = {}
+            for line in tree.splitlines():
+                header, path = line.split("\t", 1)
+                mode, kind, oid = header.split()
+                if kind == "blob" and mode in ("100644", "100755"):
+                    exact[path] = oid
+
+    complete = bool(scope_refs and reachable is not None and exact is not None)
+    rows = {}
+    for path, oid in sorted(blobs.items()):
+        if oid is None:
+            state = "UNKNOWN"
+        elif exact is not None and exact.get(path) == oid:
+            state = "SAME_AS_REF"
+        elif oid in matches:
+            state = "IN_GITHUB_OTHER"
+        elif complete and not path.startswith("frontend/dist/"):
+            state = "ABSENT"
+        else:
+            state = "UNKNOWN"
+        rows[path] = {"class": state, "blob": oid}
+    return {"reference": reference, "scope_refs": scope, "absence_scope_checked": complete, "files": rows}
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("inventory")
-    ap.add_argument("--ref", default="origin/main")
-    a = ap.parse_args()
-    with open(a.inventory, encoding="utf-8") as fh:
-        inv = json.load(fh)
-    g = groups(inv)
-    all_blobs = {v[0] for _, files in g.values() for v in files.values() if isinstance(v, list) and len(v[0]) == 40}
-    known = existing(all_blobs)
-    report: dict = {"ref": a.ref, "ref_commit": git("rev-parse", a.ref).strip(), "groups": {}}
-    for name, (prefix, files) in g.items():
-        rows, counts = {}, Counter()
-        for rel, v in sorted(files.items()):
-            if not (isinstance(v, list) and len(v[0]) == 40):
-                rows[rel] = "UNREADABLE"
-                counts["UNREADABLE"] += 1
-                continue
-            if prefix is not None and ref_blob(a.ref, prefix + rel) == v[0]:
-                cls = "SAME_AS_REF"
-            elif v[0] in known:
-                cls = "IN_GITHUB_OTHER"
-            else:
-                cls = "ABSENT"
-            counts[cls] += 1
-            if cls != "SAME_AS_REF":
-                rows[rel] = {"class": cls, "blob": v[0]}
-        report["groups"][name] = {"counts": dict(counts), "not_same_as_ref": rows}
-    json.dump(report, sys.stdout, indent=1, sort_keys=True)
-    print()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("inventory", type=Path)
+    parser.add_argument("--ref", default="origin/main")
+    parser.add_argument("--scope-ref", action="append", default=[])
+    args = parser.parse_args()
+    try:
+        inventory = json.loads(args.inventory.read_text(encoding="utf-8"))
+        result = compare(inventory, args.ref, args.scope_ref)
+    except (OSError, ValueError, TypeError, AttributeError, KeyError):
+        parser.error("unreadable or invalid inventory")
+    print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 

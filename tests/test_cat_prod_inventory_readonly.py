@@ -1,75 +1,96 @@
-"""S4-B-RV1: the production inventory script must never print a configuration value outside its
-closed allowlist. A fake ``systemctl`` returns units whose ExecStart, Environment, drop-ins and
-EnvironmentFiles all carry planted secrets; none may appear in the output."""
-
-from __future__ import annotations
-
-import json
-import os
-import shutil
-import subprocess
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import TestCase, mock
+import os
+import tempfile
 
-import pytest
-
-SCRIPT = Path(__file__).resolve().parents[1] / "deploy" / "preprod" / "cat_prod_inventory_readonly.sh"
-PLANTED = "sk-PLANTED"
-
-pytestmark = pytest.mark.skipif(shutil.which("bash") is None or shutil.which("python3") is None,
-                                reason="bash and python3 required")
+SCRIPT = Path(__file__).resolve().parents[1] / "deploy/preprod/cat_prod_inventory_readonly.sh"
 
 
-def _fixture(tmp_path: Path) -> Path:
-    api, web, d, bindir = tmp_path / "api", tmp_path / "web", tmp_path / "dropin", tmp_path / "bin"
-    for p in (api / "observability" / "operator_api", web / "scripts", web / "dist", d, bindir):
-        p.mkdir(parents=True)
-    (api / "observability" / "operator_api" / "app.py").write_text("x = 1\n")
-    (api / ".env").write_text(f"TOKEN={PLANTED}-dotenv\n")
-    (web / "scripts" / "web01_local_frontend_server.mjs").write_text("//\n")
-    (web / "dist" / "index.html").write_text("<html>on-disk-not-served\n")
-    served = tmp_path / "refonte" / "dist"
-    served.mkdir(parents=True)
-    (served / "index.html").write_text("<html>served\n")
-    (served / "app.js").write_text("//\n")
-    srv = tmp_path / "agents" / "server"
-    srv.mkdir(parents=True)
-    (srv / "web01_local_frontend_server.mjs").write_text("// served server\n")
-    (d / "10.conf").write_text(f"[Service]\nEnvironment=API_TOKEN={PLANTED}-dropin\nExecStart=/x --k {PLANTED}-x\n")
-    fake = bindir / "systemctl"
-    fake.write_text(f"""#!/bin/bash
-case "$2" in
- crypto-operator-api.service) W={api}; E='{{ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 -m uvicorn observability.operator_api.app:app --host 127.0.0.1 --port 8090 --key={PLANTED}-argv ; ignore_errors=no }}';;
- crypto-operator-web.service) W={web}; E='{{ path=/usr/bin/env ; argv[]=/usr/bin/env node {web}/scripts/web01_local_frontend_server.mjs --s {PLANTED}-web ; ignore_errors=no }}';;
- *) W=; E=;;
-esac
-echo "Id=$2"; echo "ActiveState=active"; echo "WorkingDirectory=$W"; echo "ExecStart=$E"
-echo 'Environment=PASSWORD={PLANTED}-env "OPENAI_KEY=a b {PLANTED}-quoted" OPERATOR_RADAR_EXPORT_PATH=/var/lib/r.json X_STALE_AFTER_S=90 BAD_PATH=/a;{PLANTED}'
-[ "$2" = crypto-operator-web.service ] && echo "BindReadOnlyPaths={served}:{web}/dist:rbind {srv}/web01_local_frontend_server.mjs:{web}/scripts/web01_local_frontend_server.mjs"
-echo "DropInPaths={d}/10.conf"; echo "EnvironmentFiles=/etc/secret.env (ignore_errors=no)"
-""")
-    fake.chmod(0o755)
-    return bindir
+class InventoryTests(TestCase):
+    def setUp(self):
+        source = SCRIPT.read_text().split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+        self.n = {"__name__": "inventory_test"}
+        exec(compile(source, str(SCRIPT), "exec"), self.n)
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
 
+    def test_only_named_systemd_fields_are_requested_and_exported(self):
+        response = SimpleNamespace(stdout=(
+            "ActiveState=active\nMainPID=123\nExecMainStartTimestampMonotonic=456\n"
+            "Environment=SECRET_PATH=/sample/value SECRET_PORT=2345\n"
+            "ExecStart=/sample/value\n"
+        ))
+        with mock.patch("subprocess.run", return_value=response) as run:
+            episode = self.n["unit"](self.n["API"])
+        self.assertEqual(episode, {"active": "active", "pid": 123, "start_monotonic_us": 456})
+        self.assertEqual(run.call_args.args[0][2], "--property=ActiveState,MainPID,ExecMainStartTimestampMonotonic")
 
-def test_inventory_prints_no_planted_secret_and_keeps_allowlisted_facts(tmp_path):
-    bindir = _fixture(tmp_path)
-    env = {**os.environ, "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}"}
-    run = subprocess.run(["bash", str(SCRIPT)], capture_output=True, text=True, env=env, cwd=tmp_path, timeout=120, check=False)
-    assert run.returncode == 0, run.stderr
-    assert PLANTED not in run.stdout and "a b" not in run.stdout
-    out = json.loads(run.stdout)
-    api = out["units"]["crypto-operator-api.service"]
-    assert api["exec_entry"] == {"module": ["uvicorn", "observability.operator_api.app:app"]}
-    assert api["exec_host_port"] == {"host": "127.0.0.1", "port": "8090"}
-    assert api["env_paths"] == {"OPERATOR_RADAR_EXPORT_PATH": "/var/lib/r.json"}
-    assert api["env_numbers"] == {"X_STALE_AFTER_S": "90"}
-    assert "PASSWORD" in api["env_names"]
-    dropin = next(iter(api["dropins"].values()))
-    assert dropin["directives"] == ["[Service]", "Environment", "ExecStart"]
-    assert list(out["api_tree"]["files"]) == ["observability/operator_api/app.py"]
-    # Served files are resolved through the unit's bind mounts, not read under WorkingDirectory.
-    assert out["web_server"]["script_on_host"].endswith("agents/server/web01_local_frontend_server.mjs")
-    assert out["web_server"]["script_blob"][1] == len("// served server\n")
-    assert out["web_dist"]["used_on_host"].endswith("refonte/dist")
-    assert sorted(out["web_dist"]["files"]) == ["app.js", "index.html"]
-    assert out["web_dist"]["files"]["index.html"][1] == len("<html>served\n")
+    def test_fingerprint_retains_hash_and_refuses_links_and_oversize(self):
+        path = self.root / "file"
+        path.write_bytes(b"abc")
+        digest = self.n["fingerprint"]
+        self.assertEqual(digest(self.root, "file")["git_blob_sha1"], "f2ba8f84ab5c1bce84a7b441cb1959cfc7093b7f")
+        (self.root / "link").symlink_to(path)
+        (self.root / "dir-link").symlink_to(self.root, target_is_directory=True)
+        self.assertEqual(digest(self.root, "link")["state"], "UNKNOWN")
+        self.assertEqual(digest(self.root, "dir-link/file")["state"], "UNKNOWN")
+        self.assertEqual(digest(self.root, "../file")["state"], "UNKNOWN")
+        path.write_bytes(bytes(self.n["MAX_BYTES"] + 1))
+        self.assertEqual(digest(self.root, "file")["reason"], "TOO_LARGE")
+        os.mkfifo(self.root / "fifo")
+        self.assertEqual(digest(self.root, "fifo")["reason"], "NOT_REGULAR")
+
+    def test_fingerprint_discards_a_file_changed_during_read(self):
+        path = self.root / "file"
+        path.write_bytes(b"abc")
+        real_fstat = os.fstat
+        calls = 0
+
+        def changing_fstat(fd):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                path.write_bytes(b"changed")
+            return real_fstat(fd)
+
+        with mock.patch("os.fstat", side_effect=changing_fstat):
+            self.assertEqual(self.n["fingerprint"](self.root, "file")["reason"], "FILE_CHANGED")
+
+    def test_http_reports_redirect_status_without_following_or_reading_body(self):
+        with mock.patch("http.client.HTTPConnection") as factory:
+            connection = factory.return_value
+            response = connection.getresponse.return_value.__enter__.return_value
+            response.status = 302
+            self.assertEqual(self.n["health_status"](), {"state": "OBSERVED", "status": 302})
+            factory.assert_called_once_with("127.0.0.1", 8090, timeout=2)
+            connection.request.assert_called_once_with("GET", "/healthz", headers={"Connection": "close"})
+            response.read.assert_not_called()
+
+    def test_wrong_host_stops_before_contacting_services(self):
+        get_unit = self.n["unit"] = mock.Mock()
+        with mock.patch("socket.gethostname", return_value="other-host"):
+            self.assertEqual(self.n["inventory"](), {"state": "UNKNOWN", "reason": "WRONG_HOST"})
+        get_unit.assert_not_called()
+
+    def test_web_uses_process_root_and_invalidates_files_after_restart(self):
+        api, web = self.n["API"], self.n["WEB"]
+        self.n["unit"] = mock.Mock(side_effect=[
+            {"active": "active", "pid": 10, "start_monotonic_us": 1},
+            {"active": "active", "pid": 20, "start_monotonic_us": 1},
+            {"active": "inactive"}, {"active": "active"},
+            {"active": "active", "pid": 10, "start_monotonic_us": 1},
+            {"active": "active", "pid": 20, "start_monotonic_us": 2},
+        ])
+        self.n["health_status"] = mock.Mock(return_value={"state": "OBSERVED", "status": 200})
+        self.n["fingerprint"] = mock.Mock(return_value={"state": "OBSERVED", "sha256": "hash"})
+        with mock.patch("socket.gethostname", return_value=self.n["HOST"]):
+            report = self.n["inventory"]()
+        self.assertIn(api, report["units"])
+        self.assertIn(web, report["units"])
+        for path, (target, candidate) in self.n["WEB_FILES"].items():
+            self.n["fingerprint"].assert_any_call("/proc/20/root", target)
+            self.n["fingerprint"].assert_any_call("/", candidate)
+            self.assertEqual(report["files"][path]["observation"]["reason"], "PROCESS_CHANGED")
+            self.assertIsNone(report["files"][path]["mount_content_matches"])
