@@ -27,9 +27,9 @@
       "source_path": ".github/agents/data-provenance-auditor.agent.md",
       "source_blob_sha1": "45447863514be83fa0b5830f4e1491b35a9b24b1",
       "validation_status": "MIGRATION_CANDIDATE",
-      "validation_note": "Une spécification bornée reste à créer.",
-      "wiring_status": "NOT_WIRED",
-      "runner_id": null,
+      "validation_note": "Runner VPS obs-data-provenance-ro-01 installé le 2026-11-22 (passage horaire à la demie, lecture seule, sans réseau).",
+      "wiring_status": "VERIFIED",
+      "runner_id": "obs-data-provenance-ro-01",
       "legacy_blocked": false
     },
     {
@@ -69,6 +69,19 @@
       "validation_note": "Profil hors du dossier agents et en-tête non fermé.",
       "wiring_status": "NOT_WIRED",
       "runner_id": null,
+      "legacy_blocked": false
+    },
+    {
+      "id": "market-observer",
+      "display_name": "Market Observer",
+      "family": "OBSERVATION",
+      "mission": "Observer les données de marché servies sur le VPS : fraîcheur, couverture, états des instruments.",
+      "source_path": ".github/agents/market-observer.agent.md",
+      "source_blob_sha1": "d7a4946e6064d8e50b42b308f465aff3b3c78d5f",
+      "validation_status": "MIGRATION_CANDIDATE",
+      "validation_note": "Observateur de données runtime (décision opérateur 2026-11-23) : GET loopback seulement, runner obs-market-ro-01.",
+      "wiring_status": "VERIFIED",
+      "runner_id": "obs-market-ro-01",
       "legacy_blocked": false
     },
     {

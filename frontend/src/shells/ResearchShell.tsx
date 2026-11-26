@@ -22,6 +22,7 @@ export const ResearchShell: React.FC = () => (
       <NavLink to="/research/strategies" data-testid="lab-strategies-link">
         Stratégies
       </NavLink>
+      <NavLink to="/research/experiences">Expériences</NavLink>
     </nav>
     <Outlet />
   </div>

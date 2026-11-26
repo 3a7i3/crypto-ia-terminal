@@ -24,7 +24,9 @@ import {
   type EvidenceSource,
 } from "./agentRegistry";
 
-export const CARTOGRAPHER_INVOCATION_URL = "/api/operator/v1/agent-invocations/repository-cartographer";
+export const AGENT_INVOCATIONS_BASE = "/api/operator/v1/agent-invocations";
+export const invocationUrl = (agentId: string) => `${AGENT_INVOCATIONS_BASE}/${agentId}`;
+export const CARTOGRAPHER_INVOCATION_URL = invocationUrl("repository-cartographer");
 export const INVOCATION_CONTRACT = "cat.observation.invocation.v1";
 /** Intervalle entre la fin d'une réponse et la requête suivante. */
 export const INVOCATION_POLL_MS = 30_000;
@@ -38,6 +40,10 @@ export const INVOCATION_FLAG_ON = import.meta.env.VITE_CARTOGRAPHER_INVOCATION =
 
 /** Identité attendue côté serveur (cible autorisée), indépendante de l'état du registre. */
 export const EXPECTED_IDENTITY = { id: "repository-cartographer", runner_id: "obs-repo-cartographer-ro-01" } as const;
+/** Data Provenance Auditor : même bloc que le cartographe (opérateur, 2026-11-23). */
+export const DPA_IDENTITY = { id: "data-provenance-auditor", runner_id: "obs-data-provenance-ro-01" } as const;
+/** Observateur Marché : données du VPS (opérateur, 2026-11-23). */
+export const MARKET_OBSERVER_IDENTITY = { id: "market-observer", runner_id: "obs-market-ro-01" } as const;
 export type ExpectedIdentity = { id: string; runner_id: string | null };
 
 const CONNECTIONS = ["AVAILABLE", "ABSENT", "ACCESS_DENIED", "UNREADABLE", "INCOMPLETE", "INVALID"] as const;
@@ -181,6 +187,8 @@ interface PollerOptions {
   now?: () => number;
   pollMs?: number;
   timeoutMs?: number;
+  /** Route de l'agent lu ; défaut : le cartographe. */
+  url?: string;
   onChange: (s: PollState) => void;
 }
 
@@ -200,8 +208,10 @@ export class InvocationPoller {
   private readonly pollMs: number;
   private readonly timeoutMs: number;
   private readonly onChange: (s: PollState) => void;
+  private readonly url: string;
 
   constructor(o: PollerOptions) {
+    this.url = o.url ?? CARTOGRAPHER_INVOCATION_URL;
     this.fetchImpl = o.fetchImpl ?? ((u, i) => fetch(u, i));
     this.now = o.now ?? Date.now;
     this.pollMs = o.pollMs ?? INVOCATION_POLL_MS;
@@ -219,7 +229,7 @@ export class InvocationPoller {
     const ctrl = new AbortController();
     this.inflight = ctrl;
     const guard = setTimeout(() => ctrl.abort(), this.timeoutMs);
-    return this.fetchImpl(CARTOGRAPHER_INVOCATION_URL, {
+    return this.fetchImpl(this.url, {
       headers: { Accept: "application/json" },
       cache: "no-store",
       signal: ctrl.signal,
@@ -283,7 +293,10 @@ export function evidenceFromPoll(state: PollState, nowMs: number, expected: Expe
 }
 
 /** Lecture périodique + réévaluation exacte à l'échéance pendant que la page reste ouverte. */
-export function useInvocationEvidence(enabled: boolean, opts: { pollMs?: number; timeoutMs?: number } = {}): {
+export function useInvocationEvidence(
+  enabled: boolean,
+  opts: { pollMs?: number; timeoutMs?: number; agent?: ExpectedIdentity } = {},
+): {
   evidence: EvidenceSource;
   nowMs: number;
   state: PollState;
@@ -291,10 +304,13 @@ export function useInvocationEvidence(enabled: boolean, opts: { pollMs?: number;
 } {
   const [state, setState] = useState<PollState>({ status: "LOADING" });
   const [nowMs, setNowMs] = useState(Date.now());
+  const agent = opts.agent ?? EXPECTED_IDENTITY;
+  const agentId = agent.id;
 
   useEffect(() => {
     if (!enabled) return undefined;
     const p = new InvocationPoller({
+      url: invocationUrl(agentId),
       pollMs: opts.pollMs,
       timeoutMs: opts.timeoutMs,
       onChange: (s) => {
@@ -304,7 +320,7 @@ export function useInvocationEvidence(enabled: boolean, opts: { pollMs?: number;
     });
     void p.refresh();
     return () => p.stop();
-  }, [enabled, opts.pollMs, opts.timeoutMs]);
+  }, [enabled, agentId, opts.pollMs, opts.timeoutMs]);
 
   // Réveil exact à l'échéance locale : la couleur disparaît sans nouvelle réponse.
   const expiry = state.status === "OK" ? localExpiryMs(state.received) : null;
@@ -318,9 +334,9 @@ export function useInvocationEvidence(enabled: boolean, opts: { pollMs?: number;
     if (!enabled) {
       return { evidence: RUNTIME_EVIDENCE_SOURCE, nowMs, state, verdict: grayVerdict("Lecture désactivée.") };
     }
-    const verdict = state.status === "OK" ? effectiveVerdict(state.received, EXPECTED_IDENTITY, nowMs) : grayVerdict(
+    const verdict = state.status === "OK" ? effectiveVerdict(state.received, agent, nowMs) : grayVerdict(
       state.status === "LOADING" ? "Lecture de la preuve serveur en cours." : `Coupure : ${state.reason}.`,
     );
-    return { evidence: evidenceFromPoll(state, nowMs), nowMs, state, verdict };
-  }, [enabled, state, nowMs]);
+    return { evidence: evidenceFromPoll(state, nowMs, agent), nowMs, state, verdict };
+  }, [enabled, state, nowMs, agent]);
 }

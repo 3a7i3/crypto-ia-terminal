@@ -94,6 +94,10 @@ def test_SA9_projection_authorises_nothing():
         assert p["integrity"]["producer_authenticity"] == "NOT_PROVEN"
 
 
-def test_SA9_no_api_route_and_no_frontend_in_this_change():
+def test_SA9_api_reaches_the_projection_only_through_the_s4b_reader():
+    # S4-a forbade any route. S4-b (operator GO 2026-11-25) adds exactly one GET route,
+    # wired through radar_projection_reader; app.py never imports the projection package.
     app = (ROOT / "observability" / "operator_api" / "app.py").read_text(encoding="utf-8")
-    assert "radar_projection" not in app and "radar-projection" not in app
+    assert "observability.radar_projection" not in app
+    assert [line for line in app.splitlines() if "radar_projection" in line and "import" in line] == [
+        "from observability.operator_api.radar_projection_reader import RadarProjectionReader"]

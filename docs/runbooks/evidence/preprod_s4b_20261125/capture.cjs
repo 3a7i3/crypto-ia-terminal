@@ -1,0 +1,20 @@
+const { chromium } = require('playwright');
+(async () => {
+  const out = process.argv[2], base = "http://127.0.0.1:18181";
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ viewport: { width: 384, height: 832 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  const log = [];
+  page.on("response", r => { if (r.url().includes("/api/")) log.push([r.status(), new URL(r.url()).pathname]); });
+  page.on("pageerror", e => log.push(["pageerror", String(e)]));
+  await page.goto(base + "/", { waitUntil: "networkidle" });
+  await page.screenshot({ path: out + "/1-accueil.png" });
+  await page.goto(base + "/paper-live/market/radar", { waitUntil: "networkidle" });
+  await page.waitForSelector(".scanner-universe[data-state]:not([data-state=LOADING])", { timeout: 15000 }).catch(() => log.push(["warn", "scanner state not reached"]));
+  const state = await page.locator(".scanner-universe").first().getAttribute("data-state").catch(() => null);
+  await page.screenshot({ path: out + "/2-marche-scanner.png", fullPage: true });
+  await page.goto(base + "/api/operator/v1/radar-projection", { waitUntil: "load" });
+  await page.screenshot({ path: out + "/3-route-radar-projection.png" });
+  console.log(JSON.stringify({ scanner_state: state, api_calls: log }, null, 1));
+  await browser.close();
+})();

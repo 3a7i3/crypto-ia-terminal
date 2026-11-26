@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { AgentRegistryPanel, AgentRegistryView } from "../views/AgentRegistryView";
-import { AGENT_REGISTRY, type ActivityEvidence, type AgentRegistry } from "../agents/agentRegistry";
+import { AGENT_REGISTRY, RUNTIME_EVIDENCE_SOURCE, type ActivityEvidence, type AgentRegistry } from "../agents/agentRegistry";
 
 const NOW = Date.parse("2026-11-21T20:00:00Z");
 
@@ -20,10 +20,10 @@ describe("AgentRegistryView", () => {
     expect(within(card).queryAllByTestId(/agent-profile-/)).toHaveLength(0);
   });
 
-  it("affiche les 10 profils avec un voyant gris et un motif lisible", () => {
-    render(<AgentRegistryView />);
+  it("affiche les 11 profils avec un voyant gris et un motif lisible", () => {
+    render(<AgentRegistryPanel registry={AGENT_REGISTRY} evidence={RUNTIME_EVIDENCE_SOURCE} nowMs={NOW} />);
     const lights = screen.getAllByTestId("agent-activity");
-    expect(lights).toHaveLength(10);
+    expect(lights).toHaveLength(11);
     for (const l of lights) {
       expect(l).toHaveAttribute("data-light", "GRAY");
       expect(l).toHaveTextContent(/Gris · Non attesté/);
@@ -41,7 +41,10 @@ describe("AgentRegistryView", () => {
     expect(p).toHaveTextContent("Data Provenance Auditor");
     expect(p).toHaveTextContent("Auditer provenance");
     expect(p).toHaveTextContent("MIGRATION_CANDIDATE");
-    expect(within(p).getByTestId("agent-wiring")).toHaveTextContent("Aucun runner relié");
+    expect(within(p).getByTestId("agent-wiring")).toHaveTextContent("Runner relié et vérifié");
+    expect(within(screen.getByTestId("agent-profile-observability-cartographer")).getByTestId("agent-wiring")).toHaveTextContent(
+      "Aucun runner relié",
+    );
     expect(within(p).getByRole("link")).toHaveAttribute(
       "href",
       "https://github.com/3a7i3/crypto-ia-terminal/blob/main/.github/agents/data-provenance-auditor.agent.md",
@@ -57,7 +60,7 @@ describe("AgentRegistryView", () => {
   });
 
   it("n'expose aucune commande de lancement, d'arrêt, de trading ou de délégation", () => {
-    const { container } = render(<AgentRegistryView />);
+    const { container } = render(<AgentRegistryPanel registry={AGENT_REGISTRY} evidence={RUNTIME_EVIDENCE_SOURCE} nowMs={NOW} />);
     expect(container.querySelectorAll("button, form, input, select")).toHaveLength(0);
     expect(container.textContent).not.toMatch(/Lancer|Démarrer|Arrêter|Stopper|Acheter|Vendre|Déléguer/);
   });
