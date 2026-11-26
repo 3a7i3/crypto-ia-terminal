@@ -24,10 +24,10 @@ const gitBlobSha1 = (buf: Buffer) =>
 const clone = () => JSON.parse(JSON.stringify(registryJson));
 
 describe("registre des identités d'agents", () => {
-  it("recense 12 profils distincts avec identifiants et sources uniques", () => {
-    expect(AGENT_REGISTRY.agents).toHaveLength(12);
-    expect(new Set(AGENT_REGISTRY.agents.map((a) => a.id)).size).toBe(12);
-    expect(new Set(AGENT_REGISTRY.agents.map((a) => a.source_path)).size).toBe(12);
+  it("recense 13 profils distincts avec identifiants et sources uniques", () => {
+    expect(AGENT_REGISTRY.agents).toHaveLength(13);
+    expect(new Set(AGENT_REGISTRY.agents.map((a) => a.id)).size).toBe(13);
+    expect(new Set(AGENT_REGISTRY.agents.map((a) => a.source_path)).size).toBe(13);
   });
 
   it("chaque source existe dans le dépôt et correspond à l'empreinte enregistrée", () => {
@@ -38,11 +38,12 @@ describe("registre des identités d'agents", () => {
     }
   });
 
-  it("couvre exactement les 12 profils .agent.md présents sous .github", () => {
+  it("couvre exactement les 13 profils .agent.md présents sous .github", () => {
     const expected = [
       ".github/agents/data-provenance-auditor.agent.md",
       ".github/agents/decision-path-forensic.agent.md",
       ".github/agents/hedge-fund-architect.agent.md",
+      ".github/agents/market-observer.agent.md",
       ".github/agents/mission-preparation-researcher.agent.md",
       ".github/agents/observability-cartographer.agent.md",
       ".github/agents/repository-cartographer.agent.md",
@@ -68,9 +69,9 @@ describe("registre des identités d'agents", () => {
     expect(AGENT_REGISTRY.families.map((f) => f.id)).toEqual(FAMILY_ORDER);
   });
 
-  it("répartit 10 profils en familles et bloque deux héritages", () => {
+  it("répartit 11 profils en familles et bloque deux héritages", () => {
     const counts = FAMILY_ORDER.map((f) => agentsOfFamily(AGENT_REGISTRY, f).length);
-    expect(counts).toEqual([4, 2, 1, 2, 0, 1]);
+    expect(counts).toEqual([5, 2, 1, 2, 0, 1]);
     expect(legacyAgents(AGENT_REGISTRY).map((a) => a.id).sort()).toEqual(["hedge-fund-architect", "sniper-engine"]);
     for (const a of legacyAgents(AGENT_REGISTRY)) {
       expect(a.validation_status).toBe("BLOCKED_LEGACY_RECONCILIATION");
@@ -79,10 +80,14 @@ describe("registre des identités d'agents", () => {
     }
   });
 
-  it("ne qualifie aucun profil PAPER et ne relie que le cartographe (décision opérateur 2026-11-22)", () => {
+  it("ne qualifie aucun profil PAPER et ne relie que le cartographe, le DPA et l'Observateur Marché (décisions opérateur 2026-11-22/23)", () => {
     expect(agentsOfFamily(AGENT_REGISTRY, "EXECUTION_PAPER")).toHaveLength(0);
     const wired = AGENT_REGISTRY.agents.filter((a) => a.wiring_status === "VERIFIED" || a.runner_id !== null);
-    expect(wired.map((a) => [a.id, a.runner_id])).toEqual([["repository-cartographer", "obs-repo-cartographer-ro-01"]]);
+    expect(wired.map((a) => [a.id, a.runner_id])).toEqual([
+      ["data-provenance-auditor", "obs-data-provenance-ro-01"],
+      ["repository-cartographer", "obs-repo-cartographer-ro-01"],
+      ["market-observer", "obs-market-ro-01"],
+    ]);
   });
 
   it("ne contient ni secret ni donnée d'exécution", () => {
@@ -118,7 +123,7 @@ describe("registre des identités d'agents", () => {
     legacy.agents[11].family = "OBSERVATION";
     expect(() => validateRegistry(legacy)).toThrow(/héritage/);
     const runner = clone();
-    runner.agents[0].runner_id = "runner-x";
+    runner.agents.find((a: { wiring_status: string }) => a.wiring_status === "NOT_WIRED")!.runner_id = "runner-x";
     expect(() => validateRegistry(runner)).toThrow(/runner/);
     const path = clone();
     path.agents[0].source_path = "../etc/passwd";

@@ -1,6 +1,7 @@
 import React from "react";
 import { useStorage, type StorageState } from "../lib/storage";
 import { PublicationStamp } from "../components/PublicationStamp";
+import { StorageInventory } from "./StorageInventory";
 
 const statuses = { PRESENT: "Capture disponible", NOT_CONFIGURED: "Source non configurée", MISSING: "Répertoire absent", READ_ERROR: "Lecture impossible", INVALID_PATH: "Chemin ou fichier non régulier", OUTPUT_LIMIT: "Limite de lecture dépassée", SOURCE_CHANGED: "Source modifiée pendant la capture", INVALID_METADATA: "Métadonnées invalides" };
 export const StorageCard: React.FC<{ state: StorageState }> = ({ state }) => {
@@ -29,4 +30,7 @@ export const StorageCard: React.FC<{ state: StorageState }> = ({ state }) => {
     </dl><p>La fraîcheur de capture ne prouve pas l’activité du producteur. L’empreinte ne porte pas sur le contenu des journaux.</p></details>
   </article>;
 };
-export const StorageView: React.FC = () => <StorageCard state={useStorage()} />;
+export const StorageView: React.FC = () => {
+  const state = useStorage();
+  return <div><StorageInventory packets={state} /><StorageCard state={state} /></div>;
+};
