@@ -352,16 +352,18 @@ def test_dpa_schedule_route_and_offset_slots(tmp_path, monkeypatch):
     from observability.operator_api import agent_schedule as sch
     from observability.operator_api import app as api
 
-    monkeypatch.setattr(sch, "CONTROL_PATH", tmp_path)
+    monkeypatch.setattr(sch, "SCHEDULE_ROOT", tmp_path)
     c = TestClient(api.app)
     url = "/api/operator/v1/agent-invocations/data-provenance-auditor/schedule"
-    # Réconciliation production (#616) : l'état DPA est consultable, l'écriture reste au seul cartographe.
+    # P6-GOV-01/02 : l'état DPA est consultable, l'écriture reste au seul cartographe.
     assert c.post(url, json={"rhythm": "10min"}, headers={"x-cat-operator": "schedule"}).status_code == 404
-    assert list(tmp_path.iterdir()) == []
+    assert not sch.requests_dir(tmp_path).exists() or list(sch.requests_dir(tmp_path).iterdir()) == []
     assert c.get(url).status_code == 200
     at = calendar.timegm((2026, 11, 23, 1, 12, 0, 0, 0, 0))
-    (tmp_path / "data-provenance-auditor.status.json").write_text('{"applied":"10min"}')
-    assert sch.read_schedule("data-provenance-auditor", control=tmp_path, now_ts=at)["next_utc"] == "2026-11-23T01:15:00Z"
-    (tmp_path / "data-provenance-auditor.status.json").write_text('{"applied":"1h"}')
-    assert sch.read_schedule("data-provenance-auditor", control=tmp_path, now_ts=at)["next_utc"] == "2026-11-23T01:30:00Z"
+    st = sch.state_dir(tmp_path)
+    st.mkdir(parents=True, exist_ok=True)
+    (st / "data-provenance-auditor.json").write_text('{"applied":"10min"}')
+    assert sch.read_schedule("data-provenance-auditor", root=tmp_path, now_ts=at)["next_utc"] == "2026-11-23T01:15:00Z"
+    (st / "data-provenance-auditor.json").write_text('{"applied":"1h"}')
+    assert sch.read_schedule("data-provenance-auditor", root=tmp_path, now_ts=at)["next_utc"] == "2026-11-23T01:30:00Z"
     assert c.get("/api/operator/v1/agent-invocations/repo-architect/schedule").status_code == 404

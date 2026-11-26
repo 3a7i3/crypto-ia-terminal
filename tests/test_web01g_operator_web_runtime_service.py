@@ -59,9 +59,13 @@ def test_server_is_fixed_loopback_get_head_proxy_without_runtime_artifact_access
     # POST n'apparaît que pour l'exception gouvernée du programmateur (3 lignes exactes).
     assert [line.strip() for line in text.splitlines() if "POST" in line] == [
         'return request.method === "POST" && AGENT_SCHEDULE_PATH_RE.test(pathname);',
-        'headers: request.method === "POST"',
+        '...(request.method === "POST"',
         'if (request.method !== "POST") return void request.pipe(upstream);',
     ]
+    # P6-GOV-02 : l'identité transmise à l'API vient uniquement de Tailscale, vérifiée contre la liste.
+    assert "return proxyToOperatorApi(request, response, target, who," in text
+    assert 'if (!operatorLogins.has(who)) return refuse(403, "OPERATOR_NOT_AUTHORIZED"' in text
+    assert 'request.headers[IDENTITY_HEADER]' not in text
 
 
 def test_frontend_service_is_registered_in_read_only_service_matrix() -> None:

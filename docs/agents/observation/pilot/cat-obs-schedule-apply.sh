@@ -1,6 +1,8 @@
 #!/bin/bash
+# RETIRED (P6-GOV-02, 2026-11-26) : remplacé par schedule/cat-obs-schedule-apply.py. Conservé comme
+# archive ; ne plus installer (écriture de l'état sensible aux liens symboliques, risque R1).
 # Applicateur root du programmateur (exception d'écriture unique, Mathieu 2026-11-22 07:23Z ;
-# étendue au Data Provenance Auditor le 2026-11-23).
+# étendue au Data Provenance Auditor puis au Market Observer le 2026-11-23).
 # Déclenché par cat-obs-schedule*.path à chaque nouvelle demande déposée par l'API.
 # Usage : cat-obs-schedule-apply [agent]   (sans argument : repository-cartographer, comme avant)
 # Lit UN mot, le compare à une liste fermée, règle le timer de l'agent, publie l'état appliqué.
