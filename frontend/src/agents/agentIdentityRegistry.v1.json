@@ -64,9 +64,9 @@
       "family": "OBSERVATION",
       "mission": "Examiner l'architecture réelle avant modification.",
       "source_path": ".github/repo-architect.agent.md",
-      "source_blob_sha1": "47b9f9d70031ff62ade14a4faa60d6d4843bd141",
+      "source_blob_sha1": "6362375d535d265c650216274438526b520d4d13",
       "validation_status": "REVIEW_REQUIRED",
-      "validation_note": "Profil réécrit en analyse d'impact (CHANGE_IMPACT, en-tête fermé) ; revue humaine requise, reste hors du dossier agents.",
+      "validation_note": "Profil hors du dossier agents et en-tête non fermé.",
       "wiring_status": "NOT_WIRED",
       "runner_id": null,
       "legacy_blocked": false
