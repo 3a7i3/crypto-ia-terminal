@@ -94,3 +94,30 @@ class InventoryTests(TestCase):
             self.n["fingerprint"].assert_any_call("/", candidate)
             self.assertEqual(report["files"][path]["observation"]["reason"], "PROCESS_CHANGED")
             self.assertIsNone(report["files"][path]["mount_content_matches"])
+
+    def test_r6_fingerprints_only_regular_top_level_modules(self):
+        scan = self.n["inventory_directory"]
+        for path in self.n["API_DIRECTORIES"]:
+            directory = self.root / path
+            directory.mkdir(parents=True)
+            module = directory / "storage_inventory.py"
+            module.write_text("x = 1\n")
+            (directory / "data.json").write_text("{}")
+            (directory / "linked.py").symlink_to(module)
+            (directory / "nested").mkdir()
+            (directory / "nested" / "ignored.py").write_text("x = 2\n")
+            files, status = scan(self.root, path)
+            self.assertEqual(status, {"state": "OBSERVED"})
+            self.assertEqual(list(files), [f"{path}/storage_inventory.py"])
+            self.assertEqual(next(iter(files.values()))["observation"]["size"], 6)
+
+    def test_r6_limits_all_entries_and_rejects_symlinked_directories(self):
+        scan = self.n["inventory_directory"]
+        real = self.root / "real"
+        real.mkdir()
+        (self.root / "alias").symlink_to(real, target_is_directory=True)
+        self.assertEqual(scan(self.root, "alias")[1]["reason"], "DIRECTORY_UNAVAILABLE")
+        self.n["MAX_DIRECTORY_ENTRIES"] = 1
+        (real / "a.py").touch()
+        (real / "ignored.json").touch()
+        self.assertEqual(scan(self.root, "real"), ({}, {"state": "UNKNOWN", "reason": "DIRECTORY_LIMIT"}))

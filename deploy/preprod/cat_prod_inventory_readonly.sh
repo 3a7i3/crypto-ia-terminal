@@ -27,6 +27,8 @@ API_FILES = (
     "agent_bench/observation/agents.py",
     "agent_bench/observation/market_observer.py",
 )
+API_DIRECTORIES = ("observability/operator_api", "observability/scanner_universe")
+MAX_DIRECTORY_ENTRIES = 200
 RELEASES = "opt/cat-app/releases/"
 WEB_ROOT = RELEASES + "CAT-FOOTPRINT-FINANCE-V6-RC1/frontend/"
 WEB_FILES = {
@@ -116,6 +118,41 @@ def fingerprint(anchor, path):
     }
 
 
+def inventory_directory(anchor, path):
+    """Hash eligible files directly under a named directory, with a bounded scan."""
+    try:
+        fd = os.open(anchor, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for component in path.split("/"):
+                child = os.open(component, DIR_FLAGS, dir_fd=fd)
+                os.close(fd)
+                fd = child
+            before = os.fstat(fd)
+            names = []
+            with os.scandir(fd) as entries:
+                for count, entry in enumerate(entries, 1):
+                    if count > MAX_DIRECTORY_ENTRIES:
+                        return {}, unknown("DIRECTORY_LIMIT")
+                    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}\.py", entry.name) and entry.is_file(follow_symlinks=False):
+                        names.append(entry.name)
+            files = {
+                f"{path}/{name}": {"observation": fingerprint(f"/proc/self/fd/{fd}", name)}
+                for name in sorted(names)
+            }
+            if file_stamp(before) != file_stamp(os.fstat(fd)):
+                return {}, unknown("DIRECTORY_CHANGED")
+            state = (
+                {"state": "OBSERVED"}
+                if all(row["observation"]["state"] == "OBSERVED" for row in files.values())
+                else unknown("FILE_UNAVAILABLE")
+            )
+            return files, state
+        finally:
+            os.close(fd)
+    except OSError:
+        return {}, unknown("DIRECTORY_UNAVAILABLE")
+
+
 def health_status():
     # GET /healthz is the transport readiness route. Record only the status.
     # HTTPConnection uses no proxy and never follows redirects.
@@ -142,6 +179,15 @@ def inventory():
         }
         for path in API_FILES
     }
+    directories = {}
+    for directory in API_DIRECTORIES:
+        discovered, status = (
+            inventory_directory(f"/proc/{api_process[0]}/cwd", directory)
+            if api_process else ({}, unknown("PROCESS_UNAVAILABLE"))
+        )
+        files.update(discovered)
+        directories[directory] = status
+    api_paths = tuple(files)
     for path, (target, expected_source) in WEB_FILES.items():
         observed = (
             fingerprint(f"/proc/{web_process[0]}/root", target)
@@ -158,7 +204,7 @@ def inventory():
         }
 
     health = health_status() if api_process else unknown("PROCESS_UNAVAILABLE")
-    for name, process, paths in ((API, api_process, API_FILES), (WEB, web_process, WEB_FILES)):
+    for name, process, paths in ((API, api_process, api_paths), (WEB, web_process, WEB_FILES)):
         if process and process != identity(unit(name)):
             for path in paths:
                 files[path]["observation"] = unknown("PROCESS_CHANGED")
@@ -166,6 +212,7 @@ def inventory():
                     files[path]["mount_content_matches"] = None
             if name == API:
                 health = unknown("PROCESS_CHANGED")
+                directories = dict.fromkeys(API_DIRECTORIES, unknown("PROCESS_CHANGED"))
 
     return {
         "inventory_schema": "cat-prod-inventory/3.0.0",
@@ -173,6 +220,7 @@ def inventory():
         "observed_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "units": units,
         "files": files,
+        "directories": directories,
         "routes": {"GET /healthz": health},
     }
 
