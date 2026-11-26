@@ -25,6 +25,7 @@ import { EventsView } from "./views/EventsView";
 import { NotFoundView } from "./views/NotFoundView";
 import { ResearchStrategyBoardView } from "./views/ResearchStrategyBoardView";
 import { ResearchLabView } from "./views/ResearchLabView";
+import { LabExperimentRegistry } from "./views/LabExperimentRegistry";
 import { MARKET_RADAR_PATH } from "./lib/moduleNavigation";
 
 // M1-C1 (EO-022, D-C5): Market stays the home during M1. Former entry points land
@@ -68,6 +69,7 @@ const App: React.FC = () => (
         <Route path="/research" element={<ResearchShell />}>
           <Route index element={<ResearchLabView />} />
           <Route path="strategies" element={<ResearchStrategyBoardView />} />
+          <Route path="experiences" element={<LabExperimentRegistry />} />
         </Route>
         <Route path="*" element={<NotFoundView />} />
       </Route>
