@@ -29,6 +29,17 @@ API_FILES = (
 )
 API_DIRECTORIES = ("observability/operator_api", "observability/scanner_universe")
 MAX_DIRECTORY_ENTRIES = 200
+# R7: recursive, bounded inventory of every regular .py under the API process working directory.
+# Excluded at any depth: tooling and caches. Excluded only at the top level: runtime data
+# directories (a tracked module such as quant_hedge_ai/databases/*.py stays in scope).
+TREE_EXCLUDED_DIRECTORIES = frozenset((
+    ".git", ".venv", "venv", "__pycache__", "node_modules", ".mypy_cache", ".pytest_cache", ".ruff_cache",
+))
+TREE_EXCLUDED_TOP_LEVEL = frozenset(("data", "databases", "logs"))
+TREE_MAX_DEPTH = 8
+TREE_MAX_ENTRIES = 20000
+TREE_MAX_FILES = 3000
+TREE_NAME = re.compile(r"[A-Za-z0-9_.][A-Za-z0-9_.-]{0,127}")
 RELEASES = "opt/cat-app/releases/"
 WEB_ROOT = RELEASES + "CAT-FOOTPRINT-FINANCE-V6-RC1/frontend/"
 WEB_FILES = {
@@ -153,6 +164,163 @@ def inventory_directory(anchor, path):
         return {}, unknown("DIRECTORY_UNAVAILABLE")
 
 
+def in_tree_scope(path):
+    """True when R7 would have walked to this path (no excluded directory on the way)."""
+    parts = path.split("/")
+    return not (
+        (len(parts) > 1 and parts[0] in TREE_EXCLUDED_TOP_LEVEL)
+        or any(part in TREE_EXCLUDED_DIRECTORIES for part in parts[:-1])
+    )
+
+
+def inventory_tree(anchor):
+    """R7: hash every regular .py below the anchor directory; never follow a link.
+
+    Only relative paths, sizes and digests are returned. Every excluded directory,
+    skipped link, unlisted name, error and reached limit is declared. The tree is
+    COMPLETE only when no limit was reached, no error occurred, every .py was read,
+    and no link or invalid name could hide code.
+    """
+    report = {
+        "excluded_directories": [], "skipped_symlinks": [], "skipped_invalid_names": 0,
+        "unverified": {"symlinks": [], "invalid_names": 0},
+        "errors": [], "limits_reached": [], "conflicts": [], "directories_scanned": 0, "entries_scanned": 0,
+        "limits": {"max_depth": TREE_MAX_DEPTH, "max_entries": TREE_MAX_ENTRIES, "max_files": TREE_MAX_FILES},
+    }
+    files = {}
+    stopped = []
+
+    def limit(name, path):
+        if not any(item["limit"] == name for item in report["limits_reached"]):
+            report["limits_reached"].append({"limit": name, "at": path or "."})
+
+    def excluded(name, depth):
+        return name in TREE_EXCLUDED_DIRECTORIES or (depth == 0 and name in TREE_EXCLUDED_TOP_LEVEL)
+
+    def walk(fd, prefix, depth):
+        report["directories_scanned"] += 1
+        before = os.fstat(fd)
+        subdirs = []
+        with os.scandir(fd) as entries:
+            listed = []
+            # The global entry cap is checked while the iterator is consumed, before
+            # anything is kept or sorted; once exceeded the whole traversal stops.
+            for entry in entries:
+                if report["entries_scanned"] >= TREE_MAX_ENTRIES:
+                    limit("max_entries", prefix)
+                    stopped.append(True)
+                    return
+                report["entries_scanned"] += 1
+                listed.append(entry)
+            for entry in sorted(listed, key=lambda item: item.name):
+                if not TREE_NAME.fullmatch(entry.name):
+                    report["skipped_invalid_names"] += 1
+                    # A link, a directory or a .py file behind an unprintable name may hide code.
+                    if entry.is_symlink() or entry.is_dir(follow_symlinks=False) or (
+                        entry.name.endswith(".py") and entry.is_file(follow_symlinks=False)
+                    ):
+                        report["unverified"]["invalid_names"] += 1
+                    continue
+                path = f"{prefix}{entry.name}"
+                if entry.is_symlink():
+                    report["skipped_symlinks"].append(path)
+                    # Its target is never read, so it may be a directory or a module,
+                    # unless its name is one of the declared exclusions.
+                    if not excluded(entry.name, depth):
+                        report["unverified"]["symlinks"].append(path)
+                elif entry.is_dir(follow_symlinks=False):
+                    if excluded(entry.name, depth):
+                        report["excluded_directories"].append(path)
+                    else:
+                        subdirs.append(entry.name)
+                elif entry.name.endswith(".py") and entry.is_file(follow_symlinks=False):
+                    if len(files) >= TREE_MAX_FILES:
+                        limit("max_files", prefix)
+                        continue
+                    files[path] = {"observation": fingerprint(f"/proc/self/fd/{fd}", entry.name)}
+        for name in subdirs:
+            if stopped:
+                return
+            path = f"{prefix}{name}"
+            if depth >= TREE_MAX_DEPTH:
+                limit("max_depth", path)
+                continue
+            try:
+                child = os.open(name, DIR_FLAGS, dir_fd=fd)
+            except OSError as error:
+                report["errors"].append({"path": path, "reason": "DIRECTORY_UNAVAILABLE", "errno": error.errno})
+                continue
+            try:
+                walk(child, path + "/", depth + 1)
+            except OSError as error:
+                report["errors"].append({"path": path, "reason": "DIRECTORY_UNREADABLE", "errno": error.errno})
+            finally:
+                os.close(child)
+        if not stopped and file_stamp(before) != file_stamp(os.fstat(fd)):
+            report["errors"].append({"path": prefix.rstrip("/") or ".", "reason": "DIRECTORY_CHANGED"})
+
+    try:
+        root = os.open(anchor, os.O_RDONLY | os.O_DIRECTORY)
+    except OSError:
+        return {}, {**report, **unknown("TREE_UNAVAILABLE")}
+    try:
+        walk(root, "", 0)
+    except OSError as error:
+        report["errors"].append({"path": ".", "reason": "DIRECTORY_UNREADABLE", "errno": error.errno})
+    finally:
+        os.close(root)
+    unreadable = sorted(path for path, row in files.items() if row["observation"]["state"] != "OBSERVED")
+    report["files_observed"] = len(files) - len(unreadable)
+    report["files_unknown"] = unreadable
+    complete = not (
+        report["errors"] or report["limits_reached"] or unreadable
+        or report["unverified"]["symlinks"] or report["unverified"]["invalid_names"]
+    )
+    report["state"] = "COMPLETE" if complete else "INCOMPLETE"
+    return files, report
+
+
+def merge_tree(files, tree_files, tree):
+    """Give each API path one current fingerprint from R6 (named files) and R7 (tree).
+
+    Matching observations are exported once. A divergence, an R7 read failure, or an
+    in-scope R6 file that R7 did not see makes the path UNKNOWN, is declared in
+    tree["conflicts"], and makes the tree INCOMPLETE: R6 alone is never exported then.
+    files_observed and files_unknown are recomputed on the reconciled R7 scope.
+    """
+    digest = ("size", "git_blob_sha1", "sha256")
+    for path in sorted(set(files) | set(tree_files)):
+        if path not in files:
+            files[path] = tree_files[path]
+            continue
+        r6 = files[path]["observation"]
+        r7 = tree_files.get(path, {}).get("observation")
+        if r7 is None:
+            if r6["state"] != "OBSERVED" or not in_tree_scope(path):
+                continue
+            reason = "R7_NOT_SEEN"
+        elif r6["state"] == r7["state"] == "OBSERVED":
+            if all(r6.get(key) == r7.get(key) for key in digest):
+                continue
+            reason = "R6_R7_MISMATCH"
+        elif r7["state"] != "OBSERVED":
+            if r6["state"] != "OBSERVED":
+                continue
+            reason = "R7_UNREADABLE"
+        else:
+            reason = "R6_R7_MISMATCH"
+        files[path] = {"observation": unknown(reason)}
+        tree.setdefault("conflicts", []).append({"path": path, "reason": reason})
+    if "files_observed" in tree:
+        # Counters describe the reconciled observations of the R7 scope, not R7's raw reads.
+        scope = set(tree_files) | {item["path"] for item in tree.get("conflicts", [])}
+        unreadable = sorted(path for path in scope if files[path]["observation"]["state"] != "OBSERVED")
+        tree["files_observed"] = len(scope) - len(unreadable)
+        tree["files_unknown"] = unreadable
+    if tree.get("conflicts") and tree.get("state") == "COMPLETE":
+        tree["state"] = "INCOMPLETE"
+
+
 def health_status():
     # GET /healthz is the transport readiness route. Record only the status.
     # HTTPConnection uses no proxy and never follows redirects.
@@ -187,6 +355,12 @@ def inventory():
         )
         files.update(discovered)
         directories[directory] = status
+    tree_files, tree = (
+        inventory_tree(f"/proc/{api_process[0]}/cwd")
+        if api_process else ({}, unknown("PROCESS_UNAVAILABLE"))
+    )
+    if api_process:
+        merge_tree(files, tree_files, tree)
     api_paths = tuple(files)
     for path, (target, expected_source) in WEB_FILES.items():
         observed = (
@@ -213,6 +387,7 @@ def inventory():
             if name == API:
                 health = unknown("PROCESS_CHANGED")
                 directories = dict.fromkeys(API_DIRECTORIES, unknown("PROCESS_CHANGED"))
+                tree = unknown("PROCESS_CHANGED")
 
     return {
         "inventory_schema": "cat-prod-inventory/3.0.0",
@@ -221,6 +396,7 @@ def inventory():
         "units": units,
         "files": files,
         "directories": directories,
+        "api_tree": tree,
         "routes": {"GET /healthz": health},
     }
 
