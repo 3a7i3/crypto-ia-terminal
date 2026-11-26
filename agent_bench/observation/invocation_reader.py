@@ -253,18 +253,44 @@ HISTORY_MAX_ITEMS = 20
 
 
 def _report_summary(env):
-    """Résumé d'affichage d'un rapport : compteurs et libellés, jamais de contenu de fichier."""
+    """Résumé d'affichage d'un rapport : compteurs et libellés, jamais de contenu de fichier.
+
+    Forme commune à tous les agents ; `chain` n'existe que pour une chaîne de provenance
+    (Data Provenance Auditor), avec le nombre de maillons par niveau de preuve.
+    """
     ct = ((env.get("report") or {}).get("content")) or {}
-    return {
-        "seen": {"sources": len(ct.get("sources") or []), "imports": len(ct.get("imports") or []),
-                 "calls": len(ct.get("calls") or [])},
+    out = {
+        "seen": {"sources": len(ct.get("sources") or ct.get("sources_consulted") or []),
+                 "imports": len(ct.get("imports") or []), "calls": len(ct.get("calls") or [])},
         "found": sorted({f.get("code") for f in ct.get("findings") or [] if f.get("code")}),
-        "not_concluded": [{"path": u.get("path"), "line": u.get("line"), "reason": u.get("reason")}
+        "not_concluded": [{"path": u.get("path"), "line": u.get("line"),
+                           "reason": u.get("reason") or u.get("code")}
                           for u in (ct.get("unknowns") or [])],
         "write_templates": len(ct.get("write_templates") or []),
         "limits": len(ct.get("limits") or []),
         "errors": [e.get("code") for e in ct.get("errors") or []],
     }
+    if ct.get("contract") == inv.RUNTIME_REPORT_CONTRACT:
+        # Observateur runtime : un contrôle par ligne, verdict publié tel quel (jamais recalculé).
+        out["checks"] = [{"code": str(k.get("code"))[:40], "verdict": str(k.get("verdict"))[:8],
+                          "observed": k.get("observed") if isinstance(k.get("observed"), (int, float, str, bool))
+                          or k.get("observed") is None else str(k.get("observed"))[:40],
+                          "note": str(k.get("note"))[:120] if k.get("note") else None}
+                         for k in (ct.get("checks") or [])[:24] if isinstance(k, dict)]
+        out["verdict_counts"] = ct.get("verdict_counts") if isinstance(ct.get("verdict_counts"), dict) else None
+        out["domain"] = ct.get("domain") if isinstance(ct.get("domain"), str) else None
+    chain = ct.get("chain")
+    if isinstance(chain, list):
+        levels: dict = {}
+        for link in chain:
+            lv = link.get("level") if isinstance(link, dict) else None
+            levels[lv if isinstance(lv, str) else "UNKNOWN"] = levels.get(lv if isinstance(lv, str) else "UNKNOWN", 0) + 1
+        hops = [{"hop": str(h.get("hop"))[:40], "level": str(h.get("level"))[:16]}
+                for h in chain[:12] if isinstance(h, dict)]
+        out["chain"] = {"links": len(chain), "levels": dict(sorted(levels.items())), "hops": hops,
+                        "inferred": len(ct.get("inferred_links") or []),
+                        "runtime_required": len(ct.get("runtime_measurements_required") or [])}
+    return out
 
 
 def read_history(reports: Path, *, mission_id: str, agent_id: str, runner_id: str, now_ts: float,
@@ -315,7 +341,7 @@ def read_history(reports: Path, *, mission_id: str, agent_id: str, runner_id: st
             if verdict == "VALID":
                 item.update(invocation_id=env["invocation_id"], started_utc=env["started_utc"],
                             ended_utc=env["ended_utc"], state=env["state"],
-                            result_status=env["result_status"], analysed_sha=env["analysed_sha"],
+                            result_status=env["result_status"], analysed_sha=env.get("analysed_sha"),
                             content_sha256=env["content_sha256"], summary=_report_summary(env))
             out["items"].append(item)
     finally:

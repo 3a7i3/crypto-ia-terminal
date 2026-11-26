@@ -15,6 +15,7 @@ un rapport correctement scellé d'un autre agent ou d'un autre SHA reste invalid
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -22,6 +23,16 @@ from datetime import datetime, timezone
 from agent_bench.observation import contract as c
 
 INVOCATION_CONTRACT = "cat.observation.invocation.v1"
+# Observateurs de données runtime (pas de SHA analysé) : voir runtime_observer.
+RUNTIME_INVOCATION_CONTRACT = "cat.observation.runtime-invocation.v1"
+RUNTIME_REPORT_CONTRACT = "cat.observation.runtime-report.v1"
+RUNTIME_ENVELOPE_KEYS = {
+    "contract", "contract_version", "invocation_id", "agent_id", "runner_id", "mission_id",
+    "profile_blob_sha1", "code_sha", "started_utc", "ended_utc", "state", "exit_code",
+    "interruption_reason", "result_status", "report_sha256", "content_sha256", "limits",
+    "verification", "report",
+}
+RUNTIME_VERIFICATION_KEYS = {"checkout_head", "executed_modules", "profile_source_path", "profile_blob_sha1"}
 LOCK_CONTRACT = "cat.observation.invocation-lock.v1"
 CONTRACT_VERSION = 1
 
@@ -40,6 +51,10 @@ NAME_RE = re.compile(r"^(\d{8}T\d{6}Z)_([0-9a-f]{32})\.json$")
 MAX_RUN_S = 120                 # durée maximale d'une invocation
 MAX_LEASE_S = 600               # durée maximale d'un bail de verrou
 MAX_FILES = 30                  # périmètre de mission (REPOSITORY_MAP)
+# Borne de fichiers par type de question. La chaîne d'un dataset traverse plus de fichiers
+# (producteur, lecteur, route, client, vue, capture) : 60, comme le budget du pilote (50) arrondi.
+MAX_FILES_BY_KIND = {"REPOSITORY_MAP": MAX_FILES, "DATASET_PROVENANCE_CHAIN": 60,
+                     "METRIC_SURFACE_MAP": MAX_FILES, "CHANGE_IMPACT": MAX_FILES}
 MAX_PROOF_BYTES = 2 * 1024 * 1024
 MAX_DIR_ENTRIES = 200           # énumération réellement bornée d'un dossier de preuves
 CLOCK_SKEW_S = 60
@@ -175,6 +190,9 @@ def validate_envelope(env, *, agent_id, runner_id, mission_id, now_ts, expected_
     """
     if not isinstance(env, dict):
         return "INVALID", "enveloppe non objet"
+    if env.get("contract") == RUNTIME_INVOCATION_CONTRACT:
+        return validate_runtime_envelope(env, agent_id=agent_id, runner_id=runner_id, mission_id=mission_id,
+                                         now_ts=now_ts, expected_profile_blob=expected_profile_blob)
     missing, extra = ENVELOPE_KEYS - set(env), set(env) - ENVELOPE_KEYS
     if missing:
         return "INCOMPLETE", f"champs manquants: {','.join(sorted(missing))}"
@@ -230,7 +248,8 @@ def validate_envelope(env, *, agent_id, runner_id, mission_id, now_ts, expected_
     if not (isinstance(lim, dict) and isinstance(lim.get("max_files"), int)
             and isinstance(lim.get("max_run_s"), (int, float))):
         return "INVALID", "limites absentes"
-    if lim["max_files"] > MAX_FILES or lim["max_run_s"] > MAX_RUN_S:
+    kind = c.QUESTION_KIND_BY_AGENT.get(env["agent_id"])
+    if kind is None or lim["max_files"] > MAX_FILES_BY_KIND[kind] or lim["max_run_s"] > MAX_RUN_S:
         return "INVALID", "limites déclarées au-delà des bornes"
     why = _check_verification(env)
     if why:
@@ -261,18 +280,119 @@ def validate_envelope(env, *, agent_id, runner_id, mission_id, now_ts, expected_
         return "INVALID", "rapport d'une autre mission"
     if ct.get("analyzed_ref") != {"kind": "GIT_COMMIT", "sha": env["analysed_sha"]}:
         return "INVALID", "SHA analysé du rapport différent de l'enveloppe"
-    prof = ct.get("profile")
-    if not (isinstance(prof, dict) and prof.get("path") == "profile:" + env["verification"]["profile_source_path"]):
+    if report_profile_path(ct) != "profile:" + env["verification"]["profile_source_path"]:
         return "INVALID", "profil du rapport incohérent"
     if ct.get("status") not in RESULT_STATUSES:
         return "INVALID", "statut de résultat inconnu"
     if env["result_status"] != ct["status"]:
         return "INVALID", "résultat déclaré incohérent avec le rapport"
-    sources = {s.get("path") for s in ct.get("sources", [])
+    sources = {s.get("path") for s in report_sources(ct)
                if isinstance(s, dict) and not str(s.get("path", "")).startswith("profile:")}
     if not sources <= set(env["verification"]["scope_blobs"]):
         return "INVALID", "sources du rapport hors du périmètre vérifié"
     return "VALID", "ok"
+
+
+def validate_runtime_envelope(env, *, agent_id, runner_id, mission_id, now_ts, expected_profile_blob=None):
+    """Enveloppe d'un observateur runtime. Mêmes règles d'identité, d'état et de sceau ; pas de SHA analysé."""
+    missing, extra = RUNTIME_ENVELOPE_KEYS - set(env), set(env) - RUNTIME_ENVELOPE_KEYS
+    if missing:
+        return "INCOMPLETE", f"champs manquants: {','.join(sorted(missing))}"
+    if extra:
+        return "INVALID", f"champs inattendus: {','.join(sorted(extra))}"
+    if env["contract_version"] != CONTRACT_VERSION:
+        return "INVALID", "version de contrat inconnue"
+    if not (isinstance(env["invocation_id"], str) and HEX32.match(env["invocation_id"])):
+        return "INVALID", "invocation_id"
+    if env["agent_id"] != agent_id:
+        return "INVALID", "agent_id différent de l'agent attendu"
+    if env["runner_id"] != runner_id:
+        return "INVALID", "runner_id différent du runner attendu"
+    if env["mission_id"] != mission_id:
+        return "INVALID", "mission_id différent de la mission attendue"
+    state = env["state"]
+    if state not in EXECUTION_STATES or state == "ABANDONED":
+        return "INVALID", "état d'exécution inconnu"
+    for k in ("profile_blob_sha1", "code_sha"):
+        if not (isinstance(env[k], str) and HEX40.match(env[k])):
+            return "INVALID", f"{k} absent ou malformé"
+    if expected_profile_blob is not None and env["profile_blob_sha1"] != expected_profile_blob:
+        return "INVALID", "profil différent du profil qualifié"
+    started, ended = parse_utc(env["started_utc"]), parse_utc(env["ended_utc"])
+    if started is None or ended is None:
+        return "INVALID", "dates UTC invalides"
+    if ended < started:
+        return "INVALID", "fin antérieure au début"
+    if started > now_ts + CLOCK_SKEW_S or ended > now_ts + CLOCK_SKEW_S:
+        return "FUTURE", "date future"
+    code = env["exit_code"]
+    if state == "COMPLETED" and code != 0:
+        return "INVALID", "COMPLETED exige un code de sortie 0"
+    if state == "FAILED" and not (isinstance(code, int) and not isinstance(code, bool) and code >= 1):
+        return "INVALID", "FAILED exige un code de sortie ≥ 1"
+    if state in ("TIMEOUT", "INTERRUPTED") and code is not None:
+        return "INVALID", "code de sortie inattendu pour une interruption"
+    if state != "COMPLETED" and not env["interruption_reason"]:
+        return "INVALID", "motif d'échec ou d'interruption absent"
+    lim = env["limits"]
+    if not (isinstance(lim, dict) and isinstance(lim.get("max_run_s"), (int, float)) and lim["max_run_s"] <= MAX_RUN_S):
+        return "INVALID", "limites absentes ou au-delà des bornes"
+    v = env["verification"]
+    if not isinstance(v, dict) or set(v) != RUNTIME_VERIFICATION_KEYS:
+        return "INVALID", "vérification absente ou incomplète"
+    if v["checkout_head"] != env["code_sha"] or v["profile_blob_sha1"] != env["profile_blob_sha1"]:
+        return "INVALID", "vérification incohérente avec l'enveloppe"
+    m = v["executed_modules"]
+    if not (isinstance(m, dict) and m and all(isinstance(b, str) and HEX40.match(b) for b in m.values())):
+        return "INVALID", "executed_modules vide ou malformé"
+    rep = env["report"]
+    if state != "COMPLETED":
+        if rep is not None or env["result_status"] is not None:
+            return "INVALID", "rapport présent sur une invocation non terminée"
+        return "VALID", "ok"
+    if not isinstance(rep, dict) or set(rep) != {"content", "content_sha256", "run", "report_sha256"}:
+        return "INVALID", "enveloppe de rapport inattendue"
+    if rep["content_sha256"] != c.sha256_json(rep["content"]):
+        return "INVALID", "empreinte du contenu altérée"
+    if rep["report_sha256"] != c.sha256_json({"content": rep["content"], "content_sha256": rep["content_sha256"],
+                                              "run": rep["run"]}):
+        return "INVALID", "empreinte du rapport altérée"
+    if env["content_sha256"] != rep["content_sha256"] or env["report_sha256"] != rep["report_sha256"]:
+        return "INVALID", "empreintes d'enveloppe incohérentes"
+    ct = rep["content"]
+    if ct.get("contract") != RUNTIME_REPORT_CONTRACT:
+        return "INVALID", "contrat de rapport inconnu"
+    if ct.get("agent_id") != env["agent_id"] or ct.get("mission_id") != env["mission_id"]:
+        return "INVALID", "rapport d'un autre agent ou d'une autre mission"
+    if (ct.get("profile") or {}).get("path") != "profile:" + v["profile_source_path"]:
+        return "INVALID", "profil du rapport incohérent"
+    if ct.get("status") not in RESULT_STATUSES or env["result_status"] != ct["status"]:
+        return "INVALID", "résultat déclaré incohérent avec le rapport"
+    return "VALID", "ok"
+
+
+def report_sources(ct):
+    """Inventaire des sources lues : `sources` (cartographes, architecte) ou `sources_consulted` (DPA)."""
+    for key in ("sources", "sources_consulted"):
+        if isinstance(ct.get(key), list):
+            return ct[key]
+    return []
+
+
+def report_profile_path(ct):
+    """`profile:<chemin>` du profil lu. Le DPA publie la référence de mission et inventorie la lecture."""
+    prof = ct.get("profile")
+    if isinstance(prof, dict) and isinstance(prof.get("path"), str):
+        return prof["path"]
+    if isinstance(prof, dict) and isinstance(prof.get("source_path"), str):
+        want = "profile:" + prof["source_path"]
+        if any(isinstance(s, dict) and s.get("path") == want for s in report_sources(ct)):
+            return want
+    return None
+
+
+def hashlib_sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 def json_load_bounded(raw: bytes):

@@ -1,0 +1,36 @@
+{
+  "agent_id": "observability-cartographer",
+  "analyzed_ref": {
+    "kind": "GIT_COMMIT",
+    "sha": "766f4fd7d8a797a684c5b89de9fd0e83bc8b74b3"
+  },
+  "budget": {
+    "max_bytes": 2000000,
+    "max_files": 6,
+    "max_wall_ms": 30000
+  },
+  "capture": null,
+  "contract": "cat.observation.mission.v2",
+  "mission_id": "6e26e8d24f7fac5e7e125a949297c3ab8a0d90a7997e93af48ef014a1f02a5fd",
+  "profile": {
+    "blob_sha1": "6309d9b2cf97a8acb7048a0453cb491547208ebd",
+    "source_path": ".github/agents/observability-cartographer.agent.md"
+  },
+  "question": {
+    "kind": "METRIC_SURFACE_MAP",
+    "surface_id": "systeme-stockage",
+    "surface_path": "frontend/src/views/StorageView.tsx",
+    "text": "Pour la vue Stockage du terminal, d'où vient chaque chiffre affiché, qui le calcule et est-il recalculé ailleurs ?",
+    "upstream_reports": []
+  },
+  "scope": {
+    "read_paths": [
+      "frontend/src/lib/storage.ts",
+      "frontend/src/views/StorageView.tsx",
+      "observability/operator_api/app.py",
+      "observability/operator_api/storage_reader.py",
+      "observability/storage_contract.py",
+      "observability/storage_snapshot.py"
+    ]
+  }
+}

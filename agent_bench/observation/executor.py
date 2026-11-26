@@ -1,6 +1,8 @@
-"""Exécuteur ponctuel du Repository Cartographer (contrat d'invocation v1).
+"""Exécuteur ponctuel des agents d'observation (contrat d'invocation v1).
 
 Une invocation par appel explicite. Aucun démon, aucun timer, aucune relance automatique.
+Agents servis : ceux du registre ``agents.AGENTS`` (repository-cartographer par défaut, pour que
+l'unité installée garde exactement son comportement ; les autres via ``--agent-id``).
 
 Exclusion mutuelle : `flock(LOCK_EX | LOCK_NB)` sur `locks/<runner_id>.lock`.
 - Le noyau libère le verrou à la mort du processus (arrêt brutal compris) : aucune reprise
@@ -37,8 +39,12 @@ import sys
 import time
 from pathlib import Path
 
+from agent_bench.observation import agents as ag
 from agent_bench.observation import contract as c
 from agent_bench.observation import invocation as inv
+from agent_bench.observation import observability_cartographer as oc
+from agent_bench.observation import provenance_auditor as pa
+from agent_bench.observation import repo_architect as ra
 from agent_bench.observation import repository_cartographer as rc
 
 GIT = "git"
@@ -103,7 +109,8 @@ def executed_module_files():
     return files
 
 
-def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission, analysed_tree: Path | None = None):
+def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission, analysed_tree: Path | None = None,
+                    allow_absent=frozenset()):
     """Retourne le bloc `verification` ou lève Refused. Lecture seule.
 
     `analysed_tree` : arbre distinct, extrait au SHA analysé (suivi de main). Sans lui, la zone
@@ -133,6 +140,8 @@ def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission, analysed
             raise Refused("SCOPE_DIRECTORY_UNSUPPORTED", rel)
         expected = _blob_at(zone, analysed_sha, rel)
         path = zone / rel
+        if expected is None and rel in allow_absent and not os.path.lexists(path):
+            continue  # fichier supprimé par le diff analysé : absent au SHA analysé et sur disque
         if expected is None:
             raise Refused("SCOPE_ABSENT_AT_ANALYSED_SHA", rel)
         if path.is_symlink() or not path.is_file():
@@ -146,6 +155,8 @@ def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission, analysed
     if ppath.is_symlink() or not ppath.is_file() or _hash_file(checkout, ppath) != prof["blob_sha1"]:
         raise Refused("PROFILE_MISMATCH", prof["source_path"])
 
+    if not scope:
+        raise Refused("SCOPE_EMPTY_AT_ANALYSED_SHA", "aucun fichier du périmètre présent")
     modules = {}
     for rel, path in executed_module_files().items():
         expected = _blob_at(checkout, code_sha, rel)
@@ -157,6 +168,41 @@ def verify_checkout(checkout: Path, *, code_sha, analysed_sha, mission, analysed
         raise Refused("CODE_MISMATCH", "aucun module vérifiable")
     return {"checkout_head": head_sha, "executed_modules": modules, "scope_blobs": scope,
             "profile_source_path": prof["source_path"], "profile_blob_sha1": prof["blob_sha1"]}
+
+
+def git_diff(zone: Path, base_sha, analysed_sha, paths):
+    """Diff unifié base → analysé, limité aux chemins. Même commande pour préparer et vérifier."""
+    if _git(zone, "cat-file", "-e", f"{base_sha}^{{commit}}").returncode != 0:
+        raise Refused("BASE_SHA_UNAVAILABLE", base_sha)
+    out = _git(zone, "diff", "--no-ext-diff", "--no-color", "--no-renames", "--unified=3",
+               base_sha, analysed_sha, "--", *paths)
+    if out.returncode != 0:
+        raise Refused("GIT_UNAVAILABLE", "diff")
+    return out.stdout
+
+
+def changed_paths(zone: Path, base_sha, analysed_sha):
+    out = _git(zone, "diff", "--no-ext-diff", "--no-renames", "--name-only", base_sha, analysed_sha)
+    if out.returncode != 0:
+        raise Refused("GIT_UNAVAILABLE", "diff --name-only")
+    return sorted({ln for ln in out.stdout.decode().splitlines() if ln})
+
+
+def _analyse(mission, zone: Path, checkout: Path, diff, clock):
+    kind = mission["question"]["kind"]
+
+    def ns():  # horloge en nanosecondes des analyseurs
+        return int(clock() * 1e9)
+
+    if kind == "REPOSITORY_MAP":
+        return rc.audit_zone(mission, zone, checkout, clock=ns)
+    if kind == "DATASET_PROVENANCE_CHAIN":
+        return pa.audit(mission, zone, checkout, clock=ns)
+    if kind == "METRIC_SURFACE_MAP":
+        return oc.audit_surface(mission, zone, checkout, clock=ns)
+    if kind == "CHANGE_IMPACT":
+        return ra.audit_change(mission, zone, checkout, diff, clock=ns)
+    raise Refused("AGENT_NOT_QUALIFIED", kind)
 
 
 # --- Verrou ---------------------------------------------------------------------------------
@@ -325,8 +371,11 @@ def run_once(*, mission, checkout: Path, reports: Path, runner_id, agent_id="rep
         c.validate_mission(mission)
     except c.MissionRejected as exc:
         raise Refused("MISSION_REJECTED", exc.code) from exc
-    if mission["agent_id"] != agent_id or mission["question"]["kind"] != "REPOSITORY_MAP":
+    spec = ag.AGENTS.get(agent_id)
+    if spec is None or mission["agent_id"] != agent_id or mission["question"]["kind"] != spec.question_kind:
         raise Refused("AGENT_NOT_QUALIFIED", mission["agent_id"])
+    if mission["budget"]["max_files"] > spec.max_files:
+        raise Refused("LIMIT_INVALID", f"max_files > {spec.max_files}")
     if mission["analyzed_ref"] != {"kind": "GIT_COMMIT", "sha": analysed_sha}:
         raise Refused("ANALYSED_REF_MISMATCH")
     # Bornes : un argument ne peut que les abaisser.
@@ -334,8 +383,16 @@ def run_once(*, mission, checkout: Path, reports: Path, runner_id, agent_id="rep
     max_run_s = min(inv.MAX_RUN_S, budget_s, max_run_s if max_run_s is not None else inv.MAX_RUN_S)
     if max_run_s <= 0:
         raise Refused("LIMIT_INVALID")
+    is_change = spec.question_kind == "CHANGE_IMPACT"
     verification = verify_checkout(checkout, code_sha=code_sha, analysed_sha=analysed_sha, mission=mission,
-                                   analysed_tree=analysed_tree)
+                                   analysed_tree=analysed_tree,
+                                   allow_absent=frozenset(mission["scope"]["read_paths"]) if is_change else frozenset())
+    diff = None
+    if is_change:
+        q = mission["question"]
+        diff = git_diff(analysed_tree or checkout, q["base_sha"], analysed_sha, q["changed_paths"])
+        if inv.hashlib_sha256(diff) != q["diff_sha256"]:
+            raise Refused("DIFF_FINGERPRINT_MISMATCH", q["change_id"])
 
     lock = RunnerLock(reports, runner_id).acquire()
     try:
@@ -379,8 +436,7 @@ def run_once(*, mission, checkout: Path, reports: Path, runner_id, agent_id="rep
             try:
                 signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)  # SIGTERM en attente délivré ici
                 signal.setitimer(signal.ITIMER_REAL, max_run_s)
-                report = rc.audit_zone(mission, analysed_tree or checkout, checkout,
-                                       clock=lambda: int(clock() * 1e9))
+                report = _analyse(mission, analysed_tree or checkout, checkout, diff, clock)
                 state, exit_code = "COMPLETED", 0
             except _Timeout:
                 state, exit_code, reason = "TIMEOUT", None, f"durée > {max_run_s} s"
@@ -428,7 +484,8 @@ def _apply_rlimits(max_run_s):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="python3 -m agent_bench.observation.executor",
-                                 description="Invocation ponctuelle du Repository Cartographer (lecture seule).")
+                                 description="Invocation ponctuelle d'un agent d'observation (lecture seule).")
+    ap.add_argument("--agent-id", default="repository-cartographer", choices=sorted(ag.AGENTS))
     ap.add_argument("--mission", required=True, help="fichier JSON de mission")
     ap.add_argument("--checkout", required=True, help="checkout git en lecture seule au SHA de code")
     ap.add_argument("--reports", required=True, help="dossier des rapports (seule écriture autorisée)")
@@ -444,7 +501,8 @@ def main(argv=None):
         cap = min(inv.MAX_RUN_S, a.max_run_s if a.max_run_s is not None else inv.MAX_RUN_S)
         _apply_rlimits(cap)
         env, name = run_once(mission=mission, checkout=Path(a.checkout), reports=Path(a.reports),
-                             runner_id=a.runner_id, code_sha=a.code_sha, analysed_sha=a.analysed_sha,
+                             runner_id=a.runner_id, agent_id=a.agent_id, code_sha=a.code_sha,
+                             analysed_sha=a.analysed_sha,
                              max_run_s=a.max_run_s,
                              analysed_tree=Path(a.analysed_tree) if a.analysed_tree else None)
     except Refused as exc:
