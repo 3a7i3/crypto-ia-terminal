@@ -1,4 +1,6 @@
 #!/bin/bash
+# RETIRED (P6-GOV-02, 2026-11-26) : remplacé par schedule/cat-obs-schedule-apply.py. Conservé comme
+# archive ; ne plus installer (écriture de l'état sensible aux liens symboliques, risque R1).
 # Applicateur root du programmateur (exception d'écriture unique, Mathieu 2026-11-22 07:23Z).
 # Déclenché par cat-obs-schedule.path à chaque nouvelle demande déposée par l'API.
 # Lit UN mot, le compare à une liste fermée, règle le timer de l'agent, publie l'état appliqué.

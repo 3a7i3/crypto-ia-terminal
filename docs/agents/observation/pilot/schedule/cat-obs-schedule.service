@@ -1,0 +1,27 @@
+# P6-GOV-02 — applicateur root durci. Écrit seulement dans /srv/cat-obs/schedule (états,
+# consommation de la demande) et dans le drop-in du timer du cartographe.
+[Unit]
+Description=Programmateur cartographe : appliquer une demande de rythme (P6-GOV-02)
+StartLimitIntervalSec=10
+StartLimitBurst=5
+
+[Service]
+Type=oneshot
+Environment=CAT_SCHEDULE_REQUEST_OWNER=lecanada26
+ExecStart=/usr/bin/python3 -I -B /usr/local/sbin/cat-obs-schedule-apply
+UMask=0077
+ProtectSystem=strict
+ReadWritePaths=/srv/cat-obs/schedule /etc/systemd/system/cat-obs-cartographer.timer.d
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
