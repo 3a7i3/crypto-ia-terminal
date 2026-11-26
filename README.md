@@ -29,7 +29,7 @@ flowchart TD
     FIN --> Projection
     Diagnostics --> Projection
     Candidates --> Projection
-    Projection --> API[Operator API GET-only]
+    Projection --> API[Operator API GET-only + 1 exception rythme cartographe]
     API --> App[OPERATOR APP — présentation et preuves]
 ```
 
@@ -60,7 +60,7 @@ possède aucune autorité de trading.
 | PAPER Science | `core/advisor_loop.py`, `paper_trading/` | orchestration de l'expérience ; PPL porte le lifecycle |
 | Financial Institute | `financial_institute/` | vérité financière, pas recomputation UI |
 | Research Lab | `research_data/`, `research_replay/`, `research_diag/`, `research_candidate/` | datasets immuables, analyse et hypothèses non autoritaires |
-| Operator API / App | `observability/operator_api/`, `frontend/` | projections GET-only, présentation et provenance |
+| Operator API / App | `observability/operator_api/`, `frontend/` | projections GET-only, présentation et provenance ; seule écriture : demande de rythme du cartographe (voir CLAUDE.md §1) |
 | Governance | `governance/`, contrats, missions GitHub | admissions, limites et décisions explicites |
 
 La présence de modules historiques ou de trois arbres `runtime/` ne prouve

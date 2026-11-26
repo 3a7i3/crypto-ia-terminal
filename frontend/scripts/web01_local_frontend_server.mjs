@@ -59,10 +59,33 @@ function apiError(response, status, code, message) {
   response.end(JSON.stringify({ error_code: code, error_message: message }));
 }
 
-// Exception gouvernée UNIQUE (opérateur, 2026-11-22 07:23Z) : demande de rythme d'un agent
-// d'observation. Seule écriture relayée ; corps borné ; tout le reste reste GET/HEAD.
+// Exception gouvernée UNIQUE (opérateur, 2026-11-22 07:23Z, ratifiée P6-GOV-01) : demande de rythme
+// du Repository Cartographer. Seule écriture relayée ; tout le reste reste GET/HEAD.
+// P6-GOV-02 : identité opérateur vérifiée (en-tête posé par `tailscale serve`, liste d'autorisation
+// CAT_OPERATOR_LOGINS, non secrète), transmise à l'API sous x-cat-operator-identity ; toute valeur
+// fournie par le client sous ce nom est ignorée ; corps > 256 octets refusé avec une réponse 413.
 export const AGENT_SCHEDULE_PATH_RE = /^\/api\/operator\/v1\/agent-invocations\/[a-z0-9-]{1,64}\/schedule$/;
-const SCHEDULE_MAX_BODY = 256;
+export const OPERATOR_IDENTITY_PATH = "/api/operator/v1/operator-identity";
+export const SCHEDULE_MAX_BODY = 256;
+export const TAILSCALE_LOGIN_HEADER = "tailscale-user-login";
+export const IDENTITY_HEADER = "x-cat-operator-identity";
+const LOGIN_RE = /^[A-Za-z0-9._%+@-]{1,128}$/;
+
+export function parseOperatorLogins(raw = process.env.CAT_OPERATOR_LOGINS ?? "") {
+  return new Set(String(raw).split(",").map((x) => x.trim()).filter((x) => LOGIN_RE.test(x)).map((x) => x.toLowerCase()));
+}
+
+export function tailscaleLogin(request) {
+  const v = request.headers[TAILSCALE_LOGIN_HEADER];
+  return typeof v === "string" && LOGIN_RE.test(v) ? v.toLowerCase() : null;
+}
+
+// Une ligne JSON par refus au relais (journald). Jamais de corps ni d'en-tête brut ; les demandes
+// relayées sont journalisées par l'API avec le même identifiant d'opérateur.
+export function relayAudit(pathname, identity, status, reason, log = console.error) {
+  const agent = (pathname.match(/agent-invocations\/([a-z0-9-]{1,64})\/schedule$/) ?? [])[1] ?? null;
+  log(JSON.stringify({ event: "cat.schedule.relay_refusal", ts: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), agent, identity, http_status: status, reason }));
+}
 
 function isSchedulePost(request, pathname) {
   return request.method === "POST" && AGENT_SCHEDULE_PATH_RE.test(pathname);
@@ -84,7 +107,7 @@ function copyProxyHeaders(headers) {
   return safe;
 }
 
-function proxyToOperatorApi(request, response, target) {
+function proxyToOperatorApi(request, response, target, identity = null, onOversize = () => undefined) {
   const transport = target.protocol === "https:" ? https : http;
   const upstream = transport.request({
     protocol: target.protocol,
@@ -92,9 +115,13 @@ function proxyToOperatorApi(request, response, target) {
     port: target.port,
     method: request.method,
     path: request.url,
-    headers: request.method === "POST"
-      ? { host: target.host, "content-type": "application/json", "x-cat-operator": String(request.headers["x-cat-operator"] ?? "") }
-      : { host: target.host },
+    headers: {
+      host: target.host,
+      ...(request.method === "POST"
+        ? { "content-type": String(request.headers["content-type"] ?? ""), "x-cat-operator": String(request.headers["x-cat-operator"] ?? "") }
+        : {}),
+      ...(identity ? { [IDENTITY_HEADER]: identity } : {}),
+    },
   }, (upstreamResponse) => {
     const headers = copyProxyHeaders(upstreamResponse.headers);
     // WEB-01B runtime truth must remain network-only from the browser/PWA
@@ -113,13 +140,23 @@ function proxyToOperatorApi(request, response, target) {
   upstream.once("error", () => failRequest(response, 502, "OPERATOR_API_UNAVAILABLE", "Local Operator API is unavailable."));
   if (request.method !== "POST") return void request.pipe(upstream);
   let size = 0;
+  let refused = false;
   const chunks = [];
   request.on("data", (c) => {
+    if (refused) return;
     size += c.length;
-    if (size > SCHEDULE_MAX_BODY) { upstream.destroy(); request.destroy(); return; }
+    if (size > SCHEDULE_MAX_BODY) { refused = true; upstream.destroy(); onOversize(); return refuseBody(request, response); }
     chunks.push(c);
   });
-  request.on("end", () => { if (size <= SCHEDULE_MAX_BODY) upstream.end(Buffer.concat(chunks)); });
+  request.on("end", () => { if (!refused) upstream.end(Buffer.concat(chunks)); });
+}
+
+// 413 avec une réponse lisible, puis fermeture de la connexion (le reste du corps n'est pas lu).
+function refuseBody(request, response) {
+  if (!response.headersSent) {
+    response.writeHead(413, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", connection: "close" });
+    response.end(JSON.stringify({ error_code: "BODY_TOO_LARGE", max_bytes: SCHEDULE_MAX_BODY }), () => request.destroy());
+  } else request.destroy();
 }
 
 async function resolveStaticPath(distRoot, pathname) {
@@ -162,7 +199,7 @@ function failRequest(response, status, code, message) {
   else apiError(response, status, code, message);
 }
 
-export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET, spotRadarTarget = SPOT_RADAR_API_TARGET, balanceHistory } = {}) {
+export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET, spotRadarTarget = SPOT_RADAR_API_TARGET, balanceHistory, operatorLogins = parseOperatorLogins() } = {}) {
   const target = new URL(apiTarget);
   const spotRadar = new URL(spotRadarTarget);
   return http.createServer(async (request, response) => {
@@ -179,6 +216,20 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
         response.end(request.method === "HEAD" ? undefined : JSON.stringify(balanceHistory(Number(period))));
         return;
       }
+      if (isSchedulePost(request, url.pathname)) {
+        const who = tailscaleLogin(request);
+        const refuse = (status, code, message) => { relayAudit(url.pathname, who, status, code); return apiError(response, status, code, message); };
+        if (operatorLogins.size === 0) return refuse(403, "OPERATOR_ALLOWLIST_UNSET", "Aucun opérateur autorisé n'est configuré.");
+        if (!who) return refuse(401, "OPERATOR_IDENTITY_REQUIRED", "Identité opérateur absente.");
+        if (!operatorLogins.has(who)) return refuse(403, "OPERATOR_NOT_AUTHORIZED", "Opérateur non autorisé.");
+        const declared = request.headers["content-length"];
+        if (declared !== undefined && (!/^[0-9]{1,6}$/.test(declared) || Number(declared) > SCHEDULE_MAX_BODY)) {
+          relayAudit(url.pathname, who, 413, "BODY_TOO_LARGE");
+          return refuseBody(request, response);
+        }
+        return proxyToOperatorApi(request, response, target, who, () => relayAudit(url.pathname, who, 413, "BODY_TOO_LARGE"));
+      }
+      if (url.pathname === OPERATOR_IDENTITY_PATH) return proxyToOperatorApi(request, response, target, tailscaleLogin(request));
       if (isApiPath(url.pathname)) {
         const selected = url.pathname.startsWith(SPOT_RADAR_API_PREFIX) ? spotRadar : target;
         return proxyToOperatorApi(request, response, selected);

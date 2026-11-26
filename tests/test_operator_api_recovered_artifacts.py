@@ -63,13 +63,18 @@ def test_storage_and_lab_publish_only_valid_artifacts(tmp_path, monkeypatch):
 
 
 def test_recovered_agents_are_readable_without_extending_legacy_write(monkeypatch, tmp_path):
-    monkeypatch.setattr(agent_schedule, "CONTROL_PATH", tmp_path)
+    (tmp_path / "requests").mkdir()
+    (tmp_path / "state").mkdir()
+    monkeypatch.setattr(agent_schedule, "SCHEDULE_ROOT", tmp_path)
+    monkeypatch.setenv("CAT_OPERATOR_LOGINS", "operator@example.test")
+    agent_schedule.reset_memory()
     client = TestClient(app)
     for agent in ("data-provenance-auditor", "market-observer"):
         report = client.get(f"{API}/agent-invocations/{agent}")
         assert report.status_code == 200
         path = f"{API}/agent-invocations/{agent}/schedule"
         assert client.get(path).status_code == 200
-        assert client.post(path, headers={"x-cat-operator": "schedule"},
+        assert client.post(path, headers={"x-cat-operator": "schedule",
+                                          "x-cat-operator-identity": "operator@example.test"},
                            json={"rhythm": "off"}).status_code == 404
-    assert not list(tmp_path.iterdir())
+    assert not list((tmp_path / "requests").iterdir()) and not list((tmp_path / "state").iterdir())

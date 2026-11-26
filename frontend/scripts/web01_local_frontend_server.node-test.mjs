@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createServer, isMainEntrypoint, resolveFrontendPort, FRONTEND_PORT, LOOPBACK_HOST, SPOT_RADAR_API_PREFIX, SPOT_RADAR_API_TARGET, UPSTREAM_TIMEOUT_MS } from "./web01_local_frontend_server.mjs";
+import { createServer, parseOperatorLogins, relayAudit, isMainEntrypoint, resolveFrontendPort, FRONTEND_PORT, LOOPBACK_HOST, SPOT_RADAR_API_PREFIX, SPOT_RADAR_API_TARGET, UPSTREAM_TIMEOUT_MS } from "./web01_local_frontend_server.mjs";
 
 function listen(server) { return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port))); }
 function close(server) { return new Promise((resolve) => server.close(resolve)); }
@@ -316,26 +316,64 @@ test("Radar Spot transport failure is explicit and non-cacheable", async (t) => 
   assert.equal(failed.status, 502); assert.match(failed.text, /OPERATOR_API_UNAVAILABLE/); assert.equal(failed.cacheControl, "no-store");
 });
 
-test("exception unique : POST relayé seulement vers la route de rythme d'agent, corps borné, en-tête transmis", async (t) => {
+test("exception unique : POST relayé seulement vers la route de rythme d'agent, corps borné, identité Tailscale vérifiée", async (t) => {
   const seen = [];
   const api = http.createServer((req, res) => {
     let b = ""; req.on("data", (c) => { b += c; });
-    req.on("end", () => { seen.push({ m: req.method, u: req.url, h: req.headers["x-cat-operator"], b }); res.writeHead(202, { "content-type": "application/json" }); res.end("{}"); });
+    req.on("end", () => {
+      seen.push({ m: req.method, u: req.url, h: req.headers["x-cat-operator"], who: req.headers["x-cat-operator-identity"] ?? null, ts: req.headers["tailscale-user-login"] ?? null, ct: req.headers["content-type"], b });
+      res.writeHead(202, { "content-type": "application/json" }); res.end("{}");
+    });
   }).listen(0, "127.0.0.1");
   await new Promise((r) => api.once("listening", r));
   const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
   await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
-  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${api.address().port}` });
+  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${api.address().port}`, operatorLogins: parseOperatorLogins("Operator@Example.test") });
   await new Promise((resolve) => app.once("listening", resolve));
   t.after(() => { close(app); api.close(); });
   const base = `http://127.0.0.1:${app.address().port}/api/operator/v1/agent-invocations/repository-cartographer`;
-  const ok = await fetch(`${base}/schedule`, { method: "POST", headers: { "content-type": "application/json", "x-cat-operator": "schedule" }, body: '{"rhythm":"1h"}' });
+  const H = { "content-type": "application/json", "x-cat-operator": "schedule" };
+  const ok = await fetch(`${base}/schedule`, { method: "POST", headers: { ...H, "tailscale-user-login": "operator@example.test", "x-cat-operator-identity": "forged@example.test" }, body: '{"rhythm":"1h"}' });
   assert.equal(ok.status, 202); assert.equal(ok.headers.get("cache-control"), "no-store");
-  assert.deepEqual(seen, [{ m: "POST", u: "/api/operator/v1/agent-invocations/repository-cartographer/schedule", h: "schedule", b: '{"rhythm":"1h"}' }]);
+  assert.deepEqual(seen, [{ m: "POST", u: "/api/operator/v1/agent-invocations/repository-cartographer/schedule", h: "schedule", who: "operator@example.test", ts: null, ct: "application/json", b: '{"rhythm":"1h"}' }],
+    "identité réécrite depuis Tailscale ; valeur fournie par le client et en-tête Tailscale non transmis");
+  // identité absente, forgée seule, ou non autorisée : refus au relais, rien n'atteint l'API
+  const noId = await fetch(`${base}/schedule`, { method: "POST", headers: H, body: '{"rhythm":"1h"}' });
+  assert.equal(noId.status, 401); assert.match(await noId.text(), /OPERATOR_IDENTITY_REQUIRED/);
+  assert.equal((await fetch(`${base}/schedule`, { method: "POST", headers: { ...H, "x-cat-operator-identity": "operator@example.test" }, body: '{"rhythm":"1h"}' })).status, 401);
+  const other = await fetch(`${base}/schedule`, { method: "POST", headers: { ...H, "tailscale-user-login": "intruder@example.test" }, body: '{"rhythm":"1h"}' });
+  assert.equal(other.status, 403); assert.match(await other.text(), /OPERATOR_NOT_AUTHORIZED/);
   for (const p of [`${base}/history`, `${base}/schedule/x`, `${base}`]) {
     assert.equal((await fetch(p, { method: "POST", body: "{}" })).status, 405);
   }
   assert.equal((await fetch(`${base}/schedule`, { method: "PUT", body: "{}" })).status, 405);
-  await fetch(`${base}/schedule`, { method: "POST", body: "x".repeat(1000) }).catch(() => null);
+  const big = await fetch(`${base}/schedule`, { method: "POST", headers: { ...H, "tailscale-user-login": "operator@example.test" }, body: "x".repeat(1000) }).catch(() => null);
+  if (big) assert.equal(big.status, 413);
   assert.equal(seen.length, 1);
+});
+
+test("exception unique : sans liste d'opérateurs, aucune écriture n'est relayée", async (t) => {
+  let reached = 0;
+  const api = http.createServer((req, res) => { reached += 1; res.end("{}"); }).listen(0, "127.0.0.1");
+  await new Promise((r) => api.once("listening", r));
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
+  await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
+  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${api.address().port}`, operatorLogins: parseOperatorLogins("") });
+  await new Promise((resolve) => app.once("listening", resolve));
+  t.after(() => { close(app); api.close(); });
+  const url = `http://127.0.0.1:${app.address().port}/api/operator/v1/agent-invocations/repository-cartographer/schedule`;
+  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-cat-operator": "schedule", "tailscale-user-login": "operator@example.test" }, body: '{"rhythm":"1h"}' });
+  assert.equal(r.status, 403); assert.match(await r.text(), /OPERATOR_ALLOWLIST_UNSET/);
+  assert.equal(reached, 0);
+});
+
+test("journal des refus au relais : une ligne JSON, sans corps ni en-tête", () => {
+  const lines = [];
+  relayAudit("/api/operator/v1/agent-invocations/repository-cartographer/schedule", null, 401, "OPERATOR_IDENTITY_REQUIRED", (l) => lines.push(l));
+  relayAudit("/api/operator/v1/agent-invocations/x/../schedule", "intruder@example.test", 403, "OPERATOR_NOT_AUTHORIZED", (l) => lines.push(l));
+  const [a, b] = lines.map((l) => JSON.parse(l));
+  assert.deepEqual(Object.keys(a).sort(), ["agent", "event", "http_status", "identity", "reason", "ts"]);
+  assert.equal(a.event, "cat.schedule.relay_refusal"); assert.equal(a.agent, "repository-cartographer"); assert.equal(a.identity, null);
+  assert.match(a.ts, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  assert.equal(b.agent, null); assert.equal(b.http_status, 403);
 });

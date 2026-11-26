@@ -19,6 +19,7 @@ Every route in this module is a GET. There is no mutating business route.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict
 
@@ -32,7 +33,7 @@ from observability.operator_api.market_flow_reader import MarketFlowReader
 from observability.operator_api.bbo_history_reader import BboHistoryReader
 from observability.operator_api.scanner_universe_reader import ScannerUniverseReader
 from observability.operator_api.radar_projection_reader import RadarProjectionReader
-from observability.operator_api import agent_schedule
+from observability.operator_api import agent_schedule, operator_identity
 from observability.operator_api.agent_invocation_reader import TARGETS as AGENT_INVOCATION_TARGETS, read_agent_invocation, read_agent_history
 
 from observability.operator_api.market_microstructure_reader import (
@@ -572,27 +573,79 @@ def get_agent_schedule(agent_id: str) -> Any:
     return JSONResponse(content=agent_schedule.read_schedule(agent_id), headers={"Cache-Control": "no-store"})
 
 
+@app.get("/api/operator/v1/operator-identity")
+def get_operator_identity(request: Request) -> Any:
+    """Lecture seule : identité transmise par le relais Web et son autorisation. N'écrit rien."""
+    who, status, code = operator_identity.check(request.headers)
+    return JSONResponse(content={"identity": who, "authorized": status is None, "reason": code},
+                        headers={"Cache-Control": "no-store"})
+
+
+def _strict_rhythm(raw: bytes) -> str | None:
+    """Objet JSON {"rhythm": "<valeur>"} exactement ; ASCII ; aucune clé en double."""
+    def pairs(items):
+        keys = [k for k, _ in items]
+        if len(keys) != len(set(keys)):
+            raise ValueError("DUPLICATE_KEY")
+        return dict(items)
+    try:
+        text = raw.decode("ascii")
+        body = json.loads(text, object_pairs_hook=pairs)
+    except (UnicodeDecodeError, ValueError):
+        return None
+    if not isinstance(body, dict) or set(body) != {"rhythm"} or not isinstance(body["rhythm"], str):
+        return None
+    return body["rhythm"] if body["rhythm"] in agent_schedule.allowed_rhythms() else None
+
+
 @app.post("/api/operator/v1/agent-invocations/{agent_id}/schedule")
 async def post_agent_schedule(agent_id: str, request: Request) -> Any:
-    """SEULE écriture de l'API (exception gouvernée) : dépose une demande de rythme. Ne lance rien."""
+    """SEULE écriture de l'API (exception gouvernée, cartographe seul) : dépose une demande de rythme.
+
+    Ne lance rien. Chaque demande, acceptée ou refusée, laisse une ligne d'audit."""
     h = {"Cache-Control": "no-store"}
+    rid = operator_identity.new_request_id()
+    who: str | None = None
+    value: str | None = None
+
+    def done(status: int, content: dict, decision: str, reason: str | None, extra: dict | None = None):
+        operator_identity.audit(request_id=rid, identity=who, agent=agent_id, value=value,
+                                decision=decision, http_status=status, reason=reason)
+        return JSONResponse(status_code=status, content={**content, "request_id": rid}, headers={**h, **(extra or {})})
+
     if agent_id not in agent_schedule.WRITABLE:
-        return JSONResponse(status_code=404, content={"error_code": "AGENT_NOT_ALLOWED"}, headers=h)
+        return done(404, {"error_code": "AGENT_NOT_ALLOWED"}, "REFUSED", "AGENT_NOT_ALLOWED")
     if request.headers.get("x-cat-operator") != "schedule":
-        return JSONResponse(status_code=403, content={"error_code": "MISSING_OPERATOR_HEADER"}, headers=h)
+        return done(403, {"error_code": "MISSING_OPERATOR_HEADER"}, "REFUSED", "MISSING_OPERATOR_HEADER")
+    who, status, code = operator_identity.check(request.headers)
+    if status is not None:
+        return done(status, {"error_code": code}, "REFUSED", code)
+    if (request.headers.get("content-type") or "").split(";")[0].strip().lower() != "application/json":
+        return done(415, {"error_code": "UNSUPPORTED_MEDIA_TYPE"}, "REFUSED", "UNSUPPORTED_MEDIA_TYPE")
+    declared = request.headers.get("content-length")
+    if declared is not None and (not declared.isdigit() or int(declared) > agent_schedule.MAX_BODY_BYTES):
+        return done(413, {"error_code": "BODY_TOO_LARGE", "max_bytes": agent_schedule.MAX_BODY_BYTES}, "REFUSED", "BODY_TOO_LARGE")
+    raw = b""
+    async for chunk in request.stream():
+        raw += chunk
+        if len(raw) > agent_schedule.MAX_BODY_BYTES:
+            return done(413, {"error_code": "BODY_TOO_LARGE", "max_bytes": agent_schedule.MAX_BODY_BYTES}, "REFUSED", "BODY_TOO_LARGE")
+    value = _strict_rhythm(raw)
+    if value is None:
+        return done(422, {"error_code": "RHYTHM_NOT_ALLOWED", "allowed": list(agent_schedule.allowed_rhythms())},
+                    "REFUSED", "RHYTHM_NOT_ALLOWED")
+    current = agent_schedule.read_schedule(agent_id)
+    verdict, retry = agent_schedule.throttle(agent_id, value, current.get("applied"))
+    if verdict == "UNCHANGED":
+        return done(200, {**current, "result": "UNCHANGED"}, "UNCHANGED", None)
+    if verdict == "THROTTLED":
+        return done(429, {"error_code": "TOO_MANY_REQUESTS", "retry_after_s": retry}, "REFUSED", "TOO_MANY_REQUESTS",
+                    {"Retry-After": str(retry)})
     try:
-        body = await request.json()
-        rhythm = body.get("rhythm") if isinstance(body, dict) else None
-    except ValueError:
-        rhythm = None
-    if rhythm not in agent_schedule.allowed_rhythms():
-        return JSONResponse(status_code=422, content={"error_code": "RHYTHM_NOT_ALLOWED",
-                                                      "allowed": list(agent_schedule.allowed_rhythms())}, headers=h)
-    try:
-        out = agent_schedule.request_rhythm(agent_id, rhythm)
+        out = agent_schedule.request_rhythm(agent_id, value)
     except OSError:
-        return JSONResponse(status_code=503, content={"error_code": "CONTROL_UNWRITABLE"}, headers=h)
-    return JSONResponse(status_code=202, content=out, headers=h)
+        return done(503, {"error_code": "CONTROL_UNWRITABLE"}, "FAILED", "CONTROL_UNWRITABLE")
+    return done(202, out, "ACCEPTED", None)
 
 
 @app.get("/api/operator/v1/runtime-service")

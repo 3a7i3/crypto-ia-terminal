@@ -1,5 +1,6 @@
 // ── État de planification des agents d'observation ──
-// SEULE écriture de l'interface (exception gouvernée, opérateur, 2026-11-22 07:23Z).
+// SEULE écriture de l'interface (exception gouvernée, opérateur, 2026-11-22 07:23Z, ratifiée
+// P6-GOV-01 ; cartographe seulement ; identité opérateur exigée par le serveur depuis P6-GOV-02).
 // Le bouton dépose une DEMANDE de rythme (liste fermée) ; un applicateur root sur le serveur
 // l'applique au timer et publie l'état appliqué. L'interface n'affiche comme « appliqué » que
 // ce que le serveur publie ; une demande non encore appliquée est montrée « en attente ».
@@ -15,6 +16,17 @@ export const MENU: { value: string; label: string }[] = [
   { value: "1h", label: "1 h" },
   { value: "off", label: "Off" },
 ];
+// P6-GOV-02 : refus explicites (identité, taille, débit). L'interface n'invente aucun état.
+export const REFUSAL: Record<number, string> = {
+  401: "identité opérateur absente : passer par le réseau privé de l'opérateur",
+  403: "opérateur non autorisé pour cette demande",
+  404: "planification en lecture seule pour cet agent",
+  413: "demande trop volumineuse",
+  415: "format de demande refusé",
+  422: "valeur de rythme refusée",
+  429: "trop de demandes rapprochées : réessayer dans une minute",
+  503: "dossier des demandes indisponible sur le serveur",
+};
 export const RHYTHM_LABEL: Record<string, string> = { "1min": "1 min", "10min": "10 min", "1h": "1 h", off: "arrêt complet" };
 
 export interface ScheduleState {
@@ -70,7 +82,7 @@ export function useAgentSchedule(enabled: boolean, pollMs = SCHEDULE_POLL_MS, ur
         headers: { "content-type": "application/json", "x-cat-operator": "schedule" },
         body: JSON.stringify({ rhythm }),
       });
-      if (r.status !== 202) setError(`demande refusée (HTTP ${r.status})`);
+      if (r.status !== 202 && r.status !== 200) setError(REFUSAL[r.status] ?? `demande refusée (HTTP ${r.status})`);
     } catch {
       setError("demande non transmise (coupure)");
     } finally {

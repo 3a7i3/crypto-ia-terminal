@@ -1,0 +1,11 @@
+# P6-GOV-02 — surveille la seule demande autorisée (Repository Cartographer).
+# Le DPA et le Market Observer n'ont plus d'unité .path : leur planification est en lecture seule.
+[Unit]
+Description=Programmateur cartographe : surveiller les demandes (P6-GOV-02)
+
+[Path]
+PathChanged=/srv/cat-obs/schedule/requests/repository-cartographer.request
+Unit=cat-obs-schedule.service
+
+[Install]
+WantedBy=paths.target
