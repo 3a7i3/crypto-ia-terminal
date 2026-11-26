@@ -36,3 +36,10 @@
 .monitor-light.red .dot { background: #c4314b; box-shadow: 0 0 0 3px #c4314b33; }
 .monitor-sort select { display: block; min-height: 44px; border-radius: .45rem; }
 .symbol-tools button[aria-pressed="true"] { background: #14534e; color: #fff; border-color: #14534e; }
+
+/* P6-R1 (F4) — fiche du Moniteur sur mobile : largeur bornée, hauteur maximale,
+   défilement interne, bouton Fermer collé en haut (cible ≥ 44 px). */
+.symbol-detail { max-width: calc(100vw - 1.5rem); max-height: min(85dvh, 40rem); overflow-y: auto; overscroll-behavior: contain; padding-top: 0; overflow-wrap: anywhere; }
+.symbol-detail form { position: sticky; top: 0; z-index: 1; padding: .75rem 0 .5rem; background: #121d2f; }
+.symbol-detail form button { min-width: 44px; padding: 0 1rem; }
+.symbol-detail h3 { overflow-wrap: anywhere; }

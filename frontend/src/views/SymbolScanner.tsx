@@ -4,7 +4,8 @@ import { fetchRadar, RadarError, type RadarScanner, type RadarRow } from "../lib
 import { MarketSourceNotice } from "../components/MarketSourceNotice";
 import { marketSourceSetup } from "../lib/marketSourceSetup";
 import { MARKET_RADAR_PATH } from "../lib/moduleNavigation";
-import { gateNotice, marketBadge, type ScannerGate } from "../lib/scannerUniverseClient";
+import { admissionKnown, admissionPending, gateNotice, marketBadge, type ScannerGate } from "../lib/scannerUniverseClient";
+import { admittedLabel, radarCounts, radarCountsLabel, shownLabel } from "../lib/radarCounters";
 import { CADENCES, signalOf, useRefreshSchedule } from "../lib/refreshSchedule";
 import "./symbol-scanner.css";
 
@@ -129,7 +130,11 @@ export function SymbolScanner({ selection, onSelect, qualifications = noQualific
       : error && <p role="alert">Source indisponible · {error}{data ? " · Dernière publication affichée" : ""}</p>}
     {!data && !error && <p role="status">Chargement des observations…</p>}
     {data && gate && instruments.length === 0 && <p role="status" className="scanner-gate-notice">{gateNotice(gate.state, gate.byAsset)}</p>}
-    {data && <p className="symbol-summary">{rows.length} / {data.selected_instruments} instruments{gate ? ` · ${instruments.length} admis ${gate.byAsset ? "par actif (Spot et Perpétuel)" : "par l’univers commun"}` : ""} · {data.evidence_kind === "SYNTHETIC" ? "Démonstration" : `Collecteur ${data.collector.state}`}</p>}
+    {data && <p className="symbol-summary">Instruments : {radarCountsLabel(radarCounts(data))}{!gate
+      ? ` · ${shownLabel(rows.length)}`
+      : admissionKnown(gate)
+        ? ` · ${admittedLabel(instruments.length)} ${gate.byAsset ? "par actif (Spot et Perpétuel)" : "par l’univers commun"} · ${shownLabel(rows.length)}`
+        : ` · admission ${admissionPending(gate)}`} · {data.evidence_kind === "SYNTHETIC" ? "Démonstration" : `Collecteur ${data.collector.state}`}</p>}
     {data && rows.length === 0 && (instruments.length > 0 || !gate) && <p role="status">{liveOnly ? "Aucune paire live en ce moment." : "Aucun symbole pour cette recherche."}</p>}
     {rows.length > 0 && <table className="symbol-table" aria-label="Paires du moniteur">
       <thead><tr><th scope="col">Rang</th><th scope="col">Paire</th><th scope="col">Volume 24 h</th><th scope="col">24 h</th><th scope="col">Spread</th></tr></thead>

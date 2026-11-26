@@ -151,7 +151,7 @@ describe("App", () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => String(input).startsWith("/api/operator/v1/spot-radar/scanner") ? Promise.resolve(radarResponse()) : String(input) === "/api/operator/v1/scanner-universe" ? Promise.resolve(universeResponse()) : base(input));
     window.history.replaceState({}, "", "/paper-live/market");
     render(<App />);
-    await screen.findByText(/^30 \/ 30 instruments/);
+    await screen.findByText(/^Instruments : 30 observés sur 30 sélectionnés · 30 retournés/);
     expect(window.location.pathname).toBe("/paper-live/market/radar");
     expect(screen.getByRole("heading", { name: "Moniteur de marché" })).toBeInTheDocument();
     expect([...urls()].sort()).toEqual(["/api/operator/v1/scanner-universe", "/api/operator/v1/spot-radar/scanner"]);
@@ -169,7 +169,7 @@ describe("App", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("snapshot-status-api-error")).toHaveTextContent("SNAPSHOT_MISSING"));
     fireEvent.click(screen.getByTestId("tab-market"));
-    await screen.findByText(/^30 \/ 30 instruments/);
+    await screen.findByText(/^Instruments : 30 observés sur 30 sélectionnés · 30 retournés/);
     expect(screen.getByRole("heading", { name: "Moniteur de marché" })).toBeInTheDocument();
     expect(screen.queryByTestId("snapshot-status-api-error")).toBeNull();
     expect(screen.queryByTestId("market-canonical-context")).toBeNull();
