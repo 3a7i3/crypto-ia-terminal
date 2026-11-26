@@ -33,12 +33,20 @@ cartographe (`10min | 1h | off`). Chaîne :
 4. DPA et Market Observer : état republié depuis leurs drop-ins existants, jamais modifiés ; aucune
    demande possible (404).
 
-Installation, vérification et retour arrière : `schedule/cat-obs-schedule-gov02-root.sh`
-(`preflight | install <logins> | verify | rollback <horodatage>`), à exécuter par l'opérateur sur un
-GO runtime distinct, avec la release API/Web correspondante dans la même fenêtre.
+Transport interne (P6-GOV-02-RV) : l'API exige en plus le jeton du relais (`x-cat-relay-token`),
+lu dans `/etc/cat-obs/relay.token` (root:cat-obs-relay 0640), groupe porté seulement par les services
+API et Web. Un autre utilisateur Unix local ne peut donc pas forger l'identité auprès de l'API.
 
-Limite assumée : un processus local exécutant sous l'utilisateur du relais peut appeler l'API en
-boucle locale et forger l'en-tête d'identité ; la frontière vaut pour le réseau.
+Confinement, installation, vérification et retour arrière : `schedule/cat-obs-schedule-gov02-root.sh`
+(`contain [--check] | preflight | install --logins … --api-release … --web-release … | verify |
+rollback <horodatage>`), à exécuter par l'opérateur sur GO runtime distinct. L'installation commence
+par le confinement C1 ; le retour arrière restaure les releases API/Web historiques sans jamais
+réactiver les anciennes unités (la planification devient alors indisponible en écriture).
+
+Limite assumée : tant que le relais écoute sur 127.0.0.1:8181, tout processus local peut s'y connecter
+et forger `Tailscale-User-Login` ; root reste hors de portée de toute protection. L'option
+`schedule/crypto-operator-web.socket.example` (socket root 0600 transmise par systemd, cible
+`tailscale serve` en `unix:`) ferme ce point ; elle demande sa propre décision.
 
 **État déployé (RUNTIME_VERIFIED le 2026-11-26, avant tout GO).** L'ancienne chaîne tourne encore :
 applicateur bash de #601 (trois agents), trois unités `.path`, dossier `/srv/cat-obs/control` en 2770,

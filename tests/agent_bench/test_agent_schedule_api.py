@@ -16,7 +16,9 @@ from observability.operator_api import app as api
 
 URL = "/api/operator/v1/agent-invocations/repository-cartographer/schedule"
 WHO = "operator@example.test"
-H = {"x-cat-operator": "schedule", "x-cat-operator-identity": WHO, "content-type": "application/json"}
+TOKEN = "ab" * 32
+H = {"x-cat-operator": "schedule", "x-cat-operator-identity": WHO, "x-cat-relay-token": TOKEN,
+     "content-type": "application/json"}
 
 
 @pytest.fixture()
@@ -26,6 +28,10 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(sch, "SCHEDULE_ROOT", tmp_path)
     monkeypatch.delenv("AGENT_SCHEDULE_ALLOW_TEST", raising=False)
     monkeypatch.setenv("CAT_OPERATOR_LOGINS", f"{WHO},second@example.test")
+    tok = tmp_path / "relay.token"
+    tok.write_text(TOKEN + "\n")
+    os.chmod(tok, 0o640)
+    monkeypatch.setenv("CAT_RELAY_TOKEN_FILE", str(tok))
     sch.reset_memory()
     yield TestClient(api.app), tmp_path
     sch.reset_memory()
@@ -175,7 +181,9 @@ def test_audit_lines_have_no_body_or_headers(env, capfd):
 def test_operator_identity_route(env, monkeypatch):
     c, _ = env
     u = "/api/operator/v1/operator-identity"
-    assert c.get(u, headers={"x-cat-operator-identity": WHO}).json() == {"identity": WHO, "authorized": True, "reason": None}
+    ok = {"x-cat-operator-identity": WHO, "x-cat-relay-token": TOKEN}
+    assert c.get(u, headers=ok).json() == {"identity": WHO, "authorized": True, "reason": None}
+    assert c.get(u, headers={"x-cat-operator-identity": WHO}).json()["reason"] == "RELAY_TOKEN_INVALID"
     assert c.get(u).json()["authorized"] is False
 
 
@@ -217,3 +225,42 @@ def test_next_slot_follows_the_clock_after_each_pass(tmp_path):
     assert rs("repository-cartographer", root=tmp_path, now_ts=at("2026-11-22T09:20:00Z"))["next_utc"] == "2026-11-22T10:00:00Z"
     st.write_text('{"applied":"off","next_utc":"2026-11-22T10:00:00Z"}')
     assert rs("repository-cartographer", root=tmp_path)["next_utc"] is None
+
+
+def test_relay_token_is_required_on_the_internal_transport(env, tmp_path):
+    """Un processus local qui joint l'API directement ne connaît pas le jeton du relais."""
+    c, d = env
+    forged = {k: v for k, v in H.items() if k != "x-cat-relay-token"}
+    r = post(c, {"rhythm": "1h"}, forged)
+    assert r.status_code == 401 and r.json()["error_code"] == "RELAY_TOKEN_INVALID"
+    r = post(c, {"rhythm": "1h"}, {**H, "x-cat-relay-token": "cd" * 32})
+    assert r.status_code == 401
+    r = post(c, {"rhythm": "1h"}, {**H, "x-cat-relay-token": TOKEN.upper()})
+    assert r.status_code == 401
+    assert requests_of(d) == []
+
+
+@pytest.mark.parametrize("variant", ["missing", "unset", "world_readable", "symlink", "short", "fifo"])
+def test_bad_token_file_closes_writes(env, monkeypatch, tmp_path, variant):
+    c, d = env
+    tok = tmp_path / "relay.token"
+    if variant == "missing":
+        tok.unlink()
+    elif variant == "unset":
+        monkeypatch.delenv("CAT_RELAY_TOKEN_FILE")
+    elif variant == "world_readable":
+        os.chmod(tok, 0o644)
+    elif variant == "symlink":
+        real = tmp_path / "real.token"
+        real.write_text(TOKEN)
+        os.chmod(real, 0o640)
+        tok.unlink()
+        os.symlink(real, tok)
+    elif variant == "short":
+        tok.write_text("abc")
+    elif variant == "fifo":
+        tok.unlink()
+        os.mkfifo(tok)
+    r = post(c, {"rhythm": "1h"})
+    assert r.status_code == 403 and r.json()["error_code"] == "RELAY_TOKEN_UNSET"
+    assert requests_of(d) == []

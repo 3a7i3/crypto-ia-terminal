@@ -1,9 +1,11 @@
-"""Installateur P6-GOV-02 (T10, T13) sur une racine factice, commandes système remplacées par des bouchons.
+"""Script opérateur P6-GOV-02 (révision RV) sur une racine factice, commandes système en bouchons.
 
-Vérifie : sauvegarde, retrait des unités DPA/Market, rythmes des trois timers inchangés, drop-ins
-API/Web, retour arrière octet à octet. Aucun appel réel à systemctl ni groupadd.
+Couvre : C1 (confinement, échecs de désactivation, unité collante, applicateur persistant),
+installation transactionnelle (préconditions, refus ambigus, interruptions, états partiels),
+rollback sans réactivation de R1 (dont échecs de restauration et sauvegarde altérée) et verify.
+Les bouchons ne démontrent rien sur systemd réel : verify le dit explicitement en mode test.
 """
-import hashlib
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -13,28 +15,26 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 HERE = ROOT / "docs/agents/observation/pilot/schedule"
 SCRIPT = HERE / "cat-obs-schedule-gov02-root.sh"
+FAKE = Path(__file__).with_name("gov02_fake_system.py")
 IS_ROOT = os.geteuid() == 0
+API_FILES = ("observability/operator_api/app.py", "observability/operator_api/agent_schedule.py",
+             "observability/operator_api/operator_identity.py")
+WEB_SERVER = "frontend/scripts/web01_local_frontend_server.mjs"
+OLD_PATHS = ("cat-obs-schedule.path", "cat-obs-schedule-dpa.path", "cat-obs-schedule-market.path")
+HIST_API = "/home/op/releases/CAT-P6-api"
+NEW_API = "/opt/rel/api"
+NEW_WEB = "/opt/rel/web"
+LOGINS = "op@example.test"
 
-STUB = """#!/bin/bash
-echo "$(basename "$0") $*" >> "$STUB_LOG"
-case "$(basename "$0")" in
-  systemctl) [ "$1" = is-enabled ] && { case "$2" in *dpa.path|*market.path|cat-obs-schedule.path) exit 0;; esac; exit 1; }; exit 0 ;;
-  getent) exit 0 ;;
-  install)
-    # Hors root, -o/-g ne peuvent pas être appliqués : on les retire, le reste est la vraie commande.
-    if [ "$(id -u)" != 0 ]; then a=(); while [ $# -gt 0 ]; do case "$1" in -o|-g) shift 2;; *) a+=("$1"); shift;; esac; done; set -- "${a[@]}"; fi
-    exec /usr/bin/install "$@" ;;
-esac
-exit 0
+INSTALL_STUB = """#!/bin/bash
+echo "install $*" >> "$STUB_DIR/calls.log"
+if [ "$(id -u)" != 0 ]; then a=(); while [ $# -gt 0 ]; do case "$1" in -o|-g) shift 2;; *) a+=("$1"); shift;; esac; done; set -- "${a[@]}"; fi
+exec /usr/bin/install "$@"
 """
 
 
-def sha(p: Path) -> str:
-    return hashlib.sha256(p.read_bytes()).hexdigest()
-
-
 @pytest.fixture()
-def fake(tmp_path):
+def box(tmp_path):
     r = tmp_path / "root"
     units = r / "etc/systemd/system"
     for t, cal in (("cat-obs-cartographer", "hourly"), ("cat-obs-dpa", "*:30"), ("cat-obs-market", "*:3/10")):
@@ -44,100 +44,293 @@ def fake(tmp_path):
     for u in ("cat-obs-schedule", "cat-obs-schedule-dpa", "cat-obs-schedule-market"):
         (units / f"{u}.path").write_text(f"# ancienne {u}.path\n")
         (units / f"{u}.service").write_text(f"# ancien {u}.service\n")
+    for svc, extra in (("crypto-operator-api", f"WorkingDirectory={HIST_API}\nBindReadOnlyPaths={HIST_API}\n"),
+                       ("crypto-operator-web", "BindReadOnlyPaths=\nBindReadOnlyPaths=/opt/hist/dist:/x /opt/hist/server.mjs:/y\n")):
+        (units / f"{svc}.service.d").mkdir()
+        (units / f"{svc}.service.d" / ("z" * 40 + "-p6-eb492705.conf")).write_text("[Service]\n" + extra)
     (r / "usr/local/sbin").mkdir(parents=True)
     (r / "usr/local/sbin/cat-obs-schedule-apply").write_text("#!/bin/bash\n# ancien applicateur bash (R1)\n")
     (r / "srv/cat-obs/control").mkdir(parents=True)
     os.chmod(r / "srv/cat-obs/control", 0o2770)
     (r / "root").mkdir()
+    for d in (r / "srv", r / "srv/cat-obs", r / "usr/local/sbin", units, r / "etc", r / "etc/systemd", r / "usr", r / "usr/local"):
+        os.chmod(d, 0o755)
+    api = r / NEW_API.lstrip("/")
+    for f in API_FILES:
+        (api / f).parent.mkdir(parents=True, exist_ok=True)
+        (api / f).write_bytes((ROOT / f).read_bytes())
+    web = r / NEW_WEB.lstrip("/")
+    (web / "dist").mkdir(parents=True)
+    (web / "server").mkdir()
+    (web / "server/web01_local_frontend_server.mjs").write_bytes((ROOT / WEB_SERVER).read_bytes())
+
+    stub = tmp_path / "stub"
+    stub.mkdir()
+    st = {"units": {u: {"enabled": "enabled", "active": "active"} for u in OLD_PATHS},
+          "pids": {"crypto-operator-api.service": 100, "crypto-operator-web.service": 200}}
+    st["units"].update({f"{t}.timer": {"enabled": "enabled", "active": "active"}
+                        for t in ("cat-obs-cartographer", "cat-obs-dpa", "cat-obs-market")})
+    st["units"].update({s: {"enabled": "static", "active": "inactive"} for s in
+                        ("cat-obs-schedule.service", "cat-obs-schedule-dpa.service", "cat-obs-schedule-market.service")})
+    (stub / "state.json").write_text(json.dumps(st))
     bins = tmp_path / "bin"
     bins.mkdir()
-    for name in ("systemctl", "groupadd", "getent", "install"):
-        (bins / name).write_text(STUB)
-        os.chmod(bins / name, 0o755)
-    log = tmp_path / "stub.log"
-    grp = subprocess.run(["id", "-gn"], capture_output=True, text=True).stdout.strip()
+    fake = bins / "fake.py"
+    fake.write_text("#!/usr/bin/env python3\n" + FAKE.read_text())
+    os.chmod(fake, 0o755)
+    for name in ("systemctl", "pgrep", "curl", "groupadd", "getent", "journalctl", "systemd-analyze", "tailscale"):
+        os.symlink(fake, bins / name)
+    (bins / "install").write_text(INSTALL_STUB)
+    os.chmod(bins / "install", 0o755)
+    grp = subprocess.run(["id", "-gn"], capture_output=True, text=True, check=True).stdout.strip()
     env = {**os.environ, "PATH": f"{bins}:{os.environ['PATH']}", "CAT_GOV02_ROOT": str(r), "CAT_GOV02_TEST": "1",
-           "CAT_GOV02_GROUP_SCHED": grp, "CAT_GOV02_GROUP_READ": grp, "STUB_LOG": str(log)}
-    return r, units, env, log
+           "CAT_GOV02_GROUP_SCHED": grp, "CAT_GOV02_GROUP_READ": grp, "CAT_GOV02_GROUP_RELAY": grp,
+           "CAT_GOV02_WAIT_S": "1", "STUB_DIR": str(stub)}
+    return {"r": r, "units": units, "env": env, "stub": stub}
 
 
-def run(env, *args):
-    return subprocess.run(["bash", str(SCRIPT), *args], capture_output=True, text=True, env=env, timeout=60)
+def run(b, *args):
+    return subprocess.run(["bash", str(SCRIPT), *args], capture_output=True, text=True, env=b["env"], timeout=120, check=False)
 
 
-def rhythms(units):
-    return {t: sha(units / f"{t}.timer.d/rhythm.conf") for t in ("cat-obs-cartographer", "cat-obs-dpa", "cat-obs-market")}
+def install(b):
+    return run(b, "install", "--logins", LOGINS, "--api-release", NEW_API, "--web-release", NEW_WEB)
 
 
-def test_refuses_bad_login_list(fake):
-    _, _, env, _ = fake
-    for bad in ("", "a b", "x;rm -rf /", "op@example.test,", "$(id)"):
-        r = run(env, "install", bad)
-        assert r.returncode != 0 and "invalide" in r.stderr
+def state(b):
+    return json.loads((b["stub"] / "state.json").read_text())
 
 
-def test_t10_install_then_verify_then_rollback(fake):
-    r, units, env, log = fake
-    before_rhythms = rhythms(units)
-    old = {p.name: p.read_bytes() for p in units.iterdir() if p.name.startswith("cat-obs-schedule")}
-    old_applier = (r / "usr/local/sbin/cat-obs-schedule-apply").read_bytes()
+def calls(b):
+    p = b["stub"] / "calls.log"
+    return p.read_text().splitlines() if p.exists() else []
 
-    out = run(env, "install", "op@example.test,second@example.test")
+
+def fail(b, *rules):
+    (b["stub"] / "fail").write_text("\n".join(rules) + "\n")
+
+
+def rhythms(b):
+    return {t: (b["units"] / f"{t}.timer.d/rhythm.conf").read_bytes() for t in ("cat-obs-cartographer", "cat-obs-dpa", "cat-obs-market")}
+
+
+def old_paths_contained(b):
+    s = state(b)["units"]
+    return all(s[u]["enabled"] != "enabled" and s[u]["active"] != "active" for u in OLD_PATHS)
+
+
+def last_state(b):
+    return (b["r"] / "root/p6-gov-02-state").read_text().splitlines()[-1].split()[0]
+
+
+def mutating(b):
+    return [c for c in calls(b) if c.split()[:2][-1] in ("enable", "disable", "stop", "restart", "daemon-reload")
+            and c.startswith("systemctl")]
+
+
+# ── Mission 1 : C1 ────────────────────────────────────────────────────────────────────────────
+
+def test_c1_check_is_read_only(box):
+    out = run(box, "contain", "--check")
+    assert out.returncode == 0 and "enabled=enabled" in out.stdout
+    assert mutating(box) == [] and not list((box["r"] / "root").iterdir())
+
+
+def test_c1_contains_only_the_three_old_path_units(box):
+    before = rhythms(box)
+    out = run(box, "contain")
     assert out.returncode == 0, out.stderr
-    assert rhythms(units) == before_rhythms
-    for gone in ("cat-obs-schedule-dpa.path", "cat-obs-schedule-dpa.service",
-                 "cat-obs-schedule-market.path", "cat-obs-schedule-market.service"):
+    assert old_paths_contained(box)
+    assert rhythms(box) == before
+    s = state(box)["units"]
+    assert all(s[f"{t}.timer"] == {"enabled": "enabled", "active": "active"} for t in ("cat-obs-cartographer", "cat-obs-dpa", "cat-obs-market"))
+    assert mutating(box) == [f"systemctl disable --now {u}" for u in OLD_PATHS]
+    c1 = next((box["r"] / "root").glob("p6-gov-02-c1-*"))
+    assert (c1 / "c1.before").read_text() != (c1 / "c1.after").read_text()
+    assert (c1 / "rhythms.before").read_text() == (c1 / "rhythms.after").read_text()
+    again = run(box, "contain")  # idempotent
+    assert again.returncode == 0 and "C1 déjà en place" in again.stdout
+
+
+def test_c1_disable_failure_is_not_ignored(box):
+    fail(box, "disable:cat-obs-schedule-dpa.path")
+    out = run(box, "contain")
+    assert out.returncode != 0 and "échec de la désactivation de cat-obs-schedule-dpa.path" in out.stderr
+    assert state(box)["units"]["cat-obs-schedule-market.path"]["enabled"] == "enabled"  # rien d'autre tenté
+
+
+def test_c1_sticky_unit_is_detected(box):
+    fail(box, "sticky:cat-obs-schedule-market.path")
+    out = run(box, "contain")
+    assert out.returncode != 0 and "C1 incomplet" in out.stderr
+
+
+def test_c1_running_old_applier_is_detected(box):
+    (box["stub"] / "procs").write_text("4242 /bin/bash /usr/local/sbin/cat-obs-schedule-apply\n")
+    out = run(box, "contain")
+    assert out.returncode != 0 and "C1 incomplet" in out.stderr
+
+
+# ── Mission 3 : installation transactionnelle ─────────────────────────────────────────────────
+
+def test_install_happy_path_then_verify(box):
+    before = rhythms(box)
+    out = install(box)
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert last_state(box) == "INSTALLED" and rhythms(box) == before
+    assert old_paths_contained(box) or state(box)["units"]["cat-obs-schedule.path"]["active"] == "active"
+    s = state(box)["units"]
+    assert s["cat-obs-schedule-dpa.path"]["active"] != "active" and s["cat-obs-schedule-market.path"]["active"] != "active"
+    assert s["cat-obs-schedule.path"] == {"enabled": "enabled", "active": "active"}
+    units = box["units"]
+    for gone in ("cat-obs-schedule-dpa.path", "cat-obs-schedule-dpa.service", "cat-obs-schedule-market.path", "cat-obs-schedule-market.service"):
         assert not (units / gone).exists()
-    assert sha(r / "usr/local/sbin/cat-obs-schedule-apply") == sha(HERE / "cat-obs-schedule-apply.py")
-    assert sha(units / "cat-obs-schedule.path") == sha(HERE / "cat-obs-schedule.path")
-    assert oct(os.stat(r / "srv/cat-obs/schedule/requests").st_mode & 0o7777) == "0o2730"
-    assert oct(os.stat(r / "srv/cat-obs/schedule/state").st_mode & 0o7777) == "0o2750"
-    assert os.stat(r / "srv/cat-obs/control").st_mode & 0o020 == 0
-    api = (units / "crypto-operator-api.service.d/zzzzzzzzzzzzzz-schedule-gov02.conf").read_text()
-    assert "ReadWritePaths=/srv/cat-obs/schedule/requests\n" in api
-    assert "ReadWritePaths=\n" not in api and "SupplementaryGroups=\n" not in api  # ajouts seulement
-    assert "Environment=CAT_OPERATOR_LOGINS=op@example.test,second@example.test" in api
-    assert "UnsetEnvironment=AGENT_SCHEDULE_ALLOW_TEST" in api and "/srv/cat-obs/control" not in api
-    web = (units / "crypto-operator-web.service.d/zzzzzz-schedule-gov02.conf").read_text()
-    assert "CAT_OPERATOR_LOGINS=op@example.test,second@example.test" in web
-    calls = log.read_text()
-    assert "systemctl disable --now cat-obs-schedule.path cat-obs-schedule-dpa.path cat-obs-schedule-market.path" in calls
-    assert "systemctl enable --now cat-obs-schedule.path" in calls
-    sysctl = "\n".join(ln for ln in calls.splitlines() if ln.startswith("systemctl ") and not ln.startswith(("systemctl show", "systemctl is-enabled")))
-    assert not any(x in sysctl for x in ("cat-obs-cartographer.timer", "cat-obs-dpa.timer", "cat-obs-market.timer",
-                                        "crypto-operator-api", "crypto-operator-web", "restart"))
-
-    v = run(env, "verify")
-    if IS_ROOT:
-        assert v.returncode == 0 and "verify OK" in v.stdout, v.stdout + v.stderr
-    else:  # propriétaire root impossible hors root : seuls les écarts de propriétaire sont admis
-        assert all(ln.startswith(("ÉCART requests", "ÉCART state")) for ln in v.stdout.splitlines() if "ÉCART" in ln)
-
-    ts = next(p.name.rsplit("-", 1)[1] for p in (r / "root").iterdir() if p.name.startswith("p6-gov-02-backup-"))
-    back = run(env, "rollback", ts)
-    assert back.returncode == 0, back.stderr
-    assert {p.name: p.read_bytes() for p in units.iterdir() if p.name.startswith("cat-obs-schedule")} == old
-    assert (r / "usr/local/sbin/cat-obs-schedule-apply").read_bytes() == old_applier
-    assert oct(os.stat(r / "srv/cat-obs/control").st_mode & 0o7777) == "0o2770"
-    assert not (units / "crypto-operator-api.service.d/zzzzzzzzzzzzzz-schedule-gov02.conf").exists()
-    assert rhythms(units) == before_rhythms
-    assert (r / "srv/cat-obs/schedule").is_dir()  # conservé comme preuve
-    assert "R1 est rouvert" in back.stdout
+    api = next((units / "crypto-operator-api.service.d").glob("*-p6-gov02.conf")).read_text()
+    assert f"WorkingDirectory={NEW_API}" in api and "CAT_RELAY_TOKEN_FILE=/etc/cat-obs/relay.token" in api
+    assert "ReadWritePaths=\n" not in api and "SupplementaryGroups=\n" not in api
+    tok = box["r"] / "etc/cat-obs/relay.token"
+    assert oct(tok.stat().st_mode & 0o777) == "0o640" and len(tok.read_text().strip()) == 64
+    assert "relay.token" not in out.stdout and tok.read_text().strip() not in out.stdout + out.stderr
+    assert os.stat(box["r"] / "srv/cat-obs/control").st_mode & 0o020 == 0
+    order = [c for c in calls(box) if c.startswith("systemctl disable") or c.startswith("systemctl restart")]
+    assert order[0].startswith("systemctl disable --now cat-obs-schedule.path"), "C1 avant toute autre mutation"
+    v = run(box, "verify")
+    assert v.returncode == 0, v.stdout + v.stderr
+    assert "compatibilité systemd NON démontrée" in v.stdout
 
 
-def test_t13_preflight_flags_planted_links_without_deleting(fake, tmp_path):
-    r, _, env, _ = fake
-    victim = tmp_path / "victim"
-    victim.write_text("x")
-    os.symlink(victim, r / "srv/cat-obs/control/.status.tmp")
-    out = run(env, "preflight")
-    assert out.returncode != 0 and "INCIDENT" in out.stderr
-    assert os.path.islink(r / "srv/cat-obs/control/.status.tmp") and victim.read_text() == "x"
-    assert run(env, "install", "op@example.test").returncode != 0
-    assert not (r / "srv/cat-obs/schedule").exists()
+@pytest.mark.parametrize("case", ["logins", "release_mismatch", "release_missing", "control_suspect", "group_writable_parent", "analyze"])
+def test_install_refusals_happen_before_any_mutation(box, case):
+    args = ["install", "--logins", LOGINS, "--api-release", NEW_API, "--web-release", NEW_WEB]
+    if case == "logins":
+        args[2] = "op;rm -rf /"
+    elif case == "release_mismatch":
+        (box["r"] / NEW_API.lstrip("/") / API_FILES[1]).write_text("# modifié\n")
+    elif case == "release_missing":
+        args[4] = "/opt/absent"
+    elif case == "control_suspect":
+        os.symlink("/etc/shadow", box["r"] / "srv/cat-obs/control/.status.tmp")
+    elif case == "group_writable_parent":
+        os.chmod(box["r"] / "srv/cat-obs", 0o775)
+    elif case == "analyze":
+        fail(box, "analyze")
+    out = run(box, *args)
+    assert out.returncode != 0 and "REFUS" in out.stderr
+    assert mutating(box) == [] and not (box["r"] / "root/p6-gov-02-state").exists()
+    assert not (box["r"] / "srv/cat-obs/schedule").exists()
+    if case == "control_suspect":
+        assert os.path.islink(box["r"] / "srv/cat-obs/control/.status.tmp")
 
 
-def test_rollback_requires_a_real_backup(fake):
-    _, _, env, _ = fake
-    assert run(env, "rollback", "../../etc").returncode != 0
-    assert run(env, "rollback", "20260101T000000Z").returncode != 0
+def test_reinstall_is_refused_when_installed_or_partial(box):
+    assert install(box).returncode == 0
+    again = install(box)
+    assert again.returncode != 0 and "ambiguë" in again.stderr
+
+
+@pytest.mark.parametrize("rule,phase", [("restart:crypto-operator-web.service", "restart"),
+                                        ("daemon-reload", "reload"),
+                                        ("kill:daemon-reload", "reload"),
+                                        ("kill:restart", "restart")])
+def test_interrupted_install_is_partial_and_keeps_r1_contained(box, rule, phase):
+    fail(box, rule)
+    out = install(box)
+    assert out.returncode != 0
+    lines = (box["r"] / "root/p6-gov-02-state").read_text().splitlines()
+    assert lines[-1].split()[:2] == ["PARTIAL", phase], lines
+    assert "rollback" in out.stderr
+    s = state(box)["units"]
+    assert s["cat-obs-schedule-dpa.path"]["enabled"] != "enabled" and s["cat-obs-schedule-market.path"]["enabled"] != "enabled"
+    assert install(box).returncode != 0  # réinstallation refusée tant que l'état est PARTIAL
+
+
+def test_disable_failure_during_install_stops_before_new_chain(box):
+    fail(box, "disable:cat-obs-schedule-market.path")
+    out = install(box)
+    assert out.returncode != 0
+    assert (box["r"] / "root/p6-gov-02-state").read_text().splitlines()[-1].startswith("PARTIAL c1")
+    assert not (box["r"] / "srv/cat-obs/schedule").exists() and not (box["r"] / "etc/cat-obs/relay.token").exists()
+
+
+# ── Mission 4 : rollback sans R1 ──────────────────────────────────────────────────────────────
+
+def ts_of(b):
+    return next((b["r"] / "root").glob("p6-gov-02-backup-*")).name.rsplit("-", 1)[1]
+
+
+def test_rollback_restores_history_without_reenabling_r1(box):
+    before = rhythms(box)
+    assert install(box).returncode == 0
+    out = run(box, "rollback", ts_of(box))
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert last_state(box) == "ROLLED_BACK"
+    s = state(box)["units"]
+    for u in OLD_PATHS:
+        assert s[u]["enabled"] != "enabled" and s[u]["active"] != "active", u
+    enables = [c for c in calls(box) if c.startswith("systemctl enable")]
+    assert enables == ["systemctl enable --now cat-obs-schedule.path"], enables  # celle de l'installation, aucune au retour arrière
+    units = box["units"]
+    assert not list((units / "crypto-operator-api.service.d").glob("*-p6-gov02.conf"))
+    assert not (units / "cat-obs-schedule.path").exists() and not (units / "cat-obs-schedule-dpa.path").exists()
+    show = subprocess.run(["systemctl", "show", "crypto-operator-api.service", "-p", "WorkingDirectory", "--value"],
+                          capture_output=True, text=True, env=box["env"], check=True).stdout.strip()
+    assert show == HIST_API
+    assert rhythms(box) == before
+    assert (box["r"] / "usr/local/sbin/cat-obs-schedule-apply").read_text() == \
+        (HERE / "cat-obs-schedule-apply.py").read_text(), "l'ancien applicateur vulnérable n'est pas réinstallé"
+    assert "indisponible en écriture" in out.stdout
+    assert os.stat(box["r"] / "srv/cat-obs/control").st_mode & 0o020 == 0
+
+
+def test_rollback_restore_failure_never_reopens_r1(box):
+    assert install(box).returncode == 0
+    fail(box, "restart:crypto-operator-api.service")
+    out = run(box, "rollback", ts_of(box))
+    assert out.returncode != 0 and "ne sont pas réactivées" in out.stderr
+    assert (box["r"] / "root/p6-gov-02-state").read_text().splitlines()[-1].startswith("ROLLBACK_PARTIAL")
+    s = state(box)["units"]
+    assert all(s[u]["enabled"] != "enabled" for u in OLD_PATHS)
+
+
+def test_rollback_refuses_altered_backup(box):
+    assert install(box).returncode == 0
+    ts = ts_of(box)
+    (box["r"] / f"root/p6-gov-02-backup-{ts}/rhythms").write_text("altéré\n")
+    n = len(mutating(box))
+    out = run(box, "rollback", ts)
+    assert out.returncode != 0 and "altérée" in out.stderr
+    assert len(mutating(box)) == n
+    assert list((box["units"] / "crypto-operator-api.service.d").glob("*-p6-gov02.conf"))
+
+
+def test_rollback_rejects_bad_timestamps(box):
+    assert run(box, "rollback", "../../etc").returncode != 0
+    assert run(box, "rollback", "20260101T000000Z").returncode != 0
+
+
+# ── Mission 5 : verify ────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("drift", ["applier", "rhythm", "release", "route", "dpa_active", "control"])
+def test_verify_detects_drift(box, drift):
+    assert install(box).returncode == 0
+    if drift == "applier":
+        (box["r"] / "usr/local/sbin/cat-obs-schedule-apply").write_text("# modifié\n")
+    elif drift == "rhythm":
+        (box["units"] / "cat-obs-dpa.timer.d/rhythm.conf").write_text("[Timer]\nOnCalendar=*:0/1\n")
+    elif drift == "release":
+        (box["r"] / NEW_API.lstrip("/") / API_FILES[0]).write_text("# modifié\n")
+    elif drift == "route":
+        (box["stub"] / "routes.json").write_text(json.dumps({"http://127.0.0.1:8090/api/operator/v1/runtime-service": "503"}))
+    elif drift == "dpa_active":
+        st = state(box)
+        st["units"]["cat-obs-schedule-dpa.path"]["active"] = "active"
+        (box["stub"] / "state.json").write_text(json.dumps(st))
+    elif drift == "control":
+        os.chmod(box["r"] / "srv/cat-obs/control", 0o2770)
+    v = run(box, "verify")
+    assert v.returncode != 0 and "ÉCART" in v.stdout
+
+
+def test_verify_without_install_fails(box):
+    v = run(box, "verify")
+    assert v.returncode != 0 and "ÉCART état" in v.stdout

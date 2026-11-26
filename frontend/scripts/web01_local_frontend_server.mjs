@@ -1,7 +1,7 @@
 // WEB-01G local frontend runtime. This server deliberately exposes one local
 // read-only presentation surface only: static frontend assets plus GET/HEAD
 // proxying to the loopback Operator API. It never reads runtime artifacts.
-import { createReadStream, realpathSync } from "node:fs";
+import { closeSync, constants as fsc, createReadStream, fstatSync, openSync, readSync, realpathSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import http from "node:http";
 import https from "node:https";
@@ -69,10 +69,33 @@ export const OPERATOR_IDENTITY_PATH = "/api/operator/v1/operator-identity";
 export const SCHEDULE_MAX_BODY = 256;
 export const TAILSCALE_LOGIN_HEADER = "tailscale-user-login";
 export const IDENTITY_HEADER = "x-cat-operator-identity";
+export const RELAY_TOKEN_HEADER = "x-cat-relay-token";
 const LOGIN_RE = /^[A-Za-z0-9._%+@-]{1,128}$/;
 
 export function parseOperatorLogins(raw = process.env.CAT_OPERATOR_LOGINS ?? "") {
   return new Set(String(raw).split(",").map((x) => x.trim()).filter((x) => LOGIN_RE.test(x)).map((x) => x.toLowerCase()));
+}
+
+// Jeton relais → API (P6-GOV-02-RV) : 64 hex, fichier régulier jamais suivi s'il est un lien,
+// illisible par « autres ». Absent ou invalide : null (aucune écriture relayée).
+export function readRelayToken(file = process.env.CAT_RELAY_TOKEN_FILE ?? "") {
+  if (!file) return null;
+  let fd;
+  try { fd = openSync(file, fsc.O_RDONLY | fsc.O_NOFOLLOW | fsc.O_NONBLOCK); } catch { return null; }
+  try {
+    const st = fstatSync(fd);
+    if (!st.isFile() || (st.mode & 0o007) !== 0) return null;
+    const buf = Buffer.alloc(129);
+    const n = readSync(fd, buf, 0, 129, 0);
+    const token = buf.subarray(0, n).toString("ascii").trim();
+    return /^[0-9a-f]{64}$/.test(token) ? token : null;
+  } catch { return null; } finally { closeSync(fd); }
+}
+
+// Activation par socket systemd (option P6-GOV-02-RV) : écoute sur le descripteur 3 transmis par
+// une unité .socket appartenant à root, au lieu du port en boucle locale.
+export function systemdListenFd(env = process.env, pid = process.pid) {
+  return env.LISTEN_FDS === "1" && env.LISTEN_PID === String(pid) ? 3 : null;
 }
 
 export function tailscaleLogin(request) {
@@ -107,7 +130,7 @@ function copyProxyHeaders(headers) {
   return safe;
 }
 
-function proxyToOperatorApi(request, response, target, identity = null, onOversize = () => undefined) {
+function proxyToOperatorApi(request, response, target, identity = null, onOversize = () => undefined, relayToken = null) {
   const transport = target.protocol === "https:" ? https : http;
   const upstream = transport.request({
     protocol: target.protocol,
@@ -121,6 +144,7 @@ function proxyToOperatorApi(request, response, target, identity = null, onOversi
         ? { "content-type": String(request.headers["content-type"] ?? ""), "x-cat-operator": String(request.headers["x-cat-operator"] ?? "") }
         : {}),
       ...(identity ? { [IDENTITY_HEADER]: identity } : {}),
+      ...(relayToken ? { [RELAY_TOKEN_HEADER]: relayToken } : {}),
     },
   }, (upstreamResponse) => {
     const headers = copyProxyHeaders(upstreamResponse.headers);
@@ -199,7 +223,7 @@ function failRequest(response, status, code, message) {
   else apiError(response, status, code, message);
 }
 
-export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET, spotRadarTarget = SPOT_RADAR_API_TARGET, balanceHistory, operatorLogins = parseOperatorLogins() } = {}) {
+export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distRoot = DEFAULT_DIST_ROOT, apiTarget = OPERATOR_API_TARGET, spotRadarTarget = SPOT_RADAR_API_TARGET, balanceHistory, operatorLogins = parseOperatorLogins(), relayToken = readRelayToken(), listenFd = null } = {}) {
   const target = new URL(apiTarget);
   const spotRadar = new URL(spotRadarTarget);
   return http.createServer(async (request, response) => {
@@ -222,14 +246,15 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
         if (operatorLogins.size === 0) return refuse(403, "OPERATOR_ALLOWLIST_UNSET", "Aucun opérateur autorisé n'est configuré.");
         if (!who) return refuse(401, "OPERATOR_IDENTITY_REQUIRED", "Identité opérateur absente.");
         if (!operatorLogins.has(who)) return refuse(403, "OPERATOR_NOT_AUTHORIZED", "Opérateur non autorisé.");
+        if (!relayToken) return refuse(403, "RELAY_TOKEN_UNSET", "Transport relais → API non configuré.");
         const declared = request.headers["content-length"];
         if (declared !== undefined && (!/^[0-9]{1,6}$/.test(declared) || Number(declared) > SCHEDULE_MAX_BODY)) {
           relayAudit(url.pathname, who, 413, "BODY_TOO_LARGE");
           return refuseBody(request, response);
         }
-        return proxyToOperatorApi(request, response, target, who, () => relayAudit(url.pathname, who, 413, "BODY_TOO_LARGE"));
+        return proxyToOperatorApi(request, response, target, who, () => relayAudit(url.pathname, who, 413, "BODY_TOO_LARGE"), relayToken);
       }
-      if (url.pathname === OPERATOR_IDENTITY_PATH) return proxyToOperatorApi(request, response, target, tailscaleLogin(request));
+      if (url.pathname === OPERATOR_IDENTITY_PATH) return proxyToOperatorApi(request, response, target, tailscaleLogin(request), undefined, relayToken);
       if (isApiPath(url.pathname)) {
         const selected = url.pathname.startsWith(SPOT_RADAR_API_PREFIX) ? spotRadar : target;
         return proxyToOperatorApi(request, response, selected);
@@ -242,7 +267,7 @@ export function createServer({ host = LOOPBACK_HOST, port = FRONTEND_PORT, distR
     } catch {
       failRequest(response, 503, "FRONTEND_ASSET_UNAVAILABLE", "Frontend bundle is unavailable.");
     }
-  }).listen(port, host);
+  }).listen(listenFd === null ? { port, host } : { fd: listenFd });
 }
 
 if (isMainEntrypoint()) {
@@ -253,5 +278,6 @@ if (isMainEntrypoint()) {
   }
   const stateDirectory = process.env.STATE_DIRECTORY;
   const balanceHistory = stateDirectory ? startPaperBalanceHistory(stateDirectory, OPERATOR_API_TARGET) : undefined;
-  createServer({ port, balanceHistory }).on("listening", () => console.log(`WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${port}`));
+  const listenFd = systemdListenFd();
+  createServer({ port, balanceHistory, listenFd }).on("listening", () => console.log(listenFd === null ? `WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${port}` : "WEB_01G_LOCAL_FRONTEND_LISTENING=systemd-socket"));
 }

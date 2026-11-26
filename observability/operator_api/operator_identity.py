@@ -5,20 +5,31 @@ Web, qui la transmet sous ``x-cat-operator-identity`` après avoir supprimé tou
 le client. L'API la vérifie à nouveau contre la même liste d'autorisation ``CAT_OPERATOR_LOGINS``
 (non secrète). Liste absente ou vide : aucune écriture n'est possible (fermeture par défaut).
 
-Limite assumée : un processus local exécutant sous le même utilisateur Unix que le relais peut
-appeler l'API en boucle locale et forger l'en-tête ; la frontière vaut pour le réseau.
+Transport interne (P6-GOV-02-RV) : l'API exige en plus le jeton du relais (en-tête
+``x-cat-relay-token``), lu dans le fichier ``CAT_RELAY_TOKEN_FILE``, lisible seulement par les
+services API et Web (groupe supplémentaire, aucun compte interactif). Un processus local d'un autre
+utilisateur Unix ne peut donc pas forger l'identité directement auprès de l'API. Fichier absent,
+vide ou illisible : aucune écriture (fermeture par défaut).
+
+Limites : root, et le relais lui-même s'il est joint en boucle locale (voir le rapport RV) ; la
+liste d'autorisation n'authentifie rien seule, elle filtre une identité établie par Tailscale.
 """
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import re
+import stat
 import sys
 import time
 import uuid
 
 IDENTITY_HEADER = "x-cat-operator-identity"
+RELAY_TOKEN_HEADER = "x-cat-relay-token"
 ALLOWLIST_ENV = "CAT_OPERATOR_LOGINS"
+RELAY_TOKEN_FILE_ENV = "CAT_RELAY_TOKEN_FILE"
+_TOKEN_RE = re.compile(r"^[0-9a-f]{64}$")
 _LOGIN_RE = re.compile(r"^[A-Za-z0-9._%+@-]{1,128}$")
 
 
@@ -34,11 +45,43 @@ def identity_from(headers) -> str | None:
     return v.lower()
 
 
+def relay_token() -> str | None:
+    """Jeton du relais : 64 hex, fichier régulier non lisible par « autres », jamais un lien."""
+    path = os.getenv(RELAY_TOKEN_FILE_ENV, "")
+    if not path:
+        return None
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    except OSError:
+        return None
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_mode & 0o007:
+            return None
+        raw = os.read(fd, 129).decode("ascii", "replace").strip()
+    finally:
+        os.close(fd)
+    return raw if _TOKEN_RE.match(raw) else None
+
+
+def relay_ok(headers) -> tuple[int | None, str | None]:
+    expected = relay_token()
+    if expected is None:
+        return 403, "RELAY_TOKEN_UNSET"
+    got = headers.get(RELAY_TOKEN_HEADER)
+    if not isinstance(got, str) or not hmac.compare_digest(got.encode("ascii", "replace"), expected.encode("ascii")):
+        return 401, "RELAY_TOKEN_INVALID"
+    return None, None
+
+
 def check(headers) -> tuple[str | None, int | None, str | None]:
-    """(identité, statut_refus, code_refus)."""
+    """(identité, statut_refus, code_refus). Ordre : liste, transport (jeton du relais), identité."""
     allowed = allowlist()
     if not allowed:
         return None, 403, "OPERATOR_ALLOWLIST_UNSET"
+    status, code = relay_ok(headers)
+    if status is not None:
+        return None, status, code
     who = identity_from(headers)
     if who is None:
         return None, 401, "OPERATOR_IDENTITY_REQUIRED"

@@ -21,7 +21,8 @@ permission de déployer, calibrer ou modifier une expérience.
   2026-11-22 07:23Z, #600, ratifiée P6-GOV-01, durcie P6-GOV-02) :
   `POST /api/operator/v1/agent-invocations/repository-cartographer/schedule`,
   corps JSON `{"rhythm": "10min" | "1h" | "off"}` ≤ 256 octets, identité
-  opérateur vérifiée (Tailscale → liste `CAT_OPERATOR_LOGINS`, relais puis API),
+  opérateur établie par Tailscale (la liste `CAT_OPERATOR_LOGINS` filtre, elle
+  n'authentifie pas), transport relais → API par jeton de groupe,
   débit limité, chaque acceptation ou refus journalisé. L'API ne fait que
   déposer une demande dans `/srv/cat-obs/schedule/requests/` ; un applicateur
   root versionné (`docs/agents/observation/pilot/schedule/`), réservé à ce seul

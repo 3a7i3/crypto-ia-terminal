@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createServer, parseOperatorLogins, relayAudit, isMainEntrypoint, resolveFrontendPort, FRONTEND_PORT, LOOPBACK_HOST, SPOT_RADAR_API_PREFIX, SPOT_RADAR_API_TARGET, UPSTREAM_TIMEOUT_MS } from "./web01_local_frontend_server.mjs";
+import { createServer, parseOperatorLogins, readRelayToken, relayAudit, systemdListenFd, isMainEntrypoint, resolveFrontendPort, FRONTEND_PORT, LOOPBACK_HOST, SPOT_RADAR_API_PREFIX, SPOT_RADAR_API_TARGET, UPSTREAM_TIMEOUT_MS } from "./web01_local_frontend_server.mjs";
 
 function listen(server) { return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port))); }
 function close(server) { return new Promise((resolve) => server.close(resolve)); }
@@ -321,22 +321,23 @@ test("exception unique : POST relayé seulement vers la route de rythme d'agent,
   const api = http.createServer((req, res) => {
     let b = ""; req.on("data", (c) => { b += c; });
     req.on("end", () => {
-      seen.push({ m: req.method, u: req.url, h: req.headers["x-cat-operator"], who: req.headers["x-cat-operator-identity"] ?? null, ts: req.headers["tailscale-user-login"] ?? null, ct: req.headers["content-type"], b });
+      seen.push({ m: req.method, u: req.url, h: req.headers["x-cat-operator"], who: req.headers["x-cat-operator-identity"] ?? null, ts: req.headers["tailscale-user-login"] ?? null, tok: req.headers["x-cat-relay-token"] ?? null, ct: req.headers["content-type"], b });
       res.writeHead(202, { "content-type": "application/json" }); res.end("{}");
     });
   }).listen(0, "127.0.0.1");
   await new Promise((r) => api.once("listening", r));
   const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
   await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
-  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${api.address().port}`, operatorLogins: parseOperatorLogins("Operator@Example.test") });
+  const TOKEN = "ab".repeat(32);
+  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${api.address().port}`, operatorLogins: parseOperatorLogins("Operator@Example.test"), relayToken: TOKEN });
   await new Promise((resolve) => app.once("listening", resolve));
   t.after(() => { close(app); api.close(); });
   const base = `http://127.0.0.1:${app.address().port}/api/operator/v1/agent-invocations/repository-cartographer`;
   const H = { "content-type": "application/json", "x-cat-operator": "schedule" };
-  const ok = await fetch(`${base}/schedule`, { method: "POST", headers: { ...H, "tailscale-user-login": "operator@example.test", "x-cat-operator-identity": "forged@example.test" }, body: '{"rhythm":"1h"}' });
+  const ok = await fetch(`${base}/schedule`, { method: "POST", headers: { ...H, "tailscale-user-login": "operator@example.test", "x-cat-operator-identity": "forged@example.test", "x-cat-relay-token": "cd".repeat(32) }, body: '{"rhythm":"1h"}' });
   assert.equal(ok.status, 202); assert.equal(ok.headers.get("cache-control"), "no-store");
-  assert.deepEqual(seen, [{ m: "POST", u: "/api/operator/v1/agent-invocations/repository-cartographer/schedule", h: "schedule", who: "operator@example.test", ts: null, ct: "application/json", b: '{"rhythm":"1h"}' }],
-    "identité réécrite depuis Tailscale ; valeur fournie par le client et en-tête Tailscale non transmis");
+  assert.deepEqual(seen, [{ m: "POST", u: "/api/operator/v1/agent-invocations/repository-cartographer/schedule", h: "schedule", who: "operator@example.test", ts: null, tok: TOKEN, ct: "application/json", b: '{"rhythm":"1h"}' }],
+    "identité réécrite depuis Tailscale, jeton du relais imposé ; valeurs fournies par le client non transmises");
   // identité absente, forgée seule, ou non autorisée : refus au relais, rien n'atteint l'API
   const noId = await fetch(`${base}/schedule`, { method: "POST", headers: H, body: '{"rhythm":"1h"}' });
   assert.equal(noId.status, 401); assert.match(await noId.text(), /OPERATOR_IDENTITY_REQUIRED/);
@@ -376,4 +377,38 @@ test("journal des refus au relais : une ligne JSON, sans corps ni en-tête", () 
   assert.equal(a.event, "cat.schedule.relay_refusal"); assert.equal(a.agent, "repository-cartographer"); assert.equal(a.identity, null);
   assert.match(a.ts, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   assert.equal(b.agent, null); assert.equal(b.http_status, 403);
+});
+
+test("transport relais → API : sans jeton, aucune écriture relayée ; fichier de jeton strict", async (t) => {
+  let reached = 0;
+  const api = http.createServer((req, res) => { reached += 1; res.end("{}"); }).listen(0, "127.0.0.1");
+  await new Promise((r) => api.once("listening", r));
+  const distRoot = await mkdtemp(path.join(tmpdir(), "web01g-dist-"));
+  await writeFile(path.join(distRoot, "index.html"), "<main>operator</main>");
+  const app = createServer({ port: 0, distRoot, apiTarget: `http://127.0.0.1:${api.address().port}`, operatorLogins: parseOperatorLogins("op@example.test"), relayToken: null });
+  await new Promise((resolve) => app.once("listening", resolve));
+  t.after(() => { close(app); api.close(); });
+  const url = `http://127.0.0.1:${app.address().port}/api/operator/v1/agent-invocations/repository-cartographer/schedule`;
+  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-cat-operator": "schedule", "tailscale-user-login": "op@example.test" }, body: '{"rhythm":"1h"}' });
+  assert.equal(r.status, 403); assert.match(await r.text(), /RELAY_TOKEN_UNSET/);
+  assert.equal(reached, 0);
+
+  const dir = await mkdtemp(path.join(tmpdir(), "web01g-token-"));
+  const good = path.join(dir, "good"); await writeFile(good, "ab".repeat(32) + "\n", { mode: 0o640 });
+  assert.equal(readRelayToken(good), "ab".repeat(32));
+  const world = path.join(dir, "world"); await writeFile(world, "ab".repeat(32), { mode: 0o644 });
+  assert.equal(readRelayToken(world), null);
+  const link = path.join(dir, "link"); await symlink(good, link);
+  assert.equal(readRelayToken(link), null);
+  const short = path.join(dir, "short"); await writeFile(short, "abc", { mode: 0o600 });
+  assert.equal(readRelayToken(short), null);
+  assert.equal(readRelayToken(path.join(dir, "absent")), null);
+  assert.equal(readRelayToken(""), null);
+});
+
+test("activation par socket systemd : seulement si LISTEN_PID désigne ce processus", () => {
+  assert.equal(systemdListenFd({ LISTEN_FDS: "1", LISTEN_PID: "42" }, 42), 3);
+  assert.equal(systemdListenFd({ LISTEN_FDS: "1", LISTEN_PID: "41" }, 42), null);
+  assert.equal(systemdListenFd({ LISTEN_FDS: "2", LISTEN_PID: "42" }, 42), null);
+  assert.equal(systemdListenFd({}, 42), null);
 });
