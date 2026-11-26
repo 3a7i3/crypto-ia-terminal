@@ -40,13 +40,16 @@ API et Web. Un autre utilisateur Unix local ne peut donc pas forger l'identité 
 Confinement, installation, vérification et retour arrière : `schedule/cat-obs-schedule-gov02-root.sh`
 (`contain [--check] | preflight | install --logins … --api-release … --web-release … | verify |
 rollback <horodatage>`), à exécuter par l'opérateur sur GO runtime distinct. L'installation commence
-par le confinement C1 ; le retour arrière restaure les releases API/Web historiques sans jamais
+par le confinement C1 ; le retour arrière restaure les releases API/Web historiques et la cible Tailscale Serve sans jamais
 réactiver les anciennes unités (la planification devient alors indisponible en écriture).
 
-Limite assumée : tant que le relais écoute sur 127.0.0.1:8181, tout processus local peut s'y connecter
-et forger `Tailscale-User-Login` ; root reste hors de portée de toute protection. L'option
-`schedule/crypto-operator-web.socket.example` (socket root 0600 transmise par systemd, cible
-`tailscale serve` en `unix:`) ferme ce point ; elle demande sa propre décision.
+Frontière locale (P6-GOV-03) : l'installation retire le relais de 127.0.0.1:8181, où tout processus
+local pouvait forger `Tailscale-User-Login`. systemd lui transmet `schedule/crypto-operator-web.socket`
+(socket Unix root:root 0600) ; le service Web reçoit `Requires=`/`After=` cette unité et
+`CAT_WEB_LISTEN=systemd`, qui lui interdit de rouvrir un port TCP. `tailscale serve --https=443` cible
+`unix:/run/cat-operator-web.sock`. `verify` contrôle l'absence d'écouteur 8181 et la cible Serve ; le
+retour arrière rétablit la cible TCP enregistrée en gardant C1. Restent hors de portée : root, et le
+compte qui exécute les services (il possède le code des releases et le groupe du jeton).
 
 **État déployé (RUNTIME_VERIFIED le 2026-11-26, avant tout GO).** L'ancienne chaîne tourne encore :
 applicateur bash de #601 (trois agents), trois unités `.path`, dossier `/srv/cat-obs/control` en 2770,

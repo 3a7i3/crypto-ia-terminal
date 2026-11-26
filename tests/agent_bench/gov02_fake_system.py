@@ -9,6 +9,11 @@ Injection d'échecs : $STUB_DIR/fail (une règle par ligne) :
   daemon-reload       le rechargement échoue
   kill:<verbe>        le script appelant reçoit SIGTERM pendant ce verbe (interruption)
   analyze             systemd-analyze verify échoue
+  serve               « tailscale serve --bg … » échoue
+  tcp8181             le relais Web écoute en TCP 8181 même avec la socket (ancien serveur)
+Modèle P6-GOV-03 : crypto-operator-web.socket active ⇒ fichier $CAT_GOV02_ROOT/run/cat-operator-web.sock ;
+le Web écoute en TCP 8181 sauf si CAT_WEB_LISTEN=systemd est effectif et la socket active ; arrêter la
+socket arrête le Web (Requires=). tailscale serve : état dans state.json["serve"].
 Aucune de ces commandes ne touche le système réel.
 """
 import json
@@ -22,6 +27,10 @@ D = Path(os.environ["STUB_DIR"])
 ROOT = Path(os.environ["CAT_GOV02_ROOT"])
 UNITS = ROOT / "etc/systemd/system"
 STATE = D / "state.json"
+SOCKET_UNIT = "crypto-operator-web.socket"
+WEB = "crypto-operator-web.service"
+SOCK = ROOT / "run/cat-operator-web.sock"
+SERVE_DEFAULT = {"443": "http://127.0.0.1:8181", "8443": "http://127.0.0.1:18908"}
 
 
 def load():
@@ -113,6 +122,14 @@ def systemctl(args):
             else:
                 s["active"] = "active"
                 st["pids"][u] = st["pids"].get(u, 100) + 1
+            if u == SOCKET_UNIT:
+                if s["active"] == "active":
+                    SOCK.parent.mkdir(parents=True, exist_ok=True)
+                    SOCK.touch()
+                else:
+                    SOCK.unlink(missing_ok=True)
+                    unit(st, WEB)["active"] = "inactive"  # Requires= : la socket arrêtée arrête le Web
+                    st["pids"][WEB] = 0
         save(st)
         return 0
     if verb == "daemon-reload":
@@ -132,6 +149,14 @@ def systemctl(args):
 def curl(args):
     url = next(a for a in args if a.startswith("http"))
     codes = json.loads((D / "routes.json").read_text()) if (D / "routes.json").exists() else {}
+    if "--unix-socket" in args:
+        if not SOCK.exists():
+            print("000", end="") if "-w" in args else None
+            return 7
+        url = url.replace("http://localhost", "http://127.0.0.1:8181", 1)
+    elif ":8181/" in url and not web_tcp(load()):
+        print("000", end="") if "-w" in args else None
+        return 7
     if "-w" in args:
         print(codes.get(url, "200"), end="")
         return 0
@@ -141,6 +166,44 @@ def curl(args):
         print('{"identity":null,"authorized":false,"reason":"OPERATOR_IDENTITY_REQUIRED"}')
     else:
         print("{}")
+    return 0
+
+
+def web_tcp(st):
+    if "tcp8181" in rules():
+        return True
+    if unit(st, WEB)["active"] != "active":
+        return False
+    sock_mode = "CAT_WEB_LISTEN=systemd" in directives(WEB).get("Environment", "")
+    return not (sock_mode and unit(st, SOCKET_UNIT)["active"] == "active")
+
+
+def ss(args):
+    st = load()
+    if web_tcp(st) and (not any("sport" in a for a in args) or any(":8181" in a for a in args)):
+        print("LISTEN 0      511    127.0.0.1:8181 0.0.0.0:*")
+    return 0
+
+
+def tailscale(args):
+    st = load()
+    serve = st.setdefault("serve", dict(SERVE_DEFAULT))
+    if args[:2] == ["serve", "status"]:
+        if "--json" in args:
+            web = {f"host.example:{p}": {"Handlers": {"/": {"Proxy": t}}} for p, t in serve.items()}
+            print(json.dumps({"TCP": {p: {"HTTPS": True} for p in serve}, "Web": web}))
+        else:
+            for p, t in sorted(serve.items()):
+                print(f"https://host.example:{p} (tailnet only)\n|-- / proxy {t}")
+        save(st)
+        return 0
+    if args[:1] == ["serve"]:
+        if "serve" in rules():
+            return 1
+        port = next(a.split("=", 1)[1] for a in args if a.startswith("--https="))
+        serve[port] = args[-1]
+        save(st)
+        return 0
     return 0
 
 
@@ -163,8 +226,9 @@ def main():
     if name == "systemd-analyze":
         return 1 if "analyze" in rules() else 0
     if name == "tailscale":
-        print("https://example.ts.net (tailnet only)\n|-- / proxy http://127.0.0.1:8181")
-        return 0
+        return tailscale(args)
+    if name == "ss":
+        return ss(args)
     return 0  # groupadd, getent, journalctl
 
 

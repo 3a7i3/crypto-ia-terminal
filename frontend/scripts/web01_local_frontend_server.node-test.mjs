@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createServer, parseOperatorLogins, readRelayToken, relayAudit, systemdListenFd, isMainEntrypoint, resolveFrontendPort, FRONTEND_PORT, LOOPBACK_HOST, SPOT_RADAR_API_PREFIX, SPOT_RADAR_API_TARGET, UPSTREAM_TIMEOUT_MS } from "./web01_local_frontend_server.mjs";
+import { createServer, parseOperatorLogins, readRelayToken, relayAudit, resolveListen, systemdListenFd, isMainEntrypoint, resolveFrontendPort, FRONTEND_PORT, LOOPBACK_HOST, SPOT_RADAR_API_PREFIX, SPOT_RADAR_API_TARGET, UPSTREAM_TIMEOUT_MS } from "./web01_local_frontend_server.mjs";
 
 function listen(server) { return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server.address().port))); }
 function close(server) { return new Promise((resolve) => server.close(resolve)); }
@@ -411,4 +411,13 @@ test("activation par socket systemd : seulement si LISTEN_PID désigne ce proces
   assert.equal(systemdListenFd({ LISTEN_FDS: "1", LISTEN_PID: "41" }, 42), null);
   assert.equal(systemdListenFd({ LISTEN_FDS: "2", LISTEN_PID: "42" }, 42), null);
   assert.equal(systemdListenFd({}, 42), null);
+});
+
+test("P6-GOV-03 : CAT_WEB_LISTEN=systemd sans socket transmise refuse de démarrer (pas de repli TCP)", () => {
+  assert.deepEqual(resolveListen({}, 42), { fd: null });
+  assert.deepEqual(resolveListen({ LISTEN_FDS: "1", LISTEN_PID: "42" }, 42), { fd: 3 });
+  assert.deepEqual(resolveListen({ CAT_WEB_LISTEN: "systemd", LISTEN_FDS: "1", LISTEN_PID: "42" }, 42), { fd: 3 });
+  assert.throws(() => resolveListen({ CAT_WEB_LISTEN: "systemd" }, 42), /SYSTEMD_SOCKET_REQUIRED/);
+  assert.throws(() => resolveListen({ CAT_WEB_LISTEN: "systemd", LISTEN_FDS: "1", LISTEN_PID: "41" }, 42), /SYSTEMD_SOCKET_REQUIRED/);
+  assert.throws(() => resolveListen({ CAT_WEB_LISTEN: "tcp" }, 42), /INVALID_CAT_WEB_LISTEN/);
 });

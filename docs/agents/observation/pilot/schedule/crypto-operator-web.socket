@@ -1,0 +1,19 @@
+# P6-GOV-03 — frontière d'identité du relais Web (installée par cat-obs-schedule-gov02-root.sh).
+# Le relais n'écoute plus sur 127.0.0.1:8181, joignable par tout utilisateur Unix local capable de
+# forger Tailscale-User-Login : systemd lui transmet cette socket Unix appartenant à root en 0600.
+# Seul root (tailscaled, cible `tailscale serve --https=443 unix:/run/cat-operator-web.sock`) s'y connecte.
+# Le service Web reçoit Requires=/After= cette unité et CAT_WEB_LISTEN=systemd : sans descripteur
+# transmis, il refuse de démarrer au lieu de rouvrir le port TCP (pas de repli).
+# Retour arrière : le script rétablit la cible tailscale serve enregistrée et retire cette unité.
+[Unit]
+Description=CAT operator web — socket réservée à tailscaled (root)
+
+[Socket]
+ListenStream=/run/cat-operator-web.sock
+SocketUser=root
+SocketGroup=root
+SocketMode=0600
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

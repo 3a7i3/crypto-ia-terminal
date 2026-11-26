@@ -70,6 +70,8 @@ def box(tmp_path):
           "pids": {"crypto-operator-api.service": 100, "crypto-operator-web.service": 200}}
     st["units"].update({f"{t}.timer": {"enabled": "enabled", "active": "active"}
                         for t in ("cat-obs-cartographer", "cat-obs-dpa", "cat-obs-market")})
+    st["units"]["crypto-operator-web.service"] = {"enabled": "enabled", "active": "active"}
+    st["units"]["crypto-operator-api.service"] = {"enabled": "enabled", "active": "active"}
     st["units"].update({s: {"enabled": "static", "active": "inactive"} for s in
                         ("cat-obs-schedule.service", "cat-obs-schedule-dpa.service", "cat-obs-schedule-market.service")})
     (stub / "state.json").write_text(json.dumps(st))
@@ -78,7 +80,7 @@ def box(tmp_path):
     fake = bins / "fake.py"
     fake.write_text("#!/usr/bin/env python3\n" + FAKE.read_text())
     os.chmod(fake, 0o755)
-    for name in ("systemctl", "pgrep", "curl", "groupadd", "getent", "journalctl", "systemd-analyze", "tailscale"):
+    for name in ("systemctl", "pgrep", "curl", "groupadd", "getent", "journalctl", "systemd-analyze", "tailscale", "ss"):
         os.symlink(fake, bins / name)
     (bins / "install").write_text(INSTALL_STUB)
     os.chmod(bins / "install", 0o755)
@@ -268,7 +270,8 @@ def test_rollback_restores_history_without_reenabling_r1(box):
     for u in OLD_PATHS:
         assert s[u]["enabled"] != "enabled" and s[u]["active"] != "active", u
     enables = [c for c in calls(box) if c.startswith("systemctl enable")]
-    assert enables == ["systemctl enable --now cat-obs-schedule.path"], enables  # celle de l'installation, aucune au retour arrière
+    # celles de l'installation ; aucune au retour arrière
+    assert enables == ["systemctl enable --now cat-obs-schedule.path", "systemctl enable --now crypto-operator-web.socket"], enables
     units = box["units"]
     assert not list((units / "crypto-operator-api.service.d").glob("*-p6-gov02.conf"))
     assert not (units / "cat-obs-schedule.path").exists() and not (units / "cat-obs-schedule-dpa.path").exists()
@@ -310,7 +313,8 @@ def test_rollback_rejects_bad_timestamps(box):
 
 # ── Mission 5 : verify ────────────────────────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("drift", ["applier", "rhythm", "release", "route", "dpa_active", "control"])
+@pytest.mark.parametrize("drift", ["applier", "rhythm", "release", "route", "dpa_active", "control",
+                                   "serve_tcp", "tcp_listener", "socket_gone"])
 def test_verify_detects_drift(box, drift):
     assert install(box).returncode == 0
     if drift == "applier":
@@ -327,6 +331,14 @@ def test_verify_detects_drift(box, drift):
         (box["stub"] / "state.json").write_text(json.dumps(st))
     elif drift == "control":
         os.chmod(box["r"] / "srv/cat-obs/control", 0o2770)
+    elif drift == "serve_tcp":
+        st = state(box)
+        st["serve"]["443"] = "http://127.0.0.1:8181"
+        (box["stub"] / "state.json").write_text(json.dumps(st))
+    elif drift == "tcp_listener":
+        fail(box, "tcp8181")
+    elif drift == "socket_gone":
+        (box["r"] / "run/cat-operator-web.sock").unlink()
     v = run(box, "verify")
     assert v.returncode != 0 and "ÉCART" in v.stdout
 
@@ -334,3 +346,82 @@ def test_verify_detects_drift(box, drift):
 def test_verify_without_install_fails(box):
     v = run(box, "verify")
     assert v.returncode != 0 and "ÉCART état" in v.stdout
+
+
+# ── P6-GOV-03 : frontière d'identité par socket systemd ──────────────────────────────────────
+
+def serve(b):
+    return state(b)["serve"]
+
+
+def test_install_moves_relay_to_root_socket_and_closes_tcp(box):
+    out = install(box)
+    assert out.returncode == 0, out.stdout + out.stderr
+    units = box["units"]
+    assert (units / "crypto-operator-web.socket").read_bytes() == (HERE / "crypto-operator-web.socket").read_bytes()
+    sock_unit = (HERE / "crypto-operator-web.socket").read_text()
+    for d in ("ListenStream=/run/cat-operator-web.sock", "SocketUser=root", "SocketGroup=root", "SocketMode=0600"):
+        assert d in sock_unit
+    web = next((units / "crypto-operator-web.service.d").glob("*-p6-gov02.conf")).read_text()
+    assert "Requires=crypto-operator-web.socket" in web and "After=crypto-operator-web.socket" in web
+    assert "Environment=CAT_WEB_LISTEN=systemd" in web
+    assert (box["r"] / "run/cat-operator-web.sock").exists()
+    ss = subprocess.run(["ss", "-ltnH", "sport = :8181"], capture_output=True, text=True, env=box["env"], check=True)
+    assert ss.stdout == "", "aucun écouteur TCP 8181 après migration"
+    assert serve(box) == {"443": "unix:/run/cat-operator-web.sock", "8443": "http://127.0.0.1:18908"}
+    order = [c for c in calls(box) if c.startswith(("systemctl enable --now crypto-operator-web.socket",
+                                                     "systemctl restart crypto-operator-web.service", "tailscale serve --bg"))]
+    assert [c.split()[1] for c in order] == ["enable", "restart", "serve"], order  # socket, puis Web, puis Serve
+    b = next((box["r"] / "root").glob("p6-gov-02-backup-*"))
+    assert "443 / http://127.0.0.1:8181" in (b / "serve.targets").read_text()
+    v = run(box, "verify")
+    assert v.returncode == 0, v.stdout + v.stderr
+    for line in ("aucun écouteur TCP 8181", "tailscale serve 443 → socket", "autres entrées tailscale serve inchangées",
+                 "relais (socket) : sans identité Tailscale refusé"):
+        assert line in v.stdout, line
+
+
+def test_install_refuses_when_serve_target_is_unexpected(box):
+    st = state(box)
+    st["serve"] = {"443": "http://127.0.0.1:9999", "8443": "http://127.0.0.1:18908"}
+    (box["stub"] / "state.json").write_text(json.dumps(st))
+    out = install(box)
+    assert out.returncode != 0 and "ambiguë" in out.stderr
+    assert mutating(box) == [] and not (box["r"] / "root/p6-gov-02-state").exists()
+
+
+def test_install_fails_closed_if_relay_still_listens_on_tcp(box):
+    fail(box, "tcp8181")
+    out = install(box)
+    assert out.returncode != 0 and "écoute encore sur 127.0.0.1:8181" in out.stderr
+    assert last_state(box) == "PARTIAL"
+    assert serve(box)["443"] == "http://127.0.0.1:8181", "Serve n'est pas basculé tant que TCP reste ouvert"
+
+
+def test_serve_failure_is_partial_and_rollback_restores_tcp_route(box):
+    before = rhythms(box)
+    fail(box, "serve")
+    out = install(box)
+    assert out.returncode != 0
+    assert (box["r"] / "root/p6-gov-02-state").read_text().splitlines()[-1].split()[:2] == ["PARTIAL", "serve"]
+    (box["stub"] / "fail").unlink()
+    rb = run(box, "rollback", ts_of(box))
+    assert rb.returncode == 0, rb.stdout + rb.stderr
+    assert serve(box) == {"443": "http://127.0.0.1:8181", "8443": "http://127.0.0.1:18908"}
+    assert not (box["units"] / "crypto-operator-web.socket").exists() and not (box["r"] / "run/cat-operator-web.sock").exists()
+    assert old_paths_contained(box) and rhythms(box) == before
+
+
+def test_rollback_restores_tcp_relay_and_serve_but_keeps_c1(box):
+    assert install(box).returncode == 0
+    out = run(box, "rollback", ts_of(box))
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert serve(box) == {"443": "http://127.0.0.1:8181", "8443": "http://127.0.0.1:18908"}
+    ss = subprocess.run(["ss", "-ltnH", "sport = :8181"], capture_output=True, text=True, env=box["env"], check=True)
+    assert "127.0.0.1:8181" in ss.stdout
+    assert state(box)["units"]["crypto-operator-web.socket"]["enabled"] != "enabled"
+    assert not (box["units"] / "crypto-operator-web.socket").exists()
+    assert old_paths_contained(box)
+    seq = [c for c in calls(box) if "crypto-operator-web.socket" in c and "disable" in c or c.startswith("tailscale serve --bg")]
+    assert seq[-2].startswith("systemctl disable --now crypto-operator-web.socket") and seq[-1].endswith("http://127.0.0.1:8181")
+    assert "limite locale connue" in out.stdout

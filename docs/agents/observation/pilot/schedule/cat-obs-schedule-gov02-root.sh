@@ -18,7 +18,7 @@
 #                                     devient indisponible en écriture
 #
 # Tests : CAT_GOV02_ROOT=<racine factice> CAT_GOV02_TEST=1 ; les commandes systemctl, pgrep, curl,
-# groupadd, getent, journalctl, systemd-analyze et tailscale sont prises dans PATH (bouchons en test).
+# groupadd, getent, journalctl, systemd-analyze, tailscale et ss sont prises dans PATH (bouchons en test).
 set -Eeuo pipefail
 umask 077
 
@@ -50,6 +50,14 @@ OLD_SERVICES=(cat-obs-schedule.service cat-obs-schedule-dpa.service cat-obs-sche
 OLD_FILES=(cat-obs-schedule-dpa.path cat-obs-schedule-dpa.service cat-obs-schedule-market.path cat-obs-schedule-market.service)
 NEW_UNITS=(cat-obs-schedule.path cat-obs-schedule.service)
 TIMERS=(cat-obs-cartographer cat-obs-dpa cat-obs-market)
+# P6-GOV-03 : le relais Web n'écoute plus en TCP ; systemd lui transmet une socket root 0600.
+SOCKET_UNIT=crypto-operator-web.socket
+SOCK_REAL=/run/cat-operator-web.sock
+SOCK="$R$SOCK_REAL"
+WEB_TCP_PORT=8181
+SERVE_PORT=443
+SERVE_TCP_TARGET="http://127.0.0.1:$WEB_TCP_PORT"
+SERVE_SOCK_TARGET="unix:$SOCK_REAL"
 API_FILES=(observability/operator_api/app.py observability/operator_api/agent_schedule.py observability/operator_api/operator_identity.py)
 WEB_SERVER=frontend/scripts/web01_local_frontend_server.mjs
 ROUTES=(/api/operator/v1/agent-invocations/repository-cartographer
@@ -91,6 +99,27 @@ trusted_dir() {   # dossier réel, root, non inscriptible par groupe/autres
 control_suspects() {
   [ -d "$CONTROL" ] || return 0
   find "$CONTROL" -xdev \( -type l -o -type p -o -type s -o -type b -o -type c -o \( -type f -links +1 \) \) -printf '%M %u:%g %n %p\n' 2>/dev/null
+}
+
+# ── Frontière d'identité : listeners et Tailscale Serve (lecture seule) ─────────────────────────
+serve_targets() {   # « port cible » pour chaque gestionnaire « / » de tailscale serve, trié
+  tailscale serve status --json 2>/dev/null | /usr/bin/env python3 -I -c '
+import json, sys
+try: d = json.load(sys.stdin) or {}
+except Exception: sys.exit(0)
+for hp, w in sorted((d.get("Web") or {}).items()):
+    for path, h in sorted(((w or {}).get("Handlers") or {}).items()):
+        print(hp.rsplit(":", 1)[-1], path, (h or {}).get("Proxy") or (h or {}).get("Path") or (h or {}).get("Text") or "?")
+'
+}
+serve_target_443() { serve_targets | awk -v p="$SERVE_PORT" '$1 == p && $2 == "/" { print $3 }'; }
+tcp_relay_listening() { [ -n "$(ss -ltnH "sport = :$WEB_TCP_PORT" 2>/dev/null)" ]; }
+socket_ok() {   # socket présente, root:root 0600 (le bouchon de test crée un fichier ordinaire)
+  if [ -n "$TEST" ]; then [ -e "$SOCK" ]; else [ -S "$SOCK" ] && [ "$(stat -c '%a %U:%G' "$SOCK")" = "600 root:root" ]; fi
+}
+web_get() {   # GET relais en lecture seule ; $1=chemin ; transport selon l'état courant
+  if socket_ok && ! tcp_relay_listening; then curl -s -m 5 --unix-socket "$SOCK_REAL" "http://localhost$1" 2>/dev/null || true
+  else curl -s -m 5 "http://127.0.0.1:$WEB_TCP_PORT$1" 2>/dev/null || true; fi
 }
 
 # ── C1 : confinement ───────────────────────────────────────────────────────────────────────────
@@ -159,10 +188,13 @@ preflight() {
   getent passwd "$OWNER" >/dev/null || die "utilisateur $OWNER absent"
   for t in "${TIMERS[@]}"; do [ -f "$UNITS/$t.timer" ] || die "timer $t.timer absent"; done
   [ -n "$TEST" ] || /usr/bin/python3 -I -c 'import sys; sys.exit(sys.version_info < (3, 8))' || die "python3 ≥ 3.8 requis"
-  systemd-analyze verify "$HERE/cat-obs-schedule.path" "$HERE/cat-obs-schedule.service" >/dev/null 2>&1 \
+  command -v tailscale >/dev/null 2>&1 || die "tailscale absent"
+  command -v ss >/dev/null 2>&1 || die "ss absent"
+  systemd-analyze verify "$HERE/cat-obs-schedule.path" "$HERE/cat-obs-schedule.service" "$HERE/$SOCKET_UNIT" >/dev/null 2>&1 \
     || die "systemd-analyze verify refuse les unités (version : $(systemctl --version | head -n1))"
   say "systemd : $(systemctl --version | head -n1)"
   say "API : $(systemctl show crypto-operator-api.service -p WorkingDirectory --value 2>/dev/null)"
+  say "tailscale serve $SERVE_PORT → $(serve_target_443)"
   say "état d'installation : $(last_state)"
   say "preflight OK"
 }
@@ -175,6 +207,9 @@ refuse_ambiguous() {
   [ ! -e "$SCHED" ] || die "$SCHED existe déjà : réinstallation ambiguë refusée"
   [ ! -e "$API_DROPIN" ] && [ ! -e "$WEB_DROPIN" ] || die "drop-ins P6-GOV-02 déjà présents"
   [ ! -e "$TOKEN" ] || die "$TOKEN existe déjà"
+  [ ! -e "$UNITS/$SOCKET_UNIT" ] && [ ! -e "$SOCK" ] || die "$SOCKET_UNIT ou $SOCK_REAL déjà présent : réinstallation ambiguë refusée"
+  [ "$(serve_target_443)" = "$SERVE_TCP_TARGET" ] || die "tailscale serve $SERVE_PORT → « $(serve_target_443) », attendu $SERVE_TCP_TARGET : situation ambiguë"
+  tcp_relay_listening || die "relais absent de 127.0.0.1:$WEB_TCP_PORT avant installation : situation ambiguë"
   if [ -f "$APPLIER" ] && [ "$(sha "$APPLIER")" = "$(sha "$HERE/cat-obs-schedule-apply.py")" ]; then
     die "le nouvel applicateur est déjà en place sans état d'installation : situation ambiguë"
   fi
@@ -201,12 +236,20 @@ backup() {   # $1=dossier ; sauvegarde complète, identifiable, vérifiable
   done > "$B/services.state"
   systemctl --version | head -n1 > "$B/systemd.version"
   tailscale serve status > "$B/tailscale-serve.txt" 2>&1 || true
-  for r in "${ROUTES[@]}"; do printf '%s %s %s\n' "$r" "$(route_code 8090 "$r")" "$(route_code 8181 "$r")"; done > "$B/routes.codes"
+  tailscale serve status --json > "$B/tailscale-serve.json" 2>/dev/null || true
+  serve_targets > "$B/serve.targets"
+  grep -q "^$SERVE_PORT / $SERVE_TCP_TARGET\$" "$B/serve.targets" || die "sauvegarde : cible tailscale serve $SERVE_PORT non relevée"
+  ss -ltnH > "$B/listeners.tcp" 2>/dev/null || true
+  for r in "${ROUTES[@]}"; do printf '%s %s %s\n' "$r" "$(route_code api "$r")" "$(route_code web "$r")"; done > "$B/routes.codes"
   (cd "$B" && find . -type f ! -name MANIFEST.sha256 -print0 | sort -z | xargs -0 sha256sum) > "$B/MANIFEST.sha256"
   (cd "$B" && sha256sum -c --quiet MANIFEST.sha256) || die "sauvegarde illisible après écriture"
 }
 
-route_code() { curl -s -o /dev/null -m 5 -w '%{http_code}' "http://127.0.0.1:$1$2" 2>/dev/null || echo 000; }
+route_code() {   # $1=api|web $2=chemin ; le relais est interrogé par la socket une fois la frontière en place
+  if [ "$1" = api ]; then curl -s -o /dev/null -m 5 -w '%{http_code}' "http://127.0.0.1:8090$2" 2>/dev/null || echo 000
+  elif socket_ok && ! tcp_relay_listening; then curl -s -o /dev/null -m 5 -w '%{http_code}' --unix-socket "$SOCK_REAL" "http://localhost$2" 2>/dev/null || echo 000
+  else curl -s -o /dev/null -m 5 -w '%{http_code}' "http://127.0.0.1:$WEB_TCP_PORT$2" 2>/dev/null || echo 000; fi
+}
 
 # ── Installation transactionnelle ─────────────────────────────────────────────────────────────
 # Toute sortie avant la fin (refus, erreur, signal) laisse une trace PARTIAL et la marche à suivre.
@@ -235,8 +278,10 @@ write_dropins() {   # $1=logins $2=api_release $3=web_release
     "SupplementaryGroups=$G_SCHED $G_RELAY" 'ReadWritePaths=/srv/cat-obs/schedule/requests' \
     'Environment=AGENT_SCHEDULE_ROOT=/srv/cat-obs/schedule' "Environment=CAT_OPERATOR_LOGINS=$1" \
     'Environment=CAT_RELAY_TOKEN_FILE=/etc/cat-obs/relay.token' 'UnsetEnvironment=AGENT_SCHEDULE_ALLOW_TEST' > "$API_DROPIN.tmp"
-  printf '%s\n' '# P6-GOV-02 : release Web, opérateurs autorisés (non secret), jeton du relais par groupe.' \
-    '[Service]' 'BindReadOnlyPaths=' \
+  printf '%s\n' '# P6-GOV-02/03 : release Web, opérateurs autorisés (non secret), jeton du relais par groupe,' \
+    '# écoute exclusivement sur la socket root 0600 transmise par systemd (aucun port TCP).' \
+    '[Unit]' "Requires=$SOCKET_UNIT" "After=$SOCKET_UNIT" \
+    '[Service]' 'Environment=CAT_WEB_LISTEN=systemd' 'BindReadOnlyPaths=' \
     "BindReadOnlyPaths=$3/dist:/opt/cat-app/releases/CAT-FOOTPRINT-FINANCE-V6-RC1/frontend/dist $3/server/web01_local_frontend_server.mjs:/opt/cat-app/releases/CAT-FOOTPRINT-FINANCE-V6-RC1/frontend/scripts/web01_local_frontend_server.mjs" \
     "SupplementaryGroups=$G_RELAY" "Environment=CAT_OPERATOR_LOGINS=$1" \
     'Environment=CAT_RELAY_TOKEN_FILE=/etc/cat-obs/relay.token' > "$WEB_DROPIN.tmp"
@@ -277,7 +322,7 @@ install_all() {
   preflight >/dev/null
   refuse_ambiguous
   check_release "$R$api" "$R$web"
-  [ -f "$HERE/cat-obs-schedule.path" ] && [ -f "$HERE/cat-obs-schedule.service" ] || die "unités source absentes"
+  [ -f "$HERE/cat-obs-schedule.path" ] && [ -f "$HERE/cat-obs-schedule.service" ] && [ -f "$HERE/$SOCKET_UNIT" ] || die "unités source absentes"
 
   TS=$(date -u +%Y%m%dT%H%M%SZ); local B="$R/root/p6-gov-02-backup-$TS"
   MODE=install
@@ -309,6 +354,10 @@ install_all() {
   for u in "${NEW_UNITS[@]}"; do install -o root -g root -m 0644 "$HERE/$u" "$UNITS/$u"; done
   [ "$(sha "$APPLIER")" = "$(sha "$HERE/cat-obs-schedule-apply.py")" ] || die "applicateur installé ≠ source"
 
+  mark socket STEP
+  install -o root -g root -m 0644 "$HERE/$SOCKET_UNIT" "$UNITS/$SOCKET_UNIT"
+  [ "$(sha "$UNITS/$SOCKET_UNIT")" = "$(sha "$HERE/$SOCKET_UNIT")" ] || die "unité socket installée ≠ source"
+
   mark dropins STEP; write_dropins "$logins" "$api" "$web"
   mark control STEP; [ -d "$CONTROL" ] && chmod g-w "$CONTROL"
 
@@ -316,6 +365,8 @@ install_all() {
   systemctl daemon-reload
   [ "$(systemctl show crypto-operator-api.service -p WorkingDirectory --value)" = "$api" ] || die "release API effective ≠ $api"
   systemctl show crypto-operator-api.service -p Environment --value | grep -q "CAT_RELAY_TOKEN_FILE=" || die "environnement API non appliqué"
+  systemctl show crypto-operator-web.service -p Requires --value | grep -qw "$SOCKET_UNIT" || die "Web : Requires=$SOCKET_UNIT non effectif"
+  systemctl show crypto-operator-web.service -p Environment --value | grep -q "CAT_WEB_LISTEN=systemd" || die "Web : CAT_WEB_LISTEN=systemd non effectif"
   systemctl enable --now cat-obs-schedule.path
   [ "$(systemctl is-active cat-obs-schedule.path)" = active ] || die "cat-obs-schedule.path inactive"
   for u in cat-obs-schedule-dpa.path cat-obs-schedule-market.path; do
@@ -330,7 +381,17 @@ install_all() {
   mark restart STEP
   old_api=$(systemctl show crypto-operator-api.service -p MainPID --value); old_web=$(systemctl show crypto-operator-web.service -p MainPID --value)
   systemctl restart crypto-operator-api.service; wait_restart crypto-operator-api.service "$old_api"
+  systemctl enable --now "$SOCKET_UNIT"
+  [ "$(systemctl is-active "$SOCKET_UNIT")" = active ] || die "$SOCKET_UNIT inactive"
   systemctl restart crypto-operator-web.service; wait_restart crypto-operator-web.service "$old_web"
+  socket_ok || die "$SOCK_REAL absente ou droits ≠ 600 root:root"
+  tcp_relay_listening && die "le relais écoute encore sur 127.0.0.1:$WEB_TCP_PORT"
+
+  mark serve STEP
+  tailscale serve --bg --https="$SERVE_PORT" "$SERVE_SOCK_TARGET" >/dev/null
+  [ "$(serve_target_443)" = "$SERVE_SOCK_TARGET" ] || die "tailscale serve $SERVE_PORT → « $(serve_target_443) »"
+  diff -q <(serve_targets | grep -v "^$SERVE_PORT / ") <(grep -v "^$SERVE_PORT / " "$B/serve.targets") >/dev/null \
+    || die "autres entrées tailscale serve modifiées"
 
   mark rhythms STEP
   diff -q <(rhythm_snapshot) "$B/rhythms" >/dev/null || die "rythmes ou timers modifiés"
@@ -377,8 +438,18 @@ verify() {
   # 6. identité et transport (GET en lecture seule, sans en-tête forgé)
   v=$(curl -s -m 5 http://127.0.0.1:8090/api/operator/v1/operator-identity || true)
   [[ "$v" == *'"authorized":false'* && "$v" == *RELAY_TOKEN_INVALID* ]] && good "API : transport sans jeton refusé" || bad "API identité : $v"
-  v=$(curl -s -m 5 http://127.0.0.1:8181/api/operator/v1/operator-identity || true)
-  [[ "$v" == *'"authorized":false'* && "$v" == *OPERATOR_IDENTITY_REQUIRED* ]] && good "relais : sans identité Tailscale refusé" || bad "relais identité : $v"
+  v=$(web_get /api/operator/v1/operator-identity)
+  [[ "$v" == *'"authorized":false'* && "$v" == *OPERATOR_IDENTITY_REQUIRED* ]] && good "relais (socket) : sans identité Tailscale refusé" || bad "relais identité : $v"
+  # 6b. frontière P6-GOV-03 : aucun port TCP du relais, socket root 0600, Tailscale Serve sur la socket
+  [ "$(sha "$UNITS/$SOCKET_UNIT" 2>/dev/null)" = "$(sha "$HERE/$SOCKET_UNIT")" ] && good "$SOCKET_UNIT" || bad "$SOCKET_UNIT ≠ source"
+  [ "$(systemctl is-enabled "$SOCKET_UNIT" 2>/dev/null || true)" = enabled ] && [ "$(systemctl is-active "$SOCKET_UNIT" 2>/dev/null || true)" = active ] && good "$SOCKET_UNIT active" || bad "$SOCKET_UNIT inactive"
+  socket_ok && good "socket $SOCK_REAL root 0600" || bad "socket $SOCK_REAL absente ou droits"
+  tcp_relay_listening && bad "relais encore à l'écoute sur 127.0.0.1:$WEB_TCP_PORT" || good "aucun écouteur TCP $WEB_TCP_PORT"
+  systemctl show crypto-operator-web.service -p Environment --value | grep -q "CAT_WEB_LISTEN=systemd" && good "Web : écoute systemd imposée" || bad "Web : CAT_WEB_LISTEN"
+  [ "$(serve_target_443)" = "$SERVE_SOCK_TARGET" ] && good "tailscale serve $SERVE_PORT → socket" || bad "tailscale serve $SERVE_PORT → « $(serve_target_443) »"
+  if [ -f "$B/serve.targets" ]; then
+    diff -q <(serve_targets | grep -v "^$SERVE_PORT / ") <(grep -v "^$SERVE_PORT / " "$B/serve.targets") >/dev/null && good "autres entrées tailscale serve inchangées" || bad "autres entrées tailscale serve"
+  fi
   systemctl show crypto-operator-api.service -p Environment --value | grep -q 'CAT_OPERATOR_LOGINS=[A-Za-z0-9]' && good "liste d'opérateurs effective (API)" || bad "liste API"
   systemctl show crypto-operator-web.service -p Environment --value | grep -q 'CAT_RELAY_TOKEN_FILE=' && good "jeton configuré (Web)" || bad "jeton Web"
   # 7. journal
@@ -386,11 +457,11 @@ verify() {
   # 8. systemd réel (aucune conclusion tirée d'un bouchon)
   v=$(systemctl --version | head -n1); say "systemd : $v"
   if [ -n "$TEST" ]; then say "TEST : compatibilité systemd NON démontrée (bouchon)"
-  else systemd-analyze verify "$UNITS/cat-obs-schedule.path" "$UNITS/cat-obs-schedule.service" >/dev/null 2>&1 && good "systemd-analyze verify" || bad "systemd-analyze verify"; fi
+  else systemd-analyze verify "$UNITS/cat-obs-schedule.path" "$UNITS/cat-obs-schedule.service" "$UNITS/$SOCKET_UNIT" >/dev/null 2>&1 && good "systemd-analyze verify" || bad "systemd-analyze verify"; fi
   # 9. non-régression des routes historiques (codes == sauvegarde)
   if [ -f "$B/routes.codes" ]; then
     while read -r r a w; do
-      [ "$(route_code 8090 "$r")" = "$a" ] && [ "$(route_code 8181 "$r")" = "$w" ] && good "route $r ($a/$w)" || bad "route $r ≠ $a/$w"
+      [ "$(route_code api "$r")" = "$a" ] && [ "$(route_code web "$r")" = "$w" ] && good "route $r ($a/$w)" || bad "route $r ≠ $a/$w"
     done < "$B/routes.codes"
   else bad "codes de routes de référence absents"; fi
   # 10. capacité de retour arrière
@@ -401,7 +472,7 @@ verify() {
 # ── Retour arrière sécurisé ───────────────────────────────────────────────────────────────────
 rollback() {
   need_root
-  local ts="${1:-}" B u old_api old_web exp
+  local ts="${1:-}" B u old_api old_web exp i
   [[ "$ts" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || die "horodatage attendu"
   B="$R/root/p6-gov-02-backup-$ts"; [ -d "$B" ] || die "sauvegarde absente : $B"
   (cd "$B" && sha256sum -c --quiet MANIFEST.sha256) >/dev/null 2>&1 || die "sauvegarde altérée : aucun retour arrière (C1 inchangé)"
@@ -411,7 +482,12 @@ rollback() {
   if [ "$(systemctl is-active cat-obs-schedule.path 2>/dev/null || true)" != inactive ] || [ "$(systemctl is-enabled cat-obs-schedule.path 2>/dev/null || true)" = enabled ]; then
     systemctl disable --now cat-obs-schedule.path
   fi
-  rm -f "$UNITS/cat-obs-schedule.path" "$UNITS/cat-obs-schedule.service" "$API_DROPIN" "$WEB_DROPIN"
+  PHASE="socket"
+  # Arrêter la socket arrête aussi le service Web (Requires=) : courte coupure, rétablie ci-dessous en TCP.
+  if [ -e "$UNITS/$SOCKET_UNIT" ] || [ "$(systemctl is-active "$SOCKET_UNIT" 2>/dev/null || true)" != inactive ]; then
+    systemctl disable --now "$SOCKET_UNIT"
+  fi
+  rm -f "$UNITS/cat-obs-schedule.path" "$UNITS/cat-obs-schedule.service" "$API_DROPIN" "$WEB_DROPIN" "$UNITS/$SOCKET_UNIT"
   PHASE="releases"
   systemctl daemon-reload
   exp=$(grep '^crypto-operator-api WorkingDirectory=' "$B/services.state" | cut -d= -f2-)
@@ -419,6 +495,11 @@ rollback() {
   old_api=$(systemctl show crypto-operator-api.service -p MainPID --value); old_web=$(systemctl show crypto-operator-web.service -p MainPID --value)
   systemctl restart crypto-operator-api.service; wait_restart crypto-operator-api.service "$old_api"
   systemctl restart crypto-operator-web.service; wait_restart crypto-operator-web.service "$old_web"
+  PHASE="serve"
+  for ((i = 0; i < WAIT_S; i++)); do tcp_relay_listening && break; sleep 1; done
+  tcp_relay_listening || die "relais historique absent de 127.0.0.1:$WEB_TCP_PORT"
+  if [ "$(serve_target_443)" != "$SERVE_TCP_TARGET" ]; then tailscale serve --bg --https="$SERVE_PORT" "$SERVE_TCP_TARGET" >/dev/null; fi
+  [ "$(serve_target_443)" = "$SERVE_TCP_TARGET" ] || die "tailscale serve $SERVE_PORT non rétabli sur $SERVE_TCP_TARGET"
   PHASE="controle"
   c1_status >/dev/null || die "une ancienne unité est active après retour arrière"
   for u in "${OLD_PATHS[@]}"; do [ "$(systemctl is-enabled "$u" 2>/dev/null || true)" != enabled ] || die "$u réactivée"; done
@@ -426,6 +507,7 @@ rollback() {
   mark "$ts" ROLLED_BACK; DONE=1
   say "retour arrière effectué ($ts) : releases historiques servies, anciennes unités NEUTRALISÉES (R1 confiné)."
   say "La planification est indisponible en écriture ; lecture des états et rapports conservée."
+  say "Relais revenu sur 127.0.0.1:$WEB_TCP_PORT (limite locale connue) ; sans applicateur ni release P6-GOV-02, aucune demande n'est appliquée."
   say "Anciennes unités et ancien applicateur conservés uniquement dans $B (preuve) ; ne pas les réinstaller."
 }
 

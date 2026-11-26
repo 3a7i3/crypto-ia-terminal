@@ -98,6 +98,18 @@ export function systemdListenFd(env = process.env, pid = process.pid) {
   return env.LISTEN_FDS === "1" && env.LISTEN_PID === String(pid) ? 3 : null;
 }
 
+// P6-GOV-03 : CAT_WEB_LISTEN=systemd impose la socket. Sans descripteur transmis, le relais refuse de
+// démarrer plutôt que de rouvrir le port TCP local (fermeture en cas d'échec, pas de repli).
+export const LISTEN_MODE_ENV = "CAT_WEB_LISTEN";
+export function resolveListen(env = process.env, pid = process.pid) {
+  const mode = env[LISTEN_MODE_ENV];
+  const fd = systemdListenFd(env, pid);
+  if (mode === undefined || mode === "") return { fd };
+  if (mode !== "systemd") throw new Error("INVALID_CAT_WEB_LISTEN");
+  if (fd === null) throw new Error("SYSTEMD_SOCKET_REQUIRED");
+  return { fd };
+}
+
 export function tailscaleLogin(request) {
   const v = request.headers[TAILSCALE_LOGIN_HEADER];
   return typeof v === "string" && LOGIN_RE.test(v) ? v.toLowerCase() : null;
@@ -278,6 +290,10 @@ if (isMainEntrypoint()) {
   }
   const stateDirectory = process.env.STATE_DIRECTORY;
   const balanceHistory = stateDirectory ? startPaperBalanceHistory(stateDirectory, OPERATOR_API_TARGET) : undefined;
-  const listenFd = systemdListenFd();
+  let listenFd;
+  try { listenFd = resolveListen().fd; } catch (error) {
+    console.error(`WEB_01G_CONFIG_REFUSED=${error.message}`);
+    process.exit(2);
+  }
   createServer({ port, balanceHistory, listenFd }).on("listening", () => console.log(listenFd === null ? `WEB_01G_LOCAL_FRONTEND_LISTENING=${LOOPBACK_HOST}:${port}` : "WEB_01G_LOCAL_FRONTEND_LISTENING=systemd-socket"));
 }
