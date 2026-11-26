@@ -3,7 +3,7 @@
  *  Reads the publication already validated for the dashboard; no request, no
  *  price, no score, no Radar admissibility. Rows exist only while the universe
  *  is verified: an unavailable publication leaves no former row on screen. */
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent, type SyntheticEvent } from "react";
 import { MARKET_LABEL, MARKET_SHORT, ASSET_CLASS_LABEL, type UniverseAsset, type UniverseMarket } from "../lib/scannerUniverseClient";
 import { COVERAGES, PAGE_SIZE, chipCounts, filterAssets, normalizeQuery, type AssetMatch, type Coverage } from "../lib/scannerAssetSearch";
 
@@ -44,6 +44,11 @@ const MESSAGE: Record<Exclude<AssetListState, "READY">, string> = {
   EMPTY: "Aucun actif publié sur au moins un Spot et un Perpétuel.",
 };
 
+/** Folded summary: the state, never a count that was not published. */
+const SUMMARY: Record<Exclude<AssetListState, "READY">, string> = {
+  LOADING: "en chargement", UNAVAILABLE: "indisponible", NOT_PUBLISHED: "non publié", EMPTY: "aucun actif publié",
+};
+
 export function ScannerAssetList({ state, assets, search, onOpen }: {
   state: AssetListState; assets: UniverseAsset[]; search: AssetSearch;
   onOpen: (e: MouseEvent<HTMLButtonElement>, base: string) => void;
@@ -67,8 +72,22 @@ export function ScannerAssetList({ state, assets, search, onOpen }: {
       onClick={() => search.set(q, c)}>{name} <span className="su-chip-count">{n ?? "—"}</span></button>;
   };
 
+  // P6-R1 (F3): the catalogue is folded by default so the Moniteur stays close.
+  // It opens by itself when the URL carries a search (q) or a coverage filter
+  // (cov); otherwise only the operator opens or folds it. A refresh of the
+  // publication re-renders this component without unmounting it, so the
+  // open/closed choice is never reset by a new read.
+  const searched = q !== "" || cov !== null;
+  const [open, setOpen] = useState(searched);
+  useEffect(() => { if (searched) setOpen(true); }, [searched]);
+  const onToggle = (e: SyntheticEvent<HTMLDetailsElement>) => setOpen(e.currentTarget.open);
+  const summaryCount = counts ? `${counts.all} ${plural(counts.all, "ligne publiée", "lignes publiées")}` : SUMMARY[state as Exclude<AssetListState, "READY">];
+
   return <section className="su-assets" aria-label="Actifs publiés" data-list-state={state}>
-    <div className="su-block-head"><h3>Actifs publiés</h3><span>présence dans les catalogues</span></div>
+    <details className="su-assets-fold" open={open} onToggle={onToggle} data-testid="asset-list-fold">
+    <summary className="su-block-head su-assets-summary"><h3>Actifs publiés</h3><span>{summaryCount}</span></summary>
+    <div className="su-assets-body">
+    <p className="su-assets-scope">Présence dans les catalogues.</p>
     <input type="search" className="su-search" aria-label="Actif ou symbole" placeholder="Actif ou symbole (BTC, XBT…)"
       value={q} disabled={!ready} autoComplete="off" autoCapitalize="characters" spellCheck={false}
       onChange={e => search.set(e.currentTarget.value, cov)} />
@@ -86,5 +105,7 @@ export function ScannerAssetList({ state, assets, search, onOpen }: {
           Afficher {Math.min(PAGE_SIZE, rest)} de plus ({rest} {plural(rest, "restant")})</button>}
       </>}
     </>}
+    </div>
+    </details>
   </section>;
 }

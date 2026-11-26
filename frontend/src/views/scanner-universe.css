@@ -109,14 +109,32 @@
 .su-asset-row { box-sizing: border-box; width: 100%; min-height: 48px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .15rem .5rem; padding: .3rem .6rem; border-radius: .55rem; border: 1px solid var(--bg-border); background: var(--bg-card-soft); color: var(--text-pri); font: inherit; font-size: .9rem; text-align: left; cursor: pointer; }
 .su-asset-row:focus-visible, .su-chip-filter:focus-visible, .su-more:focus-visible, .su-search:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .su-row-main { display: flex; align-items: baseline; gap: .35rem; min-width: 0; flex-wrap: wrap; }
-.su-row-main strong { font-size: .98rem; color: var(--heading); }
+.su-row-main strong { font-size: .98rem; color: var(--heading); overflow-wrap: anywhere; }
 .su-row-main .market-count-badge { margin-left: 0; font-size: .86rem; }
 .su-class, .su-via { font-size: .86rem; color: var(--text-muted); overflow-wrap: anywhere; }
-.su-row-meta { display: flex; align-items: baseline; gap: .5rem; font-size: .86rem; color: var(--text-sec); min-width: 0; }
+.su-row-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .5rem; font-size: .86rem; color: var(--text-sec); min-width: 0; }
 .su-mkts { display: inline-flex; gap: .3rem; font-variant-numeric: tabular-nums; }
 .su-mkts .su-off { color: var(--text-muted); opacity: .55; text-decoration: line-through; }
-.su-quotes { white-space: nowrap; }
+/* P6-R1 (F1): a published quote list may hold 22 currencies (146 characters).
+   It wraps inside the row instead of imposing its one-line width on the page;
+   every currency stays visible. */
+.su-quotes { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
 .su-group-head { margin: .3rem 0 0; font-size: .86rem; font-weight: 700; color: var(--text-sec); }
 .su-more { min-height: 44px; border-radius: .55rem; border: 1px solid var(--bg-border-strong); background: var(--bg-card-soft); color: var(--text-pri); font: inherit; font-weight: 600; cursor: pointer; }
 .su-instrument-rows { list-style: none; padding: 0; margin: .15rem 0 0; display: grid; gap: .25rem; }
 .su-instrument-rows li { overflow-wrap: anywhere; }
+
+/* P6-R1 (F3) — catalogue repliable, replié par défaut */
+.su-assets-fold { display: grid; gap: .45rem; min-width: 0; }
+.su-assets-fold > summary { list-style: none; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: 0 .6rem; margin: 0; border-radius: .55rem; border: 1px solid var(--bg-border-strong); background: var(--bg-card-soft); cursor: pointer; }
+.su-assets-fold > summary::-webkit-details-marker { display: none; }
+.su-assets-fold > summary::before { content: "▸"; color: var(--text-muted); flex: none; }
+.su-assets-fold[open] > summary::before { content: "▾"; }
+.su-assets-fold > summary h3 { flex: 1; }
+.su-assets-fold > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.su-assets-body { display: grid; gap: .45rem; min-width: 0; }
+.su-assets-scope { margin: 0; font-size: .86rem; color: var(--text-muted); }
+
+/* P6-R1 (F4) — fermeture toujours visible pendant la consultation */
+.universe-detail { max-height: 85dvh; overscroll-behavior: contain; padding-top: 0; }
+.universe-detail form { position: sticky; top: 0; z-index: 1; padding: .75rem 0 .5rem; background: var(--bg-card); }

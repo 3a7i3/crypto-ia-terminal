@@ -197,6 +197,15 @@ export const marketBadge = (gate: ScannerGate | undefined, native: string) => {
   const tag = cls && cls !== "CRYPTO" ? `${ASSET_CLASS_LABEL[cls]} · ` : "";
   return { text: `${tag}${n}/4`, title: `${cls ? `Classe publiée : ${ASSET_CLASS_LABEL[cls]}. ` : ""}Actif négocié sur ${n} des 4 marchés (MEXC Spot, MEXC Perpétuel, Kraken Spot, Kraken Perpétuel), chacun dans sa devise` };
 };
+/** P6-R1 (F2): an admitted count is a measure only once the universe is verified.
+ *  While it loads or is unavailable the count is unknown, never zero. */
+export function admissionKnown(gate: ScannerGate | undefined): boolean {
+  return !gate || gate.state === "VERIFIED" || gate.state === "VERIFIED_EMPTY";
+}
+export function admissionPending(gate: ScannerGate): string {
+  return gate.state === "LOADING" ? "en attente (univers commun en chargement)" : "inconnue (univers commun indisponible)";
+}
+
 export function gateNotice(state: UniverseView["state"], byAsset = false): string {
   return byAsset && (state === "VERIFIED" || state === "VERIFIED_EMPTY") ? "Aucune ligne observée n’appartient à un actif publié (Spot et Perpétuel)."
     : state === "VERIFIED" ? "Aucune ligne observée n’appartient à l’univers commun."
