@@ -74,18 +74,25 @@ describe.skipIf(!available)("APP-STORAGE-01 real metadata producer/API/React", (
 
   it("clears old bytes after a hanging JSON refresh and aborts on close", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi.fn().mockResolvedValueOnce(response(fixture())).mockResolvedValue({ ok: true, json: () => new Promise(() => {}) });
-    vi.stubGlobal("fetch", fetchMock);
+    const body = fixture();
+    const storageFetch = vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce(response(body))
+      .mockResolvedValue({ ok: true, json: () => new Promise(() => {}) } as Response);
+    vi.stubGlobal("fetch", vi.fn((url: RequestInfo | URL, init?: RequestInit) =>
+      String(url).endsWith("/storage")
+        ? storageFetch(url, init)
+        : Promise.resolve(response({ error_code: "STORAGE_INVENTORY_NOT_CONFIGURED" }, false))
+    ));
     const view = render(<StorageView />);
-    await act(async () => {});
-    expect(screen.getByTestId("storage-view")).toHaveTextContent(`Volume exact en octets${fixture().total_bytes}`);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(screen.getByTestId("storage-view")).toHaveTextContent(`Volume exact en octets${body.total_bytes}`);
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
     expect(screen.getByTestId("storage-view")).toHaveTextContent("STORAGE_TRANSPORT_ERROR");
     expect(screen.getByTestId("storage-view")).not.toHaveTextContent("Volume exact en octets");
-    expect(fetchMock.mock.calls[1][1].signal.aborted).toBe(true);
+    expect(storageFetch.mock.calls[1][1]?.signal?.aborted).toBe(true);
     view.unmount();
     await act(async () => { await vi.advanceTimersByTimeAsync(40_000); });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(storageFetch).toHaveBeenCalledTimes(2);
   });
 });
 
