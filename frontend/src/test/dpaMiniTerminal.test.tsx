@@ -76,7 +76,7 @@ afterEach(() => {
 });
 
 describe("bloc du Data Provenance Auditor", () => {
-  it("lit ses propres routes et affiche voyant, chaîne et bouton ⏰", async () => {
+  it("lit ses propres routes et affiche le voyant, la chaîne et le rythme en lecture seule", async () => {
     vi.useFakeTimers({ now: T0 });
     const urls: string[] = [];
     vi.stubGlobal("fetch", (u: string) => {
@@ -107,7 +107,8 @@ describe("bloc du Data Provenance Auditor", () => {
     expect(dpa.getByTestId("miniterm-chain")).toHaveTextContent("PRODUCER PROVEN → STORAGE_TO_READER INFERRED");
     expect(dpa.getByTestId("miniterm-term")).toHaveTextContent("STORAGE_BINDING_RUNTIME");
     expect(dpa.getByTestId("schedule-label")).toHaveTextContent("1 h");
-    expect(dpa.getByTestId("schedule-clock")).toBeInTheDocument();
+    expect(dpa.getByTestId("schedule-label")).toHaveTextContent("Lecture seule");
+    expect(dpa.queryByTestId("schedule-clock")).toBeNull();
     // Le voyant du profil dans la famille vient de la preuve du DPA, pas de celle du cartographe.
     expect(within(screen.getByTestId("agent-profile-data-provenance-auditor")).getAllByTestId("agent-activity")[0]).toHaveAttribute(
       "data-light",
@@ -118,7 +119,7 @@ describe("bloc du Data Provenance Auditor", () => {
     expect(carto.getByTestId("miniterm-giro")).toHaveAttribute("data-light", "GRAY");
   });
 
-  it("le bouton ⏰ du DPA dépose sa demande sur sa propre route", async () => {
+  it("consulte les trois rythmes et réserve la demande au cartographe", async () => {
     vi.useFakeTimers({ now: T0 });
     const posts: { url: string; body: string }[] = [];
     vi.stubGlobal("fetch", (u: string, init?: RequestInit) => {
@@ -134,15 +135,21 @@ describe("bloc du Data Provenance Auditor", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    const dpa = within(screen.getByTestId("live-agent-data-provenance-auditor"));
+    for (const agent of ["data-provenance-auditor", "market-observer"]) {
+      const block = within(screen.getByTestId(`live-agent-${agent}`));
+      expect(block.getByTestId("schedule-label")).toHaveTextContent("1 h");
+      expect(block.getByTestId("schedule-label")).toHaveTextContent("Lecture seule");
+      expect(block.queryByTestId("schedule-clock")).toBeNull();
+    }
+    const carto = within(screen.getByTestId("live-agent-repository-cartographer"));
     await act(async () => {
-      dpa.getByTestId("schedule-clock").click();
+      carto.getByTestId("schedule-clock").click();
     });
     await act(async () => {
-      dpa.getByTestId("schedule-10min").click();
+      carto.getByTestId("schedule-10min").click();
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(posts).toEqual([{ url: `${BASE}/data-provenance-auditor/schedule`, body: '{"rhythm":"10min"}' }]);
+    expect(posts).toEqual([{ url: `${BASE}/repository-cartographer/schedule`, body: '{"rhythm":"10min"}' }]);
   });
 });
 

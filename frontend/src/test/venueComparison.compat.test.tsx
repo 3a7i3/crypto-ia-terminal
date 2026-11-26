@@ -81,19 +81,25 @@ suite("Venue publication through real offline producer/reader/API", () => {
     render(<MarketVenuesView/>);await screen.findByText("Aucune publication de comparaison disponible.");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();expect(screen.getByText(/ne sont pas déclarés vides/)).toBeInTheDocument();
   });
-  // M1-C4 (EO-024): the Scanner tab opens Radar Spot (since 36024a9; CryptoRadar
-  // historique withdrawn in M1-C3). Was: market-error of the historical scanner. The
-  // Radar client reads headers and a byte stream, so its 503 is a real Response.
-  // Preserved: the comparison stays usable while the scanner source is missing.
-  // #595 (Marché : Scanner et Microstructure) : l'onglet « Comparaison des plateformes » est
-  // retiré du Marché (signet venues redirigé, voir MarketNavigation.test). Préservé : la panne
-  // du scanner reste visible avec son code, et seules les sources admises sont lues.
-  it("the Market view no longer offers the comparison tab and keeps the scanner error visible",async()=>{
-    const fetchMock=vi.fn(async(input:RequestInfo|URL)=>String(input).endsWith("/venue-comparison")?response(fixture()):new Response(JSON.stringify({error_code:"MARKET_SNAPSHOT_MISSING"}),{status:503,headers:{"content-type":"application/json"}}));
-    vi.stubGlobal("fetch",fetchMock);render(<MarketView/>);
-    // Scanner V1: the common-universe block raises its own alert for the same 503.
-    await waitFor(()=>expect(screen.getAllByRole("alert").some(a=>a.textContent?.includes("Source indisponible · MARKET_SNAPSHOT_MISSING"))).toBe(true));
-    expect(screen.queryByRole("tab",{name:"Comparaison des plateformes"})).toBeNull();
-    expect(fetchMock.mock.calls.every(([u])=>String(u).startsWith("/api/operator/v1/")||String(u)==="/observations/btc-atom-book-v1.json")).toBe(true);
+  it("shows an unavailable scanner without requesting the retired venue comparison", async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL) =>
+      new Response(JSON.stringify({ error_code: "MARKET_SNAPSHOT_MISSING" }), {
+        status: 503, headers: { "content-type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MarketView />);
+
+    const scanner = screen.getByRole("region", { name: "Scanner scientifique" });
+    const rankedScannerAlert = await within(screen.getByTestId("market-panel")).findByText("Source indisponible · MARKET_SNAPSHOT_MISSING");
+    expect(rankedScannerAlert).toHaveAttribute("role", "alert");
+    expect(within(scanner).getByText("Univers indisponible").closest('[role="alert"]'))
+      .toHaveTextContent("MARKET_SNAPSHOT_MISSING");
+    expect(screen.getByRole("tab", { name: "Scanner" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Comparaison des plateformes" })).not.toBeInTheDocument();
+    const requests = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(requests.length).toBeGreaterThan(0);
+    expect(requests.some(url => url.endsWith("/venue-comparison"))).toBe(false);
+    expect(requests.every(url => url.startsWith("/api/operator/v1/") || url === "/observations/btc-atom-book-v1.json")).toBe(true);
   });
 });

@@ -133,9 +133,19 @@ export async function fetchScannerUniverse(signal?: AbortSignal): Promise<Scanne
  *  the time it was received and the current time; never from the Spot Radar rows. */
 export type UniverseView =
   | { state: "LOADING" }
-  | { state: "VERIFIED"; doc: ScannerUniverse; pairs: UniversePair[]; assets: UniverseAsset[] }
-  | { state: "VERIFIED_EMPTY"; doc: ScannerUniverse; assets: UniverseAsset[] }
-  | { state: "UNAVAILABLE"; doc: ScannerUniverse | null; code: string; blocking: { market: UniverseMarket | null; reason: string }[] };
+  | { state: "VERIFIED"; doc: ScannerUniverse; pairs: UniversePair[]; assets: UniverseAsset[]; serverNow?: number }
+  | { state: "VERIFIED_EMPTY"; doc: ScannerUniverse; assets: UniverseAsset[]; serverNow?: number }
+  | { state: "UNAVAILABLE"; doc: ScannerUniverse | null; code: string; blocking: { market: UniverseMarket | null; reason: string }[]; serverNow?: number };
+
+/** Age of each published catalogue on the server clock (served time + time elapsed
+ *  since reception), and whether it exceeds the published bound. A source without
+ *  a collection time has no age (null), never zero. Catalogue age only: no price. */
+export function sourceFreshness(doc: ScannerUniverse, serverNow: number): Map<UniverseMarket, { ageMs: number | null; stale: boolean }> {
+  return new Map(doc.sources.map(s => {
+    const ageMs = s.collected_ms === null ? null : serverNow - s.collected_ms;
+    return [s.market, { ageMs, stale: ageMs === null || ageMs > doc.freshness_max_age_ms }];
+  }));
+}
 
 /** Re-checks source ages with the elapsed time since reception: a list that was
  *  current when served stops being current here as soon as one source exceeds
@@ -145,13 +155,14 @@ export function universeView(doc: ScannerUniverse | null, error: string | null, 
   if (!doc) return { state: "UNAVAILABLE", doc: null, code: error!, blocking: [{ market: null, reason: error! }] };
   const elapsed = Math.max(0, now - receivedAt);
   const serverNow = (doc.served_ms ?? doc.computed_ms) + elapsed;
-  const stale = doc.sources.filter(s => s.collected_ms === null || serverNow - s.collected_ms > doc.freshness_max_age_ms);
-  if (error) return { state: "UNAVAILABLE", doc, code: error, blocking: [{ market: null, reason: error }] };
-  if (doc.status === "UNVERIFIABLE") return { state: "UNAVAILABLE", doc, code: "UNVERIFIABLE", blocking: doc.blocking_sources.map(b => ({ market: b.market, reason: b.reason ?? "UNKNOWN" })) };
-  if (elapsed > maxReadAgeMs) return { state: "UNAVAILABLE", doc, code: "READ_TOO_OLD", blocking: [{ market: null, reason: "READ_TOO_OLD" }] };
-  if (stale.length) return { state: "UNAVAILABLE", doc, code: "SOURCE_STALE", blocking: stale.map(s => ({ market: s.market, reason: "STALE" })) };
+  const fresh = sourceFreshness(doc, serverNow);
+  const stale = doc.sources.filter(s => fresh.get(s.market)!.stale);
+  if (error) return { state: "UNAVAILABLE", doc, code: error, blocking: [{ market: null, reason: error }], serverNow };
+  if (doc.status === "UNVERIFIABLE") return { state: "UNAVAILABLE", doc, code: "UNVERIFIABLE", blocking: doc.blocking_sources.map(b => ({ market: b.market, reason: b.reason ?? "UNKNOWN" })), serverNow };
+  if (elapsed > maxReadAgeMs) return { state: "UNAVAILABLE", doc, code: "READ_TOO_OLD", blocking: [{ market: null, reason: "READ_TOO_OLD" }], serverNow };
+  if (stale.length) return { state: "UNAVAILABLE", doc, code: "SOURCE_STALE", blocking: stale.map(s => ({ market: s.market, reason: "STALE" })), serverNow };
   const assets = doc.assets ?? [];
-  return doc.status === "VERIFIED" ? { state: "VERIFIED", doc, pairs: doc.pairs, assets } : { state: "VERIFIED_EMPTY", doc, assets };
+  return doc.status === "VERIFIED" ? { state: "VERIFIED", doc, pairs: doc.pairs, assets, serverNow } : { state: "VERIFIED_EMPTY", doc, assets, serverNow };
 }
 
 /** MEXC Spot native symbols that the current universe admits: strict pairs, plus

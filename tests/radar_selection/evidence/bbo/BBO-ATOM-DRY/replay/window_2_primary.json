@@ -1,0 +1,1567 @@
+{
+  "candles": {
+    "composite": {
+      "close": null,
+      "high": null,
+      "low": null,
+      "open": null,
+      "points": 1,
+      "status": "INCOMPLETE"
+    },
+    "kraken": {
+      "close": "8.0576",
+      "high": "8.0584",
+      "low": "8.0168",
+      "open": "8.0168",
+      "points": 30,
+      "status": "COMPLETE"
+    },
+    "mexc": {
+      "close": "8.002",
+      "high": "8.003",
+      "low": "8.000",
+      "open": "8.001",
+      "points": 30,
+      "status": "COMPLETE"
+    }
+  },
+  "counts": {
+    "by_category": {
+      "COMPOSITE": 1,
+      "EXCESSIVE_GAP": 29,
+      "NOT_EVALUATED": 0,
+      "SINGLE_SOURCE": 0,
+      "SOURCE_EXCLUDED": 0
+    },
+    "by_source_state": {
+      "kraken": {
+        "BOOK_INVALID": 0,
+        "CONTINUITY_LOST": 0,
+        "FRESHNESS_UNKNOWN": 0,
+        "NOT_INITIALIZED": 0,
+        "SOURCE_UNAVAILABLE": 0,
+        "UNCHANGED_VERIFIED": 30,
+        "VALID": 0
+      },
+      "mexc": {
+        "BOOK_INVALID": 0,
+        "CONTINUITY_LOST": 0,
+        "FRESHNESS_UNKNOWN": 0,
+        "NOT_INITIALIZED": 0,
+        "SOURCE_UNAVAILABLE": 0,
+        "UNCHANGED_VERIFIED": 0,
+        "VALID": 30
+      }
+    }
+  },
+  "evidence_kind": "SYNTHETIC",
+  "instrument": {
+    "base_asset_id": "ATOM",
+    "contract_identity": "SPOT",
+    "market_kind": "SPOT",
+    "quote_asset_id": "USDT",
+    "settlement_asset_id": "USDT"
+  },
+  "market_type": "SPOT",
+  "parameters": {
+    "gap_boundary": "CLOSED",
+    "gap_max_bps": "50",
+    "liveness_max_ms": 2000,
+    "points_per_window": 30,
+    "reference_venue": "mexc",
+    "step_ms": 10000,
+    "weights": "EQUAL"
+  },
+  "pilot": "CAT-RADAR-KRAKEN-MEXC-01/BBO",
+  "points": [
+    {
+      "category": "COMPOSITE",
+      "composite_mid": "8.0089",
+      "instant_ms": 1795128600000,
+      "mid_gap_bps": "19.747532",
+      "sources": {
+        "kraken": {
+          "ask": "8.0169",
+          "ask_qty": "0.00244300",
+          "bid": "8.0167",
+          "bid_qty": "0.00079879",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128585130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128599130,
+          "lost_reason": null,
+          "mid": "8.0168",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128585130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.249476",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.002",
+          "ask_qty": "0.00177870",
+          "bid": "8.000",
+          "bid_qty": "0.00311842",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128599180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128599180,
+          "lost_reason": null,
+          "mid": "8.001",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128599180,
+          "source_timestamp": {
+            "createTime": 1795128599172,
+            "sendTime": 1795128599175
+          },
+          "spread_bps": "2.499688",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128610000,
+      "mid_gap_bps": "69.741282",
+      "sources": {
+        "kraken": {
+          "ask": "8.0569",
+          "ask_qty": "0.00374446",
+          "bid": "8.0567",
+          "bid_qty": "0.00192997",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128600130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128609130,
+          "lost_reason": null,
+          "mid": "8.0568",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128600130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248238",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.002",
+          "ask_qty": "0.00162608",
+          "bid": "8.000",
+          "bid_qty": "0.00007796",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128609180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128609180,
+          "lost_reason": null,
+          "mid": "8.001",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128609180,
+          "source_timestamp": {
+            "createTime": 1795128609172,
+            "sendTime": 1795128609175
+          },
+          "spread_bps": "2.499688",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128620000,
+      "mid_gap_bps": "69.491314",
+      "sources": {
+        "kraken": {
+          "ask": "8.0567",
+          "ask_qty": "0.00208807",
+          "bid": "8.0565",
+          "bid_qty": "0.00343634",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128615130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128619130,
+          "lost_reason": null,
+          "mid": "8.0566",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128615130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248244",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.002",
+          "ask_qty": "0.00347347",
+          "bid": "8.000",
+          "bid_qty": "0.00233090",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128619180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128619180,
+          "lost_reason": null,
+          "mid": "8.001",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128619180,
+          "source_timestamp": {
+            "createTime": 1795128619172,
+            "sendTime": 1795128619175
+          },
+          "spread_bps": "2.499688",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128630000,
+      "mid_gap_bps": "69.491314",
+      "sources": {
+        "kraken": {
+          "ask": "8.0567",
+          "ask_qty": "0.00208807",
+          "bid": "8.0565",
+          "bid_qty": "0.00343634",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128615130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128629130,
+          "lost_reason": null,
+          "mid": "8.0566",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128615130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248244",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.002",
+          "ask_qty": "0.00275053",
+          "bid": "8.000",
+          "bid_qty": "0.00190155",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128629180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128629180,
+          "lost_reason": null,
+          "mid": "8.001",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128629180,
+          "source_timestamp": {
+            "createTime": 1795128629172,
+            "sendTime": 1795128629175
+          },
+          "spread_bps": "2.499688",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128640000,
+      "mid_gap_bps": "70.625000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0566",
+          "ask_qty": "0.00350657",
+          "bid": "8.0564",
+          "bid_qty": "0.00011049",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128630130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128639130,
+          "lost_reason": null,
+          "mid": "8.0565",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128630130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248247",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00262678",
+          "bid": "7.999",
+          "bid_qty": "0.00123351",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128639180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128639180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128639180,
+          "source_timestamp": {
+            "createTime": 1795128639172,
+            "sendTime": 1795128639175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128650000,
+      "mid_gap_bps": "70.250000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0563",
+          "ask_qty": "0.00193132",
+          "bid": "8.0561",
+          "bid_qty": "0.00335908",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128645130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128649130,
+          "lost_reason": null,
+          "mid": "8.0562",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128645130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248256",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00079984",
+          "bid": "7.999",
+          "bid_qty": "0.00156748",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128649180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128649180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128649180,
+          "source_timestamp": {
+            "createTime": 1795128649172,
+            "sendTime": 1795128649175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128660000,
+      "mid_gap_bps": "70.250000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0563",
+          "ask_qty": "0.00193132",
+          "bid": "8.0561",
+          "bid_qty": "0.00335908",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128645130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128659130,
+          "lost_reason": null,
+          "mid": "8.0562",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128645130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248256",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00348607",
+          "bid": "7.999",
+          "bid_qty": "0.00350098",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128659180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128659180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128659180,
+          "source_timestamp": {
+            "createTime": 1795128659172,
+            "sendTime": 1795128659175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128670000,
+      "mid_gap_bps": "69.375000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0556",
+          "ask_qty": "0.00167339",
+          "bid": "8.0554",
+          "bid_qty": "0.00043693",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128660130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128669130,
+          "lost_reason": null,
+          "mid": "8.0555",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128660130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248278",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00275598",
+          "bid": "7.999",
+          "bid_qty": "0.00042494",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128669180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128669180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128669180,
+          "source_timestamp": {
+            "createTime": 1795128669172,
+            "sendTime": 1795128669175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128680000,
+      "mid_gap_bps": "69.750000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0559",
+          "ask_qty": "0.00385145",
+          "bid": "8.0557",
+          "bid_qty": "0.00202545",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128675130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128679130,
+          "lost_reason": null,
+          "mid": "8.0558",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128675130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248268",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00016437",
+          "bid": "7.999",
+          "bid_qty": "0.00130647",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128679180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128679180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128679180,
+          "source_timestamp": {
+            "createTime": 1795128679172,
+            "sendTime": 1795128679175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128690000,
+      "mid_gap_bps": "69.750000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0559",
+          "ask_qty": "0.00385145",
+          "bid": "8.0557",
+          "bid_qty": "0.00202545",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128675130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128689130,
+          "lost_reason": null,
+          "mid": "8.0558",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128675130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248268",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00399895",
+          "bid": "7.999",
+          "bid_qty": "0.00358265",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128689180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128689180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128689180,
+          "source_timestamp": {
+            "createTime": 1795128689172,
+            "sendTime": 1795128689175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128700000,
+      "mid_gap_bps": "69.750000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0559",
+          "ask_qty": "0.00151140",
+          "bid": "8.0557",
+          "bid_qty": "0.00186474",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128690130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128699130,
+          "lost_reason": null,
+          "mid": "8.0558",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128690130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248268",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00094387",
+          "bid": "7.999",
+          "bid_qty": "0.00158686",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128699180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128699180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128699180,
+          "source_timestamp": {
+            "createTime": 1795128699172,
+            "sendTime": 1795128699175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128710000,
+      "mid_gap_bps": "69.750000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0559",
+          "ask_qty": "0.00032733",
+          "bid": "8.0557",
+          "bid_qty": "0.00209777",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128705130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128709130,
+          "lost_reason": null,
+          "mid": "8.0558",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128705130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248268",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00285054",
+          "bid": "7.999",
+          "bid_qty": "0.00269273",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128709180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128709180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128709180,
+          "source_timestamp": {
+            "createTime": 1795128709172,
+            "sendTime": 1795128709175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128720000,
+      "mid_gap_bps": "69.750000",
+      "sources": {
+        "kraken": {
+          "ask": "8.0559",
+          "ask_qty": "0.00032733",
+          "bid": "8.0557",
+          "bid_qty": "0.00209777",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128705130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128719130,
+          "lost_reason": null,
+          "mid": "8.0558",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128705130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248268",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.001",
+          "ask_qty": "0.00216638",
+          "bid": "7.999",
+          "bid_qty": "0.00226802",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128719180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128719180,
+          "lost_reason": null,
+          "mid": "8.000",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128719180,
+          "source_timestamp": {
+            "createTime": 1795128719172,
+            "sendTime": 1795128719175
+          },
+          "spread_bps": "2.500000",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128730000,
+      "mid_gap_bps": "68.991376",
+      "sources": {
+        "kraken": {
+          "ask": "8.0563",
+          "ask_qty": "0.00299759",
+          "bid": "8.0561",
+          "bid_qty": "0.00374143",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128720130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128729130,
+          "lost_reason": null,
+          "mid": "8.0562",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128720130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248256",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.002",
+          "ask_qty": "0.00233376",
+          "bid": "8.000",
+          "bid_qty": "0.00021627",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128729180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128729180,
+          "lost_reason": null,
+          "mid": "8.001",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128729180,
+          "source_timestamp": {
+            "createTime": 1795128729172,
+            "sendTime": 1795128729175
+          },
+          "spread_bps": "2.499688",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128740000,
+      "mid_gap_bps": "70.116235",
+      "sources": {
+        "kraken": {
+          "ask": "8.0572",
+          "ask_qty": "0.00026976",
+          "bid": "8.0570",
+          "bid_qty": "0.00170619",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128735130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128739130,
+          "lost_reason": null,
+          "mid": "8.0571",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128735130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248228",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.002",
+          "ask_qty": "0.00223189",
+          "bid": "8.000",
+          "bid_qty": "0.00127902",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128739180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128739180,
+          "lost_reason": null,
+          "mid": "8.001",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128739180,
+          "source_timestamp": {
+            "createTime": 1795128739172,
+            "sendTime": 1795128739175
+          },
+          "spread_bps": "2.499688",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128750000,
+      "mid_gap_bps": "68.857786",
+      "sources": {
+        "kraken": {
+          "ask": "8.0572",
+          "ask_qty": "0.00026976",
+          "bid": "8.0570",
+          "bid_qty": "0.00170619",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128735130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128749130,
+          "lost_reason": null,
+          "mid": "8.0571",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128735130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248228",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00277847",
+          "bid": "8.001",
+          "bid_qty": "0.00159306",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128749180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128749180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128749180,
+          "source_timestamp": {
+            "createTime": 1795128749172,
+            "sendTime": 1795128749175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128760000,
+      "mid_gap_bps": "69.857536",
+      "sources": {
+        "kraken": {
+          "ask": "8.0580",
+          "ask_qty": "0.00268151",
+          "bid": "8.0578",
+          "bid_qty": "0.00307380",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128750130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128759130,
+          "lost_reason": null,
+          "mid": "8.0579",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128750130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248204",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00145753",
+          "bid": "8.001",
+          "bid_qty": "0.00185837",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128759180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128759180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128759180,
+          "source_timestamp": {
+            "createTime": 1795128759172,
+            "sendTime": 1795128759175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128770000,
+      "mid_gap_bps": "69.732567",
+      "sources": {
+        "kraken": {
+          "ask": "8.0579",
+          "ask_qty": "0.00307685",
+          "bid": "8.0577",
+          "bid_qty": "0.00201520",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128765130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128769130,
+          "lost_reason": null,
+          "mid": "8.0578",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128765130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248207",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00035553",
+          "bid": "8.001",
+          "bid_qty": "0.00031039",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128769180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128769180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128769180,
+          "source_timestamp": {
+            "createTime": 1795128769172,
+            "sendTime": 1795128769175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128780000,
+      "mid_gap_bps": "69.732567",
+      "sources": {
+        "kraken": {
+          "ask": "8.0579",
+          "ask_qty": "0.00307685",
+          "bid": "8.0577",
+          "bid_qty": "0.00201520",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128765130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128779130,
+          "lost_reason": null,
+          "mid": "8.0578",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128765130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248207",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00153418",
+          "bid": "8.001",
+          "bid_qty": "0.00187791",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128779180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128779180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128779180,
+          "source_timestamp": {
+            "createTime": 1795128779172,
+            "sendTime": 1795128779175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128790000,
+      "mid_gap_bps": "70.107473",
+      "sources": {
+        "kraken": {
+          "ask": "8.0582",
+          "ask_qty": "0.00379481",
+          "bid": "8.0580",
+          "bid_qty": "0.00095972",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128780130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128789130,
+          "lost_reason": null,
+          "mid": "8.0581",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128780130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248197",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00055046",
+          "bid": "8.001",
+          "bid_qty": "0.00184276",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128789180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128789180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128789180,
+          "source_timestamp": {
+            "createTime": 1795128789172,
+            "sendTime": 1795128789175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128800000,
+      "mid_gap_bps": "69.482629",
+      "sources": {
+        "kraken": {
+          "ask": "8.0577",
+          "ask_qty": "0.00071145",
+          "bid": "8.0575",
+          "bid_qty": "0.00090799",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128795130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128799130,
+          "lost_reason": null,
+          "mid": "8.0576",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128795130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248213",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00086285",
+          "bid": "8.001",
+          "bid_qty": "0.00252124",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128799180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128799180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128799180,
+          "source_timestamp": {
+            "createTime": 1795128799172,
+            "sendTime": 1795128799175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128810000,
+      "mid_gap_bps": "69.482629",
+      "sources": {
+        "kraken": {
+          "ask": "8.0577",
+          "ask_qty": "0.00071145",
+          "bid": "8.0575",
+          "bid_qty": "0.00090799",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128795130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128809130,
+          "lost_reason": null,
+          "mid": "8.0576",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128795130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248213",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00386873",
+          "bid": "8.001",
+          "bid_qty": "0.00200049",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128809180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128809180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128809180,
+          "source_timestamp": {
+            "createTime": 1795128809172,
+            "sendTime": 1795128809175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128820000,
+      "mid_gap_bps": "70.107473",
+      "sources": {
+        "kraken": {
+          "ask": "8.0582",
+          "ask_qty": "0.00394815",
+          "bid": "8.0580",
+          "bid_qty": "0.00204680",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128810130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128819130,
+          "lost_reason": null,
+          "mid": "8.0581",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128810130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248197",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00214123",
+          "bid": "8.001",
+          "bid_qty": "0.00279867",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128819180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128819180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128819180,
+          "source_timestamp": {
+            "createTime": 1795128819172,
+            "sendTime": 1795128819175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128830000,
+      "mid_gap_bps": "70.107473",
+      "sources": {
+        "kraken": {
+          "ask": "8.0582",
+          "ask_qty": "0.00206837",
+          "bid": "8.0580",
+          "bid_qty": "0.00212399",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128825130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128829130,
+          "lost_reason": null,
+          "mid": "8.0581",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128825130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248197",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00045907",
+          "bid": "8.001",
+          "bid_qty": "0.00130780",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128829180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128829180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128829180,
+          "source_timestamp": {
+            "createTime": 1795128829172,
+            "sendTime": 1795128829175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128840000,
+      "mid_gap_bps": "68.849182",
+      "sources": {
+        "kraken": {
+          "ask": "8.0582",
+          "ask_qty": "0.00206837",
+          "bid": "8.0580",
+          "bid_qty": "0.00212399",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128825130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128839130,
+          "lost_reason": null,
+          "mid": "8.0581",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128825130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248197",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.004",
+          "ask_qty": "0.00025280",
+          "bid": "8.002",
+          "bid_qty": "0.00140844",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128839180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128839180,
+          "lost_reason": null,
+          "mid": "8.003",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128839180,
+          "source_timestamp": {
+            "createTime": 1795128839172,
+            "sendTime": 1795128839175
+          },
+          "spread_bps": "2.499063",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128850000,
+      "mid_gap_bps": "69.224041",
+      "sources": {
+        "kraken": {
+          "ask": "8.0585",
+          "ask_qty": "0.00138451",
+          "bid": "8.0583",
+          "bid_qty": "0.00242094",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128840130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128849130,
+          "lost_reason": null,
+          "mid": "8.0584",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128840130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248188",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.004",
+          "ask_qty": "0.00252368",
+          "bid": "8.002",
+          "bid_qty": "0.00019625",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128849180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128849180,
+          "lost_reason": null,
+          "mid": "8.003",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128849180,
+          "source_timestamp": {
+            "createTime": 1795128849172,
+            "sendTime": 1795128849175
+          },
+          "spread_bps": "2.499063",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128860000,
+      "mid_gap_bps": "70.357411",
+      "sources": {
+        "kraken": {
+          "ask": "8.0584",
+          "ask_qty": "0.00174745",
+          "bid": "8.0582",
+          "bid_qty": "0.00022328",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128855130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128859130,
+          "lost_reason": null,
+          "mid": "8.0583",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128855130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248191",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00356140",
+          "bid": "8.001",
+          "bid_qty": "0.00343106",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128859180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128859180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128859180,
+          "source_timestamp": {
+            "createTime": 1795128859172,
+            "sendTime": 1795128859175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128870000,
+      "mid_gap_bps": "70.357411",
+      "sources": {
+        "kraken": {
+          "ask": "8.0584",
+          "ask_qty": "0.00174745",
+          "bid": "8.0582",
+          "bid_qty": "0.00022328",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128855130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128869130,
+          "lost_reason": null,
+          "mid": "8.0583",
+          "quote_age_ms": 14870,
+          "quote_as_of_ms": 1795128855130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248191",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00305078",
+          "bid": "8.001",
+          "bid_qty": "0.00204395",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128869180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128869180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128869180,
+          "source_timestamp": {
+            "createTime": 1795128869172,
+            "sendTime": 1795128869175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128880000,
+      "mid_gap_bps": "70.357411",
+      "sources": {
+        "kraken": {
+          "ask": "8.0584",
+          "ask_qty": "0.00289859",
+          "bid": "8.0582",
+          "bid_qty": "0.00001422",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128870130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128879130,
+          "lost_reason": null,
+          "mid": "8.0583",
+          "quote_age_ms": 9870,
+          "quote_as_of_ms": 1795128870130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248191",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00039035",
+          "bid": "8.001",
+          "bid_qty": "0.00368047",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128879180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128879180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128879180,
+          "source_timestamp": {
+            "createTime": 1795128879172,
+            "sendTime": 1795128879175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    },
+    {
+      "category": "EXCESSIVE_GAP",
+      "composite_mid": null,
+      "instant_ms": 1795128890000,
+      "mid_gap_bps": "69.482629",
+      "sources": {
+        "kraken": {
+          "ask": "8.0577",
+          "ask_qty": "0.00063456",
+          "bid": "8.0575",
+          "bid_qty": "0.00209825",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128885130,
+          "liveness_age_ms": 870,
+          "liveness_ms": 1795128889130,
+          "lost_reason": null,
+          "mid": "8.0576",
+          "quote_age_ms": 4870,
+          "quote_as_of_ms": 1795128885130,
+          "source_timestamp": {
+            "timestamp": "2026-11-20T00:00:00.000000Z"
+          },
+          "spread_bps": "0.248213",
+          "state": "UNCHANGED_VERIFIED"
+        },
+        "mexc": {
+          "ask": "8.003",
+          "ask_qty": "0.00270620",
+          "bid": "8.001",
+          "bid_qty": "0.00015889",
+          "continuity": "SYNCED",
+          "eligible": true,
+          "last_top_change_ms": 1795128889180,
+          "liveness_age_ms": 820,
+          "liveness_ms": 1795128889180,
+          "lost_reason": null,
+          "mid": "8.002",
+          "quote_age_ms": 820,
+          "quote_as_of_ms": 1795128889180,
+          "source_timestamp": {
+            "createTime": 1795128889172,
+            "sendTime": 1795128889175
+          },
+          "spread_bps": "2.499375",
+          "state": "VALID"
+        }
+      }
+    }
+  ],
+  "schema": "MarketBboComposite",
+  "schema_version": "1.0.0",
+  "venues": {
+    "kraken": {
+      "depth": 10,
+      "symbol": "ATOM/USDT",
+      "url": "wss://ws.kraken.com/v2"
+    },
+    "mexc": {
+      "channel": "spot@public.aggre.depth.v3.api.pb@100ms@ATOMUSDT",
+      "symbol": "ATOMUSDT",
+      "url": "wss://wbs-api.mexc.com/ws"
+    }
+  },
+  "window": {
+    "end_ms": 1795128900000,
+    "index": 2,
+    "start_ms": 1795128600000
+  }
+}

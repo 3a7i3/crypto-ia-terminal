@@ -355,10 +355,10 @@ def test_dpa_schedule_route_and_offset_slots(tmp_path, monkeypatch):
     monkeypatch.setattr(sch, "CONTROL_PATH", tmp_path)
     c = TestClient(api.app)
     url = "/api/operator/v1/agent-invocations/data-provenance-auditor/schedule"
-    assert c.post(url, json={"rhythm": "10min"}).status_code == 403
-    assert c.post(url, json={"rhythm": "10min"}, headers={"x-cat-operator": "schedule"}).status_code == 202
-    assert (tmp_path / "data-provenance-auditor.rhythm").read_text() == "10min\n"
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["data-provenance-auditor.rhythm"]
+    # Réconciliation production (#616) : l'état DPA est consultable, l'écriture reste au seul cartographe.
+    assert c.post(url, json={"rhythm": "10min"}, headers={"x-cat-operator": "schedule"}).status_code == 404
+    assert list(tmp_path.iterdir()) == []
+    assert c.get(url).status_code == 200
     at = calendar.timegm((2026, 11, 23, 1, 12, 0, 0, 0, 0))
     (tmp_path / "data-provenance-auditor.status.json").write_text('{"applied":"10min"}')
     assert sch.read_schedule("data-provenance-auditor", control=tmp_path, now_ts=at)["next_utc"] == "2026-11-23T01:15:00Z"

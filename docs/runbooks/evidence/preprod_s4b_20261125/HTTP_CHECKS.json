@@ -1,0 +1,289 @@
+{
+ "routes": [
+  {
+   "route": "/api/operator/v1/agent-invocations/repository-cartographer",
+   "api": 200,
+   "web": 200,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": null
+  },
+  {
+   "route": "/api/operator/v1/agent-invocations/repository-cartographer/history",
+   "api": 200,
+   "web": 200,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": null
+  },
+  {
+   "route": "/api/operator/v1/agent-invocations/repository-cartographer/schedule",
+   "api": 200,
+   "web": 200,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": null
+  },
+  {
+   "route": "/api/operator/v1/bbo-composite-history",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "BBO_HISTORY_NOT_CONFIGURED"
+  },
+  {
+   "route": "/api/operator/v1/burn-in",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "BURN_IN_STATUS_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/burn-in/statistics",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "BURN_IN_STATUS_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/decision-pipeline",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/events",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "EVENT_CENTER_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/financial-reconciliation",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "FINANCIAL_RECONCILIATION_SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/market",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "MARKET_SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/market-flow",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "MARKET_FLOW_NOT_CONFIGURED"
+  },
+  {
+   "route": "/api/operator/v1/market-microstructure",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "MICROSTRUCTURE_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/portfolio",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/ppl-accounting-history",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "HISTORY_NOT_AVAILABLE"
+  },
+  {
+   "route": "/api/operator/v1/ppl-comparison",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "PPL_COMPARISON_SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/radar-projection",
+   "api": 200,
+   "web": 200,
+   "same_bytes": false,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": null
+  },
+  {
+   "route": "/api/operator/v1/research-lab",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "RESEARCH_LAB_SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/research-strategies",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "RESEARCH_STRATEGY_BOARD_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/runtime-service",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "RUNTIME_SERVICE_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/scanner-universe",
+   "api": 200,
+   "web": 200,
+   "same_bytes": false,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": null
+  },
+  {
+   "route": "/api/operator/v1/snapshot",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/storage",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "STORAGE_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/system-health",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "SNAPSHOT_MISSING"
+  },
+  {
+   "route": "/api/operator/v1/venue-comparison",
+   "api": 503,
+   "web": 503,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": "VENUE_COMPARISON_NOT_CONFIGURED"
+  },
+  {
+   "route": "/healthz",
+   "api": 200,
+   "web": 200,
+   "same_bytes": true,
+   "same_except_serving_time": true,
+   "web_cache_control": "no-store",
+   "error_code": null
+  }
+ ],
+ "radar_projection": {
+  "status": 200,
+  "bytes": 59766,
+  "sha256": "0607133574e74724864e3681120f07dc4f7b85e79ef0fd957df04fa2c4467e88",
+  "service": {
+   "schema": "radar-projection-service/1.0.0",
+   "status": "PRESENTATION_ONLY_NOT_AN_ADMISSION_NOT_A_RUNTIME_AUTHORIZATION",
+   "scope": {
+    "evidence_kind": "SYNTHETIC",
+    "runtime_proof": false,
+    "statement": "SYNTHETIC_SOURCE_PROOF_ONLY_NOT_RUNTIME_PROOF"
+   },
+   "publication": {
+    "age_ms": 475271,
+    "current": true,
+    "max_age_basis": "PROVISIONAL_DEFAULT",
+    "max_age_ms": 900000,
+    "published_basis": "FILE_MODIFICATION_TIME",
+    "published_ms": 1795639953308,
+    "served_ms": 1795640428579,
+    "state": "FRESH"
+   }
+  },
+  "e1": {
+   "relation": "CATALOGUE_PROVENANCE_MATCH",
+   "markets": [
+    [
+     "MEXC_SPOT",
+     "SAME_CATALOGUE_BYTES"
+    ],
+    [
+     "MEXC_PERPETUAL",
+     "SAME_CATALOGUE_BYTES"
+    ],
+    [
+     "KRAKEN_SPOT",
+     "SAME_CATALOGUE_BYTES"
+    ],
+    [
+     "KRAKEN_PERPETUAL",
+     "SAME_CATALOGUE_BYTES"
+    ]
+   ]
+  },
+  "projection_schema": "radar-projection/1.0.0",
+  "evidence": "SYNTHETIC",
+  "candidates": [
+   [
+    1,
+    "kraken:spot:ATOM/USDT"
+   ],
+   [
+    2,
+    "mexc:spot:ATOM/USDT"
+   ]
+  ],
+  "scanner_universe_sha256_in_projection": null
+ },
+ "post_radar_projection_via_web": 405,
+ "index_html": 200
+}

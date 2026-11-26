@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { AgentRegistryPanel, AgentRegistryView } from "../views/AgentRegistryView";
-import { AGENT_REGISTRY, type ActivityEvidence, type AgentRegistry } from "../agents/agentRegistry";
+import { AGENT_REGISTRY, RUNTIME_EVIDENCE_SOURCE, type ActivityEvidence, type AgentRegistry } from "../agents/agentRegistry";
 
 const NOW = Date.parse("2026-11-21T20:00:00Z");
 
@@ -21,7 +21,7 @@ describe("AgentRegistryView", () => {
   });
 
   it("affiche les 11 profils avec un voyant gris et un motif lisible", () => {
-    render(<AgentRegistryView />);
+    render(<AgentRegistryPanel registry={AGENT_REGISTRY} evidence={RUNTIME_EVIDENCE_SOURCE} nowMs={NOW} />);
     const lights = screen.getAllByTestId("agent-activity");
     expect(lights).toHaveLength(11);
     for (const l of lights) {
@@ -60,7 +60,7 @@ describe("AgentRegistryView", () => {
   });
 
   it("n'expose aucune commande de lancement, d'arrêt, de trading ou de délégation", () => {
-    const { container } = render(<AgentRegistryView />);
+    const { container } = render(<AgentRegistryPanel registry={AGENT_REGISTRY} evidence={RUNTIME_EVIDENCE_SOURCE} nowMs={NOW} />);
     expect(container.querySelectorAll("button, form, input, select")).toHaveLength(0);
     expect(container.textContent).not.toMatch(/Lancer|Démarrer|Arrêter|Stopper|Acheter|Vendre|Déléguer/);
   });

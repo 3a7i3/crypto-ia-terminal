@@ -1,8 +1,7 @@
 """Programmateur d'agent : SEULE écriture de l'API.
 
-Exception gouvernée unique, décidée par Mathieu le 2026-11-22 07:23Z (carte de décision du fil
-« mini terminal du cartographe »), étendue au Data Provenance Auditor le 2026-11-23 (« même type
-de bloc », un agent à la fois). Toute autre route reste en lecture seule.
+Exception d'écriture du cartographe, décidée le 2026-11-22 à 07:23Z.
+Les états DPA et Market Observer sont consultables en lecture seule.
 
 L'API ne lance rien et ne touche pas à systemd. Elle dépose une DEMANDE (un mot d'une liste
 fermée) dans `AGENT_SCHEDULE_CONTROL_PATH`. Un applicateur root distinct (unité .path) valide la
@@ -18,6 +17,7 @@ from pathlib import Path
 CONTROL_PATH = Path(os.getenv("AGENT_SCHEDULE_CONTROL_PATH", "/srv/cat-obs/control"))
 RHYTHMS = ("10min", "1h", "off")
 TEST_RHYTHMS = ("1min",)
+WRITABLE = ("repository-cartographer",)
 SCHEDULABLE = ("repository-cartographer", "data-provenance-auditor", "market-observer")
 MAX_STATUS_BYTES = 4096
 # Rythmes calés sur l'horloge (OnCalendar *:0/10, hourly, *:*:00) : le prochain créneau se déduit
@@ -77,7 +77,7 @@ def read_schedule(agent: str, *, control: Path | None = None, now_ts: float | No
 
 
 def request_rhythm(agent: str, rhythm: str, *, control: Path | None = None) -> dict:
-    if agent not in SCHEDULABLE:
+    if agent not in WRITABLE:
         raise KeyError(agent)
     if rhythm not in allowed_rhythms():
         raise ValueError(rhythm)

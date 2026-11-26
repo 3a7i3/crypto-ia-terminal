@@ -328,12 +328,13 @@ interface LiveAgentData {
 }
 
 /**
- * Lectures d'un agent branché (preuve, historique, programmateur) et son bloc : gyrophare,
- * mini terminal, bouton ⏰. Le même bloc sert au cartographe et au Data Provenance Auditor.
+ * Preuve, historique et rythme publié sont consultables pour chaque agent branché.
+ * La demande de rythme est réservée au cartographe, comme dans l’API Operator.
  */
 function useLiveAgent(agent: LiveAgent, pollMs?: number): LiveAgentData {
   const base = invocationUrl(agent.identity.id);
   const sched = useAgentSchedule(true, undefined, `${base}/schedule`);
+  const canRequestSchedule = agent.identity.id === EXPECTED_IDENTITY.id;
   // Le passage dure moins d'une seconde : lecture rapprochée autour de l'heure prévue pour
   // que le vert (exécution attestée par le verrou noyau) soit visible.
   const [burst, setBurst] = React.useState(false);
@@ -356,7 +357,14 @@ function useLiveAgent(agent: LiveAgent, pollMs?: number): LiveAgentData {
         light={off && verdict.light !== "GREEN" ? "GRAY" : verdict.light}
         lightReason={off ? "Agent arrêté (Off)" : `${verdict.label} · ${verdict.reason}`}
         history={history}
-        controls={<ScheduleControl schedule={sched.schedule} error={sched.error} sending={sched.sending} onPick={(v) => void sched.request(v)} />}
+        controls={
+          <ScheduleControl
+            schedule={sched.schedule}
+            error={sched.error}
+            sending={sched.sending}
+            onPick={canRequestSchedule ? sched.request : undefined}
+          />
+        }
         footer={
           <details className="invocation-details">
             <summary>Détail de la preuve</summary>

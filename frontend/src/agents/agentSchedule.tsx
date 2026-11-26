@@ -1,4 +1,4 @@
-// ── Programmateur d'un agent d'observation (cartographe, Data Provenance Auditor) ──
+// ── État de planification des agents d'observation ──
 // SEULE écriture de l'interface (exception gouvernée, opérateur, 2026-11-22 07:23Z).
 // Le bouton dépose une DEMANDE de rythme (liste fermée) ; un applicateur root sur le serveur
 // l'applique au timer et publie l'état appliqué. L'interface n'affiche comme « appliqué » que
@@ -91,7 +91,7 @@ export const ScheduleControl: React.FC<{
   schedule: ScheduleState | null;
   error: string | null;
   sending: boolean;
-  onPick: (v: string) => void;
+  onPick?: (v: string) => void;
 }> = ({ schedule, error, sending, onPick }) => {
   const [open, setOpen] = useState(false);
   const applied = schedule?.applied ?? null;
@@ -103,8 +103,9 @@ export const ScheduleControl: React.FC<{
         {applied && applied !== "off" && schedule?.next_utc ? <> · prochain <b>{fmt(schedule.next_utc)}</b></> : null}
         {pending ? <span className="miniterm-pending"> · demande {RHYTHM_LABEL[pending] ?? pending} en attente</span> : null}
         {error ? <span className="miniterm-pending"> · {error}</span> : null}
+        {!onPick && <span className="miniterm-pending"> · Lecture seule</span>}
       </span>
-      <div className="miniterm-dd">
+      {onPick && <div className="miniterm-dd">
         <button
           type="button"
           className="miniterm-clock"
@@ -135,7 +136,7 @@ export const ScheduleControl: React.FC<{
             ))}
           </div>
         ) : null}
-      </div>
+      </div>}
     </div>
   );
 };
