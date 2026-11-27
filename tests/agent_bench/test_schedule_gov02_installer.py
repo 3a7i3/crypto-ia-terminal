@@ -457,7 +457,7 @@ def test_r01_old_order_reproduces_partial_restart(box):
 def test_r01_web_is_stopped_before_socket_and_relay_checked_before_serve(box):
     out = install(box)
     assert out.returncode == 0, out.stdout + out.stderr
-    steps = [l.split()[1] for l in (box["r"] / "root/p6-gov-02-state").read_text().splitlines() if l.startswith("STEP ")]
+    steps = [line.split()[1] for line in (box["r"] / "root/p6-gov-02-state").read_text().splitlines() if line.startswith("STEP ")]
     i = steps.index
     assert i("restart") < i("web-stop") < i("socket-start") < i("web-start") < i("relay-check") < i("serve"), steps
     c = calls(box)
