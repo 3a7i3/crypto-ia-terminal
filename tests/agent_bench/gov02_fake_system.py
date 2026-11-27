@@ -13,7 +13,9 @@ Injection d'échecs : $STUB_DIR/fail (une règle par ligne) :
   tcp8181             le relais Web écoute en TCP 8181 même avec la socket (ancien serveur)
 Modèle P6-GOV-03 : crypto-operator-web.socket active ⇒ fichier $CAT_GOV02_ROOT/run/cat-operator-web.sock ;
 le Web écoute en TCP 8181 sauf si CAT_WEB_LISTEN=systemd est effectif et la socket active ; arrêter la
-socket arrête le Web (Requires=). tailscale serve : état dans state.json["serve"].
+socket arrête le Web (Requires=). Comme systemd (socket.c), démarrer la socket pendant que le Web est
+actif est refusé (« Socket service … already active, refusing »), code 1 : défaut P7-RUNTIME-R01.
+tailscale serve : état dans state.json["serve"].
 Aucune de ces commandes ne touche le système réel.
 """
 import json
@@ -102,13 +104,20 @@ def systemctl(args):
         print(a)
         save(st)
         return 0 if a == "active" else 3
-    if verb in ("disable", "enable", "stop", "restart"):
+    if verb in ("disable", "enable", "stop", "restart", "start"):
         now = "--now" in rest
         for u in [x for x in rest if not x.startswith("--")]:
             if f"{verb}:{u}" in r:
                 save(st)
                 return 1
             s = unit(st, u)
+            starts = verb in ("start", "restart") or (verb == "enable" and now)
+            if u == SOCKET_UNIT and starts and s["active"] != "active" and unit(st, WEB)["active"] == "active":
+                if verb == "enable":
+                    s["enabled"] = "enabled"
+                log("journal", [f"{SOCKET_UNIT}: Socket service {WEB} already active, refusing."])
+                save(st)
+                return 1
             if verb == "disable":
                 s["enabled"] = "disabled"
                 if now and f"sticky:{u}" not in r:
@@ -119,9 +128,13 @@ def systemctl(args):
                     s["active"] = "active"
             elif verb == "stop":
                 s["active"] = "inactive"
+                st["pids"][u] = 0
+            elif verb == "start" and s["active"] == "active":
+                pass
             else:
                 s["active"] = "active"
-                st["pids"][u] = st["pids"].get(u, 100) + 1
+                st["next_pid"] = st.get("next_pid", 100) + 1
+                st["pids"][u] = st["next_pid"]
             if u == SOCKET_UNIT:
                 if s["active"] == "active":
                     SOCK.parent.mkdir(parents=True, exist_ok=True)

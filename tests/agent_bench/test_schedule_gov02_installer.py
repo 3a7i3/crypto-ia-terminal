@@ -230,7 +230,8 @@ def test_reinstall_is_refused_when_installed_or_partial(box):
     assert again.returncode != 0 and "ambiguë" in again.stderr
 
 
-@pytest.mark.parametrize("rule,phase", [("restart:crypto-operator-web.service", "restart"),
+@pytest.mark.parametrize("rule,phase", [("stop:crypto-operator-web.service", "web-stop"),
+                                        ("start:crypto-operator-web.service", "web-start"),
                                         ("daemon-reload", "reload"),
                                         ("kill:daemon-reload", "reload"),
                                         ("kill:restart", "restart")])
@@ -369,9 +370,12 @@ def test_install_moves_relay_to_root_socket_and_closes_tcp(box):
     ss = subprocess.run(["ss", "-ltnH", "sport = :8181"], capture_output=True, text=True, env=box["env"], check=True)
     assert ss.stdout == "", "aucun écouteur TCP 8181 après migration"
     assert serve(box) == {"443": "unix:/run/cat-operator-web.sock", "8443": "http://127.0.0.1:18908"}
-    order = [c for c in calls(box) if c.startswith(("systemctl enable --now crypto-operator-web.socket",
-                                                     "systemctl restart crypto-operator-web.service", "tailscale serve --bg"))]
-    assert [c.split()[1] for c in order] == ["enable", "restart", "serve"], order  # socket, puis Web, puis Serve
+    order = [c for c in calls(box) if c.startswith(("systemctl stop crypto-operator-web.service",
+                                                     "systemctl enable --now crypto-operator-web.socket",
+                                                     "systemctl start crypto-operator-web.service", "tailscale serve --bg"))]
+    # P7-RUNTIME-R01 : Web arrêté, puis socket, puis Web (descripteur systemd), puis Serve
+    assert [c.split()[1] for c in order] == ["stop", "enable", "start", "serve"], order
+    assert not any("already active, refusing" in c for c in calls(box))
     b = next((box["r"] / "root").glob("p6-gov-02-backup-*"))
     assert "443 / http://127.0.0.1:8181" in (b / "serve.targets").read_text()
     v = run(box, "verify")
@@ -393,8 +397,10 @@ def test_install_refuses_when_serve_target_is_unexpected(box):
 def test_install_fails_closed_if_relay_still_listens_on_tcp(box):
     fail(box, "tcp8181")
     out = install(box)
-    assert out.returncode != 0 and "écoute encore sur 127.0.0.1:8181" in out.stderr
+    assert out.returncode != 0 and "127.0.0.1:8181 encore à l'écoute après l'arrêt du Web" in out.stderr
     assert last_state(box) == "PARTIAL"
+    assert (box["r"] / "root/p6-gov-02-state").read_text().splitlines()[-1].split()[:2] == ["PARTIAL", "web-stop"]
+    assert state(box)["units"].get("crypto-operator-web.socket", {}).get("active") != "active", "socket jamais démarrée"
     assert serve(box)["443"] == "http://127.0.0.1:8181", "Serve n'est pas basculé tant que TCP reste ouvert"
 
 
@@ -425,3 +431,87 @@ def test_rollback_restores_tcp_relay_and_serve_but_keeps_c1(box):
     seq = [c for c in calls(box) if "crypto-operator-web.socket" in c and "disable" in c or c.startswith("tailscale serve --bg")]
     assert seq[-2].startswith("systemctl disable --now crypto-operator-web.socket") and seq[-1].endswith("http://127.0.0.1:8181")
     assert "limite locale connue" in out.stdout
+
+
+# ── P7-RUNTIME-R01 : transition TCP → socket et reprise après rollback ─────────────────────────
+
+def test_r01_fake_systemd_refuses_socket_while_web_active(box):
+    """Non-régression : le bouchon reproduit le refus réel de systemd 249 (journal du 2026-11-27 00:47:48Z)."""
+    env = box["env"]
+    subprocess.run(["systemctl", "restart", "crypto-operator-web.service"], env=env, check=True)
+    r = subprocess.run(["systemctl", "enable", "--now", "crypto-operator-web.socket"], env=env, capture_output=True, check=False)
+    assert r.returncode == 1
+    assert any("Socket service crypto-operator-web.service already active, refusing" in c for c in calls(box))
+    assert state(box)["units"]["crypto-operator-web.socket"]["active"] != "active"
+
+
+def test_r01_old_order_reproduces_partial_restart(box):
+    """L'ancien ordre (socket démarrée pendant que le Web tourne) échoue : c'est l'échec du 2026-11-27."""
+    env = box["env"]
+    subprocess.run(["systemctl", "restart", "crypto-operator-web.service"], env=env, check=True)
+    script = "set -e; systemctl enable --now crypto-operator-web.socket; systemctl restart crypto-operator-web.service"
+    old = subprocess.run(["bash", "-c", script], env=env, capture_output=True, check=False)
+    assert old.returncode != 0
+
+
+def test_r01_web_is_stopped_before_socket_and_relay_checked_before_serve(box):
+    out = install(box)
+    assert out.returncode == 0, out.stdout + out.stderr
+    steps = [l.split()[1] for l in (box["r"] / "root/p6-gov-02-state").read_text().splitlines() if l.startswith("STEP ")]
+    i = steps.index
+    assert i("restart") < i("web-stop") < i("socket-start") < i("web-start") < i("relay-check") < i("serve"), steps
+    c = calls(box)
+    stop = c.index("systemctl stop crypto-operator-web.service")
+    sock = c.index("systemctl enable --now crypto-operator-web.socket")
+    assert stop < sock
+    assert any("--unix-socket" in x for x in c[sock:]), "relais interrogé par la socket avant Serve"
+    assert "relais servi par la socket" in out.stdout
+
+
+def test_r01_relay_unreachable_on_socket_keeps_serve_on_tcp_and_rolls_back(box):
+    (box["stub"] / "routes.json").write_text(json.dumps({"http://127.0.0.1:8181/": "502"}))
+    out = install(box)
+    assert out.returncode != 0 and "relais injoignable par la socket" in out.stderr
+    assert (box["r"] / "root/p6-gov-02-state").read_text().splitlines()[-1].split()[:2] == ["PARTIAL", "relay-check"]
+    assert serve(box)["443"] == "http://127.0.0.1:8181", "Serve non modifié avant la preuve du relais"
+    (box["stub"] / "routes.json").unlink()
+    rb = run(box, "rollback", ts_of(box))
+    assert rb.returncode == 0, rb.stdout + rb.stderr
+    assert last_state(box) == "ROLLED_BACK" and old_paths_contained(box)
+
+
+def test_r01_reinstall_after_rollback_succeeds(box):
+    before = rhythms(box)
+    assert install(box).returncode == 0
+    tok1 = (box["r"] / "etc/cat-obs/relay.token").read_text()
+    assert run(box, "rollback", ts_of(box)).returncode == 0
+    assert (box["r"] / "srv/cat-obs/schedule").is_dir(), "résidus inertes laissés par le rollback"
+    again = install(box)
+    assert again.returncode == 0, again.stdout + again.stderr
+    assert last_state(box) == "INSTALLED"
+    assert (box["r"] / "etc/cat-obs/relay.token").read_text() != tok1, "jeton régénéré"
+    v = run(box, "verify")
+    assert v.returncode == 0, v.stdout + v.stderr
+    assert "état INSTALLED" in v.stdout and "cat-obs-schedule-dpa.path inactive" in v.stdout
+    assert rhythms(box) == before
+
+
+def test_r01_reinstall_after_partial_then_rollback_succeeds(box):
+    fail(box, "start:crypto-operator-web.service")
+    assert install(box).returncode != 0
+    assert install(box).returncode != 0, "PARTIAL : réinstallation refusée avant rollback"
+    (box["stub"] / "fail").unlink()
+    assert run(box, "rollback", ts_of(box)).returncode == 0
+    again = install(box)
+    assert again.returncode == 0, again.stdout + again.stderr
+    assert run(box, "verify").returncode == 0
+
+
+def test_r01_reinstall_refused_when_previous_requests_remain(box):
+    assert install(box).returncode == 0
+    assert run(box, "rollback", ts_of(box)).returncode == 0
+    req = box["r"] / "srv/cat-obs/schedule/requests/residuelle.json"
+    req.write_text('{"rhythm": "1h"}')
+    again = install(box)
+    assert again.returncode != 0 and "demandes antérieures" in again.stderr
+    assert req.exists() and last_state(box) == "ROLLED_BACK"

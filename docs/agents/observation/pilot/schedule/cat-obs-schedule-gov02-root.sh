@@ -200,17 +200,30 @@ preflight() {
 }
 
 refuse_ambiguous() {
-  case "$(last_state)" in
+  local prev; prev=$(last_state)
+  case "$prev" in
     AUCUN|ROLLED_BACK) ;;
-    *) die "état d'installation $(last_state) ($STATE_FILE) : réinstallation ambiguë refusée ; terminer par rollback ou verify" ;;
+    *) die "état d'installation $prev ($STATE_FILE) : réinstallation ambiguë refusée ; terminer par rollback ou verify" ;;
   esac
-  [ ! -e "$SCHED" ] || die "$SCHED existe déjà : réinstallation ambiguë refusée"
+  if [ "$prev" = AUCUN ]; then
+    [ ! -e "$SCHED" ] || die "$SCHED existe déjà : réinstallation ambiguë refusée"
+    [ ! -e "$TOKEN" ] || die "$TOKEN existe déjà"
+  else
+    # P7-RUNTIME-R01 : après un retour arrière réussi, le dossier des demandes, le jeton et le nouvel
+    # applicateur restent en place (inertes : aucune unité ne les sert). Réinstallation admise s'ils
+    # sont sains ; le jeton est régénéré, aucune demande en attente n'est reprise.
+    if [ -e "$SCHED" ]; then
+      trusted_dir "$SCHED"
+      [ -z "$(find "$SCHED/requests" -mindepth 1 -print -quit 2>/dev/null)" ] \
+        || die "$SCHED/requests contient des demandes antérieures : les examiner, ne rien supprimer sans décision"
+    fi
+    [ ! -e "$TOKEN" ] || [ -f "$TOKEN" ] && [ ! -L "$TOKEN" ] || die "$TOKEN : objet inattendu"
+  fi
   [ ! -e "$API_DROPIN" ] && [ ! -e "$WEB_DROPIN" ] || die "drop-ins P6-GOV-02 déjà présents"
-  [ ! -e "$TOKEN" ] || die "$TOKEN existe déjà"
   [ ! -e "$UNITS/$SOCKET_UNIT" ] && [ ! -e "$SOCK" ] || die "$SOCKET_UNIT ou $SOCK_REAL déjà présent : réinstallation ambiguë refusée"
   [ "$(serve_target_443)" = "$SERVE_TCP_TARGET" ] || die "tailscale serve $SERVE_PORT → « $(serve_target_443) », attendu $SERVE_TCP_TARGET : situation ambiguë"
   tcp_relay_listening || die "relais absent de 127.0.0.1:$WEB_TCP_PORT avant installation : situation ambiguë"
-  if [ -f "$APPLIER" ] && [ "$(sha "$APPLIER")" = "$(sha "$HERE/cat-obs-schedule-apply.py")" ]; then
+  if [ "$prev" = AUCUN ] && [ -f "$APPLIER" ] && [ "$(sha "$APPLIER")" = "$(sha "$HERE/cat-obs-schedule-apply.py")" ]; then
     die "le nouvel applicateur est déjà en place sans état d'installation : situation ambiguë"
   fi
 }
@@ -305,6 +318,62 @@ wait_restart() {   # unité ancien_pid
   die "$1 n'a pas redémarré (état $st, PID $pid)"
 }
 
+wait_api_http() {   # l'API redémarrée répond en HTTP sur 127.0.0.1:8090 (actif ≠ prêt)
+  local i code
+  for ((i = 0; i < WAIT_S; i++)); do
+    code=$(curl -s -o /dev/null -m 5 -w '%{http_code}' "http://127.0.0.1:8090/api/operator/v1/operator-identity" 2>/dev/null || true)
+    [ -n "$code" ] && [ "$code" != 000 ] && return 0
+    sleep 1
+  done
+  die "API muette sur 127.0.0.1:8090 après redémarrage"
+}
+
+wait_stopped() {   # unité : inactive (ou failed) et sans processus principal
+  local i st pid
+  for ((i = 0; i < WAIT_S; i++)); do
+    st=$(systemctl is-active "$1" 2>/dev/null || true); pid=$(systemctl show "$1" -p MainPID --value 2>/dev/null || echo 0)
+    case "$st" in inactive|failed) [ "$pid" = 0 ] && return 0 ;; esac
+    sleep 1
+  done
+  die "$1 ne s'est pas arrêté (état $st, PID $pid)"
+}
+
+# P7-RUNTIME-R01 : transition du relais Web de TCP 127.0.0.1:8181 vers la socket Unix root 0600.
+# systemd refuse de démarrer une socket dont le service est déjà actif (« Socket service … already
+# active, refusing »). Ordre imposé : arrêter le Web et prouver l'arrêt (aucun processus, plus
+# d'écoute TCP), démarrer la socket, démarrer le Web qui reçoit le descripteur, contrôler le relais
+# par la socket. Tailscale Serve n'est modifié qu'ensuite (étape serve), jamais avant cette preuve.
+web_tcp_to_socket() {
+  local i old_web code v
+  mark web-stop STEP
+  old_web=$(systemctl show crypto-operator-web.service -p MainPID --value)
+  systemctl stop crypto-operator-web.service
+  wait_stopped crypto-operator-web.service
+  for ((i = 0; i < WAIT_S; i++)); do tcp_relay_listening || break; sleep 1; done
+  tcp_relay_listening && die "127.0.0.1:$WEB_TCP_PORT encore à l'écoute après l'arrêt du Web"
+
+  mark socket-start STEP
+  systemctl enable --now "$SOCKET_UNIT"
+  [ "$(systemctl is-active "$SOCKET_UNIT")" = active ] || die "$SOCKET_UNIT inactive"
+  socket_ok || die "$SOCK_REAL absente ou droits ≠ 600 root:root"
+
+  mark web-start STEP
+  systemctl start crypto-operator-web.service; wait_restart crypto-operator-web.service "$old_web"
+
+  mark relay-check STEP
+  socket_ok || die "$SOCK_REAL absente ou droits ≠ 600 root:root après démarrage du Web"
+  tcp_relay_listening && die "le relais écoute encore sur 127.0.0.1:$WEB_TCP_PORT"
+  for ((i = 0; i < WAIT_S; i++)); do
+    code=$(curl -s -o /dev/null -m 5 -w '%{http_code}' --unix-socket "$SOCK_REAL" "http://localhost/" 2>/dev/null || true)
+    [ "$code" = 200 ] && break; sleep 1
+  done
+  [ "$code" = 200 ] || die "relais injoignable par la socket (HTTP « $code ») : Tailscale Serve non modifié"
+  v=$(curl -s -m 5 --unix-socket "$SOCK_REAL" "http://localhost/api/operator/v1/operator-identity" 2>/dev/null || true)
+  [[ "$v" == *OPERATOR_IDENTITY_REQUIRED* ]] || die "relais (socket) : frontière d'identité absente ($v) : Tailscale Serve non modifié"
+  [ "$(systemctl is-active crypto-operator-web.service)" = active ] || die "Web inactif après le contrôle du relais"
+  say "relais servi par la socket $SOCK_REAL (aucune écoute TCP $WEB_TCP_PORT)"
+}
+
 install_all() {
   need_root
   local logins="" api="" web="" u old_api old_web
@@ -379,13 +448,10 @@ install_all() {
   [ -f "$SCHED/state/repository-cartographer.json" ] || die "état initial non publié"
 
   mark restart STEP
-  old_api=$(systemctl show crypto-operator-api.service -p MainPID --value); old_web=$(systemctl show crypto-operator-web.service -p MainPID --value)
+  old_api=$(systemctl show crypto-operator-api.service -p MainPID --value)
   systemctl restart crypto-operator-api.service; wait_restart crypto-operator-api.service "$old_api"
-  systemctl enable --now "$SOCKET_UNIT"
-  [ "$(systemctl is-active "$SOCKET_UNIT")" = active ] || die "$SOCKET_UNIT inactive"
-  systemctl restart crypto-operator-web.service; wait_restart crypto-operator-web.service "$old_web"
-  socket_ok || die "$SOCK_REAL absente ou droits ≠ 600 root:root"
-  tcp_relay_listening && die "le relais écoute encore sur 127.0.0.1:$WEB_TCP_PORT"
+  wait_api_http
+  web_tcp_to_socket
 
   mark serve STEP
   tailscale serve --bg --https="$SERVE_PORT" "$SERVE_SOCK_TARGET" >/dev/null
