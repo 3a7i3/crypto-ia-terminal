@@ -7,6 +7,7 @@ Les bouchons ne démontrent rien sur systemd réel : verify le dit explicitement
 """
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -515,3 +516,111 @@ def test_r01_reinstall_refused_when_previous_requests_remain(box):
     again = install(box)
     assert again.returncode != 0 and "demandes antérieures" in again.stderr
     assert req.exists() and last_state(box) == "ROLLED_BACK"
+
+
+# ── P7-RUNTIME-R01-RV01 : résidus après rollback, tests négatifs (rien n'est supprimé) ─────────
+
+def _installed_then_rolled_back(b):
+    assert install(b).returncode == 0
+    assert run(b, "rollback", ts_of(b)).returncode == 0
+    assert last_state(b) == "ROLLED_BACK"
+    return b["r"] / "srv/cat-obs/schedule", b["r"] / "etc/cat-obs/relay.token"
+
+
+def _refused(b, needle):
+    out = install(b)
+    assert out.returncode != 0 and needle in out.stderr, out.stdout + out.stderr
+    assert last_state(b) == "ROLLED_BACK", "refus avant toute mutation"
+    return out
+
+
+def test_rv01_requests_symlink_refused(box, tmp_path):
+    sched, _ = _installed_then_rolled_back(box)
+    elsewhere = tmp_path / "ailleurs"
+    elsewhere.mkdir()
+    os.rmdir(sched / "requests")
+    os.symlink(elsewhere, sched / "requests")
+    _refused(box, "requests : pas un répertoire réel")
+    assert os.path.islink(sched / "requests") and elsewhere.is_dir()
+
+
+def test_rv01_requests_regular_file_refused(box):
+    sched, _ = _installed_then_rolled_back(box)
+    os.rmdir(sched / "requests")
+    (sched / "requests").write_text("x")
+    _refused(box, "requests : pas un répertoire réel")
+    assert (sched / "requests").read_text() == "x"
+
+
+def test_rv01_requests_wrong_mode_refused(box):
+    sched, _ = _installed_then_rolled_back(box)
+    os.chmod(sched / "requests", 0o2777)
+    _refused(box, "attendu 2730")
+
+
+@pytest.mark.parametrize("name", ["demande.json", ".cachee"])
+def test_rv01_requests_not_empty_refused_and_kept(box, name):
+    sched, _ = _installed_then_rolled_back(box)
+    (sched / "requests" / name).write_text("{}")
+    _refused(box, "demandes antérieures")
+    assert (sched / "requests" / name).read_text() == "{}"
+
+
+def test_rv01_requests_read_error_refused(box):
+    """Un échec de find (lecture impossible) n'est jamais pris pour un dossier vide."""
+    sched, _ = _installed_then_rolled_back(box)
+    bins = box["stub"].parent / "bin"
+    (bins / "find").write_text('#!/bin/bash\nfor a in "$@"; do case "$a" in */requests) '
+                               'echo "find: $a: Permission denied" >&2; exit 1;; esac; done\nexec /usr/bin/find "$@"\n')
+    os.chmod(bins / "find", 0o755)
+    _refused(box, "illisible (find code 1")
+
+
+def test_rv01_state_symlink_refused(box, tmp_path):
+    sched, _ = _installed_then_rolled_back(box)
+    shutil.rmtree(sched / "state")
+    os.symlink(tmp_path, sched / "state")
+    _refused(box, "state : pas un répertoire réel")
+
+
+def test_rv01_state_wrong_mode_refused(box):
+    sched, _ = _installed_then_rolled_back(box)
+    os.chmod(sched / "state", 0o2777)
+    _refused(box, "attendu 2750")
+
+
+def test_rv01_token_symlink_refused(box, tmp_path):
+    _, tok = _installed_then_rolled_back(box)
+    target = tmp_path / "jeton-ailleurs"
+    target.write_text("x")
+    tok.unlink()
+    os.symlink(target, tok)
+    _refused(box, "relay.token : pas un fichier ordinaire")
+    assert os.path.islink(tok)
+
+
+def test_rv01_token_hardlink_refused(box, tmp_path):
+    _, tok = _installed_then_rolled_back(box)
+    os.link(tok, tmp_path / "second-lien")
+    _refused(box, "liens multiples")
+
+
+def test_rv01_token_directory_refused(box):
+    _, tok = _installed_then_rolled_back(box)
+    tok.unlink()
+    tok.mkdir()
+    _refused(box, "relay.token : pas un fichier ordinaire")
+
+
+def test_rv01_token_wrong_mode_refused(box):
+    _, tok = _installed_then_rolled_back(box)
+    os.chmod(tok, 0o644)
+    _refused(box, "attendu 640")
+
+
+def test_rv01_sched_symlink_refused(box, tmp_path):
+    sched, _ = _installed_then_rolled_back(box)
+    moved = tmp_path / "sched-deplace"
+    os.rename(sched, moved)
+    os.symlink(moved, sched)
+    _refused(box, "lien symbolique")

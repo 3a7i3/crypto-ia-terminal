@@ -199,6 +199,41 @@ preflight() {
   say "preflight OK"
 }
 
+residual_mode() {   # $1=chemin $2=mode $3=propriétaire:groupe — même règle que expect_mode, sans sortie
+  local got; got=$(stat -c '%a %U:%G' "$1" 2>/dev/null) || return 1
+  if [ -n "$TEST" ]; then [ "${got%% *}" = "$2" ]; else [ "$got" = "$2 $3" ]; fi
+}
+
+# P7-RUNTIME-R01-RV01 : résidus d'une installation suivie d'un retour arrière. Chaque objet est soit
+# absent, soit exactement ce que l'installation a créé ; toute autre nature, tout écart de droits et
+# toute erreur de lecture refusent la réinstallation. Rien n'est supprimé.
+residual_ok() {
+  local out rc
+  [ -e "$SCHED" ] || [ -L "$SCHED" ] || { [ ! -e "$TOKEN" ] && [ ! -L "$TOKEN" ] || token_ok; return 0; }
+  trusted_dir "$SCHED"
+  if [ -e "$SCHED/requests" ] || [ -L "$SCHED/requests" ]; then
+    [ -d "$SCHED/requests" ] && [ ! -L "$SCHED/requests" ] || die "$SCHED/requests : pas un répertoire réel"
+    residual_mode "$SCHED/requests" 2730 "root:$G_SCHED" \
+      || die "$SCHED/requests : $(stat -c '%a %U:%G' "$SCHED/requests" 2>/dev/null || echo illisible), attendu 2730 root:$G_SCHED"
+    rc=0; out=$(find "$SCHED/requests" -mindepth 1 -maxdepth 1 -print -quit 2>&1) || rc=$?
+    [ "$rc" = 0 ] || die "$SCHED/requests illisible (find code $rc : $out) : réinstallation refusée"
+    [ -z "$out" ] || die "$SCHED/requests contient des demandes antérieures ($out) : les examiner, ne rien supprimer sans décision"
+  fi
+  if [ -e "$SCHED/state" ] || [ -L "$SCHED/state" ]; then
+    [ -d "$SCHED/state" ] && [ ! -L "$SCHED/state" ] || die "$SCHED/state : pas un répertoire réel"
+    residual_mode "$SCHED/state" 2750 "root:$G_READ" \
+      || die "$SCHED/state : $(stat -c '%a %U:%G' "$SCHED/state" 2>/dev/null || echo illisible), attendu 2750 root:$G_READ"
+  fi
+  [ ! -e "$TOKEN" ] && [ ! -L "$TOKEN" ] || token_ok
+}
+
+token_ok() {   # jeton résiduel : fichier ordinaire, un seul lien, 640 root:$G_RELAY (il sera régénéré)
+  [ -f "$TOKEN" ] && [ ! -L "$TOKEN" ] || die "$TOKEN : pas un fichier ordinaire"
+  [ "$(stat -c %h "$TOKEN")" = 1 ] || die "$TOKEN : liens multiples"
+  residual_mode "$TOKEN" 640 "root:$G_RELAY" \
+    || die "$TOKEN : $(stat -c '%a %U:%G' "$TOKEN" 2>/dev/null || echo illisible), attendu 640 root:$G_RELAY"
+}
+
 refuse_ambiguous() {
   local prev; prev=$(last_state)
   case "$prev" in
@@ -211,13 +246,8 @@ refuse_ambiguous() {
   else
     # P7-RUNTIME-R01 : après un retour arrière réussi, le dossier des demandes, le jeton et le nouvel
     # applicateur restent en place (inertes : aucune unité ne les sert). Réinstallation admise s'ils
-    # sont sains ; le jeton est régénéré, aucune demande en attente n'est reprise.
-    if [ -e "$SCHED" ]; then
-      trusted_dir "$SCHED"
-      [ -z "$(find "$SCHED/requests" -mindepth 1 -print -quit 2>/dev/null)" ] \
-        || die "$SCHED/requests contient des demandes antérieures : les examiner, ne rien supprimer sans décision"
-    fi
-    [ ! -e "$TOKEN" ] || [ -f "$TOKEN" ] && [ ! -L "$TOKEN" ] || die "$TOKEN : objet inattendu"
+    # sont sains ; le jeton est régénéré, aucune demande en attente n'est reprise ni supprimée.
+    residual_ok
   fi
   [ ! -e "$API_DROPIN" ] && [ ! -e "$WEB_DROPIN" ] || die "drop-ins P6-GOV-02 déjà présents"
   [ ! -e "$UNITS/$SOCKET_UNIT" ] && [ ! -e "$SOCK" ] || die "$SOCKET_UNIT ou $SOCK_REAL déjà présent : réinstallation ambiguë refusée"
