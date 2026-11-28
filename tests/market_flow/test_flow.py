@@ -357,8 +357,10 @@ def test_package_has_no_transport_clock_write_or_float_and_nobody_imports_it():
             assert n.level == 0 and n.module
             cli_imports |= {f"{n.module}.{a.name}" if n.module.startswith("observability") else n.module
                             for a in n.names}
-    # It takes only the MEO-01 replay from the package, and nothing that reaches a network, a clock or a runtime.
-    assert cli_imports == {"argparse", "hashlib", "json", "os", "sys", "observability.market_flow.kraken_trades"}
+    # It takes only the MEO-01 replay and the MEO-03 reading (GO MEO-03, 2026-11-28) from the package,
+    # and nothing that reaches a network, a clock or a runtime.
+    assert cli_imports == {"argparse", "hashlib", "json", "os", "sys", "observability.market_flow.kraken_trades",
+                           "observability.market_flow.meo_reading"}
 
 
 def test_bars_never_include_a_trade_received_after_as_of_even_if_its_event_time_is_inside():
