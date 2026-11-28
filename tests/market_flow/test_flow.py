@@ -344,9 +344,12 @@ def test_package_has_no_transport_clock_write_or_float_and_nobody_imports_it():
             if p.suffix in (".py", ".ts", ".tsx") and p.is_file() and not rel.startswith("observability/market_flow/"):
                 if "market_flow" in p.read_text(errors="ignore"):
                     hits.append(rel)
-    # The consumers are the GET-only presentation reader and its route, and the MEO-01 operator CLI
-    # (decision D5, 2026-11-28: sealed capture in, one report out at a destination the operator names).
-    assert sorted(hits) == ["observability/meo_trades_replay.py", "observability/operator_api/app.py",
+    # The consumers are the GET-only presentation reader and its route, the MEO-01 operator CLI
+    # (decision D5, 2026-11-28: sealed capture in, one report out at a destination the operator names),
+    # and the single bridge of the MEO-04 local memory (decision MEO04-D01, 2026-11-28: one-way
+    # dependency memory -> engine; the memory re-runs the replay and the reading, never the reverse).
+    assert sorted(hits) == ["observability/meo_memory/engine.py", "observability/meo_trades_replay.py",
+                            "observability/operator_api/app.py",
                             "observability/operator_api/market_flow_reader.py"]
     cli = ast.parse((ROOT / "observability/meo_trades_replay.py").read_text())
     cli_imports = set()
