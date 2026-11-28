@@ -65,6 +65,12 @@ _HEX = re.compile(r"[0-9a-f]{64}")
 _DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
 _NEW_FILE = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
 INT64_MAX = 2 ** 63 - 1
+# Proofs every import record must reference (RV01-02). Every other recorded proof (archive, SHA256SUMS,
+# preflight, source reports) is mandatory too once recorded: a record never lists an optional proof.
+REQUIRED_ROLES = ("events.jsonl", "frames.bin", "manifest.json", "reading", "replay-report")
+_PAGE = 4096
+_EMPTY_INDEX_BYTES = 12 * _PAGE   # schema of an empty index (4 tables, 2 indexes, 4 automatic indexes)
+_ROW_BYTES = 1024                 # pre-check allowance per indexed row
 
 
 @dataclass(frozen=True)
@@ -85,6 +91,7 @@ class Limits:
     page_default: int = 20
     page_max: int = 100
     sessions_per_read: int = 256           # sessions re-verified against their proofs by one read
+    proof_bytes_per_check: int = 512 * MiB  # proof bytes hashed by one verification pass (all sessions of K)
 
 
 LIMITS = Limits()
@@ -265,13 +272,42 @@ class Store:
             out.append((rec, prev))
         return out
 
-    def session_parts(self, rec: dict) -> dict:
-        """Re-derive one session from its reading proof and check it against its record."""
-        ref = next((p for p in rec["proofs"] if p["role"] == "reading"), None)
-        if ref is None:
-            raise MemoryRefusal(c.PROOF_CORRUPT, "RECORD_WITHOUT_READING")
-        raw = self.read_proof(ref)
+    def session_parts(self, rec: dict, budget: list | None = None) -> dict:
+        """Verify EVERY proof of one record (availability, size, SHA-256), the links between the record,
+        its proofs and its reading, then re-derive the session from the reading proof (RV01-02).
+
+        ``budget`` is a one-element list of proof bytes still allowed in the current verification pass.
+        """
+        seq = rec["knowledge_seq"]
+        roles = [p["role"] for p in rec["proofs"]]
+        if len(set(roles)) != len(roles):
+            raise MemoryRefusal(c.PROOF_CORRUPT, f"RECORD_DUPLICATE_ROLE:{seq}")
+        for role in REQUIRED_ROLES:
+            if role not in roles:
+                raise MemoryRefusal(c.PROOF_CORRUPT, f"RECORD_REQUIRED_PROOF_MISSING:{role}")
+        by_role, kept = {p["role"]: p["sha256"] for p in rec["proofs"]}, {}
+        for ref in rec["proofs"]:
+            if budget is not None:
+                budget[0] -= ref["bytes"] if type(ref["bytes"]) is int else 0
+                if budget[0] < 0:
+                    raise MemoryRefusal(c.BUDGET_EXCEEDED, "PROOF_BYTES_PER_CHECK")
+            data = self.read_proof(ref)
+            if ref["role"] in ("reading", "replay-report"):
+                kept[ref["role"]] = data
+        raw = kept["reading"]
         reading = c.strict_json(raw, c.PROOF_CORRUPT)
+        session, corpus = rec["identity"]["session"], reading.get("corpus_ref") or {}
+        links = {
+            "manifest": session["manifest_sha256"] == by_role["manifest.json"],
+            "events": session["events_sha256"] == by_role["events.jsonl"] == corpus.get("events_sha256"),
+            "frames": session["frames_sha256"] == by_role["frames.bin"] == corpus.get("frames_sha256"),
+            "reading": rec["reading_sha256"] == by_role["reading"],
+            "report": corpus.get("source_report_sha256") == by_role["replay-report"]
+            and all(by_role[r] == by_role["replay-report"] for r in engine.REPORT_MEMBERS if r in by_role),
+        }
+        for what, ok in links.items():
+            if not ok:
+                raise MemoryRefusal(c.PROOF_CORRUPT, f"RECORD_PROOF_LINK:{what}:{seq}")
         parts = c.decompose(reading, rec["identity"])
         if c.canonical(c.recompose(parts)) != raw:
             raise MemoryRefusal(c.PROOF_CORRUPT, "READING_NOT_RECOMPOSABLE")
@@ -307,6 +343,62 @@ class Store:
                 or not str(rows.get("head_seq", "")).isdigit() or "head_sha256" not in rows:
             raise MemoryRefusal(c.INDEX_INCONSISTENT, "INDEX_SCHEMA_OR_PARTITION")
         return int(rows["head_seq"]), rows["head_sha256"] or None
+
+    @staticmethod
+    def expected_rows(journal: list, parts_by_seq: dict) -> dict:
+        """Every row the index must hold for this journal, derived only from records and proofs."""
+        rows = {"sessions": [], "windows": [], "events": []}
+        for rec, sha in journal:
+            rows_one = _rows(rec, sha, parts_by_seq[rec["knowledge_seq"]])
+            for t in rows:
+                rows[t] += rows_one[t]
+        head = (str(len(journal)), journal[-1][1] if journal else "")
+        rows["meta"] = [("head_seq", head[0]), ("head_sha256", head[1])]
+        return rows
+
+    def check_index(self, conn, journal: list, parts_by_seq: dict) -> None:
+        """Compare the whole index with the authority: schema, meta, and every column of every row
+        (selection, filter, order and link columns included). Missing or extra rows are inconsistencies."""
+        try:
+            schema = conn.execute("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY name").fetchall()
+            if [tuple(r) for r in schema] != _expected_schema():
+                raise MemoryRefusal(c.INDEX_INCONSISTENT, "INDEX_DISAGREES_WITH_PROOF:schema")
+            want = self.expected_rows(journal, parts_by_seq)
+            want["meta"] = sorted(want["meta"] + [("partition", self.partition), ("schema", INDEX_SCHEMA)])
+            for table in ("meta", "sessions", "windows", "events"):
+                got = sorted((tuple(r) for r in conn.execute(f"SELECT * FROM {table}")), key=lambda r: r[0])
+                if got != sorted(want[table], key=lambda r: r[0]):
+                    raise MemoryRefusal(c.INDEX_INCONSISTENT, "INDEX_DISAGREES_WITH_PROOF:" + table)
+        except sqlite3.Error:
+            raise MemoryRefusal(c.INDEX_INCONSISTENT, "INDEX_UNREADABLE") from None
+
+    def verified_parts(self, journal: list) -> dict:
+        """All sessions of the bound, each verified against all its proofs, within the per-pass bounds."""
+        if len(journal) > self.limits.sessions_per_read:
+            raise MemoryRefusal(c.BUDGET_EXCEEDED, "SESSIONS_PER_READ")
+        budget = [self.limits.proof_bytes_per_check]
+        return {rec["knowledge_seq"]: self.session_parts(rec, budget) for rec, _sha in journal}
+
+    def verified_view(self):
+        """(journal, connection inside an open read transaction, parts) for a fully verified bound K.
+
+        The read transaction pins one SQLite snapshot for the whole read; the snapshot is then
+        checked against the journal and every proof before anything is selected from it.
+        """
+        journal, conn = self.consistent_view()
+        if conn is None:
+            return journal, None, {}
+        try:
+            conn.execute("BEGIN")
+            head = self.index_state(conn)  # first read inside the transaction: takes the snapshot
+            if head != (len(journal), journal[-1][1] if journal else None):
+                raise MemoryRefusal(c.INDEX_INCONSISTENT, "INDEX_CHANGED_DURING_READ")
+            parts = self.verified_parts(journal)
+            self.check_index(conn, journal, parts)
+        except BaseException:
+            conn.close()
+            raise
+        return journal, conn, parts
 
     def consistent_view(self):
         """(journal, read-only connection) when the index head equals the journal head."""
@@ -383,12 +475,12 @@ class Store:
         try:
             try:
                 os.mkdir(sha[:2], 0o700, dir_fd=pd)
-                try:
-                    _fsync_dir(pd)
-                except OSError:
-                    raise MemoryRefusal(c.PUBLICATION_UNCERTAIN, "DIRECTORY_FSYNC_FAILED:proofs") from None
             except FileExistsError:
                 pass
+            try:  # always: a sub-directory created by an attempt whose fsync failed becomes durable here
+                _fsync_dir(pd)
+            except OSError:
+                raise MemoryRefusal(c.PUBLICATION_UNCERTAIN, "DIRECTORY_FSYNC_FAILED:proofs") from None
         finally:
             os.close(pd)
         outcome = self._publish(("proofs", sha[:2]), sha, data, "proof")
@@ -407,9 +499,19 @@ class Store:
                 total += st.st_size if stat.S_ISREG(st.st_mode) else 0
         return total
 
-    def _check_budget(self, new_bytes: int) -> None:
-        if self._root_usage() + new_bytes > self.marker["budget_bytes"] - self.limits.reserve_bytes:
+    def _check_budget(self, new_bytes: int) -> int:
+        """Refuse before writing; return the bytes still allowed (index, temporaries, retired and SQLite
+        journals included in the usage, the reserve excluded)."""
+        room = self.marker["budget_bytes"] - self.limits.reserve_bytes - self._root_usage()
+        if new_bytes > room:
             raise MemoryRefusal(c.BUDGET_EXCEEDED, "ROOT_BUDGET")
+        return room
+
+    def _estimate_index_bytes(self) -> int:
+        """Pre-check size of a rebuilt index: the current one, or the empty schema plus a row allowance."""
+        rows = sum(1 + len(rec["windows"]) + len(rec["events"]) for rec, _sha in self.load_journal())
+        current = os.lstat(self.index_path).st_size if self._index_exists() else 0
+        return max(current, _EMPTY_INDEX_BYTES + _ROW_BYTES * rows)
 
     def _connect_rw(self, path: str):
         conn = sqlite3.connect(path, isolation_level=None)
@@ -429,27 +531,16 @@ class Store:
 
     def _index_record(self, conn, rec: dict, rec_sha: str, parts: dict) -> None:
         """Insert one import in ONE transaction, moving the index head with it."""
-        seq, sid = rec["knowledge_seq"], rec["session_id"]
+        seq = rec["knowledge_seq"]
         conn.execute("BEGIN IMMEDIATE")
         try:
             head = self.index_state(conn)
             if head[0] != seq - 1:
                 raise MemoryRefusal(c.INDEX_INCONSISTENT, "INDEX_HEAD_NOT_PREDECESSOR")
-            nb = rec["native_bounds_ns"]
-            conn.execute("INSERT INTO sessions VALUES (?,?,?,?,?)",
-                         (sid, seq, rec_sha, _i(nb["first"]), _i(nb["last"])))
-            for w in parts["windows"]:
-                b = w["body"]
-                conn.execute("INSERT INTO windows VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                             (w["window_id"], sid, seq, _i(b["start_ns"]), _i(b["end_ns"]), b.get("cvd_segment"),
-                              b["status"], b["alignment"], int(bool(b["eligible_for_first_desalignment"])),
-                              b["exclusion_reason"], w["content_sha256"]))
-            for e in parts["events"]:
-                b = e["body"]
-                conn.execute("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?)",
-                             (e["event_id"], sid, seq, b["window_id"], _i(b["start_ns"]), b["segment"],
-                              int(bool(b["eligible_for_first_desalignment"])), b["exclusion_reason"],
-                              int(b["first_in_segment"]), e["content_sha256"]))
+            rows = _rows(rec, rec_sha, parts)
+            conn.executemany("INSERT INTO sessions VALUES (?,?,?,?,?)", rows["sessions"])
+            conn.executemany("INSERT INTO windows VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows["windows"])
+            conn.executemany("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?)", rows["events"])
             conn.execute("UPDATE meta SET value=? WHERE key='head_seq'", (str(seq),))
             conn.execute("UPDATE meta SET value=? WHERE key='head_sha256'", (rec_sha,))
             self._cp("index_transaction_open")
@@ -459,17 +550,37 @@ class Store:
                 conn.execute("ROLLBACK")
             raise
 
-    def _rebuild(self, journal: list) -> dict:
-        """Build a fresh index from the journal and the proofs, then swap it in (old one retired)."""
+    def _rebuild(self, journal: list, parts_by_seq: dict | None = None) -> dict:
+        """Build a fresh index from the journal and the proofs only, then swap it in (old one retired).
+
+        Budget (RV01-03): refused before writing when the estimate does not fit; while writing, the
+        temporary file is capped to the room left (``max_page_count``, journal kept in memory for this
+        unpublished file). A refused rebuild removes only its own unpublished temporary file and leaves
+        the previous index, the journal and the proofs untouched.
+        """
+        if parts_by_seq is None:
+            parts_by_seq = self.verified_parts(journal)
+        room = self._check_budget(self._estimate_index_bytes())
         tmpname = f"index-{secrets.token_hex(8)}.sqlite"
         tmppath = os.path.join(self.root, "tmp", tmpname)
-        conn = self._connect_rw(tmppath)
+        conn = sqlite3.connect(tmppath, isolation_level=None)
         try:
+            conn.execute(f"PRAGMA page_size={_PAGE}")
+            conn.execute("PRAGMA journal_mode=MEMORY")
+            conn.execute(f"PRAGMA max_page_count={max(room // _PAGE, 1)}")
             self._create_schema(conn, self.partition)
             for rec, sha in journal:
-                self._index_record(conn, rec, sha, self.session_parts(rec))
-        finally:
+                self._index_record(conn, rec, sha, parts_by_seq[rec["knowledge_seq"]])
             conn.close()
+        except BaseException as exc:
+            conn.close()
+            self._drop_unpublished(tmpname)
+            if isinstance(exc, sqlite3.OperationalError) and "full" in str(exc):
+                raise MemoryRefusal(c.BUDGET_EXCEEDED, "ROOT_BUDGET:DURING_REBUILD") from None
+            raise
+        if os.lstat(tmppath).st_size > room:
+            self._drop_unpublished(tmpname)
+            raise MemoryRefusal(c.BUDGET_EXCEEDED, "ROOT_BUDGET:DURING_REBUILD")
         fd = os.open(tmppath, os.O_RDONLY | os.O_NOFOLLOW)
         try:
             os.fsync(fd)
@@ -492,6 +603,37 @@ class Store:
             os.close(idxd)
         return {"rebuilt_records": len(journal), "retired_index": retired}
 
+    def _drop_unpublished(self, tmpname: str) -> None:
+        """Remove a temporary index this very call created and never published (not evidence, not state)."""
+        tmpd = self._open_dir("tmp")
+        try:
+            try:
+                os.unlink(tmpname, dir_fd=tmpd)
+            except FileNotFoundError:
+                pass
+            try:
+                _fsync_dir(tmpd)
+            except OSError:
+                self.warnings.append("TMP_DIRECTORY_FSYNC_FAILED")
+        finally:
+            os.close(tmpd)
+
+    def _sync_proof_dirs(self, journal: list) -> None:
+        """fsync proofs/ and every proofs/<hh>/ the journal references (a failed fsync stays uncertain)."""
+        dirs = sorted({ref["sha256"][:2] for rec, _sha in journal for ref in rec["proofs"]
+                       if _HEX.fullmatch(ref["sha256"])})
+        for parts in [("proofs",)] + [("proofs", d) for d in dirs]:
+            try:
+                fd = self._open_dir(*parts)
+            except MemoryRefusal:
+                continue  # a missing directory is reported by the proof verification itself
+            try:
+                _fsync_dir(fd)
+            except OSError:
+                raise MemoryRefusal(c.PUBLICATION_UNCERTAIN, "DIRECTORY_FSYNC_FAILED:proofs") from None
+            finally:
+                os.close(fd)
+
     def _reconcile(self) -> dict:
         """Writer only: make the index equal to the verified journal head (apply or rebuild)."""
         jd = self._open_dir("journal")
@@ -502,9 +644,14 @@ class Store:
         finally:
             os.close(jd)
         journal = self.load_journal()
+        self._sync_proof_dirs(journal)
+        # Every proof of every record is verified first: a recovery is never acknowledged on missing
+        # or corrupt evidence (RV01-02). Nothing below is derived from anything else.
+        parts = self.verified_parts(journal)
+        n = len(journal)
         if not self._index_exists():
             action = "INDEX_CREATED" if not journal else "REBUILT"
-            return {"action": action, **self._rebuild(journal), "journal_head": len(journal)}
+            return {"action": action, **self._rebuild(journal, parts), "journal_head": n}
         try:
             conn = self._connect_rw(self.index_path)  # rolls back a hot journal left by a crash
             try:
@@ -514,19 +661,32 @@ class Store:
                 conn.close()
         except (sqlite3.Error, MemoryRefusal):
             ok, head = False, None
-        n = len(journal)
+        action, applied = None, 0
         if ok and head == (n, journal[-1][1] if journal else None):
-            return {"action": "NONE", "journal_head": n}
-        if ok and head[0] < n and (head[0] == 0 and head[1] is None or
-                                   head[0] > 0 and journal[head[0] - 1][1] == head[1]):
+            action = "NONE"
+        elif ok and head[0] < n and (head[0] == 0 and head[1] is None or
+                                     head[0] > 0 and journal[head[0] - 1][1] == head[1]):
+            pending = journal[head[0]:]
+            self._check_budget(sum(2 * _ROW_BYTES * (1 + len(r["windows"]) + len(r["events"])) + _PAGE * 4
+                                   for r, _s in pending))
             conn = self._connect_rw(self.index_path)
             try:
-                for rec, sha in journal[head[0]:]:
-                    self._index_record(conn, rec, sha, self.session_parts(rec))
+                for rec, sha in pending:
+                    self._index_record(conn, rec, sha, parts[rec["knowledge_seq"]])
             finally:
                 conn.close()
-            return {"action": "APPLIED_PENDING", "applied": n - head[0], "journal_head": n}
-        return {"action": "REBUILT", **self._rebuild(journal), "journal_head": n}
+            action, applied = "APPLIED_PENDING", n - head[0]
+        if action is not None:  # the head matches: every row must match too (RV01-01)
+            conn = self.connect_ro()
+            try:
+                self.check_index(conn, journal, parts)
+                out = {"action": action, "journal_head": n}
+                return {**out, "applied": applied} if action == "APPLIED_PENDING" else out
+            except MemoryRefusal:
+                pass
+            finally:
+                conn.close()
+        return {"action": "REBUILT", **self._rebuild(journal, parts), "journal_head": n}
 
     def recover(self) -> dict:
         with self.writer():
@@ -693,24 +853,21 @@ class Store:
             journal = self.load_journal()
         except MemoryRefusal as exc:
             return {"state": "INCONSISTENT", "findings": [{"category": exc.category, "detail": exc.detail}]}
+        budget = [self.limits.proof_bytes_per_check]
         for rec, _sha in journal:
             for ref in rec["proofs"]:
                 referenced.add(ref["sha256"])
-                try:
-                    self.read_proof(ref)
-                except MemoryRefusal as exc:
-                    findings.append({"category": exc.category, "detail": exc.detail, "seq": rec["knowledge_seq"]})
-            if not findings:
-                try:
-                    self.session_parts(rec)
-                except MemoryRefusal as exc:
-                    findings.append({"category": exc.category, "detail": exc.detail, "seq": rec["knowledge_seq"]})
-        try:
-            _j, conn = self.consistent_view()
-            if conn is not None:
-                conn.close()
-        except MemoryRefusal as exc:
-            findings.append({"category": exc.category, "detail": exc.detail})
+            try:
+                self.session_parts(rec, budget)
+            except MemoryRefusal as exc:
+                findings.append({"category": exc.category, "detail": exc.detail, "seq": rec["knowledge_seq"]})
+        if not findings:
+            try:
+                _j, conn, _parts = self.verified_view()
+                if conn is not None:
+                    conn.close()
+            except MemoryRefusal as exc:
+                findings.append({"category": exc.category, "detail": exc.detail})
         stored = set()
         for dirpath, _dirs, files in os.walk(os.path.join(self.root, "proofs"), followlinks=False):
             stored.update(files)
@@ -729,6 +886,36 @@ def _i(text) -> int:
     if not 0 <= v <= INT64_MAX:
         raise MemoryRefusal(c.INPUT_REFUSED, "TIMESTAMP_OUT_OF_RANGE")
     return v
+
+
+def _rows(rec: dict, rec_sha: str, parts: dict) -> dict:
+    """The index rows of one import (the single definition used to write AND to check the index)."""
+    seq, sid, nb = rec["knowledge_seq"], rec["session_id"], rec["native_bounds_ns"]
+    return {
+        "sessions": [(sid, seq, rec_sha, _i(nb["first"]), _i(nb["last"]))],
+        "windows": [(w["window_id"], sid, seq, _i(w["body"]["start_ns"]), _i(w["body"]["end_ns"]),
+                     w["body"].get("cvd_segment"), w["body"]["status"], w["body"]["alignment"],
+                     int(bool(w["body"]["eligible_for_first_desalignment"])), w["body"]["exclusion_reason"],
+                     w["content_sha256"]) for w in parts["windows"]],
+        "events": [(e["event_id"], sid, seq, e["body"]["window_id"], _i(e["body"]["start_ns"]), e["body"]["segment"],
+                    int(bool(e["body"]["eligible_for_first_desalignment"])), e["body"]["exclusion_reason"],
+                    int(e["body"]["first_in_segment"]), e["content_sha256"]) for e in parts["events"]],
+    }
+
+
+_SCHEMA_CACHE: list = []
+
+
+def _expected_schema() -> list:
+    if not _SCHEMA_CACHE:
+        mem = sqlite3.connect(":memory:")
+        try:
+            mem.executescript(SCHEMA_SQL)
+            _SCHEMA_CACHE.extend(tuple(r) for r in mem.execute(
+                "SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY name"))
+        finally:
+            mem.close()
+    return list(_SCHEMA_CACHE)
 
 
 def _listing(parts: dict) -> tuple:

@@ -179,10 +179,54 @@ en PROBATION. Rien n'est transposé automatiquement.
 
 Ni B04-A ni B02 ne sont déclarés complets ou certifiés par MEO-04.
 
+## 4 bis. Contre-revue RV01-R1 (correctifs)
+
+**RV01-01 — Index dérivé.** Chaque lecture, `verify` et `recover` comparent l'index entier à
+l'autorité, dans un seul instantané SQLite ouvert pour toute la lecture :
+- le schéma (`sqlite_master`) ;
+- les métadonnées ;
+- toutes les lignes et toutes les colonnes de `sessions`, `windows` et `events`, y compris
+  `eligible`, `first_in_segment`, `start_ns`, `segment`, `alignment`, `exclusion_reason` et les liens
+  `window_id`, `session_id`, `knowledge_seq`.
+
+Les lignes attendues viennent d'une seule définition (`_rows`), utilisée pour écrire et pour
+vérifier. Une ligne manquante, parasite ou modifiée donne `INDEX_INCONSISTENT`, jamais `EMPTY`.
+`recover` reconstruit alors l'index, uniquement depuis le journal et les preuves.
+
+**RV01-02 — Preuves.**
+- Obligatoires dans tout enregistrement : `manifest.json`, `events.jsonl`, `frames.bin`,
+  `replay-report`, `reading`.
+- Toute autre preuve enregistrée (archive, `SHA256SUMS`, `preflight.json`, rapports source)
+  devient obligatoire une fois enregistrée.
+- Politique bornée : chaque lecture, `verify`, `recover`, `rebuild` et chaque import (donc
+  aussi un `NO_OP`) vérifient intégralement, pour toutes les sessions de K, la présence, la
+  taille et le SHA-256 de chaque preuve. Limites : 256 sessions et 512 Mio de preuves par passe ;
+  au-delà, refus `BUDGET_EXCEEDED`.
+- Liens vérifiés :
+  - le manifeste et les sceaux de l'identité égalent les preuves `manifest.json`, `events.jsonl` et `frames.bin` ;
+  - `corpus_ref` de la lecture égale ces sceaux et le rapport de rejeu ;
+  - `reading_sha256` égale la preuve `reading` ;
+  - les rapports source égalent le rapport de rejeu.
+- Une preuve absente donne `PROOF_UNAVAILABLE`, une preuve altérée `PROOF_CORRUPT`. Aucun
+  `NO_OP` ni aucune récupération n'est acquitté dans ces cas. Rien n'est réparé
+  automatiquement : la remise en place des octets exacts par l'opérateur rend l'état valide.
+
+**RV01-03 — Budget.**
+- La reconstruction est refusée avant écriture si l'estimation (index actuel, ou schéma vide
+  plus une marge par ligne) dépasse l'espace restant. L'espace restant tient compte des index
+  actifs et retirés, des temporaires, des journaux SQLite et de la réserve.
+- Pendant l'écriture, le fichier temporaire est plafonné (`max_page_count`, journal en mémoire
+  pour ce fichier non publié).
+- Un refus supprime seulement le temporaire créé par l'appel et laisse intact l'état antérieur.
+- L'application d'imports en attente est aussi contrôlée avant écriture.
+- `proofs/` est synchronisé (fsync) à chaque publication de preuve, même si le sous-répertoire
+  existait déjà. `recover` synchronise `proofs/` et tous les `proofs/<hh>/` du journal avant
+  d'appliquer quoi que ce soit.
+
 ## 5. Limites
 
 - Mémoire descriptive : aucun détecteur, épisode, signal, prédiction ni ordre.
-- Une lecture revérifie toutes les sessions de K, dans la limite de 256. Au-delà, elle est refusée. MEO-05 devra fournir un cache vérifié.
+- Une lecture revérifie toutes les sessions de K et toutes leurs preuves, dans la limite de 256 sessions et 512 Mio. Au-delà, elle est refusée. MEO-05 devra fournir un cache vérifié.
 - Le dernier enregistrement du journal n'a pas d'ancre externe : sa falsification est détectée par l'index, mais pas après une reconstruction.
 - La lecture n'est pas incrémentale : chaque requête relit le journal.
 - Aucune heure UTC n'est affirmée ; aucune comparaison entre captures n'est faite.

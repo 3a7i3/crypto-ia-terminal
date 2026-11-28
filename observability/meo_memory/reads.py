@@ -68,32 +68,20 @@ class Reader:
         return n
 
     def _view(self):
-        journal, conn = self.store.consistent_view()
+        # One SQLite read snapshot, checked in full against the journal and every proof of the bound
+        # (all rows, all columns, schema, cardinalities) before anything is selected from it (RV01-01/02).
+        journal, conn, self._parts = self.store.verified_view()
         k = len(journal)
-        if k > self.store.limits.sessions_per_read:
-            if conn is not None:
-                conn.close()
-            raise MemoryRefusal(c.BUDGET_EXCEEDED, "SESSIONS_PER_READ")
         bound = {"partition": self.store.partition, "knowledge_seq": k,
                  "journal_head_sha256": journal[-1][1] if journal else None}
         return journal, conn, k, bound
 
     def _session(self, journal, cache, conn, seq: int) -> dict:
-        """Verified session: record, parts from the proof, and the index rows checked against both."""
+        """Session of the verified view: record and parts re-derived from its proofs."""
         if seq in cache:
             return cache[seq]
         rec, sha = journal[seq - 1]
-        parts = self.store.session_parts(rec)
-        rows_w = conn.execute("SELECT window_id, content_sha256 FROM windows WHERE knowledge_seq=? "
-                              "ORDER BY start_ns", (seq,)).fetchall()
-        rows_e = conn.execute("SELECT event_id, content_sha256 FROM events WHERE knowledge_seq=? "
-                              "ORDER BY start_ns, event_id", (seq,)).fetchall()
-        want_w = [(w["window_id"], w["content_sha256"])
-                  for w in sorted(parts["windows"], key=lambda w: int(w["body"]["start_ns"]))]
-        want_e = sorted((int(e["body"]["start_ns"]), e["event_id"], e["content_sha256"]) for e in parts["events"])
-        row_s = conn.execute("SELECT session_id, import_sha256 FROM sessions WHERE knowledge_seq=?", (seq,)).fetchall()
-        if [tuple(r) for r in row_s] != [(rec["session_id"], sha)] or [tuple(r) for r in rows_w] != want_w or [tuple(r) for r in rows_e] != [(i, h) for _s, i, h in want_e]:
-            raise MemoryRefusal(c.INDEX_INCONSISTENT, f"INDEX_DISAGREES_WITH_PROOF:{seq}")
+        parts = self._parts[seq]
         session = parts["session"]
         out = {"record": rec, "import_sha256": sha, "parts": parts,
                "windows": {w["window_id"]: w["body"] for w in parts["windows"]},
