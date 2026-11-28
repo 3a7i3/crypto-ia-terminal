@@ -41,6 +41,13 @@ la route `market-flow` ne changent pas.
 Aucun ordre fin n'est déduit d'un temps. L'ordre fournisseur est celui des
 `trade_id` (hypothèse H2/H5).
 
+La relation entre temps natif et réception **n'est pas démontrée**
+(`native_to_receipt_relation = NOT_DEMONSTRATED`). Toute comparaison entre les
+deux axes reste conditionnelle (`CONDITIONAL_ON_UNPROVEN_NATIVE_UTC_ALIGNMENT`) :
+l'exclusion `future_event_time` de `trades.build_bars`, le choix de la fenêtre de
+sortie (après l'abonnement, dans un intervalle de transport) et l'écart
+descriptif réception − natif. Aucune ne prouve un alignement UTC.
+
 ## Continuité du transport ≠ couverture des transactions
 
 - **Continuité du transport** (axe réception) : commence à l'accusé d'abonnement
@@ -52,7 +59,13 @@ Aucun ordre fin n'est déduit d'un temps. L'ordre fournisseur est celui des
   contiguë de A à Z couvre `[t(A) + 1 ns, t(Z))`. Toute lacune d'identifiant,
   transaction refusée, conflit, temps absent ou postérieur à la réception, ou
   inversion de temps coupe la couverture. La queue après la dernière transaction
-  n'est jamais couverte. Sans suite contiguë, la couverture vaut `UNKNOWN` :
+  n'est jamais couverte. **Ambiguïté (MEO-L1-RV01)** : une inversion (identifiant
+  k+1 plus ancien que k) rend `[t(k+1), t(k)]` ambigu ; une transaction d'une autre
+  suite située dans l'intervalle d'une suite le rend ambigu du côté contredit ; un
+  temps revendiqué par deux suites est ambigu. Le temps ambigu est retiré de la
+  couverture : une fenêtre qui le touche n'est jamais entièrement couverte. Cas de
+  régression : identifiants 1, 2, 3, 4 aux temps 0, 600, 100, 400 s → ambigu
+  `[100 s, 600 s]`. Sans suite contiguë, la couverture vaut `UNKNOWN` :
   une couverture inconnue n'est jamais présentée comme complète, et une barre non
   couverte vaut `NOT_COVERED`, jamais zéro.
 

@@ -72,7 +72,7 @@ def test_t06_transport_continuity_and_trade_coverage_are_separate():
     assert len(r["transport_continuity"]["spans_ns"]) == 1
     assert r["trade_coverage"]["id_gaps_count"] == 1
     w = r["windows"][1]
-    assert w["status"] == "PARTIALLY_COVERED" and w["transport_continuous_receipt_axis"] is True
+    assert w["status"] == "PARTIALLY_COVERED" and w["transport_continuous_if_native_aligned"] is True
     assert {b["status"] for b in w["bars"]} >= {"NOT_COVERED", "OBSERVED"}
     for b in w["bars"]:
         if b["status"] == "NOT_COVERED":
@@ -151,3 +151,74 @@ def test_t07_report_has_no_float_and_states_its_time_bases():
     assert r["synthetic"] is True
     m, e = journal(steady(3), evidence_kind="OBSERVATION")
     assert kt.replay_journal(m, e)["synthetic"] is False
+
+
+# ---------------------------------------------------------------- MEO-L1-RV01 regression
+
+class _T:
+    def __init__(self, tid, ev):
+        self.trade_id, self.event_ns = str(tid), ev
+
+
+def test_rv01_inversion_with_overlapping_runs_leaves_no_covered_time_in_its_hull():
+    # Reception case: ids 1, 2, 3, 4 at native 0, 600, 100, 400 s.
+    s = 1_000_000_000
+    cov = kt.trade_coverage([_T(1, 0), _T(2, 600 * s), _T(3, 100 * s), _T(4, 400 * s)], set())
+    assert cov["time_inversions"] == 1
+    # Before RV01: [1, 600 s) and [100 s + 1, 400 s) were both kept, overlapping.
+    assert cov["ambiguous"] == [[100 * s, 600 * s + 1]]
+    assert cov["spans"] == [[1, 100 * s]]
+    # Same case through the replay: no 5-minute window across [100 s, 600 s] is COVERED.
+    rows = [(T0 - 1, "ws_message", ACK)] + [
+        (T0 + 700_000 + i, "ws_message", frame([item(tid, T0 + rel * 1000)]))
+        for i, (tid, rel) in enumerate([(1, 0), (2, 600), (3, 100), (4, 400)])]
+    r = report(rows)
+    assert r["trade_coverage"]["ambiguous_spans_ns"] == [[str((T0 + 100_000) * MS), str((T0 + 600_000) * MS + 1)]]
+    assert r["windows"] and all(w["status"] != "COVERED" for w in r["windows"])
+    assert r["exit_window"] is None
+
+
+def test_rv01_foreign_trades_and_gaps_cut_only_the_contradicted_time():
+    s = 1_000_000_000
+    pts = [(1, 0), (2, 10 * s), (3, 20 * s),                 # clean run, then id 4 missing
+           (5, 600 * s), (6, 100 * s), (7, 400 * s),          # inversion 5 -> 6
+           (9, 30 * s),                                       # after a gap, a single trade back in time
+           (11, 700 * s), (12, 800 * s)]
+    cov = kt.trade_coverage([_T(i, ev) for i, ev in pts], set())
+    assert cov["time_inversions"] == 1 and len(cov["id_gaps"]) == 3
+    spans = cov["spans"]
+    for a, b in spans:
+        for lo, hi in cov["ambiguous"]:
+            assert b <= lo or hi <= a  # nothing covered inside ambiguous time
+    for x in range(len(spans) - 1):
+        assert spans[x][1] <= spans[x + 1][0]  # disjoint
+    assert [1, 20 * s] in spans and [700 * s + 1, 800 * s] in spans
+    assert any(lo <= 100 * s and 600 * s < hi for lo, hi in cov["ambiguous"])
+
+
+def test_rv01_a_window_touching_the_ambiguity_is_never_covered():
+    # 1-per-second ids; at T0+100 s the native times of three consecutive ids are reordered.
+    def mutate(tid, at, it):
+        if tid == 1160:
+            return item(tid, at - 200_000)                    # 200 s earlier than its id neighbours
+        return it
+    r = report(steady(700, mutate=mutate), as_of_ns=(T0 + 900_000) * MS)
+    tc = r["trade_coverage"]
+    assert tc["time_inversions"] == 1 and tc["ambiguous_spans_ns"]
+    lo, hi = (int(x) for x in tc["ambiguous_spans_ns"][0])
+    for w in r["windows"]:
+        if int(w["start_ns"]) < hi and lo < int(w["end_ns"]):
+            assert w["status"] != "COVERED" and w["totals"] is None
+    assert r["hypotheses"]["H5_order_and_time_follow_ids"]["status"] == "REFUTED"
+    ew = r["exit_window"]
+    assert ew is None or not (int(ew["start_ns"]) < hi and lo < int(ew["end_ns"]))
+
+
+def test_rv01_native_receipt_comparisons_are_conditional_never_an_alignment_proof():
+    r = report(steady(700))
+    tb = r["time_bases"]
+    assert tb["native_to_receipt_relation"] == "NOT_DEMONSTRATED"
+    assert tb["cross_axis_qualification"] == "CONDITIONAL_ON_UNPROVEN_NATIVE_UTC_ALIGNMENT"
+    assert "receipt_minus_native_ns" not in tb and "receipt_minus_native_ns_descriptive" in tb
+    assert r["exit_window"]["qualification"] == "CONDITIONAL_ON_UNPROVEN_NATIVE_UTC_ALIGNMENT"
+    assert all("transport_continuous_if_native_aligned" in w for w in r["windows"])

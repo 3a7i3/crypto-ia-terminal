@@ -49,7 +49,7 @@ def test_t09_kraken_trades_respects_the_market_flow_package_rules():
             imported |= {a.name.split(".")[0] for a in n.names}
         elif isinstance(n, ast.ImportFrom) and n.module and n.level == 0:
             imported.add(n.module.split(".")[0])
-    assert imported <= {"decimal", "hashlib", "json", "re"}
+    assert imported <= {"bisect", "decimal", "hashlib", "json", "re"}
     assert not any(isinstance(n, ast.Name) and n.id == "float" for n in ast.walk(tree))
     assert not any(isinstance(n, ast.Constant) and isinstance(n.value, float) for n in ast.walk(tree))
 

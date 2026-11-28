@@ -40,7 +40,7 @@ def test_t11_a_synthetic_capture_yields_a_covered_five_minute_exit_window(captur
     # A window covered only thanks to the snapshot (before the subscription) is reported, not used as exit.
     ack = int(r["subscription"]["acknowledged_receipt_ns"])
     before = [x for x in r["windows"] if x["status"] == "COVERED" and int(x["start_ns"]) < ack]
-    assert before and int(ew["start_ns"]) >= ack and w["transport_continuous_receipt_axis"] is True
+    assert before and int(ew["start_ns"]) >= ack and w["transport_continuous_if_native_aligned"] is True
     assert r["rest_cross_check"]["exit_window"]["status"] == "MATCH"
     assert {k: v["status"] for k, v in r["hypotheses"].items()} == {
         "H1_side_is_taker": "DOCUMENTARY", "H2_trade_id_plus_one": "CONFIRMED_ON_CAPTURE",

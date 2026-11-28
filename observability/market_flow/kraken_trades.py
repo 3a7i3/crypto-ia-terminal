@@ -17,6 +17,7 @@ Unknown stays unknown: an uncovered bar is NOT_COVERED (never zero), a missing
 proof leaves the coverage UNKNOWN, and no admission verdict is produced here.
 """
 
+from bisect import bisect_left
 from decimal import Decimal
 import hashlib
 import json
@@ -218,9 +219,18 @@ def trade_coverage(trades, conflict_ids):
     ids A..Z (+1 each, native time never decreasing) covers [t(A) + 1, t(Z)):
     a trade sharing t(A) or t(Z) could lie outside the run, so both ends are
     open. Gaps, conflicts, and time inversions cut a run; none is filled.
+
+    MEO-L1-RV01: an inversion (id k+1 earlier than id k) makes [t(k+1), t(k)]
+    AMBIGUOUS. A run's claim holds only if no observed trade of another run
+    lies inside its time span. A foreign trade with a higher id at time t
+    contradicts the run trades later than t, so [t, t(Z)] is AMBIGUOUS; one
+    with a lower id contradicts [t(A), t]. Time claimed by two runs is AMBIGUOUS.
+    Ambiguous time is removed from the coverage, so a window touching it is
+    never fully covered. Example (reception case): ids 1, 2, 3, 4
+    at 0, 600, 100, 400 s -> ambiguous [100 s, 600 s]; no window across it is covered.
     """
     ordered = sorted((int(t.trade_id), t.event_ns) for t in trades if t.trade_id not in conflict_ids)
-    runs, gaps, inversions = [], [], 0
+    runs, gaps, inversions, inverted = [], [], 0, []
     for tid, ev in ordered:
         if runs and tid == runs[-1][-1][0] + 1 and ev >= runs[-1][-1][1]:
             runs[-1].append((tid, ev))
@@ -229,16 +239,39 @@ def trade_coverage(trades, conflict_ids):
             last_id, last_ev = runs[-1][-1]
             if tid == last_id + 1:
                 inversions += 1
+                inverted.append((ev, last_ev + 1))  # [t(k+1), t(k)]: id order and time disagree
             elif tid > last_id + 1:
                 gaps.append({"after_id": str(last_id), "before_id": str(tid), "missing": tid - last_id - 1})
         runs.append([(tid, ev)])
-    spans = []
+    by_time = sorted((ev, tid) for tid, ev in ordered)
+    times = [ev for ev, _ in by_time]
+    candidates, ambiguous = [], list(inverted)  # ambiguous: half-open [lo, hi + 1) of closed intervals
     for run in runs:
         a, b = run[0][1] + 1, run[-1][1]
-        if len(run) >= 2 and a < b:
-            spans.append([a, b])
+        if len(run) < 2 or a >= b:
+            continue
+        first_id, last_id = run[0][0], run[-1][0]
+        candidates.append([a, b])
+        for ev, tid in by_time[bisect_left(times, a):bisect_left(times, b)]:
+            if tid > last_id:
+                ambiguous.append((ev, b + 1))
+            elif tid < first_id:
+                ambiguous.append((a - 1, ev + 1))
+    for x in range(len(candidates)):
+        for y in range(x + 1, len(candidates)):
+            (a1, b1), (a2, b2) = candidates[x], candidates[y]
+            if a1 < b2 and a2 < b1:  # time claimed by two runs: neither proof holds there
+                ambiguous.append((max(a1, a2), min(b1, b2)))
+    ambiguous = tr.merge_coverage(ambiguous) if ambiguous else []
+    spans = []
+    for a, b in candidates:
+        pieces = [[a, b]]
+        for lo, hi in ambiguous:
+            pieces = [q for p in pieces for q in ([p[0], min(p[1], lo)], [max(p[0], hi), p[1]]) if q[0] < q[1]]
+        spans.extend(pieces)
     return {
-        "spans": spans,
+        "spans": sorted(spans),
+        "ambiguous": [list(x) for x in ambiguous],
         "runs": len(runs),
         "longest_run": max((len(r) for r in runs), default=0),
         "id_gaps": gaps,
@@ -438,7 +471,7 @@ def replay_journal(manifest, events, *, as_of_ns=None):
     # Exit window: fully covered by contiguous ids AND observed live, i.e. starting at or after the
     # subscription and inside one transport-continuity span. Snapshot-only windows stay reported.
     exit_window = next((w for w in windows if w["status"] == "COVERED" and start_ns is not None
-                        and int(w["start_ns"]) >= start_ns and w["transport_continuous_receipt_axis"]), None)
+                        and int(w["start_ns"]) >= start_ns and w["transport_continuous_if_native_aligned"]), None)
     cross = None
     if exit_window is not None:
         cross = compare_with_rest(counted, rest_rows, int(exit_window["start_ns"]),
@@ -478,7 +511,11 @@ def replay_journal(manifest, events, *, as_of_ns=None):
                                     "start_offset_ms": _int_or_none(pre.get("kraken_clock_offset_ms")),
                                     "end_offset_ms": _int_or_none(end_clock.get("kraken_offset_ms")),
                                     "tolerance_ms": _int_or_none(manifest.get("clock_tolerance_ms"))},
-            "receipt_minus_native_ns": _latency(counted),
+            "native_to_receipt_relation": "NOT_DEMONSTRATED",
+            "receipt_minus_native_ns_descriptive": _latency(counted),
+            "cross_axis_uses": ["trades.build_bars future_event_time exclusion",
+                                "exit window: start after subscription, inside one transport span"],
+            "cross_axis_qualification": "CONDITIONAL_ON_UNPROVEN_NATIVE_UTC_ALIGNMENT",
         },
         "as_of_receipt_ns": str(as_of_ns),
         "events_after_as_of_not_read": after,
@@ -508,10 +545,12 @@ def replay_journal(manifest, events, *, as_of_ns=None):
             "id_gaps": cov["id_gaps"][:LIST_CAP], "id_gaps_count": len(cov["id_gaps"]),
             "missing_ids_total": sum(g["missing"] for g in cov["id_gaps"]),
             "time_inversions": cov["time_inversions"],
+            "ambiguous_spans_ns": [[str(a), str(b)] for a, b in cov["ambiguous"]],
         },
         "windows": windows,
-        "exit_window": None if exit_window is None else {"start_ns": exit_window["start_ns"],
-                                                         "end_ns": exit_window["end_ns"]},
+        "exit_window": None if exit_window is None else {
+            "start_ns": exit_window["start_ns"], "end_ns": exit_window["end_ns"], "axis": "NATIVE",
+            "qualification": "CONDITIONAL_ON_UNPROVEN_NATIVE_UTC_ALIGNMENT"},
         "rest_cross_check": {"rows_fetched": len(rest_rows), "last": rest_last,
                              "errors": dict(sorted(rest_errors.items())), "exit_window": cross},
         "hypotheses": hyp,
@@ -519,6 +558,7 @@ def replay_journal(manifest, events, *, as_of_ns=None):
         "limits": [
             "No admission verdict (MEO-02) and no scientific reading (MEO-03).",
             "Native times are unqualified; receipt times are host UTC bounded only by the clock check.",
+            "Any native/receipt comparison is conditional: alignment of native time with UTC is not demonstrated.",
             "Coverage is proven by contiguous trade ids under H2/H5; the tail after the last trade is never covered.",
             "Form and consistency only: a valid journal does not certify the market.",
         ],
@@ -542,7 +582,9 @@ def _window(bars, lo, hi, counted, t_spans):
     status = ("COVERED" if len(covered) == len(bars)
               else "NOT_COVERED" if not covered else "PARTIALLY_COVERED")
     w = {"start_ns": str(lo), "end_ns": str(hi), "status": status,
-         "transport_continuous_receipt_axis": any(a <= lo and hi <= b for a, b in t_spans),
+         # Native window bounds read against receipt spans: meaningful only IF native time is aligned
+         # with host UTC, which is not demonstrated (MEO-L1-RV01). A condition, never a proof.
+         "transport_continuous_if_native_aligned": any(a <= lo and hi <= b for a, b in t_spans),
          "bars": bars, "totals": None, "side_coverage": None, "delta_300s": None}
     if status != "COVERED":
         return w  # no total over an uncovered part: UNKNOWN is never 0
