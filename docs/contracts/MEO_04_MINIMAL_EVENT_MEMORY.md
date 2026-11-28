@@ -223,6 +223,18 @@ vérifier. Une ligne manquante, parasite ou modifiée donne `INDEX_INCONSISTENT`
   existait déjà. `recover` synchronise `proofs/` et tous les `proofs/<hh>/` du journal avant
   d'appliquer quoi que ce soit.
 
+## 4 ter. Contre-revue RV02-R2 (correctifs)
+
+- **Bornes prospectives (RV02-01).** Avant toute publication, un import refuse `BUDGET_EXCEEDED`
+  (`SESSIONS_PER_READ` ou `PROOF_BYTES_PER_CHECK`) s'il rendait la mémoire invérifiable en une passe.
+  Le décompte est celui de `verified_parts` (même fonction `_ref_bytes`, rôles dupliqués compris).
+  Le dernier état valide reste intact ; un ré-import identique reste `NO_OP`, même à saturation.
+- **Préfixe vérifié (RV02-02).** Avant `APPLIED_PENDING`, `recover` compare le préfixe indexé, ligne par
+  ligne, au journal et aux preuves. Un préfixe incohérent est reconstruit depuis l'autorité, sous le
+  budget disque. Toute erreur SQLite d'écriture devient `INDEX_INCONSISTENT:INDEX_WRITE_FAILED:<type>`.
+  Un refus laisse preuves, journal et marqueur intacts.
+- **Lecture refusée.** Un curseur refusé ferme sa transaction de lecture : elle ne bloque plus l'écrivain.
+
 ## 5. Limites
 
 - Mémoire descriptive : aucun détecteur, épisode, signal, prédiction ni ordre.

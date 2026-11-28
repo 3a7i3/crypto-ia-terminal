@@ -135,7 +135,11 @@ class Reader:
                 "memory_limits": MEMORY_LIMITS}
         if conn is None:
             return {**base, "result": "EMPTY", "items": [], "next_cursor": None}
-        after = _cursor_in(cursor, k, 3, hex_tail=True)
+        try:  # a refused cursor must not leave the read transaction open (it would block the writer)
+            after = _cursor_in(cursor, k, 3, hex_tail=True)
+        except BaseException:
+            conn.close()
+            raise
         where, args = ["knowledge_seq <= ?"], [k]
         if not include_excluded:
             where.append("eligible = 1")
@@ -180,7 +184,11 @@ class Reader:
                 "memory_limits": MEMORY_LIMITS}
         if conn is None:
             return {**base, "result": "EMPTY", "sessions": [], "next_cursor": None}
-        after = _cursor_in(cursor, k, 1)
+        try:
+            after = _cursor_in(cursor, k, 1)
+        except BaseException:
+            conn.close()
+            raise
         start = int(after[0]) if after else 0
         try:
             seqs = list(range(start + 1, min(k, start + n + 1) + 1))  # from the journal, not the index

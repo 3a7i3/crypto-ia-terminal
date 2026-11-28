@@ -288,7 +288,7 @@ class Store:
         by_role, kept = {p["role"]: p["sha256"] for p in rec["proofs"]}, {}
         for ref in rec["proofs"]:
             if budget is not None:
-                budget[0] -= ref["bytes"] if type(ref["bytes"]) is int else 0
+                budget[0] -= _ref_bytes(ref)
                 if budget[0] < 0:
                     raise MemoryRefusal(c.BUDGET_EXCEEDED, "PROOF_BYTES_PER_CHECK")
             data = self.read_proof(ref)
@@ -577,6 +577,8 @@ class Store:
             self._drop_unpublished(tmpname)
             if isinstance(exc, sqlite3.OperationalError) and "full" in str(exc):
                 raise MemoryRefusal(c.BUDGET_EXCEEDED, "ROOT_BUDGET:DURING_REBUILD") from None
+            if isinstance(exc, sqlite3.Error):  # RV02-02: typed, never a raw SQLite exception
+                raise MemoryRefusal(c.INDEX_INCONSISTENT, f"INDEX_WRITE_FAILED:{type(exc).__name__}") from None
             raise
         if os.lstat(tmppath).st_size > room:
             self._drop_unpublished(tmpname)
@@ -667,15 +669,21 @@ class Store:
         elif ok and head[0] < n and (head[0] == 0 and head[1] is None or
                                      head[0] > 0 and journal[head[0] - 1][1] == head[1]):
             pending = journal[head[0]:]
-            self._check_budget(sum(2 * _ROW_BYTES * (1 + len(r["windows"]) + len(r["events"])) + _PAGE * 4
-                                   for r, _s in pending))
-            conn = self._connect_rw(self.index_path)
-            try:
-                for rec, sha in pending:
-                    self._index_record(conn, rec, sha, parts[rec["knowledge_seq"]])
-            finally:
-                conn.close()
-            action, applied = "APPLIED_PENDING", n - head[0]
+            # RV02-02: the indexed prefix is verified row by row before anything is applied onto it;
+            # an inconsistent prefix (parasite, missing or modified row) is rebuilt from the authority.
+            if self._prefix_consistent(journal[:head[0]], parts):
+                self._check_budget(sum(2 * _ROW_BYTES * (1 + len(r["windows"]) + len(r["events"])) + _PAGE * 4
+                                       for r, _s in pending))
+                try:
+                    conn = self._connect_rw(self.index_path)
+                    try:
+                        for rec, sha in pending:
+                            self._index_record(conn, rec, sha, parts[rec["knowledge_seq"]])
+                    finally:
+                        conn.close()
+                    action, applied = "APPLIED_PENDING", n - head[0]
+                except sqlite3.Error:
+                    action = None  # not applied (transaction rolled back): rebuilt from the authority below
         if action is not None:  # the head matches: every row must match too (RV01-01)
             conn = self.connect_ro()
             try:
@@ -686,7 +694,20 @@ class Store:
                 pass
             finally:
                 conn.close()
-        return {"action": "REBUILT", **self._rebuild(journal, parts), "journal_head": n}
+        try:
+            return {"action": "REBUILT", **self._rebuild(journal, parts), "journal_head": n}
+        except sqlite3.Error as exc:  # RV02-02: never a raw SQLite exception as an operational result
+            raise MemoryRefusal(c.INDEX_INCONSISTENT, f"INDEX_WRITE_FAILED:{type(exc).__name__}") from None
+
+    def _prefix_consistent(self, prefix: list, parts: dict) -> bool:
+        conn = self.connect_ro()
+        try:
+            self.check_index(conn, prefix, {r["knowledge_seq"]: parts[r["knowledge_seq"]] for r, _s in prefix})
+            return True
+        except MemoryRefusal:
+            return False
+        finally:
+            conn.close()
 
     def recover(self) -> dict:
         with self.writer():
@@ -800,6 +821,13 @@ class Store:
                 "receipt_bounds_ns": v["receipt_bounds_ns"],
                 "windows": _listing(parts)[0], "events": _listing(parts)[1],
             }
+            # RV02-01: refuse, before any publication, an import whose result could no longer be
+            # verified in one pass (same accounting as verified_parts / session_parts).
+            if seq > self.limits.sessions_per_read:
+                raise MemoryRefusal(c.BUDGET_EXCEEDED, "SESSIONS_PER_READ")
+            if sum(_ref_bytes(r) for old, _s in journal for r in old["proofs"]) + sum(map(_ref_bytes, refs_)) \
+                    > self.limits.proof_bytes_per_check:
+                raise MemoryRefusal(c.BUDGET_EXCEEDED, "PROOF_BYTES_PER_CHECK")
             raw_rec = c.canonical(rec)
             if len(raw_rec) > self.limits.record_bytes:
                 raise MemoryRefusal(c.BUDGET_EXCEEDED, "RECORD_BYTES")
@@ -876,6 +904,11 @@ class Store:
                 "journal_head": len(journal), "proofs_referenced": len(referenced),
                 "orphan_proofs": sorted(stored - referenced), "orphan_temporaries": len(tmp),
                 "root_bytes": self._root_usage(), "budget_bytes": self.marker["budget_bytes"]}
+
+
+def _ref_bytes(ref: dict) -> int:
+    """Bytes a proof ref counts for in a verification pass (shared by import and verification)."""
+    return ref["bytes"] if type(ref["bytes"]) is int else 0
 
 
 def _i(text) -> int:
