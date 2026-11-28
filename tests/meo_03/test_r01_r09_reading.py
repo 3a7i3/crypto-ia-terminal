@@ -184,4 +184,5 @@ def test_r09_reading_module_is_pure_and_only_the_cli_uses_it():
             if p.suffix in (".py", ".ts", ".tsx") and p.is_file() and p.name != "meo_reading.py":
                 if "meo_reading" in p.read_text(errors="ignore"):
                     hits.append(str(p.relative_to(ROOT)))
-    assert hits == ["observability/meo_trades_replay.py"]
+    # MEO04-D01: the MEO-04 memory bridge re-runs the reading at import time (one-way dependency).
+    assert sorted(hits) == ["observability/meo_memory/engine.py", "observability/meo_trades_replay.py"]
